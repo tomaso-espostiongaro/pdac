@@ -4,6 +4,8 @@
         IMPLICIT NONE
         SAVE
 !
+!*******MX3D : vedi figura
+!
         INTEGER, PARAMETER :: bb_ = 1
         INTEGER, PARAMETER :: bl_ = 2
         INTEGER, PARAMETER :: b_  = 3
@@ -117,7 +119,9 @@
           REAL*8, INTENT(IN) :: zzero
           REAL*8, PARAMETER :: VERYBIG = 1.0d+10
           INTEGER :: i, j
-
+!
+! ... ONLY FOR CYLINDRICAL COORDINATES
+!
 ! ...     Set "r" dimension
           IF(itc.EQ.0) THEN
             DO i=1,nr
@@ -133,10 +137,6 @@
             END DO
           END IF
 !
-          DO i=1,nr
-            inr(i)=1.D0/r(i)
-          END DO  
-
           IF (rb(1) .EQ. 0.0D0) THEN
             inrb(1) = VERYBIG
           ELSE
@@ -146,30 +146,36 @@
           DO i=2,nr
             inrb(i)=1.D0/rb(i)
           END DO  
-
+!
+          DO i=1,nr
+            inr(i)=1.D0/r(i)
+          END DO  
           DO i=1,nr
             indr(i)=1.D0/dr(i)
           END DO  
+!
+! ... CARTESIAN COORDINATES
 !
 ! ...     Set "x" dimension
           xb(1) = 0.0d0
           DO j=1,(nx-1)
             xb(j+1)=xb(j)+dx(j+1)
           END DO
+!
           DO j=1,(nx-1)
             indx(j)=1.D0/dx(j)
           END DO 
-
+!
 ! ...     Set "y" dimension
           yb(1) = 0.0d0
           DO j=1,(ny-1)
             yb(j+1)=yb(j)+dy(j+1)
           END DO
+!
           DO j=1,(ny-1)
             indy(j)=1.D0/dy(j)
           END DO
-
-
+!
 ! ...     Set "z" dimension
           zb(1) = zzero
           DO j=1,(nz-1)
@@ -224,7 +230,6 @@
       END DO
       END SUBROUTINE
 !
-!
 !----------------------------------------------------------------------
 
 ! ... MODIFICARE_X3D (rivedere fino alla fine del file)
@@ -259,6 +264,9 @@
       n1 = 0
       diff = 0
 ! ... here count the flags
+!
+!*****MX3D ok
+!
       DO i = 1, SIZE(countfl)
         countfl(i) = COUNT((fl.EQ.i))
       END DO
@@ -267,6 +275,9 @@
 ! ... domain decomposition (build maps)
 !     1=layers
 !     2=blocks
+!
+!*****MX3D ok
+!
 
       part = 2
       IF (part .EQ. 1 .OR. nproc .LE. 2) THEN
@@ -274,11 +285,12 @@
       ELSE 
         CALL blocks
       END IF
-      DO i= 0, nproc-1
-      END DO
 !
 ! ... n1 is the balanced number of cells to each processor:
 ! 
+!
+!*****MX3D ok
+!
       DO ipe = 0, nproc - 1
         n1(ipe) = localdim(countfl(1), nproc, ipe)
         diff(ipe) = nij1(ipe) - n1(ipe)
@@ -599,6 +611,9 @@
 ! ... nset is the number of the neighbouring cells on other processor,
 ! ... summed over each local cell.
 !
+!
+!*****MX3D: il loop sulle celle interne va fatto con le nuove maps
+!
       nset   = 0
       nije_l = 0
       IF (part .EQ. 1 .OR. nproc .LE. 2) THEN
@@ -623,6 +638,9 @@
       END IF
 !
 ! ... ALLOCATE memory for the set of neighbouring cell on other proc.
+!
+!*****MX3D : cambia la prima dimensione di rcv_cell_set (4 -> 5) 
+!
       DO ipe = 0, nproc - 1
         IF(nset(ipe) .GT. 0 ) THEN
           ALLOCATE( rcv_cell_set(ipe)%i(4, nset(ipe)) )
@@ -635,6 +653,9 @@
       nij_l = nij(mpime)
 !
 ! ... allocate the indexes matrix
+!
+!*****MX3D : cambia myij(:,:,:,:), myinds(25,:)
+!
       ALLOCATE(myij(-2:2,-2:2,nij_l))
       ALLOCATE(myinds(12,nij_l))
       myij    = 0
@@ -645,6 +666,9 @@
       icnt  = 0
       nrcv  = 0
       IF (part .EQ. 1 .OR. nproc .LE. 2) THEN
+!
+!*****MX3D : cambia il loop sulle celle interne (v.sopra)
+!
         DO ij = lay_map(mpime,1), lay_map(mpime,2)
           IF ( fl(ij) .EQ. 1 ) THEN
           icnt = icnt + cell_neighbours(ij, mpime, nset, rcv_cell_set, myij)
@@ -665,11 +689,17 @@
        END DO
       END IF
 !
+!
+!*****MX3D : dimensioni di myij
+!
       DO ijl = 1, nij_l
 ! ...     store the global cell index ij, of the the local cell ijl
           myij(0, 0, ijl) = cell_l2g(ijl, mpime)
       END DO
 
+!
+!*****MX3D : ok
+!
       CALL cell_set_sort(rcv_cell_set, nset, nrcv)
 
 ! ... nrcv is the number of elements to be received from other proc
@@ -692,6 +722,9 @@
       WRITE(7,* ) ' # nije_l ', nije_l
       WRITE(7,* ) ' # nijx_l ', nijx_l
 
+!
+!*****MX3D : ok
+!
 ! ... prepare the receive map 
       DO ipe = 0, nproc - 1
         rcv_map(ipe)%nrcv = nrcv(ipe)
@@ -699,12 +732,18 @@
         NULLIFY( rcv_map(ipe)%ijl )
       END DO
 
+!
+!*****MX3D : ok
+!
 ! ... prepare the send map 
       DO ipe = 0, nproc - 1
         NULLIFY( snd_map(ipe)%ijsnd ) 
         NULLIFY( snd_map(ipe)%ijl ) 
       END DO
 
+!
+!*****MX3D : piccole modifiche a set_rcv_map
+!
 ! ... ALLOCATE and set the receiving map
       CALL set_rcv_map(rcv_map, myij, rcv_cell_set, nset, nrcv)
 
@@ -713,7 +752,11 @@
         WRITE(7,*) ' # nrcv ', nrcv(ipe), ' from ', ipe
       END DO
 ! ... using the receive maps fill in the sending maps
+!
+!*****MX3D : ok
+!
       DO ipe = 0, nproc - 1
+!
         IF( ASSOCIATED (snd_map(ipe)%ijsnd ) ) THEN
           DEALLOCATE( snd_map(ipe)%ijsnd)
         END IF
@@ -730,14 +773,17 @@
           nrcvx = MAXVAL(nrcv)
         END IF
 ! ...   each proc store the number of element he should send to ipe
+!
+!*****MX3D : ok (rivedere)
+!
         CALL scatter_integer(nrcv, snd_map(ipe)%nsnd, 1, ipe)
         CALL bcast_integer(nrcvx, 1, ipe)
 
-! ...   proc ipe send to other processor the array with the indexes of 
-! ...   the elements he should receive from each of the other proc. 
-! ...   ( rcv_map(jpe)%ijrcv )
-          ALLOCATE(ijrcv(nrcvx,0:nproc-1))
-          ALLOCATE(ijsnd(nrcvx))
+! ...   proc ipe send to other processors the array with the indexes of 
+! ...   the elements he should receive ( rcv_map(jpe)%ijrcv )
+!
+        ALLOCATE(ijrcv(nrcvx,0:nproc-1))
+        ALLOCATE(ijsnd(nrcvx))
         IF( ipe .EQ. mpime) THEN
           ijrcv = 0
           DO jpe = 0, nproc - 1
@@ -746,7 +792,9 @@
             END IF
           END DO 
         END IF 
+!
 ! ...   each proc store the index of the elements he should send to ipe
+!
         CALL scatter_integer(ijrcv, ijsnd, nrcvx, ipe)
         IF( ipe .NE. mpime) THEN
           ALLOCATE(snd_map(ipe)%ijsnd(snd_map(ipe)%nsnd))
@@ -761,7 +809,9 @@
           DEALLOCATE(ijsnd)
 
       END DO
-
+!
+!*****MX3D : ok
+!
       DO ipe = 0, nproc - 1
         WRITE(7,100) rcv_map(ipe)%nrcv, ipe
         IF(rcv_map(ipe)%nrcv .GT. 0 ) THEN
@@ -788,6 +838,9 @@
       CALL test_comm
       
 ! ... fill in the array myinds using myij
+!
+!*****MX3D : ok
+!
       ALLOCATE(fl_l(nijx_l))
       DO ijl = 1, nij_l
         ij = myij( 0, 0, ijl)
@@ -806,6 +859,9 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
+!
+!*****MX3D : cambiare secondo le nuove maps
+!
       INTEGER FUNCTION cell_owner(ij)
 ! ... gives the owner of a cells from its global index (ij)
         USE dimensions
@@ -831,6 +887,9 @@
       RETURN
       END FUNCTION     
 !----------------------------------------------------------------------
+!
+!*****MX3D : cambiare secondo le nuove maps
+!
       INTEGER FUNCTION cell_l2g(ijl, mpime)
       USE dimensions
       USE parallel, ONLY: nproc
@@ -851,6 +910,9 @@
       RETURN
       END FUNCTION     
 !----------------------------------------------------------------------
+!
+!*****MX3D : cambiare secondo le nuove maps
+!
       INTEGER FUNCTION cell_g2l(ij, mpime)
       USE dimensions
       USE parallel, ONLY: nproc
@@ -871,6 +933,9 @@
       RETURN
       END FUNCTION     
 !----------------------------------------------------------------------
+!
+!*****MX3D : aggiungere la terza dimensione nei loop
+!
       INTEGER FUNCTION cell_neighbours(ij, mpime, nset, rcv_cell_set, myij)
         USE dimensions
         USE basic_types, ONLY: imatrix
@@ -1003,7 +1068,9 @@
         RETURN
       END FUNCTION
 !----------------------------------------------------------------------
-
+!
+!*****MX3D : ok
+!
       SUBROUTINE cell_set_sort(rcv_cell_set, nset, nrcv)
         USE basic_types, ONLY: imatrix
         TYPE (imatrix) :: rcv_cell_set(0:)
@@ -1046,7 +1113,9 @@
         RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-
+!
+!*****MX3D : aggiungere la terza dimensione (anche se i,j,k non servono...)
+!
       SUBROUTINE set_rcv_map(rcv_map, myij, rcv_cell_set, nset, nrcv)
         USE basic_types, ONLY: imatrix 
         TYPE (rcv_map_type) :: rcv_map(0:)
@@ -1116,6 +1185,9 @@
       END SUBROUTINE
 
 !---------------------------------------------------
+!
+!*****MX3D : cambiare gli stencil
+!
       SUBROUTINE set_myinds(myinds, myij)
         USE dimensions
         IMPLICIT NONE
@@ -1241,7 +1313,9 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-
+!
+!*****MX3D : ok (rivedere)
+!
       SUBROUTINE data_exchange_r(array)
         USE parallel, ONLY: nproc, mpime
         IMPLICIT NONE
@@ -1350,3 +1424,4 @@
       END SUBROUTINE
 !----------------------------------------------------------------------
       END MODULE
+!----------------------------------------------------------------------
