@@ -86,7 +86,7 @@
       INTEGER :: nit, nloop, mustit
       INTEGER :: n1, n2
       REAL*8  :: avloop
-      INTEGER :: i_, j_, k_, ijk_
+      INTEGER :: i, j, k, ijk
 
       LOGICAL, ALLOCATABLE :: converge(:)
       LOGICAL :: cvg
@@ -124,11 +124,11 @@
 ! ... to update velocity fields. New velocities are
 ! ... biassed by the wrong (old) pressure field.
 !
-      DO ijk_ = 1, ncint
-        IF ( flag( ijk_ ) == 1) THEN
-          CALL first_subscr( ijk_ )
-          CALL assemble_matrix( ijk_ )
-          CALL solve_velocities( ijk_)
+      DO ijk = 1, ncint
+        IF ( flag( ijk ) == 1) THEN
+          CALL first_subscr( ijk )
+          CALL assemble_matrix( ijk )
+          CALL solve_velocities( ijk)
         END IF
       END DO
 ! 
@@ -150,23 +150,24 @@
         ALLOCATE( amats( 6, 6, ncint ) )
       END IF
 !
-! ... Compute the gas mass fluxes using the guessed velocities 
-!
+! ... compute the fraction of partially filled vent cells
       CALL fill_cells
 !
-      DO ijk_ = 1, ncint
-        IF ( flag( ijk_ ) == 1 ) THEN
-          CALL first_subscr( ijk_ )
-          CALL calc_gas_mass_flux( ijk_ )
+! ... Compute the gas mass fluxes using the guessed velocities 
+!
+      DO ijk = 1, ncint
+        IF ( flag( ijk ) == 1 ) THEN
+          CALL first_subscr( ijk )
+          CALL calc_gas_mass_flux( ijk )
           ! ... compute the derivative of the gas mass residual
           ! ... with respect to gas pressure
-          CALL betas( conv( ijk_ ), abeta( ijk_ ), ijk_ )
+          CALL betas( conv( ijk ), abeta( ijk ), ijk )
 
           IF(optimization) THEN
-            CALL meshinds(ijk_,imesh,i_,j_,k_)
-            CALL matspre_3phase(amats(:,1,ijk_),amats(:,2,ijk_),amats(:,3,ijk_),&
-                                amats(:,4,ijk_),amats(:,5,ijk_),amats(:,6,ijk_),&
-                                i_, j_, k_, ijk_ )
+            CALL meshinds(ijk,imesh,i,j,k)
+            CALL matspre_3phase(amats(:,1,ijk),amats(:,2,ijk),amats(:,3,ijk),&
+                                amats(:,4,ijk),amats(:,5,ijk),amats(:,6,ijk),&
+                                i, j, k, ijk )
           END IF
         END IF
       END DO
@@ -215,27 +216,27 @@
          n1 = 0
          n2 = 0
 
-         mesh_loop: DO ijk_ = 1, ncint
+         mesh_loop: DO ijk = 1, ncint
 
-           converge( ijk_ ) = .FALSE.
+           converge(ijk) = .FALSE.
 
-           IF( flag( ijk_ ) /= 1 ) THEN
+           IF( flag(ijk) /= 1 ) THEN
              
-             converge( ijk_ ) = .TRUE.
+             converge(ijk) = .TRUE.
            
-           ELSE IF( flag( ijk_ ) == 1 ) THEN
+           ELSE IF( flag(ijk) == 1 ) THEN
 
-             CALL meshinds( ijk_ , imesh, i_ , j_ , k_ )
-             CALL first_subscr( ijk_ )
+             CALL meshinds(ijk,imesh,i,j,k)
+             CALL first_subscr(ijk)
 
              ! ...   Compute the residual of the mass balance 
              ! ...   equation of the gas phase
              !
-             CALL calc_res( i_, j_, k_, ijk_ , dg )
+             CALL calc_res(i,j,k,ijk,dg)
 
              dgorig = dg
 
-             IF( ABS( dg ) <= conv( ijk_ ) ) THEN
+             IF( ABS( dg ) <= conv( ijk ) ) THEN
 
                n1 = n1 + 1
               
@@ -243,12 +244,12 @@
                ! ... compute the gas and particle densities and proceed 
                ! ... to next cell
                !
-               converge( ijk_ ) = .TRUE.
+               converge( ijk ) = .TRUE.
 
-               CALL calc_eps( i_, j_, k_, ijk_  )
-               rgp( ijk_ ) = ep( ijk_ ) * rog( ijk_ )
+               CALL calc_eps( i, j, k, ijk  )
+               rgp( ijk ) = ep( ijk ) * rog( ijk )
 
-             ELSE IF ( ABS(dg) > conv( ijk_ ) ) THEN
+             ELSE IF ( ABS(dg) > conv( ijk ) ) THEN
 
                n2 = n2 + 1
 !
@@ -257,15 +258,15 @@
                ! ... to correct pressure and velocities.
 !
                d3 = dg
-               p3 = p( ijk_ )
+               p3 = p( ijk )
 
                IF (optimization) THEN
-                 CALL opt3_inner_loop(i_, j_, k_, ijk_, nit, d3, p3, &
-                                  abeta(ijk_), conv(ijk_), &
+                 CALL opt3_inner_loop(i, j, k, ijk, nit, d3, p3, &
+                                  abeta(ijk), conv(ijk), &
                                   dgorig, nloop, cvg)
                ELSE
-                 CALL inner_loop(i_, j_, k_, ijk_, nit, d3, p3, &
-                                 abeta(ijk_),conv(ijk_), &
+                 CALL inner_loop(i, j, k, ijk, nit, d3, p3, &
+                                 abeta(ijk),conv(ijk), &
                                  dgorig, nloop, cvg)
                END IF
 
@@ -390,10 +391,10 @@
           WRITE(6,*) 'convergence on proc ',mpime,' : ', ALL(converge)
           IF (.NOT.ALL(converge))   &
                           WRITE(6,*) 'cells not converged (imesh,i,j,k): '
-          DO ijk_ = 1, ncint
-            IF ( .NOT. converge( ijk_ ) ) THEN
-              CALL meshinds( ijk_ , imesh, i_ , j_ , k_ )
-              WRITE(6,*) imesh, i_ , j_ , k_
+          DO ijk = 1, ncint
+            IF ( .NOT. converge( ijk ) ) THEN
+              CALL meshinds( ijk , imesh, i , j , k )
+              WRITE(6,*) imesh, i , j , k
             END IF
           END DO
  700      FORMAT('max number of iterations (',I5,') reached at time: ', F8.3)
@@ -428,7 +429,7 @@
       END SUBROUTINE iter
 !----------------------------------------------------------------------
 !
-      SUBROUTINE inner_loop( i, j, k, ijk, nit, d3, p3, abeta_, conv_,  &
+      SUBROUTINE inner_loop( i, j, k, ijk, nit, d3, p3, abeta, conv,  &
                              dgorig, nloop, cvg )
 !
 !----------------------------------------------------------------------
@@ -450,8 +451,8 @@
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: nit, ijk, i, j, k
-      REAL*8, INTENT(IN)  :: conv_
-      REAL*8, INTENT(INOUT)  :: d3, p3, abeta_, dgorig
+      REAL*8, INTENT(IN)  :: conv
+      REAL*8, INTENT(INOUT)  :: d3, p3, abeta, dgorig
       LOGICAL, INTENT(OUT) :: cvg
 
       REAL*8 :: resx, resy, resz
@@ -471,7 +472,7 @@
         ! ... and volumetric fractions ...
 !
         IF( (loop > 1) .OR. (nit > 1) ) THEN
-          CALL padjust(p(ijk), kros, d3, p3, omega, abeta_ )
+          CALL padjust(p(ijk), kros, d3, p3, omega, abeta )
         END IF
 !
         ! ... Use equation of state to calculate gas density 
@@ -495,6 +496,7 @@
         ! ... update the particle volumetric fractions and the void fraction
 
         ! ... WARNING! Only the local values of the stencil have to be updated!
+        ! ... This procedure can be optimized!
         !
         CALL calc_part_mass_flux( ijk )
         CALL calc_eps( i, j, k, ijk )
@@ -507,15 +509,15 @@
         CALL calc_gas_mass_flux( ijk )
         CALL calc_res( i, j, k, ijk, dg)
 !
-        IF ( ( DABS(dg) > conv_ .OR. DABS(dg) >= DABS(dgorig) ) ) THEN
+        IF ( ( DABS(dg) > conv .OR. DABS(dg) >= DABS(dgorig) ) ) THEN
 
           cvg = .FALSE.
           IF( nit == 1 .AND. loop == 1 ) dgorig = dg
           d3 = dg
           ! ... steepen the Newton's slope (accelerate)
-          IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
+          IF( kros < 2 .AND. loop == inmax ) abeta = 0.5D0 * inmax * abeta
 
-        ELSE IF ( DABS(dg) <= conv_ ) THEN
+        ELSE IF ( DABS(dg) <= conv ) THEN
 
           cvg = .TRUE.
           EXIT inloop

@@ -651,7 +651,7 @@
           DO i=2, nx-1
             DO k = 1, nz
               ijk = i + (j-1) * nx + (k-1) * nx * ny
-              IF (topo2d_c(i) > z(k)) THEN
+              IF (topo2d_c(i,j) > z(k)) THEN
                 fl(ijk) = 3
               ELSE
                 EXIT

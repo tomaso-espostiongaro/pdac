@@ -181,7 +181,7 @@
       
       IMPLICIT NONE
       REAL, INTENT(IN), DIMENSION(:) :: rhom, velm
-      REAL, INTENT(IN), DIMENSION(SIZE(rhom)) :: pdyn
+      REAL, DIMENSION(SIZE(rhom)) :: pdyn
 
       pdyn = 0.5 * rhom * velm**2
 
