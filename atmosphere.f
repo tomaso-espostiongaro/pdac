@@ -30,22 +30,30 @@
 !------------------------------------------------------------------------
       SUBROUTINE control_atmosphere
 
+      USE parallel, only: mpime, root
+
       IMPLICIT NONE
 
       stratification = .TRUE.
       IF (gravz == 0.0) THEN
          stratification = .FALSE.
       ELSE IF (gravz /= -9.81D0) THEN
-         WRITE(*,*) 'WARNING!! control atmospheric stratification'
+         IF( mpime == root ) THEN
+           WRITE(6,*) 'WARNING!! control atmospheric stratification'
+         END IF
       END IF
-      WRITE(*,*) 'Atmospheric stratification: ', stratification
-      WRITE(*,*) 'Gravity: ', gravz
+      IF( mpime == root ) THEN
+        WRITE(6,*) 'Atmospheric stratification: ', stratification
+        WRITE(6,*) 'Gravity: ', gravz
+      END IF
 !
       IF (stratification) THEN
-        IF (temp0 /= 288.15D0) WRITE(*,*) 'WARNING! control atmospheric &
+        IF( mpime == root ) THEN
+          IF (temp0 /= 288.15D0) WRITE(6,*) 'WARNING! control atmospheric &
                                           & temperature profile'
-        IF (p0 /= 1.01325D5) WRITE(*,*)   'WARNING! control atmospheric &
+          IF (p0 /= 1.01325D5) WRITE(6,*)   'WARNING! control atmospheric &
                                           & pressure profile'
+        END IF
       END IF	
 !
       END SUBROUTINE control_atmosphere
@@ -60,6 +68,7 @@
       USE control_flags, ONLY: lpr
       USE dimensions, ONLY: nz
       USE grid, ONLY: dz, zzero
+      USE parallel, only: mpime, root
 !
       IMPLICIT NONE
 
@@ -129,11 +138,13 @@
         layer(l)%ttop = ttop
 
         IF (lpr > 1) THEN
-          WRITE(*,*) layer(l)%name
-          WRITE(*,*) layer(l)%gradt
-          WRITE(*,*) layer(l)%ztop
-          WRITE(*,*) pbot, layer(l)%ptop
-          WRITE(*,*) tbot, layer(l)%ttop
+          IF( mpime == root ) THEN
+            WRITE(6,*) layer(l)%name
+            WRITE(6,*) layer(l)%gradt
+            WRITE(6,*) layer(l)%ztop
+            WRITE(6,*) pbot, layer(l)%ptop
+            WRITE(6,*) tbot, layer(l)%ttop
+          END IF
         END IF
 
       END DO

@@ -113,8 +113,8 @@ reactions.o : decomp.o dimensions.o grid.o indijk.o time.o
 roughness.o : dimensions.o 
 
 setup.o : atmosphere.o control.o decomp.o dens.o dimensions.o eosg.o eosl.o  \
-    gas.o grid.o immb.o indijk.o particles.o press.o reactions.o temp.o time.o  \
-    turbo.o velocity.o visc.o 
+    gas.o grid.o hcapgs.o immb.o indijk.o io.o particles.o press.o reactions.o  \
+    temp.o time.o turbo.o velocity.o visc.o 
 
 subscr.o : decomp.o dimensions.o indijk.o 
 

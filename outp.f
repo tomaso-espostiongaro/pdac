@@ -306,7 +306,6 @@
       WRITE(6,fmt="('  filtering molarfraction ')")
 !
       DO ig=1,ngas
-          ! otmp = xgc(ig,:)
           var = 'xg'//lettera2( ig )
           CALL read_array( 12, array, lform )  ! gc_molar_fraction
           CALL crop_array( var )  
@@ -315,7 +314,6 @@
       WRITE( 6, fmt="('  filtering solid density, velocities and temperature')")
 !
       DO is = 1, nsolid
-        ! otmp = rlk(:,is)*inrl(is)
         CALL read_array( 12, array, lform )  ! solid_bulk_density
         var = 'ep'//lettera2( is )
         CALL crop_array( var )  

@@ -21,6 +21,7 @@
         PRIVATE
 
         LOGICAL :: old_restart = .FALSE.
+        LOGICAL :: dump_all = .TRUE.
 
         REAL*8 :: max_seconds
 
@@ -32,6 +33,7 @@
         PUBLIC :: taperd, tapewr
         PUBLIC :: write_array, read_array
         PUBLIC :: max_seconds
+        PUBLIC :: dump_all
 
 !----------------------------------------------------------------------
         CONTAINS
@@ -54,7 +56,7 @@
 !
         OPEN(UNIT=9,form='unformatted', FILE = restart_file)
 !
-        WRITE(9) time, nx, ny, nz, nsolid, ngas, max_ngas, nfil
+        WRITE(9) time, nx, ny, nz, nsolid, ngas, nfil
 
       END IF
 !
@@ -63,12 +65,6 @@
 
       CALL write_array( 9, p, dbl, lform )
       
-      DO is = 1, nsolid
-        CALL write_array( 9, rlk(:,is), dbl, lform )
-      END DO
-
-      CALL write_array( 9, sieg, dbl, lform )
-
       IF (job_type == '2D') THEN
 
         CALL write_array( 9, ug, dbl, lform )
@@ -86,8 +82,10 @@
 
       END IF
 
+      CALL write_array( 9, sieg, dbl, lform )
+
       DO is = 1, nsolid
-        CALL write_array( 9, sies(:,is), dbl, lform )
+        CALL write_array( 9, rlk(:,is), dbl, lform )
       END DO
 
       IF (job_type == '2D') THEN
@@ -111,39 +109,47 @@
 
       END IF
 
+      DO is = 1, nsolid
+        CALL write_array( 9, sies(:,is), dbl, lform )
+      END DO
+
       DO ig = 1, ngas
         CALL write_array( 9, ygc(ig,:), dbl, lform )
       END DO
 !
-      CALL write_array( 9, rgp, dbl, lform )
+      IF( dump_all ) THEN
 
-      CALL write_array( 9, rog, dbl, lform )
+        CALL write_array( 9, rgp, dbl, lform )
 
-      CALL write_array( 9, ep, dbl, lform )
+        CALL write_array( 9, rog, dbl, lform )
 
-      CALL write_array( 9, tg, dbl, lform ) 
+        CALL write_array( 9, ep, dbl, lform )
 
-      DO is = 1, nsolid
-        CALL write_array( 9, ts(:,is), dbl, lform )
-      END DO
+        CALL write_array( 9, tg, dbl, lform ) 
 
-      DO ig = 1, ngas
-        CALL write_array( 9, rgpgc(:,ig), dbl, lform )
-      END DO
+        DO is = 1, nsolid
+          CALL write_array( 9, ts(:,is), dbl, lform )
+        END DO
 
-      DO ig = 1, ngas
-        CALL write_array( 9, xgc(ig,:), dbl, lform )
-      END DO
+        DO ig = 1, ngas
+          CALL write_array( 9, rgpgc(:,ig), dbl, lform )
+        END DO
 
-      CALL write_array( 9, cg, dbl, lform ) 
+        DO ig = 1, ngas
+          CALL write_array( 9, xgc(ig,:), dbl, lform )
+        END DO
 
-      DO is = 1, nsolid
-        CALL write_array( 9, ck(is,:), dbl, lform )
-      END DO
+        CALL write_array( 9, cg, dbl, lform ) 
 
-      DO ig = 1, ngas
-        CALL write_array( 9, cp(gas_type(ig),:), dbl, lform )
-      END DO
+        DO is = 1, nsolid
+          CALL write_array( 9, ck(is,:), dbl, lform )
+        END DO
+
+        DO ig = 1, ngas
+          CALL write_array( 9, cp(gas_type(ig),:), dbl, lform )
+        END DO
+
+      END IF
 !
       IF( mpime .EQ. root ) THEN
         CLOSE(9)
@@ -168,7 +174,7 @@
       IMPLICIT NONE
 !
       INTEGER :: i, j, k, ijk, is, imesh
-      INTEGER :: nx_, ny_, nz_, nsolid_, ngas_, max_ngas_
+      INTEGER :: nx_, ny_, nz_, nsolid_, ngas_
       INTEGER :: ig, info
       LOGICAL :: lform = .FALSE.
       REAL*8 :: zrif, trif, prif, hc
@@ -181,11 +187,7 @@
 !
         OPEN(UNIT=9,form='unformatted',FILE='pdac.res')
 
-        IF( old_restart ) THEN
-          READ(9) time, nx_, ny_, nz_, nsolid_, nfil
-        ELSE
-          READ(9) time, nx_, ny_, nz_, nsolid_, ngas_, max_ngas_, nfil
-        END IF
+        READ(9) time, nx_, ny_, nz_, nsolid_, ngas_, nfil
 
         WRITE(6,*) ' time =  ', time
         WRITE(6,*) ' nx   =  ', nx
@@ -193,7 +195,6 @@
         WRITE(6,*) ' nz   =  ', nz
         WRITE(6,*) ' nsolid   =  ', nsolid
         WRITE(6,*) ' ngas     =  ', ngas
-        WRITE(6,*) ' max_ngas =  ', ngas
         WRITE(6,*) ' nfil     =  ', nfil
 
       END IF
@@ -204,7 +205,6 @@
       CALL bcast_integer(nz_, 1, root)
       CALL bcast_integer(nsolid_, 1, root)
       CALL bcast_integer(ngas_, 1, root)
-      CALL bcast_integer(max_ngas_, 1, root)
       CALL bcast_integer(nfil, 1, root)
 
       IF( nx_ /= nx ) &
@@ -217,8 +217,6 @@
         CALL error(' taperd ',' inconsistent dimension nsolid ', nsolid_ )
       IF( ngas_ /= ngas .AND. .NOT. old_restart ) &
         CALL error(' taperd ',' inconsistent dimension ngas ', ngas_ )
-      IF( max_ngas_ /= max_ngas .AND. .NOT. old_restart ) &
-        CALL error(' taperd ',' inconsistent dimension max_ngas ', max_ngas_ )
 
       !
       !  read pressure
@@ -227,26 +225,6 @@
       CALL read_array( 9, p, dbl, lform )
       IF( ANY( p < 0 ) ) THEN
          WRITE(6,*) 'WARNING reading restart, p < 0'
-      END IF
-      
-      !
-      !  read particle density
-
-      rlk = 0.0d0
-      DO is = 1, nsolid
-        CALL read_array( 9, rlk(:,is), dbl, lform )
-      END DO
-      IF( ANY( rlk < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, rlk < 0'
-      END IF
-
-      !
-      !  read gas enthalpy
-
-      sieg = 0.0d0
-      CALL read_array( 9, sieg, dbl, lform )
-      IF( ANY( sieg < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, sieg < 0'
       END IF
 
       !
@@ -275,15 +253,25 @@
       END IF
 
       !
-      !  read particle enthalpy
+      !  read gas enthalpy
 
-      sies = 0.0d0
-      DO is = 1, nsolid
-        CALL read_array( 9, sies(:,is), dbl, lform )
-      END DO
-      IF( ANY( sies < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, sies < 0'
+      sieg = 0.0d0
+      CALL read_array( 9, sieg, dbl, lform )
+      IF( ANY( sieg < 0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, sieg < 0'
       END IF
+
+      !
+      !  read particle density
+
+      rlk = 0.0d0
+      DO is = 1, nsolid
+        CALL read_array( 9, rlk(:,is), dbl, lform )
+      END DO
+      IF( ANY( rlk < 0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, rlk < 0'
+      END IF
+
 
       !
       !  read particles velocity
@@ -315,153 +303,102 @@
       END IF
 
       !
-      !  read gas components
+      !  read particle enthalpy
 
-      IF( old_restart ) THEN
-        ALLOCATE( rtmp( max_ngas, SIZE( ygc, 2 ) ) )
+      sies = 0.0d0
+      DO is = 1, nsolid
+        CALL read_array( 9, sies(:,is), dbl, lform )
+      END DO
+      IF( ANY( sies < 0.0d0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, sies < 0'
       END IF
+
+      !
+      !  read gas components
 
       ygc = 0.0d0
 
-      IF( old_restart ) THEN
-        rtmp = 0.0d0
-        DO ig = 1, max_ngas
-          CALL read_array( 9, rtmp(ig,:), dbl, lform )
-        END DO
-        DO ig = 1, ngas
-          ygc( ig, : ) = rtmp( gas_type(ig), : )
-        END DO
-      ELSE
-        DO ig = 1, ngas
-          CALL read_array( 9, ygc(ig,:), dbl, lform )
-        END DO
-      END IF
+      DO ig = 1, ngas
+        CALL read_array( 9, ygc(ig,:), dbl, lform )
+      END DO
 
       IF( ANY( ygc < 0 ) ) THEN
          WRITE(6,*) 'WARNING reading restart, ycg < 0'
       END IF
 
-      rgp = 0.0d0
-      CALL read_array( 9, rgp, dbl, lform )
-      IF( ANY( rgp < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, rgp < 0'
-      END IF
+      IF( dump_all ) THEN
 
-      rog = 0.0d0
-      CALL read_array( 9, rog, dbl, lform )
-      IF( ANY( rog < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, rog < 0'
-      END IF
+        rgp = 0.0d0
+        CALL read_array( 9, rgp, dbl, lform )
+        IF( ANY( rgp < 0 ) ) THEN
+           WRITE(6,*) 'WARNING reading restart, rgp < 0'
+        END IF
 
-      ep = 0.0d0
-      CALL read_array( 9, ep, dbl, lform )
-      IF( ANY( ep < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, ep < 0'
-      END IF
+        rog = 0.0d0
+        CALL read_array( 9, rog, dbl, lform )
+        IF( ANY( rog < 0 ) ) THEN
+           WRITE(6,*) 'WARNING reading restart, rog < 0'
+        END IF
 
-      tg = 0.0d0
-      CALL read_array( 9, tg, dbl, lform ) 
-      IF( ANY( tg < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, tg < 0'
-      END IF
+        ep = 0.0d0
+        CALL read_array( 9, ep, dbl, lform )
+        IF( ANY( ep < 0 ) ) THEN
+           WRITE(6,*) 'WARNING reading restart, ep < 0'
+        END IF
 
-      ts = 0.0d0
-      DO is = 1, nsolid
-        CALL read_array( 9, ts(:,is), dbl, lform )
-      END DO
-      IF( ANY( ts < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, ts < 0'
-      END IF
+        tg = 0.0d0
+        CALL read_array( 9, tg, dbl, lform ) 
+        IF( ANY( tg < 0 ) ) THEN
+           WRITE(6,*) 'WARNING reading restart, tg < 0'
+        END IF
 
-      rgpgc = 0.0d0
-
-      IF( old_restart ) THEN
-        rtmp = 0.0d0
-        DO ig = 1, max_ngas
-          CALL read_array( 9, rtmp(ig,:), dbl, lform )
+        ts = 0.0d0
+        DO is = 1, nsolid
+          CALL read_array( 9, ts(:,is), dbl, lform )
         END DO
-        DO ig = 1, ngas
-          rgpgc( :, ig ) = rtmp( gas_type(ig), : )
-        END DO
-      ELSE
+        IF( ANY( ts < 0 ) ) THEN
+           WRITE(6,*) 'WARNING reading restart, ts < 0'
+        END IF
+
+        rgpgc = 0.0d0
         DO ig = 1, ngas
           CALL read_array( 9, rgpgc(:,ig), dbl, lform )
         END DO
-      END IF
-      IF( ANY( rgpgc < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, rgpgc < 0'
-      END IF
+        IF( ANY( rgpgc < 0 ) ) THEN
+           WRITE(6,*) 'WARNING reading restart, rgpgc < 0'
+        END IF
 
-      xgc = 0.0d0
-
-      IF( old_restart ) THEN
-        rtmp = 0.0d0
-        DO ig = 1, max_ngas
-          CALL read_array( 9, rtmp(ig,:), dbl, lform )
-        END DO
-        DO ig = 1, ngas
-          xgc( ig, : ) = rtmp( gas_type(ig), : )
-        END DO
-      ELSE
+        xgc = 0.0d0
         DO ig = 1, ngas
           CALL read_array( 9, xgc(ig,:), dbl, lform )
         END DO
-      END IF
-      IF( ANY( xgc < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, xgc < 0'
-      END IF
+        IF( ANY( xgc < 0 ) ) THEN
+           WRITE(6,*) 'WARNING reading restart, xgc < 0'
+        END IF
 
-      cg = 0.0d0
-      CALL read_array( 9, cg, dbl, lform ) 
-      IF( ANY( cg < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, cg < 0'
-      END IF
+        cg = 0.0d0
+        CALL read_array( 9, cg, dbl, lform ) 
+        IF( ANY( cg < 0 ) ) THEN
+           WRITE(6,*) 'WARNING reading restart, cg < 0'
+        END IF
 
-      ck = 0.0d0
-      DO is = 1, nsolid
-        CALL read_array( 9, ck(is,:), dbl, lform )
-      END DO
-      IF( ANY( ck < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, ck < 0'
-      END IF
-
-      cp = 0.0d0
-      IF( old_restart ) THEN
-        DO ig = 1, max_ngas
-          CALL read_array( 9, cp(ig,:), dbl, lform )
+        ck = 0.0d0
+        DO is = 1, nsolid
+          CALL read_array( 9, ck(is,:), dbl, lform )
         END DO
-      ELSE
+        IF( ANY( ck < 0 ) ) THEN
+           WRITE(6,*) 'WARNING reading restart, ck < 0'
+        END IF
+
+        cp = 0.0d0
         DO ig = 1, ngas
           CALL read_array( 9, cp(gas_type(ig),:), dbl, lform )
         END DO
-      END IF
-      IF( ANY( cp < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, cp < 0'
-      END IF
+        IF( ANY( cp < 0 ) ) THEN
+           WRITE(6,*) 'WARNING reading restart, cp < 0'
+        END IF
 
-      IF( old_restart ) THEN
-        DEALLOCATE( rtmp )
       END IF
-
-      ! Repair array (Carlo Debug)
-!      DO ijk = 1, ncint
-!        IF( tg( ijk ) <= 0.0d0 .OR. sieg( ijk ) <= 0.0d0 .OR. ALL( cp( :, ijk ) <= 0.0d0 ) ) THEN
-!          WRITE(6,*) ' P : ', tg(ijk), sieg(ijk), cp(:,ijk)
-!          CALL meshinds( ijk, imesh, i, j, k )
-!          zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )
-!          p(ijk) = p_atm(k)
-!          tg(ijk) = t_atm(k)
-!          CALL hcapg( cp(:,ijk), tg(ijk))
-!          WRITE(6,*) ' I : ', tg(ijk), sieg(ijk), cp(:,ijk)
-!          hc = 0.D0
-!          DO ig = 1, ngas
-!            hc = hc + cp(ig,ijk) * ygc(ig,ijk)
-!          END DO
-!          cg(ijk) = hc
-!          sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
-!          WRITE(6,*) ' D : ', tg(ijk), sieg(ijk), cp(:,ijk)
-!        END IF
-!      END DO
 
       IF( mpime .EQ. root ) THEN
         CLOSE (9)

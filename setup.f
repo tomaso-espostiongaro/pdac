@@ -159,6 +159,52 @@
         
         END DO 
 !
+! ... initial conditions already set from RESTART file
+!
+      ELSE IF (itd == 2) THEN 
+!
+        CONTINUE
+!
+! ... set initial conditions from OUTPUT file
+!
+      ELSE IF (itd >= 3) THEN 
+
+        CONTINUE
+!
+      END IF
+!
+      RETURN
+      END SUBROUTINE setup
+!----------------------------------------------------------------------
+      SUBROUTINE resetup
+
+! ... Set initial conditions
+! ... (2D/3D_Compliant)
+!
+      USE control_flags, ONLY: job_type
+      USE grid, ONLY: flag
+      USE dimensions
+      USE domain_decomposition, ONLY: ncint
+      USE eos_gas, ONLY: mas, cnvertg, xgc, ygc, rgpgc
+      USE eos_solid, ONLY: cnverts, caloric_eosl
+      USE gas_constants, ONLY: gas_type, gmw, rgas
+      USE gas_solid_density, ONLY: rlk, rog, rgp
+      USE particles_constants, ONLY: inrl, cps
+      USE pressure_epsilon, ONLY: ep, p
+      USE time_parameters, ONLY: itd
+      USE io_restart, ONLY: dump_all
+      USE specific_heat_module, ONLY: ck, cp
+      USE eos_gas, ONLY: cg, caloric_eosg, thermal_eosg, mole
+      USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
+
+      IMPLICIT NONE
+!
+      INTEGER :: ijk, info
+      INTEGER :: ig, is, dfg
+      REAL*8  :: xgc_def, mass, tem, rls
+!
+      IF (itd <= 1) THEN
+!
 ! ... Compute thermodynamic quantities
 !
         DO  ijk = 1, ncint
@@ -185,50 +231,40 @@
 !
       ELSE IF (itd == 2) THEN 
 !
-        CONTINUE
-!
-! ... set initial conditions from OUTPUT file
-!
-      ELSE IF (itd >= 3) THEN 
+        ep  = 0.0d0
+        xgc = 0.0d0
+        ! cp  = 0.0d0
+        DO ijk = 1, ncint
+            ! CALL caloric_eosg(cp(:,ijk), cg(ijk), tg(ijk), ygc(:,ijk), sieg(ijk), ijk, info)
+            CALL mole( xgc(:,ijk), ygc(:,ijk) )
+            rls = 0.0d0
+            DO is = 1, nsolid
+              rls = rls + rlk(ijk,is) * inrl(is)
+            END DO
+            ep(ijk) = 1.D0 - rls
+            DO is = 1, nsolid
+              CALL caloric_eosl( ts(ijk,is), cps(is), ck(is,ijk), sies(ijk,is) )
+            END DO
+        END DO
 
-        CONTINUE
-!
-      END IF
-!
-      RETURN
-      END SUBROUTINE setup
-!----------------------------------------------------------------------
-      SUBROUTINE resetup
-
-! ... Set initial conditions
-! ... (2D/3D_Compliant)
-!
-      USE control_flags, ONLY: job_type
-      USE dimensions
-      USE domain_decomposition, ONLY: ncint
-      USE eos_gas, ONLY: mas, cnvertg, xgc, ygc
-      USE eos_solid, ONLY: cnverts
-      USE gas_constants, ONLY: gas_type
-      USE gas_solid_density, ONLY: rlk
-      USE particles_constants, ONLY: inrl
-      USE pressure_epsilon, ONLY: ep
-      USE time_parameters, ONLY: itd
-
-      IMPLICIT NONE
-!
-      INTEGER :: ijk
-      INTEGER :: ig, is, dfg
-      REAL*8  :: xgc_def
-!
-      IF (itd <= 1) THEN
-!
-        CONTINUE
-!
-! ... initial conditions already set from RESTART file
-!
-      ELSE IF (itd == 2) THEN 
-!
-        CONTINUE
+        IF( .NOT. dump_all ) THEN
+          DO ijk = 1, ncint
+            CALL caloric_eosg(cp(:,ijk), cg(ijk), tg(ijk), ygc(:,ijk), sieg(ijk), ijk, info)
+            CALL mole( xgc(:,ijk), ygc(:,ijk) )
+            CALL thermal_eosg( rog(ijk), tg(ijk), p(ijk), xgc(:,ijk) )
+            ep(ijk) = 1.D0
+            DO is = 1, nsolid
+              ep(ijk) = ep(ijk) - rlk(ijk,is) * inrl(is)
+            END DO
+            rgp(ijk) = rog(ijk) * ep(ijk)
+            DO ig = 1, ngas
+              rgpgc(ijk,ig) = ygc(ig,ijk) * rgp(ijk)
+            END DO
+            DO is = 1, nsolid
+              CALL caloric_eosl( ts(ijk,is), cps(is), ck(is,ijk), sies(ijk,is) )
+            END DO
+          END DO
+        END IF
 !
 ! ... set initial conditions from OUTPUT file
 !

@@ -1,5 +1,9 @@
 !------------------------------------------------------------------------------!
 
+#if defined __INTEL
+#define MPI_INTEGER4 MPI_INTEGER
+#endif
+
       SUBROUTINE BCAST_REAL(ARRAY,N,root)
         IMPLICIT NONE
         REAL*8 array(*)
