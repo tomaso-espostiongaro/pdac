@@ -144,7 +144,7 @@
 !-----------------------------------------------------------------------
       SUBROUTINE process
       USE derived_fields
-      USE io_files, ONLY: checkunit
+      USE io_files, ONLY: tempunit
       USE grid, ONLY: z
 
       IMPLICIT NONE
@@ -153,6 +153,8 @@
       LOGICAL :: lform
       REAL, ALLOCATABLE, DIMENSION(:) :: rm, rg, bd, m, um, wm, mvm, c, mc 
       REAL, ALLOCATABLE, DIMENSION(:) :: epstot, lepstot
+      CHARACTER(LEN = 14) :: filnam
+      CHARACTER(LEN = 4 ) :: lettera
 !
       lform = formatted_output
 
@@ -172,6 +174,8 @@
 !
       DO tn = first_out, last_out, incr_out
 
+        filnam = 'log10epst.'//lettera(tn)
+        OPEN(tempunit,FILE=filnam, STATUS='NEW', FORM='UNFORMATTED')
         WRITE(logunit,fmt="(/,'* Starting post-processing ',I5,' * ')" ) tn
         CALL read_output ( tn )
 
@@ -189,7 +193,8 @@
 
         mc = mach(mvm,c)
 
-        CALL write_array( checkunit, lepstot, lform )
+        CALL write_array( tempunit, lepstot, lform )
+        CLOSE(tempunit)
 
       END DO
 !
