@@ -33,7 +33,8 @@
       USE phases_matrix, ONLY: mats, mats2, velsk, velsk2
       USE phases_matrix, ONLY: mats_3phase
       USE pressure_epsilon, ONLY: p, ep
-      USE set_indexes
+      USE set_indexes, ONLY: stencil, nb, rnb
+      USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
       USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
       USE time_parameters, ONLY: time, dt, timestart, tpr
       USE control_flags, ONLY: job_type
@@ -43,13 +44,13 @@
 ! ... HW performance monitor include file
 
 !#include "f_hpm.h" 
-
-!
 !
       INTEGER :: i, j , k, ijk, is, imesh
-      REAL*8 :: rlkx, rlky, rlkz, dgorig, eps, rls
-      REAL*8 :: omega0, dgx, dgy, dgz
-      REAL*8  :: d3, p3
+      REAL*8 :: dgorig
+      REAL*8 :: rls
+      REAL*8 :: rlkx, rlky, rlkz
+      REAL*8 :: omega0
+      REAL*8 :: d3, p3
 
       INTEGER :: nit, loop, mustit, kros
       LOGICAL, ALLOCATABLE :: converge(:)
@@ -67,7 +68,7 @@
 ! ... Allocate and initialize local mass fluxes.
 !
       ALLOCATE( rgfe( ncdom ), rgfn( ncdom ), rgft( ncdom ))
-      ALLOCATE( rsfe( nsolid, ncdom ), rsfn( nsolid, ncdom ), rsft( nsolid, ncdom ))
+      ALLOCATE( rsfe( ncdom, nsolid ), rsfn( ncdom, nsolid ), rsft( ncdom, nsolid ))
       rgfe = 0.0D0
       rgfn = 0.0D0
       rgft = 0.0D0
@@ -108,6 +109,7 @@
         IF (fl_l(ijk) == 1) THEN
           CALL subscr(ijk)
           imesh = myijk( ip0_jp0_kp0_, ijk)
+          
           CALL nb(dens,rgp,ijk)
           CALL rnb(u,ug,ijk)
           CALL rnb(v,vg,ijk)
@@ -131,10 +133,6 @@
 ! ... Start the HW performance monitor
 !      call f_hpmstart( 1, ' ITER ' )
 !
-      dgx = 0.0D0
-      dgy = 0.0D0
-      dgz = 0.0D0
-!
       sor_loop: DO nit = 1, maxout
 !
 !         call f_hpmstart( 2, ' SWEEP ' )
@@ -147,181 +145,94 @@
 	   i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
            j = MOD( imesh - 1, nx*ny ) / nx + 1
            k = ( imesh - 1 ) / ( nx*ny ) + 1
-           
-            CALL subscr(ijk)
+           CALL subscr(ijk)
 
-            first = .TRUE.
+           first = .TRUE.
 
-            IF( fl_l(ijk) /= 1 ) converge(ijk) = .TRUE.
-            IF( fl_l(ijk) == 1 ) THEN
-
-              loop =  0
-              kros = -1
+           IF( fl_l(ijk) /= 1 ) converge(ijk) = .TRUE.
+           IF( fl_l(ijk) == 1 ) THEN
 !
-! ... Compute the residual of the Mass Balance equation of the gas phase
-! ... using guessed velocities and pressure.
-!
-              dgx = (rgfe(ijk) - rgfe(imjk)) * indx(i)
-              dgy = (rgfn(ijk) - rgfn(ijmk)) * indy(j)
-              dgz = (rgft(ijk) - rgft(ijkm)) * indz(k)
-              dg  = rgp(ijk) - rgpn(ijk) + dt * (dgx+dgy+dgz)
-!                  - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
+              CALL calc_res(dg)
               dgorig = dg
 !
-! ... If the residual is lower than the prescribed limit
-! ... velocities and pressure have the correct values.
-! ... Use the Mass Balance equation of the particulate phases
-! ... to compute particle volumetric fractions.
-!
-
               IF(DABS(dg) <= conv(ijk)) THEN
-
+                ! ... If the residual is higher then the prescribed limit
+                ! ... compute the gas and particle densities and proceed 
+                ! ... to next cell
                 converge(ijk) = .TRUE.
-                rls = 0.D0
-                DO is = 1, nsolid
 
-                  rlkx = (rsfe(is,ijk) - rsfe(is,imjk)) * indx(i)
-                  rlky = (rsfn(is,ijk) - rsfn(is,ijmk)) * indy(j)
-                  rlkz = (rsft(is,ijk) - rsft(is,ijkm)) * indz(k)
-                  rlk( ijk, is) = rlkn( ijk,is ) - dt * (rlkx+rlky+rlkz)
-!                  - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
-                  IF( rlk(ijk,is) < 0.D0 ) rlk(ijk,is) = 0.D0
-                  rls = rls + rlk( ijk,is) * inrl(is)
-                END DO
-                eps=rls
-                IF(eps > 1.D0) THEN
-                  WRITE(8,*) 'warning1: mass is not conserved'
-                  WRITE(8,*) 'time,i,j,k,epst',time,i,j,k,eps
-                  CALL error('iter', 'warning: mass is not conserved',1)
-                ENDIF
-                ep(ijk) = 1.D0 - eps
-                rgp(ijk) = rog(ijk) * ep(ijk)
-
-              ELSE
-!
-! ... If the residual is higher then the prescribed limit
-! ... start the internal (in-cell) iterative sweep
-! ... to correct pressure and velocities.
-!
-                d3=dg
-                p3=p(ijk)
-
- 10             CONTINUE
-!
-! ... Correct the pressure at current location
-! ... by using successively the Newton's method
-! ... (or the secant method where Newton' fails)
-! ... and the two-sided secant method.
-! ... The first time in the loop, skip correction
-! ... after calculation of particle velocities 
-! ... and particle volumetric fractions ...
-!
-                IF( .NOT. ( first .AND. (nit == 1) ) ) THEN
-                  CALL padjust(p(ijk), kros, d3, p3, omega, abeta(ijk))
-                END IF
-                first = .FALSE.
-!
-! ... Use equation of state to calculate gas density 
-! ... from new pressure and old temperature.
-!
-                CALL eosg(rags,rog(ijk),cp(:,ijk),cg(ijk),      &    
-                          tg(ijk), ygc(:,ijk), xgc(:,ijk),      &
-                          sieg(ijk), p(ijk), 0, 1, 0, imesh)
-
+                CALL calc_eps
                 rgp(ijk) = ep(ijk) * rog(ijk)
-!
-! ... Update gas and particles velocities using the corrected pressure
-! ... at current location. Pressure at neighbour locations
-! ... could still be wrong.
 
-                !IF( MOD( ijk, 100 ) == 0 ) call f_hpmstart( 5, ' ITER_masf ')
+              ELSE IF (DABS(dg) > conv(ijk)) THEN
 !
-                IF( nphase == 3 ) THEN
-                  CALL mats_3phase(ijk)
-                ELSE
-                  CALL mats(ijk)
-                END IF
+                ! ... If the residual is higher then the prescribed limit
+                ! ... start the internal (in-cell) iterative loop
+                ! ... to correct pressure and velocities.
+!
+                d3 = dg
+                p3 = p(ijk)
+                kros = -1
 
-                CALL velsk(ijk)
+                inner_loop: DO loop = 1, inmax
 !
-! ... Put the new biassed velocities into the Particle Mass Balance
-! ... equation ...
+                  ! ... Correct the pressure at current cell
+                  ! ... by using successively the Newton's method
+                  ! ... (or the secant method where Newton is not
+                  ! ... applicable) and the two-sided secant method.
+                  ! ... The first time in the loop, skip correction
+                  ! ... to compute once the particle velocities 
+                  ! ... and volumetric fractions ...
 !
-                rls=0.D0
-                DO is=1,nsolid
-                  CALL nb(dens,rlk(:,is),ijk)
-                  CALL rnb(u,us(:,is),ijk)
-                  CALL rnb(v,vs(:,is),ijk)
-                  CALL rnb(w,ws(:,is),ijk)
+                  IF( .NOT. ( first .AND. (nit == 1) ) ) THEN
+                    CALL padjust(p(ijk), kros, d3, p3, omega, abeta(ijk))
+                  END IF
+                  first = .FALSE.
+!
+                  ! ... Use equation of state to calculate gas density 
+                  ! ... from new pressure and old temperature.
+!
+                  CALL eosg(rags,rog(ijk),cp(:,ijk),cg(ijk),      &    
+                            tg(ijk), ygc(:,ijk), xgc(:,ijk),      &
+                            sieg(ijk), p(ijk), 0, 1, 0, imesh)
 
-                  CALL fmas(rsfe(is,ijk),  rsfn(is,ijk),  rsft(is,ijk),    &
-                            rsfe(is,imjk), rsfn(is,ijmk), rsft(is,ijkm),   &
-                            dens, u, v, w, ijk)
+                  rgp(ijk) = ep(ijk) * rog(ijk)
+!
+                  ! ... Update gas and particles velocities using the 
+                  ! ... corrected pressure at current location. 
+                  ! ... Pressure at neighbour cells could still be wrong.
 
+                  !IF( MOD( ijk, 100 ) == 0 ) call f_hpmstart( 5, ' ITER_masf ')
 !
-! ... and compute the corrected particle densities.
-!
-                  rlkx = (rsfe(is,ijk)-rsfe(is,imjk)) * indx(i)
-                  rlky = (rsfn(is,ijk)-rsfn(is,ijmk)) * indy(j)
-                  rlkz = (rsft(is,ijk)-rsft(is,ijkm)) * indz(k)
-                  rlk(ijk,is) = rlkn(ijk,is) - dt * (rlkx+rlky+rlkz)
-!                             - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
-                  IF (rlk(ijk,is) < 0.D0) rlk(ijk,is)=0.D0
-                  rls=rls+rlk(ijk,is)*inrl(is)
-                END DO
-                eps=rls
-                IF(eps > 1.D0) THEN
-                  WRITE(8,*) 'warning2: mass is not conserved'
-                  WRITE(8,*) 'time,i,j,k,epst',time,i,j,k,eps
-                  CALL error('iter', 'warning: mass is not conserved',1)
-                ENDIF
+                  IF( nphase == 3 ) THEN
+                    CALL mats_3phase(ijk)
+                  ELSE
+                    CALL mats(ijk)
+                  END IF
+                  CALL velsk(ijk)
 
-                ! if( MOD(ijk,100) == 0 ) call f_hpmstop( 5 )
+                  ! if( MOD(ijk,100) == 0 ) call f_hpmstop( 5 )
 !
-! ... Update gas volumetric fraction and gas density.
+                  ! ... update gas and particle densities and the 
+                  ! ... gas mass residual
+                  CALL update_eps
+                  rgp(ijk) = ep(ijk) * rog(ijk)
+                  CALL update_res(dg)
 !
-                ep(ijk)  = 1.D0 - eps
-                rgp(ijk) = rog(ijk) * ep(ijk)
-!
-! ... Calculate the new value of the residual
-! ... (at least one internal iteration must be done).
-!
-                IF(DABS(dg) > conv(ijk)) THEN
-                   CALL nb(dens,rgp,ijk)
-                   CALL rnb(u,ug,ijk)
-                   CALL rnb(v,vg,ijk)
-                   CALL rnb(w,wg,ijk)
-
-                   CALL fmas(rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &
-                             rgfe(imjk), rgfn(ijmk), rgft(ijkm),    &
-                             dens, u, v, w, ijk)
-
-                   dgx = (rgfe(ijk) - rgfe(imjk)) * indx(i)
-                   dgy = (rgfn(ijk) - rgfn(ijmk)) * indy(j)
-                   dgz = (rgft(ijk) - rgft(ijkm)) * indz(k)
-                   dg  = rgp(ijk) - rgpn(ijk) + dt * (dgx+dgy+dgz)
-!                      - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
-!
-! ... If the new residual is still greater then the prescribed value
-! ... continue the internal sweep until the maximum number (inmax) 
-! ... of inner iteration is reached.
-!
-                   IF ((DABS(dg) > conv(ijk) .OR. DABS(dg) >= DABS(dgorig))) THEN
-                     IF(nit == 1 .AND. loop == 0) dgorig=dg
-                     d3=dg
-                     loop=loop+1
-! ... steepen the Newton's slope (accelerate)
-                     IF(kros < 2 .AND. loop == inmax) abeta(ijk)=0.5D0*DBLE(inmax)*abeta(ijk)
-! ... new inner iteration
-                     IF(loop < inmax) THEN
-                       GOTO 10
-                     END IF
-                   END IF
-                END IF
+                  IF ((DABS(dg) > conv(ijk) .OR. DABS(dg) >= DABS(dgorig))) THEN
+                    IF(nit == 1 .AND. loop == 1) dgorig=dg
+                    d3=dg
+                    ! ... steepen the Newton's slope (accelerate)
+                    IF(kros < 2 .AND. loop == inmax) &
+                       abeta(ijk) = 0.5D0 * inmax * abeta(ijk)
+                  ELSE IF (DABS(dg) <= conv(ijk)) THEN
+                    EXIT inner_loop
+                  END IF
+                END DO inner_loop
 !
               END IF
-            END IF    
 
+           END IF    
          END DO mesh_loop
 
 !        call f_hpmstop( 2 )
@@ -411,8 +322,113 @@
       DEALLOCATE(converge)
 !
       RETURN
-      END SUBROUTINE
+!----------------------------------------------------------------------
+      CONTAINS
+!----------------------------------------------------------------------
+      SUBROUTINE calc_eps
+! ... Use the Mass Balance equation of the solids
+! ... to compute particle volumetric fractions and the void fraction.
 !
+      IMPLICIT NONE
+
+      rls = 0.D0
+      DO is = 1, nsolid
+        rlkx = (rsfe(ijk,is) - rsfe(imjk,is)) * indx(i)
+        rlky = (rsfn(ijk,is) - rsfn(ijmk,is)) * indy(j)
+        rlkz = (rsft(ijk,is) - rsft(ijkm,is)) * indz(k)
+        rlk( ijk, is) = rlkn( ijk,is ) - dt * (rlkx+rlky+rlkz)
+!        - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
+        IF( rlk(ijk,is) < 0.D0 ) rlk(ijk,is) = 0.D0
+        rls = rls + rlk( ijk,is) * inrl(is)
+      END DO
+      
+      IF(rls > 1.D0) THEN
+        WRITE(8,*) 'warning1: mass is not conserved'
+        WRITE(8,*) 'time,i,j,k,rls',time,i,j,k,rls
+        CALL error('iter', 'warning: mass is not conserved',1)
+      ENDIF
+      ep(ijk) = 1.D0 - rls
+
+      END SUBROUTINE calc_eps
+!-------------------------------------------------------------------------
+      SUBROUTINE update_eps
+! ... updates the void fraction and solid densities by solving
+! ... Mass balance equations of particles with the new fluxes
+
+      IMPLICIT NONE
+
+      rls = 0.D0
+      DO is = 1, nsolid
+        CALL nb(dens,rlk(:,is),ijk)
+        CALL rnb(u,us(:,is),ijk)
+        CALL rnb(v,vs(:,is),ijk)
+        CALL rnb(w,ws(:,is),ijk)
+
+        CALL fmas(rsfe(ijk,is),  rsfn(ijk,is),  rsft(ijk,is),    &
+                  rsfe(imjk,is), rsfn(ijmk,is), rsft(ijkm,is),   &
+                  dens, u, v, w, ijk)
+
+        rlkx = (rsfe(ijk,is) - rsfe(imjk,is)) * indx(i)
+        rlky = (rsfn(ijk,is) - rsfn(ijmk,is)) * indy(j)
+        rlkz = (rsft(ijk,is) - rsft(ijkm,is)) * indz(k)
+        rlk( ijk, is) = rlkn( ijk,is ) - dt * (rlkx+rlky+rlkz)
+!        - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
+        IF( rlk(ijk,is) < 0.D0 ) rlk(ijk,is) = 0.D0
+        rls = rls + rlk( ijk,is) * inrl(is)
+      END DO
+      
+      IF(rls > 1.D0) THEN
+        WRITE(8,*) 'warning2: mass is not conserved'
+        WRITE(8,*) 'time,i,j,k,rls',time,i,j,k,rls
+        CALL error('iter', 'warning: mass is not conserved',1)
+      ENDIF
+      ep(ijk) = 1.D0 - rls
+
+      END SUBROUTINE update_eps
+!----------------------------------------------------------------------
+      SUBROUTINE calc_res(res)
+! ... Compute the residual of the Mass Balance equation of the gas phase
+!
+      IMPLICIT NONE
+      REAL*8 :: resx, resy, resz
+      REAL*8, INTENT(OUT) :: res
+!      
+      resx = (rgfe(ijk) - rgfe(imjk)) * indx(i)
+      resy = (rgfn(ijk) - rgfn(ijmk)) * indy(j)
+      resz = (rgft(ijk) - rgft(ijkm)) * indz(k)
+      res  = rgp(ijk) - rgpn(ijk) + dt * (resx+resy+resz)
+!            - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
+
+      RETURN
+      END SUBROUTINE calc_res
+!----------------------------------------------------------------------
+      SUBROUTINE update_res(res)
+! ... update residual of the Mass Balance equation of the gas phase
+! ... using guessed velocities and pressure.
+!
+      IMPLICIT NONE
+      REAL*8 :: resx, resy, resz
+      REAL*8, INTENT(OUT) :: res
+!      
+      CALL nb(dens,rgp,ijk)
+      CALL rnb(u,ug,ijk)
+      CALL rnb(v,vg,ijk)
+      CALL rnb(w,wg,ijk)
+
+      CALL fmas(rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &
+                rgfe(imjk), rgfn(ijmk), rgft(ijkm),    &
+                dens, u, v, w, ijk)
+
+      resx = (rgfe(ijk) - rgfe(imjk)) * indx(i)
+      resy = (rgfn(ijk) - rgfn(ijmk)) * indy(j)
+      resz = (rgft(ijk) - rgft(ijkm)) * indz(k)
+      res  = rgp(ijk) - rgpn(ijk) + dt * (resx+resy+resz)
+!            - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
+      
+      RETURN
+      END SUBROUTINE update_res
+!----------------------------------------------------------------------
+      END SUBROUTINE iter
 !----------------------------------------------------------------------
         SUBROUTINE padjust(p, kros, d3, p3, omega, abeta)
           REAL*8 :: p, d3, p3, omega, abeta
