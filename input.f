@@ -197,7 +197,7 @@
       n0z = 10                !  number of cell with minimum size
       itc = 0                 !  itc = 1 cylindrical coordinates are used
       grigen = 0              !  flag for grid generation 0 = no grid gen.
-      maxbeta = 2.0           !  maximum increase rate for non-uniform meshes
+      maxbeta = 1.2           !  maximum increase rate for non-uniform meshes
       mesh_partition = 1      !  type of partition
       iuni = 0                !  1 = uniform grid, 0 = non uniform grid
       dz0  = 20.D0            !  default cell z size in meters

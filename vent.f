@@ -235,7 +235,7 @@
       REAL*8 :: ygcsum
       INTEGER :: ijk, imesh, i,j,k, is, ig, n
       REAL*8 :: alpha, beta, ra, dex, dey, angle, angle4
-      REAL*8 :: fact_r, fact_a
+      REAL*8 :: fact_r
 
       IF (job_type == '2D') RETURN
       
@@ -297,27 +297,26 @@
           ! 
           IF (wrat > 1.D0) THEN
             beta = 1.D0 / (wrat - 1.D0)
+            dey = y(j)-yvent
+            dex = x(i)-xvent
             ra = DSQRT(dex**2 + dey**2)
             ra = MIN(ra / radius, 1.D0)
             fact_r = wrat * (1.D0 - ra ** beta)
             !
+            ! ... Angular modulation of the velocity profile
+            !
+            ! IF (dey /= 0.D0 ) THEN
+            !   angle = ATAN2(dey,dex)
+            ! ELSE IF (dex >= 0.D0) THEN
+            !   angle = 0.D0
+            ! ELSE IF (dex < 0.D0) THEN
+            !   angle = 4.D0 * ATAN(1.D0)
+            ! END IF
+            ! angle4 = angle*4.D0
+            ! fact_r = fact_r + 0.1D0 * COS(angle4)
+            !
             CALL correct_vent_profile(ijk,fact_r)
           END IF
-
-          ! ... Angular modulation of the velocity profile
-          !
-          ! dey = y(j)-yvent
-          ! dex = x(i)-xvent
-          ! IF (dey /= 0.D0 ) THEN
-          !   angle = ATAN2(dey,dex)
-          ! ELSE IF (dex >= 0.D0) THEN
-          !   angle = 0.D0
-          ! ELSE IF (dex < 0.D0) THEN
-          !   angle = 4.D0 * ATAN(1.D0)
-          ! END IF
-          ! angle4 = angle*4.D0
-          ! fact_a = 1.1D0 * COS(angle4)
-          ! CALL correct_vent_profile(ijk,fact_a)
 
           ! ... determine the initial random seed
           !
