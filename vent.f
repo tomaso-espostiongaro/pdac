@@ -102,7 +102,7 @@
           END IF
           !
           WRITE(7,10) nv, ijk, i, j, k, vcell(nv)%frac, fl(ijk)
- 10       FORMAT(I3,I7,3(I3),F6.3,I2)
+ 10       FORMAT(I3,I7,3(I3),F8.4,I2)
 !
 ! ... fluid cells above the vent
 !
@@ -198,7 +198,7 @@
 		INTEGER :: side		!(0=corner, 1=W, 2=N, 3=E, 4=S)
 	END TYPE polypoint
       TYPE(polypoint) :: poly_p(16) !intersection points of bound.cell and vent 
-								  !(from west-south corner, clowckwise)
+				    !(from west-south corner, clowckwise)
 	INTEGER :: n,l
 
 	REAL*8 :: delta_sol,x_sol1,x_sol2,y_sol1,y_sol2
@@ -392,14 +392,19 @@
 	
 	REAL*8 :: x1,x2,y1,y2,xC,yC,R
 	REAL*8 :: alpha1,alpha2,alpha
+        REAL*8 :: pi
+
+        pi = 4.D0 * datan(1.D0)
 	
 	alpha1= datan2( (y1-yC)/R , (x1-xC)/R )
 	alpha2= datan2( (y2-yC)/R , (x2-xC)/R )
-	
+
 	alpha= ABS (alpha1-alpha2)
-	IF ( alpha < 0 ) alpha = 2*3.14159265 - alpha
+	IF ( alpha > pi ) alpha = 2.D0*pi - alpha
 	
-	areaSEC = 0.5*alpha*R**2
+	areaSEC = 0.5D0*alpha*R**2
+
+        !WRITE(7,*) alpha1, alpha2, alpha
 
 	RETURN
 	
