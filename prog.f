@@ -130,6 +130,8 @@
 !
         CALL boundary
 
+        WRITE(6,*) 'DEBUG 1'
+
         ! ... write initial conditions
         IF (sweep == 1) CALL outp
 !
@@ -146,6 +148,8 @@
           call cpu_time(t2)
           call MP_WALLTIME(p2,myrank)
         END IF            
+
+        WRITE(6,*) 'DEBUG 2'
 ! 
 ! ... Store all independent fields at time n*dt 
 ! ... for explicit time integration
@@ -157,11 +161,15 @@
           call cpu_time(t3)
           call MP_WALLTIME(p3,myrank)
         END IF
+
+        WRITE(6,*) 'DEBUG 3'
 !
 ! ... Compute Turbulent viscosity from sub-grid-stress (sgs) model
 !
         IF ( iturb >= 1 )  CALL sgsg
         IF ( iss   == 1 )  CALL sgss
+
+        WRITE(6,*) 'DEBUG 4'
 !
         IF( timing ) then
           s4 = cpclock()
@@ -182,6 +190,8 @@
         mptimturbo   = mptimturbo   + (p4 - p3)
 !
         CALL allocate_fluxes
+
+        WRITE(6,*) 'DEBUG 5'
 !
 ! ... Start the explicit Runge-Kutta iteration
 !
@@ -198,10 +208,12 @@
 !
 ! ... Momentum fluxes, gas-particle drag, particle-particle interaction
 !
-          IF (.NOT.implicit_fluxes) THEN
+          IF ( .NOT. implicit_fluxes ) THEN
             CALL tilde
-            IF (implicit_enthalpy) CALL htilde
+            IF ( implicit_enthalpy ) CALL htilde
           END IF
+
+          WRITE(6,*) 'DEBUG 6'
 !
           IF( timing )then
             s6 = cpclock()
@@ -219,6 +231,8 @@
             call cpu_time(t7)
             call MP_WALLTIME(p7,myrank)
           END IF
+
+          WRITE(6,*) 'DEBUG 7'
 ! 
 ! ... Solve the explicit transport equation of gas species
 !
@@ -230,6 +244,8 @@
             call cpu_time(t8)
             call MP_WALLTIME(p8,myrank)
           END IF
+
+          WRITE(6,*) 'DEBUG 8'
 !
 ! ... Solve explicitly transport equations for enthalpies
 !
@@ -243,6 +259,8 @@
             call cpu_time(t9)
             call MP_WALLTIME(p9,myrank)
           END IF
+
+          WRITE(6,*) 'DEBUG 9'
 !
           timtilde = timtilde + (s6 - s5)
           timiter  = timiter  + (s7 - s6)
@@ -267,6 +285,8 @@
         time = time + dt
 !
         CALL deallocate_fluxes
+
+        WRITE(6,*) 'DEBUG 10'
 !
         CALL myflush( 6 )
 !
@@ -322,6 +342,8 @@
         w1 = elapsed_seconds()
         WRITE(6,fmt="('  walltime = ',F10.2,', ',F10.2)") w1, w1-w0
         w0 = w1
+
+        WRITE(6,*) 'DEBUG 11'
 !
 !//////////////////////////////////////////////////////////////////////
 !

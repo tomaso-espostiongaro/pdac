@@ -210,9 +210,9 @@
       top = 4                 !
       south = 2               !
       north = 2               !
-      itp   = 1               ! itp = 1 => read topography from file
+      itp   = 0               ! itp = 1 => read topography from file
       topography = 'topo.dat' ! file containing the topographic profile
-      immb  = 1               ! 1: use immersed boundaries
+      immb  = 0               ! 1: use immersed boundaries
 
 ! ... Particles
  

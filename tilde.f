@@ -604,6 +604,9 @@
       DEALLOCATE(pvisx, pvisz)
 !
       DEALLOCATE(kpgv)
+      DEALLOCATE( dugs )
+      DEALLOCATE( dvgs )
+      DEALLOCATE( dwgs )
       DEALLOCATE(nul)
 !
       CALL data_exchange(appu)

@@ -1695,7 +1695,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               sndbuf(ib) = 0
             END IF
           END DO
-          CALL sendrecv_logical(sndbuf, snd_map(idest)%nsnd, idest,      &
+          CALL sendrecv_integer(sndbuf, snd_map(idest)%nsnd, idest,      &
                                 rcvbuf, rcv_map(isour)%nrcv, isour, ip)
           DO ib = 1, rcv_map(isour)%nrcv
             IF( rcvbuf(ib) == 1 ) THEN
