@@ -73,6 +73,14 @@
       REAL*8 :: vent_Air
       REAL*8 :: vent_SO2
 !
+      REAL*8 :: dome_O2
+      REAL*8 :: dome_N2
+      REAL*8 :: dome_CO2
+      REAL*8 :: dome_H2
+      REAL*8 :: dome_H2O
+      REAL*8 :: dome_Air
+      REAL*8 :: dome_SO2
+!
       SAVE
 !-----------------------------------------------------------------------
       CONTAINS
@@ -86,6 +94,8 @@
       USE control_flags, ONLY: job_type, lpr, run, imr
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
       USE domain_decomposition, ONLY: mesh_partition
+      USE dome_conditions, ONLY: xdome, ydome, dome_volume, t_dome, dome_eps, &
+          idome
       USE enthalpy_matrix, ONLY: flim
       USE eos_gas, ONLY: update_eosg
       USE flux_limiters, ONLY: beta, muscl
@@ -148,6 +158,8 @@
         xvent, yvent, vent_radius, base_radius, u_gas, v_gas, w_gas,  &
         p_gas, t_gas, u_solid, v_solid, w_solid, ep_solid, t_solid, &
         vent_O2, vent_N2, vent_CO2, vent_H2, vent_H2O, vent_Air, vent_SO2
+
+      NAMELIST / dome / xdome, ydome, dome_volume, t_dome, dome_eps, idome
 
       NAMELIST / atmosphere / wind_x, wind_y, wind_z, p_ground, t_ground, &
         void_fraction, max_packing, atm_O2, atm_N2, atm_CO2, atm_H2, atm_H2O, &
@@ -294,6 +306,22 @@
       vent_H2O = 1.D0
       vent_Air = 0.D0
       vent_SO2 = 0.D0
+
+! ... Dome
+
+      idome = 0               ! Flag for automatic dome conditions
+      xdome = 0.0             ! UTM longitude of the dome center
+      ydome = 0.0             ! UTM latitude of the dome center
+      dome_volume = 0.0        ! total volume of exploded mass
+      t_dome = 288.15         ! temperature of the dome
+      dome_eps = 0.0          ! particle fractions
+      dome_O2  = 0.D0          ! gas components mass fractions
+      dome_N2  = 0.D0
+      dome_CO2 = 0.D0
+      dome_H2  = 0.D0
+      dome_H2O = 1.D0
+      dome_Air = 0.D0
+      dome_SO2 = 0.D0
 
 ! ... Atmosphere
 
@@ -515,6 +543,24 @@
       CALL bcast_real(vent_H2O,1,root)
       CALL bcast_real(vent_Air,1,root)
       CALL bcast_real(vent_SO2,1,root)
+!
+! ... Inlet Namelist ................................................
+!
+      IF(mpime == root) READ(iunit, dome) 
+
+      CALL bcast_integer(idome,1,root)
+      CALL bcast_real(xdome,1,root)
+      CALL bcast_real(ydome,1,root)
+      CALL bcast_real(dome_volume,1,root)
+      CALL bcast_real(t_dome,1,root)
+      CALL bcast_real(dome_eps,nsolid,root)
+      CALL bcast_real(dome_O2,1,root)
+      CALL bcast_real(dome_N2,1,root)
+      CALL bcast_real(dome_CO2,1,root)
+      CALL bcast_real(dome_H2,1,root)
+      CALL bcast_real(dome_H2O,1,root)
+      CALL bcast_real(dome_Air,1,root)
+      CALL bcast_real(dome_SO2,1,root)
 !
 ! ... Atmosphere Namelist ................................................
 !
@@ -893,6 +939,22 @@
             CALL iotk_write_dat( iuni_nml, "vent_SO2", vent_SO2 )
           CALL iotk_write_end( iuni_nml, "inlet" )
 
+          CALL iotk_write_begin( iuni_nml, "dome" )
+            CALL iotk_write_dat( iuni_nml, "idome", idome )
+            CALL iotk_write_dat( iuni_nml, "xdome", xdome )
+            CALL iotk_write_dat( iuni_nml, "ydome", ydome )
+            CALL iotk_write_dat( iuni_nml, "dome_volume", dome_volume )
+            CALL iotk_write_dat( iuni_nml, "t_gas", t_gas )
+            CALL iotk_write_dat( iuni_nml, "ep_solid", ep_solid )
+            CALL iotk_write_dat( iuni_nml, "dome_O2", dome_O2 )
+            CALL iotk_write_dat( iuni_nml, "dome_N2", dome_N2 )
+            CALL iotk_write_dat( iuni_nml, "dome_CO2", dome_CO2 )
+            CALL iotk_write_dat( iuni_nml, "dome_H2", dome_H2 )
+            CALL iotk_write_dat( iuni_nml, "dome_H2O", dome_H2O )
+            CALL iotk_write_dat( iuni_nml, "dome_Air", dome_Air )
+            CALL iotk_write_dat( iuni_nml, "dome_SO2", dome_SO2 )
+          CALL iotk_write_end( iuni_nml, "dome" )
+
           CALL iotk_write_begin( iuni_nml, "atmosphere" )
             CALL iotk_write_dat( iuni_nml, "wind_x", wind_x )
             CALL iotk_write_dat( iuni_nml, "wind_y", wind_y )
@@ -1007,6 +1069,7 @@
       USE atmospheric_conditions, ONLY: atm_ygc, layer
       USE control_flags, ONLY: job_type
       USE dimensions
+      USE dome_conditions, ONLY: dome_ygc, idome
       USE flux_limiters, ONLY: lv, lm
       USE grid, ONLY: dx, dy, dz, itc
       USE grid, ONLY: iob, zzero, grigen
@@ -1025,6 +1088,7 @@
 ! ... implicit topography
 !
       IF (itp < 1) immb = 0
+      IF (idome >= 1) ivent = 0
 !
 ! ... numeric
 !
@@ -1131,6 +1195,20 @@
         vent_ygc(7) = vent_SO2
       ELSE
         vent_ygc = 0.D0
+      END IF
+!
+! ... Gas components at dome
+!
+      IF (idome >= 1) THEN
+              dome_ygc(1) = dome_O2
+              dome_ygc(2) = dome_N2
+              dome_ygc(3) = dome_CO2
+              dome_ygc(4) = dome_H2
+              dome_ygc(5) = dome_H2O
+              dome_ygc(6) = dome_Air
+              dome_ygc(7) = dome_SO2
+      ELSE
+              dome_ygc = 0.D0
       END IF
 !
 ! ... particle properties

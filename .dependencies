@@ -21,6 +21,10 @@ derived.o : dimensions.o gas.o particles.o
 
 dimensions.o : 
 
+dome.o : arrfil.o control.o decomp.o dens.o dimensions.o environment.o  \
+    eosg.o gas.o grid.o io_files.o parallel.o particles.o press.o temp.o  \
+    topo.o velocity.o 
+
 drag.o : dimensions.o particles.o subscr.o time.o 
 
 environment.o : 
@@ -62,10 +66,10 @@ immb.o : control.o dimensions.o grid.o io_files.o parallel.o topo.o
 
 indijk.o : 
 
-input.o : atmosphere.o blunt.o control.o decomp.o dimensions.o eosg.o ftem.o  \
-    grid.o immb.o io.o io_files.o iotk_module.o iter.o limiters.o matrix.o  \
-    outp.o parallel.o particles.o reactions.o roughness.o setup.o subscr.o  \
-    time.o topo.o turbo.o vent.o visc.o 
+input.o : atmosphere.o blunt.o control.o decomp.o dimensions.o dome.o eosg.o  \
+    ftem.o grid.o immb.o io.o io_files.o iotk_module.o iter.o limiters.o  \
+    matrix.o outp.o parallel.o particles.o reactions.o roughness.o setup.o  \
+    subscr.o time.o topo.o turbo.o vent.o visc.o 
 
 interp.o : dimensions.o grid.o subscr.o 
 
@@ -104,8 +108,8 @@ parallel.o :
 
 particles.o : dimensions.o 
 
-pdac.o : blunt.o control.o decomp.o dens.o dimensions.o environment.o eosg.o  \
-    gas.o grid.o hcapgs.o immb.o input.o io.o io_files.o matrix.o outp.o  \
+pdac.o : blunt.o control.o decomp.o dens.o dimensions.o dome.o environment.o  \
+    eosg.o gas.o grid.o hcapgs.o immb.o input.o io.o io_files.o matrix.o outp.o  \
     parallel.o particles.o press.o setup.o temp.o tilde.o time.o topo.o  \
     turbo.o velocity.o vent.o visc.o 
 
@@ -137,9 +141,9 @@ roughness.o : dimensions.o
 
 sampling.o : control.o decomp.o dimensions.o grid.o press.o time.o 
 
-setup.o : atmosphere.o control.o decomp.o dens.o dimensions.o eosg.o gas.o  \
-    grid.o hcapgs.o immb.o indijk.o io_files.o parallel.o particles.o press.o  \
-    reactions.o temp.o time.o turbo.o velocity.o vent.o visc.o 
+setup.o : atmosphere.o control.o decomp.o dens.o dimensions.o dome.o eosg.o  \
+    gas.o grid.o hcapgs.o immb.o indijk.o io_files.o parallel.o particles.o  \
+    press.o reactions.o temp.o time.o turbo.o velocity.o vent.o visc.o 
 
 subscr.o : decomp.o dimensions.o indijk.o 
 

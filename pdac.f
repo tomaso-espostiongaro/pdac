@@ -39,6 +39,7 @@
      &                            timestart, rungekut
       USE turbulence_model, ONLY: allocate_turbo
       USE vent_conditions, ONLY: ivent, locate_vent
+      USE dome_conditions, ONLY: idome, locate_dome
       USE volcano_topography, ONLY: import_topography, write_profile, itp
       USE environment, ONLY: cpclock, timing, elapsed_seconds
       USE io_files
@@ -137,6 +138,10 @@
 ! ... Define volcanic vent position on the 3D topography
 !
       IF (ivent >= 1) CALL locate_vent
+
+! ... Define volcanic dome position on the 3D topography
+!
+      IF (idome >= 1) CALL locate_dome
 
 ! ... Set immersed boundary parameters (if prescribed)
 !

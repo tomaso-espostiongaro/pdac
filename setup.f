@@ -63,6 +63,7 @@
       USE control_flags, ONLY: job_type
       USE dimensions
       USE domain_decomposition, ONLY: ncint, meshinds, myijk
+      USE dome_conditions, ONLY: idome, set_domec
       USE eos_gas, ONLY: mas, mole, ygc
       USE gas_constants, ONLY: gmw, rgas, gammaair
       USE gas_constants, ONLY: gas_type
@@ -192,6 +193,8 @@
           END SELECT
         
         END DO 
+
+        IF (idome >= 1) CALL set_domec
 ! 
 ! ... initial conditions already set from RESTART file
 !
@@ -514,6 +517,7 @@
       SUBROUTINE gas_check
       USE atmospheric_conditions, ONLY: atm_ygc
       USE dimensions
+      USE dome_conditions, ONLY: dome_ygc
       USE gas_constants, ONLY: gas_type, present_gas
       USE eos_gas, ONLY: ygc
       USE time_parameters, ONLY: itd
@@ -537,7 +541,8 @@
           !
           ! ... check gas species in atmosphere and inlet
           !
-          IF ((atm_ygc(igg) /= 0.D0) .OR. (vent_ygc(igg) /= 0.D0) ) THEN
+          IF ((atm_ygc(igg) /= 0.D0) .OR. (vent_ygc(igg) /= 0.D0) .OR. &
+                                           dome_ygc(igg) /= 0.D0) THEN
             present_gas(igg) = .TRUE.
           END IF
 
