@@ -58,12 +58,14 @@
           CALL subscl(ij)
 !
           IF(irex.EQ.2) CALL hrex(ij,hrexg,hrexs)
-! ....
+!
           at(1,1) = rgp(ij)
           bt(1)   = siegn(ij) * rgpn(ij) + rhg(ij) - hrexg
-!
+
           DO k=1, nsolid
             k1=k+1
+!
+! ... Compute gas-particle heat transfer coefficients
 !
             CALL hvs(hv(k,ij), rlk(k,ij), rog(ij),       &
                  ep(ij), ug(ij), ug(imj), uk(k,ij),      &
@@ -79,7 +81,10 @@
             bt(k1) = rlkn(k,ij) * siekn(k,ij) + rhk(k, ij)
           END DO
 !
+! ... Solve the interphase enthalpy matrix by using Gauss inversion
+!
           CALL invdm(at, bt, ij)
+!
           sieg(ij) = bt(1)
           DO k=1, nsolid
             siek(k,ij) = bt(k+1)

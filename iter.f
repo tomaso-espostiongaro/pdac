@@ -270,8 +270,8 @@
 ! ... (at least one internal iteration must be done).
 !
                 IF(DABS(dg) .GT. conv(ij)) THEN
-          CALL masfg(rgfr(imj), rgft(ijm), rgfr(ij),rgft(ij),   &
-                     rnb(ug,ij),rnb(vg,ij),nb(rgp,ij),i)
+                   CALL masfg(rgfr(imj), rgft(ijm), rgfr(ij),rgft(ij),   &
+                              rnb(ug,ij),rnb(vg,ij),nb(rgp,ij),i)
                    dgx = (rgfr(ij)-rgfr(imj))*inr(i)*indr(i)
                    dgz = (rgft(ij)-rgft(ijm))*indz(j)
                    dg = rgp(ij) - rgpn(ij) + dt * (dgx+dgz)

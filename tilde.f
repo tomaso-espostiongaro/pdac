@@ -144,10 +144,6 @@
       DO k=1,nsolid
         CALL viscs(k)   
       END DO
-!      gvisx = 0.D0
-!      gvisz = 0.D0
-!      pvisx = 0.D0
-!      pvisz = 0.D0
 !
 ! ... Allocate and initialize local arrays (gas).
 !

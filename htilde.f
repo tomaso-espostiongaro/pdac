@@ -85,8 +85,14 @@
         imesh = myij(0, 0, ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscl(ij)
+!
+! ... convective radial fluxes (gas)
+!
           CALL fsc_rt(egfr(ij), egft(ij), nb(sieg,ij),        &
                nb(rgp,ij), rnb(ug,ij), rnb(vg,ij), ij)
+!
+! ... diffusive radial fluxes (gas)
+!
           CALL hotcg(hfgr(ij), hfgt(ij), hfgl(ij), hfgb(ij),  &
                nb(ep,ij), nb(tg,ij), nb(kapgt,ij), ij)
 !
@@ -94,8 +100,14 @@
           egft(ij) = egft(ij) - hfgt(ij)
 !
           DO k=1, nsolid
+!
+! ... convective radial fluxes (particles)
+!
             CALL fsc_rt(elfr(k, ij), elft(k, ij), nb(siek(k,:),ij),     &
                nb(rlk(k,:),ij), rnb(uk(k,:),ij), rnb(vk(k,:),ij),ij)
+!
+! ... diffusive radial fluxes (particles)
+!
             CALL hotck(hflr(k,ij), hflt(k,ij), hfll(k,ij), hflb(k,ij),  &
                  nb(rlk(k,:),ij), nb(tk(k,:),ij), ij, k)
 !
@@ -124,8 +136,14 @@
 ! 
           egfl(ij) = egfr(imj)
           egfb(ij) = egft(ijm)
+!
+! ... convective vertical fluxes (gas)
+!
           CALL fsc_lb(egfl(ij), egfb(ij), nb(sieg,ij),          &
                nb(rgp,ij), rnb(ug,ij), rnb(vg,ij), ij)
+!
+! ... diffusive vertical fluxes (gas)
+!
           CALL hotcg(hfgr(ij), hfgt(ij), hfgl(ij), hfgb(ij),    &
                nb(ep,ij), nb(tg,ij), nb(kapgt,ij), ij)
 !
@@ -143,8 +161,14 @@
            ELSE
             elfb(k, ij) = elft(k, ijm)
            END IF
+!
+! ... convective vertical fluxes (particles)
+!
             CALL fsc_lb(elfl(k, ij), elfb(k, ij), nb(siek(k,:),ij),      &
                nb(rlk(k,:),ij), rnb(uk(k,:),ij), rnb(vk(k,:),ij),ij)
+!
+! ... diffusive vertical fluxes (particles)
+!
             CALL hotck(hflr(k,ij), hflt(k,ij), hfll(k,ij), hflb(k,ij),   &
                  nb(rlk(k,:),ij), nb(tk(k,:),ij), ij, k)
 !
