@@ -65,31 +65,33 @@
       REAL*8 :: m
       INTEGER :: ig, jg
 !
-! ... Compute Temperature Dependent Viscosity of each gas specie
+! ... Compute Temperature Dependent Viscosity of each gas specie (Reid)
 !
       DO ig=1,ngas
         IF (present_gas(ig) ) THEN
 !
-! ... non-dimensional temperature
-!
+! ... non-dimensional temperature 
           tst=tg/mmugek(ig)
 !
 ! ... collision integral (omega) 
-!
           om = 1.16145D0 * tst**(-0.14874D0) +  &
                0.52487D0*DEXP(-0.77320D0*tst)+  &
                2.16178D0*DEXP(-2.43787D0*tst)
 !
-! ... viscosity (Reid) is expressed in microPoise in cgs unit system
-!
+! ... molecular weight (m) expressed in grams per mole
           m = 1.D3 * gmw(ig)
+!
+! ... semi-empirical consitutive equation for
+! ... viscosity is expressed in microPoise (cgs unit system)
           mmug(ig) = 26.69D0 * (m * tg)**0.5D0 / (mmugs(ig)**2 * om)
+!
+! ... conversion to (Pa-s) (mks unit system)
           mmug(ig) = mmug(ig) * 1.D-7 
 !
         END IF
       END DO
 !
-! ... Temperature Dependent Conductivity 
+! ... Temperature Dependent Conductivity (mks unit system)
 !
       t1=tg
       t2=tg**2

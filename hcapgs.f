@@ -84,7 +84,8 @@
       REAL*8, INTENT(IN) :: cps, ts
       REAL*8, INTENT(OUT) :: cs
 !
-!... If cs depends on temperature (ts), change this dependence
+! ... specific heat ( joule/(kelvin kilogram) )
+! ... (if cs depends on temperature (ts), change this dependence)
 !
         cs = cps
 !
