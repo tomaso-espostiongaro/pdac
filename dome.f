@@ -18,12 +18,17 @@
 
       TYPE dome_cell
         INTEGER :: imesh
-        REAL*8  :: pressure
+        REAL*8  :: radius
       END TYPE dome_cell
 
       TYPE(dome_cell), ALLOCATABLE :: dcell(:)
 
       INTEGER :: ndm
+      REAL*8, PARAMETER :: mu = 2.D-5       ! gas viscosity [Pa s]
+      REAL*8, PARAMETER :: q  = 400.D0      ! gas flux [Kg/s]       
+      REAL*8, PARAMETER :: kappa = 1.D-12   ! permeability [m^-2]
+      REAL*8 :: beta
+      
       SAVE
 !-----------------------------------------------------------------------
       CONTAINS
@@ -105,7 +110,6 @@
 !
 ! ... Map the dome cells
 !
-      WRITE(*,*) ndm
       n = 0
       DO k = 1, nz
         DO j = 1, ny
@@ -115,9 +119,8 @@
             IF (distance2 <= dome_radius**2 .AND. fl(ijk) == 1 ) THEN
                     n = n + 1
                     dcell(n)%imesh = ijk
-                    dcell(n)%pressure = p_dome(distance2)
+                    dcell(n)%radius = DSQRT(distance2)
                     fl(ijk) = 9
-                    WRITE(*,*) n, ijk
             END IF
           END DO
         END DO
@@ -154,28 +157,36 @@
 !
 ! ... Compute the initial conditions for a semi-spherical dome
 !
+      USE atmospheric_conditions, ONLY: p_atm
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nsolid, ngas
       USE domain_decomposition, ONLY: ncint, meshinds
       USE environment, ONLY: cpclock
       USE eos_gas, ONLY: ygc
-      USE gas_constants, ONLY: gas_type
+      USE gas_constants, ONLY: gas_type, rgas
       USE gas_solid_density, ONLY: rlk
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
-      USE grid, ONLY: flag, x, y
+      USE grid, ONLY: flag, x, y, kv
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
       USE array_filters, ONLY: interp
       IMPLICIT NONE
 
-      REAL*8 :: ygcsum
+      REAL*8 :: ygcsum, ra, pi, psi
       INTEGER :: ijk, imesh, i,j,k, is, ig, n
 
       IF (job_type == '2D') RETURN
 !      
+! ... Set constant for the computation of dome pressure
+!
+      pi = 4.D0 * ATAN(1.D0)
+      psi = 2.D0 * pi
+      beta = 2.D0 * mu * q * rgas * t_dome
+      beta = beta / ( p_atm(kv)**2 * kappa * psi * dome_radius )
+!
       DO ijk = 1, ncint      
         IF(flag(ijk) == 9) THEN
           CALL meshinds(ijk,imesh,i,j,k)
@@ -186,6 +197,7 @@
           DO n = 1, ndm
             IF (dcell(n)%imesh == ijk) EXIT
           END DO
+          ra = dcell(n)%radius
          
           ! ... cell flag is reset to fluid cells
           ! ... to perform the flow computation at t>0
@@ -202,7 +214,7 @@
           !
           tg(ijk) = t_dome
           ep(ijk) = 1.D0 - SUM(dome_eps(1:nsolid))
-          p(ijk)  = dcell(n)%pressure
+          p(ijk)  = p_dome(ra,p_atm(kv))
           !
           DO ig = 1, ngas
             ygc(ijk,ig) = dome_ygc(gas_type(ig))
@@ -230,12 +242,21 @@
       RETURN
       END SUBROUTINE set_domec
 !-----------------------------------------------------------------------
-      REAL*8 FUNCTION p_dome(r2)
+      REAL*8 FUNCTION p_dome(r2,pa)
+      !
+      ! ... Dome pressurization model (Woods et al., 2002)
+      !
       IMPLICIT NONE
-      REAL*8, INTENT(IN) :: r2
-      REAL*8 :: r1
-      r1 = DSQRT(r2)
-      p_dome = 10.D5
+      REAL*8, INTENT(IN) :: r2, pa
+      REAL*8 :: r1, fact
+
+      r1 = MAX(DSQRT(r2), 10.D0)
+      IF (dome_radius >= r1) THEN
+              fact = dome_radius / r1 - 1.D0
+      ELSE
+              fact = 0.D0
+      END IF
+      p_dome = pa * DSQRT(1.D0 + beta * fact)
 
       RETURN
       END FUNCTION p_dome
