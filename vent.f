@@ -271,7 +271,10 @@
             angle4 = angle*4.D0
             ra = MIN(ra / radius, 1.D0)
             fact_r = wrat * (1.D0 - ra ** beta)
-            fact_r = fact_r - 0.1 * COS(angle4)
+
+            ! ... Angular correction
+            !
+            ! fact_r = fact_r + 0.1 * COS(angle4)
 
             CALL correct_vent_profile(ijk,fact_r)
 
@@ -349,6 +352,7 @@
 !
       USE dimensions, ONLY: nsolid
       USE gas_solid_velocity, ONLY: wg, ws
+      USE pressure_epsilon, ONLY: p
       IMPLICIT NONE
 
       REAL*8, INTENT(IN) :: factor
@@ -360,6 +364,9 @@
       DO is = 1,nsolid
         ws(ijk,is) = w_solid(is) * factor
       END DO
+
+      ! ... Correct pressure with the radial factor 
+      ! p(ijk) = p(ijk) * (1.D0 + 0.01 * (1.D0 - factor))
 
       RETURN
       END SUBROUTINE correct_vent_profile
