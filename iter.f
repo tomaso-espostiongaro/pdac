@@ -31,12 +31,13 @@
       USE grid, ONLY: myijk, ncint, ncdom, data_exchange
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE tilde_momentum, ONLY: appu, appw
+      USE parallel, ONLY: mpime
       USE particles_constants, ONLY: rl, inrl
       USE phases_matrix, ONLY: mats, matsa, velsk, velsk2
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes
       USE tilde_momentum, ONLY: rug, rwg, rus, rws
-      USE time_parameters, ONLY: time, dt, tstop, timestart
+      USE time_parameters, ONLY: time, dt, timestart, tpr
       USE heat_capacity, ONLY: cp
 !
       IMPLICIT NONE
@@ -49,12 +50,10 @@
       REAL*8 :: rlkx, rlx, dgorig, epx, rlkz
       REAL*8 :: omega0, dgz, dgx
       REAL*8  :: d3, p3
-      REAL*8 :: t1, t2
-      REAL*8 :: avlp
 
       INTEGER :: nit, loop, mustit, kros
-      REAL*8, ALLOCATABLE :: avloop(:)
-      LOGICAL :: first, cvg
+      LOGICAL, ALLOCATABLE :: converge(:)
+      LOGICAL :: first
 !
       ALLOCATE(conv(ncint), abeta(ncint))
       conv = 0.0D0
@@ -62,12 +61,7 @@
 !
       CALL betas(conv, abeta)
 !
-! ... avloop is the per-cycle-average of inner loops in each cells
-! ... avlp is the average of avloop over the proc subdomain
-!
-      ALLOCATE(avloop(ncint))
-      avloop = 0
-      avlp = 0
+      ALLOCATE(converge(ncint))
 !
 ! ... Allocate and initialize local mass fluxes.
 !
@@ -119,6 +113,7 @@
       END DO
 !
 ! ... Start external iterative sweep.
+!
 ! ... The correction equation are iterated on the mesh
 ! ... to propagate the updated velocities and pressure
 ! ... on each cell to its neighbours.
@@ -132,12 +127,13 @@
       dgx = 0.0D0
       dgz = 0.0D0
 !
-      iterative_loop: DO nit = 1, maxout
+      sor_loop: DO nit = 1, maxout
 !
 !         call f_hpmstart( 2, ' SWEEP ' )
 !
-         DO ij = 1, ncint
-           avloop(ij) = avloop(ij) + 1
+         converge = .FALSE.
+!
+         mesh_loop: DO ij = 1, ncint
 
            imesh = myijk( ip0_jp0_kp0_, ij)
            j  = ( imesh - 1 ) / nr + 1
@@ -146,7 +142,9 @@
             CALL subscr(ij)
 
             first = .TRUE.
-            IF( fl_l(ij) .EQ. 1 ) THEN
+
+            IF( fl_l(ij) /= 1 ) converge(ij) = .TRUE.
+            IF( fl_l(ij) == 1 ) THEN
 
               loop =  0
               kros = -1
@@ -167,6 +165,7 @@
 !
 
               IF(DABS(dg).LE.conv(ij)) THEN
+                converge(ij) = .TRUE.
                 rlx = 0.D0
                 DO is = 1, nsolid
                   rlkx = (rlfr(is,ij) - rlfr(is,imj)) * inr(i) * indr(i)
@@ -191,7 +190,6 @@
 ! ... start the internal (in-cell) iterative sweep
 ! ... to correct pressure and velocities.
 !
-                mustit=1
                 d3=dg
                 p3=p(ij)
 
@@ -292,7 +290,6 @@
                      IF(kros.LT.2.AND.loop.EQ.inmax) abeta(ij)=0.5D0*DBLE(inmax)*abeta(ij)
 ! ... new inner iteration
                      IF(loop .LT. inmax) THEN
-                       avloop(ij) = avloop(ij) + 1
                        GOTO 10
                      END IF
                    END IF
@@ -300,9 +297,9 @@
 !
               END IF
             END IF    
-         END DO
-         avlp = SUM(avloop)
-!
+
+         END DO mesh_loop
+
       !call f_hpmstop( 2 )
 
 ! ... Exchanges all updated physical quantities on boundaries
@@ -312,59 +309,65 @@
         CALL data_exchange(rlk)
         CALL data_exchange(p)
         CALL data_exchange(ep)
-!  
-! ... mustit equals zero when convergence is reached (cvg = .TRUE.)
-! ... simultaneously in the whole computational domain.
-! ... mustit must be zero for each processor.
+!
+!********************************************************************
+! ... check the convergence parameters and the history
+!
+      IF (MOD((time-timestart),tpr) <= dt) THEN
+        IF (nit == 1) THEN
+          WRITE(6,500) mpime, time
+          WRITE(6,501)
+        END IF
+        WRITE(6,502) nit, ALL(converge)
+ 500    FORMAT('proc: ', I3, ' time: ', F8.3)
+ 501    FORMAT('iteration # :  convergence')
+ 502    FORMAT(I3,13X,L1)
+      END IF
+!*******************************************************************
+!
+! ... mustit equals zero when convergence is reached 
+! ... simultaneously in each cell of the  subdomain.
+!
+        IF( ALL(converge) ) mustit = 0
+!
+! ... mustit must be zero in all subdomains.
 !
         CALL parallel_sum_integer(mustit, 1)
-        IF(mustit .EQ. 0) THEN
+!
+        IF(mustit == 0) THEN
           omega = omega0
-          cvg = .TRUE.                         
-          EXIT iterative_loop
+          EXIT sor_loop
         ENDIF
 
-        mustit=0
 !
-! ... If convergence is not reached in some cell (cvg = .FALSE.),
+! ... If convergence is not reached in some cell
 ! ... start a new external sweep.
 !
        IF(MOD(nit,1000).EQ.0) omega=omega*0.9D0
-       cvg = .FALSE.                            
 !
-      END DO iterative_loop
+      END DO sor_loop
 
 ! ... stop the HW performance monitor
       !call f_hpmstop( 1 )
+!
+      IF( mustit /= 0) THEN
 !********************************************************************
-! ... check convergence parameters 
-! ... ( number of iteration, averaged number of internal 
-! ...   iterations, averaged number of external iterations ) 
+! ... report the number of cells where the procedure does not converge
 !
-      avloop(:) = avloop(:)/nit
-      avlp = avlp/nit/ncint
-!
-      t1 = tstop - 100 * dt     
-!      t1 = tstop
-      t2 = tstop               
-      IF (time .GE. t1 .AND. time .LE. t2) THEN
-          WRITE(7,500) time
-          WRITE(7,*) 'nit =', nit
-          WRITE(7,'(A15,F8.4)') 'avlp =', avlp
- 500      FORMAT('time =', F8.3)
-      END IF
-      DO ij=1,ncint
-           imesh = myijk( ip0_jp0_kp0_, ij)
-           j  = ( imesh - 1 ) / nr + 1
-           i  = MOD( ( imesh - 1 ), nr) + 1
-        IF (avloop(ij) .GT. 5*avlp) THEN
-          WRITE(7,*) 'Averaged nb. of inner loop', avlp
-          WRITE(7,*) 'in (i,j)=',i,j,' avloop=',avloop(ij)
-        END IF
-      END DO
+        WRITE(6,700) time
+        WRITE(6,*) 'convergence on proc ',mpime,' : ', ALL(converge)
+        IF (.NOT.ALL(converge)) WRITE(6,*) 'cells not converged (ij, i, j): '
+        DO ij = 1, ncint
+          IF (.NOT.converge(ij)) THEN
+            imesh = myijk( ip0_jp0_kp0_, ij)
+            i  = MOD( ( imesh - 1 ), nr) + 1
+            j  = ( imesh - 1 ) / nr + 1
+            WRITE(6,*) ij, i, j
+          END IF
+        END DO
+ 700    FORMAT('max number of iterations reached at time: ', F8.3)
 !*******************************************************************
-!
-      IF(.NOT. cvg) THEN
+
         CALL error( ' iter ', 'max number of iters exceeded ', 1)
         omega=omega0
       END IF
@@ -376,7 +379,7 @@
       DEALLOCATE( appu, appw)
       DEALLOCATE( conv, abeta)
 !
-      DEALLOCATE(avloop)
+      DEALLOCATE(converge)
 !
       RETURN
       END SUBROUTINE
