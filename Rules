@@ -1,8 +1,0 @@
-.c.o:
-	$(CC) -c $(CFLAGS) $<
-
-.f.o:
-	$(FC) -c $(PREPROCESSING) $(FREEFORM) $(FFLAGS) $(MODULES) $<
-
-.F.o:
-	$(MPFC) -c $(PREPROCESSINGF) $(MPFFLAGS) $(CPPFLAGS) $(MODULES) $<
