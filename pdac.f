@@ -27,7 +27,7 @@
       USE gas_solid_temperature, ONLY: allocate_temperature
       USE gas_solid_viscosity, ONLY: allocate_viscosity
       USE grid, ONLY: flic, allocate_blbody, allocate_grid
-      USE initial_conditions, ONLY: setup, allocate_setup
+      USE initial_conditions, ONLY: setup, allocate_setup, npr
       USE input_module, ONLY: input, initc, number_of_block
       USE io_restart, ONLY: taperd, tapewr
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
@@ -35,7 +35,6 @@
       USE particles_constants, ONLY: allocate_part_constants
       USE phases_matrix, ONLY: allocate_matrix
       USE pressure_epsilon, ONLY: allocate_press_eps
-      USE roughness_module, ONLY: zrough, deallocate_roughness
       USE specific_heat_module, ONLY: allocate_hcapgs
       USE tilde_momentum, ONLY: allocate_momentum
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 

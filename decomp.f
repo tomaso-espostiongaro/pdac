@@ -528,6 +528,7 @@
       INTEGER :: localdim
       INTEGER :: layer, k2, k1, j2, j1, i2, i1, nkt
       INTEGER :: me
+      LOGICAL :: testcom = .TRUE.
 !
       IF(ALLOCATED(rcv_map)) DEALLOCATE(rcv_map)
       IF(ALLOCATED(snd_map)) DEALLOCATE(snd_map)
@@ -681,9 +682,9 @@
 
       DO ipe = 0, nproc - 1
         WRITE(7,300) nset(ipe), ipe
-!        IF ( nset(ipe) > 0 ) THEN
-!          WRITE(7,310) rcv_cell_set(ipe)%i(1,:)
-!        END IF
+        IF ( nset(ipe) > 0 ) THEN
+          IF (testcom) WRITE(7,310) rcv_cell_set(ipe)%i(1,:)
+        END IF
  300    FORMAT(' # neighbours set SIZE ',i5,' from ',i3)
  310    FORMAT(10i8)
       END DO
@@ -784,9 +785,11 @@
       DO ipe = 0, nproc - 1
         WRITE(7,100) rcv_map(ipe)%nrcv, ipe
         IF(rcv_map(ipe)%nrcv > 0 ) THEN
-          ! WRITE(7,110) rcv_map(ipe)%ircv(:)
-          ! WRITE(7,*) ' ---- '
-          ! WRITE(7,110) rcv_map(ipe)%iloc(:)
+          IF (testcom) THEN
+            WRITE(7,110) rcv_map(ipe)%ircv(:)
+            WRITE(7,*) ' ---- '
+            WRITE(7,110) rcv_map(ipe)%iloc(:)
+          END IF
         END IF
  100    FORMAT(' # receiving ',i5,' cells from ',i3)
  110    FORMAT(10i8)
@@ -795,15 +798,17 @@
       DO ipe = 0, nproc - 1
         WRITE(7,200) snd_map(ipe)%nsnd, ipe
         IF (snd_map(ipe)%nsnd > 0 ) THEN
-          ! WRITE(7,210) snd_map(ipe)%isnd(:)
-          ! WRITE(7,*) ' ---- '
-          ! WRITE(7,210) snd_map(ipe)%iloc(:)
+          IF (testcom) THEN
+            WRITE(7,210) snd_map(ipe)%isnd(:)
+            WRITE(7,*) ' ---- '
+            WRITE(7,210) snd_map(ipe)%iloc(:)
+          END IF
         END IF
  200    FORMAT(' # sending ',i5,' cells to ',i3)
  210    FORMAT(10i8)
       END DO
 
-      CALL test_comm
+      IF (testcom) CALL test_comm
       
 ! ... fill in the array myinds using myijk
 !
@@ -1790,7 +1795,7 @@
         CALL data_exchange(itest)
          
         WRITE(7,*)   ' index received ' 
-        ! WRITE(7,310) itest( ncint + 1 : ncdom ) 
+        WRITE(7,310) itest( ncint + 1 : ncdom ) 
  310    FORMAT(10i8)
         
         DEALLOCATE( itest )

@@ -59,7 +59,7 @@
       IF (v%s >= 0.D0) THEN
         fs = v%s * dens%s
       ELSE
-        fs = v%s * dens%c     !  errore trovato 26/10/2003
+        fs = v%s * dens%c
       ENDIF
 
       IF (w%b >= 0.D0) THEN

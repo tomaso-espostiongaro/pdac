@@ -41,18 +41,32 @@
       REAL*8 :: fixed_parttemp(max_nsolid, max_nblock)
       REAL*8 :: fixed_gasconc(max_ngas, max_nblock)
 
+! ... SPECIFIED_PROFILE
+      REAL*8 :: prof_vgas_x(max_size)
+      REAL*8 :: prof_vgas_y(max_size)
+      REAL*8 :: prof_vgas_z(max_size)
+      REAL*8 :: prof_pressure(max_size)
+      REAL*8 :: prof_gaseps(max_size)
+      REAL*8 :: prof_gastemp(max_size)
+      REAL*8 :: prof_vpart_x(max_nsolid, max_size)
+      REAL*8 :: prof_vpart_y(max_nsolid, max_size)
+      REAL*8 :: prof_vpart_z(max_nsolid, max_size)
+      REAL*8 :: prof_parteps(max_nsolid, max_size)
+      REAL*8 :: prof_parttemp(max_nsolid, max_size)
+      REAL*8 :: prof_gasconc(max_ngas, max_size)
+
 ! ... INITIAL_CONDITIONS
       REAL*8 :: initial_vgas_x
       REAL*8 :: initial_vgas_y
       REAL*8 :: initial_vgas_z
       REAL*8 :: initial_pressure
       REAL*8 :: initial_void_fraction   
-      REAL*8 :: max_packing          ! maximum particle packing (volumetric fraction ~0.67)
+      REAL*8 :: max_packing
       REAL*8 :: initial_temperature
-      REAL*8 :: initial_vpart_x      ! initial particle velocities (x, y and z)
+      REAL*8 :: initial_vpart_x
       REAL*8 :: initial_vpart_y
       REAL*8 :: initial_vpart_z
-      REAL*8 :: initial_gasconc(max_ngas) ! initial gas concentration (for each specie)
+      REAL*8 :: initial_gasconc(max_ngas)
 
       INTEGER :: iuni_nml = 20
       INTEGER :: iuni_fld = 21
@@ -93,6 +107,8 @@
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut
       USE turbulence_model, ONLY: iturb, cmut, iss, modturbo
+      USE initial_conditions, ONLY: ugpr, wgpr, ppr, eppr, tgpr, &
+                                   uppr, wppr, epspr, tppr, ygcpr, npr
 !
       IMPLICIT NONE
  
@@ -115,7 +131,8 @@
 !
       NAMELIST / numeric / rungekut, beta, muscl, lim_type, inmax, maxout, omega
 !
-      INTEGER :: i, j, k, n, m, ig
+      INTEGER :: ig, is
+      INTEGER :: i, j, k, n, m
       REAL*8 :: grx, gry, grz
       CHARACTER(LEN=80) :: card
       LOGICAL :: tend
@@ -144,8 +161,8 @@
       rlim = 1.0D-8     ! limit for off-diagonal contribution in matrix inversion
       gravx = 0.0D0     ! gravity along x
       gravz = -9.81D0   ! gravity along z
-      ngas = 7          ! number of gas phase
-      default_gas = 6   ! atmosphere 
+      ngas = 7          ! max number of gas components
+      default_gas = 6   ! atmospheric air
       formatted_output = .TRUE.
       old_restart = .FALSE.
       max_seconds = 20000.0
@@ -344,8 +361,7 @@
       CALL bcast_real(zrough%r, zrough%ir, root)
       CALL bcast_real(zrough%roucha, 1, root)
 !
-!
-!     Read cell sizes
+! ... Read cell sizes
 !
       tend = .FALSE.
       IF(mpime == root) THEN
@@ -380,7 +396,9 @@
       CALL bcast_real(delta_x,nx,root)
       CALL bcast_real(delta_y,ny,root)
       CALL bcast_real(delta_z,nz,root)
-
+!
+! ... write post-processing files
+!
       IF(mpime == root) THEN
 
         IF( which == 'PP' ) THEN
@@ -425,13 +443,10 @@
         END IF
 
       END IF
-
-      
-
 !
-!     Read boundary conditions
+! ... Read boundary conditions
 !
-
+      npr = 0
       tend = .FALSE.
       IF(mpime == root) THEN
         fixed_flows_search: DO
@@ -444,13 +459,16 @@
         READ(5,*) number_of_block
         IF (job_type == '2D') THEN
           DO n = 1, number_of_block
-            READ(5,*) block_type(n),block_bounds(1,n), block_bounds(2,n), block_bounds(5,n), block_bounds(6,n)
+            READ(5,*) block_type(n), block_bounds(1,n), block_bounds(2,n), &
+                                     block_bounds(5,n), block_bounds(6,n)
             IF( block_type(n) == 1 .OR. block_type(n) == 5) THEN
-              READ(5,*) fixed_vgas_x(n), fixed_vgas_z(n), fixed_pressure(n), fixed_gaseps(n), fixed_gastemp(n)
-              READ(5,*) ( fixed_vpart_x(k,n), fixed_vpart_z(k,n), fixed_parteps(k,n), fixed_parttemp(k,n), k=1, nsolid)
+              READ(5,*) fixed_vgas_x(n), fixed_vgas_z(n), fixed_pressure(n), &
+                        fixed_gaseps(n), fixed_gastemp(n)
+              READ(5,*) (fixed_vpart_x(k,n), fixed_vpart_z(k,n), &
+                         fixed_parteps(k,n), fixed_parttemp(k,n), k=1, nsolid)
               READ(5,*) ( fixed_gasconc(ig,n), ig=1, ngas )
             ELSE IF( block_type(n) == 7) THEN
-              OPEN(UNIT=17, FILE='input.prof', STATUS='UNKNOWN')
+              CALL read_profile(n)
             ENDIF
           END DO
         ELSE IF (job_type == '3D') THEN
@@ -461,9 +479,9 @@
             IF( block_type(n) == 1 .OR. block_type(n) == 5) THEN
               READ(5,*) fixed_vgas_x(n), fixed_vgas_y(n), fixed_vgas_z(n), &
                         fixed_pressure(n), fixed_gaseps(n), fixed_gastemp(n)
-              READ(5,*) ( fixed_vpart_x(k,n), fixed_vpart_y(k,n), fixed_vpart_z(k,n), &
+              READ(5,*) (fixed_vpart_x(k,n),fixed_vpart_y(k,n),fixed_vpart_z(k,n), &
                           fixed_parteps(k,n), fixed_parttemp(k,n), k=1, nsolid)
-              READ(5,*) ( fixed_gasconc(ig,n), ig=1, ngas )
+              READ(5,*) (fixed_gasconc(ig,n), ig=1, ngas )
             ENDIF
           END DO
         ELSE
@@ -479,6 +497,7 @@
       IF( tend ) THEN
         CALL error( ' input ', ' FIXED FLOWS card not found ', 1 )
       END IF
+
       CALL bcast_integer(number_of_block, 1, root)
       CALL bcast_integer(block_type, SIZE(block_type), root)
       CALL bcast_integer(block_bounds, SIZE(block_bounds), root)
@@ -494,11 +513,21 @@
       CALL bcast_real(fixed_parteps, SIZE(fixed_parteps), root)
       CALL bcast_real(fixed_parttemp, SIZE(fixed_parttemp), root)
       CALL bcast_real(fixed_gasconc, SIZE(fixed_gasconc), root)
-
+ 
+      CALL bcast_integer(npr, 1, root)
+      CALL bcast_real(prof_vgas_x, SIZE(prof_vgas_x), root)
+      CALL bcast_real(prof_vgas_z, SIZE(prof_vgas_z), root)
+      CALL bcast_real(prof_pressure, SIZE(prof_pressure), root)
+      CALL bcast_real(prof_gaseps, SIZE(prof_gaseps), root)
+      CALL bcast_real(prof_gastemp, SIZE(prof_gastemp), root)
+      CALL bcast_real(prof_vpart_x, SIZE(prof_vpart_x), root)
+      CALL bcast_real(prof_vpart_z, SIZE(prof_vpart_z), root)
+      CALL bcast_real(prof_parteps, SIZE(prof_parteps), root)
+      CALL bcast_real(prof_parttemp, SIZE(prof_parttemp), root)
+      CALL bcast_real(prof_gasconc, SIZE(prof_gasconc), root)
 !
 !     Read initial conditions ( atmosphere conditions )
 !
-
       tend = .FALSE.
       IF(mpime == root) THEN
         initial_conditions_search: DO
@@ -565,8 +594,14 @@
       USE initial_conditions, ONLY: epsob, tpob, ygc0, ygcob,   &
      &     ugob, vgob, wgob, upob, vpob, wpob, pob, tgob, epob, &
      &     lpr, zzero
+      USE initial_conditions, ONLY: ugpr, wgpr, ppr, eppr, tgpr, &
+                                    uppr,wppr,epspr,tppr, ygcpr, npr
       USE particles_constants, ONLY: rl, inrl, kap, cmus, phis, cps, dk
       USE control_flags, ONLY: job_type
+
+      IMPLICIT NONE
+
+      INTEGER :: ig, is
 
       dx(1:nx) = delta_x(1:nx)
       IF( job_type == '3D' ) THEN
@@ -604,6 +639,17 @@
       tpob(1:nsolid,1:no) = fixed_parttemp(1:nsolid,1:no)
       ygcob(1:ngas,1:no) = fixed_gasconc(1:ngas,1:no)
 
+      ugpr(1:npr)  = prof_vgas_x(1:npr)
+      wgpr(1:npr)  = prof_vgas_z(1:npr)
+      ppr(1:npr)  = prof_pressure(1:npr)
+      eppr(1:npr)  = prof_gaseps(1:npr)
+      tgpr(1:npr)  = prof_gastemp(1:npr)
+      uppr(1:nsolid,1:npr) = prof_vpart_x(1:nsolid,1:npr)
+      wppr(1:nsolid,1:npr) = prof_vpart_z(1:nsolid,1:npr)
+      epspr(1:nsolid,1:npr) = prof_parteps(1:nsolid,1:npr)
+      tppr(1:nsolid,1:npr) = prof_parttemp(1:nsolid,1:npr)
+      ygcpr(1:ngas,1:npr) = prof_gasconc(1:ngas,1:npr)
+
       u0 = initial_vgas_x
       IF( job_type == '3D' ) THEN
         v0 = initial_vgas_y
@@ -637,6 +683,38 @@
       inrl(:)=1.D0/rl(:)
 
       END SUBROUTINE initc
+!----------------------------------------------------------------------
+      SUBROUTINE read_profile(n)
+
+      USE dimensions, ONLY: ngas, nsolid
+      USE initial_conditions, ONLY: npr
+      USE parallel, ONLY: mpime, root
+
+      IMPLICIT NONE
+
+      INTEGER, INTENT(IN) :: n
+      INTEGER :: k, ig, is
+      INTEGER :: x1,x2,z1,z2
+
+      OPEN(UNIT=17, FILE='input.prof', STATUS='OLD')
+      READ(17,*) x1,x2,z1,z2
+
+      npr = z2 - z1 + 1
+
+      IF ( (z2-z1) /= (block_bounds(6,n)-block_bounds(5,n)) .OR. (x1/=x2) ) THEN
+        CALL error('setup','Error in input profile, block:', n)
+      END IF
+
+      DO k= 1, npr
+        READ(17,*) prof_vgas_x(k),prof_vgas_z(k),prof_pressure(k),  &
+                   prof_gaseps(k),prof_gastemp(k),                  &
+                  (prof_vpart_x(is,k),prof_vpart_z(is,k),           &
+                   prof_parteps(is,k),prof_parttemp(is,k), is=1,nsolid), &
+                  (prof_gasconc(ig,k), ig = 1,ngas)
+      END DO
+      CLOSE(17)
+
+      END SUBROUTINE read_profile
 !----------------------------------------------------------------------
       END MODULE input_module
 !----------------------------------------------------------------------

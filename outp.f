@@ -16,6 +16,71 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
+      SUBROUTINE jet_out
+!
+      USE dimensions, ONLY: nsolid
+      USE eos_gas, ONLY: xgc
+      USE gas_constants, ONLY: present_gas, default_gas
+      USE gas_solid_density, ONLY: rlk, rog
+      USE gas_solid_velocity, ONLY: ug, vg, wg
+      USE gas_solid_velocity, ONLY: us, vs, ws
+      USE gas_solid_temperature, ONLY: tg, ts
+      USE io_restart, ONLY: write_array
+      USE parallel, ONLY: nproc, mpime, root, group
+      USE particles_constants, ONLY: rl, inrl
+      USE pressure_epsilon, ONLY: p
+      USE time_parameters, ONLY: time
+      USE turbulence_model, ONLY: modturbo
+      USE control_flags, ONLY: job_type
+!
+      IMPLICIT NONE
+!
+      CHARACTER :: filnam*11
+      CHARACTER*4 :: lettera
+      LOGICAL :: lform
+!
+      INTEGER :: ig,is
+      REAL*8, ALLOCATABLE :: otmp(:)
+!
+    
+      nfil=nfil+1
+      filnam='output.'//lettera(nfil)
+      lform = formatted_output
+
+      IF( mpime == root ) THEN
+
+        IF (lform) THEN
+          OPEN(UNIT=12,FILE=filnam)
+          WRITE(12,*) time
+        ELSE 
+          OPEN(UNIT=12,FORM='UNFORMATTED',FILE=filnam)
+          WRITE(12) REAL(time,4)
+        END IF
+ 
+      END IF
+!
+      CALL write_array( 12, p, sgl, lform )  ! gas_pressure
+      CALL write_array( 12, tg, sgl, lform )   ! gas_temperature
+      CALL write_array( 12, rog, sgl, lform )  ! gas_density
+!
+      IF (job_type == '2D') THEN
+        CALL write_array( 12, ug, sgl, lform ) ! gas_velocity_r
+        CALL write_array( 12, wg, sgl, lform ) ! gas_velocity_z
+      ELSE IF (job_type == '3D') THEN
+        CALL write_array( 12, ug, sgl, lform ) ! gas_velocity_x
+        CALL write_array( 12, vg, sgl, lform ) ! gas_velocity_y
+        CALL write_array( 12, wg, sgl, lform ) ! gas_velocity_z
+      ELSE
+        CALL error('outp_','Unknown job type',1)
+      END IF
+
+      IF( mpime == root ) THEN
+        CLOSE (12)
+      END IF
+!
+      RETURN
+      END SUBROUTINE jet_out
+!----------------------------------------------------------------------
       SUBROUTINE shock_tube_out
 !
       USE dimensions, ONLY: nx, nz, nsolid

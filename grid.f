@@ -159,18 +159,9 @@
             DO k = iob(n)%zlo, iob(n)%zhi 
               DO i = iob(n)%xlo, iob(n)%xhi
                 ijk = i + (k-1) * nx
-                SELECT CASE ( iob(n)%typ )
-                  CASE (2) 
-                    fl(ijk) = 2
-                  CASE (3) 
-                    fl(ijk) = 3
-                  CASE (4) 
-                    fl(ijk) = 4
-                  CASE (5) 
-                    fl(ijk) = 5
-                  CASE DEFAULT
-                    fl(ijk) = 1
-                END SELECT
+
+                fl(ijk) = iob(n)%typ
+                
               END DO
             END DO
 
@@ -183,18 +174,9 @@
               DO j = iob(n)%ylo, iob(n)%yhi
                 DO i = iob(n)%xlo, iob(n)%xhi
                   ijk = i + ( (j-1) + (k-1)*ny ) * nx
-                  SELECT CASE ( iob(n)%typ )
-                    CASE (2)
-                      fl(ijk) = 2
-                    CASE (3)
-                      fl(ijk) = 3
-                    CASE (4)
-                      fl(ijk) = 4
-                    CASE (5)
-                      fl(ijk) = 5
-                    CASE DEFAULT
-                      fl(ijk) = 1
-                  END SELECT
+
+                  fl(ijk) = iob(n)%typ
+                
                 END DO
               END DO
             END DO

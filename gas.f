@@ -14,6 +14,7 @@
         REAL*8 :: gammaair, gamn, c_joule, c_erg, rgas
         REAL*8 :: tzero, hzerog, hzeros
         INTEGER :: default_gas
+        INTEGER :: mcomp
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------

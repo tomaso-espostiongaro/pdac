@@ -117,7 +117,8 @@
  
            IF(rgpgc(ijk,ig) < 0.D0) THEN
              WRITE(8,*) 'Warning!: gas mass is not conserved'
-             WRITE(8,128) time, ijk, ig, rgpgc(ijk,ig)
+             WRITE(8,128) time, ijk, ig 
+             WRITE(8,*) rgpgcn(ijk,ig),  rgpgc(ijk,ig)
  128         FORMAT('Time= ',F8.3,' Cell= ',I6, ' Specie= ',I2)
              rgpgc(ijk,ig) = 0.D0
            END IF

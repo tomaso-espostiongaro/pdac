@@ -7,6 +7,10 @@
                                              tgob, pob, ygc0
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: upob, vpob, wpob, epsob, &
                                              tpob, ygcob
+      REAL*8, DIMENSION(:), ALLOCATABLE   :: ugpr, wgpr, ppr, eppr, tgpr
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: uppr,wppr,epspr,tppr, ygcpr
+      INTEGER :: npr
+
       INTEGER :: lpr
       REAL*8 :: zzero
 !----------------------------------------------------------------------
@@ -16,11 +20,22 @@
       USE dimensions
       IMPLICIT NONE
 !
+! ... Specified flow blocks
+!
        ALLOCATE(ugob(no), vgob(no), wgob(no), pob(no), epob(no), tgob(no))
        ALLOCATE(upob(nsolid,no), vpob(nsolid,no), wpob(nsolid,no),        &
                 epsob(nsolid,no), tpob(nsolid,no))
        ALLOCATE(ygc0(ngas))
        ALLOCATE(ygcob(ngas,no))
+!
+! ... Specified profile
+!
+       IF (npr > 0) THEN
+         ALLOCATE(ugpr(npr), wgpr(npr), ppr(npr), eppr(npr), tgpr(npr))
+         ALLOCATE(ygcpr(ngas,npr))
+         ALLOCATE(uppr(nsolid,npr), wppr(nsolid,npr))
+         ALLOCATE(epspr(nsolid,npr), tppr(nsolid,npr))
+       END IF
 
       RETURN
       END SUBROUTINE
@@ -53,7 +68,6 @@
       IMPLICIT NONE
 !
       INTEGER :: i, j, k, ijk, ikpr, kpr, n, imesh
-      INTEGER :: x1, x2, z1, z2
       INTEGER :: ig, is
       REAL*8 :: zrif, prif, trif
       REAL*8 :: mass, tem
@@ -127,11 +141,7 @@
           CASE (7) ! ... Assign vertical profile 
 !
             IF ( job_type == '2D' ) THEN
-
-              READ(17,*) x1,x2,z1,z2
-              IF ( (z2-z1) /= (iob(n)%zhi - iob(n)%zlo) .OR. (x1/=x2) ) &
-                CALL error('setup','Error in input profile, block:', n)
-
+             
               CALL specified_profile(n)
 
             ELSE IF ( job_type == '3D' ) THEN
@@ -149,8 +159,28 @@
         density_specified = .FALSE.  ! specify density instead of !
                                      ! temperature                !
         DO  ijk = 1, ncint
+!
+! ... Check closure conditions for gas species
+!
+          IF (SUM(ygc(:,ijk))/= 1.D0) THEN
+            ygc(default_gas,ijk) = 1.D0
+            DO ig=1,ngas
+              IF (ig /= default_gas) THEN
+                ygc(default_gas,ijk) = ygc(default_gas,ijk) - ygc(ig,ijk)
+              END IF  
+            END DO
+          END IF
 
           CALL mole( xgc(:,ijk), ygc(:,ijk) )
+
+          IF (SUM(xgc(:,ijk))/= 1.D0) THEN
+            xgc(default_gas,ijk) = 1.D0
+            DO ig=1,ngas
+              IF (ig /= default_gas) THEN
+                xgc(default_gas,ijk) = xgc(default_gas,ijk) - xgc(ig,ijk)
+              END IF
+            END DO
+          END IF
 
           IF (density_specified) THEN
             mass = 0.D0
@@ -189,13 +219,14 @@
           END DO
 
           CALL mas( ygc(:,ijk), xgc(:,ijk)) 
+
           CALL cnvertg(ijk)
           CALL cnverts(ijk)
 
         END DO
-!
+
       END IF
-!
+
       RETURN
       END SUBROUTINE setup
 !----------------------------------------------------------------------
@@ -279,47 +310,42 @@
       USE indijk_module, ONLY: ip0_jp0_kp0_
 
       INTEGER, INTENT(IN) :: n
-      REAL*8 :: ugpr, wgpr, ppr, eppr, tgpr
-      REAL*8, DIMENSION(:), ALLOCATABLE :: uppr,wppr,epspr,tppr, ygcpr
 
       REAL*8 :: ymd
       INTEGER :: ijk,i,j,k,imesh
-      INTEGER :: ig, is
+      INTEGER :: ig, is, np
 
-      ALLOCATE(ygcpr(ngas))
-      ALLOCATE(uppr(nsolid), wppr(nsolid), epspr(nsolid), tppr(nsolid))
-       
         DO ijk = 1, ncint
           imesh = myijk( ip0_jp0_kp0_ , ijk )
           CALL meshinds(ijk,imesh,i,j,k)
 
           IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi ) THEN
             IF ( i >= iob(n)%xlo .AND. i <= iob(n)%xhi  ) THEN
-              IF ( i == iob(n)%xlo )                                         &
-              READ(17,*) ugpr,wgpr,ppr,eppr,tgpr,                            &
-                        (uppr(is),wppr(is),epspr(is),tppr(is), is=1,nsolid), &
-                        (ygcpr(ig), ig = 1,ngas)
-              eppr = 1.D0 - SUM(epspr)
-              ug(ijk)=ugpr
-              wg(ijk)=wgpr
-              tg(ijk)=tgpr+273.15
-              p(ijk)=ppr
-              ep(ijk)=eppr
+              np = k - iob(n)%zlo + 1 
+
+              ug(ijk) = ugpr(np)
+              wg(ijk) = wgpr(np)
+              tg(ijk) = tgpr(np)+273.15
+              p(ijk)  = ppr(np)
+              ep(ijk) = 1.D0 - SUM(epspr(:,np))
+
+              DO is=1,nsolid
+                ts(ijk,is)=tppr(is,np)+273.15
+                us(ijk,is)=uppr(is,np)
+                ws(ijk,is)=wppr(is,np)
+                rlk(ijk,is)=epspr(is,np)*rl(is)
+              END DO
+
               ymd = 0.D0
               DO ig=1,ngas
-                IF (ig /= default_gas) ymd = ymd + ygcpr(ig)
-                ygc(ig,ijk) = ygcpr(ig)
-                IF ( ygcpr(ig) /= 0.0 ) present_gas(ig) = .TRUE.
+                IF (ig /= default_gas) ymd = ymd + ygcpr(ig,np)
+                ygc(ig,ijk) = ygcpr(ig,np)
+                IF ( ygcpr(ig,np) /= 0.0 ) present_gas(ig) = .TRUE.
               END DO
               IF (.NOT.present_gas(default_gas))                      &
                 WRITE(*,*) 'default gas is not present'
               ygc(default_gas,ijk) = 1.D0 - ymd
-              DO is=1,nsolid
-                ts(ijk,is)=tppr(is)+273.15
-                us(ijk,is)=uppr(is)
-                ws(ijk,is)=wppr(is)
-                rlk(ijk,is)=epspr(is)*rl(is)
-              END DO
+
               CALL mole( xgc(:,ijk), ygc(:,ijk) )
               CALL cnvertg(ijk)
               CALL cnverts(ijk)
@@ -331,9 +357,6 @@
             END IF
           END IF
         END DO
-
-      DEALLOCATE(ygcpr)
-      DEALLOCATE(uppr, wppr, epspr, tppr)
 
       END SUBROUTINE specified_profile
 !----------------------------------------------------------------------

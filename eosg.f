@@ -42,7 +42,7 @@
 ! ... computes molar fractions
 !
       USE dimensions
-      USE gas_constants, ONLY: gmw
+      USE gas_constants, ONLY: gmw, default_gas
       IMPLICIT NONE
 !
       REAL*8, INTENT(IN) :: yg(:)
