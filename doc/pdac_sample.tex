@@ -3,178 +3,146 @@
 This section contains some simple example \PDAC\ configuration files to serve
 as templates.
 \prettypar
-This file shows a simple configuration file for alanin.  
-It performs basic dynamics
-with no output files or special features.
+This file shows a simple configuration file for simulation of an axisymmetric
+Plinian column with one particle class and withount topography.  
 
 \begin{verbatim}
-# protocol params
-numsteps        1000
+&control
+ run_name = 'Sub_Plinian_2D',
+ job_type = '2D',
+ restart_mode = 'from_scratch', ! ( from_scratch | restart )
+ time =  0.00,
+ tstop = 900.0,
+ dt    = 0.01,
+ tpr   = 10.0,
+ tdump = 50.0
+/
 
-# initial config
-coordinates     alanin.pdb
-temperature     300K
-seed            12345
+&model
+  cmut = 0.33,
+  iss  = 0,
+  repulsive_model = 1,
+  iturb = 1
+/
 
-# output params
-outputname      /tmp/alanin
-binaryoutput    no
+&mesh
+  itc = 1, 
+  nx = 100,
+  nz = 200
+/
 
-# integrator params
-timestep        1.0
+&particles
+  nsolid = 1, 
+  diameter = 50.
+  density = 1500.
+  sphericity = 1.0
+  viscosity = 0.5
+  specific_heat = 1.2D3
+  thermal_conductivity = 2.0D0
+/
 
-# force field params
-structure       alanin.psf
-parameters      alanin.params
-exclude         scaled1-4
-1-4scaling      1.0
-switching       on
-switchdist      8.0
-cutoff          12.0
-pairlistdist    13.5
-stepspercycle   20
+&numeric
+  rungekut = 1,
+  muscl = 1,
+  lim_type = 4,
+  beta = 0.25,
+  omega = 1.00
+/
+
+'ROUGHNESS'
+ 1, 1.D0, 5.D3
+
+'MESH'
+
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  32.95D0  35.90D0  38.85D0  41.80D0  44.74D0
+  47.69D0  50.64D0  53.59D0  56.54D0  59.49D0
+  62.44D0  65.39D0  68.34D0  71.29D0  74.23D0
+  77.18D0  80.13D0  83.08D0  86.03D0  88.98D0
+  91.93D0  94.88D0  97.83D0 100.78D0 103.72D0
+ 106.67D0 109.62D0 112.57D0 115.52D0 118.47D0
+ 121.42D0 124.37D0 127.32D0 130.27D0 133.21D0
+ 136.16D0 139.11D0 142.06D0 145.01D0 147.96D0
+ 150.91D0 153.86D0 156.81D0 159.76D0 162.70D0
+ 165.65D0 168.60D0 171.55D0 174.50D0 177.45D0
+ 180.40D0 183.35D0 186.30D0 189.24D0 192.19D0
+ 195.14D0 198.09D0 200.00D0 200.00D0 200.00D0
+ 200.00D0 200.00D0 200.00D0 200.00D0 200.00D0
+ 200.00D0 200.00D0 200.00D0 200.00D0 200.00D0
+
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  31.09D0  32.19D0  33.28D0  34.38D0  35.47D0
+  36.57D0  37.66D0  38.76D0  39.85D0  40.95D0
+  42.04D0  43.14D0  44.23D0  45.33D0  46.42D0
+  47.52D0  48.61D0  49.70D0  50.80D0  51.89D0
+  52.99D0  54.08D0  55.18D0  56.27D0  57.37D0
+  58.46D0  59.56D0  60.65D0  61.75D0  62.84D0
+  63.94D0  65.03D0  66.13D0  67.22D0  68.31D0
+  69.41D0  70.50D0  71.60D0  72.69D0  73.79D0
+  74.88D0  75.98D0  77.07D0  78.17D0  79.26D0
+  80.36D0  81.45D0  82.55D0  83.64D0  84.73D0
+  85.83D0  86.92D0  88.02D0  89.11D0  90.21D0
+  91.30D0  92.40D0  93.49D0  94.59D0  95.68D0
+  96.78D0  97.87D0  98.97D0 100.06D0 101.16D0
+ 102.25D0 103.34D0 104.44D0 105.53D0 106.63D0
+ 107.72D0 108.82D0 109.91D0 111.01D0 112.10D0
+ 113.20D0 114.29D0 115.39D0 116.48D0 117.58D0
+ 118.67D0 119.77D0 120.86D0 121.95D0 123.05D0
+ 124.14D0 125.24D0 126.33D0 127.43D0 128.52D0
+ 129.62D0 130.71D0 131.81D0 132.90D0 134.00D0
+ 135.09D0 136.19D0 137.28D0 138.38D0 139.47D0
+ 140.56D0 141.66D0 142.75D0 143.85D0 144.94D0
+ 146.04D0 147.13D0 148.23D0 149.32D0 150.42D0
+ 151.51D0 152.61D0 153.70D0 154.80D0 155.89D0
+ 156.98D0 158.08D0 159.17D0 160.27D0 161.36D0
+ 162.46D0 163.55D0 164.65D0 165.74D0 166.84D0
+ 167.93D0 169.03D0 170.12D0 171.22D0 172.31D0
+ 173.41D0 174.50D0 175.59D0 176.69D0 177.78D0
+ 178.88D0 179.97D0 181.07D0 182.16D0 183.26D0
+ 184.35D0 185.45D0 186.54D0 187.64D0 188.73D0
+ 189.83D0 190.92D0 192.02D0 193.11D0 194.20D0
+ 195.30D0 196.39D0 197.49D0 198.58D0 199.68D0
+ 200.00D0 200.00D0 200.00D0 200.00D0 200.00D0
+
+'FIXED_FLOWS'
+5
+5, 2  , 3  , 1  , 1
+0.0, 110., 1.01325D5, 0.999, 900.0
+0.0, 110., 0.001, 900.0
+0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0  
+3, 4  , 100, 1  , 1
+2, 1  , 1  , 1  , 200
+6, 100, 100, 2  , 200
+6, 2  , 100, 200, 200
+
+'INITIAL_CONDITIONS'
+0.0, 0.0, 1.01325D5, 1. 0.6413, 288.15 
+0.0, 0.0
+0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0
 \end{verbatim}
 
 \newpage
-This file is again for alanin, 
-but shows a slightly more complicated configuration.  
-The system is periodic, a coordinate trajectory file
-and a set of restart files are produced.
-
-\begin{verbatim}
-# protocol params
-numsteps        1000
-
-# initial config
-coordinates     alanin.pdb
-temperature     300K
-seed            12345
-
-# periodic cell
-cellBasisVector1   33.0 0 0
-cellBasisVector2   0 32.0 0
-cellBasisVector3   0 0 32.5
-
-# output params
-outputname      /tmp/alanin
-binaryoutput    no
-DCDfreq         10
-restartfreq     100
-
-# integrator params
-timestep        1.0
-
-# force field params
-structure       alanin.psf
-parameters      alanin.params
-exclude         scaled1-4
-1-4scaling      1.0
-switching       on
-switchdist      8.0
-cutoff          12.0
-pairlistdist    13.5
-stepspercycle   20
-\end{verbatim}
+The next is the input file for inviscid simulation of a 2D axisymmetric
+supersonic jet of pure water vapour into a tank of still air 
+at atmospheric pressure, without particles. 
 
 \newpage
-This file shows another simple configuration file for alanin, 
-but this time with full electrostatics using PME and 
-multiple timestepping.
+The next is the input file for 2D axisymmetric simulation of pyroclastic
+flows generation and propagation on the Northern flank of Vesuvius,
+including the section of the volcano topography.
 
-\begin{verbatim}
-# protocol params
-numsteps        1000
-
-# initial config
-coordinates     alanin.pdb
-temperature     300K
-seed            12345
-
-# periodic cell
-cellBasisVector1   33.0 0 0
-cellBasisVector2   0 32.0 0
-cellBasisVector3   0 0 32.5
-
-# output params
-outputname      /tmp/alanin
-binaryoutput    no
-DCDfreq         10
-restartfreq     100
-
-# integrator params
-timestep        1.0
-fullElectFrequency  4
-
-# force field params
-structure       alanin.psf
-parameters      alanin.params
-exclude         scaled1-4
-1-4scaling      1.0
-switching       on
-switchdist      8.0
-cutoff          12.0
-pairlistdist    13.5
-stepspercycle   20
-
-# full electrostatics
-PME             on
-PMEGridSizeX    32
-PMEGridSizeY    32
-PMEGridSizeZ    32
-\end{verbatim}
 \newpage
-
-This file demonstrates the analysis of a DCD trajectory file using PDAC.
-The file {\tt pair.pdb} contains the definition of pair interaction groups;
-PDAC will compute the interaction energy and force between these groups
-for each frame in the DCD file.  It is assumed that coordinate frames were
-written every 1000 timesteps.  See Sec.~\ref{section:pairinteraction} for
-more about pair interaction calculations.
-
-\begin{verbatim}
-
-
-# initial config
-coordinates     alanin.pdb
-temperature     0
-
-# output params
-outputname      /tmp/alanin-analyze
-binaryoutput    no
-
-# integrator params
-timestep        1.0
-
-# force field params
-structure       alanin.psf
-parameters      alanin.params
-exclude         scaled1-4
-1-4scaling      1.0
-switching       on
-switchdist      8.0
-cutoff          12.0
-pairlistdist    13.5
-stepspercycle   20
- 
-# Atoms in group 1 have a 1 in the B column; group 2 has a 2.
-pairInteraction		on
-pairInteractionFile	pair.pdb
-pairInteractionCol	B
-pairInteractionGroup1	1
-pairInteractionGroup2	2
-
-# First frame saved was frame 1000.
-set ts 1000
-
-coorfile open dcd /tmp/alanin.dcd
-
-# Read all frames until nonzero is returned.
-while { ![coorfile read] } {
-  # Set firstTimestep so our energy output has the correct TS.
-  firstTimestep $ts
-  # Compute energies and forces, but don't try to move the atoms.
-  run 0
-  incr ts 1000
-}
-coorfile close
-\end{verbatim}
+The next is the input file for fully 3D simulation of a volcanic column,
+without topography included.
