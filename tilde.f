@@ -540,7 +540,8 @@
 ! ... On the immersed boundary the explicit terms must be modified
 ! ... by adding a force to mimic the boundary
 !
-          IF (immb >= 1) THEN
+          IF (immb >= 1 .AND. job_type == '2D') THEN
+            
             IF (forced(ijk)) THEN
 
               fp = numx(ijk)

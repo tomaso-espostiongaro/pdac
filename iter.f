@@ -1053,7 +1053,7 @@
 ! ... immersed. b=1 if the cell face is external, b=0 if the
 ! ... cell face is inside the topography.
 !
-      USE control_flags, ONLY: itp, immb
+      USE control_flags, ONLY: itp, immb, job_type
       USE domain_decomposition, ONLY: ncint, meshinds
       USE grid, ONLY: z, zb
       USE immersed_boundaries, ONLY: topo_c, topo_x
@@ -1070,7 +1070,7 @@
       ! ... initialize
       b_e = 1; b_w = 1; b_t = 1; b_b = 1
 
-      IF (immb >= 1) THEN
+      IF (immb >= 1 .AND. job_type == '2D') THEN
         DO ijk=1, ncint
           CALL meshinds(ijk,imesh,i,j,k)
 

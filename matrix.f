@@ -290,7 +290,9 @@
 !
 ! ... Use Gauss-Jordan method for matrix inversion
 !
-      IF (flag(imjk) == 1 .OR. flag(imjk) == 4) THEN
+      SELECT CASE (flag(imjk))
+
+      CASE (1,4,6)
 
         DO l=2,nphase
           IF(au1(l,l) < rlim) THEN
@@ -327,10 +329,13 @@
           us(imjk,l-1) = bu1(l)
         END DO
 
-      END IF
+      END SELECT
 
       IF (job_type == '3D') THEN
-        IF (flag(ijmk) == 1 .OR. flag(ijmk) == 4) THEN
+
+        SELECT CASE (flag(ijmk))
+
+        CASE (1,4,6)
 
           DO l=2,nphase
             IF(av1(l,l) < rlim) THEN
@@ -367,10 +372,12 @@
             vs(ijmk,l-1) = bv1(l)
           END DO
 !
-        END IF
+        END SELECT
       END IF
 
-      IF (flag(ijkm) == 1 .OR. flag(ijkm) == 4) THEN
+      SELECT CASE (flag(ijkm))
+
+      CASE (1,4,6)
 
         DO l=2,nphase
           IF(aw1(l,l) < rlim) THEN
@@ -407,7 +414,7 @@
           ws(ijkm,l-1) = bw1(l)
         END DO
 !
-      END IF
+      END SELECT
 !
       CALL solve_velocities(ijk)
 !
@@ -435,7 +442,9 @@
 !
 ! ... Use Gauss-Jordan method for matrix inversion
 !
-      IF (flag(ipjk) == 1 .OR. flag(ipjk) == 4) THEN
+      SELECT CASE (flag(ipjk))
+      
+      CASE (1,4,6)
 
         DO l=2,nphase
           IF(au(l,l) < rlim) THEN
@@ -473,10 +482,14 @@
           us(ijk,l-1)=bu(l)
         END DO
 !
-      END IF
+      END SELECT
 
       IF (job_type == '3D') THEN
-        IF (flag(ijpk) == 1 .OR. flag(ijpk) == 4) THEN
+
+        SELECT CASE (flag(ijpk))
+
+        CASE (1,4,6)
+
           DO l=2,nphase
             IF(av(l,l) < rlim) THEN
               DO ll=1,nphase
@@ -512,11 +525,13 @@
             vs(ijk,l-1)=bv(l)
           END DO
 !
-        END IF
+        END SELECT
       END IF
 !
 
-      IF (flag(ijkp) == 1 .OR. flag(ijkp) == 4) THEN
+      SELECT CASE (flag(ijkp))
+
+      CASE (1,4,6)
 
         DO l=2,nphase
           IF(aw(l,l) < rlim) THEN
@@ -554,7 +569,7 @@
           ws(ijk,l-1)=bw(l)
         END DO
 !
-      END IF
+      END SELECT
 !
       RETURN
       END SUBROUTINE solve_velocities
@@ -725,12 +740,12 @@
         dzdp =dz(k)   * indzp
         dzpdp=dz(k+1) * indzp
 
-        flim = ( flag(imjk) == 1 .OR. flag(imjk) == 4 )
-        fljm = ( flag(ijmk) == 1 .OR. flag(ijmk) == 4 )
-        flkm = ( flag(ijkm) == 1 .OR. flag(ijkm) == 4 )
-        flip = ( flag(ipjk) == 1 .OR. flag(ipjk) == 4 )
-        fljp = ( flag(ijpk) == 1 .OR. flag(ijpk) == 4 )
-        flkp = ( flag(ijkp) == 1 .OR. flag(ijkp) == 4 )
+        flim = ( flag(imjk) == 1 .OR. flag(imjk) == 4 .OR. flag(imjk) == 6)
+        fljm = ( flag(ijmk) == 1 .OR. flag(ijmk) == 4 .OR. flag(imjk) == 6)
+        flkm = ( flag(ijkm) == 1 .OR. flag(ijkm) == 4 .OR. flag(imjk) == 6)
+        flip = ( flag(ipjk) == 1 .OR. flag(ipjk) == 4 .OR. flag(imjk) == 6)
+        fljp = ( flag(ijpk) == 1 .OR. flag(ijpk) == 4 .OR. flag(imjk) == 6)
+        flkp = ( flag(ijkp) == 1 .OR. flag(ijkp) == 4 .OR. flag(imjk) == 6)
 
         pw   = p(ijkw)
         pe   = p(ijke)

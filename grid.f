@@ -514,6 +514,7 @@
       ENDIF
 !
 
+      WRITE(6,*) 'check!'
 
       maxn = .TRUE.
       DO WHILE ( maxn )
@@ -525,7 +526,10 @@
                &      ( 1.D0 - ( m1+1.D0 )*( beta1**m1 ) / ntilde1 ) 
             ENDDO
          ENDIF
-         IF ( demin*beta1*m1 > demax ) THEN
+         IF ( demin*beta1**m1 > demax ) THEN
+
+            WRITE(6,*) m1, demin*beta1**m1
+
             IF ( (m1==0) .OR. ( beta1 > maxbeta ) ) THEN
                WRITE(7,*) 'WARNING!!: beta >= maximum beta!'
                maxn = .FALSE.
@@ -549,7 +553,7 @@
                ( 1.D0 - ( m2+1.D0 )*( beta2**m2 ) / ntilde2 )
             ENDDO
          ENDIF
-         IF ( demin*beta2*m2 > demax ) THEN
+         IF ( demin*beta2**m2 > demax ) THEN
             IF ( (m2==0) .OR. ( beta2 > maxbeta ) ) THEN
                WRITE(7,*) 'WARNING!!: beta >= maximum beta!'
                maxn = .FALSE.

@@ -7,8 +7,8 @@
 !----------------------------------------------------------------------
         USE grid, ONLY: fl, flag
         USE indijk_module
-        USE immersed_boundaries, ONLY: forced, forcex, forcez, nfp
-        USE immersed_boundaries, ONLY: numx, forx, numz, forz
+        USE immersed_boundaries, ONLY: forced, forcex, forcey, forcez, nfp
+        USE immersed_boundaries, ONLY: numx, forx, numy, fory, numz, forz
         USE control_flags, ONLY: lpr, immb, itp
 !
         IMPLICIT NONE
@@ -1122,23 +1122,34 @@
 
         DO ijkl = 1, ncint
           ijk = myijk( ip0_jp0_kp0_, ijkl)
-          forced(ijkl) = ( forcex(ijk) .OR. forcez(ijk) )
+          IF (job_type == '2D') THEN
+            forced(ijkl) = ( forcex(ijk) .OR. forcez(ijk) )
+          ELSE IF (job_type == '3D') THEN
+            forced(ijkl) = ( forcex(ijk) .OR. forcey(ijk) .OR. forcez(ijk) )
+          END IF
           IF(forced(ijkl)) flag(ijkl) = 1
         END DO
         DEALLOCATE (forcex)
+        IF (job_type == '3D') DEALLOCATE (forcey) 
         DEALLOCATE (forcez)
 
-        ALLOCATE( numx(ncint) )
-        ALLOCATE( numz(ncint) )
-        numx = 0
-        numz = 0
+        ALLOCATE( numx(ncint) ); numx = 0
+        IF (job_type == '3D') THEN
+          ALLOCATE( numy(ncint) ); numy = 0
+        END IF
+        ALLOCATE( numz(ncint) ); numz = 0
       
         DO n = 1, nfp
         !
           i = forx(n)%i
+          j = forx(n)%j
           k = forx(n)%k
-set_numx: IF (i/=0 .AND. k/=0) THEN
-            ijk = i + (k-1) * nx
+set_numx: IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
+            IF (job_type == '2D') THEN
+              ijk = i + (k-1) * nx
+            ELSE IF (job_type == '3D') THEN
+              ijk = i + (j-1) * nx + (k-1) * nx * ny
+            END IF
             ijkl = cell_g2l(ijk,mpime)
             IF (k==1 .OR. k==nz) THEN
               forced(ijkl) = .FALSE.
@@ -1146,10 +1157,33 @@ set_numx: IF (i/=0 .AND. k/=0) THEN
             IF (forced(ijkl)) numx(ijkl) = n 
           END IF set_numx
         !
+          IF (job_type == '3D') THEN
+            i = fory(n)%i
+            j = fory(n)%j
+            k = fory(n)%k
+set_numy:   IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
+              IF (job_type == '2D') THEN
+                ijk = i + (k-1) * nx
+              ELSE IF (job_type == '3D') THEN
+                ijk = i + (j-1) * nx + (k-1) * nx * ny
+              END IF
+              ijkl = cell_g2l(ijk,mpime)
+              IF (k==1 .OR. k==nz) THEN
+                forced(ijkl) = .FALSE.
+              END IF
+              IF (forced(ijkl)) numx(ijkl) = n 
+            END IF set_numy
+          END IF
+        !
           i = forz(n)%i
+          j = forz(n)%j
           k = forz(n)%k
-set_numz: IF (i/=0 .AND. k/=0) THEN
-            ijk = i + (k-1) * nx
+set_numz: IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
+            IF (job_type == '2D') THEN
+              ijk = i + (k-1) * nx
+            ELSE IF (job_type == '3D') THEN
+              ijk = i + (j-1) * nx + (k-1) * nx * ny
+            END IF
             ijkl = cell_g2l(ijk,mpime)
             IF (k==1 .OR. k==nz) THEN
               forced(ijkl) = .FALSE.

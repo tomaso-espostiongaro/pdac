@@ -233,7 +233,7 @@
       END SUBROUTINE compute_UTM_coords
 !----------------------------------------------------------------------
       SUBROUTINE vertical_shift(topo2d)
-      USE grid, ONLY: z, zb, dz
+      USE grid, ONLY: z, zb, dz, dzmin
       USE grid, ONLY: iv, jv, kv
       IMPLICIT NONE
       REAL*8, INTENT(IN), DIMENSION(:,:) :: topo2d
@@ -271,7 +271,7 @@
 
       IMPLICIT NONE
 
-      LOGICAL, INTENT(OUT), DIMENSION(:), OPTIONAL :: ff
+      LOGICAL, INTENT(OUT), DIMENSION(:) :: ff
       REAL*8, INTENT(OUT), DIMENSION(:) :: topo
 
       INTEGER :: i, k, ijk, l, n
@@ -360,11 +360,12 @@
       RETURN
       END SUBROUTINE interpolate_2d
 !----------------------------------------------------------------------
-      SUBROUTINE interpolate_dem(topo2d)
+      SUBROUTINE interpolate_dem(topo2d, ff)
       USE dimensions, ONLY: nx, ny, nz
       IMPLICIT NONE
+
       REAL*8, INTENT(OUT), DIMENSION(:,:) :: topo2d
-!      REAL*8, INTENT(OUT), DIMENSION(:,:,:) :: interp
+      LOGICAL, INTENT(OUT), DIMENSION(:) :: ff
 
       REAL*8 xmin,xmax,ymin,ymax,zmin,zmax !range dei valori della top.
       REAL*8 ratio
@@ -372,6 +373,8 @@
       REAL*8 dist1y,dist2y,dist1x,dist2x,alpha,beta
       INTEGER i,j,k,h,l,ii,jj
       INTEGER ijk, tp1, tp2
+
+      ff = .FALSE.
         
 !C============================================
 !C===    trova le posizioni dei nodi      ====
@@ -455,8 +458,10 @@
 
         ALLOCATE(weight(nx,ny))
         weight = 1.D0
-	DO i=1,nx
-	   DO j=1,ny
+
+	DO j=1,ny
+	   DO i=1,nx
+
 	      DO k=1,nz
 
 		IF (cz(k) <= topo2d(i,j)) THEN
@@ -464,28 +469,59 @@
 		ENDIF
 
 	      ENDDO
+
               weight(i,j) = 1.D0 - REAL(ord2d(i,j) - 1)/nz
 	   ENDDO
 	ENDDO
 !
 ! ... Identify forcing points
+! ... (check boundaries!)
 !
-!      interp = 0
-!      DO i = 2, nx - 1
-!        DO j = 2, ny - 1
-!          DO k = 1, ord(i,j)
-!            IF( ord(i-1,j)   < k ) interp(i,j,k) = 1
-!            IF( ord(i-1,j-1) < k ) interp(i,j,k) = interp(i,j,k) + 2
-!            IF( ord(i,j-1)   < k ) interp(i,j,k) = interp(i,j,k) + 4
-!            IF( ord(i+1,j-1) < k ) interp(i,j,k) = interp(i,j,k) + 8 
-!            IF( ord(i+1,j)   < k ) interp(i,j,k) = interp(i,j,k) + 16 
-!            IF( ord(i+1,j+1) < k ) interp(i,j,k) = interp(i,j,k) + 32 
-!            IF( ord(i,j+1)   < k ) interp(i,j,k) = interp(i,j,k) + 64 
-!            IF( ord(i-1,j+1) < k ) interp(i,j,k) = interp(i,j,k) + 128 
-!          END DO
-!          interp(i,j,ord(i,j)) = interp(i,j,ord(i,j)) + 256
-!        END DO
-!      END DO
+      i = 1
+      DO j = 1, ny
+        k = ord2d(i,j)
+        ijk = i + (j-1) * nx + (k-1) * nx * ny
+        ff(ijk) = .TRUE.
+      END DO
+
+      i = nx
+      DO j = 1, ny 
+        k = ord2d(i,j)
+        ijk = i + (j-1) * nx + (k-1) * nx * ny
+        ff(ijk) = .TRUE.
+      END DO
+
+      DO i = 2, nx - 1
+
+        j = 1
+        k = ord2d(i,j)
+        ijk = i + (j-1) * nx + (k-1) * nx * ny
+        ff(ijk) = .TRUE.
+
+        j = ny
+        k = ord2d(i,j)
+        ijk = i + (j-1) * nx + (k-1) * nx * ny
+        ff(ijk) = .TRUE.
+
+        DO j = 2, ny - 1
+          DO k = 1, ord2d(i,j) - 1
+            ijk = i + (j-1) * nx + (k-1) * nx * ny
+            IF( ( ord2d(i-1,j)   < k ) .OR. &
+                ( ord2d(i-1,j-1) < k ) .OR. &
+                ( ord2d(i,j-1)   < k ) .OR. &
+                ( ord2d(i+1,j-1) < k ) .OR. &
+                ( ord2d(i+1,j)   < k ) .OR. &
+                ( ord2d(i+1,j+1) < k ) .OR. &
+                ( ord2d(i,j+1)   < k ) .OR. &
+                ( ord2d(i-1,j+1) < k ) ) ff(ijk) = .TRUE.
+          END DO
+          
+          k = ord2d(i,j)
+          ijk = i + (j-1) * nx + (k-1) * nx * ny
+          ff(ijk) = .TRUE.
+        
+        END DO
+      END DO
 !      
       RETURN
       END SUBROUTINE interpolate_dem

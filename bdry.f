@@ -56,40 +56,52 @@
 !
           IF( forced(ijk) ) THEN
 
-            fp = numx(ijk)
-            IF (fp > 0) THEN
-              IF (ABS(forx(fp)%int) < 10) THEN
-                vel = velint(forx(fp), ug, ijk, xb, y, z)  
+            IF (job_type == '2D') THEN
+
+              fp = numx(ijk)
+              IF (fp > 0) THEN
+                IF (ABS(forx(fp)%int) < 10) THEN
+                  vel = velint(forx(fp), ug, ijk, xb, y, z)  
+                ELSE
+                  vel = velext(forx(fp), ug, ijk, xb, y, z)  
+                END IF
               ELSE
-                vel = velext(forx(fp), ug, ijk, xb, y, z)  
+                vel = 0.D0
               END IF
-            ELSE
-              vel = 0.D0
-            END IF
-            forx(fp)%vel = vel
+              forx(fp)%vel = vel
 
-            ! ... Initialize x-velocity in the forced points
-            IF (sweep >= 1) THEN
-              ug(ijk) = vel
-              us(ijk,:) = vel
-            END IF
+              ! ... Initialize x-velocity in the forced points
+              IF (sweep >= 1) THEN
+                ug(ijk) = vel
+                us(ijk,:) = vel
+              END IF
 
-            fp = numz(ijk)
-            IF (fp > 0) THEN
-              IF (ABS(forz(fp)%int) < 10) THEN
-                vel = velint(forz(fp), wg, ijk, x, y, zb)  
+              fp = numz(ijk)
+              IF (fp > 0) THEN
+                IF (ABS(forz(fp)%int) < 10) THEN
+                  vel = velint(forz(fp), wg, ijk, x, y, zb)  
+                ELSE
+                  vel = velext(forz(fp), wg, ijk, x, y, zb)  
+                END IF
               ELSE
-                vel = velext(forz(fp), wg, ijk, x, y, zb)  
+                vel = 0.D0
               END IF
-            ELSE
-              vel = 0.D0
-            END IF
-            forz(fp)%vel = vel
+              forz(fp)%vel = vel
 
-            ! ... Initialize z-velocity in the forced points
-            IF (sweep >= 1) THEN
-              wg(ijk) = vel
-              ws(ijk,:) = vel
+              ! ... Initialize z-velocity in the forced points
+              IF (sweep >= 1) THEN
+                wg(ijk) = vel
+                ws(ijk,:) = vel
+              END IF
+
+            ELSE IF (job_type == '3D') THEN
+
+              CONTINUE
+             
+            ELSE
+
+              CALL error('bdry','Unknown job_type: '//job_type, 1)
+
             END IF
 
           ELSE
