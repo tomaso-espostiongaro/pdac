@@ -73,6 +73,29 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
+      SUBROUTINE mas(ygc, xgc)
+!
+! ... computes mass fractions
+!
+      USE dimensions
+      USE gas_constants, ONLY: gmw
+      IMPLICIT NONE
+!
+      REAL*8, INTENT(IN) :: xgc(:)
+      REAL*8, INTENT(OUT) :: ygc(:)
+      INTEGER :: ig
+      REAL*8 :: mass
+!
+      mass = 0.D0
+      DO ig=1,ngas
+        mass = mass + xgc(ig)*gmw(ig)
+      END DO
+      DO ig=1,ngas
+        ygc(ig)=xgc(ig)*gmw(ig)/mass
+      END DO
+      RETURN
+      END SUBROUTINE
+!----------------------------------------------------------------------
       SUBROUTINE eosg(rags, rog, cp, cg, tg, ygc, xgc, sieg, p, itemp, &
                       irhog, isound, imesh)
 !
@@ -92,6 +115,7 @@
       INTEGER :: itemp, irhog, isound
 !
       REAL*8 :: tgnn, mg, hc, ratmin
+      REAL*8 :: tg0, sieg0
       INTEGER :: ii, nlmax
       INTEGER :: ig
       PARAMETER( nlmax = 2000) 
@@ -102,6 +126,8 @@
 !
 ! ... iterative inversion of the enthalpy-temperature law
 ! ... (the gas thermal capacity depends on the temperature cg=cg(T) )
+        tg0=tg
+        sieg0=sieg
         DO ii = 1, nlmax
           tgnn = tg
           CALL hcapg(cp(:), tg)
@@ -114,7 +140,8 @@
           IF (DABS((tgnn-tg)/tgnn).LE.ratmin) GOTO 223
         END DO
         WRITE(8,*) 'max number of iteration reached in eosg'
-        WRITE(8,*) 'time, imesh ',time, imesh
+        WRITE(8,*) 'time:',time, 'cell:',imesh
+        WRITE(8,*) 'temperature:',tg0, 'enthalpy:',sieg0
         CALL error( ' eosg ', ' max number of iteration reached in eosg ', 1 )
   223   CONTINUE
       ENDIF
@@ -141,7 +168,6 @@
       USE gas_solid_density, ONLY: gas_density, gas_bulk_density
       USE gas_solid_temperature, ONLY: gas_enthalpy, gas_temperature
       USE pressure_epsilon, ONLY: gas_pressure, void_fraction
-      USE reactions, ONLY: irex
       USE heat_capacity, ONLY: gc_heat_capacity, solid_heat_capacity, hcapg
 !
       IMPLICIT NONE
@@ -153,7 +179,7 @@
 !
       mg = 0.D0
       DO ig = 1, ngas
-        mg = gc_molar_fraction(ig,imesh) * gmw(ig) + mg
+        mg = mg + gc_molar_fraction(ig,imesh) * gmw(ig)
       END DO
 
 ! ... gas density (equation of state)
@@ -165,17 +191,13 @@
         gc_bulk_density(ig,imesh) = gc_mass_fraction(ig,imesh) * gas_bulk_density(imesh)
       END DO
 
-!pdac---------------
-! control next statement
-!      IF(irex.EQ.0) RETURN
-!pdac---------------
 !
 ! compute heat capacity (constant volume) for gas mixture
 !
       CALL hcapg(gc_heat_capacity(:,imesh),gas_temperature(imesh))
       hc = 0.D0
       DO ig=1,ngas
-        hc = c_erg*gc_heat_capacity(ig,imesh)*gc_mass_fraction(ig,imesh) + hc
+        hc = hc + c_erg*gc_heat_capacity(ig,imesh)*gc_mass_fraction(ig,imesh)
       END DO 
 
       gas_heat_capacity(imesh) = hc

@@ -187,10 +187,12 @@
       CALL bcast_integer(ngas,1,root)
 
       SELECT CASE ( TRIM(restart_mode) )
-        CASE ('from_scratch')
+        CASE ('from_scratch', 'default')
           itd = 1 
-        CASE ('restart', 'default' )
+        CASE ('restart')
           itd = 2
+        CASE ('outp_recover')
+          itd = 3
         CASE DEFAULT
           CALL error(' input ',' unknown restart_mode '//TRIM(restart_mode), 1 )
       END SELECT
@@ -393,7 +395,7 @@
             max_packing, initial_temperature
           READ(5,*) initial_vpart_x, initial_vpart_y, initial_vpart_z
         ELSE 
-          CALL error('input # INITIAL CONDITIONS', 'unknown job_type',1) 
+          CALL error('input # INITIAL_CONDITIONS', 'unknown job_type',1) 
         ENDIF
         READ(5,*) (initial_gasconc(ig), ig=1, ngas)
 
@@ -404,7 +406,7 @@
 !
       CALL bcast_logical(tend, 1, root)
       IF( tend ) THEN
-        CALL error( ' input ', ' INITIAL CONDITIONS card not found ', 1 )
+        CALL error( ' input ', ' INITIAL_CONDITIONS card not found ', 1 )
       END IF
       CALL bcast_real(initial_vgas_r,1,root)
       CALL bcast_real(initial_vgas_x,1,root)

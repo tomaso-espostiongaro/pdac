@@ -10,7 +10,7 @@
       USE gas_solid_temperature, ONLY: gas_temperature, gas_enthalpy,  &
                                      solid_temperature, solid_enthalpy
       USE parallel, ONLY: mpime, root
-      USE pressure_epsilon, ONLY: gas_pressure, void_fraction
+      USE pressure_epsilon, ONLY: gas_pressure , void_fraction
       USE heat_capacity, ONLY: gc_heat_capacity, solid_heat_capacity
       USE time_parameters, ONLY: time
 !

@@ -28,16 +28,17 @@
 !
       USE atmosphere, ONLY: u0, w0, p0, temp0, us0, ws0, ep0, atm
       USE dimensions
-      USE eos_gas, ONLY: mole, cnvertg, gc_molar_fraction, gc_mass_fraction
+      USE eos_gas, ONLY: mas, mole, cnvertg, gc_molar_fraction, gc_mass_fraction
       USE eos_solid, ONLY: cnverts
       USE gas_constants, ONLY: gmw, rgas
       USE gas_solid_density, ONLY: gas_bulk_density, solid_bulk_density
       USE gas_solid_velocity, ONLY: gas_velocity_r, gas_velocity_z
       USE gas_solid_velocity, ONLY: solid_velocity_r, solid_velocity_z
       USE gas_solid_temperature, ONLY: gas_temperature, solid_temperature
+      USE gas_solid_temperature, ONLY: gas_enthalpy
       USE grid, ONLY: grid_setup, zb, dx, dy, dz, dr
       USE grid, ONLY: fl, iob
-      USE particles_constants, ONLY: rl
+      USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: gas_pressure, void_fraction
       USE time_parameters, ONLY: itd
       USE gas_solid_viscosity, ONLY: gas_viscosity, gas_thermal_conductivity
@@ -47,13 +48,14 @@
       INTEGER :: i, j, j1, j2, i1, i2, ikpr, kpr, ij, n
       INTEGER :: ig, is, imesh
       REAL*8 :: zrif
+      REAL*8 :: entemp
 !
       CALL grid_setup(zzero)
       CALL setc
 !
 ! ... MODIFICARE_X3D
 
-      IF(itd.LE.1) THEN
+      IF (itd <= 1) THEN
 
 !
 ! ... Set initial ambient pressure and temperature within computational domain
@@ -119,9 +121,31 @@
 ! ... Compute thermodynamic quantities
 !
         DO  imesh = 1, ntot
-         CALL mole(gc_molar_fraction(:,imesh), gc_mass_fraction(:,imesh))
-         CALL cnvertg(imesh)
-         CALL cnverts(imesh)
+          CALL mole(gc_molar_fraction(:,imesh), gc_mass_fraction(:,imesh))
+          CALL cnvertg(imesh)
+          CALL cnverts(imesh)
+        END DO
+!
+      ELSE IF (itd == 2) THEN 
+!
+        DO imesh = 1, ntot
+            entemp =  gas_enthalpy(imesh)
+            CALL cnvertg(imesh)
+            WRITE(6,*) 'cnvertg', imesh, gas_enthalpy(imesh), entemp -  gas_enthalpy(imesh)
+            IF (DABS((entemp -  gas_enthalpy(imesh))/entemp) >= 1E-2) WRITE(6,*) 'BIG ERROR!' 
+        END DO
+!
+      ELSE IF (itd >= 3) THEN 
+
+        void_fraction = 0.D0
+        gc_molar_fraction(6,:) = 1.D0 -  gc_molar_fraction(5,:)
+        DO imesh = 1, ntot
+          DO is=1,nsolid
+            void_fraction(imesh) = 1.D0 - solid_bulk_density(is,imesh)*inrl(is)
+          END DO
+          CALL mas(gc_mass_fraction(:,imesh), gc_molar_fraction(:,imesh)) 
+          CALL cnvertg(imesh)
+          CALL cnverts(imesh)
         END DO
 !
       END IF

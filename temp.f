@@ -23,11 +23,11 @@
 !----------------------------------------------------------------------
       SUBROUTINE local_bounds_temperature
       USE dimensions
-      USE grid, ONLY: ncdom
+      USE grid, ONLY: ncdom, ncint
       IMPLICIT NONE
 !
-      ALLOCATE(sieg(ncdom), siegn(ncdom), tg(ncdom))
-      ALLOCATE(sies(nsolid,ncdom), siesn(nsolid,ncdom))
+      ALLOCATE(sieg(ncdom), siegn(ncint), tg(ncdom))
+      ALLOCATE(sies(nsolid,ncdom), siesn(nsolid,ncint))
       ALLOCATE(ts(nsolid,ncdom))
       RETURN
       END SUBROUTINE

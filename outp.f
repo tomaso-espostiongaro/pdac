@@ -8,7 +8,6 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-
       SUBROUTINE outp
 !
       USE dimensions, ONLY: nr, nz, nsolid
@@ -20,7 +19,6 @@
       USE parallel, ONLY: nproc, mpime, root, group
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: gas_pressure
-      USE reactions, ONLY: irex
       USE time_parameters, ONLY: time
       USE turbulence, ONLY: smag_coeff, modturbo
 !
@@ -83,26 +81,24 @@
         WRITE(3,550)(gas_velocity_z(ijl),ijl=ij1,ij2)
       END DO
 !
-      IF(irex.GE.0) THEN
-        WRITE(3,560)
-        DO j=1,nz
-          ij1=1+(nz-j)*nr
-          ij2=nr+(nz-j)*nr
-          WRITE(3,550)(gas_temperature(ijl),ijl=ij1,ij2)
-        END DO
+      WRITE(3,560)
+      DO j=1,nz
+        ij1=1+(nz-j)*nr
+        ij2=nr+(nz-j)*nr
+        WRITE(3,550)(gas_temperature(ijl),ijl=ij1,ij2)
+      END DO
 !
 !pdac------------
 ! define loop parameters
-        DO 343 ig=5,5
+      DO ig=5,5
 !pdac------------
-          WRITE(3,562) ig
-          DO j=1,nz
-            ij1=1+(nz-j)*nr
-            ij2=nr+(nz-j)*nr
-            WRITE(3,550)(gc_molar_fraction(ig,ijl),ijl=ij1,ij2)
-           END DO
- 343    CONTINUE
-      ENDIF
+        WRITE(3,562) ig
+        DO j=1,nz
+          ij1=1+(nz-j)*nr
+          ij2=nr+(nz-j)*nr
+          WRITE(3,550)(gc_molar_fraction(ig,ijl),ijl=ij1,ij2)
+         END DO
+       END DO
 !
       DO is=1,nsolid
 !
@@ -120,14 +116,12 @@
           WRITE(3,550)(solid_velocity_z(is,ijl),ijl=ij1,ij2)
         END DO
 !
-        IF(irex.GE.0) THEN
-          WRITE(3,561)is 
-          DO j=1,nz
-            ij1=1+(nz-j)*nr
-            ij2=nr+(nz-j)*nr
-            WRITE(3,550)(solid_temperature(is,ijl),ijl=ij1,ij2)
-          END DO
-        ENDIF
+        WRITE(3,561)is 
+        DO j=1,nz
+          ij1=1+(nz-j)*nr
+          ij2=nr+(nz-j)*nr
+          WRITE(3,550)(solid_temperature(is,ijl),ijl=ij1,ij2)
+        END DO
 !
       END DO
 
@@ -168,7 +162,136 @@
 
  555  FORMAT(1x,//,1x,'CDYN',/)
 !
-      END SUBROUTINE
+      END SUBROUTINE outp
+
+!----------------------------------------------------------------------
+     SUBROUTINE recover
+!
+      USE dimensions, ONLY: nr, nz, nsolid
+      USE eos_gas, ONLY: gc_molar_fraction
+      USE gas_solid_density, ONLY: solid_bulk_density
+      USE gas_solid_velocity, ONLY: gas_velocity_r, gas_velocity_z
+      USE gas_solid_velocity, ONLY: solid_velocity_r, solid_velocity_z
+      USE gas_solid_temperature, ONLY: gas_temperature, solid_temperature
+      USE parallel, ONLY: nproc, mpime, root, group
+      USE particles_constants, ONLY: rl, inrl
+      USE pressure_epsilon, ONLY: gas_pressure
+      USE time_parameters, ONLY: time
+      USE turbulence, ONLY: smag_coeff, modturbo
+!
+      IMPLICIT NONE
+!
+      CHARACTER :: filnam*11
+      CHARACTER*4 :: letter
+!
+      INTEGER :: ij2, ij1, is, j
+      INTEGER :: ijl
+      INTEGER :: ig
+!
+! ... MODIFICARE_X3D
+!
+      filnam='OUTPUT.'//letter(nfil)
+
+      IF( mpime .EQ. root ) THEN
+
+        OPEN(UNIT=3,FILE=filnam)
+!
+        READ(3,647) time
+!
+        READ(3,640)
+        DO j=1,nz
+          ij1=1+(nz-j)*nr
+          ij2=nr+(nz-j)*nr
+          READ(3,650)(gas_pressure(ijl),ijl=ij1,ij2)
+        END DO
+!
+        DO is=1,nsolid
+          READ(3,640)
+          DO j=1,nz
+            ij1=1+(nz-j)*nr
+            ij2=nr+(nz-j)*nr
+            READ(3,650)(solid_bulk_density(is,ijl),ijl=ij1,ij2)
+          END DO
+          solid_bulk_density(is,:) = solid_bulk_density(is,:)*rl(is)
+        END DO
+!
+        READ(3,640)
+        DO j=1,nz
+          ij1=1+(nz-j)*nr
+          ij2=nr+(nz-j)*nr
+          READ(3,650)(gas_velocity_r(ijl),ijl=ij1,ij2)
+        END DO
+!
+        READ(3,640)
+        DO j=1,nz
+          ij1=1+(nz-j)*nr
+          ij2=nr+(nz-j)*nr
+          READ(3,650)(gas_velocity_z(ijl),ijl=ij1,ij2)
+        END DO
+!
+          READ(3,640)
+        DO j=1,nz
+          ij1=1+(nz-j)*nr
+          ij2=nr+(nz-j)*nr
+          READ(3,650)(gas_temperature(ijl),ijl=ij1,ij2)
+        END DO
+!
+!pdac------------
+! define loop parameters
+        DO ig=5,5
+!pdac------------
+          READ(3,640)
+          DO j=1,nz
+            ij1=1+(nz-j)*nr
+            ij2=nr+(nz-j)*nr
+            READ(3,650)(gc_molar_fraction(ig,ijl),ijl=ij1,ij2)
+           END DO
+         END DO
+!
+        DO is=1,nsolid
+!
+            READ(3,640)
+          DO j=1,nz
+            ij1=1+(nz-j)*nr 
+            ij2=nr+(nz-j)*nr
+            READ(3,650)(solid_velocity_r(is,ijl),ijl=ij1,ij2)
+          END DO
+!
+          READ(3,640)
+          DO  j=1,nz
+            ij1=1+(nz-j)*nr
+            ij2=nr+(nz-j)*nr
+            READ(3,650)(solid_velocity_z(is,ijl),ijl=ij1,ij2)
+          END DO
+!
+          READ(3,640)
+          DO j=1,nz
+            ij1=1+(nz-j)*nr
+            ij2=nr+(nz-j)*nr
+            READ(3,650)(solid_temperature(is,ijl),ijl=ij1,ij2)
+          END DO
+!
+        END DO
+
+        IF (modturbo .GT. 1) THEN
+          READ(3,640)
+          DO j=1,nz
+            ij1=1+(nz-j)*nr
+            ij2=nr+(nz-j)*nr
+            READ(3,650)(smag_coeff(ijl),ijl=ij1,ij2)
+          END DO
+        END IF
+!
+      CLOSE (3)
+      END IF
+!
+      RETURN
+
+ 647  FORMAT(1x,///,1x,'@@@ TIME = ',G11.4)
+ 640  FORMAT(///)
+ 650  FORMAT(1x,10(1x,g14.6e3))
+!
+     END SUBROUTINE recover
 
 !----------------------------------------------------------------------
       END MODULE output_dump

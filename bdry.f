@@ -20,7 +20,6 @@
       USE parallel, ONLY: mpime
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p, ep
-      USE reactions, ONLY: irex
       USE set_indexes
       USE time_parameters, ONLY: dt, time
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -40,7 +39,16 @@
       INTEGER :: ij, i, j, imesh, ig, is
       INTEGER :: n2, nflr, nflt, nfll, nflb
       INTEGER :: nflbr, nfltr, nfllt, nfllb
-      INTEGER :: mm
+!
+      prif=0.D0; pnn2=0.D0; p1nn=0.D0
+      zrif=0.D0; trif=0.D0; rhorif=0.D0; cost=0.D0; costc=0.D0
+      rm1n=0.D0; rmcn=0.D0; rmcnn=0.D0; rmc1n=0.D0; rm0n=0.D0; rm1nn=0.D0; rm1knn=0.D0; rm2n=0.D0
+      w2n=0.D0; wg2=0.D0; wcnn=0.D0; wcn=0.D0; w1n=0.D0; wc1n=0.D0
+      u2nn=0.D0; u2=0.D0; w2nn=0.D0; w2=0.D0
+      ucn=0.D0; u1n=0.D0; uc1n=0.D0; ug2=0.D0; u2n=0.D0; ucnn=0.D0
+      eps=0.D0; epc=0.D0; epcn=0.D0; ep1nn=0.D0; epnn=0.D0
+      t1nn=0.D0; tc1n=0.D0; tcn=0.D0; t1n=0.D0; t0n=0.D0; t2n=0.D0; tgnn=0.D0
+      dz1=0.D0; dzc=0.D0; dr1=0.D0; drc=0.D0; indrc=0.D0
 !
 ! ... MODIFICARE_X3D (fino fine file )
 

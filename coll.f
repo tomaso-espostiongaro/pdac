@@ -17,7 +17,7 @@
       USE gas_solid_temperature, ONLY: solid_enthalpy, solid_temperature
       USE gas_solid_temperature, ONLY: sieg, sies, tg, ts
       USE grid, ONLY: ncint, myijk
-      USE pressure_epsilon, ONLY: gas_pressure, void_fraction
+      USE pressure_epsilon, ONLY: gas_pressure , void_fraction
       USE pressure_epsilon, ONLY: p, ep
       USE heat_capacity, ONLY: gc_heat_capacity, solid_heat_capacity
       USE heat_capacity, ONLY: cp, ck

@@ -66,7 +66,7 @@
       h4 = 0.D0                                  !
       h5 = 0.D0                                  !
 !
-      IF (iturb .GT. 0) THEN
+      IF (iturb >= 0) THEN
         CALL turbulence_setup( zrough )
       END IF
 !

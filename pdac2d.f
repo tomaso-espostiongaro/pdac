@@ -27,9 +27,9 @@
       USE grid, ONLY: dx, dy, dz, dr, itc
       USE grid, ONLY: iob, flic, partition, ghost, &
      &    bounds_blbody, bounds_grid
-      USE io_restart, ONLY: taperd, tapebc
+      USE io_restart, ONLY: taperd, tapebc, tapewr
       USE iterative_solver, ONLY: inmax, maxout, omega
-      USE output_dump, ONLY: nfil, outp
+      USE output_dump, ONLY: nfil, outp, recover
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
      &    mpime, root
       USE particles_constants, ONLY: rl, inrl, kap, &
@@ -37,7 +37,6 @@
       USE phases_matrix, ONLY: rlim, bounds_matrix
       USE pressure_epsilon, ONLY: bounds_press_eps, &
      &                            local_bounds_press_eps
-      USE reactions, ONLY: irex
       USE roughness_module, ONLY: zrough, deallocate_roughness
       USE initial_conditions, ONLY: setup, epsob, tpob, ygc0, &
      &    ygcob, ugob, vgob, wgob, upob, vpob, wpob, pob, tgob, epob, lpr, zzero, &
@@ -193,9 +192,11 @@
 !
 ! ... Read restart file
 !
-      IF(itd.GE.2) THEN 
+      IF(itd == 2) THEN 
         CALL taperd
         CALL tapebc
+      ELSE IF (itd >= 3) THEN
+        CALL recover
       END IF
 !
 ! ... Set boundary flags

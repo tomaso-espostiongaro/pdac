@@ -31,7 +31,6 @@
       USE gas_solid_temperature, ONLY: solid_enthalpy, solid_temperature
       USE gas_constants, ONLY: tzero, hzeros
       USE particles_constants, ONLY: cps
-      USE reactions, ONLY: irex
       USE heat_capacity, ONLY: solid_heat_capacity, hcaps
 !
       IMPLICIT NONE
@@ -40,10 +39,6 @@
 !
       INTEGER :: is
 
-!pdac---------------
-! control next statement
-!      IF(irex.EQ.0) RETURN
-!pdac---------------
 !
 ! compute heat capacity (constant volume) for particles
 !

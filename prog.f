@@ -63,7 +63,7 @@
        IF( timing ) s1 = cpclock()
 
        irest=irest+1
-       IF ( (itd <= 1) .OR. (irest > 1) ) THEN
+       IF ( (itd == 1) .OR. (irest > 1) ) THEN
 !
 ! ... Compute Boundary Conditions
 !
@@ -94,9 +94,7 @@
 ! ... Compute particle specific heat and temperatures from Equation of State
 !
            DO is=1,nsolid
-             IF (irex.GE.0) THEN
-               CALL eosl(ts(is,ijk),ck(is,ijk),cps(is),sies(is,ijk),1,1)
-             ENDIF
+             CALL eosl(ts(is,ijk),ck(is,ijk),cps(is),sies(is,ijk),1,1)
            END DO
         END DO
 !
@@ -134,10 +132,10 @@
 !
            pn(ijk) = p(ijk)
            rgpn(ijk) = rgp(ijk)
-           IF(irex.GE.0) siegn(ijk) = sieg(ijk)
+           siegn(ijk) = sieg(ijk)
            DO is=1,nsolid
              rlkn(is,ijk) = rlk(is,ijk)
-             IF (irex.GE.0) siesn(is,ijk) = sies(is,ijk)
+             siesn(is,ijk) = sies(is,ijk)
            END DO
            DO ig=1,ngas
              rgpgcn(ig,ijk) = rgpgc(ig,ijk)
@@ -145,9 +143,7 @@
 !
 ! ... Compute the temperature-dependent gas viscosity and th. conductivity
 ! 
-           IF(irex.GE.0) THEN
-             CALL viscon(mug(ijk), kapg(ijk), xgc(:,ijk), tg(ijk))
-           ENDIF
+           CALL viscon(mug(ijk), kapg(ijk), xgc(:,ijk), tg(ijk))
        END DO
 !
 ! ... Compute Turbulent viscosity from Smagorinsky LES model
@@ -189,10 +185,8 @@
 !
 ! ... Solve the explicit transport equations for enthalpies
 !
-           IF (irex .GE. 0) THEN
-             CALL htilde
-             CALL ftem
-           END IF
+           CALL htilde
+           CALL ftem
          END DO
 !
 ! ... End the Runge-Kutta iteration

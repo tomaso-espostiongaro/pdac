@@ -98,7 +98,11 @@
 !
 ! ... Implicit terms in the linear system
 !
+! ... number of elements of appu, appv, already used in previous cycles
+! ... (= size of the upper triangular matrix of side k)
         ks1=k*(k-1)/2
+!
+! ... Off-diagonal elements
         DO kk=1,k
           ks=ks1+kk
           au1(k,kk)=(dr(i)*appu(ks,ijl)+appu(ks,ij)*dr(i-1))*indrm
@@ -106,6 +110,8 @@
           aw1(k,kk)=(dz(j)*appw(ks,ijb)+dz(j-1)*appw(ks,ij))*indzm
           aw1(kk,k)=aw1(k,kk)
         END DO
+!
+! ... Diagonal elements
         IF(k.EQ.1) THEN
           au1(1,1)=au1(1,1)+(dr(i)*rgpl+dr(i-1)*rgp)*indrm
           aw1(1,1)=aw1(1,1)+(dz(j)*rgpb+dz(j-1)*rgp)*indzm
@@ -141,7 +147,11 @@
 !
 ! ... Implicit terms in the linear system
 !
+! ... number of elements of appu, appv, already used in previous cycles
+! ... (= size of the upper triangular matrix of side k)
         ks1=k*(k-1)/2
+!
+! ... Off-Diagonal elements
         DO kk=1,k
           ks=ks1+kk
           au(k,kk)=(dr(i)*appu(ks,ijr)+appu(ks,ij)*dr(i+1))*indrp
@@ -149,6 +159,8 @@
           aw(k,kk)=(dz(j)*appw(ks,ijt)+dz(j+1)*appw(ks,ij))*indzp
           aw(kk,k)=aw(k,kk)
         END DO
+!
+! ... Diagonal elements
         IF(k.EQ.1) THEN
           au(1,1)=au(1,1)+(dr(i)*rgpr+dr(i+1)*rgp)*indrp
           aw(1,1)=aw(1,1)+(dz(j)*rgpt+dz(j+1)*rgp)*indzp
