@@ -116,7 +116,7 @@
 
                 ! ... Set the pressure in non-resolved forcing points
                 IF( fptz(fz)%int == 17 ) THEN
-                        p(ijk) = p(ipjk)
+                        p(ijk) = p(ijkp)
                 END IF
                 
                 ! ... Initialize z-velocity in the forced points
