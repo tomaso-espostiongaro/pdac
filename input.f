@@ -372,16 +372,16 @@
 
       rungekut = 1      !  number of runge-kutta cycles
       beta = 0.25       !  upwinding degree
-      mass_limiter = 0  !  limiter type in mass equation
-      vel_limiter = 0   !  limiter type in momentum equation
+      mass_limiter = 2  !  limiter type in mass equation
+      vel_limiter = 2   !  limiter type in momentum equation
       muscl = 0         !  0 first order, 1 muscl ( high order )
       inmax = 8         !  maximum number of pressure correction steps
       maxout = 500      !  maximum number of solver iteration
-      omega = 1.0       !  relaxation parameter  ( 0.5 under - 2.0 over)
+      omega = 1.1       !  relaxation parameter  ( 0.5 under - 2.0 over)
       optimization = 1  !  optimization degree on iterative solver
       implicit_fluxes   = .FALSE. ! fluxes are computed implicitly
       implicit_enthalpy = .FALSE. ! enthalpy solved implicitly
-      update_eosg       = .TRUE.  ! update density after temperature
+      update_eosg       = .FALSE.  ! update density after temperature
 
 !
 

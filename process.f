@@ -60,22 +60,19 @@
       LOGICAL :: lform
 !
       INTEGER :: ig, is, i
-      INTEGER :: iunit
-      REAL   :: time
-      REAL   :: stime
+      REAL*8   :: time
+      REAL*4   :: stime
 !
       filnam='output.'//lettera(tn)
 
       lform = formatted_output
 
-      iunit = 50
-
       IF (lform) THEN
-        OPEN( UNIT=outpunit, FILE=filnam, STATUS='UNKNOWN')
+        OPEN(UNIT=outpunit, FILE=filnam, STATUS='OLD')
         READ(outpunit,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
       ELSE 
-        OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam, STATUS='UNKNOWN')
-        READ (outpunit) stime
+        OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam)
+        READ(outpunit) stime
       END IF
 
       IF( lform ) READ(outpunit,'(///)')
