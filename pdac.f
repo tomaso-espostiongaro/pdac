@@ -13,7 +13,6 @@
       PROGRAM pdac
 
       USE blunt_body, ONLY: set_blunt, ibl
-      USE control_flags, ONLY: run
       USE dimensions
       USE domain_decomposition, ONLY: partition, ghost
       USE eos_gas, ONLY: allocate_eosg
@@ -40,7 +39,8 @@
       USE turbulence_model, ONLY: allocate_turbo
       USE vent_conditions, ONLY: ivent, locate_vent
       USE dome_conditions, ONLY: idome, locate_dome
-      USE volcano_topography, ONLY: import_topography, write_profile, itp
+      USE volcano_topography, ONLY: import_topography, write_profile, itp, &
+                                    export_topography
       USE environment, ONLY: cpclock, timing, elapsed_seconds
       USE io_files
 !
@@ -139,6 +139,10 @@
 !
       IF (ivent >= 1) CALL locate_vent
 
+! ... Initialize the array of elevations on the computational mesh
+! 
+      CALL export_topography
+
 ! ... Define volcanic dome position on the 3D topography
 !
       IF (idome >= 1) CALL locate_dome
@@ -149,7 +153,12 @@
 
 ! ... Write the implicit topographic profile
 !
-      IF (itp >= 1)  CALL write_profile
+      IF (itp >= 1) CALL write_profile
+!
+      IF (itd == 4) THEN
+        CALL parallel_hangup
+        STOP
+      END IF
 !
       CALL partition
 
@@ -200,7 +209,7 @@
 !
       IF(itd == 2) THEN 
         CALL taperd
-      ELSE IF (itd > 2) THEN
+      ELSE IF (itd == 3) THEN
         CALL outp_recover
       END IF
 !

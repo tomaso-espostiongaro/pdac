@@ -469,7 +469,7 @@
       der = demax / demin
       beta = 1.2D0
       dbeta = dbeta0
-      IF( lpr > 1 .AND. ionode) WRITE(testunit,*) 'Initial beta = ',beta
+      IF( lpr > 2 .AND. ionode) WRITE(testunit,*) 'Initial beta = ',beta
 !
 ! .. loop over the decreasing 'beta' to fit the domain size
 !
@@ -523,22 +523,11 @@
             ENDIF
          ENDIF 
 !
-        IF ( n11+n12 == 0 ) THEN
-          IF (ionode) THEN
-            WRITE(errorunit,*) 'WARNING!!: no cells with maximum size!'
-            WRITE(errorunit,*) 'Please decrease beta or dmax'
-          END IF
-        ENDIF 
-!    
         IF ( (l2+l1) / demax > nd - n01 - n02 - 1 ) &
           CALL error('grid', 'number of cells is too small!', nd)
 !
         IF ( (n01+m1+n11)+(n02+m2+n12)+1 < nd ) THEN 
            IF ( beta*dbeta < minbeta) THEN
-             IF(ionode) THEN
-               WRITE(errorunit,*) 'WARNING!!: beta = minimum beta!'
-               WRITE(errorunit,*) 'Please decrease min beta or number of cells'
-             END IF
               print_mesh = .TRUE.
            ELSE
               IF ( already ) THEN
@@ -573,6 +562,13 @@
         ENDIF
       END DO
 !
+      IF ( n11+n12 == 0 ) THEN
+        IF (ionode) THEN
+          WRITE(errorunit,*) 'WARNING!!: no cells with maximum size!'
+          WRITE(errorunit,*) 'Please decrease beta or dmax'
+        END IF
+      ENDIF 
+!    
       IF ( beta >= maxbeta ) THEN
          IF (ionode) THEN
            WRITE(errorunit,*) 'WARNING!!: beta >= maximum beta!'

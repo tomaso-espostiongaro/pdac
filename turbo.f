@@ -45,107 +45,81 @@
 !
 ! ... sets the Smagorinsky turbulence length scale
 ! ... and the roughness length
-! ... (2D/3D-Compliant, except roughness model)
+! ... (2D/3D-Compliant)
 !
         USE dimensions, ONLY: nz, no, nx, ny
         USE domain_decomposition, ONLY: myijk, meshinds
-        USE grid, ONLY: iob
-        USE grid, ONLY: dz, zb, rb, dx, dy
-        USE roughness_module, ONLY: zrough
+        USE grid, ONLY: dz, zb, rb, dx, dy, z
+        USE volcano_topography, ONLY: topo_c, topo2d_c
+        USE roughness_module, ONLY: roughness, roughness2d,  roughness_setup
         USE control_flags, ONLY: job_type
         USE indijk_module, ONLY: ip0_jp0_kp0_
 !
         INTEGER :: i, j, k, i1, i2, j2, n, ijk, imesh
-        REAL*8  :: sl, sgsl, zsgs, zrou, rghl
+        REAL*8  :: sl, zsgs, zrou, rl
         REAL*8 :: delt
 
         INTEGER, DIMENSION(:), ALLOCATABLE :: kt, it
         REAL*8,  DIMENSION(:), ALLOCATABLE :: zbt
 !
-! ... define topographic profile function zbt
+! ... Initialize the roughness matrix
 !
-        IF( iturb == 2 ) THEN
-          IF( job_type == '2D' ) THEN
-            ALLOCATE( kt(nx), it(nx), zbt(nx) )
-            it = 0; kt = 0
-            zbt = 0.D0
-            DO n=1,no
-              IF( iob(n)%typ == 3 ) THEN
-                it(iob(n)%xlo : iob(n)%xhi) = 1
-                kt(iob(n)%xlo : iob(n)%xhi)  = iob(n)%zhi
-                zbt(iob(n)%xlo : iob(n)%xhi) = zb( iob(n)%zhi )
-              ENDIF
-            END DO
-          ELSE IF( job_type == '3D' ) THEN
-            CALL error(' turbulence setup',' 3D DEM interface required',1)
-          END IF
-        END IF
+        IF (iturb == 2) CALL roughness_setup
+!
+! ... Compute the turbulent mixing length by using the roughness
+! ... model and the Smagorinsky model
 !
         IF( job_type == '2D' ) THEN
-
           DO ijk = 1, ncint
             CALL meshinds(ijk,imesh,i,j,k)
-
+            !
             delt = DSQRT( dz(k)*dx(i) )
-
-            IF ( iturb == 1 ) THEN
-              sl = cmut * delt
-            ELSE IF ( iturb == 2 ) THEN
-              IF( k <= kt(i) ) THEN
-                sl = 0.D0
-              ELSE
-                sgsl = cmut * delt
-                IF( it(i) == 1 ) THEN
-                  zsgs = zb(k) - ( zbt(i) + dz(k)*0.5D0 )
-                  IF( zrough%ir == 1 ) THEN
-                    zrou = zrough%r(1)
-                  ELSE IF( zrough%ir == 2 ) THEN
-                    IF( rb(i) <= zrough%roucha ) THEN
-                      zrou = zrough%r(1)
-                    ELSE
-                      zrou = zrough%r(2)
-                    ENDIF
-                  ENDIF
-                  rghl = 0.4D0 * ( zsgs + zrou )
-!
-! ... use the smallest between the smag length and the roughness length
-!
-                  sl = DMIN1(sgsl,rghl)
-                ELSE
-                  sl = sgsl
-                ENDIF
-              ENDIF
+            sl = cmut * delt
+            !
+            IF ( iturb == 2 ) THEN
+                    zsgs = z(k) - topo_c(i)
+                    IF (zsgs > 0.D0) THEN
+                            zrou = roughness(i)
+                            rl = 0.4D0 * ( zsgs + zrou )
+                            !
+                            ! ... use the smallest between the smag length and the roughness length
+                            !
+                            sl = DMIN1(sl,rl)
+                    END IF
             ENDIF
-!
-! ... Squared turbulence length scale is used into Smagorinsky model
-!
+            !
+            ! ... Squared turbulence length scale is used into Smagorinsky model
+            !
             smag(ijk) = sl**2
-!
           END DO
-          IF( iturb == 2 ) DEALLOCATE(kt, it, zbt)
-
         ELSE IF( job_type == '3D' ) THEN
-
           DO ijk = 1, ncint
             CALL meshinds(ijk,imesh,i,j,k)
-
+            !
             delt = ( dz(k)*dy(j)*dx(i) )**(1.0d0/3.0d0)
-            IF ( iturb == 1 ) THEN
-               sl = cmut * delt
-            ELSE IF ( iturb == 2 ) THEN
-               CALL error( ' turbo_setup',' undefined 3D roughness ', 1 )
-            END IF
-
-! ... Squared turbulence length scale is used into Smagorinsky model
+            sl = cmut * delt
+            !
+            IF ( iturb == 2 ) THEN
+                    zsgs = z(k) - topo2d_c(i,j)
+                    IF (zsgs > 0.D0) THEN
+                            zrou = roughness2d(i,j)
+                            rl = 0.4D0 * ( zsgs + zrou )
+                            !
+                            ! ... use the smallest between the smag length and the roughness length
+                            !
+                            sl = DMIN1(sl,rl)
+                    END IF
+            ENDIF
+            !
+            ! ... Squared turbulence length scale is used into Smagorinsky model
+            !
             smag( ijk ) = sl**2
-
-! ... Correction for anisotropic grids (only for classical 
-! ... Smagorinsky model)
-!
+            !
+            ! ... Correction for anisotropic grids (only for classical 
+            ! ... Smagorinsky model)
+            !
             smag(ijk) = smag(ijk) * anis(i,j,k)
-
           END DO
-
         END IF
 
       RETURN

@@ -5,7 +5,7 @@
       USE blunt_body, ONLY: bluntb, ibl
       USE boundary_conditions, ONLY: boundary
       USE check_residuals, ONLY: print_mass_residuals
-      USE control_flags, ONLY: job_type, lpr, run, imr
+      USE control_flags, ONLY: job_type, lpr, imr
       USE control_flags, ONLY: implicit_enthalpy, implicit_fluxes
       USE dimensions
       USE domain_decomposition, ONLY: ncint, myijk, ncdom
@@ -142,7 +142,7 @@
 
         ! ... write initial conditions
         IF (sweep == 1) CALL outp
-        IF (.NOT.run) EXIT time_sweep
+        IF (itd == 5) EXIT time_sweep
 
         IF( timing ) then
           s2 = cpclock()

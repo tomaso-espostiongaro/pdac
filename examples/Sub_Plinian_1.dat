@@ -105,9 +105,6 @@
   optimization = 1,
 /
 
-'ROUGHNESS'
-1, 1.D0, 5.D3  % IR(1/2),ZROUGH(I),ROUCHA
-
 'MESH'
 
 'FIXED_FLOWS'

@@ -91,7 +91,7 @@
       USE atmospheric_conditions, ONLY: wind_x, wind_y, wind_z, &
           p_ground, t_ground, void_fraction, max_packing
       USE blunt_body, ONLY: ibl, nblu
-      USE control_flags, ONLY: job_type, lpr, run, imr
+      USE control_flags, ONLY: job_type, lpr, imr
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
       USE domain_decomposition, ONLY: mesh_partition
       USE dome_conditions, ONLY: xdome, ydome, dome_volume, temperature, particle_fraction, deltap, &
@@ -122,7 +122,7 @@
      &     cmus, phis, cps, dk, nsolid
       USE phases_matrix, ONLY: rlim
       USE reactions, ONLY: irex
-      USE roughness_module, ONLY: zrough, allocate_roughness, roughness
+      USE roughness_module, ONLY: zrough
       USE set_indexes, ONLY: subsc_setup
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut, tau
@@ -136,7 +136,7 @@
 
       NAMELIST / control / run_name, job_type, restart_mode,       &
         time, tstop, dt, lpr, imr, tpr, tdump, nfil, tau,          &
-        formatted_output, max_seconds, run
+        formatted_output, max_seconds
 
       NAMELIST / model / irex, gas_viscosity, part_viscosity,      &
         iss, repulsive_model, iturb, modturbo, cmut, rlim, flim,   &
@@ -151,7 +151,7 @@
         immb, ibl
 
       NAMELIST / topography / dem_file, itp, iavv, nocrater, &
-        rim_quota, filtersize, cellsize, ismt
+        rim_quota, filtersize, cellsize, ismt, zrough
       
       NAMELIST / inlet / ivent, iali, irand, ipro, rad_file, wrat, &
         crater_radius, &
@@ -199,7 +199,6 @@
       nfil = 0          ! output file index
       formatted_output = .TRUE.
       max_seconds = 40000.0
-      run = .TRUE.
       tau = 0.D0
 
 ! ... Model
@@ -275,6 +274,7 @@
       rim_quota = 1000.D0     ! index of the rim quota 
       filtersize  = 50        ! low-pass filter size
       cellsize  = 10          ! resolution of the resized dem
+      zrough = 1.D0           ! average roughness length
 
 ! ... Inlet
 
@@ -410,7 +410,6 @@
       CALL bcast_real(tdump,1,root)
       CALL bcast_integer(nfil,1,root)
       CALL bcast_logical(formatted_output,1,root)
-      CALL bcast_logical(run,1,root)
       CALL bcast_real(max_seconds,1,root)
       CALL bcast_real(tau,1,root)
 
@@ -421,6 +420,10 @@
           itd = 2
         CASE ('outp_recover')
           itd = 3
+        CASE ('check_geom')
+          itd = 4
+        CASE ('check_init')
+          itd = 5
         CASE DEFAULT
           CALL error(' input ',' unknown restart_mode '//TRIM(restart_mode), 1 )
       END SELECT
@@ -515,6 +518,7 @@
       CALL bcast_real(rim_quota,1,root)
       CALL bcast_real(filtersize,1,root)
       CALL bcast_real(cellsize,1,root)
+      CALL bcast_real(zrough,1,root)
 !
 ! ... Inlet Namelist ................................................
 !
@@ -641,34 +645,6 @@
 
 !
 ! :::::::::::::::::::::::  R E A D   C A R D S ::::::::::::::::::::::::
-!
-!
-! ... Roughness Card ..................................................
-!
-      CALL allocate_roughness( zrough, nroughx )
-      tend = .FALSE.
-      IF(mpime == root) THEN
-        rough_search: DO 
-          READ(iunit,*,END=100) card
-          IF( TRIM(card) == 'ROUGHNESS' ) THEN
-            EXIT rough_search
-          END IF
-        END DO rough_search
-        READ(iunit,*) zrough%ir, (zrough%r(i),i=1,zrough%ir), zrough%roucha
-        GOTO 110
- 100    tend = .TRUE.
- 110    continue
-      END IF
-!
-!     Read roughness parameters
-!
-      CALL bcast_logical(tend, 1, root)
-      IF( tend ) THEN
-        CALL error( ' input ', ' ROUGHNESS card not found ', 1 )
-      END IF
-      CALL bcast_integer(zrough%ir, 1, root)
-      CALL bcast_real(zrough%r, zrough%ir, root)
-      CALL bcast_real(zrough%roucha, 1, root)
 !
 ! ... Mesh Card (cell sizes) ..........................................
 !
@@ -838,7 +814,6 @@
             CALL iotk_write_dat( iuni_nml, "max_seconds", max_seconds )
             CALL iotk_write_dat( iuni_nml, "tau", tau )
             CALL iotk_write_dat( iuni_nml, "formatted_output", formatted_output )
-            CALL iotk_write_dat( iuni_nml, "run", run )
           CALL iotk_write_end( iuni_nml, "control" )
 
           CALL iotk_write_begin( iuni_nml, "model" )
@@ -914,6 +889,7 @@
             CALL iotk_write_dat( iuni_nml, "rim_quota", rim_quota )
             CALL iotk_write_dat( iuni_nml, "filtersize", filtersize )
             CALL iotk_write_dat( iuni_nml, "cellsize", cellsize )
+            CALL iotk_write_dat( iuni_nml, "zrough", zrough )
           CALL iotk_write_end( iuni_nml, "topography" )
 
           CALL iotk_write_begin( iuni_nml, "inlet" )
@@ -1031,12 +1007,6 @@
             CALL iotk_write_dat( iuni_nml, "update_eosg", &
                                           & update_eosg )
           CALL iotk_write_end( iuni_nml, "numeric" )
-
-          CALL iotk_write_begin( iuni_nml, "roughness" )
-            CALL iotk_write_dat( iuni_nml, "ir", zrough%ir )
-            CALL iotk_write_dat( iuni_nml, "roucha", zrough%roucha )
-            CALL iotk_write_dat( iuni_nml, "r", zrough%r( 1 : zrough%ir ) )
-          CALL iotk_write_end( iuni_nml, "roughness" )
 
           attr = ' '
           CALL iotk_write_attr( attr, "number_of_block", number_of_block )

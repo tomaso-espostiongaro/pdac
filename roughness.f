@@ -1,34 +1,31 @@
 !----------------------------------------------
       MODULE roughness_module
 !----------------------------------------------
-
-        USE dimensions 
-        IMPLICIT NONE
-        SAVE
-        TYPE roughness
-          REAL*8 :: roucha
-          REAL*8, POINTER :: r(:)
-          INTEGER :: ir
-        END TYPE
-        TYPE (roughness) :: zrough
-
+      IMPLICIT NONE
+      REAL*8 :: zrough
+      REAL*8, ALLOCATABLE :: roughness(:)
+      REAL*8, ALLOCATABLE :: roughness2d(:,:)
+      SAVE
 !----------------------------------------------
       CONTAINS
 !----------------------------------------------
-
-        SUBROUTINE allocate_roughness( r, nr )
-          TYPE (roughness) :: r
-          INTEGER, INTENT(IN) :: nr
-            ALLOCATE( r%r(nr) )
-          RETURN
-        END SUBROUTINE
-
-        SUBROUTINE deallocate_roughness( r )
-          TYPE (roughness) :: r
-            DEALLOCATE( r%r )
-          RETURN
-        END SUBROUTINE
-
+      SUBROUTINE roughness_setup
+      USE control_flags, ONLY: job_type
+      USE dimensions 
+      IMPLICIT NONE
+!
+      IF (job_type == '2D') THEN
+              ALLOCATE(roughness(nx))
+              roughness = zrough
+      ELSE IF (job_type == '3D') THEN
+              ALLOCATE(roughness2d(nx,ny))
+              roughness2d = zrough
+      ELSE
+              CALL error('roughness','unknown job type',1)
+      END IF
+!
+      RETURN
+      END SUBROUTINE roughness_setup
 !----------------------------------------------
       END MODULE
 !----------------------------------------------

@@ -156,7 +156,6 @@
       USE parallel, ONLY: mpime
       USE specific_heat_module, ONLY: hcapg
       USE time_parameters, ONLY: time
-      USE immersed_boundaries, ONLY: topo2d_c, topo2d_x, topo2d_y
       IMPLICIT NONE
 !
       REAL*8, INTENT(IN) :: sieg

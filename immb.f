@@ -5,6 +5,8 @@
       USE grid, ONLY: fl, noslip_wall, int_immb, ext_immb
       USE parallel, ONLY: mpime, root
       USE volcano_topography, ONLY: xtop, ytop, ztop
+      USE volcano_topography, ONLY: topo2d_c, topo2d_x, topo2d_y
+      USE volcano_topography, ONLY: topo_c, topo_x
       USE io_files, ONLY: errorunit, logunit
 
       IMPLICIT NONE
@@ -34,15 +36,6 @@
       END TYPE forcing_point
 !
       TYPE(forcing_point), ALLOCATABLE :: fptx(:), fpty(:), fptz(:)
-!
-! ... Topographic elevation at the mesh points
-! ... (centered and staggered)
-!
-      REAL*8, ALLOCATABLE  :: topo_c(:)
-      REAL*8, ALLOCATABLE  :: topo_x(:)
-      REAL*8, ALLOCATABLE  :: topo2d_c(:,:)
-      REAL*8, ALLOCATABLE  :: topo2d_x(:,:)
-      REAL*8, ALLOCATABLE  :: topo2d_y(:,:)
 !
 ! ... This function gives the increasing number of local forcing points 
       INTEGER, ALLOCATABLE :: numx(:), numy(:), numz(:)
@@ -107,9 +100,6 @@
       ALLOCATE(extfz(ntot)); extfz = .FALSE.
 
       IF (job_type == '2D') THEN
-
-        ALLOCATE(topo_c(nx))
-        ALLOCATE(topo_x(nx))
 
         ! ... interpolate the topography on z/x-staggered mesh
         !
@@ -214,10 +204,6 @@
         !
       ELSE IF (job_type == '3D') THEN
 
-        ALLOCATE(topo2d_c(nx,ny))
-        ALLOCATE(topo2d_x(nx,ny))
-        ALLOCATE(topo2d_y(nx,ny))
-        
         ! ... Interpolate the topography on the y/z/x-staggered mesh
         ! ... to count the forcing points
         !

@@ -223,7 +223,10 @@
 
         ! ... Print the map of any interesting variable above ground
         !
-        IF (imap > 0) CALL write_map(tn,rm)
+        IF (imap > 0) THEN
+                CALL write_map(tn,tg)
+                CALL write_map(tn,pd)
+        END IF
 
       END DO
 !

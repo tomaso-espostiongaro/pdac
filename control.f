@@ -8,7 +8,6 @@
         INTEGER :: imr
         LOGICAL :: implicit_fluxes
         LOGICAL :: implicit_enthalpy
-        LOGICAL :: run
 !-----------------------------------------------------------------------
       END MODULE
 !-----------------------------------------------------------------------

@@ -1,7 +1,7 @@
 &control
   act        = 1        ! 1: mount time sequence, 2: time-space sampling        
-  first_out  = 1     
-  last_out   = 150   
+  first_out  = 0     
+  last_out   = 0   
   downsize_x = 1    
   downsize_y = 1    
   downsize_z = 1    

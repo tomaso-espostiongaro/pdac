@@ -2952,7 +2952,7 @@ set_numx: IF (i/=0 .AND. k/=0) THEN
 
               IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. j==1 .OR. j==ny) THEN
                 WRITE(errorunit,*) 'WARNING! from ghost'
-                WRITE(errorunit,*) 'x-forcing on boundaries', i, j, k
+                WRITE(errorunit,*) 'skipping x-forcing on boundaries', i, j, k
               END IF
             END IF
           ELSE
@@ -2981,7 +2981,7 @@ set_numy:   IF (i/=0 .AND. k/=0) THEN
 
                 IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. j==1 .OR. j==ny) THEN
                   WRITE(errorunit,*) 'WARNING! from ghost'
-                  WRITE(errorunit,*) 'y-forcing on boundaries', i, j, k
+                  WRITE(errorunit,*) 'skipping y-forcing on boundaries', i, j, k
                 END IF
               END IF
             ELSE
@@ -3010,7 +3010,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
 
               IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. j==1 .OR. j==ny) THEN
                 WRITE(errorunit,*) 'WARNING! from ghost'
-                WRITE(errorunit,*) 'z-forcing on boundaries', i, j, k
+                WRITE(errorunit,*) 'skipping z-forcing on boundaries', i, j, k
               END IF
             END IF
           ELSE
@@ -3038,8 +3038,8 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
       USE control_flags, ONLY: job_type
       USE grid, ONLY: z, zb, flag, dz
       USE immersed_boundaries, ONLY: bd, vf
-      USE immersed_boundaries, ONLY: topo_c, topo_x
-      USE immersed_boundaries, ONLY: topo2d_c, topo2d_x, topo2d_y
+      USE volcano_topography, ONLY: topo_c, topo_x
+      USE volcano_topography, ONLY: topo2d_c, topo2d_x, topo2d_y
       USE indijk_module
       IMPLICIT NONE
 
@@ -3178,8 +3178,8 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
       USE control_flags, ONLY: job_type, lpr
       USE grid, ONLY: z, zb, flag, dz
       USE immersed_boundaries, ONLY: bdr, vf
-      USE immersed_boundaries, ONLY: topo_c, topo_x
-      USE immersed_boundaries, ONLY: topo2d_c, topo2d_x, topo2d_y
+      USE volcano_topography, ONLY: topo_c, topo_x
+      USE volcano_topography, ONLY: topo2d_c, topo2d_x, topo2d_y
       IMPLICIT NONE
 
       INTEGER :: i,j,k,ijk,imesh

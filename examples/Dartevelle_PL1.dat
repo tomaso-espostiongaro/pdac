@@ -86,9 +86,6 @@
   implicit_enthalpy = .FALSE.
 /
 
-'ROUGHNESS'
-1, 1.D0, 5.D3  
-
 'MESH'
 
 'FIXED_FLOWS'

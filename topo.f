@@ -53,6 +53,16 @@
       REAL*8, ALLOCATABLE :: xdem(:), ydem(:), zdem(:,:)
       INTEGER :: icenter, jcenter
 !
+!
+! ... Topographic elevation at the mesh points
+! ... (centered and staggered)
+!
+      REAL*8, ALLOCATABLE  :: topo_c(:)
+      REAL*8, ALLOCATABLE  :: topo_x(:)
+      REAL*8, ALLOCATABLE  :: topo2d_c(:,:)
+      REAL*8, ALLOCATABLE  :: topo2d_x(:,:)
+      REAL*8, ALLOCATABLE  :: topo2d_y(:,:)
+
       ! ... Input parameters
       INTEGER :: itp, iavv, ismt
       REAL*8 :: cellsize, filtersize
@@ -760,6 +770,42 @@
       RETURN
       END SUBROUTINE interpolate_dem
 !----------------------------------------------------------------------
+      SUBROUTINE export_topography
+      USE control_flags, ONLY: job_type
+      USE grid, ONLY: fl, noslip_wall, zb
+      IMPLICIT NONE
+
+      INTEGER :: i, j, k, ijk
+!
+      IF( job_type == '2D') THEN
+        ALLOCATE(topo_c(nx))
+        ALLOCATE(topo_x(nx))
+        DO i = 1, nx
+          DO k = 1, nz
+            ijk = i + (k-1) * nx
+            IF( fl(ijk) == noslip_wall ) topo_c(i) = zb(k)
+          END DO
+          topo_x(i) = topo_c(i)
+        END DO
+      ELSE IF( job_type == '3D') THEN
+        ALLOCATE(topo2d_c(nx,ny))
+        ALLOCATE(topo2d_x(nx,ny))
+        ALLOCATE(topo2d_y(nx,ny))
+        DO j = 1, ny
+          DO i = 1, nx
+            DO k = 1, nz
+              ijk = i + (j-1) * nx + (k-1) * nx * ny
+              IF( fl(ijk) == noslip_wall ) topo2d_c(i) = zb(k)
+            END DO
+            topo2d_x(i,j) = topo2d_c(i,j)
+            topo2d_y(i,j) = topo2d_c(i,j)
+          END DO
+        END DO
+      END IF
+!
+      RETURN
+      END SUBROUTINE export_topography
+!----------------------------------------------------------------------
       SUBROUTINE write_profile
 
       USE control_flags, ONLY: job_type
@@ -796,20 +842,6 @@
         OPEN(UNIT=tempunit,FILE='improfile.dat',STATUS='UNKNOWN')
         WRITE(tempunit,fmt='(F9.2)') dist
         CLOSE(tempunit)
-!
-! ... Write out the new DEM file
-!
-        IF( job_type == '3D') THEN
-          OPEN(tempunit,FILE='newdem.dat',STATUS='UNKNOWN')
-          WRITE(tempunit,*) vdem%nx
-          WRITE(tempunit,*) vdem%ny
-          WRITE(tempunit,*) vdem%xcorner
-          WRITE(tempunit,*) vdem%ycorner
-          WRITE(tempunit,*) vdem%cellsize
-          WRITE(tempunit,*) vdem%nodata_value
-          WRITE(tempunit,'(10(I8))') NINT(ztop2d*100.D0)
-          CLOSE(tempunit)
-        END IF
       END IF
 !
 ! ... Control that the cells below the specified_flow blocks
