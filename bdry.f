@@ -521,8 +521,7 @@
         p(n2) = p(n2)/(dt*dcinv) + p1nn
 
         IF( float_chk( p(n2) ) /= 0 ) THEN
-          WRITE(6,*) 'boundary p 1 ', p(n2)
-          p(n2) = 0.0d0
+          WRITE(6,*) ' boundary p 1 ', p(n2)
         END IF
 !
         ep(n2) = ep(n1)
@@ -538,7 +537,6 @@
 
         IF( float_chk( p(n2) ) /= 0 ) THEN
           WRITE(6,*) 'boundary p 4 ', p(n2)
-          p(n2) = 0.0d0
         END IF
 !
       ELSE IF ( ucn <  0.D0 ) THEN
@@ -556,16 +554,22 @@
 !
         zrif=zb(k)+0.5D0*(dz(1)-dz(k))
         CALL atm(zrif,prif,trif)
-        rhorif=prif*gmw(6)/(rgas*trif)
-        cost=prif/(rhorif**gammaair)
-        costc=(gammaair*cost**(1.D0/gammaair))/(gammaair-1.D0)
+
+        !rhorif=prif*gmw(6)/(rgas*trif)
+        !cost=prif/(rhorif**gammaair)
+        !costc=(gammaair*cost**(1.D0/gammaair))/(gammaair-1.D0)
+
+        rhorif = rgas * trif/( prif*gmw(6))
+        cost = prif**(1.D0/gammaair) * rhorif
+        costc = (gammaair-1.D0)/ (gammaair*cost)
 !
 ! ... Adiabatic inflow
  
         ! p(n2)=(prif**gamn-(u2n**2)/(2.D0*costc))**(1.D0/gamn)
 
         pf1 = prif**gamn
-        pf2 = (u2n**2)/(2.D0*costc)
+        !pf2 = ( u2n**2 ) / ( 2.D0 * costc )
+        pf2 = u2n*u2n *  0.5D0 * costc
         pfd = pf1 - pf2
 
         IF( pfd >= 0 ) THEN
@@ -576,10 +580,9 @@
 
         IF( float_chk( p(n2) ) /= 0 ) THEN
           WRITE(6,*) 'boundary p 5 ', p(n2)
-          WRITE(6,*) 'boundary     ', pf1, pf2, pfd
-          WRITE(6,*) 'boundary     ', prif, gamn, u2n
-          WRITE(6,*) 'boundary     ', costc
-          p(n2) = prif
+          !WRITE(6,*) 'boundary     ', pf1, pf2, pfd
+          !WRITE(6,*) 'boundary     ', prif, gamn, u2n
+          !WRITE(6,*) 'boundary     ', costc
         END IF
 !
         ep(n2) = 1.D0
@@ -595,7 +598,7 @@
 !
       ELSE IF ( ucn == 0.D0 ) THEN
 !
-        upn     = ucn
+        upn      = ucn
         p(n2)    = p(n1)
         ep(n2)   = ep(n1)
         tg(n2)   = tg(n1)
@@ -605,7 +608,6 @@
 
         IF( float_chk( p(n2) ) /= 0 ) THEN
           WRITE(6,*) 'boundary p 7 ', p(n2)
-          p(n2) = 0.0d0
         END IF
 
       ENDIF
@@ -750,15 +752,15 @@
 
         IF( float_chk( p(n2) ) /= 0 ) THEN
           WRITE(6,*) 'boundary p 3 ', p(n2)
-          p(n2) = 0.0d0
         END IF
 !
 ! ... Correct non-physical pressure
         IF (p(n2) <= 0.0D0) p(n2) = p(n1)
+
         IF( float_chk( p(n2) ) /= 0 ) THEN
           WRITE(6,*) 'boundary p 8 ', p(n2)
-          p(n2) = 0.0d0
         END IF
+
         ep(n2) = ep(n1)
         tg(n2) = tg(n1)
         DO ig=1,ngas
@@ -782,16 +784,22 @@
 
         zrif = zb(k)+0.5D0*(dz(1)-dz(k))
         CALL atm(zrif,prif,trif)
-        rhorif = prif*gmw(6)/(rgas*trif)
-        cost = prif/(rhorif**gammaair)
-        costc = (gammaair*cost**(1.D0/gammaair))/(gammaair-1.D0)
+        
+        !rhorif = prif*gmw(6)/(rgas*trif)
+        !cost = prif/(rhorif**gammaair)
+        !costc = (gammaair*cost**(1.D0/gammaair))/(gammaair-1.D0)
+
+        rhorif = rgas * trif/( prif*gmw(6))
+        cost = prif**(1.D0/gammaair) * rhorif
+        costc = (gammaair-1.D0)/ (gammaair*cost)
 !
 ! ... Adiabatic inflow
 
         ! p(n2) = ( prif**gamn - ( u2n**2 ) / ( 2.D0 * costc ) ) ** ( 1.D0 / gamn )
 
         pf1   = prif**gamn
-        pf2   = ( u2n**2 ) / ( 2.D0 * costc )
+        !pf2   = ( u2n**2 ) / ( 2.D0 * costc )
+        pf2   = u2n*u2n * 0.5D0 * costc 
         pfd   = ( pf1 - pf2 ) 
         IF( pfd >= 0 ) THEN
           p(n2) = pfd ** ( 1.d0 / gamn )
@@ -801,10 +809,6 @@
        
         IF( float_chk( p(n2) ) /= 0 ) THEN
           WRITE(6,*) 'boundary p 9 ', p(n2)
-          WRITE(6,*) 'boundary     ', pf1, pf2, pfd
-          WRITE(6,*) 'boundary     ', prif, gamn, u2n
-          WRITE(6,*) 'boundary     ', costc
-          p(n2) = prif
         END IF
 !
 ! ... Correct non-physical pressure

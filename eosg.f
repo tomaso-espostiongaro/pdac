@@ -49,22 +49,28 @@
       REAL*8, INTENT(OUT) :: xg(:)
       INTEGER :: ig
       REAL*8 :: mol
+      REAL*8 :: molinv
 !
       mol = 0.D0
       DO ig = 1, ngas
         mol = mol + yg(ig) / gmw(ig)
       END DO
-      IF( mol <= 1.d-10 ) THEN
+      !  Carlo consistency check
+      IF( ABS( mol ) <= 1.d-10 ) THEN
         WRITE(6,*) 'WARNING (mole) zero or negative mol ', mol
-        mol = 1.d-10
+        molinv = 0.0d0
+      ELSE
+        molinv = 1.0d0 / mol
       END IF
       DO ig = 1, ngas
-        xg(ig) = yg(ig) / ( gmw(ig) * mol )
+        xg(ig) = yg(ig) / gmw(ig) * molinv
       END DO
 
       RETURN
       END SUBROUTINE mole
+
 !----------------------------------------------------------------------
+
       SUBROUTINE mas(yg, xg)
 !
 ! ... computes mass fractions
@@ -77,18 +83,25 @@
       REAL*8, INTENT(OUT) :: yg(:)
       INTEGER :: ig
       REAL*8 :: mass
+      REAL*8 :: massinv
 !
       mass = 0.D0
       DO ig=1,ngas
-        mass = mass + xg(ig)*gmw(ig)
+        mass = mass + xg(ig) * gmw(ig)
       END DO
+      !  Carlo consistency check
+      IF( ABS( mass ) < 1.0d-10 ) THEN
+        massinv = 0.0d0
+      ELSE
+        massinv = 1.0d0 / mass
+      END IF
       DO ig=1,ngas
-        IF (mass == 0.D0) CALL error('mas','gas mass = 0',1)
-        yg(ig)=xg(ig)*gmw(ig)/mass
+        yg(ig) = xg(ig) * gmw(ig) * massinv
       END DO
 
       RETURN
       END SUBROUTINE mas
+
 !----------------------------------------------------------------------
       SUBROUTINE csound(sqc, rog, p)
 !
@@ -134,6 +147,7 @@
         mg = mg + xg(ig) * gmw(ig)
       END DO
 
+      !  Carlo consistency check
       teff = rgas * tg
       IF( teff > tlim ) THEN
         rog = p / ( rgas * tg ) * mg
@@ -176,11 +190,16 @@
       IF ( fl_l(ijk) == 1 ) THEN
           tg0   = tg
           sieg0 = sieg
-          DO ii = 1, nlmax
-            IF( tg < 1.0d0 ) THEN
+          IF( sieg <= 0.0d0 ) THEN
               ! WRITE(6,*) 'WARNING (caloric_eosg) zero or negative temperature'
-              tg = 1.0d0
-            END IF
+            WRITE(6,*) ' sieg = ', sieg
+          END IF
+          !DO ig = 1, ngas
+          !  IF( yg(ig) <= 0.0d0 ) THEN
+          !    WRITE(6,*) ' yg = ',ig, yg(ig)
+          !  END IF
+          !END DO
+          DO ii = 1, nlmax
             tgnn = tg
             CALL hcapg( cpgc(:), tg )
             hc = 0.D0
@@ -199,10 +218,18 @@
           WRITE(8,*) 'specific heat:',cgas0
           info = 1
           ! CALL error( 'eosg', 'max number of iteration reached in eosg', 1)
+          !IF( tg < 1.0d0 ) THEN
+          !  ! WRITE(6,*) 'WARNING (caloric_eosg) zero or negative temperature'
+          !  tg = 1.0d0
+          !END IF
 !**********************************************************************
   223     CONTINUE
+          IF( tg < 1.0d0 ) THEN
+            ! WRITE(6,*) 'WARNING (caloric_eosg) zero or negative temperature'
+            tg = 1.0d0
+          END IF
       END IF
-!
+
       RETURN
       END SUBROUTINE caloric_eosg
 !----------------------------------------------------------------------
@@ -252,6 +279,8 @@
       cg(ijk) = hc
 
       sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
+      
+
 !
       RETURN
       END SUBROUTINE cnvertg

@@ -559,7 +559,7 @@
         END DO
  700    FORMAT('max number of iterations (',I5,') reached at time: ', F8.3)
 
-        ! CALL error( ' iter ', 'max number of iters exceeded ', 1)
+        CALL error( ' iter ', 'max number of iters exceeded ', 1)
         omega = omega0
 
       END IF

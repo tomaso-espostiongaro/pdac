@@ -142,7 +142,6 @@
 
             IF( float_chk( rog( ijk ) ) /= 0 ) THEN
               WRITE(6,*) 'wrong rog: ', ijk, rog(ijk), tg(ijk), p(ijk)
-              rog(ijk) = 0.0d0
             END IF
             IF( float_chk( tg( ijk ) ) /= 0 ) THEN
               WRITE(6,*) 'wrong tg: ', ijk, tg(ijk)

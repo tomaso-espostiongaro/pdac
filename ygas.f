@@ -204,17 +204,17 @@
              w%b = wg ( ijkm )
              w%c = wg ( ijk )
 
-             IF( float_chk( u%w ) /= 0 ) WRITE(6,*) 'ygas, wrong u%w: ',u%w
-             IF( float_chk( u%c ) /= 0 ) WRITE(6,*) 'ygas, wrong u%c: ',u%c
-             IF( float_chk( v%s ) /= 0 ) WRITE(6,*) 'ygas, wrong v%s: ',v%s
-             IF( float_chk( v%c ) /= 0 ) WRITE(6,*) 'ygas, wrong v%c: ',v%c
-             IF( float_chk( w%b ) /= 0 ) WRITE(6,*) 'ygas, wrong w%b: ',w%b
-             IF( float_chk( w%c ) /= 0 ) WRITE(6,*) 'ygas, wrong w%c: ',w%c
+             !IF( float_chk( u%w ) /= 0 ) WRITE(6,*) 'ygas, wrong u%w: ',u%w
+             !IF( float_chk( u%c ) /= 0 ) WRITE(6,*) 'ygas, wrong u%c: ',u%c
+             !IF( float_chk( v%s ) /= 0 ) WRITE(6,*) 'ygas, wrong v%s: ',v%s
+             !IF( float_chk( v%c ) /= 0 ) WRITE(6,*) 'ygas, wrong v%c: ',v%c
+             !IF( float_chk( w%b ) /= 0 ) WRITE(6,*) 'ygas, wrong w%b: ',w%b
+             !IF( float_chk( w%c ) /= 0 ) WRITE(6,*) 'ygas, wrong w%c: ',w%c
 
              CALL first_nb( field, rgpgc(:,ig), ijk )
 
-             CALL chkstencil( field, info )
-             IF( info /= 0 ) WRITE(6,*) 'ygas, wrong field: ',ijk
+             !CALL chkstencil( field, info )
+             !IF( info /= 0 ) WRITE(6,*) 'ygas, wrong field: ',ijk
 
              CALL fsc_1st( yfe(ijk,ig), yfn(ijk,ig), yft(ijk,ig),    &
                       yfe(imjk,ig), yfn(ijmk,ig), yft(ijkm,ig),   &
@@ -252,22 +252,22 @@
       CALL data_exchange(yft)
       CALL data_exchange(yfn)
 
-          DO ijk = 1, ncint
-            DO ig = 1, ngas
-              IF( float_chk( ygc( ig, ijk ) ) /= 0 ) THEN
-                WRITE(6,*) 'in ygas wrong ygc: ', ijk, ig, ygc(ig,ijk)
-              END IF
-              IF( float_chk( yfe( ijk, ig ) ) /= 0 ) THEN
-                WRITE(6,*) 'in ygas wrong yfe: ', ijk, ig, yfe(ijk,ig)
-              END IF
-              IF( float_chk( yft( ijk, ig ) ) /= 0 ) THEN
-                WRITE(6,*) 'in ygas wrong yft: ', ijk, ig, yft(ijk,ig)
-              END IF
-              IF( float_chk( yfn( ijk, ig ) ) /= 0 ) THEN
-                WRITE(6,*) 'in ygas wrong yfn: ', ijk, ig, yfn(ijk,ig)
-              END IF
-            END DO
-          END DO
+      !    DO ijk = 1, ncint
+      !      DO ig = 1, ngas
+      !        IF( float_chk( ygc( ig, ijk ) ) /= 0 ) THEN
+      !          WRITE(6,*) 'in ygas wrong ygc: ', ijk, ig, ygc(ig,ijk)
+      !        END IF
+      !        IF( float_chk( yfe( ijk, ig ) ) /= 0 ) THEN
+      !          WRITE(6,*) 'in ygas wrong yfe: ', ijk, ig, yfe(ijk,ig)
+      !        END IF
+      !        IF( float_chk( yft( ijk, ig ) ) /= 0 ) THEN
+      !          WRITE(6,*) 'in ygas wrong yft: ', ijk, ig, yft(ijk,ig)
+      !        END IF
+      !        IF( float_chk( yfn( ijk, ig ) ) /= 0 ) THEN
+      !          WRITE(6,*) 'in ygas wrong yfn: ', ijk, ig, yfn(ijk,ig)
+      !        END IF
+      !      END DO
+      !    END DO
 
 
       DO ijk = 1, ncint
@@ -303,14 +303,15 @@
 	   rgpgc_tmp = rgpgc_tmp - dt * indz(k) * yfz
            rgpgc(ijk,ig) = rgpgc_tmp
  
-           IF(rgpgc(ijk,ig) < 0.D0) THEN
+           IF( rgpgc(ijk,ig) < 0.D0 ) THEN
              WRITE(8,*) 'Warning!: gas mass is not conserved'
              WRITE(8,128) time, ijk, ig, rgpgc(ijk,ig)
  128         FORMAT('Time= ',F8.3,' Cell= ',I6, ' Specie= ',I2)
              rgpgc(ijk,ig) = 0.D0
            END IF
 
-           IF( float_chk( rgpgc(ijk,ig) ) /= 0 ) WRITE(6,*) 'ygas, wrong rgpgc: ',ijk,ig,rgpgc(ijk,ig)
+           IF( float_chk( rgpgc(ijk,ig) ) /= 0 ) &
+             WRITE(6,*) 'ygas, wrong rgpgc: ',ijk,ig,rgpgc(ijk,ig)
            
            rgp = rgp + rgpgc(ijk,ig)
 
@@ -331,10 +332,6 @@
            IF ( ig /= default_gas ) THEN
              ygc(ig,ijk) = rgpgc(ijk,ig) * rgpinv
              ygc(default_gas, ijk) = ygc(default_gas, ijk) - ygc(ig,ijk)
-           END IF
-           IF( float_chk( ygc(ig,ijk) ) /= 0 ) THEN
-             WRITE(6,*) 'ygas fine, wrong ygc: ',ijk,ig,ygc(ig,ijk)
-             WRITE(6,*) 'ygas fine, wrong ygc: ',ygc(default_gas, ijk),  rgpgc(ijk,ig), rgpinv
            END IF
          END DO
 

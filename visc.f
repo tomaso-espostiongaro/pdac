@@ -57,7 +57,8 @@
 ! ... Compute Temperature Dependent Viscosity of each gas specie (Reid)
 !
 
-      IF ( tg < 0) THEN
+      ! Carlo Consistency check
+      IF ( tg <= 0.0d0 ) THEN
          WRITE(6,*)'WARNING: negative temperature!'
          tg = 1.0D0
       END IF

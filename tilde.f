@@ -151,12 +151,12 @@
       CALL data_exchange( rgp )
       CALL data_exchange( rlk )
 !
-      CALL array_chk( rgp( 1 ), ncint, info )
-      IF( info /= 0 ) WRITE(6,*) 'fieldn wrong rgp '
-      CALL array_chk( rlk( 1, 1 ), ncint, info )
-      IF( info /= 0 ) WRITE(6,*) 'fieldn wrong rlk 1'
-      CALL array_chk( rlk( 1, 2 ), ncint, info )
-      IF( info /= 0 ) WRITE(6,*) 'fieldn wrong rlk 2'
+      !CALL array_chk( rgp( 1 ), ncint, info )
+      !IF( info /= 0 ) WRITE(6,*) 'fieldn wrong rgp '
+      !CALL array_chk( rlk( 1, 1 ), ncint, info )
+      !IF( info /= 0 ) WRITE(6,*) 'fieldn wrong rlk 1'
+      !CALL array_chk( rlk( 1, 2 ), ncint, info )
+      !IF( info /= 0 ) WRITE(6,*) 'fieldn wrong rlk 2'
 !
       DO ijk = 1, ncint
 

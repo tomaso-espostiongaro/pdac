@@ -121,7 +121,13 @@
 !
           CALL invdm(at, bt, ijk)
 !
-          sieg(ijk) = bt(1)
+          !IF (sieg(ijk) <= 0.0) THEN
+          !  WRITE(6,*)'From ftem: sieg prima = ',sieg(ijk)
+          !  sieg(ijk) = bt(1)
+          !  WRITE(6,*)'From ftem:  sieg dopo = ',sieg(ijk)
+          !ELSE
+            sieg(ijk) = bt(1)
+          !END IF
           DO is=1, nsolid
             sies(ijk,is) = bt(is+1)
           END DO
