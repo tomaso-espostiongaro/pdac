@@ -6,10 +6,9 @@
       USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: sieg, tg, sies, ts
+      USE grid, ONLY: zb, dz
       USE eos_gas, ONLY: rgpgc, xgc
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE grid, ONLY: rb, dr, r, inr, inrb
-      USE grid, ONLY: zb, dz, dx, dy
       USE grid, ONLY: ncint, myijk
       USE grid, ONLY: fl_l
       USE parallel, ONLY: mpime
@@ -28,8 +27,9 @@
 ! ... This routine computes boundary conditions 
 !
       USE gas_solid_velocity, ONLY: ug, wg, us, ws
-      USE set_indexes, ONLY: ipj, ipjp, imj, imjp, ijp, ijm, ipjm, imjm
+      USE grid, ONLY: rb, dr, r, inr, inrb
       USE set_indexes, ONLY: subscr
+      USE set_indexes, ONLY: ipj, ipjp, imj, imjp, ijp, ijm, ipjm, imjm
 !
       IMPLICIT NONE
 !
@@ -115,12 +115,12 @@
 
           CASE (4)
 	    
-              d1 = dr(i)
-              d2 = dr(i-1)
+            d1 = dr(i)
+            d2 = dr(i-1)
 !
 ! ... Compute the normal component of the velocities and scalar fields
 !
-              CALL outinflow(ug(n1),ug(n2),us(n1,:),us(n2,:),d1,d2,j)
+            CALL outinflow(ug(n1),ug(n2),us(n1,:),us(n2,:),d1,d2,j)
 
 ! ... Compute tangential components of velocities
 !              
@@ -167,8 +167,8 @@
 
           CASE (4)
 
-            d1 = dx(i)
-            d2 = dx(i+1)
+            d1 = dz(j)
+            d2 = dz(j+1)
 !
 ! ... Compute the normal component of the velocities and scalar fields
 !
@@ -246,6 +246,7 @@
 ! ... This routine computes (x,y,z) boundary conditions 
 !
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
+      USE grid, ONLY: dx, dy
       USE set_indexes, ONLY: subscr
       USE set_indexes, ONLY: ipjk, imjk, ippjk, immjk, ijpk, ipjpk,    &
         imjpk, ijmk, ipjmk, imjmk, ijppk, ijmmk, ijkp, ipjkp, imjkp,   &

@@ -21,7 +21,7 @@
       USE eos_gas, ONLY: eosg, ygc, xgc, rags, cg
       USE gas_solid_temperature, ONLY: sieg, tg
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      USE convective_fluxes, ONLY: masf
+      USE convective_fluxes, ONLY: fmas, masf
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
       USE grid, ONLY: fl_l
       USE grid, ONLY: myijk, ncint, ncdom, data_exchange
@@ -108,14 +108,14 @@
         IF (fl_l(ijk) == 1) THEN
           CALL subscr(ijk)
           imesh = myijk( ip0_jp0_kp0_, ijk)
-          CALL first_nb(dens,rgp,ijk)
-          CALL first_rnb(u,ug,ijk)
-          CALL first_rnb(v,vg,ijk)
-          CALL first_rnb(w,wg,ijk)
+          CALL nb(dens,rgp,ijk)
+          CALL rnb(u,ug,ijk)
+          CALL rnb(v,vg,ijk)
+          CALL rnb(w,wg,ijk)
           
-          CALL masf(rgfe(imjk), rgfn(ijmk), rgft(ijkm),   &
-	             rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &
-                     u, v, w, dens)
+          CALL fmas(rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &
+                    rgfe(imjk), rgfn(ijmk), rgft(ijkm),   &
+                    dens, u, v, w, ijk)
         END IF
       END DO
 !
@@ -175,6 +175,7 @@
 !
 
               IF(DABS(dg) <= conv(ijk)) THEN
+
                 converge(ijk) = .TRUE.
                 rls = 0.D0
                 DO is = 1, nsolid
@@ -247,14 +248,14 @@
 !
                 rls=0.D0
                 DO is=1,nsolid
-                  CALL first_nb(dens,rlk(:,is),ijk)
-                  CALL first_rnb(u,us(:,is),ijk)
-                  CALL first_rnb(v,vs(:,is),ijk)
-                  CALL first_rnb(w,ws(:,is),ijk)
+                  CALL nb(dens,rlk(:,is),ijk)
+                  CALL rnb(u,us(:,is),ijk)
+                  CALL rnb(v,vs(:,is),ijk)
+                  CALL rnb(w,ws(:,is),ijk)
 
-                  CALL masf(rsfe(is,imjk), rsfn(is,ijmk), rsft(is,ijkm),   &
-	                     rsfe(is,ijk),  rsfn(is,ijk),  rsft(is,ijk),    &
-                             u, v, w, dens)
+                  CALL fmas(rsfe(is,ijk),  rsfn(is,ijk),  rsft(is,ijk),    &
+                            rsfe(is,imjk), rsfn(is,ijmk), rsft(is,ijkm),   &
+                            dens, u, v, w, ijk)
 
 !
 ! ... and compute the corrected particle densities.
@@ -278,21 +279,21 @@
 !
 ! ... Update gas volumetric fraction and gas density.
 !
-                ep(ijk)=1.D0-eps
-                rgp(ijk)=rog(ijk)*ep(ijk)
+                ep(ijk)  = 1.D0 - eps
+                rgp(ijk) = rog(ijk) * ep(ijk)
 !
 ! ... Calculate the new value of the residual
 ! ... (at least one internal iteration must be done).
 !
                 IF(DABS(dg) > conv(ijk)) THEN
-                   CALL first_nb(dens,rgp,ijk)
-                   CALL first_rnb(u,ug,ijk)
-                   CALL first_rnb(v,vg,ijk)
-                   CALL first_rnb(w,wg,ijk)
+                   CALL nb(dens,rgp,ijk)
+                   CALL rnb(u,ug,ijk)
+                   CALL rnb(v,vg,ijk)
+                   CALL rnb(w,wg,ijk)
 
-                   CALL masf(rgfe(imjk), rgfn(ijmk), rgft(ijkm),    &
-	                      rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &
-                              u, v, w, dens)
+                   CALL fmas(rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &
+                             rgfe(imjk), rgfn(ijmk), rgft(ijkm),    &
+                             dens, u, v, w, ijk)
 
                    dgx = (rgfe(ijk) - rgfe(imjk)) * indx(i)
                    dgy = (rgfn(ijk) - rgfn(ijmk)) * indy(j)
@@ -395,7 +396,7 @@
  700    FORMAT('max number of iterations reached at time: ', F8.3)
 !*******************************************************************
 
-!        CALL error( ' iter ', 'max number of iters exceeded ', 1)
+        CALL error( ' iter ', 'max number of iters exceeded ', 1)
         omega=omega0
       END IF
 !

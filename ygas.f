@@ -17,8 +17,9 @@
       USE grid, ONLY: dx, dy, dz, indx, indy, indz
       USE grid, ONLY: ncint, ncdom, myijk, data_exchange
       USE grid, ONLY: fl_l
-      USE set_indexes
-      USE time_parameters, ONLY: dt
+      USE set_indexes, ONLY: stencil, nb, rnb, cte
+      USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
+      USE time_parameters, ONLY: dt,time
       USE indijk_module, ONLY: ip0_jp0_kp0_
 !
       IMPLICIT NONE
@@ -86,7 +87,13 @@
 	                 - dt * indy(j) * yfy              &
 	                 - dt * indz(k) * yfz
 
-           IF(rgpgc(ijk,ig) < 0.D0) CALL error('ygas','gas mass not conserved',1)
+           IF(rgpgc(ijk,ig) < 0.D0) THEN
+!             WRITE(8,*) 'Warning!: gas mass is not conserved'
+!             WRITE(8,128) time, ijk, ig, rgpgc(ijk,ig)
+! 128         FORMAT('Time= ',F8.3,' Cell= ',I6, ' Specie= ',I2,' Bulk= ',F14.6)
+             rgpgc(ijk,ig) = 0.D0
+           END IF
+           
            rgp = rgp + rgpgc(ijk,ig)
 
          END DO

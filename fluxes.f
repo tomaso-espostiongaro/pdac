@@ -18,7 +18,7 @@
       REAL*8, PRIVATE :: cn                        ! Courant number      !
       REAL*8, PRIVATE :: upwnd                     ! upwinded variable   !
 
-      REAL*8 :: beta, muscl
+      REAL*8 :: beta, muscl, lmtr
 !
       SAVE
 !----------------------------------------------------------------------
@@ -630,7 +630,7 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE masf(fw, fs, fb, fe, fn, ft, u, v, w, dens)
+      SUBROUTINE masf(fe, fn, ft, fw, fs, fb, dens, u, v, w, ijk)
 !
 ! ... This routine computes convective mass fluxes by using
 ! ... Donor Cell technique for first order upwind
@@ -641,6 +641,7 @@
 !
       REAL*8, INTENT(OUT) :: fe, fn, ft, fw, fs, fb
       TYPE(stencil), INTENT(IN) :: u, v, w, dens
+      INTEGER, INTENT(IN) :: ijk
 !
 ! ... West, South and Bottom fluxes
 !
@@ -684,6 +685,175 @@
 !
       RETURN
       END SUBROUTINE
+!----------------------------------------------------------------------
+      SUBROUTINE fmas(fe, fn, ft, fw, fs, fb, dens, u, v, w, ijk)
+!
+      USE dimensions
+      USE grid, ONLY: myijk, fl_l
+      USE set_indexes, ONLY: imjk, ijmk, ijkm
+      USE set_indexes, ONLY: stencil
+      IMPLICIT NONE
+!
+      REAL*8, INTENT(OUT) :: fe, fn, ft, fw, fs, fb
+      TYPE(stencil), INTENT(IN) :: dens, u, v, w
+      INTEGER, INTENT(IN) :: ijk
+!
+      INTEGER :: i,j,k,imesh
+      REAL*8 :: dxmm, dxm, dxp, dxpp, indxpp, indxp, indxm, indxmm
+      REAL*8 :: dymm, dym, dyp, dypp, indypp, indyp, indym, indymm
+      REAL*8 :: dzmm, dzm, dzp, dzpp, indzpp, indzp, indzm, indzmm
+      REAL*8 :: gradc, grade, gradw, gradn, grads, gradt, gradb
+      REAL*8 :: gradp, gradm
+!
+      imesh = myijk( ip0_jp0_kp0_, ijk)
+      i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
+      j = MOD( imesh - 1, nx*ny ) / nx + 1
+      k = ( imesh - 1 ) / ( nx*ny ) + 1
+!
+      dxmm=dx(i-1)+dx(i-2)
+      dxm=dx(i)+dx(i-1)
+      dxp=dx(i)+dx(i+1)
+      dxpp=dx(i+1)+dx(i+2)
+      dymm=dy(j-1)+dy(j-2)
+      dym=dy(j)+dy(j-1)
+      dyp=dy(j)+dy(j+1)
+      dypp=dy(j+1)+dy(j+2)
+      dzmm=dz(k-1)+dz(k-2)
+      dzm=dz(k)+dz(k-1)
+      dzp=dz(k)+dz(k+1)
+      dzpp=dz(k+1)+dz(k+2)
+
+      indxmm=1.D0/dxmm
+      indxm=1.D0/dxm
+      indxp=1.D0/dxp
+      indxpp=1.D0/dxpp
+      indymm=1.D0/dymm
+      indym=1.D0/dym
+      indyp=1.D0/dyp
+      indypp=1.D0/dypp
+      indzmm=1.D0/dzmm
+      indzm=1.D0/dzm
+      indzp=1.D0/dzp
+      indzpp=1.D0/dzpp
+!
+! ... MUSCL reconstruction of fields
+!
+! ... on West volume boundary
+!
+      gradc = 2.0 * indxm * (dens%c - dens%w)
+      gradw = 2.0 * indxmm * (dens%w - dens%ww)
+      grade = 2.0 * indxp * (dens%e - dens%c)
+
+      gradp = (1.D0 - beta) * gradc + beta * gradw
+      gradm = (1.D0 - beta) * gradc + beta * grade
+
+      cs = u%w
+      cn = cs * dt * 2.0 * indxm
+      IF (cs >= 0.D0) THEN
+        upwnd  = dens%w + lmtr*(gradp)*0.5*dx(i-1)
+      ELSE IF (cs < 0.D0) THEN
+        upwnd  = dens%c + lmtr*(gradm)*0.5*dx(i)
+      ENDIF
+!
+      fw = upwnd * cs
+!
+! ... on East volume boundary
+!
+      gradw = gradc
+      gradc = grade
+      grade = 2.0 * indxpp * (dens%ee - dens%e)
+
+      gradp = (1.D0 - beta) * gradc + beta * gradw
+      gradm = (1.D0 - beta) * gradc + beta * grade
+
+      cs = u%c
+      cn = cs * dt * 2.0 * indxp
+      IF (cs >= 0.D0) THEN
+        upwnd  = dens%c + lmtr*(gradp)*0.5*dx(i)
+      ELSE IF (cs < 0.D0) THEN
+        upwnd  = dens%e + lmtr*(gradm)*0.5*dx(i+1)
+      ENDIF
+!
+      fe = upwnd * cs
+!
+! ... on South volume boundary
+!
+      gradc = 2.0 * indym * (dens%c - dens%s)
+      grads = 2.0 * indymm * (dens%s - dens%ss)
+      gradn = 2.0 * indyp * (dens%n - dens%c)
+
+      gradp = (1.D0 - beta) * gradc + beta * grads
+      gradm = (1.D0 - beta) * gradc + beta * gradn
+
+      cs = v%s
+      cn = cs * dt * 2.0 * indym
+      IF (cs >= 0.D0) THEN
+        upwnd = dens%s + lmtr*(gradp)*0.5*dy(j-1)
+      ELSE IF (cs < 0.D0) THEN
+        upwnd = dens%c + lmtr*(gradm)*0.5*dy(j)
+      ENDIF
+!
+      fs = upwnd * cs
+!
+! ... on North volume boundary
+!
+      grads = gradc
+      gradc = gradn
+      gradn = 2.0 * indypp * (dens%nn - dens%n)
+
+      gradp = (1.D0 - beta) * gradc + beta * grads
+      gradm = (1.D0 - beta) * gradc + beta * gradn
+
+      cs = v%c
+      cn = cs * dt * 2.0 * indyp
+      IF (cs >= 0.D0) THEN
+        upwnd = dens%c + lmtr*(gradp)*0.5*dy(j)
+      ELSE IF (cs < 0.D0) THEN
+        upwnd = dens%n + lmtr*(gradm)*0.5*dy(j+1)
+      ENDIF
+!
+      fn = upwnd * cs
+!
+! ... on Bottom volume boundary
+!
+      gradc = 2.0 * indzm * (dens%c - dens%b)
+      gradb = 2.0 * indzmm * (dens%b - dens%bb)
+      gradt = 2.0 * indzp * (dens%t - dens%c)
+
+      gradp = (1.D0 - beta) * gradc + beta * gradb
+      gradm = (1.D0 - beta) * gradc + beta * gradt
+
+      cs = w%b
+      cn = cs * dt * 2.0 * indzm
+      IF (cs >= 0.D0) THEN
+        upwnd = dens%b + lmtr*(gradp)*0.5*dz(k-1)
+      ELSE IF (cs < 0.D0) THEN
+        upwnd = dens%c + lmtr*(gradm)*0.5*dz(k)
+      ENDIF
+!
+      fb = upwnd * cs
+!
+! ... on Top volume boundary
+!
+      gradb = gradc
+      gradc = gradt
+      gradt = 2.0 * indzpp * (dens%tt - dens%t)
+
+      gradp = (1.D0 - beta) * gradc + beta * gradb
+      gradm = (1.D0 - beta) * gradc + beta * gradt
+
+      cs = w%c
+      cn = cs * dt * 2.0 * indzp
+      IF (cs >= 0.D0) THEN
+        upwnd = dens%c + lmtr*(gradp)*0.5*dz(k)
+      ELSE IF (cs < 0.D0) THEN
+        upwnd = dens%t + lmtr*(gradm)*0.5*dz(k+1)
+      ENDIF
+!
+      ft = upwnd * cs
+!
+      RETURN
+      END SUBROUTINE fmas
 !-----------------------------------------------------------------------
       END MODULE convective_fluxes
 !-----------------------------------------------------------------------

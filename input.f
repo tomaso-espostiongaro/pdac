@@ -61,7 +61,7 @@
       SUBROUTINE input( iunit )
 
       USE atmosphere, ONLY: w0, u0, p0, temp0, us0, ws0, ep0, epsmx0, gravx, gravz
-      USE convective_fluxes, ONLY: beta, muscl
+      USE convective_fluxes, ONLY: beta, muscl, lmtr
       USE gas_constants, ONLY: default_gas
       USE grid, ONLY: dx, dy, dz, dr, itc, mesh_partition
       USE iterative_solver, ONLY: inmax, maxout, omega
@@ -95,7 +95,7 @@
       NAMELIST / particles / nsolid, diameter, density, sphericity, &
         viscosity, specific_heat, thermal_conductivity
 !
-      NAMELIST / numeric / rungekut, beta, muscl, inmax, maxout, omega
+      NAMELIST / numeric / rungekut, beta, muscl, lmtr, inmax, maxout, omega
 !
       INTEGER :: i, j, k, n, m, ig
       CHARACTER(LEN=80) :: card
@@ -156,8 +156,9 @@
       rungekut = 1
       beta = 0.25
       muscl = 0.0
+      lmtr = 0.0
       inmax = 8
-      maxout = 5000
+      maxout = 1000
       omega = 1.0
 
 !
@@ -251,6 +252,7 @@
       CALL bcast_integer(rungekut,1,root)
       CALL bcast_real(beta,1,root)
       CALL bcast_real(muscl,1,root)
+      CALL bcast_real(lmtr,1,root)
       CALL bcast_integer(inmax,1,root)
       CALL bcast_integer(maxout,1,root)
       CALL bcast_real(omega,1,root)
