@@ -1,0 +1,9 @@
+
+iter.o: iter.f
+	$(FC) -c $(FFLAGS) $(PREPROCESSING) iter.f
+
+.f.o:
+	$(FC) -c $(FFLAGS) $<
+
+.F.o:
+	$(MPFC) -c $(FFLAGS) $(CPPFLAGS) $<

@@ -1,0 +1,7 @@
+#!/bin/sh
+
+for i in $*
+do
+   cat $i | tr '[:lower:]' '[:upper:]' > /tmp/dum
+   cp /tmp/dum $i
+done

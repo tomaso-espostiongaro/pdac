@@ -1,0 +1,7 @@
+#!/bin/sh
+
+rm -f .dependencies
+for file in $*
+do
+  utility/moduledep.x $file *.f >> ./.dependencies
+done

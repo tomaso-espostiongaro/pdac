@@ -1,0 +1,15 @@
+      SUBROUTINE scatter_real(SEND,RECV,SIZE,root)
+      IMPLICIT NONE
+      INTEGER SIZE, ROOT
+      REAL*8 SEND(SIZE), RECV(SIZE)
+      RECV = SEND
+      RETURN
+      END
+
+      SUBROUTINE scatter_integer(SEND,RECV,SIZE,root)
+      IMPLICIT NONE
+      INTEGER SIZE, ROOT
+      INTEGER SEND(SIZE), RECV(SIZE)
+      RECV = SEND
+      RETURN
+      END

@@ -1,0 +1,6 @@
+
+for i in $*
+do
+  cat $i | sed -e "s/^[Cc]/\!/" > /tmp/rmcr.dum
+  cp /tmp/rmcr.dum $i
+done

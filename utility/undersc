@@ -1,0 +1,36 @@
+#!/bin/sh
+
+for i in $*
+do
+   cat $i | sed -e "s/rgp_l/rgp/g" \
+ -e "s/rgpn_l/rgpn/g"       \
+ -e "s/rog_l/rog/g"         \
+ -e "s/rlk_l/rlk/g"         \
+ -e "s/rlkn_l/rlkn/g"       \
+ -e "s/ep_l/ep/g"           \
+ -e "s/p_l/p/g"             \
+ -e "s/pn_l/pn/g"           \
+ -e "s/sieg_l/sieg/g"       \
+ -e "s/siegn_l/siegn/g"     \
+ -e "s/tg_l/tg/g"           \
+ -e "s/siek_l/siek/g"       \
+ -e "s/siekn_l/siekn/g"     \
+ -e "s/tk_l/tk/g"           \
+ -e "s/rgpgcn_l/rgpgcn/g"   \
+ -e "s/rgpgc_l/rgpgc/g"     \
+ -e "s/ygc_l/ygc/g"         \
+ -e "s/xgc_l/xgc/g"         \
+ -e "s/mug_l/mug/g"         \
+ -e "s/ug_l/ug/g"           \
+ -e "s/vg_l/vg/g"           \
+ -e "s/uk_l/uk/g"           \
+ -e "s/vk_l/vk/g"           \
+ -e "s/cp_l/cp/g"           \
+ -e "s/ck_l/ck/g"           \
+ -e "s/cg_l/cg/g"           \
+ -e "s/kapg_l/kapg/g"       \
+ -e "s/mus_l/mus/g"         \
+ -e "s/smagl_l/smagl/g"     \
+ > under.dum
+  cp under.dum $i
+done
