@@ -746,7 +746,7 @@
       USE control_flags, ONLY: job_type, lpr
       USE dimensions
       USE gas_solid_density, ONLY: rlk, rlkn
-      USE immersed_boundaries, ONLY: numx, numy, numz
+      USE immersed_boundaries, ONLY: numx, numy, numz, immb
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE time_parameters, ONLY: dt, time
@@ -799,15 +799,17 @@
           WRITE(8,*) ' rls, volfrac ', rls, vf
         END IF
 
-        fx = numx(ijk)
-        IF (job_type == '2D') THEN
-          fy = 0
-        ELSE IF (job_type == '3D') THEN
-          fy = numy(ijk)
-        END IF
-        fz = numz(ijk)
+        IF (immb >= 1) THEN
+          fx = numx(ijk)
+          IF (job_type == '2D') THEN
+            fy = 0
+          ELSE IF (job_type == '3D') THEN
+            fy = numy(ijk)
+          END IF
+          fz = numz(ijk)
         
-        forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
+          forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
+        END IF
 
         IF (.NOT.forced) CALL error('iter','mass is not conserved',1)
       ENDIF

@@ -29,7 +29,7 @@
       USE domain_decomposition, ONLY: ncint, myijk, meshinds
       USE grid, ONLY: flag, x, y, z, xb, yb, zb
       USE immersed_boundaries, ONLY: fptx, fpty, fptz
-      USE immersed_boundaries, ONLY: numx, numy, numz
+      USE immersed_boundaries, ONLY: numx, numy, numz, immb
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE parallel, ONLY: mpime, root
       USE set_indexes, ONLY: subscr
@@ -61,11 +61,12 @@
 ! ... If (ijk) is a forcing point, compute the pseudo-velocities
 ! ... that are used in the "immersed boundary" technique ...
 !
-          fx = numx(ijk)
-          IF (job_type == '3D') fy = numy(ijk)
-          fz = numz(ijk)
-          
-          forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
+          IF (immb >= 1) THEN
+            fx = numx(ijk)
+            IF (job_type == '3D') fy = numy(ijk)
+            fz = numz(ijk)
+            forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
+          END IF
 
           IF (forced) THEN
 

@@ -73,7 +73,7 @@
       USE gas_solid_viscosity, ONLY: mus
       USE grid, ONLY: zb, dz
       USE grid, ONLY: flag, iob
-      USE immersed_boundaries, ONLY: numx, numy, numz
+      USE immersed_boundaries, ONLY: numx, numy, numz, immb
       USE particles_constants, ONLY: rl, inrl, cmus
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: itd
@@ -134,15 +134,17 @@
           !
           IF ( flag(ijk) == 1 .OR. flag(ijk) == 4 .OR. flag(ijk) == 6 ) THEN
 
-          fx = numx(ijk)
-          IF (job_type == '2D') THEN
-            fy = 0
-          ELSE IF (job_type == '3D') THEN
-            fy = numy(ijk)
-          END IF
-          fz = numz(ijk)
+          IF (immb >= 1) THEN
+            fx = numx(ijk)
+            IF (job_type == '2D') THEN
+              fy = 0
+            ELSE IF (job_type == '3D') THEN
+              fy = numy(ijk)
+            END IF
+            fz = numz(ijk)
 
-          forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
+            forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
+          END IF
 
             IF( .NOT.forced ) THEN
               ug(ijk) = wind_x
