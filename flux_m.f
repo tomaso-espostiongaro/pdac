@@ -542,6 +542,11 @@
         ft = w%c * dens%t
       ENDIF
 !
+      upc_e = 1.D0
+      upc_w = 1.D0
+      upc_t = 1.D0
+      upc_b = 1.D0
+
       RETURN
       END SUBROUTINE masf_2d
 !----------------------------------------------------------------------
@@ -595,6 +600,11 @@
 !
 ! ... MUSCL reconstruction of fields
 !
+      upc_e = 1.D0
+      upc_w = 1.D0
+      upc_t = 1.D0
+      upc_b = 1.D0
+!
 ! ... on West volume boundary
 !
       gradc = 2.D0 * indxm * (dens%c - dens%w)
@@ -623,7 +633,7 @@
       upwnd = fou + lim * gradc * incr
 !
       centrd = (dx(i)*dens%w+dx(i-1)*dens%c)*indxm
-      upc_w = upwnd / centrd
+      !upc_w = upwnd / centrd
 !
       fw = upwnd * cs * xb(i-1)
 !
@@ -655,7 +665,7 @@
       upwnd = fou + lim * gradc * incr
 !
       centrd = (dx(i)*dens%e+dx(i+1)*dens%c)*indxp
-      upc_e = upwnd / centrd
+      !upc_e = upwnd / centrd
 !
       fe = upwnd * cs * xb(i)
 !
@@ -687,7 +697,7 @@
       upwnd = fou + lim * gradc * incr
 !
       centrd = (dz(k)*dens%b+dz(k-1)*dens%c)*indzm
-      upc_b = upwnd / centrd
+      !upc_b = upwnd / centrd
 !
       fb = upwnd * cs
 !
@@ -719,7 +729,7 @@
       upwnd = fou + lim * gradc * incr
 !
       centrd = (dz(k)*dens%t+dz(k+1)*dens%c)*indzp
-      upc_t = upwnd / centrd
+      !upc_t = upwnd / centrd
 !
       ft = upwnd * cs
 !

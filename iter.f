@@ -965,7 +965,7 @@
       USE control_flags, ONLY: job_type
       USE eos_gas, ONLY: csound
       USE gas_solid_density, ONLY: rog, rgp
-      USE grid, ONLY: dx, dy, dz, fl_l
+      USE grid, ONLY: dx, dy, dz, fl_l, xb
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes
@@ -1053,12 +1053,12 @@
 
           END IF
 
-          iepx = (  iep_e + iep_w ) * indx(i) * inx(i) 
-          iepz = (  iep_t + iep_b ) * indz(i)
+          iepx = (  xb(i) * iep_e + xb(i-1) * iep_w ) * indx(i) * inx(i) 
+          iepz = (  iep_t + iep_b ) * indz(k)
 	  IF (job_type == '2D') THEN
             iepy = 0.D0
 	  ELSE IF (job_type == '3D') THEN
-            iepy = (  iep_n + iep_s ) * indy(i)
+            iepy = (  iep_n + iep_s ) * indy(j)
           END IF
 
 !
