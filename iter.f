@@ -74,7 +74,8 @@
       USE phases_matrix, ONLY: matspre_3phase
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: nb, rnb, first_rnb, rnb_13, nb_13
-      USE set_indexes, ONLY: subscr, subscr_iter,subscr_red, imjk, ijmk, ijkm, ijkn, ijks, ijke, ijkw, ijkt, ijkb, myinds
+      USE set_indexes, ONLY: subscr, subscr_iter,subscr_red, &
+          imjk, ijmk, ijkm, ijkn, ijks, ijke, ijkw, ijkt, ijkb, myinds
       USE specific_heat_module, ONLY: cp
       USE tilde_energy, ONLY: htilde
       USE tilde_momentum, ONLY: tilde, appu, appv, appw
@@ -692,15 +693,6 @@
             CALL first_rnb( u, ug, ijk )
             CALL first_rnb( w, wg, ijk )
             CALL first_rnb( v, vg, ijk )
-
-            ! CALL chkstencil( dens, info )
-            ! IF( info /= 0 ) WRITE(6,*) 'wrong dens at: ', i, j, k
-            ! CALL chkstencil( u, info )
-            ! IF( info /= 0 ) WRITE(6,*) 'wrong u at: ', i, j, k
-            ! CALL chkstencil( v, info )
-            ! IF( info /= 0 ) WRITE(6,*) 'wrong v at: ', i, j, k
-            ! CALL chkstencil( w, info )
-            ! IF( info /= 0 ) WRITE(6,*) 'wrong w at: ', i, j, k
 
             CALL masf( rgfe( ijk  ),  rgfn( ijk  ),  rgft( ijk  ),    &
                        rgfe( imjk ),  rgfn( ijmk ),  rgft( ijkm ),    &
