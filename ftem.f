@@ -27,8 +27,9 @@
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_viscosity, ONLY: mug, kapg
-      USE grid, ONLY: fl_l
+      USE grid, ONLY: flag
       USE grid, ONLY: dx, dy, dz
+      USE immersed_boundaries, ONLY: forced
       USE specific_heat_module, ONLY: ck, cp
       USE heat_transfer, ONLY: hvs
       USE particles_constants, ONLY: cps
@@ -67,7 +68,7 @@
 !
       DO ijk = 1, ncint
 
-        IF(fl_l(ijk) == 1) THEN
+        IF(flag(ijk) == 1 .AND. .NOT.forced(ijk)) THEN
           CALL meshinds(ijk,imesh,i,j,k)
           CALL subscr(ijk)
 !

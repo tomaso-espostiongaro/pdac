@@ -279,7 +279,7 @@
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nphase
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      USE grid, ONLY: fl_l
+      USE grid, ONLY: flag
       USE set_indexes, ONLY: imjk, ijmk, ijkm, ipjk, ijpk, ijkp
       IMPLICIT NONE
 !
@@ -290,7 +290,7 @@
 !
 ! ... Use Gauss-Jordan method for matrix inversion
 !
-      IF (fl_l(imjk) == 1 .OR. fl_l(imjk) == 4) THEN
+      IF (flag(imjk) == 1 .OR. flag(imjk) == 4) THEN
 
         DO l=2,nphase
           IF(au1(l,l) < rlim) THEN
@@ -330,7 +330,7 @@
       END IF
 
       IF (job_type == '3D') THEN
-        IF (fl_l(ijmk) == 1 .OR. fl_l(ijmk) == 4) THEN
+        IF (flag(ijmk) == 1 .OR. flag(ijmk) == 4) THEN
 
           DO l=2,nphase
             IF(av1(l,l) < rlim) THEN
@@ -370,7 +370,7 @@
         END IF
       END IF
 
-      IF (fl_l(ijkm) == 1 .OR. fl_l(ijkm) == 4) THEN
+      IF (flag(ijkm) == 1 .OR. flag(ijkm) == 4) THEN
 
         DO l=2,nphase
           IF(aw1(l,l) < rlim) THEN
@@ -421,7 +421,7 @@
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nphase
       USE domain_decomposition, ONLY:  meshinds
-      USE grid, ONLY: fl_l
+      USE grid, ONLY: flag
       USE set_indexes, ONLY: ipjk, ijpk, ijkp
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       IMPLICIT NONE
@@ -435,7 +435,7 @@
 !
 ! ... Use Gauss-Jordan method for matrix inversion
 !
-      IF (fl_l(ipjk) == 1 .OR. fl_l(ipjk) == 4) THEN
+      IF (flag(ipjk) == 1 .OR. flag(ipjk) == 4) THEN
 
         DO l=2,nphase
           IF(au(l,l) < rlim) THEN
@@ -476,7 +476,7 @@
       END IF
 
       IF (job_type == '3D') THEN
-        IF (fl_l(ijpk) == 1 .OR. fl_l(ijpk) == 4) THEN
+        IF (flag(ijpk) == 1 .OR. flag(ijpk) == 4) THEN
           DO l=2,nphase
             IF(av(l,l) < rlim) THEN
               DO ll=1,nphase
@@ -516,7 +516,7 @@
       END IF
 !
 
-      IF (fl_l(ijkp) == 1 .OR. fl_l(ijkp) == 4) THEN
+      IF (flag(ijkp) == 1 .OR. flag(ijkp) == 4) THEN
 
         DO l=2,nphase
           IF(aw(l,l) < rlim) THEN
@@ -663,7 +663,7 @@
       USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
       USE time_parameters, ONLY: dt
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      USE grid, ONLY: fl_l
+      USE grid, ONLY: flag
 
 
       IMPLICIT NONE
@@ -725,12 +725,12 @@
         dzdp =dz(k)   * indzp
         dzpdp=dz(k+1) * indzp
 
-        flim = ( fl_l(imjk) == 1 .OR. fl_l(imjk) == 4 )
-        fljm = ( fl_l(ijmk) == 1 .OR. fl_l(ijmk) == 4 )
-        flkm = ( fl_l(ijkm) == 1 .OR. fl_l(ijkm) == 4 )
-        flip = ( fl_l(ipjk) == 1 .OR. fl_l(ipjk) == 4 )
-        fljp = ( fl_l(ijpk) == 1 .OR. fl_l(ijpk) == 4 )
-        flkp = ( fl_l(ijkp) == 1 .OR. fl_l(ijkp) == 4 )
+        flim = ( flag(imjk) == 1 .OR. flag(imjk) == 4 )
+        fljm = ( flag(ijmk) == 1 .OR. flag(ijmk) == 4 )
+        flkm = ( flag(ijkm) == 1 .OR. flag(ijkm) == 4 )
+        flip = ( flag(ipjk) == 1 .OR. flag(ipjk) == 4 )
+        fljp = ( flag(ijpk) == 1 .OR. flag(ijpk) == 4 )
+        flkp = ( flag(ijkp) == 1 .OR. flag(ijkp) == 4 )
 
         pw   = p(ijkw)
         pe   = p(ijke)

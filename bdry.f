@@ -1,16 +1,17 @@
 !-----------------------------------------------------------------------
       MODULE boundary_conditions
 !-----------------------------------------------------------------------
+!
       USE atmosphere, ONLY: gravx, gravy, gravz
       USE dimensions
-      USE gas_solid_density, ONLY: rgp, rlk
+      USE gas_solid_density, ONLY: rgp, rlk, rog
       USE gas_solid_temperature, ONLY: sieg, tg, sies, ts
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      USE grid, ONLY: dx, dy, zb, dz
-      USE eos_gas, ONLY: rgpgc, xgc
+      USE grid, ONLY: dx, dy, dz, xb, zb
+      USE eos_gas, ONLY: rgpgc, xgc, ygc
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p, ep
-      USE time_parameters, ONLY: dt, time
+      USE time_parameters, ONLY: dt, time, sweep
 
       IMPLICIT NONE
 
@@ -26,7 +27,9 @@
 !
       USE control_flags, ONLY: job_type
       USE domain_decomposition, ONLY: ncint, myijk, meshinds
-      USE grid, ONLY: fl_l
+      USE grid, ONLY: flag, x, y, z, xb, yb, zb
+      USE immersed_boundaries, ONLY: forx, forz, forced
+      USE immersed_boundaries, ONLY: numx, numz
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE parallel, ONLY: mpime
       USE set_indexes, ONLY: subscr
@@ -37,30 +40,69 @@
       IMPLICIT NONE
 !
       INTEGER :: ijk, i, j, k, imesh, ig, is
+      INTEGER :: fp
       REAL*8 :: d1, d2 
+      REAL*8 :: vel
 !
-
       DO ijk = 1, ncint
 
-        imesh = myijk( ip0_jp0_kp0_, ijk)
+        CALL meshinds(ijk,imesh,i,j,k)
 
-        i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
-        j = MOD( imesh - 1, nx*ny ) / nx + 1
-        k = ( imesh - 1 ) / ( nx*ny ) + 1
+        IF( flag(ijk) == 1 ) THEN
+          CALL subscr(ijk)
+!
+! ... If (ijk) is a forcing point, compute the pseudo-velocities
+! ... that are used in the "immersed boundary" technique ...
+!
+          IF( forced(ijk) ) THEN
 
-        IF( fl_l(ijk) == 1 ) THEN
+            fp = numx(ijk)
+            IF (fp > 0) THEN
+              IF (ABS(forx(fp)%int) < 10) THEN
+                vel = velint(forx(fp), ug, ijk, xb, y, z)  
+              ELSE
+                vel = velext(forx(fp), ug, ijk, xb, y, z)  
+              END IF
+            ELSE
+              vel = 0.D0
+            END IF
+            forx(fp)%vel = vel
 
-            CALL meshinds(ijk,imesh,i,j,k)
-            CALL subscr(ijk)
+            ! ... Initialize x-velocity in the forced points
+            IF (sweep >= 1) THEN
+              ug(ijk) = vel
+              us(ijk,:) = vel
+            END IF
+
+            fp = numz(ijk)
+            IF (fp > 0) THEN
+              IF (ABS(forz(fp)%int) < 10) THEN
+                vel = velint(forz(fp), wg, ijk, x, y, zb)  
+              ELSE
+                vel = velext(forz(fp), wg, ijk, x, y, zb)  
+              END IF
+            ELSE
+              vel = 0.D0
+            END IF
+            forz(fp)%vel = vel
+
+            ! ... Initialize z-velocity in the forced points
+            IF (sweep >= 1) THEN
+              wg(ijk) = vel
+              ws(ijk,:) = vel
+            END IF
+
+          ELSE
+!
+! ... otherwise check the neighbours location to set boundary conditions
 !
 ! ***** East boundary conditions ***** !
 !
-
             n2   = ipjk
 	    n1   = ijk
 	    n0   = imjk
 
-            SELECT CASE ( fl_l( n2 ) ) 
+            SELECT CASE ( flag( n2 ) ) 
 !
             CASE (2) 
 !
@@ -74,13 +116,17 @@
 !
             CASE (3)
 !
+            IF(flag(ipjkp) /= 1) THEN
+            
               wg(n2)   = -wg(n1)
               ws(n2,:) = -ws(n1,:)
 
-	      IF (job_type == '3D') THEN
+              IF (job_type == '3D') THEN
                 vg(n2)   = -vg(n1)
                 vs(n2,:) = -vs(n1,:)
               END IF
+
+            END IF
 !
             CASE (4)
 !
@@ -88,18 +134,39 @@
 	      d2 = dx(i+1)
 
               ! ... Compute the normal component of the velocities 
-              ! ... and scalar fields
+              ! ... and scalar fields 
               !
-              CALL inoutflow( ug(n0), ug(n1), ug(n2),              &
+              CALL inout_flow( ug(n0), ug(n1), ug(n2),              &
                       us(n0,:), us(n1,:), us(n2,:), d1, d2, gravx, k )
 
               ! ... Compute tangential components of velocities
               !
-              IF(fl_l(ipjkp) == 4) THEN
+              IF(flag(ipjkp) == 4) THEN
                 wg(n2) = wg(n1)
         	ws(n2,:)=ws(n1,:)
               END IF
-	      IF (job_type == '3D' .AND. (fl_l(ipjpk) == 4)) THEN
+	      IF (job_type == '3D' .AND. (flag(ipjpk) == 4)) THEN
+                vg(n2) = vg(n1)
+        	vs(n2,:)=vs(n1,:)
+	      END IF
+!
+            CASE (6)
+!
+              d1 = dx(i)
+	      d2 = dx(i+1)
+
+              ! ... Compute the normal component of the velocities 
+              ! ... and scalar fields
+              !
+              CALL free_inout( ug(n1), ug(n2), us(n1,:), us(n2,:), d1, d2, k)
+
+              ! ... Compute tangential components of velocities
+              !
+              IF(flag(ipjkp) == 4) THEN
+                wg(n2) = wg(n1)
+        	ws(n2,:)=ws(n1,:)
+              END IF
+	      IF (job_type == '3D' .AND. (flag(ipjpk) == 4)) THEN
                 vg(n2) = vg(n1)
         	vs(n2,:)=vs(n1,:)
 	      END IF
@@ -116,7 +183,7 @@
 	    n1 = ijk
 	    n0 = ipjk
 
-            SELECT CASE ( fl_l( n2 ) )
+            SELECT CASE ( flag( n2 ) )
 !
             CASE (2)
 !
@@ -144,15 +211,36 @@
               ! ... Compute the normal component of the velocities 
               ! ... and scalar fields
               !
-              CALL outinflow( ug(n1), ug(n2), us(n1,:), us(n2,:), d1, d2, k )
+              CALL outin_flow( ug(n1), ug(n2), us(n1,:), us(n2,:), d1, d2, k )
 
               ! ... Compute tangential components of velocities
               !
-              IF(fl_l(imjkp) == 4) THEN
+              IF(flag(imjkp) == 4) THEN
                 wg(n2)   = wg(n1)
         	ws(n2,:) = ws(n1,:)
               END IF
-	      IF (job_type == '3D' .AND. (fl_l(imjpk) == 4)) THEN
+	      IF (job_type == '3D' .AND. (flag(imjpk) == 4)) THEN
+                vg(n2)   = vg(n1)
+        	vs(n2,:) = vs(n1,:)
+	      END IF
+!              
+            CASE (6)
+!	    
+              d1 = dx(i)
+              d2 = dx(i-1)
+
+              ! ... Compute the normal component of the velocities 
+              ! ... and scalar fields
+              !
+              CALL free_outin( ug(n1), ug(n2), us(n1,:), us(n2,:), d1, d2, k )
+
+              ! ... Compute tangential components of velocities
+              !
+              IF(flag(imjkp) == 4) THEN
+                wg(n2)   = wg(n1)
+        	ws(n2,:) = ws(n1,:)
+              END IF
+	      IF (job_type == '3D' .AND. (flag(imjpk) == 4)) THEN
                 vg(n2)   = vg(n1)
         	vs(n2,:) = vs(n1,:)
 	      END IF
@@ -171,7 +259,7 @@
   	      n1   = ijk
   	      n0   = ijmk
   
-              SELECT CASE (  fl_l( n2 ) )
+              SELECT CASE (  flag( n2 ) )
 !  
               CASE (2)
 !  
@@ -195,16 +283,37 @@
                 ! ... Compute the normal component of the velocities 
                 ! ... and scalar fields
                 !
-                CALL inoutflow( vg(n0), vg(n1), vg(n2),              &
+                CALL inout_flow( vg(n0), vg(n1), vg(n2),              &
                              vs(n0,:), vs( n1,:), vs(n2,:), d1, d2, gravy, k )
 
                 ! ... Compute tangential components of velocities
                 !
-                IF(fl_l(ijpkp) == 4) THEN
+                IF(flag(ijpkp) == 4) THEN
                   wg(n2)   = wg(n1)
         	  ws(n2,:) = ws(n1,:)
                 END IF
-	        IF(fl_l(ipjpk) == 4) THEN
+	        IF(flag(ipjpk) == 4) THEN
+                  ug(n2)   = ug(n1)
+          	  us(n2,:) = us(n1,:)
+	        END IF
+!
+              CASE (6)
+!  
+                d1 = dy(j)
+  	        d2 = dy(j+1)
+          
+                ! ... Compute the normal component of the velocities 
+                ! ... and scalar fields
+                !
+                CALL free_inout( vg(n1), vg(n2), vs(n1,:), vs(n2,:), d1, d2, k)
+
+                ! ... Compute tangential components of velocities
+                !
+                IF(flag(ijpkp) == 4) THEN
+                  wg(n2)   = wg(n1)
+        	  ws(n2,:) = ws(n1,:)
+                END IF
+	        IF(flag(ipjpk) == 4) THEN
                   ug(n2)   = ug(n1)
           	  us(n2,:) = us(n1,:)
 	        END IF
@@ -222,7 +331,7 @@
               n1 = ijk
               n0 = ijpk
 
-              SELECT CASE (  fl_l( n2 ) )
+              SELECT CASE (  flag( n2 ) )
 !
               CASE (2)
 !
@@ -246,15 +355,36 @@
                 ! ... Compute the normal component of the velocities 
                 ! ... and scalar fields
                 !
-                CALL outinflow( vg(n1), vg(n2), vs(n1,:), vs(n2,:), d1, d2, k )
+                CALL outin_flow( vg(n1), vg(n2), vs(n1,:), vs(n2,:), d1, d2, k )
 
                 ! ... Compute tangential components of velocities
                 !             
-                IF(fl_l(ijmkp) == 4) THEN
+                IF(flag(ijmkp) == 4) THEN
                   wg(n2)   = wg(n1)
         	  ws(n2,:) = ws(n1,:)
                 END IF
-	        IF(fl_l(ipjmk) == 4) THEN
+	        IF(flag(ipjmk) == 4) THEN
+                  ug(n2)   = ug(n1)
+        	  us(n2,:) = us(n1,:)
+	        END IF
+!
+              CASE (6)
+!  	    
+                d1 = dy(j)
+                d2 = dy(j-1)
+
+                ! ... Compute the normal component of the velocities 
+                ! ... and scalar fields
+                !
+                CALL free_outin( vg(n1), vg(n2), vs(n1,:), vs(n2,:), d1, d2, k )
+
+                ! ... Compute tangential components of velocities
+                !             
+                IF(flag(ijmkp) == 4) THEN
+                  wg(n2)   = wg(n1)
+        	  ws(n2,:) = ws(n1,:)
+                END IF
+	        IF(flag(ipjmk) == 4) THEN
                   ug(n2)   = ug(n1)
         	  us(n2,:) = us(n1,:)
 	        END IF
@@ -274,7 +404,7 @@
             n1   =  ijk
             n0   =  ijkm
 
-            SELECT CASE ( fl_l( n2 ) )
+            SELECT CASE ( flag( n2 ) )
 !
             CASE (2)
 !
@@ -302,16 +432,37 @@
               ! ... Compute the normal component of the velocities 
               ! ... and scalar fields
               !
-              CALL inoutflow( wg(n0), wg(n1), wg(n2),              &
+              CALL inout_flow( wg(n0), wg(n1), wg(n2),              &
                              ws(n0,:), ws(n1,:), ws(n2,:), d1, d2, gravz, k )
 
               ! ... Compute tangential components of velocities
               !
-              IF(fl_l(ipjkp) == 4) THEN
+              IF(flag(ipjkp) == 4) THEN
 	         ug(n2)   = ug(n1)
 		 us(n2,:) = us(n1,:)
 	      END IF
-              IF(fl_l(ijpkp) == 4 .AND. job_type == '3D') THEN
+              IF(flag(ijpkp) == 4 .AND. job_type == '3D') THEN
+	         vg(n2)   = vg(n1)
+		 vs(n2,:) = vs(n1,:)
+              END IF
+!
+            CASE (6)
+!
+              d1 = dz(k)
+	      d2 = dz(k+1)
+
+              ! ... Compute the normal component of the velocities 
+              ! ... and scalar fields
+              !
+              CALL free_inout( wg(n1), wg(n2), ws(n1,:), ws(n2,:), d1, d2, k)
+                             
+              ! ... Compute tangential components of velocities
+              !
+              IF(flag(ipjkp) == 4) THEN
+	         ug(n2)   = ug(n1)
+		 us(n2,:) = us(n1,:)
+	      END IF
+              IF(flag(ijpkp) == 4 .AND. job_type == '3D') THEN
 	         vg(n2)   = vg(n1)
 		 vs(n2,:) = vs(n1,:)
               END IF
@@ -332,17 +483,13 @@
                 ! ug(imjp) = ug(imj)
               ENDIF
             END IF
-
 !
 ! ***** Bottom boundary conditions ***** !
-!
 !
             n1 = ijk
             n2 = ijkm
 
-            IF(fl_l(ipjkm) /= 1) THEN
-
-            SELECT CASE (  fl_l( n2 ) )
+            SELECT CASE ( flag( n2 ) )
 !
             CASE (2)
 !
@@ -355,20 +502,22 @@
 !
             CASE (3)
 !
+            IF(flag(ipjkm) /= 1) THEN
+
               ug(n2)   = -ug(n1)
               us(n2,:) = -us(n1,:)
 	      IF (job_type == '3D') THEN
                 vg(n2)   = -vg(n1)
                 vs(n2,:) = -vs(n1,:)
 	      END IF
+
+            END IF
 !
             CASE DEFAULT
 !
               CONTINUE
 
             END SELECT
-
-            END IF
 
             ! ... Set lower corners velocities
             !
@@ -382,13 +531,15 @@
               ENDIF
             END IF
 
+          END IF
+
         END IF
       END DO
 !
       RETURN
       END SUBROUTINE boundary
 !----------------------------------------------------------------------
-      SUBROUTINE inoutflow(umn, ucn, upn, usmn, uscn, uspn, d1, d2, grav, k)
+      SUBROUTINE inout_flow(umn, ucn, upn, usmn, uscn, uspn, d1, d2, grav, k)
 !
 ! ... This routine computes the free in/outflow conditions in the boundary
 ! ... cell, i.e. the normal component of the velocity and the scalar fields
@@ -417,7 +568,6 @@
       REAL*8 :: pf1, pf2, pfd
 
       INTEGER :: ig, is
-      INTEGER :: float_chk
 !
 ! ... Definitions
 !
@@ -442,15 +592,9 @@
 ! ...  OUTFLOW ...
 !
 ! ...  Extrapolations
-!       ucnn = u1n
-!       upn = u2n
+       ucnn = u1n
+       upn = u2n
 !
-! ...  Non-reflecting boundary conditions
-
-        upnn = upn - ucn*dt*d2inv * (upn - ucn)
-        upn = upnn
-        ucnn = ucn * ( 1 - dt*d1inv * (ucn - umn) )
-
 ! MODIFICARE X3D ....  IF(j == .EQ.2) ug(ipjm)=-ug(n2) ! 
 
         t1nn = tmn
@@ -516,23 +660,13 @@
 ! ... Correct non-physical pressure
 !
         IF ( p(n2) <= 0.0D0 ) p(n2) = p(n1)
-
-        IF( float_chk( p(n2) ) /= 0 ) THEN
-          WRITE(6,*) 'boundary p 4 ', p(n2)
-        END IF
 !
       ELSE IF ( ucn <  0.D0 ) THEN
 
 ! ... INFLOW ...
 !
 ! ... Extrapolation
-
-!        upn = ucn
-
-! ... Non-reflecting b.c.
-                
-        upnn = upn - ucn * dt * d2inv * ( 0.D0 - u2n )
-        upn = upnn
+        upn = ucn
 !
         zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )  ! DOMANDA perche dz(1)
         prif = p_atm(k)
@@ -552,10 +686,6 @@
           p(n2) = pfd ** ( 1.d0 / gamn )
         ELSE
           p(n2) = prif
-        END IF
-
-        IF( float_chk( p(n2) ) /= 0 ) THEN
-          WRITE(6,*) 'boundary p 5 ', p(n2)
         END IF
 !
         ep(n2) = 1.D0
@@ -579,10 +709,6 @@
           rgpgc(n2,ig) = rgpgc(n1,ig)
         END DO
 
-        IF( float_chk( p(n2) ) /= 0 ) THEN
-          WRITE(6,*) 'boundary p 7 ', p(n2)
-        END IF
-
       ENDIF
 !
 ! ... Set primary variables
@@ -603,9 +729,9 @@
       END DO
 !                
       RETURN
-      END SUBROUTINE inoutflow
+      END SUBROUTINE inout_flow
 !----------------------------------------------------------------------
-      SUBROUTINE outinflow(upn, ucn, uspn, uscn, d1, d2, k)
+      SUBROUTINE outin_flow(upn, ucn, uspn, uscn, d1, d2, k)
 !
 ! ... This routine computes the free in/outflow conditions in the boundary
 ! ... cell, i.e. the normal component of the velocity and the scalar fields
@@ -634,7 +760,6 @@
       REAL*8 :: pf1, pf2, pfd
 
       INTEGER :: ig, is
-      INTEGER :: float_chk
 !
 ! ... definitions
 !
@@ -662,10 +787,6 @@
         ucnn = u1n
         t1nn = tpn
 ! 
-! ... Non-reflecting boundary condition
-!
-        ucn = ucn - upn * dt * d1inv * ( upn - ucn )
-!
 ! ... MODIFICAREX3D IF(j.EQ.2) ug(imjmk) = - ug(n2)
 !
 ! ... calculation of the gas volumetric fraction at time (n+1)dt
@@ -720,16 +841,9 @@
                  ( u1n*upn*rmpn - u2n*ucn*rmcn) + dt*dcinv * p1nn
         p(n2)=p(n2)/(dt*dcinv)
 
-        IF( float_chk( p(n2) ) /= 0 ) THEN
-          WRITE(6,*) 'boundary p 3 ', p(n2)
-        END IF
 !
 ! ... Correct non-physical pressure
         IF (p(n2) <= 0.0D0) p(n2) = p(n1)
-
-        IF( float_chk( p(n2) ) /= 0 ) THEN
-          WRITE(6,*) 'boundary p 8 ', p(n2)
-        END IF
 
         ep(n2) = ep(n1)
         tg(n2) = tg(n1)
@@ -750,8 +864,6 @@
 
 ! ... INFLOW ...
 !
-        ucn = ucn - upn*dt*d1inv * (u1n - 0.D0)
-
         zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )  ! DOMANDA percheÃ dz(1)
         prif = p_atm(k)
         trif = t_atm(k)
@@ -776,10 +888,6 @@
           p(n2) = pfd ** ( 1.d0 / gamn )
         ELSE
           p(n2) = prif
-        END IF
-       
-        IF( float_chk( p(n2) ) /= 0 ) THEN
-          WRITE(6,*) 'boundary p 9 ', p(n2)
         END IF
 !
 ! ... Correct non-physical pressure
@@ -812,14 +920,447 @@
       END DO
 !
       RETURN
-      END SUBROUTINE outinflow
+      END SUBROUTINE outin_flow
 !-----------------------------------------------------------------------
-!      SUBROUTINE continuous_outflow(u,v,w,p,rho)
-! ... This routine computes continuous outflow conditions (zero
-! ... gradients for single-fluid (gas) simulations.
+      SUBROUTINE free_inout(ucn, upn, uscn, uspn, d1, d2, k)
+! ... This routine computes continuous inoutflow conditions.
 ! ... This procedure is suited for low-Mach number regimes
 ! ... (incompressible flow)
-!      END SUBROUTINE continuous_outflow
+! ... Works on East, North, Top boundaries
+
+      USE atmosphere, ONLY: p_atm, t_atm
+      USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
+      USE gas_constants, ONLY: gas_type
+      USE initial_conditions, ONLY : ygc0
+      USE eos_gas, ONLY: mole, thermal_eosg
+
+      REAL*8, INTENT(IN) :: ucn
+      REAL*8, INTENT(INOUT) :: upn
+      REAL*8, INTENT(IN) :: uscn(:)
+      REAL*8, INTENT(INOUT) :: uspn(:)
+      REAL*8, INTENT(IN) :: d1, d2
+      INTEGER, INTENT(IN) :: k
+
+      REAL*8 :: kfl, deltau, rls, mg
+      REAL*8 :: zrif, prif, trif, rhorif
+      INTEGER :: is, ig
+!
+! ... This value can be "tuned" 
+      kfl = 0.8D0
+
+! ... Transport normal velocity in boundary cells
+!
+      deltau = upn - ucn
+      upn = upn - kfl * SIGN(deltau,ucn)
+      DO is = 1, nsolid
+        deltau = uspn(is) - uscn(is)
+        uspn(is) = uspn(is) - kfl * SIGN(deltau,uscn(is))
+      END DO
+
+! ... Transport particles (no g-p interaction)
+!
+      IF (ucn > 0.D0) THEN
+        rls = 0.D0
+        DO is=1, nsolid
+          rlk(n2,is) = rlk(n2,is) - dt/d2 *  &
+                         ( rlk(n2,is)*uspn(is) - rlk(n1,is)*uscn(is) )
+          rls = rls + rlk(n2,is)*inrl(is)
+        END DO
+      ELSE IF (ucn < 0.D0) THEN
+        rlk(n2,:) = 0.D0
+        rls = 0.D0
+      ELSE
+      END IF
+      IF (rls >= 1.D0) &
+          CALL error('bdry','control transport on boundary',1)
+
+! ... Compute void fraction 
+!
+      ep(n2) = 1.D0 - rls
+
+! ... Transport temperature (incompressible approximation)
+!
+      zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )  ! DOMANDA perche dz(1)
+      prif = p_atm(k)
+      trif = t_atm(k)
+
+      IF (ucn > 0.D0) THEN
+        tg(n2) = tg(n2) - dt/d2 * ucn * ( tg(n2) - tg(n1) )
+        DO is=1, nsolid
+          ts(n2,is) = ts(n2,is) - dt/d2 * uscn(is) * ( ts(n2,is) - ts(n1,is) )
+        END DO
+      ELSE IF (ucn < 0.D0) THEN
+        tg(n2) = trif
+        ts(n2) = trif
+      ELSE
+      END IF
+
+! ... Transport gas components (incompressible)
+!
+      IF (ucn > 0.D0) THEN
+        DO ig=1, ngas
+          ygc(ig,n2) = ygc(ig,n2) - dt/d2 * ucn * ( ygc(ig,n2) - ygc(ig,n1) )
+        END DO
+      ELSE IF (ucn < 0.D0) THEN
+        DO ig = 1, ngas
+          ygc(ig,n2) = ygc0(gas_type(ig))
+        END DO
+      ELSE
+      END IF
+      CALL mole(xgc(:,n2), ygc(:,n2))
+      CALL thermal_eosg(rhorif, trif, prif, xgc(:,n2))
+
+! ... Transport gas bulk density (compressible)
+!
+      IF (ucn > 0.D0) THEN
+        rgp(n2) = rgp(n2) - dt/d2 *  &
+                     ( rgp(n2)*upn - rgp(n1)*ucn )
+      ELSE IF (ucn < 0.D0) THEN
+        rgp(n2) = rhorif
+      ELSE
+      END IF
+      rog(n2) = rgp(n2) / ep(n2)
+
+! ... Compute new pressure by using equation of state
+!
+      mg = 0.D0
+      DO ig = 1, ngas
+        mg = mg + xgc(ig,n2) * gmw(gas_type(ig))
+      END DO
+
+      p(n2) = rog(n2) * tg(n2) * ( rgas / mg )
+
+      RETURN
+      END SUBROUTINE free_inout
 !-----------------------------------------------------------------------
+      SUBROUTINE free_outin(ucn, umn, uscn, usmn, d1, d2, k)
+! ... This routine computes continuous inoutflow conditions.
+! ... This procedure is suited for low-Mach number regimes
+! ... (incompressible flow)
+! ... Works on West, South, Bottom boundaries
+
+      USE atmosphere, ONLY: p_atm, t_atm
+      USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
+      USE gas_constants, ONLY: gas_type
+      USE initial_conditions, ONLY : ygc0
+      USE eos_gas, ONLY: mole, thermal_eosg
+
+      REAL*8, INTENT(IN) :: ucn
+      REAL*8, INTENT(INOUT) :: umn
+      REAL*8, INTENT(IN) :: uscn(:)
+      REAL*8, INTENT(INOUT) :: usmn(:)
+      REAL*8, INTENT(IN) :: d1, d2
+      INTEGER, INTENT(IN) :: k
+
+      REAL*8 :: u0, us0(max_nsolid)
+      REAL*8 :: kfl, deltau, rls, mg
+      REAL*8 :: zrif, prif, trif, rhorif
+      INTEGER :: is, ig
+!
+! ... This value can be "tuned" (0.0 <= kfl <= 1.0)
+! ... (analogous to CFL number)
+!
+      kfl = 0.8D0
+
+! ... Transport normal velocity into boundary cells
+!
+      deltau = ucn - umn
+      umn = umn - kfl * SIGN(deltau,ucn)
+      DO is = 1, nsolid
+        deltau = uscn(is) - usmn(is)
+        usmn(is) = usmn(is) - kfl * SIGN(deltau,uscn(is))
+      END DO
+
+! ... Zero gradient
+!
+      umn = ucn
+      usmn = uscn
+
+! ... Extrapolate velocity for outflow
+!
+      u0  = umn - d2/d1 * ( ucn - umn )
+      DO is = 1, nsolid
+        us0(is) = usmn(is) - d2/d1 * ( uscn(is) - usmn(is) )
+      END DO
+
+! ... Transport particles (no g-p interaction)
+!
+      rls = 0.D0
+      DO is=1, nsolid
+        IF (usmn(is) < 0.D0) THEN
+          rlk(n2,is) = rlk(n2,is) & 
+                        - dt/d2 * ( rlk(n1,is)*usmn(is) - rlk(n2,is)*us0(is) )
+        ELSE IF (usmn(is) > 0.D0) THEN
+          rlk(n2,is) = 0.D0
+        END IF
+        rls = rls + rlk(n2,is)*inrl(is)
+      END DO
+      IF (rls >= 1.D0) &
+          CALL error('bdry','control transport on boundary',1)
+
+! ... Compute void fraction 
+!
+      ep(n2) = 1.D0 - rls
+
+! ... Transport temperature (incompressible approximation)
+!
+      zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )  ! DOMANDA perche dz(1)
+      prif = p_atm(k)
+      trif = t_atm(k)
+
+      IF (umn < 0.D0) THEN
+        tg(n2) = tg(n2) - dt/d2 * umn * ( tg(n1) - tg(n2) )
+      ELSE IF (umn > 0.D0) THEN
+        tg(n2) = trif
+      ELSE
+      END IF
+
+      DO is=1, nsolid
+        IF (usmn(is) < 0.D0) THEN
+          ts(n2,is) = ts(n2,is) - dt/d2 * usmn(is) * ( ts(n1,is) - ts(n2,is) )
+        ELSE IF (usmn(is) > 0.D0) THEN
+          ts(n2,is) = trif
+        ELSE
+        END IF
+      END DO
+
+! ... Transport gas components
+!
+      IF (umn < 0.D0) THEN
+        DO ig=1, ngas
+          ygc(ig,n2) = ygc(ig,n2) - dt/d2 * umn * ( ygc(ig,n1) - ygc(ig,n2) )
+        END DO
+      ELSE IF (umn > 0.D0) THEN
+        DO ig = 1, ngas
+          ygc(ig,n2) = ygc0(gas_type(ig))
+        END DO
+      ELSE
+      END IF
+      CALL mole(xgc(:,n2), ygc(:,n2))
+      CALL thermal_eosg(rhorif, trif, prif, xgc(:,n2))
+
+! ... Transport gas bulk density
+!
+      IF (umn < 0.D0) THEN
+        rgp(n2) = rgp(n2) - dt/d2 * ( rgp(n1)*umn - rgp(n2)*u0 )
+      ELSE IF (umn > 0.D0) THEN
+        rgp(n2) = rhorif
+      ELSE
+      END IF
+      rog(n2) = rgp(n2) / ep(n2)
+
+! ... Compute new pressure by using equation of state
+!
+      mg = 0.D0
+      DO ig = 1, ngas
+        mg = mg + xgc(ig,n2) * gmw(gas_type(ig))
+      END DO
+!
+      p(n2) = rog(n2) * tg(n2) * ( rgas / mg )
+!
+      RETURN
+      END SUBROUTINE free_outin
+!-----------------------------------------------------------------------
+      REAL*8 FUNCTION velint(fpt, vel, ijk, cx, cy, cz)
+!
+! ... Interpolate velocities on a forcing point to get no-slip
+! ... conditions on a solid immersed boundary 
+
+      USE set_indexes
+      USE immersed_boundaries, ONLY: forcing_point
+      IMPLICIT NONE
+
+      TYPE(forcing_point), INTENT(IN) :: fpt
+      REAL*8, DIMENSION(:), INTENT(IN) :: vel
+      REAL*8, DIMENSION(:), INTENT(IN) :: cx, cy, cz
+      INTEGER, INTENT(IN) :: ijk
+
+      INTEGER :: i, j, k
+      REAL*8 :: nsx, nsy, nsz
+      INTEGER :: immjkpp, ippjkpp
+      INTEGER :: interp
+
+      REAL*8 :: h          !distance between the (i,j,k)-node and boundary
+      REAL*8 :: zA         !distance between the boundary and the first 
+                           !external node
+      REAL*8 :: zB         !distance between the boundary and the second 
+                           !external node
+      REAL*8 :: alpha,beta !coefficients for bilinear interpolation
+
+      immjkpp = imjkp
+      ippjkpp = ipjkp
+      
+      interp = fpt%int
+      i      = fpt%i
+      j      = fpt%j
+      k      = fpt%k
+      nsx    = fpt%nsl%x
+      nsy    = fpt%nsl%y
+      nsz    = fpt%nsl%z
+
+      SELECT CASE (interp)
+
+      CASE (-3)
+
+!===========================================
+!====   interpolazione lineare con i	====
+!====   valori nei nodi NW-NNWW		====
+!===========================================	
+   
+         h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
+         zA=SQRT((cx(i-1)-nsx)**2+(cz(k+1)-nsz)**2)
+         IF (h <= zA) THEN
+            velint=-h/zA*vel(imjkp)
+         ELSE
+            zB=SQRT((cx(i-2)-nsx)**2+(cz(k+2)-nsz)**2)
+            velint=-((zB-h)*vel(imjkp)+(h-zA)*vel(immjkpp))/(zB-zA)
+         ENDIF
+
+      CASE (-2)
+   
+!===========================================
+!====   interpolazione lineare sin. con ====
+!====   i valori nei nodi W-WW		====
+!===========================================
+
+         h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
+         zA=SQRT((cx(i-1)-nsx)**2+(cz(k)-nsz)**2)
+         IF (h <= zA) THEN
+            velint=-h/zA*vel(imjk)
+         ELSE
+            zB=SQRT((cx(i-2)-nsx)**2+(cz(k)-nsz)**2)
+            velint=-((zB-h)*vel(imjk)+(h-zA)*vel(immjk))/(zB-zA)
+         ENDIF
+
+      CASE (-1)
+   
+!===========================================
+!====   interpolazione bilin. con i	====
+!====   valori nei nodi W-NW-N		====
+!===========================================
+
+         alpha=(cx(i-1)-nsx)/(cx(i-1)-cx(i))
+         beta=(cz(k+1)-nsz)/(cz(k+1)-cz(k))
+         velint=-(alpha*(1-beta)*vel(ijkp)+(1-alpha)*(1-beta)*vel(imjkp)+ &
+                 (1-alpha)*beta*vel(imjk))/(alpha*beta)
+
+      CASE (0)
+   
+!===========================================
+!====   interpolazione lineare con i	====
+!====   valori nei nodi N-NN		====
+!===========================================
+   
+         h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
+         zA=SQRT((cx(i)-nsx)**2+(cz(k+1)-nsz)**2)
+         IF (h <= zA) THEN
+            velint=-h/zA*vel(ijkp)
+         ELSE
+            zB=SQRT((cx(i+2)-nsx)**2+(cz(k)-nsz)**2)
+            velint=-((zB-h)*vel(ijkp)+(h-zA)*vel(ijkpp))/(zB-zA)
+         ENDIF
+
+      CASE (1)
+   
+!===========================================
+!====   interpolazione bilin. con i	====
+!====   valori nei nodi E-NE-N		====
+!===========================================
+   
+         alpha=(cx(i+1)-nsx)/(cx(i+1)-cx(i))
+         beta=(cz(k+1)-nsz)/(cz(k+1)-cz(k))
+         velint=-(alpha*(1-beta)*vel(ijkp)+(1-alpha)*(1-beta)*vel(ipjkp)+ &
+                 (1-alpha)*beta*vel(ipjk))/(alpha*beta)
+         
+      CASE (2)
+   
+!===========================================
+!====   interpolazione lineare con i	====
+!====   valori nei nodi E-EE		====
+!===========================================
+   
+         h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
+         zA=SQRT((cx(i+1)-nsx)**2+(cz(k)-nsz)**2)
+         IF (h <= zA) THEN
+            velint=-h/zA*vel(ipjk)
+         ELSE
+            zB=SQRT((cx(i+2)-nsx)**2+(cz(k)-nsz)**2)
+            velint=-((zB-h)*vel(ipjk)+(h-zA)*vel(ippjk))/(zB-zA)
+         ENDIF
+         
+      CASE (3)
+   
+!===========================================
+!====   interpolazione lineare con i	====
+!====   valori nei nodi NE-NNEE		====
+!===========================================
+   
+         h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
+         zA=SQRT((cx(i+1)-nsx)**2+(cz(k+1)-nsz)**2)
+         IF (h <= zA) THEN
+            velint=-h/zA*vel(ipjkp)
+         ELSE
+            zB=SQRT((cx(i+2)-nsx)**2+(cz(k+2)-nsz)**2)
+            velint=-((zB-h)*vel(ipjkp)+(h-zA)*vel(ippjkpp))/(zB-zA)
+         ENDIF
+   
+      CASE DEFAULT
+   
+!===========================================
+!====   nessuna interpolazione  ============
+!===========================================
+   
+         velint=vel(ijk)
+
+      END SELECT
+        
+      END FUNCTION velint
+!----------------------------------------------------------------------
+      REAL*8 FUNCTION velext(fpt, vel, ijk, cx, cy, cz)
+!
+! ... Interpolate EXTERNAL velocity on a forcing point to get no-slip
+! ... conditions on a solid immersed boundary 
+
+      USE set_indexes, ONLY: ijkp, ipjk
+      USE immersed_boundaries, ONLY: forcing_point
+      IMPLICIT NONE
+
+      TYPE(forcing_point), INTENT(IN) :: fpt
+      REAL*8, DIMENSION(:), INTENT(IN) :: vel
+      INTEGER, INTENT(IN) :: ijk
+      REAL*8, DIMENSION(:), INTENT(IN) :: cx, cy, cz
+
+      INTEGER :: i, k, interp
+      REAL*8 :: h, grad, nsx, nsz
+        
+      i = fpt%k
+      k = fpt%k
+      nsx = fpt%nsl%x
+      nsz = fpt%nsl%z
+      interp = fpt%int
+
+      SELECT CASE( interp )
+
+      CASE (10)
+
+        h = cz(k) - nsz
+        grad = vel(ijkp) / (cz(k+1)-cz(k)+h)
+        velext = grad * h
+
+      CASE (-10)
+
+        h = cx(k) - nsx
+        grad = vel(ipjk) / (cx(i+1)-cx(i)+h)
+        velext = grad * h
+
+      CASE DEFAULT
+
+        velext = 0.D0
+
+      END SELECT
+
+
+      END FUNCTION velext
+!----------------------------------------------------------------------
       END MODULE boundary_conditions
 !-----------------------------------------------------------------------

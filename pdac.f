@@ -15,6 +15,7 @@
 !#endif
       PROGRAM pdac
 
+      USE control_flags, ONLY: itp
       USE dimensions
       USE domain_decomposition, ONLY: partition, ghost
       USE eos_gas, ONLY: allocate_eosg
@@ -23,7 +24,8 @@
       USE gas_solid_velocity, ONLY: allocate_velocity
       USE gas_solid_temperature, ONLY: allocate_temperature
       USE gas_solid_viscosity, ONLY: allocate_viscosity
-      USE grid, ONLY: flic, allocate_blbody, allocate_grid
+      USE grid, ONLY: grid_setup, allocate_blbody, allocate_grid
+      USE immersed_boundaries, ONLY: import_topo
       USE initial_conditions, ONLY: setup, resetup, allocate_setup, npr
       USE input_module, ONLY: input, initc, number_of_block
       USE io_restart, ONLY: taperd, tapewr
@@ -125,20 +127,24 @@
       CALL allocate_setup
 !
 ! ... initialize input fields
-!
       CALL initc
 !
 ! ... set start time
       timestart = time
 !
-! ... Set cell-type flags
+! ... Setup cell-sizes and cell-flags
 !
-      CALL flic
+      CALL grid_setup
 
       IF (timing) then
           s1 = cpclock()
           call MP_WALLTIME(pt1,mpime)
       END IF   
+
+! ... Import topography 
+! ... and set immersed boundary parameters
+!
+      IF (itp >= 1) CALL import_topo
 !
 ! ... Domain decomposition for parallelization 
 !
@@ -159,7 +165,10 @@
           call MP_WALLTIME(pt3,mpime)
       END IF
 !
-! ... allocate local arrays
+! ... Attention!: all further operations are executed
+! ... by each processor on local data
+!
+! ... Allocate local arrays
 !
       CALL allocate_velocity
       CALL allocate_momentum

@@ -36,7 +36,7 @@
 !
       USE dimensions
       USE domain_decomposition, ONLY: myijk
-      USE grid, ONLY: fl_l
+      USE grid, ONLY: flag
       USE grid, ONLY: dx, dy, dz
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: imjk, ijmk, ijkm
@@ -50,7 +50,7 @@
 !
 ! ... on West volume boundary
 !
-      IF ((fl_l(imjk) /= 1)) THEN
+      IF ((flag(imjk) /= 1)) THEN
         cs = u%w
         IF (cs >= 0.D0) THEN
           upwnd = dens%w * field%w
@@ -62,7 +62,7 @@
 !
 ! ... on South volume boundary
 !
-      IF ((fl_l(ijmk) /= 1)) THEN
+      IF ((flag(ijmk) /= 1)) THEN
         cs = v%s
         IF (cs >= 0.D0) THEN
           upwnd = dens%s * field%s
@@ -74,7 +74,7 @@
 !
 ! ... on Bottom volume boundary
 !
-      IF ((fl_l(ijkm) /= 1)) THEN
+      IF ((flag(ijkm) /= 1)) THEN
         cs = w%b
         IF (cs >= 0.D0) THEN
           upwnd = dens%b * field%b
@@ -124,7 +124,7 @@
 !
       USE dimensions
       USE domain_decomposition, ONLY: myijk
-      USE grid, ONLY: fl_l
+      USE grid, ONLY: flag
       USE grid, ONLY: dx, dy, dz
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: stencil
@@ -269,9 +269,9 @@
 !
       USE dimensions
       USE domain_decomposition, ONLY: myijk
-      USE grid, ONLY: fl_l
+      USE grid, ONLY: flag
       USE grid, ONLY: dz
-      USE grid, ONLY: dx, xb
+      USE grid, ONLY: dx, rb
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: imjk, ijkm
       USE set_indexes, ONLY: stencil
@@ -291,19 +291,19 @@
 !
 ! ... on West volume boundary
 !
-      IF ((fl_l(imjk) /= 1)) THEN
+      IF ((flag(imjk) /= 1)) THEN
         cs = u%w
         IF (cs >= 0.D0) THEN
           upwnd = dens%w * field%w
         ELSE IF (cs < 0.D0) THEN
           upwnd = dens%c * field%c
         ENDIF
-        fw = upwnd * cs * xb(i-1)
+        fw = upwnd * cs * rb(i-1)
       END IF
 !
 ! ... on Bottom volume boundary
 !
-      IF ((fl_l(ijkm) /= 1)) THEN
+      IF ((flag(ijkm) /= 1)) THEN
         cs = w%b
         IF (cs >= 0.D0) THEN
           upwnd = dens%b * field%b
@@ -322,7 +322,7 @@
       ELSE IF (cs < 0.D0) THEN
         upwnd  = dens%e*field%e 
       ENDIF
-      fe = upwnd * cs * xb(i)
+      fe = upwnd * cs * rb(i)
 !
 ! ... on Top volume boundary
 !
@@ -342,9 +342,9 @@
 !
       USE dimensions
       USE domain_decomposition, ONLY: myijk
-      USE grid, ONLY: fl_l
+      USE grid, ONLY: flag
       USE grid, ONLY: dz
-      USE grid, ONLY: dx, xb
+      USE grid, ONLY: dx, rb
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt
@@ -416,7 +416,7 @@
       upwnd = lim * gradc * incr
 !
       ! ... MUSCL correction
-      fe = fe + upwnd * cs * xb(i)
+      fe = fe + upwnd * cs * rb(i)
 !
 ! ... on Top volume boundary
 !

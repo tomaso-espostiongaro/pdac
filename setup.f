@@ -43,7 +43,7 @@
 ! ... Set initial conditions
 ! ... (2D/3D_Compliant and fully parallel)
 !
-      USE atmosphere, ONLY: u0, v0, w0, p0, temp0, us0, vs0, ws0, ep0, zzero
+      USE atmosphere, ONLY: u0, v0, w0, p0, temp0, us0, vs0, ws0, ep0
       USE atmosphere, ONLY: control_atmosphere, set_atmosphere
       USE atmosphere, ONLY: p_atm, t_atm
       USE control_flags, ONLY: job_type
@@ -52,14 +52,15 @@
       USE eos_gas, ONLY: mas, mole, cnvertg, xgc, ygc
       USE eos_solid, ONLY: cnverts
       USE gas_constants, ONLY: gmw, rgas, gammaair
-      USE gas_constants, ONLY: default_gas, gas_type
+      USE gas_constants, ONLY: gas_type
       USE gas_solid_density, ONLY: rlk
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_temperature, ONLY: sieg
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
-      USE grid, ONLY: grid_setup, zb, dz
-      USE grid, ONLY: fl_l, iob
+      USE grid, ONLY: zb, dz
+      USE grid, ONLY: flag, iob
+      USE immersed_boundaries, ONLY: forced
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: itd
@@ -72,7 +73,8 @@
       REAL*8 :: zrif
       REAL*8 :: mass, tem
 !
-      CALL grid_setup( zzero )
+! ... Set constants
+!
       CALL setc
 !
 ! ... Control that atmospheric stratification is consistent
@@ -111,19 +113,21 @@
 !
 ! ... Set initial velocity profiles
 !
-          IF ( fl_l(ijk) == 1 .OR. fl_l(ijk) == 4 ) THEN
-           ug(ijk) = u0
-           wg(ijk) = w0
-           DO is = 1, nsolid
-             us(ijk,is) = us0
-             ws(ijk,is) = ws0
-           END DO
-           IF ( job_type == '3D' ) THEN
-             vg(ijk) = v0
-             DO is = 1, nsolid
-               vs(ijk,is) = vs0
-             END DO
-           END IF
+          IF ( flag(ijk) == 1 .OR. flag(ijk) == 4 ) THEN
+            IF( .NOT.forced(ijk) ) THEN
+              ug(ijk) = u0
+              wg(ijk) = w0
+              DO is = 1, nsolid
+                us(ijk,is) = us0
+                ws(ijk,is) = ws0
+              END DO
+              IF ( job_type == '3D' ) THEN
+                vg(ijk) = v0
+                DO is = 1, nsolid
+                  vs(ijk,is) = vs0
+                END DO
+              END IF
+            END IF
           END IF
 !
         END DO
@@ -204,7 +208,7 @@
       USE domain_decomposition, ONLY: ncint
       USE eos_gas, ONLY: mas, cnvertg, xgc, ygc
       USE eos_solid, ONLY: cnverts
-      USE gas_constants, ONLY: default_gas, gas_type
+      USE gas_constants, ONLY: gas_type
       USE gas_solid_density, ONLY: rlk
       USE particles_constants, ONLY: inrl
       USE pressure_epsilon, ONLY: ep
@@ -233,15 +237,10 @@
         DO ijk = 1, ncint
 
           ep(ijk) = 1.D0
-          xgc_def = 1.0d0
-          DO ig = 1, ngas
-            IF ( gas_type(ig) /= default_gas) THEN
-              xgc_def = xgc_def - xgc(ig,ijk)
-            ELSE
-              dfg = ig
-            END IF
-          END DO
-          xgc(dfg,ijk) = xgc_def
+          IF (SUM(xgc(:,ijk)) /= 1.D0) THEN
+            xgc(ngas,ijk) = 1.D0 - SUM( xgc(1:ngas-1,ijk) )
+          END IF
+                  
 
           DO is=1,nsolid
             ep(ijk) = ep(ijk) - rlk(ijk,is)*inrl(is)
@@ -266,8 +265,7 @@
       USE dimensions
       USE domain_decomposition, ONLY: ncint, meshinds, myijk
       USE eos_gas, ONLY: ygc
-      USE gas_constants, ONLY: gmw, rgas, gammaair, gas_type,&
-      default_gas
+      USE gas_constants, ONLY: gmw, rgas, gammaair, gas_type
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, wg, vg
@@ -279,7 +277,7 @@
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: n
-      REAL*8 :: ygcsum, ygcdfg
+      REAL*8 :: ygcsum
       INTEGER :: ijk,i,j,k,imesh
       INTEGER :: ig, is, dfg
 
@@ -314,16 +312,8 @@
 ! ... check gas components closure relation
 !
                 ygcsum = SUM(ygc(:,ijk))
-                ygcdfg = 1.D0
                 IF ( ygcsum /= 1.D0 ) THEN
-                  DO ig = 1, ngas
-                    IF (gas_type(ig) /= default_gas) THEN
-                      ygcdfg = ygcdfg - ygc(ig,ijk) 
-                    ELSE
-                      dfg = ig
-                    END IF
-                  END DO
-                  ygc(dfg,ijk) = ygcdfg
+                  ygc(ngas,ijk) = 1.D0 - SUM( ygc(1:ngas-1,ijk) )
                 END IF
 !
               END IF
@@ -340,12 +330,12 @@
       USE eos_gas, ONLY: ygc, xgc, mole, cnvertg
       USE eos_solid, ONLY: cnverts
       USE gas_constants, ONLY: rgas, gammaair
-      USE gas_constants, ONLY: default_gas, present_gas, gas_type
+      USE gas_constants, ONLY: gas_type
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
-      USE grid, ONLY: fl_l, iob
+      USE grid, ONLY: flag, iob
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -353,7 +343,7 @@
 
       INTEGER, INTENT(IN) :: n
 
-      REAL*8 :: ygcsum, ygcdfg
+      REAL*8 :: ygcsum
       INTEGER :: ijk,i,j,k,imesh
       INTEGER :: ig, is, np, dfg
 
@@ -385,22 +375,14 @@
 ! ... check gas components closure relation
 !
               ygcsum = SUM(ygc(:,ijk))
-              ygcdfg = 1.D0
               IF ( ygcsum /= 1.D0 ) THEN
-                DO ig = 1, ngas
-                  IF (gas_type(ig) /= default_gas) THEN
-                    ygcdfg = ygcdfg - ygc(ig,ijk) 
-                  ELSE
-                    dfg = ig
-                  END IF
-                END DO
-                ygc(dfg,ijk) = ygcdfg
+                ygc(ngas,ijk) = 1.D0 - SUM( ygc(1:ngas-1,ijk) )
               END IF
 !
               IF (i == 1) THEN
-                fl_l(ijk) = 5
+                flag(ijk) = 5
               ELSE
-                fl_l(ijk) = 1
+                flag(ijk) = 1
               END IF
 !
             END IF
@@ -491,7 +473,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE gas_check
       USE dimensions
-      USE gas_constants, ONLY: gas_type, present_gas, default_gas
+      USE gas_constants, ONLY: gas_type, present_gas
       IMPLICIT NONE
       INTEGER :: ig, igg
       

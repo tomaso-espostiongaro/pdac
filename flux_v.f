@@ -36,7 +36,7 @@
 !
       USE dimensions, ONLY: nx, ny, nz
       USE flux_limiters, ONLY: limiters
-      USE grid, ONLY: fl_l
+      USE grid, ONLY: flag
       USE grid, ONLY: dx, dy, dz, indy
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt
@@ -159,7 +159,7 @@
 ! ... Compute the convective fluxes on East, North, and Top sides of the cell
 ! ... for the momentum density along y.
 !
-      USE grid, ONLY: fl_l
+      USE grid, ONLY: flag
       USE grid, ONLY: dy
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE set_indexes, ONLY: stencil
@@ -178,7 +178,7 @@
 !
 ! ... on West volume bondary
 !
-      IF( fl_l(imjk) /= 1 ) THEN
+      IF( flag(imjk) /= 1 ) THEN
         cs = (u%wn * dy(j) + u%w * dy(j+1)) * indyp
         IF ( cs >= 0.D0 ) fw = dens%w * v%w * cs
         IF ( cs <  0.D0 ) fw = dens%c * v%c * cs
@@ -186,7 +186,7 @@
 !
 ! ... on South volume bondary
 !
-      IF( fl_l(ijmk) /= 1 ) THEN
+      IF( flag(ijmk) /= 1 ) THEN
         cs = 0.5D0 * ( v%c + v%s ) 
         IF ( cs >= 0.D0 ) fs = dens%s * v%s * cs
         IF ( cs <  0.D0 ) fs = dens%c * v%c * cs
@@ -194,7 +194,7 @@
 !
 ! ... on Bottom volume bondary
 !
-      IF( fl_l(ijkm) /= 1 ) THEN
+      IF( flag(ijkm) /= 1 ) THEN
         cs = ( w%b * dy(j+1) + w%nb * dy(j) ) * indyp
         IF ( cs >= 0.D0 ) fb = dens%b * v%b * cs
         IF ( cs <  0.D0 ) fb = dens%c * v%c * cs

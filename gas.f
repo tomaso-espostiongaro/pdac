@@ -30,7 +30,6 @@
 !
         REAL*8 :: gammaair, gamn, c_joule, c_erg, rgas
         REAL*8 :: tzero, hzerog, hzeros
-        INTEGER :: default_gas
         INTEGER :: mcomp
 !----------------------------------------------------------------------
       CONTAINS
@@ -52,9 +51,7 @@
       mmugs  = 0.D0
       mmugek = 0.D0
       gmw    = 0.D0
-      DO ig = 1, max_ngas
-        present_gas(ig) = (ig == default_gas)
-      END DO
+      present_gas = .FALSE.
       gas_type = 0
 
       RETURN

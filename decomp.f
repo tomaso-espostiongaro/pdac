@@ -5,10 +5,11 @@
 ! ... decomposition and interprocessor data exchange
 !
 !----------------------------------------------------------------------
-
+        USE grid, ONLY: fl, flag
         USE indijk_module
-        USE grid, ONLY: fl, fl_l
-        USE control_flags, ONLY: lpr
+        USE immersed_boundaries, ONLY: forced, forcex, forcez, nfp
+        USE immersed_boundaries, ONLY: numx, forx, numz, forz
+        USE control_flags, ONLY: lpr, immb, itp
 !
         IMPLICIT NONE
         SAVE
@@ -74,7 +75,8 @@
         INTEGER :: countfl(5)
 
         INTERFACE data_exchange
-          MODULE PROCEDURE data_exchange_i, data_exchange_r, data_exchange_rm
+          MODULE PROCEDURE data_exchange_i, data_exchange_r, data_exchange_rm, &
+                           data_exchange_l
         END INTERFACE
 
         INTERFACE data_collect
@@ -818,22 +820,78 @@
       END IF  
 
       IF (lpr >= 1) CALL test_comm
-      
-! ... fill in the array myinds using myijk
 !
-      ALLOCATE( fl_l(ncdom) )
+! ... local flags, local arrays for forcing
+!
+      ALLOCATE( flag(ncdom) )
       DO ijkl = 1, ncint
         ijk = myijk( ip0_jp0_kp0_, ijkl)
-        fl_l(ijkl) = fl(ijk)
+        flag(ijkl) = fl(ijk)
       END DO
+      DEALLOCATE (fl)
+
+      CALL data_exchange(flag)
 !
-      CALL data_exchange(fl_l)
+! ... Map the forcing points on local domains
+! ... by using array numx/z. Scatter the array
+! ... of forcing points among processors.
+!
+      IF (itp < 1) immb = 0
+
+      ALLOCATE( forced(ncdom) )
+      forced = .FALSE.
+
+      IF (immb >= 1) THEN
+
+        DO ijkl = 1, ncint
+          ijk = myijk( ip0_jp0_kp0_, ijkl)
+          forced(ijkl) = ( forcex(ijk) .OR. forcez(ijk) )
+        END DO
+        DEALLOCATE (forcex)
+        DEALLOCATE (forcez)
+
+        ALLOCATE( numx(ncint) )
+        ALLOCATE( numz(ncint) )
+        numx = 0
+        numz = 0
+      
+        DO n = 1, nfp
+        !
+          i = forx(n)%i
+          k = forx(n)%k
+set_numx: IF (i/=0 .AND. k/=0) THEN
+            ijk = i + (k-1) * nx
+            ijkl = cell_g2l(ijk,mpime)
+            IF (k==1 .OR. k==nz) THEN
+              forced(ijkl) = .FALSE.
+            END IF
+            IF (forced(ijkl)) numx(ijkl) = n 
+          END IF set_numx
+        !
+          i = forz(n)%i
+          k = forz(n)%k
+set_numz: IF (i/=0 .AND. k/=0) THEN
+            ijk = i + (k-1) * nx
+            ijkl = cell_g2l(ijk,mpime)
+            IF (k==1 .OR. k==nz) THEN
+              forced(ijkl) = .FALSE.
+            END IF
+            IF(forced(ijkl)) numz(ijkl) = n 
+          END IF set_numz
+        !
+        END DO
+
+        CALL data_exchange(forced)
+
+      END IF
+!
+! ... fill in the array myinds using myijk
+!
       CALL set_myinds(myinds, myijk)
 !
       RETURN
 
       END SUBROUTINE ghost
-
 !----------------------------------------------------------------------
 !
       INTEGER FUNCTION cell_owner( ijk )
@@ -1326,33 +1384,33 @@
 ! ... impose homogeneous Neumann conditions
 !
               ijke = ipjk
-              IF((fl_l(ipjk) == 2).OR.(fl_l(ipjk) == 3)) ijke = ijk
+              IF((flag(ipjk) == 2).OR.(flag(ipjk) == 3)) ijke = ijk
 
               ijkw = imjk
-              IF((fl_l(imjk) == 2).OR.(fl_l(imjk) == 3)) ijkw = ijk
+              IF((flag(imjk) == 2).OR.(flag(imjk) == 3)) ijkw = ijk
 
               ijkt = ijkp
-              IF((fl_l(ijkp) == 2).OR.(fl_l(ijkp) == 3)) ijkt = ijk
+              IF((flag(ijkp) == 2).OR.(flag(ijkp) == 3)) ijkt = ijk
 
               ijkb = ijkm
-              IF((fl_l(ijkm) == 2).OR.(fl_l(ijkm) == 3)) ijkb = ijk
+              IF((flag(ijkm) == 2).OR.(flag(ijkm) == 3)) ijkb = ijk
 
               ijkwt = imjkp
-              IF(fl_l(imjkp) == 2 .OR. fl_l(imjkp) == 3) ijkwt = ijkp 
+              IF(flag(imjkp) == 2 .OR. flag(imjkp) == 3) ijkwt = ijkp 
 
               ijkeb = ipjkm
-              IF(fl_l(ipjkm) == 2 .OR. fl_l(ipjkm) == 3) ijkeb = ipjk 
+              IF(flag(ipjkm) == 2 .OR. flag(ipjkm) == 3) ijkeb = ipjk 
 
               ijket = ipjkp
-              IF (fl_l(ipjkp) == 2 .OR. fl_l(ipjkp) == 3) THEN
-                IF (fl_l(ijkp) == 2 .OR. fl_l(ijkp) == 3) THEN
-                  IF (fl_l(ipjk) == 2 .OR. fl_l(ipjk) == 3) THEN
+              IF (flag(ipjkp) == 2 .OR. flag(ipjkp) == 3) THEN
+                IF (flag(ijkp) == 2 .OR. flag(ijkp) == 3) THEN
+                  IF (flag(ipjk) == 2 .OR. flag(ipjk) == 3) THEN
                     ijket = ijk 
                   ELSE
                     ijket = ipjk
                   END IF
                 ELSE
-                  IF (fl_l(ipjk) == 2 .OR. fl_l(ipjk) == 3) THEN
+                  IF (flag(ipjk) == 2 .OR. flag(ipjk) == 3) THEN
                     ijket = ijkp 
                   ELSE
                     ijket = ijk
@@ -1364,19 +1422,19 @@
 !
               ijkee = ippjk
               IF(i == (nx-1)) ijkee = ijke
-              IF( (fl_l(ippjk) == 2) .OR. (fl_l(ippjk) == 3) ) ijkee = ipjk
+              IF( (flag(ippjk) == 2) .OR. (flag(ippjk) == 3) ) ijkee = ipjk
 
               ijktt = ijkpp
               IF(k == (nz-1)) ijktt = ijkt
-              IF( (fl_l(ijkpp) == 2) .OR. (fl_l(ijkpp) == 3) ) ijktt = ijkp
+              IF( (flag(ijkpp) == 2) .OR. (flag(ijkpp) == 3) ) ijktt = ijkp
   
               ijkww = immjk
               IF(i == 2) ijkww = ijkw
-              IF( (fl_l(immjk) == 2) .OR. (fl_l(immjk) == 3) ) ijkww = imjk
+              IF( (flag(immjk) == 2) .OR. (flag(immjk) == 3) ) ijkww = imjk
 
               ijkbb = ijkmm
               IF(k == 2) ijkbb = ijkb
-              IF( (fl_l(ijkmm) == 2) .OR. (fl_l(ijkmm) == 3) ) ijkbb = ijkm
+              IF( (flag(ijkmm) == 2) .OR. (flag(ijkmm) == 3) ) ijkbb = ijkm
 !
               myinds(ip0_jp0_km2_, ijk) = ijkbb
               myinds(im1_jp0_km1_, ijk) = ijkwb
@@ -1449,27 +1507,27 @@
               ijktt =  ijkpp
               ijkbb =  ijkmm
   
-              if( fl_l( ipjk  ) == 2 .OR. fl_l( ipjk )  == 3 ) ijke = ijk
-              if( fl_l( imjk  ) == 2 .OR. fl_l( imjk )  == 3 ) ijkw = ijk
-              if( (i /= (nx-1)) .AND. ( fl_l( ippjk ) == 2 .OR. fl_l( ippjk ) == 3 ) ) ijkee = ijke
+              if( flag( ipjk  ) == 2 .OR. flag( ipjk )  == 3 ) ijke = ijk
+              if( flag( imjk  ) == 2 .OR. flag( imjk )  == 3 ) ijkw = ijk
+              if( (i /= (nx-1)) .AND. ( flag( ippjk ) == 2 .OR. flag( ippjk ) == 3 ) ) ijkee = ijke
               if( (i == (nx-1)) ) ijkee = ijke
-              if( (i /= 2) .AND. ( fl_l( immjk ) == 2 .OR. fl_l( immjk ) == 3 ) ) ijkww = ijkw
+              if( (i /= 2) .AND. ( flag( immjk ) == 2 .OR. flag( immjk ) == 3 ) ) ijkww = ijkw
               if( (i == 2) ) ijkww = ijkw
-              if( fl_l( ijpk ) == 2 .OR. fl_l( ijpk ) == 3 ) ijkn = ijk
+              if( flag( ijpk ) == 2 .OR. flag( ijpk ) == 3 ) ijkn = ijk
               ! check corners   ijken ijkwn
-              if( fl_l( ijmk ) == 2 .OR. fl_l( ijmk ) == 3 ) ijks = ijk
+              if( flag( ijmk ) == 2 .OR. flag( ijmk ) == 3 ) ijks = ijk
               ! check corners   ijkes ijkws
-              if( (j /= (ny-1)) .AND. ( fl_l( ijppk ) == 2 .OR. fl_l( ijppk ) == 3 ) ) ijknn = ijkn
+              if( (j /= (ny-1)) .AND. ( flag( ijppk ) == 2 .OR. flag( ijppk ) == 3 ) ) ijknn = ijkn
               if( (j == (ny-1)) ) ijknn = ijkn
-              if( (j /= 2) .AND. ( fl_l( ijmmk ) == 2 .OR. fl_l( ijmmk ) == 3 ) ) ijkss = ijks
+              if( (j /= 2) .AND. ( flag( ijmmk ) == 2 .OR. flag( ijmmk ) == 3 ) ) ijkss = ijks
               if( (j == 2) ) ijkss = ijks
-              if( fl_l( ijkp ) == 2 .OR. fl_l( ijkp ) == 3 ) ijkt = ijk
+              if( flag( ijkp ) == 2 .OR. flag( ijkp ) == 3 ) ijkt = ijk
               ! check corners   ijket ijkwt ijknt ijkst
-              if( fl_l( ijkm ) == 2 .OR. fl_l( ijkm ) == 3 ) ijkb = ijk
+              if( flag( ijkm ) == 2 .OR. flag( ijkm ) == 3 ) ijkb = ijk
               ! check corners   ijkeb ijkwb ijknb ijksb
-              if( (k /= (nz-1)) .AND. ( fl_l( ijkpp ) == 2 .OR. fl_l( ijkpp ) == 3 ) ) ijktt = ijkt
+              if( (k /= (nz-1)) .AND. ( flag( ijkpp ) == 2 .OR. flag( ijkpp ) == 3 ) ) ijktt = ijkt
               if( (k == (nz-1)) ) ijktt = ijkt
-              if( (k /= 2) .AND. ( fl_l( ijkmm ) == 2 .OR. fl_l( ijkmm ) == 3 ) ) ijkbb = ijkb
+              if( (k /= 2) .AND. ( flag( ijkmm ) == 2 .OR. flag( ijkmm ) == 3 ) ) ijkbb = ijkb
               if( (k == 2) ) ijkbb = ijkb
 
               myinds( ip1_jp0_kp0_ , ijk ) = ijke
@@ -1619,6 +1677,30 @@
         RETURN
       END SUBROUTINE data_exchange_i
 
+      SUBROUTINE data_exchange_l(array)
+        USE parallel, ONLY: nproc, mpime
+        IMPLICIT NONE
+        LOGICAL :: array(:)
+        INTEGER, ALLOCATABLE :: sndbuf(:), rcvbuf(:)
+        INTEGER :: ip, isour, idest, ib
+        DO ip = 1, (nproc - 1)
+          isour = MOD(mpime - ip + nproc, nproc)
+          idest = MOD(mpime + ip        , nproc)
+          ALLOCATE( rcvbuf( MAX(rcv_map(isour)%nrcv,1) ) )
+          ALLOCATE( sndbuf( MAX(snd_map(idest)%nsnd,1) ) )
+          DO ib = 1, snd_map(idest)%nsnd
+            sndbuf(ib) = array( snd_map(idest)%iloc(ib) )
+          END DO
+          CALL sendrecv_logical(sndbuf, snd_map(idest)%nsnd, idest,      &
+                                rcvbuf, rcv_map(isour)%nrcv, isour, ip)
+          DO ib = 1, rcv_map(isour)%nrcv
+            array( rcv_map(isour)%iloc(ib) ) = rcvbuf(ib)
+          END DO
+          DEALLOCATE( rcvbuf )
+          DEALLOCATE( sndbuf )
+        END DO
+        RETURN
+      END SUBROUTINE data_exchange_l
 
       SUBROUTINE data_collect_r( garray, larray, imstart, imend )
 

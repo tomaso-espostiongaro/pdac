@@ -18,7 +18,6 @@
 !
       PROGRAM pp
 
-      USE atmosphere, ONLY: zzero
       USE dimensions
       USE domain_decomposition, ONLY: partition, ghost
       USE eos_gas, ONLY: allocate_eosg
@@ -27,7 +26,7 @@
       USE gas_solid_velocity, ONLY: allocate_velocity
       USE gas_solid_temperature, ONLY: allocate_temperature
       USE gas_solid_viscosity, ONLY: allocate_viscosity
-      USE grid, ONLY: flic, allocate_blbody, allocate_grid, grid_setup
+      USE grid, ONLY: flic, allocate_blbody, allocate_grid, grid_setup, zzero
       USE initial_conditions, ONLY: allocate_setup, setc
       USE input_module, ONLY: input, initc, number_of_block
       USE input_module, ONLY: first_out, last_out, incr_out

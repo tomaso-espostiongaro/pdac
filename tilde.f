@@ -135,7 +135,7 @@
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_viscosity, ONLY: viscon, mug, kapg
       USE gas_solid_viscosity, ONLY: gas_viscosity, part_viscosity
-      USE grid, ONLY: dz, dy, dx, fl_l
+      USE grid, ONLY: dz, dy, dx, flag
       USE grid, ONLY: indx, indy, indz
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE pressure_epsilon, ONLY: p, pn, ep
@@ -169,7 +169,7 @@
 !
       DO ijk = 1, ncint
 
-!       IF(fl_l(ijk) == 1) THEN
+!       IF(flag(ijk) == 1) THEN
 
           CALL meshinds(ijk,imesh,i,j,k)
           CALL first_subscr(ijk)
@@ -250,15 +250,15 @@
 !----------------------------------------------------------------------
       SUBROUTINE tilde
 !
-      USE atmosphere, ONLY: gravz
+      USE atmosphere, ONLY: gravz, gravx, gravy
       USE dimensions
       USE domain_decomposition, ONLY: meshinds
       USE domain_decomposition, ONLY: ncint, myijk, ncdom, data_exchange
-      USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: job_type, immb
       USE gas_solid_density, ONLY: rog, rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      USE grid, ONLY: dx, dy, dz, fl_l
-      USE grid, ONLY: indx, indy, indz, inx, inxb
+      USE grid, ONLY: dx, dy, dz, flag
+      USE grid, ONLY: indx, indy, indz, inr, inrb
       USE momentum_transfer, ONLY: kdrags, inter
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: dt, time
@@ -268,7 +268,9 @@
       USE gas_solid_viscosity, ONLY: mug
       USE gas_solid_viscosity, ONLY: gvisx, gvisy, gvisz, pvisx, pvisy, pvisz
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm, ijkt
+      USE immersed_boundaries, ONLY: forx, forz, numx, numz, forced
+      USE particles_constants, ONLY: inrl
+      USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm, ijkt, ijke
 !
       IMPLICIT NONE
 !
@@ -279,9 +281,12 @@
       REAL*8 :: ugfx, ugfy, ugfz, vgfx, vgfy, vgfz, wgfx, wgfy, wgfz
       REAL*8 :: usfw, usfs, usfb, vsfw, vsfs, vsfb, wsfw, wsfs, wsfb
       REAL*8 :: usfx, usfy, usfz, vsfx, vsfy, vsfz, wsfx, wsfy, wsfz
-      REAL*8 :: dugs, dvgs, dwgs
       REAL*8 :: rug_tmp, rvg_tmp, rwg_tmp
       REAL*8 :: rus_tmp, rvs_tmp, rws_tmp
+      REAL*8 :: force, presn, dragn
+      REAL*8 :: pseudou, pseudow, ep_e, ep_t
+      INTEGER :: fp
+      REAL*8, ALLOCATABLE :: dugs(:), dvgs(:), dwgs(:)
       REAL*8, ALLOCATABLE :: nul(:)
 !
 ! ... Allocate and initialize gas and particle viscous stresses
@@ -352,6 +357,9 @@
 ! ... Allocate and initialize gas-particle drag coefficient
 !
       ALLOCATE( kpgv(nsolid) )
+      ALLOCATE( dugs(nsolid) )
+      ALLOCATE( dvgs(nsolid) )
+      ALLOCATE( dwgs(nsolid) )
       kpgv = 0.0D0
 !
 ! ... (a temporary array used in 2D) ...
@@ -368,7 +376,7 @@
 ! ... of East, North and Top fluxes from neighbouring cells.
 !
       DO ijk = 1, ncint
-        IF(fl_l(ijk) == 1) THEN
+        IF(flag(ijk) == 1) THEN
 
           CALL meshinds(ijk,imesh,i,j,k)
           CALL subscr(ijk)
@@ -413,7 +421,8 @@
           indzp = 1.D0 / dzp
 !         
           rug_tmp = gvisx(ijk)                     
-          rug_tmp = rug_tmp - indxp * 2.D0 * ugfx * inxb(i)        
+          rug_tmp = rug_tmp - indxp * 2.D0 * ugfx * inrb(i)        
+          rug_tmp = rug_tmp + (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke))*indxp * gravx  
           rug_tmp = rug_tmp - indy(j) * ugfy                  
           rug_tmp = rug_tmp - indz(k) * ugfz   
           rug (ijk) = rugn(ijk) + dt * rug_tmp
@@ -428,7 +437,7 @@
 !
           rwg_tmp = gvisz(ijk)                     
           rwg_tmp = rwg_tmp + (dz(k+1)*rgp(ijk)+dz(k)*rgp(ijkt))*indzp * gravz  
-          rwg_tmp = rwg_tmp - indx(i) * wgfx * inx(i)                           
+          rwg_tmp = rwg_tmp - indx(i) * wgfx * inr(i)                           
           rwg_tmp = rwg_tmp - indy(j) * wgfy                                    
           rwg_tmp = rwg_tmp - indzp * 2.D0 * wgfz
           rwg(ijk) = rwgn(ijk) + dt * rwg_tmp
@@ -472,7 +481,9 @@
 ! ... compute explicit (tilde) terms in the momentum equation (particles)
 ! 
             rus_tmp = pvisx(ijk,is)               
-            rus_tmp = rus_tmp - indxp * 2.D0 * usfx * inxb(i)   
+            rus_tmp = rus_tmp - indxp * 2.D0 * usfx * inrb(i)   
+            rus_tmp = rus_tmp + indxp * gravx * &
+                      (dx(i+1)*rlk(ijk,is)+dx(i)*rlk(ijke,is))
             rus_tmp = rus_tmp - indy(j) * usfy  
             rus_tmp = rus_tmp - indz(k) * usfz 
             rus(ijk,is) = rusn(ijk,is) + dt * rus_tmp
@@ -488,22 +499,22 @@
             rws_tmp = pvisz(ijk,is)              
             rws_tmp = rws_tmp + indzp * gravz * &
                       ( rlk(ijk,is) * dz(k+1) + rlk(ijkt,is) * dz(k) )
-            rws_tmp = rws_tmp - indx(i) * wsfx * inx(i)                 
+            rws_tmp = rws_tmp - indx(i) * wsfx * inr(i)                 
             rws_tmp = rws_tmp - indy(j) * wsfy                      
             rws_tmp = rws_tmp - indzp * 2.D0 * wsfz  
             rws(ijk,is) = rwsn(ijk,is) + dt * rws_tmp
 !
 ! ... Compute the gas-particle drag coefficients
 !
-            dugs = ( (ug(ijk)-us(ijk,is)) + (ug(imjk)-us(imjk,is)) )*0.5D0
-            dwgs = ( (wg(ijk)-ws(ijk,is)) + (wg(ijkm)-ws(ijkm,is)) )*0.5D0
+            dugs(is) = ( (ug(ijk)-us(ijk,is)) + (ug(imjk)-us(imjk,is)) )*0.5D0
+            dwgs(is) = ( (wg(ijk)-ws(ijk,is)) + (wg(ijkm)-ws(ijkm,is)) )*0.5D0
             IF (job_type == '2D') THEN
-              dvgs = 0.D0
+              dvgs(is) = 0.D0
             ELSE IF (job_type == '3D') THEN
-              dvgs = ( (vg(ijk)-vs(ijk,is)) + (vg(ijmk)-vs(ijmk,is)) )*0.5D0
+              dvgs(is) = ( (vg(ijk)-vs(ijk,is)) + (vg(ijmk)-vs(ijmk,is)) )*0.5D0
             END IF
 
-            CALL kdrags(kpgv(is), dugs, dvgs, dwgs, ep(ijk),         &
+            CALL kdrags(kpgv(is), dugs(is), dvgs(is), dwgs(is), ep(ijk),     &
                     rgp(ijk), rlk(ijk,is), mug(ijk), is)                  
 !
           END DO
@@ -519,7 +530,69 @@
      &                 us, vs, ws, rlk, ijk)
           END IF
 !
+! ... On the immersed boundary the explicit terms must be modified
+! ... by adding a force to mimic the boundary
+!
+          IF (immb >= 1) THEN
+
+            IF (forced(ijk)) THEN
+
+              fp = numx(ijk)
+              pseudou = forx(fp)%vel
+
+              force = ( indxp * (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke)) * &
+                        pseudou - rug(ijk) ) / dt
+              ep_e  = (dx(i)*ep(ijke) + dx(i+1)*ep(ijk)) * indxp
+              presn = - indxp * 2.D0 * ep_e * (p(ijke)-p(ijk))
+              dragn = 0.D0
+              DO is = 1, nsolid
+                dragn = dragn - kpgv(is) * dugs(is)
+              END DO
+              force = force - presn - dragn
+              rug(ijk) = rug(ijk) + dt * force
+
+              DO is = 1, nsolid
+                force = ( indxp * (dx(i+1)*rlk(ijk,is)+dx(i)*rlk(ijke,is)) * &
+                          pseudou - rus(ijk,is) ) / dt
+                ep_e  = (dx(i)*rlk(ijke,is) + dx(i+1)*rlk(ijk,is)) * indxp * &
+                        inrl(is)
+                presn = - indxp * 2.D0 * ep_e * (p(ijke)-p(ijk))
+                dragn = kpgv(is) * dugs(is)
+                force = force - presn - dragn
+                rus(ijk,is) = rus(ijk,is) + dt * force
+              END DO
+            !
+              fp = numz(ijk)
+              pseudow = forz(fp)%vel
+
+              force = ( indzp * (dz(k+1)*rgp(ijk)+dz(k)*rgp(ijkt)) * &
+                        pseudow - rwg(ijk) ) / dt
+              ep_t = (dz(k)*ep(ijkt) + dz(k+1)*ep(ijk)) * indzp
+              presn = - indzp * 2.D0 * ep_t * (p(ijkt)-p(ijk))
+              dragn = 0.D0
+              DO is = 1, nsolid
+                dragn = dragn - kpgv(is) * dwgs(is)
+              END DO
+              force = force - presn - dragn
+              rwg(ijk) = rwg(ijk) + dt * force
+
+              DO is = 1, nsolid
+                force = ( indzp * (dz(k+1)*rlk(ijk,is)+dz(k)*rlk(ijkt,is)) * &
+                          pseudow - rws(ijk,is) ) / dt
+                ep_t = (dz(k)*rlk(ijkt,is) + dz(k+1)*rlk(ijk,is)) * indzp * &
+                       inrl(is) 
+                presn = - indzp * 2.D0 * ep_t * (p(ijkt)-p(ijk))
+                dragn = kpgv(is) * dwgs(is)
+                force = force - presn - dragn
+                rws(ijk,is) = rws(ijk,is) + dt * force
+              END DO
+
+            END IF
+
+          END IF
+      
         END IF
+        
       END DO
 !
       DEALLOCATE(ugfe, ugft)
@@ -573,7 +646,7 @@
       USE flux_limiters, ONLY: muscl
       USE gas_solid_density, ONLY: rog, rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      USE grid, ONLY: fl_l
+      USE grid, ONLY: flag
       USE interpolate_fields, ONLY: interpolate_x, interpolate_y, interpolate_z
       USE pressure_epsilon, ONLY: ep, p
       USE set_indexes, ONLY: subscr, stencil
@@ -591,7 +664,7 @@
 ! ... in the whole computational domain.
 !
       DO ijk = 1, ncint
-        IF(fl_l(ijk) == 1) THEN
+        IF(flag(ijk) == 1) THEN
           CALL subscr(ijk)
           CALL meshinds(ijk,imesh,i,j,k)
 !

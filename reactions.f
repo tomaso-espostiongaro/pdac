@@ -33,7 +33,7 @@
 !
       USE dimensions
       USE domain_decomposition, ONLY: ncint, myijk, ncdom
-      USE grid, ONLY: fl_l
+      USE grid, ONLY: flag
       USE indijk_module, ONLY: ip0_jp0_kp0_
       IMPLICIT NONE
 !
@@ -44,7 +44,7 @@
 !
       DO ijk = 1, ncint
           imesh = myijk( ip0_jp0_kp0_, ijk)
-          IF(fl_l(ijk) == 1) THEN
+          IF(flag(ijk) == 1) THEN
             r1(ijk)=0.D0
             r2(ijk)=0.D0
             r3(ijk)=0.D0

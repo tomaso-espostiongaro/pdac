@@ -35,7 +35,7 @@
 !
       USE dimensions, ONLY: nx, ny, nz
       USE flux_limiters, ONLY: limiters
-      USE grid, ONLY: dx, dy, dz, indz, fl_l
+      USE grid, ONLY: dx, dy, dz, indz, flag
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt
       IMPLICIT NONE
@@ -156,7 +156,7 @@
 ! ... Compute the convective fluxes on East, North, and Top sides of the cell
 ! ... for the momentum density along z.
 !
-      USE grid, ONLY: dz, fl_l
+      USE grid, ONLY: dz, flag
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE set_indexes, ONLY: stencil
       IMPLICIT NONE
@@ -172,7 +172,7 @@
 !
 ! ... on West volume bondary
 !
-      IF (fl_l(imjk) /= 1) THEN
+      IF (flag(imjk) /= 1) THEN
         cs = (dz(k+1)*u%w + dz(k)*u%wt) * indzp
         IF ( cs >= 0.D0 ) fw = dens%w * w%w * cs
         IF ( cs <  0.D0 ) fw = dens%c * w%c * cs
@@ -180,7 +180,7 @@
 !
 ! ... on South volume bondary
 !
-      IF (fl_l(ijmk) /= 1) THEN
+      IF (flag(ijmk) /= 1) THEN
         cs = (dz(k+1)*v%s + dz(k)*v%st) * indzp
         IF ( cs >= 0.D0 ) fs = dens%s * w%s * cs
         IF ( cs <  0.D0 ) fs = dens%c * w%c * cs
@@ -188,7 +188,7 @@
 !
 ! ... on Bottom volume bondary
 !
-      IF (fl_l(ijkm) /= 1) THEN
+      IF (flag(ijkm) /= 1) THEN
         cs=0.5D0*(w%b+w%c)
         IF ( cs >= 0.D0 ) fb = dens%b * w%b * cs
         IF ( cs <  0.D0 ) fb = dens%c * w%c * cs
@@ -222,7 +222,7 @@
 !
       USE dimensions, ONLY: nx, ny, nz
       USE flux_limiters, ONLY: limiters
-      USE grid, ONLY: dx, xb, dz, indz, fl_l
+      USE grid, ONLY: dx, rb, dz, indz, flag
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt
 
@@ -276,7 +276,7 @@
 !
       upwnd = lim * gradc * incr
 !
-      fe = fe + upwnd * cs * xb(i)
+      fe = fe + upwnd * cs * rb(i)
 !
 ! ... on Top volume boundary
 !
@@ -311,7 +311,7 @@
 ! ... Compute the convective fluxes on East, Top, sides of the cell
 ! ... for the momentum density along z.
 !
-      USE grid, ONLY: dz, xb, fl_l
+      USE grid, ONLY: dz, rb, flag
       USE set_indexes, ONLY: imjk, ijkm
       USE set_indexes, ONLY: stencil
 
@@ -328,15 +328,15 @@
 !
 ! ... on West volume bondary
 !
-      IF( fl_l(imjk) /= 1 ) THEN
+      IF( flag(imjk) /= 1 ) THEN
         cs = (u%wt * dz(k) + u%w * dz(k+1)) * indzp
-        IF ( cs >= 0.D0 ) fw = dens%w * w%w * cs * xb(i-1)
-        IF ( cs <  0.D0 ) fw = dens%c * w%c * cs * xb(i-1)
+        IF ( cs >= 0.D0 ) fw = dens%w * w%w * cs * rb(i-1)
+        IF ( cs <  0.D0 ) fw = dens%c * w%c * cs * rb(i-1)
       END IF
 !
 ! ... on Bottom volume bondary
 !
-      IF( fl_l(ijkm) /= 1 ) THEN
+      IF( flag(ijkm) /= 1 ) THEN
         cs = 0.5D0 * ( w%c + w%b ) 
         IF ( cs >= 0.D0 ) fb = dens%b * w%b * cs
         IF ( cs <  0.D0 ) fb = dens%c * w%c * cs
@@ -345,8 +345,8 @@
 ! ... on East volume boundary
 !
       cs = indzp * (u%c * dz(k+1) + u%t * dz(k))
-      IF ( cs >= 0.D0 ) fe  = dens%c * w%c * cs * xb(i)
-      IF ( cs <  0.D0 ) fe  = dens%e * w%e * cs * xb(i)
+      IF ( cs >= 0.D0 ) fe  = dens%c * w%c * cs * rb(i)
+      IF ( cs <  0.D0 ) fe  = dens%e * w%e * cs * rb(i)
 !
 ! ... on Top volume boundary
 !

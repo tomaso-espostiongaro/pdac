@@ -8,7 +8,7 @@
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE gas_solid_temperature, ONLY: sieg, ts, sies, tg 
-      USE gas_constants, ONLY: gas_type, present_gas, default_gas
+      USE gas_constants, ONLY: gas_type, present_gas
       USE parallel, ONLY: mpime, root
       USE pressure_epsilon, ONLY: ep, p
       USE specific_heat_module, ONLY: cp, ck
@@ -533,7 +533,6 @@
       INTEGER :: ijk, ierr
       REAL*8, ALLOCATABLE :: io_buf(:)
       REAL(sgl), ALLOCATABLE :: io_bufs(:)
-      INTEGER :: float_chk
 
       IF( ntot < 1 ) &
         CALL error(' read_array ', ' ntot too small ', ntot )
@@ -571,13 +570,6 @@
             DEALLOCATE( io_buf )
          END IF
       END IF
-
-      DO ijk = 1, SIZE( array )
-        IF( float_chk( array( ijk ) ) /= 0 ) THEN
-           WRITE(6,*) 'WARNING (read_array) NAN in input field at: ',ijk,array(ijk)
-           array(ijk) = 0.0d0
-        END IF
-      END DO
 
       RETURN
       END SUBROUTINE

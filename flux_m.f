@@ -103,7 +103,7 @@
 !
       USE dimensions
       USE domain_decomposition, ONLY: myijk, meshinds
-      USE grid, ONLY: dx, dy, dz, fl_l
+      USE grid, ONLY: dx, dy, dz, flag
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt
@@ -354,7 +354,7 @@
 !
       USE dimensions
       USE domain_decomposition, ONLY: myijk
-      USE grid, ONLY: xb
+      USE grid, ONLY: rb
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: stencil
 !
@@ -377,9 +377,9 @@
 ! ... West, Bottom fluxes
 !
       IF (u%w >= 0.D0) THEN
-        fw = u%w * dens%w * xb(i-1)
+        fw = u%w * dens%w * rb(i-1)
       ELSE
-        fw = u%w * dens%c * xb(i-1)
+        fw = u%w * dens%c * rb(i-1)
       ENDIF
 
       IF (w%b >= 0.D0) THEN
@@ -391,9 +391,9 @@
 ! ... East, Top fluxes
 !
       IF (u%c >= 0.D0) THEN
-        fe = u%c * dens%c * xb(i)
+        fe = u%c * dens%c * rb(i)
       ELSE
-        fe = u%c * dens%e * xb(i)
+        fe = u%c * dens%e * rb(i)
       ENDIF
 
       IF (w%c >= 0.D0) THEN
@@ -409,7 +409,7 @@
 !
       USE dimensions
       USE domain_decomposition, ONLY: myijk
-      USE grid, ONLY: dx, xb, dz, fl_l
+      USE grid, ONLY: dx, rb, dz, flag
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt
@@ -481,9 +481,9 @@
       upwnd = lim * gradc * incr
       centrd = (dx(i)*dens%w+dx(i-1)*dens%c)*indxm
 
-      fw = fw + upwnd * cs * xb(i-1)
+      fw = fw + upwnd * cs * rb(i-1)
 
-      upc_w = fw / (cs * xb(i-1)) / centrd
+      upc_w = fw / (cs * rb(i-1)) / centrd
 !
 ! ... on East volume boundary
 !
@@ -511,9 +511,9 @@
       upwnd = lim * gradc * incr
       centrd = (dx(i)*dens%e+dx(i+1)*dens%c)*indxp
       
-      fe = fe + upwnd * cs * xb(i)
+      fe = fe + upwnd * cs * rb(i)
 
-      upc_e = fe / (cs * xb(i)) / centrd
+      upc_e = fe / (cs * rb(i)) / centrd
 !
 ! ... on Bottom volume boundary
 !

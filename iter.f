@@ -1,7 +1,7 @@
 !----------------------------------------------------------------------
       MODULE iterative_solver
 !----------------------------------------------------------------------
-      USE grid, ONLY: dx, dy, dz, indx, indy, indz, inx
+      USE grid, ONLY: dx, dy, dz, indx, indy, indz, inr
       USE set_indexes, ONLY: stencil
 
       IMPLICIT NONE
@@ -19,6 +19,7 @@
       INTEGER :: inmax, maxout
 
       INTEGER :: ncnt
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: b_e, b_w, b_t, b_b, b_n, b_s
 
       TYPE(stencil) :: u, v, w, dens         
 
@@ -47,7 +48,7 @@
       USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
-      USE grid, ONLY: fl_l
+      USE grid, ONLY: flag
       USE indijk_module
       USE parallel, ONLY: mpime
       USE particles_constants, ONLY: rl, inrl
@@ -55,7 +56,8 @@
       USE phases_matrix, ONLY: solve_velocities, solve_all_velocities
       USE phases_matrix, ONLY: matspre_3phase
       USE pressure_epsilon, ONLY: p, ep
-      USE set_indexes, ONLY: imjk, ijmk, ijkm, ijkn, ijks, ijke, ijkw, ijkt, ijkb, myinds
+      USE set_indexes, ONLY: imjk, ijmk, ijkm, ijkn, &
+                             ijke, ijkw, ijkt, ijkb
       USE set_indexes, ONLY: subscr, first_subscr
       USE specific_heat_module, ONLY: cp
       USE tilde_energy, ONLY: htilde
@@ -123,7 +125,7 @@
 ! ... biassed by the wrong (old) pressure field.
 !
       DO ijk_ = 1, ncint
-        IF ( fl_l( ijk_ ) == 1) THEN
+        IF ( flag( ijk_ ) == 1) THEN
           CALL first_subscr( ijk_ )
           CALL assemble_matrix( ijk_ )
           CALL solve_velocities( ijk_)
@@ -150,8 +152,10 @@
 !
 ! ... Compute the gas mass fluxes using the guessed velocities 
 !
+      CALL fill_cells
+!
       DO ijk_ = 1, ncint
-        IF ( fl_l( ijk_ ) == 1 ) THEN
+        IF ( flag( ijk_ ) == 1 ) THEN
           CALL first_subscr( ijk_ )
           CALL calc_gas_mass_flux( ijk_ )
           ! ... compute the derivative of the gas mass residual
@@ -213,8 +217,11 @@
 
            converge( ijk_ ) = .FALSE.
 
-           IF( fl_l( ijk_ ) /= 1 ) converge( ijk_ ) = .TRUE.
-           IF( fl_l( ijk_ ) == 1 ) THEN
+           IF( flag( ijk_ ) /= 1 ) THEN
+             
+             converge( ijk_ ) = .TRUE.
+           
+           ELSE IF( flag( ijk_ ) == 1 ) THEN
 
              CALL meshinds( ijk_ , imesh, i_ , j_ , k_ )
              CALL first_subscr( ijk_ )
@@ -416,6 +423,7 @@
       DEALLOCATE(abeta)
       DEALLOCATE(converge)
       IF( ALLOCATED( amats ) )  DEALLOCATE( amats )
+      DEALLOCATE(b_e, b_w, b_t, b_b)
 !
       RETURN
       END SUBROUTINE iter
@@ -598,6 +606,7 @@
 !
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
+      USE grid, ONLY: flag
       USE control_flags, ONLY: job_type
       USE time_parameters, ONLY: dt
 
@@ -605,11 +614,20 @@
       REAL*8 :: resx, resy, resz
       REAL*8, INTENT(OUT) :: res
       INTEGER, INTENT(IN) :: i, j, k, ijk
-
-      INTEGER :: float_chk
+      REAL*8 :: vf, ivf
 !      
-      resx = ( rgfe(ijk) - rgfe(imjk) ) * indx(i) * inx(i)
-      resz = ( rgft(ijk) - rgft(ijkm) ) * indz(k)
+! ... volume fraction not occupied by the topography
+!
+      vf = b_e(ijk) + b_w(ijk) + b_t(ijk) + b_b(ijk)
+      vf = 0.25D0 * vf
+      IF (vf > 0.D0) THEN
+        ivf = 1.D0 / vf
+      ELSE
+        ivf = 0.D0
+      END IF
+!
+      resx = ( b_e(ijk)*rgfe(ijk) - b_w(ijk)*rgfe(imjk) ) * indx(i) * inr(i)
+      resz = ( b_t(ijk)*rgft(ijk) - b_b(ijk)*rgft(ijkm) ) * indz(k)
 !
       IF (job_type == '2D') THEN
         resy = 0.D0
@@ -617,7 +635,7 @@
         resy = (rgfn(ijk) - rgfn(ijmk)) * indy(j)
       END IF
 !
-      res  = rgp(ijk) - rgpn(ijk) + dt * (resx+resy+resz)
+      res  = rgp(ijk) - rgpn(ijk) + dt * ivf * (resx+resy+resz)
 !          - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
 
       RETURN
@@ -715,6 +733,7 @@
       USE control_flags, ONLY: job_type, lpr
       USE dimensions
       USE gas_solid_density, ONLY: rlk, rlkn
+      USE immersed_boundaries, ONLY: forced
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE time_parameters, ONLY: dt, time
@@ -724,13 +743,22 @@
       REAL*8 :: rlkx, rlky, rlkz, rls, rlk_tmp
       INTEGER, INTENT(IN) :: i, j, k, ijk
       INTEGER :: is
+      REAL*8 :: vf, ivf
+
+      vf = b_e(ijk) + b_w(ijk) + b_t(ijk) + b_b(ijk)
+      vf = 0.25D0 * vf
+      IF (vf > 0.D0) THEN
+        ivf = 1.D0 / vf
+      ELSE
+        ivf = 0.D0
+      END IF
 
       rls = 0.D0
 
       DO is = 1, nsolid
 
-        rlkx = (rsfe(ijk,is) - rsfe(imjk,is)) * indx(i) * inx(i)
-        rlkz = (rsft(ijk,is) - rsft(ijkm,is)) * indz(k)
+        rlkx = (b_e(ijk)*rsfe(ijk,is) - b_w(ijk)*rsfe(imjk,is)) * indx(i) * inr(i)
+        rlkz = (b_t(ijk)*rsft(ijk,is) - b_b(ijk)*rsft(ijkm,is)) * indz(k)
 
         IF (job_type == '2D') THEN
           rlky = 0.D0
@@ -738,7 +766,7 @@
           rlky = (rsfn(ijk,is) - rsfn(ijmk,is)) * indy(j)
         END IF
 
-        rlk_tmp = rlkn( ijk, is ) - dt * ( rlkx + rlky + rlkz )
+        rlk_tmp = rlkn( ijk, is ) - dt * ivf * ( rlkx + rlky + rlkz )
               !- dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
         rlk_tmp = MAX( 0.0d0, rlk_tmp )
 
@@ -750,9 +778,13 @@
       IF( rls > 1.D0 ) THEN
         IF (lpr >= 1) THEN
           WRITE(8,*) ' warning1: mass is not conserved'
-          WRITE(8,*) ' time, i, j, k, rls ', time, i, j, k, rls
+          WRITE(8,*) ' time, i, j, k ', time, i, j, k
+          WRITE(8,*) ' rls, volfrac ', rls, vf
         END IF
-        CALL error('iter', 'warning: mass is not conserved',1)
+        IF (forced(ijk)) THEN
+        ELSE
+          CALL error('iter', 'warning: mass is not conserved',1)
+        END IF
       ENDIF
 
       ep( ijk ) = 1.D0 - rls
@@ -885,7 +917,7 @@
       USE control_flags, ONLY: job_type
       USE eos_gas, ONLY: csound
       USE gas_solid_density, ONLY: rog, rgp
-      USE grid, ONLY: dx, dy, dz, fl_l, xb
+      USE grid, ONLY: dx, dy, dz, flag, rb
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: ipjk, imjk, ijpk, ijmk, ijkp, ijkm
@@ -920,10 +952,10 @@
           indzp=1.D0/dzp
           indzm=1.D0/dzm
 !
-          nfle=fl_l(ipjk)
-          nflw=fl_l(imjk)
-          nflt=fl_l(ijkp)
-          nflb=fl_l(ijkm)
+          nfle=flag(ipjk)
+          nflw=flag(imjk)
+          nflt=flag(ijkp)
+          nflb=flag(ijkm)
 
           IF( (nfle /= 1) .AND. (nfle /= 4) ) THEN
             iep_e = 0.D0
@@ -959,8 +991,8 @@
             dym=dy(j)+dy(j-1)
             indyp=1.D0/dyp
             indym=1.D0/dym
-            nfln=fl_l(ijpk)
-            nfls=fl_l(ijmk)
+            nfln=flag(ijpk)
+            nfls=flag(ijmk)
 
             IF( (nfln /= 1) .AND. (nfln /= 4) ) THEN 
               iep_n = 0.0D0
@@ -978,7 +1010,7 @@
 
           END IF
 
-          iepx = (  xb(i) * iep_e + xb(i-1) * iep_w ) * indx(i) * inx(i) 
+          iepx = (  rb(i) * iep_e + rb(i-1) * iep_w ) * indx(i) * inr(i) 
           iepz = (  iep_t + iep_b ) * indz(k)
 	  IF (job_type == '2D') THEN
             iepy = 0.D0
@@ -1001,6 +1033,43 @@
 !
       RETURN
       END SUBROUTINE betas
+!----------------------------------------------------------------------
+      SUBROUTINE fill_cells
+!
+! ... Coefficients b(1:6) are multiplied to the numerical mass
+! ... fluxes to take into account that some cell face could be
+! ... immersed. b=1 if the cell face is external, b=0 if the
+! ... cell face is inside the topography.
+!
+      USE control_flags, ONLY: itp, immb
+      USE domain_decomposition, ONLY: ncint, meshinds
+      USE grid, ONLY: z, zb
+      USE immersed_boundaries, ONLY: topo_c, topo_x
+      IMPLICIT NONE
+
+      INTEGER :: i,j,k,ijk,imesh
+      LOGICAL :: fillc
+
+      ALLOCATE(b_e(ncint))
+      ALLOCATE(b_w(ncint))
+      ALLOCATE(b_t(ncint))
+      ALLOCATE(b_b(ncint))
+
+      b_e = 1; b_w = 1; b_t = 1; b_b = 1
+
+      IF (immb >= 1) THEN
+        DO ijk=1, ncint
+          CALL meshinds(ijk,imesh,i,j,k)
+
+          IF (z(k) < topo_x(i))     b_e(ijk) = 0 ! East
+          IF (z(k) < topo_x(i-1))   b_w(ijk) = 0 ! West
+          IF (zb(k) < topo_c(i))    b_t(ijk) = 0 ! Top
+          IF (zb(k-1) < topo_c(i))  b_b(ijk) = 0 ! Bottom
+
+        END DO
+      END IF
+      
+      END SUBROUTINE fill_cells
 !----------------------------------------------------------------------
 !     H E R E   S T A R T   T H E  O P T I M I Z E D   R O U T I N E S 
 !----------------------------------------------------------------------
@@ -1164,7 +1233,7 @@
 
             END IF
 
-            rlkx = ( fse_(is) - fsw_(is) ) * indx(i) * inx(i)
+            rlkx = ( fse_(is) - fsw_(is) ) * indx(i) * inr(i)
             rlkz = ( fst_(is) - fsb_(is) ) * indz(k)
             IF (job_type == '3D') THEN
               rlky = ( fsn_(is) - fss_(is) ) * indy(j)
@@ -1215,7 +1284,7 @@
 
           END IF
 
-          resx = ( fe_ - fw_ ) * indx(i) * inx(i)
+          resx = ( fe_ - fw_ ) * indx(i) * inr(i)
           resz = ( ft_ - fb_ ) * indz(k)
           IF (job_type == '3D') THEN
             resy = ( fn_ - fs_ ) * indy(j)
@@ -1420,7 +1489,7 @@
                  dens1, u1, v1, w1, ijk)
           END IF
 
-          rlkx = ( rsfe1_ - rsfem1_ ) * indx(i) * inx(i)
+          rlkx = ( rsfe1_ - rsfem1_ ) * indx(i) * inr(i)
           rlky = ( rsfn1_ - rsfnm1_ ) * indy(j)
           rlkz = ( rsft1_ - rsftm1_ ) * indz(k)
           rlk( ijk, 1) = rlkn( ijk, 1 ) - dt * ( rlkx + rlky + rlkz )
@@ -1435,7 +1504,7 @@
                  dens2, u2, v2, w2, ijk)
           END IF
 
-          rlkx = ( rsfe2_ - rsfem2_ ) * indx(i) * inx(i)
+          rlkx = ( rsfe2_ - rsfem2_ ) * indx(i) * inr(i)
           rlky = ( rsfn2_ - rsfnm2_ ) * indy(j)
           rlkz = ( rsft2_ - rsftm2_ ) * indz(k)
           rlk( ijk, 2) = rlkn( ijk, 2 ) - dt * ( rlkx + rlky + rlkz )
@@ -1467,7 +1536,7 @@
                       densg_, ug_, vg_, wg_, ijk )
           END IF
 
-          resx = ( rgfe_ - rgfem_ ) * indx(i) * inx(i)
+          resx = ( rgfe_ - rgfem_ ) * indx(i) * inr(i)
           resz = ( rgft_ - rgftm_ ) * indz(k)
           resy = ( rgfn_ - rgfnm_ ) * indy(j)
           dg = rgp(ijk) - rgpn(ijk) + dt * ( resx + resy + resz )

@@ -25,7 +25,7 @@
 
       CASE (1) !(VanLeer)
 
-        limiter = ( DABS(erre) + erre ) / ( 1.D0 + DABS(erre) )
+        limiter = MAX( 0.D0, (2.D0*erre/(1.D0+erre)) )
 
       CASE (2) !(minmod)
 

@@ -37,7 +37,7 @@
 !
       USE dimensions
       USE flux_limiters, ONLY: limiters
-      USE grid, ONLY: dx, dy, dz, indx, fl_l
+      USE grid, ONLY: dx, dy, dz, indx, flag
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt
 
@@ -163,7 +163,7 @@
 !
       USE dimensions
       USE domain_decomposition, ONLY: myijk, meshinds
-      USE grid, ONLY: dx, fl_l
+      USE grid, ONLY: dx, flag
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE set_indexes, ONLY: stencil
 
@@ -180,7 +180,7 @@
 !
 ! ... on West volume bondary
 !
-      IF( fl_l(imjk) /= 1 ) THEN
+      IF( flag(imjk) /= 1 ) THEN
         cs = 0.5D0 * ( u%c + u%w )
         IF ( cs >= 0.D0 ) fw = dens%w * u%w * cs
         IF ( cs <  0.D0 ) fw = dens%c * u%c * cs
@@ -188,7 +188,7 @@
 !
 ! ... on South volume bondary
 !
-      IF( fl_l(ijmk) /= 1 ) THEN
+      IF( flag(ijmk) /= 1 ) THEN
         cs = ( dx(i+1) * v%s + dx(i) * v%es ) * indxp
         IF ( cs >= 0.D0 ) fs = dens%s * u%s * cs
         IF ( cs <  0.D0 ) fs = dens%c * u%c * cs
@@ -196,7 +196,7 @@
 !
 ! ... on Bottom volume bondary
 !
-      IF( fl_l(ijkm) /= 1 ) THEN
+      IF( flag(ijkm) /= 1 ) THEN
         cs = ( dx(i+1) * w%b + dx(i) * w%eb ) * indxp
         IF ( cs >= 0.D0 ) fb = dens%b * u%b * cs
         IF ( cs <  0.D0 ) fb = dens%c * u%c * cs
@@ -231,8 +231,8 @@
 !
       USE dimensions
       USE flux_limiters, ONLY: limiters
-      USE grid, ONLY: fl_l
-      USE grid, ONLY: dx, indx, x, dz
+      USE grid, ONLY: flag
+      USE grid, ONLY: dx, indx, r, dz
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt
 
@@ -286,7 +286,7 @@
 !
       upwnd = lim * gradc * incr
 !
-      fe = fe + upwnd * cs * x(i+1)
+      fe = fe + upwnd * cs * r(i+1)
 !
 ! ... on Top volume boundary
 !
@@ -323,8 +323,8 @@
 ! ... Uses First Order Donor-cell tecnique
 !
       USE dimensions
-      USE grid, ONLY: fl_l
-      USE grid, ONLY: dx, x
+      USE grid, ONLY: flag
+      USE grid, ONLY: dx, r
       USE set_indexes, ONLY: imjk, ijkm
       USE set_indexes, ONLY: stencil
 
@@ -341,15 +341,15 @@
 !
 ! ... on West volume bondary
 !
-      IF( fl_l(imjk) /= 1 ) THEN
+      IF( flag(imjk) /= 1 ) THEN
         cs = 0.5D0*(u%c + u%w)
-        IF ( cs >= 0.D0 ) fw = dens%w * u%w * cs * x(i)
-        IF ( cs <  0.D0 ) fw = dens%c * u%c * cs * x(i)
+        IF ( cs >= 0.D0 ) fw = dens%w * u%w * cs * r(i)
+        IF ( cs <  0.D0 ) fw = dens%c * u%c * cs * r(i)
       END IF
 !
 ! ... on Bottom volume bondary
 !
-      IF( fl_l(ijkm) /= 1 ) THEN
+      IF( flag(ijkm) /= 1 ) THEN
         cs = (dx(i+1) * w%b + dx(i) * w%eb) * indxp
         IF ( cs >= 0.D0 ) fb = dens%b * u%b * cs
         IF ( cs <  0.D0 ) fb = dens%c * u%c * cs
@@ -358,8 +358,8 @@
 ! ... on East volume boundary
 !
       cs = 0.5D0 * (u%c + u%e)
-      IF ( cs >= 0.D0 ) fe = dens%c * u%c * cs * x(i+1)
-      IF ( cs <  0.D0 ) fe = dens%e * u%e * cs * x(i+1)
+      IF ( cs >= 0.D0 ) fe = dens%c * u%c * cs * r(i+1)
+      IF ( cs <  0.D0 ) fe = dens%e * u%e * cs * r(i+1)
 !
 ! ... on Top volume boundary
 !

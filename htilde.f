@@ -33,8 +33,8 @@
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: sieg, sies, tg, ts
       USE gas_solid_temperature, ONLY: siegn, siesn
-      USE grid, ONLY: dx, dy, dz, indx, indy, indz, inx
-      USE grid, ONLY: fl_l
+      USE grid, ONLY: dx, dy, dz, indx, indy, indz, inr
+      USE grid, ONLY: flag
       USE particles_constants, ONLY: inrl
       USE pressure_epsilon, ONLY: ep
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
@@ -84,7 +84,7 @@
       esfx = 0.D0; esfy = 0.D0; esfz = 0.D0
 !
       DO ijk = 1, ncint
-        IF(fl_l(ijk) == 1) THEN
+        IF(flag(ijk) == 1) THEN
           CALL meshinds(ijk,imesh,i,j,k)
           CALL subscr(ijk)
 ! 
@@ -95,7 +95,7 @@
             egfy = egfn(ijk) - egfn(ijmk)
           END IF
 
-          flx = dt * indx(i) * egfx * inx(i) +   &
+          flx = dt * indx(i) * egfx * inr(i) +   &
                 dt * indy(j) * egfy          +   &
                 dt * indz(k) * egfz
 !
@@ -124,7 +124,7 @@
              END IF
            END IF
 !
-            flx = dt * indx(i) * esfx * inx(i) +  &
+            flx = dt * indx(i) * esfx * inr(i) +  &
                   dt * indy(j) * esfy          +  &
                   dt * indz(k) * esfz
 !
@@ -166,7 +166,7 @@
       USE gas_solid_temperature, ONLY: siegn
       USE gas_solid_viscosity, ONLY: kapg
       USE gas_solid_viscosity, ONLY: gas_viscosity, part_viscosity
-      USE grid, ONLY: fl_l
+      USE grid, ONLY: flag
       USE particles_constants, ONLY: inrl, kap
       USE pressure_epsilon, ONLY: ep
       !USE set_indexes, ONLY: nb, rnb, stencil, cte
@@ -196,7 +196,7 @@
       END IF
 !
       DO ijk = 1, ncint
-        IF(fl_l(ijk) == 1) THEN
+        IF(flag(ijk) == 1) THEN
           CALL subscr(ijk)
 !
 ! ... Here compute convective and diffusive fluxes (gas)
@@ -282,12 +282,12 @@
             egfe(ijk) = egfe(ijk) - hgfe(ijk)
             egft(ijk) = egft(ijk) - hgft(ijk)
 !
-            IF (fl_l(imjk) /= 1) egfe(imjk) = egfe(imjk) - hgfe(imjk)
-            IF (fl_l(ijkm) /= 1) egft(ijkm) = egft(ijkm) - hgft(ijkm)
+            IF (flag(imjk) /= 1) egfe(imjk) = egfe(imjk) - hgfe(imjk)
+            IF (flag(ijkm) /= 1) egft(ijkm) = egft(ijkm) - hgft(ijkm)
 
             IF (job_type == '3D') THEN
               egfn(ijk) = egfn(ijk) - hgfn(ijk)
-              IF (fl_l(ijmk) /= 1) egfn(ijmk) = egfn(ijmk) - hgfn(ijmk)
+              IF (flag(ijmk) /= 1) egfn(ijmk) = egfn(ijmk) - hgfn(ijmk)
             END IF
           END IF
 !
@@ -376,12 +376,12 @@
               esfe(ijk, is) = esfe(ijk, is) - hsfe(ijk,is)
               esft(ijk, is) = esft(ijk, is) - hsft(ijk, is)
 !
-              IF (fl_l(imjk) /= 1) esfe(imjk,is) = esfe(imjk,is) - hsfe(imjk,is)
-              IF (fl_l(ijkm) /= 1) esft(ijkm,is) = esft(ijkm,is) - hsft(ijkm,is)
+              IF (flag(imjk) /= 1) esfe(imjk,is) = esfe(imjk,is) - hsfe(imjk,is)
+              IF (flag(ijkm) /= 1) esft(ijkm,is) = esft(ijkm,is) - hsft(ijkm,is)
 
               IF (job_type == '3D') THEN
                 esfn(ijk, is) = esfn(ijk, is) - hsfn(ijk, is)
-                IF (fl_l(ijmk)/=1) esfn(ijmk,is)=esfn(ijmk,is)-hsfn(ijmk,is)
+                IF (flag(ijmk)/=1) esfn(ijmk,is)=esfn(ijmk,is)-hsfn(ijmk,is)
               END IF
             END IF
 !

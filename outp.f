@@ -17,7 +17,7 @@
 !
       USE dimensions, ONLY: nsolid
       USE eos_gas, ONLY: xgc
-      USE gas_constants, ONLY: gas_type, default_gas
+      USE gas_constants, ONLY: gas_type
       USE gas_solid_density, ONLY: rlk, rog
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE gas_solid_velocity, ONLY: us, vs, ws
@@ -81,8 +81,8 @@
       SUBROUTINE shock_tube_out
 !
       USE dimensions, ONLY: nx, nz, nsolid
-      USE domain_decomposition, ONLY: fl_l, ncint
-      USE gas_constants, ONLY: gas_type, default_gas, gammaair
+      USE domain_decomposition, ONLY: flag, ncint
+      USE gas_constants, ONLY: gas_type, gammaair
       USE gas_solid_density, ONLY: rog
       USE gas_solid_velocity, ONLY: ug, wg
       USE gas_solid_temperature, ONLY: sieg, tg
@@ -111,7 +111,7 @@
       OPEN(UNIT=11,FILE=filnam)
 !
       DO ijk = 1, ncint
-      IF (fl_l(ijk) == 1) THEN
+      IF (flag(ijk) == 1) THEN
         energy = p(ijk)/(rog(ijk)*(gammaair - 1.D0))
         WRITE(11,550)rog(ijk),wg(ijk),p(ijk),energy,tg(ijk)
       END IF
@@ -130,7 +130,7 @@
 !
       USE dimensions, ONLY: nsolid, ngas
       USE eos_gas, ONLY: xgc
-      USE gas_constants, ONLY: gas_type, default_gas
+      USE gas_constants, ONLY: gas_type
       USE gas_solid_density, ONLY: rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE gas_solid_velocity, ONLY: us, vs, ws
@@ -153,7 +153,6 @@
       REAL*8, ALLOCATABLE :: otmp(:)
 !
     
-      nfil=nfil+1
       filnam='output.'//lettera(nfil)
       lform = formatted_output
 
@@ -188,10 +187,8 @@
 !
       ALLOCATE( otmp( SIZE( xgc, 2 ) ) )
       DO ig=1,ngas
-        IF( gas_type(ig) /= default_gas ) THEN
           otmp = xgc(ig,:)
           CALL write_array( 12, otmp, sgl, lform )  ! gc_molar_fraction
-        END IF
       END DO
       DEALLOCATE( otmp )
 !
@@ -216,11 +213,12 @@
       IF( mpime == root ) THEN
         CLOSE (12)
       END IF
+
+      nfil=nfil+1
 !
       RETURN
       END SUBROUTINE outp
-
-
+!----------------------------------------------------------------------
       SUBROUTINE filter_outp( irest )
 !
       USE dimensions, ONLY: nsolid, ngas, nx, ny, nz, ntot
@@ -228,7 +226,7 @@
       USE parallel, ONLY: nproc, mpime, root, group
       USE control_flags, ONLY: job_type
       USE domain_decomposition, ONLY: ncint, meshinds
-      USE gas_constants, ONLY: gas_type, default_gas, gammaair
+      USE gas_constants, ONLY: gas_type, gammaair
       USE grid, ONLY: dx, dy, dz
 !
       IMPLICIT NONE
@@ -308,12 +306,10 @@
       WRITE(6,fmt="('  filtering molarfraction ')")
 !
       DO ig=1,ngas
-        IF( gas_type(ig) /= default_gas ) THEN
           ! otmp = xgc(ig,:)
           var = 'xg'//lettera2( ig )
           CALL read_array( 12, array, lform )  ! gc_molar_fraction
           CALL crop_array( var )  
-        END IF
       END DO
 
       WRITE( 6, fmt="('  filtering solid density, velocities and temperature')")
@@ -353,9 +349,9 @@
       END IF
 !
       RETURN
-
+!-----------------------------------------------------------------------
       CONTAINS
- 
+!-----------------------------------------------------------------------
       SUBROUTINE crop_array( var )
         CHARACTER(LEN = 16) :: filwri
         CHARACTER(LEN = 4) :: var
@@ -407,9 +403,7 @@
 
 10      FORMAT( 5(G14.6,1X) )
       END SUBROUTINE crop_array
-
-
- 
+!-----------------------------------------------------------------------
       SUBROUTINE inte_array_x( var )
         CHARACTER(LEN = 16) :: filwri
         CHARACTER(LEN = 4) :: var
@@ -466,8 +460,7 @@
 
 10      FORMAT( 5(G14.6,1X) )
       END SUBROUTINE inte_array_x
-
- 
+!-----------------------------------------------------------------------
       SUBROUTINE inte_array_y( var )
         CHARACTER(LEN = 16) :: filwri
         CHARACTER(LEN = 4) :: var
@@ -524,9 +517,7 @@
 
 10      FORMAT( 5(G14.6,1X) )
       END SUBROUTINE inte_array_y
-
-
- 
+!-----------------------------------------------------------------------
       SUBROUTINE inte_array_z( var )
         CHARACTER(LEN = 16) :: filwri
         CHARACTER(LEN = 4) :: var
@@ -583,14 +574,8 @@
 
 10      FORMAT( 5(G14.6,1X) )
       END SUBROUTINE inte_array_z
-
-
-
-      END SUBROUTINE filter_outp
-
-
 !-----------------------------------------------------------------------
-
+      END SUBROUTINE filter_outp
 !-----------------------------------------------------------------------
       END MODULE output_dump
 !----------------------------------------------------------------------

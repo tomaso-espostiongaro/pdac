@@ -49,7 +49,7 @@
         USE dimensions, ONLY: nz, no, nx, ny
         USE domain_decomposition, ONLY: myijk, meshinds
         USE grid, ONLY: iob
-        USE grid, ONLY: dz, zb, xb, dx, dy
+        USE grid, ONLY: dz, zb, rb, dx, dy
         USE roughness_module, ONLY: zrough
         USE control_flags, ONLY: job_type
         USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -98,7 +98,7 @@
                   IF( zrough%ir == 1 ) THEN
                     zrou = zrough%r(1)
                   ELSE IF( zrough%ir == 2 ) THEN
-                    IF( xb(i) <= zrough%roucha ) THEN
+                    IF( rb(i) <= zrough%roucha ) THEN
                       zrou = zrough%r(1)
                     ELSE
                       zrou = zrough%r(2)
@@ -153,7 +153,7 @@
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nx, ny, nz
       USE domain_decomposition, ONLY: meshinds
-      USE grid, ONLY: dx, dy, dz, fl_l
+      USE grid, ONLY: dx, dy, dz, flag
       USE eos_gas, ONLY: cg
       USE gas_solid_density, ONLY: rog
       USE gas_solid_velocity, ONLY: ug,vg,wg 
@@ -204,7 +204,7 @@
 
         DO ijk = 1, ncint
 
-          IF(fl_l(ijk) == 1) THEN
+          IF(flag(ijk) == 1) THEN
 
             CALL subscr(ijk)
 !
@@ -250,7 +250,7 @@
 !
       DO ijk = 1, ncint
 
-        IF( fl_l(ijk) == 1 ) THEN
+        IF( flag(ijk) == 1 ) THEN
 
           CALL meshinds( ijk, imesh, i, j, k )
 
@@ -344,7 +344,7 @@
           pranumt=0.5
           kapgt(ijk)=mugt(ijk)*cg(ijk)/pranumt
 !
-        ELSE IF (fl_l(ijk) /= 1) THEN
+        ELSE IF (flag(ijk) /= 1) THEN
 
           mugt(ijk)  = 0.D0
           kapgt(ijk) = 0.D0
@@ -472,7 +472,7 @@
       USE dimensions
       USE gas_solid_density, ONLY: rlk
       USE gas_solid_velocity, ONLY: us, vs, ws
-      USE grid, ONLY: itc, fl_l
+      USE grid, ONLY: itc, flag
       USE particles_constants, ONLY: rl, inrl, dk, cmus
       USE set_indexes
       USE control_flags, ONLY: job_type
@@ -483,7 +483,7 @@
       REAL*8 :: exp, fact, cst
 !
       DO ijk = 1, ncint
-        IF(fl_l(ijk) == 1) THEN
+        IF(flag(ijk) == 1) THEN
          CALL subscr(ijk)
 !
          DO is = 1, nsolid
@@ -577,7 +577,7 @@
 
       USE dimensions, ONLY: nx    
       USE domain_decomposition, ONLY: myijk
-      USE grid, ONLY:dx, dz, indx, indz,itc,inx 
+      USE grid, ONLY:dx, dz, indx, indz,itc,inr 
       USE set_indexes, ONLY: imjk, ijkm, ijkp, imjkp, imjkm, ipjk, ipjkm 
       IMPLICIT NONE
 
@@ -614,7 +614,7 @@
 ! ... extra-term for cylindrical coordinates
 !
         IF(itc == 1) THEN
-          d33 = (u(ij)+u(imjk))*inx(i)
+          d33 = (u(ij)+u(imjk))*inr(i)
         ELSE
           d33 = 0.D0
         END IF

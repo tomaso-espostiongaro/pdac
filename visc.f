@@ -181,7 +181,7 @@
       USE dimensions
       USE domain_decomposition, ONLY: ncint, ncdom, data_exchange
       USE domain_decomposition, ONLY: myijk, meshinds
-      USE grid, ONLY: dx, dy, dz, fl_l
+      USE grid, ONLY: dx, dy, dz, flag
       USE gas_solid_density, ONLY: rlk
       USE gas_solid_velocity, ONLY:  us, vs, ws
       USE particles_constants, ONLY: rl, inrl
@@ -228,7 +228,7 @@
         b = -0.27D0
 
         DO ijk = 1, ncint
-          IF(fl_l(ijk) == 1) THEN
+          IF(flag(ijk) == 1) THEN
             CALL meshinds(ijk,imesh,i,j,k)
             CALL subscr(ijk)
 
@@ -308,7 +308,7 @@
 !
       USE dimensions
       USE domain_decomposition, ONLY: ncint
-      USE grid, ONLY: itc, fl_l 
+      USE grid, ONLY: itc, flag 
       USE grid, ONLY: dx, dy, dz, indx, indy, indz
       USE set_indexes
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -347,7 +347,7 @@
 !
       DO ijk = 1, ncint
         imesh = myijk( ip0_jp0_kp0_, ijk)
-        IF(fl_l(ijk) == 1) THEN
+        IF(flag(ijk) == 1) THEN
          CALL subscr(ijk)
          !CALL subscr_iter(ijk)
          i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
@@ -571,8 +571,8 @@
 !
       USE dimensions
       USE domain_decomposition, ONLY: ncint
-      USE grid, ONLY: itc, dz, dx, x, xb, indz, indx, inx, inxb
-      USE grid, ONLY: fl_l
+      USE grid, ONLY: itc, dz, dx, r, rb, indz, indx, inr, inrb
+      USE grid, ONLY: flag
       USE set_indexes
       USE indijk_module, ONLY: ip0_jp0_kp0_
 
@@ -597,7 +597,7 @@
       visz = 0.D0
 !
       DO ij = 1, ncint
-        IF(fl_l(ij) == 1) THEN
+        IF(flag(ij) == 1) THEN
          imesh = myijk( ip0_jp0_kp0_, ij)
          CALL subscr(ij)
          j = ( imesh - 1 ) / nx + 1
@@ -615,11 +615,11 @@
 !
 ! ... divergence of the velocity field at right, centered, top cells
 !
-         divr = ((xb(i+1)*u(ipjk)-xb(i)*u(ij))*inx(i+1)*indx(i+1)        &
+         divr = ((rb(i+1)*u(ipjk)-rb(i)*u(ij))*inr(i+1)*indx(i+1)        &
               + (w(ipjk)-w(ipjkm))*indz(j))
-         divc = ((xb(i)*u(ij)-xb(i-1)*u(imjk))*inx(i)*indx(i)            &
+         divc = ((rb(i)*u(ij)-rb(i-1)*u(imjk))*inr(i)*indx(i)            &
               + (w(ij)-w(ijkm))*indz(j))
-         divt = ((xb(i)*u(ijkp)-xb(i-1)*u(imjkp))*inx(i)*indx(i)          &
+         divt = ((rb(i)*u(ijkp)-rb(i-1)*u(imjkp))*inr(i)*indx(i)          &
               + (w(ijkp)-w(ij))*indz(j+1))
 !         
 ! ... diagonal components of the strain tensor ...
@@ -649,15 +649,15 @@
            eps0=(eps(ij)*dx(i+1)+eps(ijke)*dx(i))*indxp
            mu0=(mu(ij)*dx(i+1)+mu(ijke)*dx(i))*indxp
            lambda0=(lambda(ij)*dx(i+1)+lambda(ijke)*dx(i))*indxp
-           t0 = 2.D0 * u(ij) * inxb(i)
+           t0 = 2.D0 * u(ij) * inrb(i)
 !
 ! ... divergence of the velocity field at cell boundary
 !
-           du = (xb(i+1)*u(ipjk)-xb(i-1)*u(imjk))
+           du = (rb(i+1)*u(ipjk)-rb(i-1)*u(imjk))
            wm2=(dx(i)*w(ipjk)+dx(i+1)*w(ij))*indxp
            wm1=(dx(i)*w(ipjkm)+dx(i+1)*w(ijkm))*indxp
            dw = wm2 - wm1
-           dive =  (inxb(i) * du * indxp + dw * indz(j))
+           dive =  (inrb(i) * du * indxp + dw * indz(j))
 !
 ! ... (isotropy)
 !
@@ -675,12 +675,12 @@
 !
 ! ... x-gradient of the stress tensor
 !
-         gradxx   = (eps(ijke)*txx2*x(i+1)-eps(ij)*txx1*x(i))
-         gradxx   = gradxx * indxp * 2.D0 * inxb(i)
+         gradxx   = (eps(ijke)*txx2*r(i+1)-eps(ij)*txx1*r(i))
+         gradxx   = gradxx * indxp * 2.D0 * inrb(i)
          gradyx   = (epsmu2*tyx2-epsmu1*tyx1)
          gradyx   = gradyx * indz(j)
 
-         visx(ij) = gradxx + gradyx - eps0 * t0 * inxb(i)
+         visx(ij) = gradxx + gradyx - eps0 * t0 * inrb(i)
 !
          epsmu11=(dz(j)*eps(ijkwt)*mu(ijkwt)+dz(j+1)*eps(ijkw)*mu(ijkw))*indzp
          epsmu1=(dx(i)*epsmu11+dx(i-1)*epsmu21)*indxm
@@ -689,8 +689,8 @@
 !
          gradyy   = (eps(ijkt)*tyy2 - eps(ij)*tyy1)
          gradyy   = gradyy * indzp*2.D0
-         gradxy   = (xb(i)*epsmu2*txy2-xb(i-1)*epsmu1*txy1)
-         gradxy   = gradxy * inx(i)*indx(i)
+         gradxy   = (rb(i)*epsmu2*txy2-rb(i-1)*epsmu1*txy1)
+         gradxy   = gradxy * inr(i)*indx(i)
 
          visz(ij) = gradyy + gradxy
                     

@@ -13,8 +13,8 @@
 !
       USE dimensions
       USE domain_decomposition, ONLY: myijk, meshinds
-      USE grid, ONLY: fl_l
-      USE grid, ONLY: dx, dy, dz, xb
+      USE grid, ONLY: flag
+      USE grid, ONLY: dx, dy, dz, rb
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       IMPLICIT NONE
 !
@@ -30,16 +30,16 @@
 !
       CALL meshinds(ijk,imesh,i,j,k)     
 !
-      IF (fl_l(imjk) /= 1) THEN
+      IF (flag(imjk) /= 1) THEN
         dxm = (dx(i)+dx(i-1))
         indxm = 1.D0/dxm
         kmw = ( dx(i-1) * kapgt%c + dx(i) * kapgt%w ) * indxm
         epmw = ( dx(i-1) *ep%c + dx(i) * ep%w ) * indxm
 !
-        hgfw = kmw * epmw * (tg%c-tg%w) * indxm * 2.D0 * xb(i-1)
+        hgfw = kmw * epmw * (tg%c-tg%w) * indxm * 2.D0 * rb(i-1)
       END IF
 !
-      IF (fl_l(ijmk) /= 1) THEN
+      IF (flag(ijmk) /= 1) THEN
         dym = (dy(j)+dy(j-1))
         indym = 1.D0/dym
         kms = ( dy(j-1) * kapgt%c + dy(j) * kapgt%s ) * indym
@@ -48,7 +48,7 @@
         hgfs = kms * epms * (tg%c-tg%s) * indym * 2.D0
       END IF
 !
-      IF (fl_l(ijkm) /= 1) THEN
+      IF (flag(ijkm) /= 1) THEN
         dzm = (dz(k)+dz(k-1))
         indzm = 1.D0/dzm
         kmb =  ( dz(k-1) * kapgt%c + dz(k) * kapgt%b ) * indzm
@@ -62,7 +62,7 @@
       kme =  ( dx(i+1) * kapgt%c + dx(i) * kapgt%e ) * indxp
       epme = ( dx(i+1) * ep%c + dx(i) * ep%e ) * indxp
 !
-      hgfe = kme * epme * (tg%e-tg%c) * indxp * 2.D0 * xb(i)
+      hgfe = kme * epme * (tg%e-tg%c) * indxp * 2.D0 * rb(i)
 !
       dyp = (dy(j)+dy(j+1))
       indyp = 1.D0/dyp

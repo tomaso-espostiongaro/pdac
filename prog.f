@@ -12,11 +12,9 @@
       USE eos_gas, ONLY: mole, caloric_eosg, thermal_eosg
       USE eos_gas, ONLY: ygc, rgpgc, xgc, cg
       USE eos_solid, ONLY: caloric_eosl
-      USE gas_constants, ONLY: default_gas
       USE gas_components, ONLY: ygas
       USE gas_solid_density, ONLY: rog, rgp, rlk
       USE gas_solid_temperature, ONLY: sieg, sies, ts, tg
-      USE grid, ONLY: fl_l
       USE specific_heat_module, ONLY: cp, ck
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE io_restart, ONLY: tapewr, max_seconds
@@ -29,13 +27,13 @@
       USE tilde_momentum, ONLY: allocate_fluxes, deallocate_fluxes
       USE tilde_momentum, ONLY: tilde, fieldn
       USE time_parameters, ONLY: time, tpr, tdump, tstop, dt, itd
-      USE time_parameters, ONLY: rungekut
+      USE time_parameters, ONLY: rungekut, sweep
       USE turbulence_model, ONLY: iturb, iss
       USE turbulence_model, ONLY: sgsg, sgss
 !
       IMPLICIT NONE
 !
-      INTEGER :: irest, nprint, ndump
+      INTEGER :: nprint, ndump
       INTEGER :: info
       INTEGER :: is
       INTEGER :: ijk
@@ -54,22 +52,23 @@
                 mptimiter, mptimygas, mptimtem, mptimout, mptimres, mptimtot
       
       LOGICAL :: stop_now
-      INTEGER :: float_chk
 !
       IF( timing ) then
          s0 = cpclock()
          call cpu_time(t0)
          call MP_WALLTIME(p0,myrank)
       END IF
-
+! 
+! ... Print OUTPUT every 'nprint' time-steps
+! ... Print RESTART every 'ndump' time-steps
+!
       nprint = NINT(tpr/dt)
       ndump  = NINT(tdump/dt)
+      sweep  = NINT(time/dt)
 
       WRITE(6,*) 'Print OUTPUT every ', nprint, ' time steps'
       WRITE(6,*) 'Print RESTART every ', ndump, ' time steps'
-
-      irest = NINT(time/dt)
-
+!
       !
       !   set timing variables to 0
       !
@@ -114,10 +113,10 @@
 !
 !//////////////////////////////////////////////////////////////////////
 !
-        irest = irest + 1
+        sweep = sweep + 1
 
         IF (lpr >= 1) THEN
-          WRITE(6,fmt="(/,'* Starting iteration ',I5,' * ')" ) irest
+          WRITE(6,fmt="(/,'* Starting iteration ',I5,' * ')" ) sweep
           WRITE(6,fmt="('  Simulated time = ',F20.14)" ) time
         END IF
 !
@@ -130,6 +129,9 @@
 ! ... Compute Boundary Conditions
 !
         CALL boundary
+
+        ! ... write initial conditions
+        IF (sweep == 1) CALL outp
 !
 ! ... If needed, update gas density (check algorithm)
 !
@@ -276,7 +278,7 @@
 !
 ! ... Write OUTPUT file
 ! 
-        IF(MOD(irest,nprint) == 0) THEN
+        IF(MOD(sweep,nprint) == 0) THEN
           CALL outp
         ENDIF
 !
@@ -298,7 +300,7 @@
                       & '  program stopping')" )
         END IF
 
-        IF((MOD(irest,ndump) == 0) .OR. stop_now) THEN
+        IF((MOD(sweep,ndump) == 0) .OR. stop_now) THEN
           CALL tapewr
         END IF
 !

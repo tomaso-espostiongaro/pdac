@@ -150,7 +150,7 @@
 ! ... (the gas thermal capacity depends on the temperature cg=cg(T) )
 !
       USE dimensions
-      USE grid, ONLY: fl_l
+      USE grid, ONLY: flag
       USE gas_constants, ONLY: gmw, c_joule, rgas, tzero, hzerog, gammaair
       USE gas_constants, ONLY: gas_type
       USE parallel, ONLY: mpime
@@ -172,7 +172,7 @@
       PARAMETER( nlmax = 1000) 
       PARAMETER( ratmin = 1.D-8) 
 
-      IF ( fl_l(ijk) == 1 ) THEN
+      IF ( flag(ijk) == 1 ) THEN
 
           tg0   = tg
           sieg0 = sieg

@@ -17,9 +17,9 @@
       USE dimensions
       USE domain_decomposition, ONLY: ncint, ncdom, meshinds
       USE eos_gas, ONLY: rgpgc, rgpgcn, ygc, xgc, mole
-      USE gas_constants, ONLY: default_gas, gas_type
-      USE grid, ONLY: dx, dy, dz, indx, indy, indz, inx
-      USE grid, ONLY: fl_l
+      USE gas_constants, ONLY: gas_type
+      USE grid, ONLY: dx, dy, dz, indx, indy, indz, inr
+      USE grid, ONLY: flag
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
       USE time_parameters, ONLY: dt,time
 !
@@ -45,7 +45,7 @@
       CALL compute_all_fluxes
 
       DO ijk = 1, ncint
-       IF( fl_l(ijk) == 1 ) THEN
+       IF( flag(ijk) == 1 ) THEN
          CALL meshinds(ijk,imesh,i,j,k)
          CALL subscr(ijk)
 	   
@@ -68,7 +68,7 @@
            END IF
 
            rgpgc_tmp = rgpgcn(ijk,ig)
-	   rgpgc_tmp = rgpgc_tmp - dt * indx(i) * yfx * inx(i)     
+	   rgpgc_tmp = rgpgc_tmp - dt * indx(i) * yfx * inr(i)     
            rgpgc_tmp = rgpgc_tmp - dt * indy(j) * yfy              
 	   rgpgc_tmp = rgpgc_tmp - dt * indz(k) * yfz
  
@@ -93,15 +93,11 @@
 ! ... Update the mass fractions (with the closure relation constraint)
 !
          ygcdfg = 1.D0
-         DO ig=1,ngas
-           IF (gas_type(ig) /= default_gas) THEN
-             ygc(ig,ijk) = rgpgc(ijk,ig) * rgpinv
-             ygcdfg = ygcdfg - ygc(ig,ijk)
-           ELSE 
-             dfg = ig
-           END IF
+         DO ig = 1, ngas - 1
+           ygc(ig,ijk) = rgpgc(ijk,ig) * rgpinv
+           ygcdfg = ygcdfg - ygc(ig,ijk)
          END DO
-         ygc(dfg,ijk) = ygcdfg
+         ygc(ngas,ijk) = ygcdfg
 !
 ! ... Update molar fractions
 !
@@ -125,7 +121,7 @@
       USE eos_gas, ONLY: rgpgc
       USE flux_limiters, ONLY: muscl
       USE gas_solid_velocity, ONLY: ug, vg, wg
-      USE grid, ONLY: fl_l
+      USE grid, ONLY: flag
       USE set_indexes, ONLY: stencil, cte
       USE set_indexes, ONLY: first_nb, first_rnb, third_nb, third_rnb
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
@@ -140,7 +136,7 @@
       one  = cte(1.D0)
 !
       DO ijk = 1, ncint
-       IF( fl_l(ijk) == 1 ) THEN
+       IF( flag(ijk) == 1 ) THEN
          CALL subscr(ijk)
 
          DO ig=1,ngas

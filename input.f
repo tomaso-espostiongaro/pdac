@@ -88,15 +88,15 @@
       SUBROUTINE input( iunit, which )
 
       USE atmosphere, ONLY: w0, u0, p0, temp0, us0, ws0, ep0, epsmx0
-      USE atmosphere, ONLY: gravx, gravy, gravz, zzero
-      USE control_flags, ONLY: nfil, job_type, lpr
+      USE atmosphere, ONLY: gravx, gravy, gravz
+      USE control_flags, ONLY: nfil, job_type, lpr, immb, itp
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
       USE domain_decomposition, ONLY: mesh_partition
       USE flux_limiters, ONLY: beta, muscl, lim_type
-      USE gas_constants, ONLY: default_gas
       USE gas_solid_viscosity, ONLY: gas_viscosity, part_viscosity
       USE gas_solid_viscosity, ONLY: repulsive_model
-      USE grid, ONLY: dx, dy, dz, itc
+      USE grid, ONLY: dx, dy, dz, itc, zzero
+      USE grid, ONLY: west, east, south, north, bottom, top, topography
       USE initial_conditions, ONLY: setup, epsob, wpob, tpob, ygc0, &
      &    ygcob, upob, wgob, ugob, pob, tgob, epob, density_specified
       USE iterative_solver, ONLY: inmax, maxout, omega
@@ -127,36 +127,40 @@
 
       NAMELIST / model / irex, gas_viscosity, part_viscosity,      &
         iss, repulsive_model, iturb, modturbo, cmut, rlim,         &
-        gravx, gravy, gravz, default_gas, ngas, density_specified
+        gravx, gravy, gravz, ngas, density_specified
 
       NAMELIST / pp / first_out, last_out, incr_out
-!
+
       NAMELIST / mesh / nx, ny, nz, itc, iuni, dx0, dy0, dz0, &
         origin_x, origin_y, origin_z, mesh_partition
-!
+
+      NAMELIST / boundaries / west, east, south, north, bottom, top, &
+        itp, topography, immb
+
       NAMELIST / particles / nsolid, diameter, density, sphericity, &
         viscosity, specific_heat, thermal_conductivity
-!
+
       NAMELIST / numeric / rungekut, beta, muscl, lim_type, &
         inmax, maxout, omega, implicit_fluxes, implicit_enthalpy
-!
+
       INTEGER :: i, j, k, n, m, ig, ierr
       REAL*8, ALLOCATABLE :: grx(:), gry(:), grz(:)
       CHARACTER(LEN=80) :: card
       CHARACTER(LEN=256) :: attr
       LOGICAL :: tend
 !
-!    Sets default values
+!:::::::::::::::::::::::::::::  Sets default values  ::::::::::::::::::::::::::
+!
 
 ! ... Control
 
-      run_name = 'run2d'
+      run_name = 'pdac_run_2d'
       job_type = '2D'
       restart_mode = 'from_scratch'
       time = 0.0D0      ! start time in seconds
-      tstop = 1.0D0     ! stop time seconds
+      tstop = 100.0D0     ! stop time seconds
       dt = 0.01D0       ! time increment seconds
-      lpr = 1           ! verbosity (not yet implemented)
+      lpr = 2           ! verbosity (not yet implemented)
       tpr = 1.0D0       ! write to output file every tpr seconds of simulated time
       tdump = 20.0D0    ! write restart every tdump seconds of simulated time
       nfil = 0          ! output file index
@@ -181,7 +185,6 @@
       gravy = 0.0D0     ! gravity along y
       gravz = -9.81D0   ! gravity along z
       ngas = 2          ! max number of gas components
-      default_gas = 6   ! atmospheric air
 
 ! ... Mesh
 
@@ -199,6 +202,18 @@
       origin_z  = 0.D0        !  default z coo. of the system origin
       zzero = 0.0D0           !  grid bottom level
 
+! ... Boundaries
+
+      west = 2                !
+      east = 4                !
+      bottom = 3              ! boundary types
+      top = 4                 !
+      south = 2               !
+      north = 2               !
+      itp   = 1               ! itp = 1 => read topography from file
+      topography = 'topo.dat' ! file containing the topographic profile
+      immb  = 1               ! 1: use immersed boundaries
+
 ! ... Particles
  
       nsolid = 2              !  number of solid components
@@ -213,15 +228,16 @@
 
       rungekut = 1      !  number of runge-kutta cycles
       beta = 0.25       !  upwinding degree
-      lim_type = 0      !  limiter type 
+      lim_type = 2      !  limiter type 
       muscl = 0         !  0 first order, 1 muscl ( high order )
       inmax = 8         !  maximum number of pressure correction steps
       maxout = 1000     !  maximum number of solver iteration
       omega = 1.0       !  relaxation parameter  ( 0.5 under - 2.0 over)
       implicit_fluxes   = .FALSE. ! fluxes are computed implicitly
       implicit_enthalpy = .FALSE. ! enthalpy solved implicitly
+
 !
-! reading of input file
+! :::::::::::::::::::::::  R E A D   N A M E L I S T S ::::::::::::::::
 !
 
       IF( which == 'PP' ) THEN 
@@ -235,9 +251,13 @@
           CALL iotk_write_begin( iuni_nml, "input" )
         END IF
       END IF
-
+!
+! ... Control Namelist ................................................
+!
       IF(mpime == root) THEN
+
         READ(iunit, control) 
+
         IF( which == 'PP' ) THEN
           ! WRITE(iuni_nml, control) 
        
@@ -294,15 +314,18 @@
           job_type = '2D'
         CASE ('3D', '3d' )
           job_type = '3D'
-!          CALL error(' input ',' job_type = 3D not yet implemented ', 1 )
         CASE DEFAULT
           CALL error(' input ',' unknown job_type '//TRIM(job_type), 1 )
       END SELECT
 
       CALL subsc_setup( job_type )
-
+!
+! ... Model Namelist ................................................
+!
       IF(mpime == root) THEN
+
         READ(iunit, model) 
+
         IF( which == 'PP' ) THEN
           CALL iotk_write_begin( iuni_nml, "model" )
             CALL iotk_write_dat( iuni_nml, "gas_viscosity", gas_viscosity )
@@ -316,7 +339,6 @@
             CALL iotk_write_dat( iuni_nml, "gravx", gravx )
             CALL iotk_write_dat( iuni_nml, "gravz", gravz )
             CALL iotk_write_dat( iuni_nml, "ngas", ngas )
-            CALL iotk_write_dat( iuni_nml, "default_gas", default_gas )
             CALL iotk_write_dat( iuni_nml, "density_specified", density_specified )
           CALL iotk_write_end( iuni_nml, "model" )
         END IF
@@ -333,13 +355,16 @@
       CALL bcast_real(gravy,1,root)
       CALL bcast_real(gravz,1,root)
       CALL bcast_integer(ngas,1,root)
-      CALL bcast_integer(default_gas,1,root)
       CALL bcast_logical(gas_viscosity,1,root)
       CALL bcast_logical(part_viscosity,1,root)
       CALL bcast_logical(density_specified,1,root)
-
+!
+! ... Mesh Namelist ...................................................
+!
       IF(mpime == root) THEN
+      
         READ(iunit, mesh) 
+        
         IF( which == 'PP' ) THEN
           ! WRITE(iuni_nml, mesh) 
           CALL iotk_write_begin( iuni_nml, "mesh" )
@@ -371,9 +396,47 @@
       CALL bcast_real(origin_y,1,root)
       CALL bcast_real(origin_z,1,root)
       CALL bcast_real(zzero,1,root)
-
+!
+! ... Boundaries Namelist ................................................
+!
       IF(mpime == root) THEN
+
+        READ(iunit, boundaries) 
+
+        IF( which == 'PP' ) THEN
+          CALL iotk_write_begin( iuni_nml, "boundaries" )
+          ! WRITE(iuni_nml, boundaries) 
+            CALL iotk_write_dat( iuni_nml, "east", east )
+            CALL iotk_write_dat( iuni_nml, "west", west )
+            CALL iotk_write_dat( iuni_nml, "south", south )
+            CALL iotk_write_dat( iuni_nml, "north", north )
+            CALL iotk_write_dat( iuni_nml, "top", top )
+            CALL iotk_write_dat( iuni_nml, "bottom", bottom )
+            CALL iotk_write_dat( iuni_nml, "itp", itp )
+            CALL iotk_write_begin( iuni_nml, "topography" )
+              WRITE( iuni_nml, * ) topography
+            CALL iotk_write_end( iuni_nml, "topography" )
+            CALL iotk_write_dat( iuni_nml, "immb", immb )
+          CALL iotk_write_end( iuni_nml, "boundaries" )
+        END IF
+      END IF
+
+      CALL bcast_integer(east,1,root)
+      CALL bcast_integer(west,1,root)
+      CALL bcast_integer(north,1,root)
+      CALL bcast_integer(south,1,root)
+      CALL bcast_integer(bottom,1,root)
+      CALL bcast_integer(top,1,root)
+      CALL bcast_integer(itp,1,root)
+      CALL bcast_character(topography,80,root)
+      CALL bcast_integer(immb,1,root)
+!
+! ... Particles Namelist ..............................................
+!
+      IF(mpime == root) THEN
+
         READ(iunit, particles) 
+
         IF( which == 'PP' ) THEN
           ! WRITE(iuni_nml, particles) 
           CALL iotk_write_begin( iuni_nml, "particles" )
@@ -383,7 +446,8 @@
             CALL iotk_write_dat( iuni_nml, "sphericity", sphericity )
             CALL iotk_write_dat( iuni_nml, "viscosity", viscosity )
             CALL iotk_write_dat( iuni_nml, "specific_heat", specific_heat )
-            CALL iotk_write_dat( iuni_nml, "thermal_conductivity", thermal_conductivity )
+            CALL iotk_write_dat( iuni_nml, "thermal_conductivity", &
+                                            thermal_conductivity )
           CALL iotk_write_end( iuni_nml, "particles" )
         END IF
       END IF
@@ -399,9 +463,13 @@
       IF( nsolid > max_nsolid .OR. nsolid < 1 ) THEN
         CALL error( ' input ', ' nsolid out of range ', nsolid )
       END IF
-
+!
+! ... Numeric Namelist ................................................
+!
       IF(mpime == root) THEN
+
         READ(iunit, numeric) 
+
         IF( which == 'PP' ) THEN
           ! WRITE(iuni_nml, numeric) 
           CALL iotk_write_begin( iuni_nml, "numeric" )
@@ -429,7 +497,9 @@
       CALL bcast_real(omega,1,root)
       CALL bcast_logical(implicit_fluxes,1,root)
       CALL bcast_logical(implicit_enthalpy,1,root)
-
+!
+! ... PP Namelist .....................................................
+!
       IF( which == 'PP' ) THEN
         IF(mpime == root) THEN
           READ(iunit, pp) 
@@ -444,7 +514,12 @@
         CALL bcast_integer(last_out,1,root)
         CALL bcast_integer(incr_out,1,root)
       END IF
-
+!
+! :::::::::::::::::::::::  R E A D   C A R D S ::::::::::::::::::::::::
+!
+!
+! ... Roughness Card ..................................................
+!
       CALL allocate_roughness( zrough, nroughx )
       tend = .FALSE.
       IF(mpime == root) THEN
@@ -477,7 +552,7 @@
       CALL bcast_real(zrough%r, zrough%ir, root)
       CALL bcast_real(zrough%roucha, 1, root)
 !
-! ... Read cell sizes
+! ... Mesh Card (cell sizes) ..........................................
 !
       tend = .FALSE.
       IF(mpime == root) THEN
@@ -513,7 +588,7 @@
       CALL bcast_real(delta_y,ny,root)
       CALL bcast_real(delta_z,nz,root)
 !
-! ... write post-processing files
+! :::::::::::::::::::::   write post-processing files   :::::::::::::::::::::::
 !
       IF(mpime == root) THEN
 
@@ -571,7 +646,7 @@
 
       END IF
 !
-! ... Read boundary conditions
+! ... Fixed Flows Card (Inlet conditions) .............................
 !
       npr = 0
       tend = .FALSE.
@@ -695,7 +770,7 @@
       CALL bcast_real(prof_parttemp, SIZE(prof_parttemp), root)
       CALL bcast_real(prof_gasconc, SIZE(prof_gasconc), root)
 !
-!     Read initial conditions ( atmosphere conditions )
+! ... Initial conditions Card .........................................
 !
       tend = .FALSE.
       IF(mpime == root) THEN
@@ -768,16 +843,16 @@
         END IF
       END IF
 
-      END SUBROUTINE
+      END SUBROUTINE input
 !----------------------------------------------------------------------
       SUBROUTINE initc
 
       USE atmosphere, ONLY: v0, u0, w0, p0, temp0, us0, vs0, ws0, &
-     &                      ep0, epsmx0, zzero
+     &                      ep0, epsmx0
       USE control_flags, ONLY: job_type, lpr
       USE dimensions
       USE grid, ONLY: dx, dy, dz, itc
-      USE grid, ONLY: iob
+      USE grid, ONLY: iob, zzero
       USE initial_conditions, ONLY: epsob, tpob, ygc0, ygcob,   &
      &     ugob, vgob, wgob, upob, vpob, wpob, pob, tgob, epob
       USE initial_conditions, ONLY: ugpr, wgpr, ppr, eppr, tgpr, &

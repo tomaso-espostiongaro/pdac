@@ -8,7 +8,6 @@
 !
       REAL*8 :: u0, v0, w0, p0, temp0, us0, vs0, ws0
       REAL*8 :: ep0, epsmx0
-      REAL*8 :: zzero
       REAL*8 :: gravx, gravy, gravz
       REAL*8, ALLOCATABLE :: p_atm(:), t_atm(:)
 
@@ -60,7 +59,7 @@
 !
       USE control_flags, ONLY: lpr
       USE dimensions, ONLY: nz
-      USE grid, ONLY: dz
+      USE grid, ONLY: dz, zzero
 !
       IMPLICIT NONE
 
@@ -151,7 +150,7 @@
 ! ... cell of the computational domain 
 !
       USE dimensions, ONLY: nz
-      USE grid, ONLY: dz, zb
+      USE grid, ONLY: dz, zb, zzero
 !
       IMPLICIT NONE
 !
