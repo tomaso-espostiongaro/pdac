@@ -89,6 +89,7 @@
       INTEGER :: i_, j_, k_, ijk_
 
       LOGICAL, ALLOCATABLE :: converge(:)
+      LOGICAL :: cvg
       LOGICAL :: optimization
 !
       ALLOCATE(conv(ncint), abeta(ncint))
@@ -248,6 +249,8 @@
                rgp( ijk_ ) = ep( ijk_ ) * rog( ijk_ )
 
              ELSE IF ( ABS(dg) > conv( ijk_ ) ) THEN
+
+               n2 = n2 + 1
 !
                ! ... If the residual is higher then the prescribed limit
                ! ... start the inner (in-cell) iterative loop
@@ -258,15 +261,13 @@
 
                IF (optimization) THEN
                  CALL opt3_inner_loop(i_, j_, k_, ijk_, nit, d3, p3, &
-                                  abeta(ijk_), conv(ijk_),&
-                                  dgorig, nloop)
+                                  abeta(ijk_), conv(ijk_), &
+                                  dgorig, nloop, cvg)
                ELSE
                  CALL inner_loop(i_, j_, k_, ijk_, nit, d3, p3, &
                                  abeta(ijk_),conv(ijk_), &
-                                 dgorig, nloop)
+                                 dgorig, nloop, cvg)
                END IF
-
-               n2 = n2 + 1
 
              END IF
 
@@ -392,8 +393,7 @@
           DO ijk_ = 1, ncint
             IF ( .NOT. converge( ijk_ ) ) THEN
               CALL meshinds( ijk_ , imesh, i_ , j_ , k_ )
-              WRITE(6,*) imesh, i_ , j_ , k_, conv( ijk_ )
-              WRITE(6,701) p(ijk_), rlk(ijk_,:), tg(ijk_), ts(ijk_,:)
+              WRITE(6,*) imesh, i_ , j_ , k_
             END IF
           END DO
  700      FORMAT('max number of iterations (',I5,') reached at time: ', F8.3)
@@ -429,7 +429,7 @@
 !----------------------------------------------------------------------
 !
       SUBROUTINE inner_loop( i, j, k, ijk, nit, d3, p3, abeta_, conv_,  &
-                             dgorig, nloop )
+                             dgorig, nloop, cvg )
 !
 !----------------------------------------------------------------------
 ! ... iteratively correct the pressure field in a cell by minimizing
@@ -449,15 +449,18 @@
 
       IMPLICIT NONE
 
-      INTEGER :: nit, ijk, i, j, k
-      REAL*8 :: d3, p3, abeta_, conv_, dgorig
+      INTEGER, INTENT(IN) :: nit, ijk, i, j, k
+      REAL*8, INTENT(IN)  :: conv_
+      REAL*8, INTENT(INOUT)  :: d3, p3, abeta_, dgorig
+      LOGICAL, INTENT(OUT) :: cvg
+
       REAL*8 :: resx, resy, resz
 
       INTEGER :: loop, kros, nloop
 
       kros = -1
 
-      DO loop = 1, inmax
+      inloop: DO loop = 1, inmax
 !
         ! ... Correct the pressure at current cell
         ! ... by using successively the Newton's method
@@ -473,6 +476,8 @@
 !
         ! ... Use equation of state to calculate gas density 
         ! ... from (new) pressure and (old) temperature.
+        ! ... (note that the explicit solution of the enthalpy
+        ! ... equations affects only this updating)
 !
         CALL thermal_eosg(rog(ijk),tg(ijk),p(ijk),xgc(:,ijk))
 !
@@ -504,6 +509,7 @@
 !
         IF ( ( DABS(dg) > conv_ .OR. DABS(dg) >= DABS(dgorig) ) ) THEN
 
+          cvg = .FALSE.
           IF( nit == 1 .AND. loop == 1 ) dgorig = dg
           d3 = dg
           ! ... steepen the Newton's slope (accelerate)
@@ -511,11 +517,12 @@
 
         ELSE IF ( DABS(dg) <= conv_ ) THEN
 
-          EXIT
+          cvg = .TRUE.
+          EXIT inloop
 
         END IF
 
-      END DO 
+      END DO inloop
 
       nloop = nloop + loop
 
@@ -998,14 +1005,14 @@
               iep_n = 0.0D0
             ELSE
               iep_n = ( dy(j+1)*ep(ijk)+dy(j)*ep(ijkn) )*indyp*indyp*2.D0 
-              iep_n = iep_n * upc_n 
+              !iep_n = iep_n * upc_n 
             END IF
 
             IF( (nfls /= 1) .AND. (nfls /= 4) .AND. (nfls /= 6) ) THEN
               iep_s = 0.D0
             ELSE
               iep_s = ( dy(j-1)*ep(ijk)+dy(j)*ep(ijks) )*indym*indym*2.D0
-              iep_s = iep_s * upc_s
+              !iep_s = iep_s * upc_s
             END IF
 
           END IF
@@ -1075,7 +1082,7 @@
 !----------------------------------------------------------------------
 !
       SUBROUTINE opt_inner_loop(i, j, k, ijk, nit, d3, p3,abeta_,conv_, &
-                                dgorig, nloop )
+                                dgorig, nloop, cvg )
 !
 !----------------------------------------------------------------------
 
@@ -1100,6 +1107,7 @@
 
         INTEGER :: nit, ijk, i, j, k, nloop
         REAL*8 :: d3, p3, abeta_, conv_, dgorig
+        LOGICAL, INTENT(OUT) :: cvg
         REAL*8 :: resx, resy, resz, mg
         REAL*8 :: rlkx, rlky, rlkz, rls
         REAL*8 :: fe_, fn_, ft_, fw_, fs_, fb_
@@ -1297,6 +1305,7 @@
 !
           IF ( ( DABS(dg) > conv_ ) .OR. ( DABS(dg) >= DABS(dgorig) ) ) THEN
 
+            cvg = .FALSE.
             IF( nit == 1 .AND. loop == 1 ) dgorig = dg
             d3 = dg
             ! ... steepen the Newton's slope (accelerate)
@@ -1304,6 +1313,7 @@
 
           ELSE IF ( DABS( dg ) <= conv_ ) THEN
 
+            cvg = .TRUE.
             EXIT
 
           END IF
@@ -1335,7 +1345,7 @@
 !----------------------------------------------------------------------
 !
       SUBROUTINE opt3_inner_loop(i,j,k,ijk,nit, d3, p3, abeta_,conv_, &
-                                 dgorig, nloop )
+                                 dgorig, nloop, cvg )
 !
 !----------------------------------------------------------------------
 
@@ -1360,6 +1370,7 @@
 
         INTEGER :: nit, ijk, i, j, k, nloop
         REAL*8 :: d3, p3, abeta_, conv_, dgorig
+        LOGICAL, INTENT(OUT) :: cvg
         REAL*8 :: resx, resy, resz, mg
         REAL*8 :: rlkx, rlky, rlkz, rls
         REAL*8 :: rsfe1_ , rsfe2_
@@ -1545,6 +1556,7 @@
 !
           IF ( ( DABS(dg) > conv_ ) .OR. ( DABS(dg) >= DABS(dgorig) ) ) THEN
 
+            cvg = .FALSE.
             IF( nit == 1 .AND. loop == 1 ) dgorig = dg
             d3 = dg
             ! ... steepen the Newton's slope (accelerate)
@@ -1552,6 +1564,7 @@
 
           ELSE IF ( DABS( dg ) <= conv_ ) THEN
 
+            cvg = .TRUE.
             EXIT
 
           END IF

@@ -56,7 +56,7 @@ immb.o : control.o dimensions.o grid.o parallel.o
 
 indijk.o : 
 
-input.o : atmosphere.o control.o decomp.o dimensions.o grid.o io.o  \
+input.o : atmosphere.o control.o decomp.o dimensions.o eosg.o grid.o io.o  \
     iotk_module.o iter.o limiters.o matrix.o outp.o parallel.o particles.o  \
     reactions.o roughness.o setup.o subscr.o time.o turbo.o visc.o 
 
