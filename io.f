@@ -349,7 +349,7 @@
          END IF
       END IF
       DEALLOCATE( io_buf )
-10    FORMAT( 5(G14.6,1X) )
+10    FORMAT( 5(G14.6E3,1X) )
       RETURN
       END SUBROUTINE
 

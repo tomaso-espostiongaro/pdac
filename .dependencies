@@ -77,8 +77,6 @@ limiters.o :
 matrix.o : control.o decomp.o dens.o dimensions.o grid.o indijk.o  \
     particles.o press.o subscr.o tilde.o time.o velocity.o 
 
-matsvels_solve.o : 
-
 nondim.o : atmosphere.o decomp.o dimensions.o gas.o grid.o indijk.o  \
     particles.o time.o 
 
@@ -123,8 +121,6 @@ tilde.o : atmosphere.o control.o decomp.o dens.o dimensions.o drag.o eosg.o  \
     visc.o 
 
 time.o : 
-
-transto.o : 
 
 turbo.o : control.o decomp.o dens.o dimensions.o environment.o eosg.o grid.o  \
     indijk.o particles.o roughness.o subscr.o velocity.o 

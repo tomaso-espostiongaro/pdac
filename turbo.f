@@ -81,44 +81,43 @@
 !
         IF( job_type == '2D' ) THEN
 
-          DO k = 2, (nz-1)
-            DO i = 2, (nx-1) 
-              ijk = i + (k-1) * nx
-              delt = DSQRT( dz(k)*dx(i) )
+          DO ijk = 1, ncint
+            CALL meshinds(ijk,imesh,i,j,k)
 
-              IF ( iturb == 1 ) THEN
-                sl = cmut * delt
-              ELSE IF ( iturb == 2 ) THEN
-                IF( k <= kt(i) ) THEN
-                  sl = 0.D0
-                ELSE
-                  sgsl = cmut * delt
-                  IF( it(i) == 1 ) THEN
-                    zsgs = zb(k) - ( zbt(i) + dz(k)*0.5D0 )
-                    IF( zrough%ir == 1 ) THEN
+            delt = DSQRT( dz(k)*dx(i) )
+
+            IF ( iturb == 1 ) THEN
+              sl = cmut * delt
+            ELSE IF ( iturb == 2 ) THEN
+              IF( k <= kt(i) ) THEN
+                sl = 0.D0
+              ELSE
+                sgsl = cmut * delt
+                IF( it(i) == 1 ) THEN
+                  zsgs = zb(k) - ( zbt(i) + dz(k)*0.5D0 )
+                  IF( zrough%ir == 1 ) THEN
+                    zrou = zrough%r(1)
+                  ELSE IF( zrough%ir == 2 ) THEN
+                    IF( xb(i) <= zrough%roucha ) THEN
                       zrou = zrough%r(1)
-                    ELSE IF( zrough%ir == 2 ) THEN
-                      IF( xb(i) <= zrough%roucha ) THEN
-                        zrou = zrough%r(1)
-                      ELSE
-                        zrou = zrough%r(2)
-                      ENDIF
+                    ELSE
+                      zrou = zrough%r(2)
                     ENDIF
-                    rghl = 0.4D0 * ( zsgs + zrou )
+                  ENDIF
+                  rghl = 0.4D0 * ( zsgs + zrou )
 !
 ! ... use the smallest between the smag length and the roughness length
-
-                    sl = DMIN1(sgsl,rghl)
-                  ELSE
-                    sl = sgsl
-                  ENDIF
+!
+                  sl = DMIN1(sgsl,rghl)
+                ELSE
+                  sl = sgsl
                 ENDIF
               ENDIF
+            ENDIF
 !
 ! ... Squared turbulence length scale is used into Smagorinsky model
-              smag(ijk) = sl**2
+            smag(ijk) = sl**2
 !
-            END DO
           END DO
           IF( iturb == 2 ) DEALLOCATE(kt, it, zbt)
 
