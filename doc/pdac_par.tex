@@ -93,6 +93,7 @@ Once the number of $F1$ cells per layer has benn computed the height is computed
 proceeding across the grid following the main sweep (as in Layer decomposition);
 \item finally, each layer is subdivided horizontally into the previously computed number
 of blocks, and each blocks is assigned to a processor. 
+\end{enumerate}
 \item {\bf 3D Columns } decomposition: same algorithm of the 2D blocks but applied to the $xy$ 
 ground plane instead of $xz$ vertical plane, the third cartesian axis $z$ is not subdivided
 further. (Fig.~\ref{fig:Ves_part}, right) and the the 3D domain will result to be subdivided
@@ -192,7 +193,7 @@ sub-domain.\\
 The first index of the matrix runs over the neighbour identified by a progressive
 index $in$ that run from 1 to 9 ( in 2D domain ) and from 1 to 25 ( in 3D domain ),
 note that in the code mnemonic variable are used in place of number to address
-the neigbour (ex. ip1_jp0_km1_ $=$ 20 is the neighbour $i+1,j+0,k-1$ of the $i,j,k$
+the neigbour (ex. ip1\_jp0\_km1\_ $=$ 20 is the neighbour $i+1,j+0,k-1$ of the $i,j,k$
 cell).\\ 
 Computation proceeds by looping  over the computational
 cell of one processor's sub-domain: for each cell, if $ijk$ is its local index
