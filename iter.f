@@ -18,6 +18,7 @@
       REAL*8  :: omega, dg
       INTEGER :: inmax, maxout, nit
       INTEGER :: optimization
+      INTEGER :: ierr
 
       INTEGER :: b_e, b_w, b_t, b_b, b_n, b_s
       REAL*8 :: ivf
@@ -25,6 +26,7 @@
       TYPE(stencil) :: u, v, w, dens         
 
       PRIVATE :: u, v, w, dens, b_e, b_w, b_t, b_b, b_n, b_s, ivf
+      PRIVATE :: ierr
 
       SAVE
 !----------------------------------------------------------------------
@@ -187,6 +189,7 @@
 !
       omega0 = omega
       mustit = 1
+      ierr = 0
 !
       timconv = 0.0d0
 !
@@ -357,7 +360,6 @@
 ! ... mustit must be zero simultaneously in all subdomains
 !
         CALL parallel_sum_integer(mustit, 1)
-!
         IF( mustit == 0 ) THEN
 !*******************************************************************
 ! ... write out the final number of iterations
@@ -381,6 +383,11 @@
            WRITE(testunit, fmt="('  new value = ',F12.4)") omega
          END IF
        END IF
+!
+! ... Check the closure relation for solid phases on all processors
+!
+        CALL parallel_sum_integer(ierr, 1)
+        IF (ierr > 0) CALL error('iter','solid fraction exceeded 1',ierr)
 !
       END DO sor_loop
 !
@@ -786,11 +793,11 @@
 !
       IF( rls > 1.D0 ) THEN
         IF (lpr > 0) THEN
-          WRITE(testunit,*) ' WARNING 1: mass is not conserved'
+          WRITE(testunit,*) ' Mass is not conserved'
           WRITE(testunit,*) ' time, i, j, k ', time, i, j, k
           WRITE(testunit,*) ' rls, volfrac ', rls, 1.D0/ivf
         END IF
-        CALL error('iter','mass is not conserved',1)
+        ierr = ierr + 1
       ENDIF
 !
 !**********************************************************************
@@ -1254,10 +1261,11 @@
 
           IF( rls > 1.D0 ) THEN
             IF (lpr > 0) THEN
-              WRITE(testunit,*) ' WARNING 2: mass is not conserved'
+              WRITE(testunit,*) ' Mass is not conserved'
               WRITE(testunit,*) ' i, j, k, rls ', i, j, k, rls
+              WRITE(testunit,*) ' rls, volfrac ', rls, 1.D0/ivf
             ENDIF
-            CALL error('iter','mass is not conserved',2)
+            ierr = ierr + 1
           ENDIF
 
           ep( ijk ) = 1.D0 - rls
@@ -1531,9 +1539,11 @@
 
           IF( rls > 1.D0 ) THEN
             IF( lpr > 0 ) THEN
-              WRITE(testunit,*) ' warning1: mass is not conserved'
+              WRITE(testunit,*) ' Mass is not conserved'
               WRITE(testunit,*) ' i, j, k, rls ', i, j, k, rls
+              WRITE(testunit,*) ' rls, volfrac ', rls, 1.D0/ivf
             ENDIF
+            ierr = ierr + 1
           ENDIF
 
           ep( ijk ) = 1.D0 - rls
