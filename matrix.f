@@ -258,7 +258,7 @@
       REAL*8 :: dxi, dxim1, dyj, dyjm1, dzk, dzkm1
       REAL*8 :: dxip1, dyjp1, dzkp1
       REAL*8 :: pijk
-      REAL*8 :: epijk, rgpijk, rlklm1
+      REAL*8 :: epijk, rgpijk, rlklm11, rlklm12
 !
       imesh = myijk( ip0_jp0_kp0_, ijk)
 
@@ -300,11 +300,9 @@
       pijk = p(ijk)
       epijk = ep(ijk)
       rgpijk = rgp(ijk)
-!
+      rlklm12 = rlk(ijk,2)
+      rlklm11 = rlk(ijk,1)
 
-!
-
-!
 !
 
       !
@@ -319,149 +317,121 @@
       ep_e = (dxi*ep(ijke) + dxip1*epijk) * indxp
       ep_n = (dyj*ep(ijkn) + dyjp1*epijk) * indyp
       ep_t = (dzk*ep(ijkt) + dzkp1*epijk) * indzp
-
       ! ... Backward ...
-      bu1(1) = rug(imjk)+ dt * indxm *2.D0* ep_w * (p(ijkw)-pijk)
-      bv1(1) = rvg(ijmk)+ dt * indym *2.D0* ep_s * (p(ijks)-pijk)
-      bw1(1) = rwg(ijkm)+ dt * indzm *2.D0* ep_b * (p(ijkb)-pijk)
+      eps_w = (dxi*rlk(ijkw,1) + dxim1*rlklm11) * indxm * inrl(1)
+      eps_s = (dyj*rlk(ijks,1) + dyjm1*rlklm11) * indym * inrl(1)
+      eps_b = (dzk*rlk(ijkb,1) + dzkm1*rlklm11) * indzm * inrl(1)
       ! ... Foreward ...
+      eps_e = (dxi*rlk(ijke,1) + dxip1*rlklm11) * indxp * inrl(1)
+      eps_n = (dyj*rlk(ijkn,1) + dyjp1*rlklm11) * indyp * inrl(1)
+      eps_t = (dzk*rlk(ijkt,1) + dzkp1*rlklm11) * indzp * inrl(1)
+      ! ... Backward ...
+      eps_w = (dxi*rlk(ijkw,2) + dxim1*rlklm12) * indxm * inrl(2)
+      eps_s = (dyj*rlk(ijks,2) + dyjm1*rlklm12) * indym * inrl(2)
+      eps_b = (dzk*rlk(ijkb,2) + dzkm1*rlklm12) * indzm * inrl(2)
+      ! ... Foreward ...
+      eps_e = (dxi*rlk(ijke,2) + dxip1*rlklm12) * indxp * inrl(2)
+      eps_n = (dyj*rlk(ijkn,2) + dyjp1*rlklm12) * indyp * inrl(2)
+      eps_t = (dzk*rlk(ijkt,2) + dzkp1*rlklm12) * indzp * inrl(2)
+
+      bu1(1) = rug(imjk)+ dt * indxm *2.D0* ep_w * (p(ijkw)-pijk)
       bu(1)  = rug(ijk)+ dt * indxp *2.D0* ep_e * (pijk-p(ijke))
+      bv1(1) = rvg(ijmk)+ dt * indym *2.D0* ep_s * (p(ijks)-pijk)
       bv(1)  = rvg(ijk)+ dt * indyp *2.D0* ep_n * (pijk-p(ijkn))
+      bw1(1) = rwg(ijkm)+ dt * indzm *2.D0* ep_b * (p(ijkb)-pijk)
       bw(1)  = rwg(ijk)+ dt * indzp *2.D0* ep_t * (pijk-p(ijkt))
+
+      bu1(2) = rus(imjk,1) + dt * indxm *2.D0* eps_w * (p(ijkw)-pijk)
+      bu(2)  = rus(ijk,1) + dt * indxp *2.D0* eps_e * (pijk-p(ijke))
+      bu1(3) = rus(imjk,2) + dt * indxm *2.D0* eps_w * (p(ijkw)-pijk)
+      bu(3)  = rus(ijk,2) + dt * indxp *2.D0* eps_e * (pijk-p(ijke))
+      bv1(2) = rvs(ijmk,1) + dt * indym *2.D0* eps_s * (p(ijks)-pijk)
+      bv(2)  = rvs(ijk,1) + dt * indyp *2.D0* eps_n * (pijk-p(ijkn))
+      bv1(3) = rvs(ijmk,2) + dt * indym *2.D0* eps_s * (p(ijks)-pijk)
+      bv(3)  = rvs(ijk,2) + dt * indyp *2.D0* eps_n * (pijk-p(ijkn))
+      bw1(2) = rws(ijkm,1) + dt * indzm *2.D0* eps_b * (p(ijkb)-pijk)
+      bw(2)  = rws(ijk,1) + dt * indzp *2.D0* eps_t * (pijk-p(ijkt))
+      bw1(3) = rws(ijkm,2) + dt * indzm *2.D0* eps_b * (p(ijkb)-pijk)
+      bw(3)  = rws(ijk,2) + dt * indzp *2.D0* eps_t * (pijk-p(ijkt))
+ 
 !
       ! ... Backward ...
       au1(1,1)=(dxi*appu(ijkw,1)+dxim1*appu(ijk,1))*indxm
-      au1(1,1)=au1(1,1)+(dxi*rgp(ijkw)+dxim1*rgpijk)*indxm
-      av1(l,1)=(dyj*appv(ijks,1)+dyjm1*appv(ijk,1))*indym
-      av1(1,1)=av1(1,1)+(dyj*rgp(ijks)+dyjm1*rgpijk)*indym
-      aw1(1,1)=(dzk*appw(ijkb,1)+dzkm1*appw(ijk,1))*indzm
-      aw1(1,1)=aw1(1,1)+(dzk*rgp(ijkb)+dzkm1*rgpijk)*indzm
-      ! ... Foreward ...
       au(1,1)=(dxi*appu(ijke,1)+dxip1*appu(ijk,1))*indxp
-      au(1,1)=au(1,1)+(dxi*rgp(ijke)+dxip1*rgpijk)*indxp
-      av(1,1)=(dyj*appv(ijkn,1)+dyjp1*appv(ijk,1))*indyp
-      av(1,1)=av(1,1)+(dyj*rgp(ijkn)+dyjp1*rgpijk)*indyp
-      aw(1,1)=(dzk*appw(ijkt,1)+dzkp1*appw(ijk,1))*indzp
-      aw(1,1)=aw(1,1)+(dzk*rgp(ijkt)+dzkp1*rgpijk)*indzp
-
-
-      !
-      !      l = 2
-      !
-
-      ! ... Backward ...
-
-      ! ... Explicit terms in the linear system
-
-      rlklm1 = rlk(ijk,1)
-
-      eps_w = (dxi*rlk(ijkw,1) + dxim1*rlklm1) * indxm * inrl(1)
-      eps_s = (dyj*rlk(ijks,1) + dyjm1*rlklm1) * indym * inrl(1)
-      eps_b = (dzk*rlk(ijkb,1) + dzkm1*rlklm1) * indzm * inrl(1)
-      eps_e = (dxi*rlk(ijke,1) + dxip1*rlklm1) * indxp * inrl(1)
-      eps_n = (dyj*rlk(ijkn,1) + dyjp1*rlklm1) * indyp * inrl(1)
-      eps_t = (dzk*rlk(ijkt,1) + dzkp1*rlklm1) * indzp * inrl(1)
-      bu1(2) = rus(imjk,1) + dt * indxm *2.D0* eps_w * (p(ijkw)-pijk)
-      bv1(2) = rvs(ijmk,1) + dt * indym *2.D0* eps_s * (p(ijks)-pijk)
-      bw1(2) = rws(ijkm,1) + dt * indzm *2.D0* eps_b * (p(ijkb)-pijk)
-      bu(2)  = rus(ijk,1) + dt * indxp *2.D0* eps_e * (pijk-p(ijke))
-      bv(2)  = rvs(ijk,1) + dt * indyp *2.D0* eps_n * (pijk-p(ijkn))
-      bw(2)  = rws(ijk,1) + dt * indzp *2.D0* eps_t * (pijk-p(ijkt))
-
-      ! ... Off-diagonal elements
-
       au1(1,2)=(dxi*appu(ijkw, 2)+dxim1*appu(ijk, 2))*indxm
-      au1(2,2)=(dxi*appu(ijkw, 3)+dxim1*appu(ijk, 3))*indxm
-      au1(2,2)=au1(2,2)+(dxi*rlk(ijkw,1)+dxim1*rlklm1)*indxm
-      au1(2,1)=au1(1,2)
-
       au(2,1)=(dxi*appu(ijke,2)+dxip1*appu(ijk,2))*indxp
-      au(1,2)=au(2,1)
+      au1(2,2)=(dxi*appu(ijkw, 3)+dxim1*appu(ijk, 3))*indxm
       au(2,2)=(dxi*appu(ijke,3)+dxip1*appu(ijk,3))*indxp
-      au(2,2)=au(2,2)+(dxi*rlk(ijke,1)+dxip1*rlklm1)*indxp
-
-      av1(1,2)=(dyj*appv(ijks, 2)+dyjm1*appv(ijk, 2))*indym
-      av1(2,2)=(dyj*appv(ijks, 3)+dyjm1*appv(ijk, 3))*indym
-      av1(2,2)=av1(2,2)+(dyj*rlk(ijks,1)+dyjm1*rlklm1)*indym
-      av1(2,1)=av1(1,2)
-
-      av(2,1)=(dyj*appv(ijkn,2)+dyjp1*appv(ijk,2))*indyp
-      av(1,2)=av(2,1)
-      av(2,2)=(dyj*appv(ijkn,3)+dyjp1*appv(ijk,3))*indyp
-      av(2,2)=av(2,2)+(dyj*rlk(ijkn,1)+dyjp1*rlklm1)*indyp
-
-      aw1(1,2)=(dzk*appw(ijkb, 2)+dzkm1*appw(ijk, 2))*indzm
-      aw1(2,2)=(dzk*appw(ijkb, 3)+dzkm1*appw(ijk, 3))*indzm
-      aw1(2,2)=aw1(2,2)+(dzk*rlk(ijkb,1)+dzkm1*rlklm1)*indzm
-      aw1(2,1)=aw1(1,2)
-
-      aw(2,1)=(dzk*appw(ijkt,2)+dzkp1*appw(ijk,2))*indzp
-      aw(1,2)=aw(2,1)
-      aw(2,2)=(dzk*appw(ijkt,3)+dzkp1*appw(ijk,3))*indzp
-      aw(2,2)=aw(2,2)+(dzk*rlk(ijkt,1)+dzkp1*rlklm1)*indzp
-
-      !
-      !      l = 3
-      !
-
-      ! ... Backward ...
-
-      ! ... Explicit terms in the linear system
-
-      rlklm1 = rlk(ijk,2)
-
-      eps_w = (dxi*rlk(ijkw,2) + dxim1*rlklm1) * indxm * inrl(2)
-      eps_s = (dyj*rlk(ijks,2) + dyjm1*rlklm1) * indym * inrl(2)
-      eps_b = (dzk*rlk(ijkb,2) + dzkm1*rlklm1) * indzm * inrl(2)
-      eps_e = (dxi*rlk(ijke,2) + dxip1*rlklm1) * indxp * inrl(2)
-      eps_n = (dyj*rlk(ijkn,2) + dyjp1*rlklm1) * indyp * inrl(2)
-      eps_t = (dzk*rlk(ijkt,2) + dzkp1*rlklm1) * indzp * inrl(2)
-      bu1(3) = rus(imjk,2) + dt * indxm *2.D0* eps_w * (p(ijkw)-pijk)
-      bv1(3) = rvs(ijmk,2) + dt * indym *2.D0* eps_s * (p(ijks)-pijk)
-      bw1(3) = rws(ijkm,2) + dt * indzm *2.D0* eps_b * (p(ijkb)-pijk)
-      bu(3)  = rus(ijk,2) + dt * indxp *2.D0* eps_e * (pijk-p(ijke))
-      bv(3)  = rvs(ijk,2) + dt * indyp *2.D0* eps_n * (pijk-p(ijkn))
-      bw(3)  = rws(ijk,2) + dt * indzp *2.D0* eps_t * (pijk-p(ijkt))
- 
-
       au1(1,3)=(dxi*appu(ijkw, 4)+dxim1*appu(ijk, 4))*indxm
+      au(3,1)=(dxi*appu(ijke,4)+dxip1*appu(ijk,4))*indxp
       au1(2,3)=(dxi*appu(ijkw, 5)+dxim1*appu(ijk, 5))*indxm
+      au(3,2)=(dxi*appu(ijke,5)+dxip1*appu(ijk,5))*indxp
       au1(3,3)=(dxi*appu(ijkw, 6)+dxim1*appu(ijk, 6))*indxm
-      au1(3,3)=au1(3,3)+(dxi*rlk(ijkw,2)+dxim1*rlklm1)*indxm
+      au(3,3)=(dxi*appu(ijke,6)+dxip1*appu(ijk,6))*indxp
+
+      av1(l,1)=(dyj*appv(ijks,1)+dyjm1*appv(ijk,1))*indym
+      av(1,1)=(dyj*appv(ijkn,1)+dyjp1*appv(ijk,1))*indyp
+      av1(1,2)=(dyj*appv(ijks, 2)+dyjm1*appv(ijk, 2))*indym
+      av(2,1)=(dyj*appv(ijkn,2)+dyjp1*appv(ijk,2))*indyp
+      av1(2,2)=(dyj*appv(ijks, 3)+dyjm1*appv(ijk, 3))*indym
+      av(2,2)=(dyj*appv(ijkn,3)+dyjp1*appv(ijk,3))*indyp
+      av1(1,3)=(dyj*appv(ijks, 4)+dyjm1*appv(ijk, 4))*indym
+      av(3,1)=(dyj*appv(ijkn,4)+dyjp1*appv(ijk,4))*indyp
+      av1(2,3)=(dyj*appv(ijks, 5)+dyjm1*appv(ijk, 5))*indym
+      av(3,2)=(dyj*appv(ijkn,5)+dyjp1*appv(ijk,5))*indyp
+      av1(3,3)=(dyj*appv(ijks, 6)+dyjm1*appv(ijk, 6))*indym
+      av(3,3)=(dyj*appv(ijkn,6)+dyjp1*appv(ijk,6))*indyp
+
+      aw1(1,1)=(dzk*appw(ijkb,1)+dzkm1*appw(ijk,1))*indzm
+      aw(1,1)=(dzk*appw(ijkt,1)+dzkp1*appw(ijk,1))*indzp
+      aw1(1,2)=(dzk*appw(ijkb, 2)+dzkm1*appw(ijk, 2))*indzm
+      aw(2,1)=(dzk*appw(ijkt,2)+dzkp1*appw(ijk,2))*indzp
+      aw1(2,2)=(dzk*appw(ijkb, 3)+dzkm1*appw(ijk, 3))*indzm
+      aw(2,2)=(dzk*appw(ijkt,3)+dzkp1*appw(ijk,3))*indzp
+      aw1(1,3)=(dzk*appw(ijkb, 4)+dzkm1*appw(ijk, 4))*indzm
+      aw(3,1)=(dzk*appw(ijkt,4)+dzkp1*appw(ijk,4))*indzp
+      aw1(2,3)=(dzk*appw(ijkb, 5)+dzkm1*appw(ijk, 5))*indzm
+      aw(3,2)=(dzk*appw(ijkt,5)+dzkp1*appw(ijk,5))*indzp
+      aw1(3,3)=(dzk*appw(ijkb, 6)+dzkm1*appw(ijk, 6))*indzm
+      aw(3,3)=(dzk*appw(ijkt,6)+dzkp1*appw(ijk,6))*indzp
+
+      au1(1,1)=au1(1,1)+(dxi*rgp(ijkw)+dxim1*rgpijk)*indxm
+      au(1,1)=au(1,1)+(dxi*rgp(ijke)+dxip1*rgpijk)*indxp
+      av1(1,1)=av1(1,1)+(dyj*rgp(ijks)+dyjm1*rgpijk)*indym
+      av(1,1)=av(1,1)+(dyj*rgp(ijkn)+dyjp1*rgpijk)*indyp
+      aw1(1,1)=aw1(1,1)+(dzk*rgp(ijkb)+dzkm1*rgpijk)*indzm
+      aw(1,1)=aw(1,1)+(dzk*rgp(ijkt)+dzkp1*rgpijk)*indzp
+      au1(2,2)=au1(2,2)+(dxi*rlk(ijkw,1)+dxim1*rlklm11)*indxm
+      au(2,2)=au(2,2)+(dxi*rlk(ijke,1)+dxip1*rlklm11)*indxp
+      av1(2,2)=av1(2,2)+(dyj*rlk(ijks,1)+dyjm1*rlklm11)*indym
+      av(2,2)=av(2,2)+(dyj*rlk(ijkn,1)+dyjp1*rlklm11)*indyp
+      aw1(2,2)=aw1(2,2)+(dzk*rlk(ijkb,1)+dzkm1*rlklm11)*indzm
+      aw(2,2)=aw(2,2)+(dzk*rlk(ijkt,1)+dzkp1*rlklm11)*indzp
+      au1(3,3)=au1(3,3)+(dxi*rlk(ijkw,2)+dxim1*rlklm12)*indxm
+      au(3,3)=au(3,3)+(dxi*rlk(ijke,2)+dxip1*rlklm12)*indxp
+      av1(3,3)=av1(3,3)+(dyj*rlk(ijks,2)+dyjm1*rlklm12)*indym
+      av(3,3)=av(3,3)+(dyj*rlk(ijkn,2)+dyjp1*rlklm12)*indyp
+      aw1(3,3)=aw1(3,3)+(dzk*rlk(ijkb,2)+dzkm1*rlklm12)*indzm
+      aw(3,3)=aw(3,3)+(dzk*rlk(ijkt,2)+dzkp1*rlklm12)*indzp
+
+      au1(2,1)=au1(1,2)
+      au(1,2)=au(2,1)
+      av1(2,1)=av1(1,2)
+      av(1,2)=av(2,1)
+      aw1(2,1)=aw1(1,2)
+      aw(1,2)=aw(2,1)
       au1(3,2)=au1(2,3)
       au1(3,1)=au1(1,3)
-      au(3,1)=(dxi*appu(ijke,4)+dxip1*appu(ijk,4))*indxp
       au(1,3)=au(3,1)
-      au(3,2)=(dxi*appu(ijke,5)+dxip1*appu(ijk,5))*indxp
       au(2,3)=au(3,2)
-      au(3,3)=(dxi*appu(ijke,6)+dxip1*appu(ijk,6))*indxp
-      au(3,3)=au(3,3)+(dxi*rlk(ijke,2)+dxip1*rlklm1)*indxp
-
-      av1(1,3)=(dyj*appv(ijks, 4)+dyjm1*appv(ijk, 4))*indym
-      av1(2,3)=(dyj*appv(ijks, 5)+dyjm1*appv(ijk, 5))*indym
-      av1(3,3)=(dyj*appv(ijks, 6)+dyjm1*appv(ijk, 6))*indym
-      av1(3,3)=av1(3,3)+(dyj*rlk(ijks,2)+dyjm1*rlklm1)*indym
       av1(3,2)=av1(2,3)
       av1(3,1)=av1(1,3)
-      av(3,1)=(dyj*appv(ijkn,4)+dyjp1*appv(ijk,4))*indyp
       av(1,3)=av(3,1)
-      av(3,2)=(dyj*appv(ijkn,5)+dyjp1*appv(ijk,5))*indyp
       av(2,3)=av(3,2)
-      av(3,3)=(dyj*appv(ijkn,6)+dyjp1*appv(ijk,6))*indyp
-      av(3,3)=av(3,3)+(dyj*rlk(ijkn,2)+dyjp1*rlklm1)*indyp
-
-      aw1(1,3)=(dzk*appw(ijkb, 4)+dzkm1*appw(ijk, 4))*indzm
-      aw1(2,3)=(dzk*appw(ijkb, 5)+dzkm1*appw(ijk, 5))*indzm
-      aw1(3,3)=(dzk*appw(ijkb, 6)+dzkm1*appw(ijk, 6))*indzm
-      aw1(3,3)=aw1(3,3)+(dzk*rlk(ijkb,2)+dzkm1*rlklm1)*indzm
       aw1(3,2)=aw1(2,3)
       aw1(3,1)=aw1(1,3)
-      aw(3,1)=(dzk*appw(ijkt,4)+dzkp1*appw(ijk,4))*indzp
       aw(1,3)=aw(3,1)
-      aw(3,2)=(dzk*appw(ijkt,5)+dzkp1*appw(ijk,5))*indzp
       aw(2,3)=aw(3,2)
-      aw(3,3)=(dzk*appw(ijkt,6)+dzkp1*appw(ijk,6))*indzp
-      aw(3,3)=aw(3,3)+(dzk*rlk(ijkt,2)+dzkp1*rlklm1)*indzp
 
 
       RETURN
