@@ -11,5 +11,6 @@
         INTEGER :: ngas
         INTEGER :: nphase
         INTEGER, PARAMETER :: nroughx = 2
+        INTEGER, PARAMETER :: max_nsolid = 10
 !-----------------------------------------------------------------------
       END MODULE

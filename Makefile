@@ -6,7 +6,7 @@ hcapgs.o hotc.o hvs.o htilde.o io.o iter.o kb07ad.o\
 letter.o matrix.o outp.o parallel.o particles.o\
 pdac2d.o press.o prog.o reactions.o roughness.o setc.o setup.o \
 subscl.o temp.o tilde.o time.o turbo.o types.o\
-velocity.o visc.o ygas.o $(SYSOBJ)
+velocity.o visc.o ygas.o input.o $(SYSOBJ)
 
 
 pdac2d.x: $(FOBJS) comm/comm.a

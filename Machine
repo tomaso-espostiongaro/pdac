@@ -16,6 +16,7 @@ FFLAGS=  -O3 -qstrict -qarch=pwr3 -qtune=pwr3
 CPPFLAGS= -WF,$(MACROS)
 #PREPROCESSING = -qsuffix=cpp=f -I $(HPMHOME)/include/
 PREPROCESSING =
+FREEFORM= -qfree=f90
 #HPMLIB= -L $(HPMHOME)/lib/ -lhpm -lpmapi
 HPMLIB=
 #LINKFLAGS= -bmaxdata:0x70000000 $(IPAFLG) 

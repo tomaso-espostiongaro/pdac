@@ -2,6 +2,12 @@
 iter.o: iter.f
 	$(FC) -c $(FFLAGS) $(PREPROCESSING) iter.f
 
+pdac2d.o: pdac2d.f
+	$(FC) -c $(FFLAGS) $(FREEFORM) pdac2d.f
+
+input.o: input.f
+	$(FC) -c $(FFLAGS) $(FREEFORM) input.f
+
 .f.o:
 	$(FC) -c $(FFLAGS) $<
 
