@@ -36,7 +36,7 @@
       USE set_indexes, ONLY: ipjk, imjk, ippjk, immjk, ijpk, ipjpk,    &
         imjpk, ijmk, ipjmk, imjmk, ijppk, ijmmk, ijkp, ipjkp, imjkp,   &
         ijpkp, ijmkp, ijkm, ipjkm, imjkm, ijpkm, ijmkm, ijkpp, ijkmm
-      USE vent_conditions, ONLY: update_ventc, random_switch, irand
+      USE vent_conditions, ONLY: update_ventc, random_switch, irand, ivent
 !
       IMPLICIT NONE
 !
@@ -59,22 +59,35 @@
         CALL subscr(ijk)
         CALL meshinds(ijk,imesh,i,j,k)
 
-        IF (flag(ijk) == 8) THEN
+        ! ... Check if 'ijk' is a forcing point
+        !
+        IF (immb == 1) THEN
+          fx = numx(ijk)
+          IF (job_type == '3D') fy = numy(ijk)
+          fz = numz(ijk)
+          forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
+        END IF
+!
+! ... Update inlet cells for non-stationnary boundary conditions
+!
+        IF (flag(ijk) == 5) THEN
+
+          !CALL update_inlet_cell(ijk,imesh,sweep)
+
+        ELSE IF (flag(ijk) == 8) THEN
 
           CALL update_ventc(ijk,imesh,sweep)
 
-        ELSE IF( flag(ijk) == 1 .OR. flag(ijk) == 17) THEN
+        END IF
 !
-! ... If (ijk) is a forcing point, compute the pseudo-velocities
-! ... that are used in the "immersed boundary" technique ...
+! ... In fluid cells and immersed boundaries, update the 
+! ... neighbours on boundaries
 !
-          IF (immb == 1) THEN
-            fx = numx(ijk)
-            IF (job_type == '3D') fy = numy(ijk)
-            fz = numz(ijk)
-            forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
-          END IF
-
+        IF( flag(ijk) == 1 .OR. flag(ijk) == 17) THEN
+          
+          ! ... If (ijk) is a forcing point, compute the pseudo-velocities
+          ! ... that are used in the "immersed boundary" technique ...
+          !
           IF (forced) THEN
 
             IF (job_type == '2D') THEN

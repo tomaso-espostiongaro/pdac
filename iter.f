@@ -433,7 +433,6 @@
         DEALLOCATE( rgfn )
         DEALLOCATE( rsfn )
       END IF
-
       DEALLOCATE(conv)
       DEALLOCATE(abeta)
       DEALLOCATE(converge)
@@ -1069,8 +1068,9 @@
 !----------------------------------------------------------------------
 !
 ! ... This is an optimized version of the inner_loop, where the stencils
-! ... of the various fields are computed once at the beginning of the
-! ... loop and only updated at the end
+! ... of the various fields are COMPUTED ONCE at the beginning of the
+! ... loop and only updated at the end. In fact, not every element of
+! ... the stencil is updated at each inner loop.
 !
         USE control_flags, ONLY: job_type, lpr
         USE dimensions
@@ -1080,7 +1080,7 @@
         USE eos_gas, ONLY: thermal_eosg, xgc
         USE phases_matrix, ONLY: assemble_all_matrix, solve_all_velocities
         USE set_indexes, ONLY: third_nb, third_rnb, first_rnb, first_nb
-        USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
+        USE set_indexes, ONLY: third_subscr, imjk, ijmk, ijkm
         USE set_indexes, ONLY: ijke, ijkn, ijkt, ijkw, ijks, ijkb
         USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
         USE control_flags, ONLY: job_type
@@ -1096,10 +1096,10 @@
         REAL*8 :: d3, p3, abeta, conv, dgorig
         LOGICAL, INTENT(OUT) :: cvg
         REAL*8 :: resx, resy, resz, mg
-        REAL*8 :: rlkx, rlky, rlkz, rls
-        REAL*8 :: fe_, fn_, ft_, fw_, fs_, fb_
-        REAL*8 :: sfe_(max_nsolid), sfn_(max_nsolid), sft_(max_nsolid), &
-                  sfw_(max_nsolid), sfs_(max_nsolid), sfb_(max_nsolid)
+        REAL*8 :: rlkx, rlky, rlkz, rls, rlk_tmp
+        REAL*8 :: rgfe_, rgfn_, rgft_, rgfw_, rgfs_, rgfb_
+        REAL*8 :: rsfe_(max_nsolid), rsfn_(max_nsolid), rsft_(max_nsolid), &
+                  rsfw_(max_nsolid), rsfs_(max_nsolid), rsfb_(max_nsolid)
 
         TYPE(stencil) :: ug_, vg_, wg_
         TYPE(stencil) :: us_(max_nsolid), vs_(max_nsolid), ws_(max_nsolid)
@@ -1111,23 +1111,24 @@
         xgcl(1:ngas) = xgc(ijk,:)
 !
         ! ... These values of the mass fluxes will be updated
-        ! ... in the inner_loop.
+        ! ... in the inner_loop. Storing them into smaller arrays
+        ! ... optimizes memory access.
         !
-        sfe_(1:nsolid) = rsfe( ijk, 1:nsolid )
-        sfw_(1:nsolid) = rsfe( imjk, 1:nsolid )
-        sft_(1:nsolid) = rsft( ijk, 1:nsolid )
-        sfb_(1:nsolid) = rsft( ijkm, 1:nsolid )
+        rsfe_(1:nsolid) = rsfe( ijk, 1:nsolid )
+        rsfw_(1:nsolid) = rsfe( imjk, 1:nsolid )
+        rsft_(1:nsolid) = rsft( ijk, 1:nsolid )
+        rsfb_(1:nsolid) = rsft( ijkm, 1:nsolid )
 
-        fe_ = rgfe( ijk )
-        fw_ = rgfe( imjk )
-        ft_ = rgft( ijk )
-        fb_ = rgft( ijkm )
+        rgfe_ = rgfe( ijk )
+        rgfw_ = rgfe( imjk )
+        rgft_ = rgft( ijk )
+        rgfb_ = rgft( ijkm )
         
         IF(job_type == '3D') THEN
-          sfn_(1:nsolid) = rsfn( ijk, 1:nsolid )
-          sfs_(1:nsolid) = rsfn( ijmk, 1:nsolid )
-          fn_ = rgfn( ijk )
-          fs_ = rgfn( ijmk )
+          rsfn_(1:nsolid) = rsfn( ijk, 1:nsolid )
+          rsfs_(1:nsolid) = rsfn( ijmk, 1:nsolid )
+          rgfn_ = rgfn( ijk )
+          rgfs_ = rgfn( ijmk )
         END IF
 
         ! ... These are the stencil used in the inner_loop
@@ -1140,6 +1141,7 @@
         IF (job_type == '3D') CALL first_rnb(vg_,vg,ijk)
 
         IF (muscl > 0) THEN
+          CALL third_subscr(ijk)
           CALL third_nb(rgp_,rgp,ijk)
           CALL third_rnb(ug_,ug,ijk)
           CALL third_rnb(wg_,wg,ijk)
@@ -1162,7 +1164,7 @@
 !
         kros = -1
 
-        DO loop = 1, inmax
+inloop: DO loop = 1, inmax
 
           ! ... Correct the pressure at current cell
           ! ... by using successively the Newton's method
@@ -1224,38 +1226,38 @@
 
             IF (job_type == '2D') THEN
 
-              CALL masf(sfe_(is), sft_(is), sfw_(is), sfb_(is), &
+              CALL masf(rsfe_(is), rsft_(is), rsfw_(is), rsfb_(is), &
                         rlk_(is), us_(is), ws_(is), ijk)
                      
               IF (muscl > 0) THEN
-                CALL fmas(sfe_(is), sft_(is), sfw_(is), sfb_(is), &
+                CALL fmas(rsfe_(is), rsft_(is), rsfw_(is), rsfb_(is), &
                           rlk_(is), us_(is), ws_(is), ijk)
               END IF
 
             ELSE IF (job_type == '3D') THEN
 
-              CALL masf(sfe_(is), sfn_(is), sft_(is), &
-                        sfw_(is), sfs_(is), sfb_(is), &
+              CALL masf(rsfe_(is), rsfn_(is), rsft_(is), &
+                        rsfw_(is), rsfs_(is), rsfb_(is), &
                         rlk_(is), us_(is), vs_(is), ws_(is), ijk)
 
               IF (muscl > 0) THEN
-                CALL fmas(sfe_(is), sfn_(is), sft_(is), &
-                          sfw_(is), sfs_(is), sfb_(is), &
+                CALL fmas(rsfe_(is), rsfn_(is), rsft_(is), &
+                          rsfw_(is), rsfs_(is), rsfb_(is), &
                           rlk_(is), us_(is), vs_(is), ws_(is), ijk)
               END IF
 
             END IF
 
-            rlkx = ( sfe_(is) - sfw_(is) ) * indx(i) * inr(i)
-            rlkz = ( sft_(is) - sfb_(is) ) * indz(k)
+            rlkx = ( rsfe_(is) - rsfw_(is) ) * indx(i) * inr(i)
+            rlkz = ( rsft_(is) - rsfb_(is) ) * indz(k)
             IF (job_type == '3D') THEN
-              rlky = ( sfn_(is) - sfs_(is) ) * indy(j)
+              rlky = ( rsfn_(is) - rsfs_(is) ) * indy(j)
             ELSE
               rlky = 0.D0
             END IF
 
-            rlk( ijk, is) = rlkn( ijk, is ) - dt * ( rlkx + rlky + rlkz )
-            rlk( ijk, is) = MAX( 0.0d0, rlk(ijk,is) )
+            rlk_tmp = rlkn( ijk, is ) - dt * ( rlkx + rlky + rlkz )
+            rlk( ijk, is) = MAX( 0.0d0, rlk_tmp )
 
             rls = rls + rlk( ijk, is ) * inrl(is)
 
@@ -1282,26 +1284,26 @@
           !
           IF (job_type == '2D') THEN
 
-            CALL masf( fe_, ft_, fw_, fb_, rgp_, ug_, wg_, ijk )
+            CALL masf( rgfe_, rgft_, rgfw_, rgfb_, rgp_, ug_, wg_, ijk )
 
             IF (muscl > 0) THEN
-              CALL fmas( fe_, ft_, fw_, fb_, rgp_, ug_, wg_, ijk )
+              CALL fmas( rgfe_, rgft_, rgfw_, rgfb_, rgp_, ug_, wg_, ijk )
             END IF
 
           ELSE IF (job_type == '3D') THEN
 
-            CALL masf( fe_, fn_, ft_, fw_, fs_, fb_, rgp_, ug_, vg_, wg_, ijk)
+            CALL masf( rgfe_, rgfn_, rgft_, rgfw_, rgfs_, rgfb_, rgp_, ug_, vg_, wg_, ijk)
 
             IF (muscl > 0) THEN
-              CALL fmas( fe_, fn_, ft_, fw_, fs_, fb_, rgp_, ug_, vg_, wg_, ijk)
+              CALL fmas( rgfe_, rgfn_, rgft_, rgfw_, rgfs_, rgfb_, rgp_, ug_, vg_, wg_, ijk)
             END IF
 
           END IF
 
-          resx = ( fe_ - fw_ ) * indx(i) * inr(i)
-          resz = ( ft_ - fb_ ) * indz(k)
+          resx = ( rgfe_ - rgfw_ ) * indx(i) * inr(i)
+          resz = ( rgft_ - rgfb_ ) * indz(k)
           IF (job_type == '3D') THEN
-            resy = ( fn_ - fs_ ) * indy(j)
+            resy = ( rgfn_ - rgfs_ ) * indy(j)
           ELSE
             resy = 0.D0
           END IF
@@ -1319,30 +1321,30 @@
           ELSE IF ( DABS( dg ) <= conv ) THEN
 
             cvg = .TRUE.
-            EXIT
+            EXIT inloop
 
           END IF
 
-        END DO 
+        END DO inloop
 
         ! ... Update the mass fluxes
         ! ... (used in the next outer iteration)
         !
-        rsfe( ijk, 1:nsolid ) = sfe_(1:nsolid) 
-        rsfe( imjk, 1:nsolid ) = sfw_(1:nsolid) 
-        rsft( ijk, 1:nsolid ) = sft_(1:nsolid)
-        rsft( ijkm, 1:nsolid ) = sfb_(1:nsolid) 
+        rsfe( ijk, 1:nsolid ) = rsfe_(1:nsolid) 
+        rsfe( imjk, 1:nsolid ) = rsfw_(1:nsolid) 
+        rsft( ijk, 1:nsolid ) = rsft_(1:nsolid)
+        rsft( ijkm, 1:nsolid ) = rsfb_(1:nsolid) 
 
-        rgfe( ijk ) = fe_
-        rgfe( imjk ) = fw_ 
-        rgft( ijk ) = ft_
-        rgft( ijkm ) = fb_
+        rgfe( ijk ) = rgfe_
+        rgfe( imjk ) = rgfw_ 
+        rgft( ijk ) = rgft_
+        rgft( ijkm ) = rgfb_
         
         IF(job_type == '3D') THEN
-          rsfn( ijk, 1:nsolid ) = sfn_(1:nsolid)
-          rsfn( ijmk, 1:nsolid ) = sfs_(1:nsolid)
-          rgfn( ijk ) = fn_
-          rgfn( ijmk ) = fs_
+          rsfn( ijk, 1:nsolid ) = rsfn_(1:nsolid)
+          rsfn( ijmk, 1:nsolid ) = rsfs_(1:nsolid)
+          rgfn( ijk ) = rgfn_
+          rgfn( ijmk ) = rgfs_
         END IF
 
         nloop = nloop + loop
@@ -1365,7 +1367,7 @@
         USE eos_gas, ONLY: thermal_eosg, xgc
         USE phases_matrix, ONLY: matsvels_3phase
         USE set_indexes, ONLY: third_nb, third_rnb, first_rnb, first_nb
-        USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
+        USE set_indexes, ONLY: third_subscr, imjk, ijmk, ijkm
         USE set_indexes, ONLY: ijke, ijkn, ijkt, ijkw, ijks, ijkb
         USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
         USE control_flags, ONLY: job_type
@@ -1438,6 +1440,7 @@
         CALL first_rnb( vg_, vg, ijk )
 
         IF (muscl > 0) THEN
+          CALL third_subscr(ijk)
           CALL third_nb(dens1,rlk(:,1),ijk)
           CALL third_nb(dens2,rlk(:,2),ijk)
           CALL third_rnb(u1,us(:,1),ijk)

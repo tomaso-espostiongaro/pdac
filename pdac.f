@@ -42,7 +42,7 @@
       USE environment, ONLY: cpclock, timing, elapsed_seconds
 !
       IMPLICIT NONE
-      CHARACTER(LEN=11) :: errnb, testnb, lognb
+      CHARACTER(LEN=11) :: testnb
       CHARACTER(LEN=8) :: inputfile, logfile, errorfile, testfile, checkfile
       CHARACTER(LEN=3) :: procnum
       INTEGER :: mydate(10)
@@ -85,9 +85,7 @@
       testfile  = 'pdac.tst'
       errorfile = 'pdac.err'
       checkfile = 'pdac.chm'
-      errnb  = errorfile//procnum(mpime)
       testnb = testfile//procnum(mpime)
-      lognb  = logfile//procnum(mpime)
       IF(mpime == root) THEN
         OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN')
         IF(.NOT.debug ) OPEN(UNIT=logunit,FILE=logfile,STATUS='UNKNOWN')

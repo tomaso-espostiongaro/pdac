@@ -425,6 +425,11 @@
 !
       ionode = (mpime == root)
 !
+      IF (demin == demax) THEN
+              delta = demin
+              alpha = 1.D0
+              RETURN
+      END IF
       IF ( domain_size/demin < nd )  CALL error('grid_generator', &
           'insufficient number of cells', nd) 
       IF ( domain_size/demin == nd ) CALL error('grid_generator', &

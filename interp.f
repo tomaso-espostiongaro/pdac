@@ -46,12 +46,6 @@
       staggered_field%s = (dx(i+1) * field%s + dx(i)   * field%es) * indxp
       staggered_field%b = (dx(i+1) * field%b + dx(i)   * field%eb) * indxp
 !
-! ... An arbitrary choice !
-!
-      staggered_field%ee = staggered_field%e
-      staggered_field%nn = staggered_field%n
-      staggered_field%tt = staggered_field%t
-
       RETURN
       END SUBROUTINE interpolate_x
 !----------------------------------------------------------------------
@@ -88,12 +82,6 @@
       staggered_field%w = (dy(j+1) * field%w + dy(j)   * field%wn) * indyp
       staggered_field%s = (dy(j)   * field%s + dy(j-1) * field%c ) * indym
       staggered_field%b = (dy(j+1) * field%b + dy(j)   * field%nb) * indyp
-!
-! ... an arbitrary choice !
-!
-      staggered_field%ee = staggered_field%e
-      staggered_field%nn = staggered_field%n
-      staggered_field%tt = staggered_field%t
 !
       RETURN
       END SUBROUTINE interpolate_y
@@ -132,12 +120,6 @@
       staggered_field%s = (dz(k+1) * field%s + dz(k)   * field%st) * indzp
       staggered_field%b = (dz(k)   * field%b + dz(k-1) * field%c ) * indzm
 !
-! ... an arbitrary choice !
-!
-      staggered_field%ee = staggered_field%e
-      staggered_field%nn = staggered_field%n
-      staggered_field%tt = staggered_field%t
-
       RETURN
       END SUBROUTINE interpolate_z
 !----------------------------------------------------------------------
