@@ -8,6 +8,7 @@
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE gas_solid_temperature, ONLY: sieg, ts, sies, tg 
+      USE gas_constants, ONLY: gas_type, present_gas, default_gas
       USE parallel, ONLY: mpime, root
       USE pressure_epsilon, ONLY: ep, p
       USE specific_heat_module, ONLY: cp, ck
@@ -35,6 +36,7 @@
 !----------------------------------------------------------------------
         CONTAINS
 !----------------------------------------------------------------------
+
       SUBROUTINE tapewr
 !
       IMPLICIT NONE
@@ -52,7 +54,7 @@
 !
         OPEN(UNIT=9,form='unformatted', FILE = restart_file)
 !
-        WRITE(9) time, nx, ny, nz, nsolid, ngas, nfil
+        WRITE(9) time, nx, ny, nz, nsolid, ngas, max_ngas, nfil
 
       END IF
 !
@@ -139,8 +141,8 @@
         CALL write_array( 9, ck(is,:), dbl, lform )
       END DO
 
-      DO ig = 1, max_ngas
-        CALL write_array( 9, cp(ig,:), dbl, lform )
+      DO ig = 1, ngas
+        CALL write_array( 9, cp(gas_type(ig),:), dbl, lform )
       END DO
 !
       IF( mpime .EQ. root ) THEN
@@ -166,7 +168,7 @@
       IMPLICIT NONE
 !
       INTEGER :: i, j, k, ijk, is, imesh
-      INTEGER :: nx_, ny_, nz_, nsolid_, ngas_
+      INTEGER :: nx_, ny_, nz_, nsolid_, ngas_, max_ngas_
       INTEGER :: ig, info
       LOGICAL :: lform = .FALSE.
       REAL*8 :: zrif, trif, prif, hc
@@ -182,16 +184,17 @@
         IF( old_restart ) THEN
           READ(9) time, nx_, ny_, nz_, nsolid_, nfil
         ELSE
-          READ(9) time, nx_, ny_, nz_, nsolid_, ngas_, nfil
+          READ(9) time, nx_, ny_, nz_, nsolid_, ngas_, max_ngas_, nfil
         END IF
 
         WRITE(6,*) ' time =  ', time
         WRITE(6,*) ' nx   =  ', nx
         WRITE(6,*) ' ny   =  ', ny
         WRITE(6,*) ' nz   =  ', nz
-        WRITE(6,*) ' nsolid =  ', nsolid
-        WRITE(6,*) ' ngas =  ', ngas
-        WRITE(6,*) ' nfil   =  ', nfil
+        WRITE(6,*) ' nsolid   =  ', nsolid
+        WRITE(6,*) ' ngas     =  ', ngas
+        WRITE(6,*) ' max_ngas =  ', ngas
+        WRITE(6,*) ' nfil     =  ', nfil
 
       END IF
 
@@ -201,6 +204,7 @@
       CALL bcast_integer(nz_, 1, root)
       CALL bcast_integer(nsolid_, 1, root)
       CALL bcast_integer(ngas_, 1, root)
+      CALL bcast_integer(max_ngas_, 1, root)
       CALL bcast_integer(nfil, 1, root)
 
       IF( nx_ /= nx ) &
@@ -213,6 +217,8 @@
         CALL error(' taperd ',' inconsistent dimension nsolid ', nsolid_ )
       IF( ngas_ /= ngas .AND. .NOT. old_restart ) &
         CALL error(' taperd ',' inconsistent dimension ngas ', ngas_ )
+      IF( max_ngas_ /= max_ngas .AND. .NOT. old_restart ) &
+        CALL error(' taperd ',' inconsistent dimension max_ngas ', max_ngas_ )
 
       !
       !  read pressure
@@ -420,9 +426,15 @@
       END IF
 
       cp = 0.0d0
-      DO ig = 1, max_ngas
-        CALL read_array( 9, cp(ig,:), dbl, lform )
-      END DO
+      IF( old_restart ) THEN
+        DO ig = 1, max_ngas
+          CALL read_array( 9, cp(ig,:), dbl, lform )
+        END DO
+      ELSE
+        DO ig = 1, ngas
+          CALL read_array( 9, cp(gas_type(ig),:), dbl, lform )
+        END DO
+      END IF
       IF( ANY( cp < 0 ) ) THEN
          WRITE(6,*) 'WARNING reading restart, cp < 0'
       END IF
