@@ -22,7 +22,7 @@ environment.o :
 
 eosg.o : dens.o dimensions.o gas.o grid.o hcapgs.o press.o temp.o time.o 
 
-eosl.o : dens.o dimensions.o gas.o hcapgs.o particles.o temp.o 
+eosl.o : dimensions.o gas.o hcapgs.o particles.o temp.o 
 
 fluxes.o : dimensions.o grid.o indijk.o subscr.o time.o 
 
