@@ -29,9 +29,9 @@
       USE domain_decomposition, ONLY: ncint, myijk, meshinds
       USE grid, ONLY: flag, x, y, z, xb, yb, zb
       USE immersed_boundaries, ONLY: forx, fory, forz, forced
-      USE immersed_boundaries, ONLY: numx, numy, numz
+      USE immersed_boundaries, ONLY: numx, numy, numz, nfp
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE parallel, ONLY: mpime
+      USE parallel, ONLY: mpime, root
       USE set_indexes, ONLY: subscr
       USE set_indexes, ONLY: ipjk, imjk, ippjk, immjk, ijpk, ipjpk,    &
         imjpk, ijmk, ipjmk, imjmk, ijppk, ijmmk, ijkp, ipjkp, imjkp,   &
@@ -40,7 +40,7 @@
       IMPLICIT NONE
 !
       INTEGER :: ijk, i, j, k, imesh, ig, is
-      INTEGER :: fp
+      INTEGER :: fp, pp
       REAL*8 :: d1, d2 
       REAL*8 :: vel
 !
@@ -657,6 +657,21 @@
         END IF
       END DO
 
+     IF (mpime == root) THEN
+        OPEN(UNIT=15,FILE='forx.dat',STATUS='UNKNOWN')
+        IF (job_type == '3D') &
+          OPEN(UNIT=16,FILE='fory.dat',STATUS='UNKNOWN')
+        OPEN(UNIT=17,FILE='forz.dat',STATUS='UNKNOWN')
+        DO pp = 1, nfp
+          WRITE(15,33) pp, forx(pp)
+          IF (job_type == '3D') WRITE(16,33) pp, fory(pp)
+          WRITE(17,33) pp, forz(pp)
+        END DO
+        CLOSE(15)
+        CLOSE(16)
+        CLOSE(17)
+      END IF
+ 33   FORMAT(5(I6),4(F18.3))
 !
       RETURN
       END SUBROUTINE boundary

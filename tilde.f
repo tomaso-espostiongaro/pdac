@@ -804,7 +804,6 @@
       END DO
 !
       DEALLOCATE(ugfe, ugft)
-!      
       DEALLOCATE(wgfe, wgft)
       DEALLOCATE(gvisx, gvisz)
 !
