@@ -156,8 +156,8 @@
           wg(ijk) = w_gas 
           tg(ijk) = t_gas
           ep0     = 1.D0 - SUM(ep_solid(1:nsolid))
-          ep(ijk) = 1.D0 - SUM(ep_solid(1:nsolid)) * alpha
-          p(ijk)  = p_gas * alpha * ep(ijk) / ep0
+          ep(ijk) = 1.D0 - alpha * SUM(ep_solid(1:nsolid))
+          p(ijk)  = p_gas * alpha * ep0 / ep(ijk)
 
           DO ig = 1, ngas
             ygc(ig,ijk) = vent_ygc(gas_type(ig))
