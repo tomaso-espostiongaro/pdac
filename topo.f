@@ -236,7 +236,7 @@
 !
       USE grid, ONLY: domain_x, domain_y, dxmax, dymax, dxmin, dymin
       USE grid, ONLY: center_x, center_y, alpha_x, alpha_y
-      USE array_filters, ONLY: interp, median_filter
+      USE array_filters, ONLY: interp, mean_filter
       IMPLICIT NONE
       INTEGER :: noditopx, noditopy
       INTEGER :: nodidemx, nodidemy
@@ -324,7 +324,7 @@
       center_x = xtop(icenter)
       center_y = ytop(jcenter)
 !
-      IF (filtersize >= cellsize) CALL median_filter(xtop,ytop,ztop2d,filtersize)
+      IF (filtersize >= cellsize) CALL mean_filter(xtop,ytop,ztop2d,filtersize)
 
       DEALLOCATE(ntx)
       DEALLOCATE(nty)
@@ -337,7 +337,7 @@
 ! ... the digital elevation model (dem) around the specified x/y-center
 !
       SUBROUTINE average_dem
-      USE array_filters, ONLY: median_filter
+      USE array_filters, ONLY: mean_filter
 !
       IMPLICIT NONE
       INTEGER :: i, j, distance, m, l
@@ -392,7 +392,7 @@
         END IF
       END DO
 !      
-      CALL median_filter(rad_dist, rad_quota, filtersize)
+      CALL mean_filter(rad_dist, rad_quota, filtersize)
 
       DO i = 1, counter
         av_quota(NINT(rad_dist(i))) = rad_quota(i)
