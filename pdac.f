@@ -10,9 +10,6 @@
 ! 3d version implemented by: T. Esposti Ongaro, C. Cavazzoni
 !******************************************************************************
 !
-!#if defined __HPM
-!#  include "/cineca/prod/hpm/include/f_hpm.h"
-!#endif
       PROGRAM pdac
 
       USE blunt_body, ONLY: set_blunt, ibl
@@ -74,9 +71,6 @@
 
 ! ... date and time
       CALL date_and_time( values = mydate )
-
-! ... Initialize the IBM HW performance monitor
-      !call f_hpminit( mpime, 'pdac' )
 !
 ! ... I/O files
 !
@@ -233,34 +227,31 @@
 !
       CALL prog
 !
-        IF (timing ) THEN
-          s6 = cpclock()
-          call MP_WALLTIME(pt6,mpime)
-          timtot     = (s6 - s0)/1000.D0
-          timprog    = (s6 - s5)/1000.D0
-          timres     = (s5 - s4)/1000.D0
-          timsetup   = (s4 - s3)/1000.D0
-          timghost   = (s3 - s1)/1000.D0
-          timinit    = (s1 - s0)/1000.D0
-          mptimtot   = (pt6 - pt0)
-          mptimprog  = (pt6 - pt5)          
-          mptimres   = (pt5 - pt4)          
-          mptimsetup = (pt4 - pt3)
-          mptimghost = (pt3 - pt1)         
-          mptiminit  = (pt1 - pt0)
+      IF (timing ) THEN
+        s6 = cpclock()
+        call MP_WALLTIME(pt6,mpime)
+        timtot     = (s6 - s0)/1000.D0
+        timprog    = (s6 - s5)/1000.D0
+        timres     = (s5 - s4)/1000.D0
+        timsetup   = (s4 - s3)/1000.D0
+        timghost   = (s3 - s1)/1000.D0
+        timinit    = (s1 - s0)/1000.D0
+        mptimtot   = (pt6 - pt0)
+        mptimprog  = (pt6 - pt5)          
+        mptimres   = (pt5 - pt4)          
+        mptimsetup = (pt4 - pt3)
+        mptimghost = (pt3 - pt1)         
+        mptiminit  = (pt1 - pt0)
          
-          WRITE(7,*)' (From main) WALL TIME computed calling SYSTEM_CLOCK (s)'
-          WRITE(7,900) 'Init', 'Ghost', 'Rest', 'Setup', 'Prog', 'Total'
-          WRITE(7,999) timinit, timghost, timres, timsetup, timprog, timtot
-          WRITE(7,*)'             WALL TIME computed calling MP_WALLTIME (s)'
-          WRITE(7,900) 'Init', 'Ghost', 'Rest', 'Setup', 'Prog', 'Total'
-          WRITE(7,999) mptiminit, mptimghost, mptimres, mptimsetup, mptimprog, mptimtot
-999       FORMAT(6(1X,F10.2),/)
-900       FORMAT(6(1X,A10))
-        END IF
-
-! ... terminate the IBM HW performance monitor session
-      !call f_hpmterminate( mpime )
+        WRITE(7,*)' (From main) WALL TIME computed calling SYSTEM_CLOCK (s)'
+        WRITE(7,900) 'Init', 'Ghost', 'Rest', 'Setup', 'Prog', 'Total'
+        WRITE(7,999) timinit, timghost, timres, timsetup, timprog, timtot
+        WRITE(7,*)'             WALL TIME computed calling MP_WALLTIME (s)'
+        WRITE(7,900) 'Init', 'Ghost', 'Rest', 'Setup', 'Prog', 'Total'
+        WRITE(7,999) mptiminit, mptimghost, mptimres, mptimsetup, mptimprog, mptimtot
+999     FORMAT(6(1X,F10.2),/)
+900     FORMAT(6(1X,A10))
+      END IF
 
 ! ... date and time
       CALL date_and_time( values = mydate )

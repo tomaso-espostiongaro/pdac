@@ -605,7 +605,7 @@
         delta(i) = delta(i) * 100.D0
         idelta = NINT(delta(i))
         delta(i) = idelta / 100.D0
-        WRITE(7,fmt="(F8.2)") delta(i)
+        IF( lpr > 2 ) WRITE(7,fmt="(F8.2)") delta(i)
       END DO
       
       WRITE(7,777) domain_size

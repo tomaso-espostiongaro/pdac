@@ -1581,7 +1581,7 @@
         END DO
       END IF  
 
-      IF (lpr >= 2) CALL test_comm
+      IF (lpr > 2) CALL test_comm
 !
 ! ... local flags, local arrays for forcing
 !
@@ -3068,7 +3068,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               vf(ijk)  = 0.25D0 * vf(ijk)
             END IF
 
-            IF( lpr >= 2 ) WRITE( 7, fmt = "( I8,3I4,2X,6F8.4 )" ) ijk, i, j, k, bdr(ijk,:)
+            IF( lpr > 2 ) WRITE( 7, fmt = "( I8,3I4,2X,6F8.4 )" ) ijk, i, j, k, bdr(ijk,:)
 
           END IF
 
