@@ -138,7 +138,8 @@
 ! ... Squared turbulence length scale is used into Smagorinsky model
             smag( ijk ) = sl**2
 
-! ... Correction for anisotropic grids
+! ... Correction for anisotropic grids (only for classical 
+! ... Smagorinsky model)
 !
             smag(ijk) = smag(ijk) * anis(i,j,k)
 
