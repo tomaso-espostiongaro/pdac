@@ -87,7 +87,7 @@ int change_extension(char sour[], char dest[], char new_extension[])
   return strlen(dest);
 }
 
-void main(int argc,char *argv[])
+int main(int argc,char *argv[])
 {
   int i,nm,len,lobj;
   char object[BUFSIZ];
@@ -111,4 +111,5 @@ void main(int argc,char *argv[])
   }
  
   printf("\n");
+  return 0;
 }
