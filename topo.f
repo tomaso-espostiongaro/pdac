@@ -176,14 +176,6 @@
       transl_x = center_x - x(iv)
       transl_y = center_y - y(jv)
 
-!      !!!WARNING!!! controlla traslazione a.s.l. !!!
-!      WRITE(*,*) 'Minimum topographic quota: ', MINVAL(ztop2d)
-!      transl_z = MINVAL(ztop2d) - z(kv) 
-!      z  = z  + transl_z
-!      zb = zb + transl_z
-!      WRITE(17,*) z
-!      WRITE(17,*) zb
-
       x  = x  + transl_x
       xb = xb + transl_x
       y  = y  + transl_y
@@ -204,6 +196,23 @@
       
       RETURN
       END SUBROUTINE compute_UTM_coords
+!----------------------------------------------------------------------
+      SUBROUTINE vertical_shift(topo2d)
+      USE grid, ONLY: z, zb
+      IMPLICIT NONE
+      REAL*8, INTENT(IN), DIMENSION(:,:) :: topo2d
+
+      !
+      ! ... Translate vertically the numerical mesh to minimize the
+      ! ... number of topographic cells
+      !
+      WRITE(*,*) 'Minimum topographic quota: ', MINVAL(topo2d)
+
+      z   = z   + MINVAL(topo2d)
+      zb  = zb  + MINVAL(topo2d)
+
+      RETURN
+      END SUBROUTINE vertical_shift
 !----------------------------------------------------------------------
       SUBROUTINE interpolate_2d(topo,ff)
 !
@@ -295,13 +304,14 @@
       USE dimensions, ONLY: nx, ny, nz
       IMPLICIT NONE
       REAL*8, INTENT(OUT), DIMENSION(:,:) :: topo2d
+!      REAL*8, INTENT(OUT), DIMENSION(:,:,:) :: interp
 
       REAL*8 xmin,xmax,ymin,ymax,zmin,zmax !range dei valori della top.
       REAL*8 ratio
 
       REAL*8 dist1y,dist2y,dist1x,dist2x,alpha,beta
       INTEGER i,j,k,h,l,ii,jj
-      INTEGER ijk
+      INTEGER ijk, tp1, tp2
         
 !C============================================
 !C===    trova le posizioni dei nodi      ====
@@ -358,30 +368,37 @@
 ! utilizzando le quote nei punti P1,..,P4 definiti sopra
 
 	DO i=1,nx
-	   dist1x=cx(i)-xtop(nextx(i)-1)
-	   dist2x=xtop(nextx(i))-cx(i)
-	   alpha=dist1x/(dist1x+dist2x)
-	   DO j=1,ny
-	      dist1y=cy(j)-ytop(nexty(j)-1)
-	      dist2y=ytop(nexty(j))-cy(j)
-	      beta=dist1y/(dist1y+dist2y)
 
-	      topo2d(i,j)=beta*(alpha*ztop2d(nextx(i),nexty(j)) &
-		   +(1-alpha)*ztop2d(nextx(i)-1,nexty(j)))      &
-		   +(1-beta)*(alpha*ztop2d(nextx(i),nexty(j)-1) &
-		   +(1-alpha)*ztop2d(nextx(i)-1,nexty(j)-1))
+	   dist1x = cx(i) - xtop(nextx(i)-1)
+	   dist2x = xtop(nextx(i)) - cx(i)
+	   alpha  = dist1x/(dist1x+dist2x)
+
+	   DO j=1,ny
+           
+	      dist1y = cy(j) - ytop(nexty(j)-1)
+	      dist2y = ytop(nexty(j)) - cy(j)
+	      beta   = dist1y/(dist1y+dist2y)
+
+              tp1    = alpha * ztop2d(nextx(i),nexty(j))   + &
+                       (1.D0 - alpha) * ztop2d(nextx(i)-1,nexty(j))
+
+              tp2    = alpha * ztop2d(nextx(i),nexty(j)-1) + &
+                       (1.D0 - alpha) * ztop2d(nextx(i)-1,nexty(j)-1)
+
+              topo2d(i,j) = beta * tp1 + (1.D0 - beta) * tp2
 
 	   ENDDO
+
 	ENDDO
 
-! cerca i nodi sotto la topografia
+! ... Locate cells laying below the topography 'ord2d(i,j)'
 
 	DO i=1,nx
 	   DO j=1,ny
 	      DO k=1,nz
 
 		IF (cz(k) <= topo2d(i,j)) THEN
-		   ord2d(i,j)=k    !ultimo nodo sotto la top.
+		   ord2d(i,j) = k  
 		ENDIF
 
                 ! ... dist defines implicitly the profile
@@ -392,7 +409,26 @@
 	      ENDDO
 	   ENDDO
 	ENDDO
-      
+!
+! ... Identify forcing points
+!
+!      interp = 0
+!      DO i = 2, nx - 1
+!        DO j = 2, ny - 1
+!          DO k = 1, ord(i,j)
+!            IF( ord(i-1,j)   < k ) interp(i,j,k) = 1
+!            IF( ord(i-1,j-1) < k ) interp(i,j,k) = interp(i,j,k) + 2
+!            IF( ord(i,j-1)   < k ) interp(i,j,k) = interp(i,j,k) + 4
+!            IF( ord(i+1,j-1) < k ) interp(i,j,k) = interp(i,j,k) + 8 
+!            IF( ord(i+1,j)   < k ) interp(i,j,k) = interp(i,j,k) + 16 
+!            IF( ord(i+1,j+1) < k ) interp(i,j,k) = interp(i,j,k) + 32 
+!            IF( ord(i,j+1)   < k ) interp(i,j,k) = interp(i,j,k) + 64 
+!            IF( ord(i-1,j+1) < k ) interp(i,j,k) = interp(i,j,k) + 128 
+!          END DO
+!          interp(i,j,ord(i,j)) = interp(i,j,ord(i,j)) + 256
+!        END DO
+!      END DO
+!      
       RETURN
       END SUBROUTINE interpolate_dem
 !----------------------------------------------------------------------

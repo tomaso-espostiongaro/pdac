@@ -36,6 +36,7 @@
 ! ... this value is .TRUE. when force has to be computed at a given location
 !
       LOGICAL, ALLOCATABLE :: forcex(:)
+      LOGICAL, ALLOCATABLE :: forcey(:)
       LOGICAL, ALLOCATABLE :: forcez(:)
       LOGICAL, ALLOCATABLE :: forced(:)
 !
@@ -58,7 +59,9 @@
       USE control_flags, ONLY: job_type, lpr, immb
       USE volcano_topography, ONLY: grid_locations, dist
       USE volcano_topography, ONLY: interpolate_2d, ord, next
-      USE volcano_topography, ONLY: interpolate_dem, ord2d, nextx, nexty
+      USE volcano_topography, ONLY: ord2d, nextx, nexty
+      USE volcano_topography, ONLY: interpolate_dem, vertical_shift
+      USE grid, ONLY: z
 
       IMPLICIT NONE
       INTEGER :: p, nfpx, nfpz
@@ -92,29 +95,36 @@
 
         CALL grid_locations(0,0,0)
         CALL interpolate_dem(topo2d_c)
+!
+        CALL vertical_shift(topo2d_c)
+        CALL grid_locations(0,0,0)
+        CALL interpolate_dem(topo2d_c)
 
         WRITE(6,*) 'TOPOGRAPHY'
         DO j= 1, ny
           DO i= 1, nx
-            WRITE(6,*) i, j, topo2d_c(i,j)
+            !WRITE(6,*) i, j, topo2d_c(i,j)
+            WRITE(6,*) i, j, z(ord2d(i,j))
           END DO
         END DO
-
+!
       END IF
 
       IF (mpime == root) THEN
         OPEN(UNIT=14,FILE='improfile.dat',STATUS='UNKNOWN')
-        WRITE(14,*) dist
+        WRITE(14,*) dist - MINVAL(topo2d_c)
         CLOSE(14)
       END IF
 !
-      CALL error('immb','debug',1)
+      IF( job_type == '3D') CALL error('immb','3D immersed b. not &
+                                     & yet implemented',1)
       IF (immb >= 1) THEN
 !
-! ... These arrays are exported and scattered among processors
-! ... after domain decomposition
+! ... These logical arrays are exported and scattered among
+! ... processors after domain decomposition
 !
         ALLOCATE(forcex(ntot))
+        IF (job_type == '3D') ALLOCATE(forcey(ntot))
         ALLOCATE(forcez(ntot))
 !
 ! ... Interpolate topography on staggered points

@@ -713,8 +713,11 @@
               WRITE(7,*) 'Final beta = ', beta, ' n= ', &
               (n01+m1+n11)+(n02+m2+n12)+1
            ELSE
-              beta = beta / dbeta
-              already = .TRUE.
+             already = .TRUE.
+             beta = beta / dbeta
+             WRITE(7,*) 'Increasing beta = ', beta, ' n = ', &
+              (n01+m1+n11)+(n02+m2+n12)+1
+             WRITE(7,*) 'valori: ', n01,m1,n11,n02,m2,n12
            ENDIF
         ENDIF
         
@@ -753,14 +756,12 @@
       delta(1:n11) = demax
       DO i = 1, m1
         delta(center-n01-i) = demin * beta1**i
-!        delta(center-n01-i) = demin * beta**i
       END DO
       delta(center-n01:center-1) = demin
       delta(center) = demin
       delta(center+1:center+n02) = demin
       DO i = 1, m2
         delta(center+n02+i) = demin * beta2**i
-!        delta(center+n02+i) = demin * beta**i
       END DO
       delta(center+n02+m2+1:) = demax
 !
