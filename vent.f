@@ -168,6 +168,7 @@
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nsolid, ngas
       USE domain_decomposition, ONLY: ncint, meshinds
+      USE environment, ONLY: cpclock
       USE eos_gas, ONLY: ygc
       USE gas_constants, ONLY: gas_type
       USE gas_solid_density, ONLY: rlk
@@ -175,6 +176,7 @@
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE grid, ONLY: flag, x, y
+      USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
       IMPLICIT NONE
@@ -344,7 +346,7 @@
         END IF
       END DO
 
-      grow_factor = ft(sweep)
+      growth_factor = ft(sweep)
       
       wg(ijk) = w_gas * switch * growth_factor
       
@@ -361,7 +363,6 @@
 ! ... equal to the cell fraction
 !
       USE control_flags, ONLY: job_type
-      USE environment, ONLY: cpclock
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: sweep

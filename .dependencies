@@ -119,8 +119,6 @@ prog.o : bdry.o blunt.o control.o decomp.o dens.o dimensions.o environment.o  \
     press.o reactions.o residuals.o sampling.o temp.o tilde.o time.o turbo.o  \
     ygas.o 
 
-rannum.o : 
-
 reactions.o : decomp.o dimensions.o grid.o indijk.o time.o 
 
 residuals.o : control.o decomp.o dens.o dimensions.o eosg.o grid.o  \
