@@ -17,7 +17,7 @@
       USE dimensions
       IMPLICIT NONE
 !
-      ALLOCATE(gas_pressure(ndi*ndj), void_fraction(ndi*ndj))
+      ALLOCATE(gas_pressure(nr*nz), void_fraction(nr*nz))
       gas_pressure  = 0.D0
       void_fraction = 0.D0
 !

@@ -27,7 +27,7 @@
       USE dimensions
       IMPLICIT NONE
 !
-      INTEGER :: i, j, k, ndindj, ij
+      INTEGER :: i, j, k, nrnz, ij
       INTEGER :: kg
 !
       CHARACTER*27 sysdump
@@ -45,28 +45,28 @@
 !
         OPEN(UNIT=9,form='unformatted',FILE='pdac.res')
 !
-        WRITE(9) time,ndi,ndj,ncl
-        ndindj=ndi*ndj
+        WRITE(9) time,nr,nz,nsolid
+        nrnz=nr*nz
 !
 ! ... store the final values of the main physical variables 
 ! 
-        WRITE(9) (gas_pressure(ij),ij=1,ndindj)
-        WRITE(9) (void_fraction(ij),ij=1,ndindj)
-        WRITE(9) (gas_density(ij),ij=1,ndindj)
-        WRITE(9) (gas_bulk_density(ij),ij=1,ndindj)
-        WRITE(9) ((solid_bulk_density(k,ij),k=1,ncl),ij=1,ndindj) 
-        WRITE(9) (gas_velocity_r(ij),gas_velocity_z(ij),ij=1,ndindj)
-        WRITE(9) ((solid_velocity_r(k,ij),solid_velocity_z(k,ij),k=1,ncl),ij=1,ndindj)
-        WRITE(9) (gas_enthalpy(ij),gas_temperature(ij),ij=1,ndindj)
-        WRITE(9) ((solid_enthalpy(k,ij),solid_temperature(k,ij),k=1,ncl),ij=1,ndindj)
-        WRITE(9) ((gc_mass_fraction(kg,ij),gc_molar_fraction(kg,ij),kg=1,ngas),ij=1,ndindj)
-        WRITE(9) ((gc_bulk_density(kg,ij),kg=1,ngas),ij=1,ndindj)
+        WRITE(9) (gas_pressure(ij),ij=1,nrnz)
+        WRITE(9) (void_fraction(ij),ij=1,nrnz)
+        WRITE(9) (gas_density(ij),ij=1,nrnz)
+        WRITE(9) (gas_bulk_density(ij),ij=1,nrnz)
+        WRITE(9) ((solid_bulk_density(k,ij),k=1,nsolid),ij=1,nrnz) 
+        WRITE(9) (gas_velocity_r(ij),gas_velocity_z(ij),ij=1,nrnz)
+        WRITE(9) ((solid_velocity_r(k,ij),solid_velocity_z(k,ij),k=1,nsolid),ij=1,nrnz)
+        WRITE(9) (gas_enthalpy(ij),gas_temperature(ij),ij=1,nrnz)
+        WRITE(9) ((solid_enthalpy(k,ij),solid_temperature(k,ij),k=1,nsolid),ij=1,nrnz)
+        WRITE(9) ((gc_mass_fraction(kg,ij),gc_molar_fraction(kg,ij),kg=1,ngas),ij=1,nrnz)
+        WRITE(9) ((gc_bulk_density(kg,ij),kg=1,ngas),ij=1,nrnz)
 !
 ! ... store the final values of the constitutive parameters to be set up
 !
-        WRITE(9) (gas_heat_capacity(ij),ij=1,ndindj)
-        WRITE(9) ((gc_heat_capacity(k,ij),k=1,ncl),ij=1,ndindj)
-        WRITE(9) ((solid_heat_capacity(kg,ij),kg=1,ngas),ij=1,ndindj)
+        WRITE(9) (gas_heat_capacity(ij),ij=1,nrnz)
+        WRITE(9) ((gc_heat_capacity(k,ij),k=1,nsolid),ij=1,nrnz)
+        WRITE(9) ((solid_heat_capacity(kg,ij),kg=1,ngas),ij=1,nrnz)
 !
         CLOSE(9)
 ! 
@@ -88,7 +88,7 @@
       IMPLICIT NONE
 !
       CHARACTER*23 sysdumpu
-      INTEGER :: i, j, k, ndindj, ij
+      INTEGER :: i, j, k, nrnz, ij
       INTEGER :: kg
       IF( mpime .EQ. root ) THEN
 !
@@ -102,28 +102,28 @@
 !
         OPEN(UNIT=9,form='unformatted',FILE='pdac.res')
 !  
-        READ(9) time,ndi,ndj,ncl
-        ndindj=ndi*ndj
+        READ(9) time,nr,nz,nsolid
+        nrnz=nr*nz
 !
 ! ... read the final values of the main physical variables 
 ! 
-        READ(9) (gas_pressure(ij),ij=1,ndindj)
-        READ(9) (void_fraction(ij),ij=1,ndindj)
-        READ(9) (gas_density(ij),ij=1,ndindj)
-        READ(9) (gas_bulk_density(ij),ij=1,ndindj)
-        READ(9) ((solid_bulk_density(k,ij),k=1,ncl),ij=1,ndindj) 
-        READ(9) (gas_velocity_r(ij),gas_velocity_z(ij),ij=1,ndindj)
-        READ(9) ((solid_velocity_r(k,ij),solid_velocity_z(k,ij),k=1,ncl),ij=1,ndindj)
-        READ(9) (gas_enthalpy(ij),gas_temperature(ij),ij=1,ndindj)
-        READ(9) ((solid_enthalpy(k,ij),solid_temperature(k,ij),k=1,ncl),ij=1,ndindj)
-        READ(9) ((gc_mass_fraction(kg,ij),gc_molar_fraction(kg,ij),kg=1,ngas),ij=1,ndindj)
-        READ(9) ((gc_bulk_density(kg,ij),kg=1,ngas),ij=1,ndindj)
+        READ(9) (gas_pressure(ij),ij=1,nrnz)
+        READ(9) (void_fraction(ij),ij=1,nrnz)
+        READ(9) (gas_density(ij),ij=1,nrnz)
+        READ(9) (gas_bulk_density(ij),ij=1,nrnz)
+        READ(9) ((solid_bulk_density(k,ij),k=1,nsolid),ij=1,nrnz) 
+        READ(9) (gas_velocity_r(ij),gas_velocity_z(ij),ij=1,nrnz)
+        READ(9) ((solid_velocity_r(k,ij),solid_velocity_z(k,ij),k=1,nsolid),ij=1,nrnz)
+        READ(9) (gas_enthalpy(ij),gas_temperature(ij),ij=1,nrnz)
+        READ(9) ((solid_enthalpy(k,ij),solid_temperature(k,ij),k=1,nsolid),ij=1,nrnz)
+        READ(9) ((gc_mass_fraction(kg,ij),gc_molar_fraction(kg,ij),kg=1,ngas),ij=1,nrnz)
+        READ(9) ((gc_bulk_density(kg,ij),kg=1,ngas),ij=1,nrnz)
 !
 ! ... read the final values of the constitutive parameters set up
 !
-        READ(9) (gas_heat_capacity(ij),ij=1,ndindj)
-        READ(9) ((gc_heat_capacity(k,ij),k=1,ncl),ij=1,ndindj)
-        READ(9) ((solid_heat_capacity(kg,ij),kg=1,ngas),ij=1,ndindj)
+        READ(9) (gas_heat_capacity(ij),ij=1,nrnz)
+        READ(9) ((gc_heat_capacity(k,ij),k=1,nsolid),ij=1,nrnz)
+        READ(9) ((solid_heat_capacity(kg,ij),kg=1,ngas),ij=1,nrnz)
 !
         CLOSE (9)
       END IF

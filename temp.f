@@ -15,8 +15,8 @@
       USE dimensions
       IMPLICIT NONE
 !
-      ALLOCATE(gas_enthalpy(ndi*ndj), gas_temperature(ndi*ndj))
-      ALLOCATE(solid_enthalpy(ncl,ndi*ndj), solid_temperature(ncl,ndi*ndj))
+      ALLOCATE(gas_enthalpy(nr*nz), gas_temperature(nr*nz))
+      ALLOCATE(solid_enthalpy(nsolid,nr*nz), solid_temperature(nsolid,nr*nz))
 !
       RETURN
       END SUBROUTINE
@@ -27,8 +27,8 @@
       IMPLICIT NONE
 !
       ALLOCATE(sieg(nijx_l), siegn(nijx_l), tg(nijx_l))
-      ALLOCATE(siek(ncl,nijx_l), siekn(ncl,nijx_l))
-      ALLOCATE(tk(ncl,nijx_l))
+      ALLOCATE(siek(nsolid,nijx_l), siekn(nsolid,nijx_l))
+      ALLOCATE(tk(nsolid,nijx_l))
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------

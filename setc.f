@@ -5,7 +5,7 @@
       USE dimensions
       USE gas_constants, ONLY: gmw, mmugs, mmugek,     &
      &    gammaair, gamn, c_joule, c_erg, tzero, hzerog, hzeros, rgas
-      USE particles_constants, ONLY: particles_constants_set, nsolid, cmus
+      USE particles_constants, ONLY: particles_constants_set, cmus
       USE reactions, ONLY: h1, h2, h3, h4, h5
       USE roughness_module, ONLY: zrough
       USE turbulence, ONLY: turbulence_setup, solid_viscosity
@@ -41,11 +41,11 @@
 !
 ! Syamlal's particle-particle interaction coefficients
 !
-      CALL particles_constants_set(nsolid)
+      CALL particles_constants_set
 !
 ! Initialize particle's viscosity
 ! 
-      DO k = 1, ncl
+      DO k = 1, nsolid
         solid_viscosity(k,:) = cmus(k)
       END DO
 !

@@ -14,8 +14,8 @@
       SUBROUTINE bounds_hcapgs
       USE dimensions
 !
-      ALLOCATE(gc_heat_capacity(ngas,ndi*ndj))
-      ALLOCATE(solid_heat_capacity(ncl,ndi*ndj))
+      ALLOCATE(gc_heat_capacity(ngas,nr*nz))
+      ALLOCATE(solid_heat_capacity(nsolid,nr*nz))
       gc_heat_capacity = 0.0d0
       solid_heat_capacity = 0.0d0
 
@@ -27,7 +27,7 @@
       USE grid, ONLY: nij_l
 !
       ALLOCATE(cp(ngas,nij_l))
-      ALLOCATE(ck(ncl,nij_l))
+      ALLOCATE(ck(nsolid,nij_l))
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------

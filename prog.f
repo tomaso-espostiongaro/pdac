@@ -75,8 +75,8 @@
         DO ij = 1, nij_l
          ij_g = myij(0, 0, ij)
          IF(fl_l(ij).EQ.1) THEN
-           j = ( ij_g - 1 ) / ndi + 1
-           i = MOD( ( ij_g - 1 ), ndi) + 1
+           j = ( ij_g - 1 ) / nr + 1
+           i = MOD( ( ij_g - 1 ), nr) + 1
 ! 
 ! ... Compute molar fractions of gas species
 !

@@ -30,7 +30,7 @@
 !     vkm(k) == vk(k,ijm)
 !..............................................................
 !
-      DO k=1,ncl
+      DO k=1,nsolid
         dvgs=DABS(( (vg-vk(k)) + (vgm-vkm(k)) ) * 0.5D0)
         dugs=DABS(( (ug-uk(k)) + (ugm-ukm(k)) ) * 0.5D0)
         dv=DSQRT(dvgs**2+dugs**2)

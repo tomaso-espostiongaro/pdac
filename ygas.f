@@ -30,8 +30,8 @@
        ij_g = myij(0, 0, ij)
        IF(fl_l(ij).EQ.1) THEN
         CALL subscl(ij)
-        j  = ( ij_g - 1 ) / ndi + 1
-        i  = MOD( ( ij_g - 1 ), ndi) + 1
+        j  = ( ij_g - 1 ) / nr + 1
+        i  = MOD( ( ij_g - 1 ), nr) + 1
 !
         DO kg=1,ngas
           cs(kg)=rgpgcn(kg,ij)

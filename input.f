@@ -1,6 +1,6 @@
    MODULE input_module
 
-      USE dimensions, ONLY: max_nsolid, ngas, nroughx, max_size, max_nblock, max_ngas
+      USE dimensions, ONLY: max_nsolid, ngas, nroughx, max_size, max_nblock, max_ngas, nr, nz
 
       REAL*8 :: diameter(max_nsolid)
       REAL*8 :: density(max_nsolid)
@@ -60,8 +60,8 @@
       USE atmosphere, ONLY: v0, u0, p0, temp0, uk0, vk0, ep0, epsmx0, gravx, gravz
       USE gas_constants, ONLY: phij, ckg, mmug, mmugs, mmugek, gmw
       USE gas_solid_viscosity, ONLY: icoh
-      USE grid, ONLY: dz, dr, itc, ib2, ib1, ib, jb2, jb1, jb
-      USE grid, ONLY: no, nso, iob
+      USE grid, ONLY: dz, dr, itc
+      USE grid, ONLY: nso, iob
       USE iterative_solver, ONLY: inmax, maxout, omega
       USE output_dump, ONLY: nfil, outp
       USE parallel, ONLY: mpime, root
@@ -85,7 +85,7 @@
         tdump, nfil, icoh, irex, iss, iturb, modturbo, cmut, rlim, gravx, gravz, &
         ngas
 !
-      NAMELIST / mesh / ib2, jb2, itc, iuni, dr0, dz0
+      NAMELIST / mesh / nr, nz, itc, iuni, dr0, dz0
 !
       NAMELIST / particles / nsolid, diameter, density, sphericity, &
         viscosity, specific_heat, thermal_conductivity
@@ -122,8 +122,8 @@
 
 ! ... Mesh
 
-      ib2 = 100
-      jb2 = 100
+      nr = 100
+      nz = 100
       itc = 0
       iuni = 0
       dr0  = 1000.0d0
@@ -188,8 +188,8 @@
         READ(iunit, mesh) 
       END IF
 
-      CALL bcast_integer(ib2,1,root)
-      CALL bcast_integer(jb2,1,root)
+      CALL bcast_integer(nr,1,root)
+      CALL bcast_integer(nz,1,root)
       CALL bcast_integer(itc,1,root)
       CALL bcast_integer(iuni,1,root)
       CALL bcast_real(dr0,1,root)
@@ -254,8 +254,8 @@
           END IF
         END DO mesh_search
 
-        READ(5,*) (delta_r(i),i=1,ib2)
-        READ(5,*) (delta_z(j),j=1,jb2)
+        READ(5,*) (delta_r(i),i=1,nr)
+        READ(5,*) (delta_z(j),j=1,nz)
         IF (iuni == 0) THEN
           delta_r = dr0
           delta_z = dz0
@@ -270,8 +270,8 @@
       IF( tend ) THEN
         CALL error( ' input ', ' MESH card not found ', 1 )
       END IF
-      CALL bcast_real(delta_r,ib2,root)
-      CALL bcast_real(delta_z,jb2,root)
+      CALL bcast_real(delta_r,nr,root)
+      CALL bcast_real(delta_z,nz,root)
 
 
       tend = .FALSE.

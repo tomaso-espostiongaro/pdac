@@ -22,8 +22,8 @@
       USE dimensions
       IMPLICIT NONE
 !
-      ALLOCATE(gas_viscosity(ndi*ndj))
-      ALLOCATE(gas_thermal_conductivity(ndi*ndj))
+      ALLOCATE(gas_viscosity(nr*nz))
+      ALLOCATE(gas_thermal_conductivity(nr*nz))
       gas_viscosity = 0.0d0
       gas_thermal_conductivity = 0.0d0
       RETURN
@@ -161,8 +161,8 @@
         ij_g = myij(0, 0, ij)
         IF(fl_l(ij).EQ.1) THEN
          CALL subscl(ij) 
-         j = ( ij_g - 1 ) / ndi + 1
-         i = MOD( ( ij_g - 1 ), ndi) + 1
+         j = ( ij_g - 1 ) / nr + 1
+         i = MOD( ( ij_g - 1 ), nr) + 1
 !
          drp=(dr(i)+dr(i+1))
          drm=(dr(i)+dr(i-1))
@@ -257,8 +257,8 @@
         ij_g = myij(0, 0, ij)
         IF(fl_l(ij).EQ.1) THEN
          CALL subscl(ij)
-         j = ( ij_g - 1 ) / ndi + 1
-         i = MOD( ( ij_g - 1 ), ndi) + 1
+         j = ( ij_g - 1 ) / nr + 1
+         i = MOD( ( ij_g - 1 ), nr) + 1
 !
          drp=(dr(i)+dr(i+1))
          drm=(dr(i)+dr(i-1))

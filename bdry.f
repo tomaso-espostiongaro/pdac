@@ -14,7 +14,7 @@
       USE grid, ONLY: zb, dz, rb, dr, r, inr, inrb
       USE grid, ONLY: nij_l, myij, data_exchange
       USE parallel, ONLY: mpime
-      USE particles_constants, ONLY: rl, inrl, nsolid
+      USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p, ep
       USE reactions, ONLY: irex
       USE set_indexes
@@ -40,8 +40,8 @@
 !
       DO ij = 1, nij_l
         ij_g = myij(0, 0, ij)
-        j = ( ij_g - 1 ) / ndi + 1
-        i = MOD( ( ij_g - 1 ), ndi) + 1
+        j = ( ij_g - 1 ) / nr + 1
+        i = MOD( ( ij_g - 1 ), nr) + 1
         IF(fl_l(ij).EQ.1) THEN
           CALL subscl(ij)
 !
@@ -86,9 +86,9 @@
               IF(ug(ij).GE.0.D0) THEN
 !
 ! ... definitions
-                drc=(dr(ndi)+dr(ndi-1))*0.5D0
+                drc=(dr(nr)+dr(nr-1))*0.5D0
                 indrc = 1.0D0/drc
-                dr1=dr(ndi-1)
+                dr1=dr(nr-1)
                 uc1n=ug(imj)
                 ucn=ug(ij)
 !
@@ -247,8 +247,8 @@
                 pnn2=p(ij)
 !
 ! ... definitions and linear interpolations
-                dzc=(dz(ndj)+dz(ndj-1))*0.5D0
-                dz1=dz(ndj-1)
+                dzc=(dz(nz)+dz(nz-1))*0.5D0
+                dz1=dz(nz-1)
 !
                 vc1n=vg(ijm)
                 vcn=vg(ij)
@@ -325,7 +325,7 @@
 !                pnn2=p(n2)
                 pnn2=p(ij)
 !
-                zrif=zb(ndj)+0.5D0*(dz(1)-dz(ndj))
+                zrif=zb(nz)+0.5D0*(dz(1)-dz(nz))
                 CALL atm(zrif,prif,trif)
                 rhorif=prif*gmw(6)/(rgas*trif)
                 cost=prif/(rhorif**gammaair)
@@ -346,7 +346,7 @@
               rgp(n2)=p(n2)*ep(n2)*gmw(6)/(rgas*tg(n2))
 !
               IF(nfltr.EQ.4) ug(n2)=ug(ij)
-              IF(i .EQ. (ndi-1) .AND. j .EQ. (ndj-1)) THEN
+              IF(i .EQ. (nr-1) .AND. j .EQ. (nz-1)) THEN
                 vg(ipjp)=vg(n2)
                 ug(ipjp)=ug(n2)
               ENDIF
@@ -356,7 +356,7 @@
                   rlk(k,n2)=rlk(k,ij)
                   vk(k,n2)=vk(k,ij)
                 ENDIF
-                IF(i .EQ. (ndi-1) .AND. j .EQ. (ndj-1)) THEN
+                IF(i .EQ. (nr-1) .AND. j .EQ. (nz-1)) THEN
                   vk(k,ipjp)=vk(k,n2)
                   uk(k,ipjp)=uk(k,n2)
                 ENDIF
@@ -368,13 +368,13 @@
              
               IF(irex.GE.0) THEN
                 sieg(n2)=sieg(ij)
-                IF (i .EQ. (ndi-1) .AND. j .EQ. (ndj-1)) THEN
+                IF (i .EQ. (nr-1) .AND. j .EQ. (nz-1)) THEN
                   tg(ipjp)=tg(n2)
                 END IF
                 DO k=1,nsolid
                   siek(k,n2)=siek(k,ij)
                   tk(k,n2)=tk(k,ij)
-                  IF (i .EQ. (ndi-1) .AND. j .EQ. (ndj-1)) THEN
+                  IF (i .EQ. (nr-1) .AND. j .EQ. (nz-1)) THEN
                     tk(k,ipjp)=tk(k,n2)
                   END IF
                 END DO

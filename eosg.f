@@ -19,10 +19,10 @@
       USE dimensions
       IMPLICIT NONE
 !
-       ALLOCATE(gas_heat_capacity(ndi*ndj))
-       ALLOCATE(gc_mass_fraction(ngas,ndi*ndj),       &
-                gc_molar_fraction(ngas,ndi*ndj),      &
-                gc_bulk_density(ngas,ndi*ndj))
+       ALLOCATE(gas_heat_capacity(nr*nz))
+       ALLOCATE(gc_mass_fraction(ngas,nr*nz),       &
+                gc_molar_fraction(ngas,nr*nz),      &
+                gc_bulk_density(ngas,nr*nz))
 
        gas_heat_capacity     = 0.0d0
        gc_mass_fraction      = 0.0d0
@@ -66,7 +66,8 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE eosg(rags, rog, cp, cg, tg, ygc, xgc, sieg, p, nt, nr, nc, ij)
+      SUBROUTINE eosg(rags, rog, cp, cg, tg, ygc, xgc, sieg, p, itemp, &
+                      irhog, isound, ij)
 !
 ! ... updates gas density with new pressure
 !
@@ -81,7 +82,7 @@
       REAL*8, INTENT(OUT) :: rog, rags
       REAL*8, INTENT(INOUT) :: tg
       REAL*8 :: cp(:), cg
-      INTEGER :: nr, nt, nc
+      INTEGER :: itemp, irhog, isound
 !
       INTEGER :: i,j
       REAL*8 :: tgnn, mg, hc, ratmin
@@ -90,10 +91,10 @@
       PARAMETER( nlmax = 2000) 
       PARAMETER( ratmin = 1.D-8) 
 !
-      j  = ( ij - 1 ) / ndi + 1
-      i  = MOD( ( ij - 1 ), ndi) + 1
+      j  = ( ij - 1 ) / nr + 1
+      i  = MOD( ( ij - 1 ), nr) + 1
 !
-      IF(nt.GT.0) THEN
+      IF(itemp.GT.0) THEN
 !
 ! ... iterative inversion of the enthalpy-temperature law
 ! ... (the gas thermal capacity depends on the temperature cg=cg(T) )
@@ -113,7 +114,7 @@
   223   CONTINUE
       ENDIF
 !
-      IF(nr.GT.0) THEN
+      IF(irhog.GT.0) THEN
         mg=0.D0
         DO kg=1,ngas
           mg = mg + xgc(kg) * gmw(kg)
@@ -121,7 +122,7 @@
         rog = p/(rgas*tg)*mg
       ENDIF
 !
-      IF(nc.GT.0) rags = rog/p/gammaair
+      IF(isound.GT.0) rags = rog/p/gammaair
 !
       RETURN
       END SUBROUTINE

@@ -6,18 +6,18 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE eosl(tk, cps, ck, siek, nc,nt)
+      SUBROUTINE eosl(tk, cps, ck, siek, iheat,itemp)
 !
       USE dimensions
       USE gas_constants, ONLY: tzero, hzeros
       USE heat_capacity, ONLY: hcaps
       IMPLICIT NONE
-      INTEGER, INTENT(IN) :: nc, nt
+      INTEGER, INTENT(IN) :: iheat, itemp
       REAL*8, INTENT(INOUT) :: tk
       REAL*8, INTENT(IN) ::  cps, siek
       REAL*8 :: ck
-      IF(nc.GT.0) CALL hcaps(ck, cps, tk)
-      IF(nt.GT.0) THEN
+      IF(iheat.GT.0) CALL hcaps(ck, cps, tk)
+      IF(itemp.GT.0) THEN
         tk = tzero + (siek-hzeros) / ck
         CALL hcaps(ck, cps, tk)
       ENDIF
@@ -30,7 +30,7 @@
       USE gas_solid_density, ONLY: solid_bulk_density
       USE gas_solid_temperature, ONLY: solid_enthalpy, solid_temperature
       USE gas_constants, ONLY: tzero, hzeros
-      USE particles_constants, ONLY: nsolid, cps
+      USE particles_constants, ONLY: cps
       USE reactions, ONLY: irex
       USE heat_capacity, ONLY: solid_heat_capacity, hcaps
 !

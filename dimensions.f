@@ -1,10 +1,9 @@
 !-----------------------------------------------------------------------
       MODULE dimensions
 !-----------------------------------------------------------------------
-        INTEGER :: ndi
-        INTEGER :: ndj
-        INTEGER :: nnso
-        INTEGER :: ncl
+        INTEGER :: nr, nx, ny, nz
+        INTEGER :: no
+        INTEGER :: nsolid
         INTEGER :: ngas
         INTEGER :: nphase
         INTEGER, PARAMETER :: nroughx = 2

@@ -15,8 +15,8 @@
       SUBROUTINE bounds_density
       USE dimensions
 !
-      ALLOCATE(gas_bulk_density(ndi*ndj), gas_density(ndi*ndj))
-      ALLOCATE(solid_bulk_density(ncl,ndi*ndj))
+      ALLOCATE(gas_bulk_density(nr*nz), gas_density(nr*nz))
+      ALLOCATE(solid_bulk_density(nsolid,nr*nz))
 
       RETURN
       END SUBROUTINE
@@ -26,7 +26,7 @@
       USE grid, ONLY: nij_l, nijx_l
 !
       ALLOCATE(rgp(nijx_l), rgpn(nij_l), rog(nij_l))
-      ALLOCATE(rlk(ncl,nijx_l), rlkn(ncl,nij_l))
+      ALLOCATE(rlk(nsolid,nijx_l), rlkn(nsolid,nij_l))
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------

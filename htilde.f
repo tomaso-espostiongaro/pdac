@@ -31,7 +31,7 @@
       USE grid, ONLY: fl_l
       USE grid, ONLY: nij_l, nijx_l, myij, data_exchange
       USE heat_diffusion, ONLY: hotcg, hotck
-      USE particles_constants, ONLY: nsolid, inrl
+      USE particles_constants, ONLY: inrl
       USE pressure_epsilon, ONLY: p, pn, ep
       USE time_parameters, ONLY: dt
       USE set_indexes
@@ -44,17 +44,17 @@
       INTEGER :: ij
 !
       ALLOCATE(rhg(nij_l))
-      ALLOCATE(rhk(ncl,nij_l))
+      ALLOCATE(rhk(nsolid,nij_l))
 !
       ALLOCATE(egfr(nijx_l), egft(nijx_l))
       ALLOCATE(egfl(nijx_l), egfb(nijx_l))
-      ALLOCATE(elfr(ncl,nijx_l), elft(ncl,nijx_l))
-      ALLOCATE(elfl(ncl,nijx_l), elfb(ncl,nijx_l))
+      ALLOCATE(elfr(nsolid,nijx_l), elft(nsolid,nijx_l))
+      ALLOCATE(elfl(nsolid,nijx_l), elfb(nsolid,nijx_l))
 !
       ALLOCATE(hfgr(nijx_l), hfgt(nijx_l))
       ALLOCATE(hfgl(nijx_l), hfgb(nijx_l))
-      ALLOCATE(hflr(ncl,nijx_l), hflt(ncl,nijx_l))
-      ALLOCATE(hfll(ncl,nijx_l), hflb(ncl,nijx_l))
+      ALLOCATE(hflr(nsolid,nijx_l), hflt(nsolid,nijx_l))
+      ALLOCATE(hfll(nsolid,nijx_l), hflb(nsolid,nijx_l))
 !
       egfr = 0.0D0;  hfgr = 0.0D0
       egft = 0.0D0;  hfgt = 0.0D0
@@ -86,7 +86,7 @@
           egfr(ij) = egfr(ij) - hfgr(ij)
           egft(ij) = egft(ij) - hfgt(ij)
 !
-          DO k=1, ncl
+          DO k=1, nsolid
             CALL fsc_rt(elfr(k, ij), elft(k, ij), nb(siek(k,:),ij),     &
                nb(rlk(k,:),ij), rnb(uk(k,:),ij), rnb(vk(k,:),ij),ij)
             CALL hotck(hflr(k,ij), hflt(k,ij), hfll(k,ij), hflb(k,ij),  &
@@ -112,8 +112,8 @@
         ij_g = myij(0, 0, ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscl(ij)
-          j = ( ij_g - 1 ) / ndi + 1
-          i = MOD( ( ij_g - 1 ), ndi) + 1
+          j = ( ij_g - 1 ) / nr + 1
+          i = MOD( ( ij_g - 1 ), nr) + 1
 ! 
           egfl(ij) = egfr(imj)
           egfb(ij) = egft(ijm)
@@ -125,7 +125,7 @@
             egfl(ij) = egfl(ij) - hfgl(ij)
             egfb(ij) = egfb(ij) - hfgb(ij)
 !
-          DO k=1, ncl
+          DO k=1, nsolid
            IF (rlk(k,imj) * inrl(k) .LE. 1.D-9) THEN
             elfl(k, ij) = 0.0D0
            ELSE

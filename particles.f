@@ -17,25 +17,24 @@
         REAL*8, DIMENSION(:,:), ALLOCATABLE :: philim
         REAL*8, DIMENSION(:,:), ALLOCATABLE :: epsl
         REAL*8, DIMENSION(:,:), ALLOCATABLE :: epsu
-        INTEGER :: nsolid
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
       SUBROUTINE bounds_part_constants
       USE dimensions
 !
-      ALLOCATE(dk(ncl), dkm1(ncl), rl(ncl), rlm1(ncl), phis(ncl), phism1(ncl), &
-               cmus(ncl), cps(ncl), phi(ncl), kap(ncl), inrl(ncl))
-      ALLOCATE(dkf(ncl,ncl), philim(ncl,ncl), epsl(ncl,ncl), epsu(ncl,ncl))
+      ALLOCATE(dk(nsolid), dkm1(nsolid), rl(nsolid), rlm1(nsolid),      &
+               phis(nsolid), phism1(nsolid), cmus(nsolid), cps(nsolid), &
+               phi(nsolid), kap(nsolid), inrl(nsolid))
+      ALLOCATE(dkf(nsolid,nsolid), philim(nsolid,nsolid),               &
+               epsl(nsolid,nsolid), epsu(nsolid,nsolid))
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE particles_constants_set(nsolid)
+      SUBROUTINE particles_constants_set
 !
       USE dimensions
       IMPLICIT NONE
-!
-      INTEGER, INTENT(IN) :: nsolid
 !
       INTEGER :: k2, k1, k, kk
       REAL*8 :: dratx

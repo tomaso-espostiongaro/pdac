@@ -25,8 +25,8 @@
      &    local_bounds_temperature
       USE gas_solid_viscosity, ONLY: icoh, bounds_viscosity,  &
      &    local_bounds_viscosity
-      USE grid, ONLY: dz, dr, itc, ib2, ib1, ib, jb2, jb1, jb
-      USE grid, ONLY: no, nso, iob, flic, partition, ghost, &
+      USE grid, ONLY: dz, dr, itc
+      USE grid, ONLY: nso, iob, flic, partition, ghost, &
      &    bounds_blocks, bounds_grid
       USE io_restart, ONLY: taperd, tapebc
       USE iterative_solver, ONLY: inmax, maxout, omega
@@ -34,7 +34,7 @@
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
      &    mpime, root
       USE particles_constants, ONLY: rl, inrl, kap, &
-     &     cmus, phis, cps, dk, nsolid, bounds_part_constants
+     &     cmus, phis, cps, dk, bounds_part_constants
       USE phases_matrix, ONLY: rlim, bounds_matrix
       USE pressure_epsilon, ONLY: bounds_press_eps, &
      &                            local_bounds_press_eps
@@ -61,7 +61,6 @@
       INTEGER :: hun, ten, one
       REAL*8 :: s0, s1, s2, s3, s4
       REAL*8 :: timtot, timprog, timdist, timsetup, timinit
-!      INTEGER :: nx, ny, nz, nr
 !
       IF(timing) s0 = cpclock()
 
@@ -99,25 +98,21 @@
       CALL input(5)
 
 ! ... set dimensions ...
-      ndi=ib2
-      ndj=jb2
       timestart = time
 
-! ... allocation of arrays ...(dependence on ndi, ndj)
+! ... allocation of arrays ...(dependence on nr, nz)
       CALL bounds_grid
       CALL bounds_press_eps
 !
-      dr(1:ib2) = delta_r(1:ib2)
-      dz(1:jb2) = delta_z(1:jb2)
+      dr(1:nr) = delta_r(1:nr)
+      dz(1:nz) = delta_z(1:nz)
 
       no = number_of_block
 !
 ! ... set dimensions ...
-      nnso=no
-      ncl=nsolid
-      nphase=ncl+1
+      nphase=nsolid+1
 
-! ... allocation of arrays ...(dependence on nnso, ngas, nsolid, ndi, ndj)
+! ... allocation of arrays ...(dependence on no, ngas, nsolid, nr, nz)
       CALL bounds_blocks
       CALL bounds_density
       CALL bounds_eosg
@@ -172,9 +167,9 @@
 ! 
       IF (mpime .EQ. root) THEN
         WRITE(6,200) run_name
-        WRITE(6,220) itc,ib2,jb2,dr0,dz0,zzero,iturb,modturbo,iss,icoh,irex,ngas
-        WRITE(6,611) (dr(i),i=1,ib2)
-        WRITE(6,622) (dz(j),j=1,jb2)
+        WRITE(6,220) itc,nr,nz,dr0,dz0,zzero,iturb,modturbo,iss,icoh,irex,ngas
+        WRITE(6,611) (dr(i),i=1,nr)
+        WRITE(6,622) (dz(j),j=1,nz)
         WRITE(6,221) cmut,inmax,maxout,omega
         IF(lpr.LT.2) THEN
          WRITE(6,250) no
@@ -205,11 +200,6 @@
         DO k=1, nsolid
           inrl(k)=1.D0/rl(k)
         END DO
-!
-        ib=ib2-2
-        ib1=ib2-1
-        jb=jb2-2
-        jb1=jb2-1
 !
 ! ... Set boundary flags
 !
@@ -280,7 +270,7 @@
  200  FORMAT(1x,'pdac_2d problem identifier -  ',a30)
  220  FORMAT(/,1x,'geometry:',/, &
       ' 1. coordinates (0=rect, 1=cylind): ',i3,/, &
-      ' 2. mesh size:    x,r (ib2)=',i3,14x,'y,z (jb2)=',i3,/, &
+      ' 2. mesh size:    x,r (nr)=',i3,14x,'y,z (nz)=',i3,/, &
       ' 3. unIForm cell size:    dr0=',1pe11.4,'  dz0=',1pe11.4,/, &
       '    zero = ',1pe11.4,/, &
       ' 4. turb. model (0=no, 1=sgs-s mod, 2=sgs-l0 mod) =',i2,/, &

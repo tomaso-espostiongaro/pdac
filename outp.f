@@ -11,14 +11,14 @@
 
       SUBROUTINE outp
 !
+      USE dimensions, ONLY: nr, nz, nsolid
       USE eos_gas, ONLY: gc_molar_fraction
       USE gas_solid_density, ONLY: solid_bulk_density
       USE gas_solid_velocity, ONLY: gas_velocity_r, gas_velocity_z
       USE gas_solid_velocity, ONLY: solid_velocity_r, solid_velocity_z
       USE gas_solid_temperature, ONLY: gas_temperature, solid_temperature
-      USE grid, ONLY: ib2, ib1, ib, jb2, jb1, jb
       USE parallel, ONLY: nproc, mpime, root, group
-      USE particles_constants, ONLY: rl, inrl, nsolid
+      USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: gas_pressure
       USE reactions, ONLY: irex
       USE time_parameters, ONLY: time
@@ -51,40 +51,40 @@
       WRITE(3,547) time
 !
       WRITE(3,548)
-      DO j=1,jb2
-        ij1=1+(jb2-j)*ib2
-        ij2=ib2+(jb2-j)*ib2
+      DO j=1,nz
+        ij1=1+(nz-j)*nr
+        ij2=nr+(nz-j)*nr
         WRITE(3,550)(gas_pressure(ijl),ijl=ij1,ij2)
       END DO
 !
       DO k=1,nsolid
         WRITE(3,549) k
-        DO j=1,jb2
-          ij1=1+(jb2-j)*ib2
-          ij2=ib2+(jb2-j)*ib2
+        DO j=1,nz
+          ij1=1+(nz-j)*nr
+          ij2=nr+(nz-j)*nr
           WRITE(3,550)(solid_bulk_density(k,ijl)*inrl(k),ijl=ij1,ij2)
         END DO
       END DO
 !
       WRITE(3,552)
-      DO j=1,jb2
-        ij1=1+(jb2-j)*ib2
-        ij2=ib2+(jb2-j)*ib2
+      DO j=1,nz
+        ij1=1+(nz-j)*nr
+        ij2=nr+(nz-j)*nr
         WRITE(3,550)(gas_velocity_r(ijl),ijl=ij1,ij2)
       END DO
 !
       WRITE(3,553)
-      DO j=1,jb2
-        ij1=1+(jb2-j)*ib2
-        ij2=ib2+(jb2-j)*ib2
+      DO j=1,nz
+        ij1=1+(nz-j)*nr
+        ij2=nr+(nz-j)*nr
         WRITE(3,550)(gas_velocity_z(ijl),ijl=ij1,ij2)
       END DO
 !
       IF(irex.GE.0) THEN
         WRITE(3,560)
-        DO j=1,jb2
-          ij1=1+(jb2-j)*ib2
-          ij2=ib2+(jb2-j)*ib2
+        DO j=1,nz
+          ij1=1+(nz-j)*nr
+          ij2=nr+(nz-j)*nr
           WRITE(3,550)(gas_temperature(ijl),ijl=ij1,ij2)
         END DO
 !
@@ -93,9 +93,9 @@
         DO 343 kg=5,5
 !pdac------------
           WRITE(3,562) kg
-          DO j=1,jb2
-            ij1=1+(jb2-j)*ib2
-            ij2=ib2+(jb2-j)*ib2
+          DO j=1,nz
+            ij1=1+(nz-j)*nr
+            ij2=nr+(nz-j)*nr
             WRITE(3,550)(gc_molar_fraction(kg,ijl),ijl=ij1,ij2)
            END DO
  343    CONTINUE
@@ -104,24 +104,24 @@
       DO k=1,nsolid
 !
         WRITE(3,556) k
-        DO j=1,jb2
-          ij1=1+(jb2-j)*ib2 
-          ij2=ib2+(jb2-j)*ib2
+        DO j=1,nz
+          ij1=1+(nz-j)*nr 
+          ij2=nr+(nz-j)*nr
           WRITE(3,550)(solid_velocity_r(k,ijl),ijl=ij1,ij2)
         END DO
 !
         WRITE(3,557) k
-        DO  j=1,jb2
-          ij1=1+(jb2-j)*ib2
-          ij2=ib2+(jb2-j)*ib2
+        DO  j=1,nz
+          ij1=1+(nz-j)*nr
+          ij2=nr+(nz-j)*nr
           WRITE(3,550)(solid_velocity_z(k,ijl),ijl=ij1,ij2)
         END DO
 !
         IF(irex.GE.0) THEN
           WRITE(3,561) k
-          DO j=1,jb2
-            ij1=1+(jb2-j)*ib2
-            ij2=ib2+(jb2-j)*ib2
+          DO j=1,nz
+            ij1=1+(nz-j)*nr
+            ij2=nr+(nz-j)*nr
             WRITE(3,550)(solid_temperature(k,ijl),ijl=ij1,ij2)
           END DO
         ENDIF

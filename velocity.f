@@ -18,8 +18,8 @@
       USE dimensions
       IMPLICIT NONE
 !
-      ALLOCATE(gas_velocity_r(ndi*ndj), gas_velocity_z(ndi*ndj))
-      ALLOCATE(solid_velocity_r(ncl,ndi*ndj), solid_velocity_z(ncl,ndi*ndj))
+      ALLOCATE(gas_velocity_r(nr*nz), gas_velocity_z(nr*nz))
+      ALLOCATE(solid_velocity_r(nsolid,nr*nz), solid_velocity_z(nsolid,nr*nz))
       gas_velocity_r = 0.0d0
       gas_velocity_z = 0.0d0
       solid_velocity_r = 0.0d0
@@ -34,7 +34,7 @@
       IMPLICIT NONE
 !
       ALLOCATE(ug(nijx_l), vg(nijx_l))
-      ALLOCATE(uk(ncl, nijx_l), vk(ncl, nijx_l))
+      ALLOCATE(uk(nsolid, nijx_l), vk(nsolid, nijx_l))
       ug = 0.0d0
       vg = 0.0d0
       uk = 0.0d0

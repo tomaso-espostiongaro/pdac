@@ -35,7 +35,6 @@
       USE grid, ONLY: dz, dr, fl_l
       USE grid, ONLY: inr, inrb, indr, indz
       USE grid, ONLY: nij_l, myij, nijx_l, data_exchange
-      USE particles_constants, ONLY: nsolid
       USE set_indexes
 !
       IMPLICIT NONE
@@ -50,7 +49,7 @@
       IF (ALLOCATED(rukn)) DEALLOCATE(rukn)
       IF (ALLOCATED(rvkn)) DEALLOCATE(rvkn)
       ALLOCATE( rugn(nij_l),  rvgn(nij_l))
-      ALLOCATE( rukn(ncl,nij_l),  rvkn(ncl,nij_l))
+      ALLOCATE( rukn(nsolid,nij_l),  rvkn(nsolid,nij_l))
       rugn = 0.0
       rvgn = 0.0
       rukn = 0.0
@@ -63,8 +62,8 @@
        ij_g = myij(0,0,ij)
        IF(fl_l(ij).EQ.1) THEN
          CALL subscl(ij)
-         j = ( ij_g - 1 ) / ndi + 1
-         i = MOD( ( ij_g - 1 ), ndi) + 1
+         j = ( ij_g - 1 ) / nr + 1
+         i = MOD( ( ij_g - 1 ), nr) + 1
 !
          drp=dr(i)+dr(i+1)
          dzp=dz(j)+dz(j+1)
@@ -99,7 +98,7 @@
       USE grid, ONLY: dz, dr
       USE grid, ONLY: inr, inrb, indr, indz
       USE momentum_transfer, ONLY: kdrags, inter
-      USE particles_constants, ONLY: phi, epsl, dkf, epsu, dk, rl, inrl, philim, nsolid
+      USE particles_constants, ONLY: phi, epsl, dkf, epsu, dk, rl, inrl, philim
       USE pressure_epsilon, ONLY: ep
       USE time_parameters, ONLY: dt
       USE turbulence, ONLY: iss, iturb, mus
@@ -120,7 +119,7 @@
       REAL*8 :: ulfx, ulfy, vlfx, vlfy
 !
       ALLOCATE(gvisx(nij_l), gvisz(nij_l))
-      ALLOCATE(pvisx(ncl, nij_l), pvisz(ncl, nij_l))
+      ALLOCATE(pvisx(nsolid, nij_l), pvisz(nsolid, nij_l))
 
       IF (iturb .LT. 1) THEN
         CALL data_exchange(ug)
@@ -167,11 +166,11 @@
 !
 ! ... Allocate and initialize local arrays (particles).
 !
-      ALLOCATE(ruk(ncl, nijx_l), rvk(ncl, nijx_l) )
-      ALLOCATE(ulfr(ncl, nijx_l), ulft(ncl, nijx_l))
-      ALLOCATE(ulfl(ncl, nijx_l), ulfb(ncl, nijx_l))
-      ALLOCATE(vlfr(ncl, nijx_l), vlft(ncl, nijx_l))
-      ALLOCATE(vlfl(ncl, nijx_l), vlfb(ncl, nijx_l))
+      ALLOCATE(ruk(nsolid, nijx_l), rvk(nsolid, nijx_l) )
+      ALLOCATE(ulfr(nsolid, nijx_l), ulft(nsolid, nijx_l))
+      ALLOCATE(ulfl(nsolid, nijx_l), ulfb(nsolid, nijx_l))
+      ALLOCATE(vlfr(nsolid, nijx_l), vlft(nsolid, nijx_l))
+      ALLOCATE(vlfl(nsolid, nijx_l), vlfb(nsolid, nijx_l))
 
       ruk  = 0.0D0
       rvk  = 0.0D0
@@ -188,9 +187,9 @@
 !
 ! ... Allocate and initialize interphase terms.
 !
-      ALLOCATE(kpgv(ncl,nij_l))
-      ALLOCATE(appu(((ncl+1)**2+(ncl+1))/2, nijx_l),   &
-               appv(((ncl+1)**2+(ncl+1))/2, nijx_l))
+      ALLOCATE(kpgv(nsolid,nij_l))
+      ALLOCATE(appu(((nsolid+1)**2+(nsolid+1))/2, nijx_l),   &
+               appv(((nsolid+1)**2+(nsolid+1))/2, nijx_l))
 
       kpgv = 0.0D0
       appu = 0.0D0
@@ -234,8 +233,8 @@
         ij_g = myij(0,0,ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscl(ij)
-          j = ( ij_g - 1 ) / ndi + 1
-          i = MOD( ( ij_g - 1 ), ndi) + 1
+          j = ( ij_g - 1 ) / nr + 1
+          i = MOD( ( ij_g - 1 ), nr) + 1
 !
           drp=dr(i)+dr(i+1)
           dzp=dz(j)+dz(j+1)

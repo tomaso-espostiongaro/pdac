@@ -26,7 +26,7 @@
       USE grid, ONLY: fl_l
       USE grid, ONLY: myij, nij_l, nijx_l, data_exchange
       USE tilde_momentum, ONLY: appu, appv
-      USE particles_constants, ONLY: rl, inrl, nsolid
+      USE particles_constants, ONLY: rl, inrl
       USE phases_matrix, ONLY: mats, matsa, velsk, velsk2
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes
@@ -71,7 +71,7 @@
 ! ... Allocate and initialize local mass fluxes.
 !
       ALLOCATE( rgfr( nijx_l ), rgft( nijx_l ))
-      ALLOCATE( rlfr( ncl, nijx_l ), rlft( ncl, nijx_l ))
+      ALLOCATE( rlfr( nsolid, nijx_l ), rlft( nsolid, nijx_l ))
       rgfr = 0.0D0
       rgft = 0.0D0
       rlfr = 0.0D0
@@ -111,7 +111,7 @@
         IF(fl_l(ij).EQ.1) THEN
           CALL subscl(ij)
           ij_g = myij(0, 0, ij)
-          i = MOD( ( ij_g - 1 ), ndi) + 1
+          i = MOD( ( ij_g - 1 ), nr) + 1
           CALL masfg(rgfr(imj), rgft(ijm), rgfr(ij),rgft(ij), &
                       rnb(ug,ij),rnb(vg,ij),nb(rgp,ij),i)
         END IF
@@ -139,8 +139,8 @@
            avloop(ij) = avloop(ij) + 1
 
            ij_g = myij(0, 0, ij)
-           j  = ( ij_g - 1 ) / ndi + 1
-           i  = MOD( ( ij_g - 1 ), ndi) + 1
+           j  = ( ij_g - 1 ) / nr + 1
+           i  = MOD( ( ij_g - 1 ), nr) + 1
            
             CALL subscl(ij)
 
@@ -353,8 +353,8 @@
       END IF
       DO ij=1,nij_l
            ij_g = myij(0, 0, ij)
-           j  = ( ij_g - 1 ) / ndi + 1
-           i  = MOD( ( ij_g - 1 ), ndi) + 1
+           j  = ( ij_g - 1 ) / nr + 1
+           i  = MOD( ( ij_g - 1 ), nr) + 1
         IF (avloop(ij) .GT. 5*avlp) THEN
           WRITE(7,*) 'Averaged nb. of inner loop', avlp
           WRITE(7,*) 'in (i,j)=',i,j,' avloop=',avloop(ij)
@@ -496,8 +496,8 @@
 !
           ij_g = myij(0, 0, ij)
           CALL subscl(ij)
-          j  = ( ij_g - 1 ) / ndi + 1
-          i  = MOD( ( ij_g - 1 ), ndi) + 1
+          j  = ( ij_g - 1 ) / nr + 1
+          i  = MOD( ( ij_g - 1 ), nr) + 1
 
           drp=dr(i)+dr(i+1)
           drm=dr(i)+dr(i-1)

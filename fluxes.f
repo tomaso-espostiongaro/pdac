@@ -44,7 +44,7 @@
       REAL*8 :: drm, drp, indrp, indrm
 !
       ij_g = myij( 0, 0, ij)
-      i  = MOD( ( ij_g - 1 ), ndi) + 1
+      i  = MOD( ( ij_g - 1 ), nr) + 1
 !
       drp=dr(i)+dr(i+1)
       drm=dr(i)+dr(i-1)
@@ -97,8 +97,8 @@
       REAL*8 :: dzp, indzp
 !
       ij_g = myij( 0, 0, ij)
-      i  = MOD( ( ij_g - 1 ), ndi) + 1
-      j  = ( ij_g - 1 ) / ndi + 1
+      i  = MOD( ( ij_g - 1 ), nr) + 1
+      j  = ( ij_g - 1 ) / nr + 1
 !
       drp=dr(i)+dr(i+1)
       drpp=dr(i+1)+dr(i+2)
@@ -157,8 +157,8 @@
       REAL*8 :: dens_n, dens_s, dens_wn
 !
       ij_g = myij( 0, 0, ij)
-      j  = ( ij_g - 1 ) / ndi + 1
-      i  = MOD( ( ij_g - 1 ), ndi) + 1
+      j  = ( ij_g - 1 ) / nr + 1
+      i  = MOD( ( ij_g - 1 ), nr) + 1
 !
 ! ... Compute linearly interpolated values of density
 ! ... where not available.
@@ -207,8 +207,8 @@
       REAL*8 :: dens_n, dens_nn, dens_en
 !
       ij_g = myij( 0, 0, ij)
-      j  = ( ij_g - 1 ) / ndi + 1
-      i  = MOD( ( ij_g - 1 ), ndi) + 1
+      j  = ( ij_g - 1 ) / nr + 1
+      i  = MOD( ( ij_g - 1 ), nr) + 1
 !
 ! ... values of density interpolated at cell boundaries
         dens_n = (dz(j+1) * dens%c + dz(j) * dens%n) * indzp
@@ -238,7 +238,7 @@
       cn = cs * dt * indz(j+1)
       IF (cs.GE.0.D0) THEN
         upwnd = dens_n * v%c
-      ELSE IF (cs.LT.0.D0 .AND. j.NE.(ndj-1)) THEN
+      ELSE IF (cs.LT.0.D0 .AND. j.NE.(nz-1)) THEN
         upwnd = dens_nn * v%n
       END IF 
 !
@@ -266,8 +266,8 @@
       ij_g = myij( 0, 0, ij)
       imj = myij(-1, 0, ij)
       ijm = myij( 0,-1, ij)
-      i  = MOD( ( ij_g - 1 ), ndi) + 1
-      j  = ( ij_g - 1 ) / ndi + 1
+      i  = MOD( ( ij_g - 1 ), nr) + 1
+      j  = ( ij_g - 1 ) / nr + 1
 !
 ! ... on left volume boundary
 !
@@ -311,8 +311,8 @@
       REAL*8  :: indrp, indzp 
 !
       ij_g = myij( 0, 0, ij)
-      i  = MOD( ( ij_g - 1 ), ndi) + 1
-      j  = ( ij_g - 1 ) / ndi + 1
+      i  = MOD( ( ij_g - 1 ), nr) + 1
+      j  = ( ij_g - 1 ) / nr + 1
 !
         drp = (dr(i) + dr(i+1))
         dzp = (dz(j) + dz(j+1))

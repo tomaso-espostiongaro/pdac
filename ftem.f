@@ -40,7 +40,7 @@
 !
       ALLOCATE(at(nphase, nphase))
       ALLOCATE(bt(nphase))
-      ALLOCATE(hv(ncl, nij_l))
+      ALLOCATE(hv(nsolid, nij_l))
 !
 !pdac------------
 ! Control heat reactions
@@ -62,7 +62,7 @@
           at(1,1) = rgp(ij)
           bt(1)   = siegn(ij) * rgpn(ij) + rhg(ij) - hrexg
 !
-          DO k=1, ncl
+          DO k=1, nsolid
             k1=k+1
 !
             CALL hvs(hv(k,ij), rlk(k,ij), rog(ij),       &
@@ -81,7 +81,7 @@
 !
           CALL invdm(at, bt, ij)
           sieg(ij) = bt(1)
-          DO k=1, ncl
+          DO k=1, nsolid
             siek(k,ij) = bt(k+1)
           END DO
 !

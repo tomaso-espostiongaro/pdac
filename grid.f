@@ -34,7 +34,7 @@
           INTEGER :: right(2)          ! The last cell of the block (x,y)
         END TYPE
 
-        INTEGER :: nx,ny             ! number of blocks in x and y directions
+        INTEGER :: nbx,nby             ! number of blocks in x and y directions
 
         TYPE (rcv_map_type), ALLOCATABLE :: rcv_map(:)
         TYPE (snd_map_type), ALLOCATABLE :: snd_map(:)
@@ -50,13 +50,11 @@
         REAL*8, DIMENSION(:), ALLOCATABLE :: inr, inrb, inzb, indr, indz
 !
         INTEGER :: itc, part
-        INTEGER :: ib2, ib1, ib, jb2, jb1, jb
         INTEGER :: nij_l, nije_l, nijx_l
         INTEGER, ALLOCATABLE :: myij(:,:,:)
         INTEGER, ALLOCATABLE :: myinds(:,:)
 
 !
-      INTEGER :: no
       INTEGER, DIMENSION(:,:), ALLOCATABLE :: iob
       INTEGER, DIMENSION(:), ALLOCATABLE :: nso
       INTEGER, DIMENSION(:), ALLOCATABLE :: fl
@@ -76,9 +74,9 @@
       USE dimensions
       IMPLICIT NONE
 !
-       ALLOCATE(fl(ndi*ndj))
-       ALLOCATE(r(ndi), rb(ndi), zb(ndj), dr(ndi), dz(ndj))
-       ALLOCATE(inr(ndi), inrb(ndi), inzb(ndj), indr(ndi), indz(ndj))
+       ALLOCATE(fl(nr*nz))
+       ALLOCATE(r(nr), rb(nr), zb(nz), dr(nr), dz(nz))
+       ALLOCATE(inr(nr), inrb(nr), inzb(nz), indr(nr), indz(nz))
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
@@ -86,8 +84,8 @@
       USE dimensions
       IMPLICIT NONE
 !
-       ALLOCATE(iob(4,nnso))
-       ALLOCATE(nso(nnso))
+       ALLOCATE(iob(4,no))
+       ALLOCATE(nso(no))
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------
@@ -97,20 +95,20 @@
           REAL*8, PARAMETER :: VERYBIG = 1.0d+10
           INTEGER :: i, j
           IF(itc.EQ.0) THEN
-            DO i=1,ib2
+            DO i=1,nr
               r(i)=1.D0
               rb(i)=1.D0
             END DO
           ELSE
             rb(1)=0.D0
             r(1)=-0.5D0*dr(1)+rb(1)
-            DO i=2,ib2
+            DO i=2,nr
               rb(i)=(rb(i-1)+dr(i))
               r(i)=(rb(i)-0.5D0*dr(i))
             END DO
           END IF
 !
-          DO i=1,ib2
+          DO i=1,nr
             inr(i)=1.D0/r(i)
           END DO  
 
@@ -121,16 +119,16 @@
             inrb(1) = 1.0D0/rb(1)
           END IF
           IF (itc.EQ.0) inrb(1)=1.D0
-          DO i=2,ib2
+          DO i=2,nr
             inrb(i)=1.D0/rb(i)
           END DO  
 
-          DO i=1,ib2
+          DO i=1,nr
             indr(i)=1.D0/dr(i)
           END DO  
 !
           zb(1) = zzero
-          DO j=1,jb1
+          DO j=1,(nz-1)
             zb(j+1)=zb(j)+dz(j+1)
           END DO
 !
@@ -139,11 +137,11 @@
           ELSE
             inzb(1)=1.D0/zb(1)
           END IF
-          DO j=2,jb1
+          DO j=2,(nz-1)
             inzb(j)=1.D0/zb(j)
           END DO  
 
-          DO j=1,jb1
+          DO j=1,(nz-1)
             indz(j)=1.D0/dz(j)
           END DO  
 !
@@ -154,20 +152,23 @@
       USE dimensions
       IMPLICIT NONE
 !
-      INTEGER :: i2, i1, j2, j1, ib2jb1, ib1jb2, ib2jb2
+      INTEGER :: i2, i1, j2, j1
       INTEGER :: i, j, ij, n, ijl
 !
-      DO j=1,jb2
-        DO i=1,ib2
-          ij=i+(j-1)*ib2
+      DO j=1,nz
+        DO i=1,nr
+          ij=i+(j-1)*nr
           fl(ij)=1
         END DO
       END DO
 
-      ib1jb2=ib1+(jb2-1)*ib2
-      ib2jb1=ib2+(jb1-1)*ib2
-      ib2jb2=ib2+(jb2-1)*ib2
-      IF(fl(ib1jb2).EQ.4.AND.fl(ib2jb1).EQ.4) fl(ib2jb2)=4
+!
+! ... upper-right corner
+!
+      IF (fl((nr-1)+(nz-1)*nr) == 4 .AND. fl(nr+(nz-2)*nr) == 4) THEN
+          fl(nr+(nz-1)*nr) = 4
+      END IF
+!
       IF(no.LE.0) RETURN
 !
       DO n=1,no
@@ -177,7 +178,7 @@
         j2=iob(4,n)
         DO j=j1,j2
           DO i=i1,i2
-            ij=i+(j-1)*ib2
+            ij=i+(j-1)*nr
             IF(nso(n).EQ.2) fl(ij)=2
             IF(nso(n).EQ.3) fl(ij)=3
             IF(nso(n).EQ.4) fl(ij)=4
@@ -205,7 +206,7 @@
       INTEGER, ALLOCATABLE :: red(:), green(:), blue(:)
       INTEGER :: localdim
 !
-      ALLOCATE(red(ndi*ndj),green(ndi*ndj),blue(ndi*ndj))
+      ALLOCATE(red(nr*nz),green(nr*nz),blue(nr*nz))
       IF (ALLOCATED(nij)) DEALLOCATE(nij)
       IF (ALLOCATED(nij1)) DEALLOCATE(nij1)
       IF (ALLOCATED(n1)) DEALLOCATE(n1)
@@ -252,7 +253,7 @@
       END DO
         WRITE(7,*) '  '
 !
-        DO ij=1,ndi*ndj
+        DO ij=1,nr*nz
             red(ij) = (cell_owner(ij)+1)
             green(ij) = nproc - (cell_owner(ij)+1)
             blue(ij) = (nproc - ABS(2*(cell_owner(ij)-nproc/2))) 
@@ -267,11 +268,11 @@
         IF (mpime .EQ. root) THEN
           OPEN(UNIT=9,FILE='procs_map.ppm', FORM='FORMATTED', STATUS='UNKNOWN')
            WRITE(9,'(A2)') 'P3'
-           WRITE(9,'(I3,A1,I3)') ndi,' ',ndj
+           WRITE(9,'(I3,A1,I3)') nr,' ',nz
            WRITE(9,'(I3)') nproc
-           DO j = ndj-1, 0, -1
-            DO i=1,ndi
-              WRITE(9,100) red(i+ndi*j), green(i+ndi*j), blue(i+ndi*j)
+           DO j = nz-1, 0, -1
+            DO i=1,nr
+              WRITE(9,100) red(i+nr*j), green(i+nr*j), blue(i+nr*j)
             END DO
            END DO
  100      FORMAT(3(I4))
@@ -307,11 +308,11 @@
       END DO
 !
       lay_map(0,1) = 1
-      lay_map(nproc-1,2) = ndi*ndj
+      lay_map(nproc-1,2) = nr*nz
       ipe = 0
-      DO j = 1, ndj
-       DO i = 1, ndi
-          ij = i + (j-1)*ndi
+      DO j = 1, nz
+       DO i = 1, nr
+          ij = i + (j-1)*nr
 
           IF ( fl(ij) .EQ. 1 ) THEN
             icnt_ipe = icnt_ipe + 1
@@ -320,7 +321,7 @@
 
           nij(ipe) = nij(ipe) + 1
 
-          IF ( icnt_ipe .EQ. nij1(ipe) .AND. i .NE. (ndi-1) ) THEN
+          IF ( icnt_ipe .EQ. nij1(ipe) .AND. i .NE. (nr-1) ) THEN
             icnt_ipe = 0
             IF( icnt .LT. countfl(1) ) THEN
               lay_map(ipe,2) = ij
@@ -357,23 +358,23 @@
 !
         area  = DBLE(countfl(1)/nproc)
         side  = DSQRT(area)
-        nx    = NINT(ndi/side)
-! ... compute the number of layers ny 
-        ny    = NINT(countfl(1)/nx/side**2)     
-        IF (nx .EQ. 0) nx = 1
-        IF (ny .EQ. 0) ny = 1
-        DO WHILE (nx*ny .LT. nproc)
-         IF (INT(ndi/nx) .GT. INT(ndj/ny)) THEN
-           nx = nx + 1
+        nbx    = NINT(nr/side)
+! ... compute the number of layers nby 
+        nby    = NINT(countfl(1)/nbx/side**2)     
+        IF (nbx .EQ. 0) nbx = 1
+        IF (nby .EQ. 0) nby = 1
+        DO WHILE (nbx*nby .LT. nproc)
+         IF (INT(nr/nbx) .GT. INT(nz/nby)) THEN
+           nbx = nbx + 1
          ELSE
-           ny = ny + 1
+           nby = nby + 1
          END IF
         END DO
-        size_x = INT(ndi/nx)
-        rest = nx*ny - nproc
+        size_x = INT(nr/nbx)
+        rest = nbx*nby - nproc
 !
         IF(ALLOCATED(lay_map)) DEALLOCATE(lay_map)
-        ALLOCATE(lay_map(1:ny,2))
+        ALLOCATE(lay_map(1:nby,2))
         IF(ALLOCATED(block_map)) DEALLOCATE(block_map)
         ALLOCATE(block_map(0:nproc-1))
         lay_map(:,:) = 0
@@ -385,7 +386,7 @@
         IF (ALLOCATED(nij_lay)) DEALLOCATE(nij_lay)
         IF (ALLOCATED(nij1_lay)) DEALLOCATE(nij1_lay)
         IF (ALLOCATED(nbl_lay)) DEALLOCATE(nbl_lay)
-        ALLOCATE(nij_lay(1:ny), nij1_lay(1:ny), nbl_lay(1:ny))
+        ALLOCATE(nij_lay(1:nby), nij1_lay(1:nby), nbl_lay(1:nby))
 !
         nij_lay = 0
         nij1_lay = 0
@@ -396,28 +397,28 @@
 ! ... (compute nij1_lay(layer))
 !
         IF (rest .EQ. 0) THEN
-          DO layer = 1, ny
-           nij1_lay(layer) = localdim(countfl(1),ny,layer)
-           nbl_lay(layer) = nx
+          DO layer = 1, nby
+           nij1_lay(layer) = localdim(countfl(1),nby,layer)
+           nbl_lay(layer) = nbx
           END DO
         ELSE
-          skipl = INT(rest/nx) 
-          rrest = MOD(rest, nx)
-          IF (rest .LE. nx) THEN
-            nbl_lay(1) = nx - rrest
-            DO layer = 2, ny
-              nbl_lay(layer) = nx
+          skipl = INT(rest/nbx) 
+          rrest = MOD(rest, nbx)
+          IF (rest .LE. nbx) THEN
+            nbl_lay(1) = nbx - rrest
+            DO layer = 2, nby
+              nbl_lay(layer) = nbx
             END DO
           ELSE
             DO layer = 1, skipl
               nbl_lay(layer) = 1
             END DO
-              nbl_lay(skipl+1) = nx - rrest 
-            DO layer = skipl + 2, ny
-              nbl_lay(layer) = nx
+              nbl_lay(skipl+1) = nbx - rrest 
+            DO layer = skipl + 2, nby
+              nbl_lay(layer) = nbx
             END DO
           END IF
-          DO layer = 1, ny
+          DO layer = 1, nby
             fact = DBLE(countfl(1)/nproc*nbl_lay(layer))
             nij1_lay(layer) = NINT(fact)
           END DO
@@ -428,10 +429,10 @@
         layer = 1
         ipe = 0
         lay_map(1,1) = 1
-        lay_map(ny,2) = ndi*ndj
-        DO j = 1, ndj
-        DO i = 1, ndi
-          ij = i + (j-1)*ndi
+        lay_map(nby,2) = nr*nz
+        DO j = 1, nz
+        DO i = 1, nr
+          ij = i + (j-1)*nr
 !
           IF ( fl(ij) .EQ. 1 ) THEN
             icnt_layer = icnt_layer + 1
@@ -442,7 +443,7 @@
 
          IF ( icnt_layer .EQ. nij1_lay(layer) ) THEN
             icnt_layer = 0
-            IF(layer .LT. ny) THEN
+            IF(layer .LT. nby) THEN
               lay_map(layer,2) = ij
               layer = layer + 1
               lay_map(layer,1) = ij+1
@@ -454,15 +455,15 @@
 ! ... cut steps
 !
       ipe = -1
-      DO layer = 1, ny
+      DO layer = 1, nby
         ij2 = lay_map(layer,2)
-        j2  = ( ij2 - 1 ) / ndi + 1
-        i2  = MOD( ( ij2 - 1 ), ndi) + 1
-        IF (i2 .LT. ndi/2) j2 = j2-1
-        IF (layer .LT. ny) THEN
-          lay_map(layer,2) = j2 * ndi
+        j2  = ( ij2 - 1 ) / nr + 1
+        i2  = MOD( ( ij2 - 1 ), nr) + 1
+        IF (i2 .LT. nr/2) j2 = j2-1
+        IF (layer .LT. nby) THEN
+          lay_map(layer,2) = j2 * nr
         ELSE
-          lay_map(layer,2) = ndj * ndi
+          lay_map(layer,2) = nz * nr
         END IF
         IF (layer .GT. 1) THEN 
           lay_map(layer,1) = lay_map(layer-1,2) + 1
@@ -471,11 +472,11 @@
         END IF
         ij1 = lay_map(layer,1)
         ij2 = lay_map(layer,2)
-        j1  = ( ij1 - 1 ) / ndi + 1
-        i1  = MOD( ( ij1 - 1 ), ndi) + 1
-        j2  = ( ij2 - 1 ) / ndi + 1
-        i2  = MOD( ( ij2 - 1 ), ndi) + 1
-        IF (i1.NE.1 .OR. i2.NE.ndi) WRITE(8,*)'error in layer',layer
+        j1  = ( ij1 - 1 ) / nr + 1
+        i1  = MOD( ( ij1 - 1 ), nr) + 1
+        j2  = ( ij2 - 1 ) / nr + 1
+        i2  = MOD( ( ij2 - 1 ), nr) + 1
+        IF (i1.NE.1 .OR. i2.NE.nr) WRITE(8,*)'error in layer',layer
 !
 ! ...   updates the number of cells with fl=1 into layers
 !
@@ -496,13 +497,13 @@
           block_map(ipe)%left(2) = j1
           DO WHILE (nij1(ipe) .LT. bl1)
             DO j = j1, j2
-              ij = i + (j-1)*ndi
+              ij = i + (j-1)*nr
               IF (fl(ij) .EQ. 1) nij1(ipe) = nij1(ipe) + 1
             END DO  
             i = i+1
           END DO
           block_map(ipe)%right(1) = i-1
-          IF (nbl .EQ. nbl_lay(layer)) block_map(ipe)%right(1) = ndi 
+          IF (nbl .EQ. nbl_lay(layer)) block_map(ipe)%right(1) = nr 
           block_map(ipe)%right(2) = j2
 !
 ! ...     updates the number of cells with fl=1 into blocks
@@ -511,7 +512,7 @@
           nij1(ipe) = 0
           DO j = block_map(ipe)%left(2), block_map(ipe)%right(2)
           DO i = block_map(ipe)%left(1), block_map(ipe)%right(1)
-            ij = i + (j-1)*ndi
+            ij = i + (j-1)*nr
             nij(ipe) = nij(ipe) + 1
             IF (fl(ij) .EQ. 1) nij1(ipe) = nij1(ipe) + 1
           END DO
@@ -574,7 +575,7 @@
         j2 = block_map(mpime)%right(2)
         DO j = j1, j2
          DO i = i1, i2
-          ij = i + ndi*(j-1)
+          ij = i + nr*(j-1)
           IF (fl(ij).EQ.1) THEN
             nije_l = nije_l + cell_neighbours(ij, mpime, nset)
           END IF
@@ -617,7 +618,7 @@
         j2 = block_map(mpime)%right(2)
        DO j = j1, j2
         DO i = i1, i2
-          ij = i + ndi*(j-1)
+          ij = i + nr*(j-1)
           IF (fl(ij).EQ.1) THEN
           icnt = icnt + cell_neighbours(ij, mpime, nset, rcv_cell_set, myij)
           END IF
@@ -773,8 +774,8 @@
         INTEGER, INTENT(IN) :: ij
         INTEGER :: ipe, layer, cell_layer
         INTEGER :: i,j
-        j = ( ij - 1 ) / ndi + 1
-        i = MOD( ( ij - 1 ), ndi) + 1
+        j = ( ij - 1 ) / nr + 1
+        i = MOD( ( ij - 1 ), nr) + 1
           
         DO ipe = 0, nproc - 1
           IF (part .EQ. 1 .OR. nproc .LE. 2) THEN
@@ -805,7 +806,7 @@
         i2 = block_map(mpime)%right(1)
         i = MOD( ( ijl - 1 ), (i2-i1+1)) + i1
         j = ( ijl - 1 ) / (i2-i1+1) + j1
-        cell_l2g = i + (j-1)*ndi
+        cell_l2g = i + (j-1)*nr
       END IF
 !
       RETURN
@@ -820,8 +821,8 @@
       IF (part .EQ. 1 .OR. nproc .LE. 2) THEN
         cell_g2l = ij - lay_map(mpime,1) + 1
       ELSE
-        j = ( ij - 1 ) / ndi + 1
-        i = MOD( ( ij - 1 ), ndi) + 1
+        j = ( ij - 1 ) / nr + 1
+        i = MOD( ( ij - 1 ), nr) + 1
         j1 = block_map(mpime)%left(2)
         i1 = block_map(mpime)%left(1)
         i2 = block_map(mpime)%right(1)
@@ -863,7 +864,7 @@
         DO im = -1, 1
           DO jm = -1, 1
             IF( (im .NE. 0) .OR. (jm .NE. 0) ) THEN
-              ije = ij + im + jm*ndi
+              ije = ij + im + jm*nr
               ipe =  cell_owner(ije) 
               IF( ipe .NE. mpime) THEN
 ! ...           the cell ije is not local, count and register its position
@@ -887,8 +888,8 @@
           END DO
         END DO
 
-        j = ( ij - 1 ) / ndi + 1
-        i = MOD( ( ij - 1 ), ndi) + 1
+        j = ( ij - 1 ) / nr + 1
+        i = MOD( ( ij - 1 ), nr) + 1
 
         immj=ij-2
         IF(i .EQ. (2)) immj = ij-1
@@ -908,7 +909,7 @@
         END IF
 
         ippj=ij+2
-        IF(i .EQ. (ndi-1)) ippj = ij+1
+        IF(i .EQ. (nr-1)) ippj = ij+1
         ipe =  cell_owner(ippj) 
         IF( ipe .NE. mpime) THEN
           nset(ipe) = nset(ipe) + 1
@@ -924,8 +925,8 @@
           myij(2,0,ijl) = ijel
         END IF
 
-        ijmm=ij-ndi-ndi
-        IF(j .EQ. (2)) ijmm = ij-ndi
+        ijmm=ij-nr-nr
+        IF(j .EQ. (2)) ijmm = ij-nr
         ipe =  cell_owner(ijmm) 
         IF( ipe .NE. mpime) THEN
           nset(ipe) = nset(ipe) + 1
@@ -941,8 +942,8 @@
           myij(0,-2,ijl) = ijel
         END IF
 
-        ijpp=ij+ndi+ndi
-        IF(j .EQ. (ndj-1)) ijpp = ij+ndi
+        ijpp=ij+nr+nr
+        IF(j .EQ. (nz-1)) ijpp = ij+nr
         ipe =  cell_owner(ijpp) 
         IF( ipe .NE. mpime) THEN
           nset(ipe) = nset(ipe) + 1
@@ -1092,10 +1093,10 @@
 !
         DO ij = 1, nij_l 
           ij_g = myij(0, 0, ij)
-          j  = ( ij_g - 1 ) / ndi + 1
-          i  = MOD( ( ij_g - 1 ), ndi) + 1
-          IF( (i .GE. 2) .AND. (i .LE. (ndi-1)) .AND.   &
-              (j .GE. 2) .AND. (j .LE. (ndj-1))      ) THEN
+          j  = ( ij_g - 1 ) / nr + 1
+          i  = MOD( ( ij_g - 1 ), nr) + 1
+          IF( (i .GE. 2) .AND. (i .LE. (nr-1)) .AND.   &
+              (j .GE. 2) .AND. (j .LE. (nz-1))      ) THEN
 !
             ijm = myij( 0,-1, ij)
             imj = myij(-1, 0, ij)
@@ -1161,19 +1162,19 @@
             END IF
 !
 ! ... Free In-Out Flow on the corner
-            IF( (i.EQ.(ndi-1)) .AND. (j.EQ.(ndj-1)) .AND. (nfltr.EQ.4) ) THEN
+            IF( (i.EQ.(nr-1)) .AND. (j.EQ.(nz-1)) .AND. (nfltr.EQ.4) ) THEN
               ijtr = ij
             END IF
 !
 ! ... Second neighbours are not available on boundaries
 !
             ijrr = ippj
-            IF(i .EQ. (ndi-1)) ijrr = ipj
+            IF(i .EQ. (nr-1)) ijrr = ipj
             nflrr=fl_l(ippj)
             IF( (nflrr.EQ.2) .OR. (nflrr.EQ.3) ) ijrr = ipj
 
             ijtt = ijpp
-            IF(j.EQ.(ndj-1)) ijtt = ijp
+            IF(j.EQ.(nz-1)) ijtt = ijp
             nfltt=fl_l(ijpp)
             IF( (nfltt.EQ.2) .OR. (nfltt.EQ.3) ) ijtt = ijp
 

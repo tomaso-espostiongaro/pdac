@@ -30,10 +30,10 @@
       USE dimensions
       IMPLICIT NONE
 !
-      ALLOCATE(smag_length(ndi*ndj))
-      ALLOCATE(solid_viscosity(ncl,ndi*ndj))
-      ALLOCATE(jt(ndi), it(ndi), zbt(ndi))
-      ALLOCATE(smag_coeff(ndi*ndj))
+      ALLOCATE(smag_length(nr*nz))
+      ALLOCATE(solid_viscosity(nsolid,nr*nz))
+      ALLOCATE(jt(nr), it(nr), zbt(nr))
+      ALLOCATE(smag_coeff(nr*nz))
       solid_viscosity = 0.0D0
       smag_length = 0.0D0
       smag_coeff = 0.0D0
@@ -48,7 +48,7 @@
       ALLOCATE(scoeff(nij_l))
       ALLOCATE(delta(nij_l))
       ALLOCATE(mugt(nijx_l))
-      ALLOCATE(mus(ncl, nijx_l))
+      ALLOCATE(mus(nsolid, nijx_l))
       ALLOCATE(kapgt(nijx_l))
       ALLOCATE(cdy_n(nijx_l))
       smagl = 0.0D0
@@ -63,15 +63,16 @@
        SUBROUTINE turbulence_setup( zrough )
 ! ... sets the Smagorinsky turbulence length scale
 !
-        USE grid, ONLY: iob, nso, no
-        USE grid, ONLY: ib2, ib1, jb1, dz, dr, zb, rb
+        USE dimensions, ONLY: nr, nz, no
+        USE grid, ONLY: iob, nso
+        USE grid, ONLY: dz, dr, zb, rb
         USE roughness_module, ONLY: roughness
 !
         TYPE (roughness), INTENT(IN) :: zrough
 
         INTEGER :: i, j, i1, i2, j2, n, ij
         REAL*8  :: sgsl0, zsgsl, zrou, sgslb, delt
-        DO i=2,ib1
+        DO i = 2, (nr-1)
            it(i)=0
            DO n=1,no
              IF(nso(n).EQ.3.OR.nso(n).EQ.5) THEN
@@ -87,9 +88,9 @@
            END DO
          END DO
 !
-         DO j=2,jb1
-         DO i=2,ib1
-           ij=i+(j-1)*ib2
+         DO j=2, (nz-1)
+         DO i=2, (nr-1) 
+           ij=i+(j-1)*nr
            IF(j.LE.jt(i)) THEN
              smag_length(ij)=0.D0
            ELSE
@@ -129,7 +130,7 @@
 !...compute dynamic C , dynamic turbulent viscosity and 
 !...turbulent conductivity in the center of the cell.
 
-      USE dimensions, ONLY: ndi
+      USE dimensions, ONLY: nr
       USE eos_gas, ONLY: cg
       USE gas_solid_density, ONLY: rog
       USE set_indexes
@@ -191,8 +192,8 @@
         ij_g = myij(0,0,ij)
         IF(fl_l(ij).EQ.1) THEN
         CALL subscl(ij)
-         j = ( ij_g - 1 ) / ndi + 1
-         i = MOD( ( ij_g - 1 ), ndi) + 1
+         j = ( ij_g - 1 ) / nr + 1
+         i = MOD( ( ij_g - 1 ), nr) + 1
          delta(ij) = DSQRT(dz(j)*dr(i))
 !
 !...here it is possible to choose between the classic or dynamic Smagorinsky...
@@ -277,8 +278,8 @@
        ij_g = myij(0,0,ij)
        IF(fl_l(ij).EQ.1) THEN
         CALL subscl(ij)
-        j = ( ij_g - 1 ) / ndi + 1
-        i = MOD( ( ij_g - 1 ), ndi) + 1
+        j = ( ij_g - 1 ) / nr + 1
+        i = MOD( ( ij_g - 1 ), nr) + 1
 
         drp=dr(i)+dr(i+1)
         drm=dr(i)+dr(i-1)
@@ -386,8 +387,8 @@
       INTEGER :: ij_g, i, j
       ij_g = myij(0,0,ij)
       CALL subscl(ij)
-      j = ( ij_g - 1 ) / ndi + 1
-      i = MOD( ( ij_g - 1 ), ndi) + 1
+      j = ( ij_g - 1 ) / nr + 1
+      i = MOD( ( ij_g - 1 ), nr) + 1
 !
       drp=dr(i)+dr(i+1)
       drm=dr(i)+dr(i-1)
@@ -487,7 +488,7 @@
       USE gas_solid_density, ONLY: rlk
       USE gas_solid_velocity, ONLY: uk, vk
       USE grid, ONLY: itc, dz, dr, r, rb, indz, indr, inr, inrb
-      USE particles_constants, ONLY: rl, inrl, dk, cmus, nsolid
+      USE particles_constants, ONLY: rl, inrl, dk, cmus
       USE set_indexes
       IMPLICIT NONE
 !
@@ -505,8 +506,8 @@
         ij_g = myij(0, 0, ij)
         IF(fl_l(ij).EQ.1) THEN
          CALL subscl(ij)
-         j = ( ij_g - 1 ) / ndi + 1
-         i = MOD( ( ij_g - 1 ), ndi) + 1
+         j = ( ij_g - 1 ) / nr + 1
+         i = MOD( ( ij_g - 1 ), nr) + 1
 !
          drp=dr(i)+dr(i+1)
          drm=dr(i)+dr(i-1)

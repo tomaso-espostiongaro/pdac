@@ -51,8 +51,8 @@
       REAL*8, INTENT(IN) :: rgp, rgpr, rgpt, rgpl, rgpb
 !
       ij_g = myij(0, 0, ij)
-      j  = ( ij_g - 1 ) / ndi + 1
-      i  = MOD( ( ij_g - 1 ), ndi) + 1
+      j  = ( ij_g - 1 ) / nr + 1
+      i  = MOD( ( ij_g - 1 ), nr) + 1
       ijm = myij( 0,-1, ij)
       imj = myij(-1, 0, ij)
       ijr = myinds(r_, ij)
@@ -175,8 +175,8 @@
       REAL*8 :: epk_e, epk_n
 !
       ij_g = myij( 0, 0, ij)
-      j  = ( ij_g - 1 ) / ndi + 1
-      i  = MOD( ( ij_g - 1 ), ndi) + 1
+      j  = ( ij_g - 1 ) / nr + 1
+      i  = MOD( ( ij_g - 1 ), nr) + 1
       ijr = myinds(r_, ij)
       ijt = myinds(t_, ij)
 !
@@ -243,8 +243,8 @@
       REAL*8 :: flt, flr, fll, div, amul, flb
 !
       ij_g = myij( 0, 0, ij)
-      j  = ( ij_g - 1 ) / ndi + 1
-      i  = MOD( ( ij_g - 1 ), ndi) + 1
+      j  = ( ij_g - 1 ) / nr + 1
+      i  = MOD( ( ij_g - 1 ), nr) + 1
 !
 ! ... Use Gauss-Jordan method for matrix inversion
 !

@@ -27,8 +27,8 @@
       INTEGER :: imj, ijm, ipj, ijp
 !
       ij_g = myij( 0, 0, ij)
-      j  = ( ij_g - 1 ) / ndi + 1
-      i  = MOD( ( ij_g - 1 ), ndi) + 1
+      j  = ( ij_g - 1 ) / nr + 1
+      i  = MOD( ( ij_g - 1 ), nr) + 1
 !
        imj = myij(-1, 0, ij)
        IF (fl_l(imj) .NE. 1) THEN
@@ -91,8 +91,8 @@
       INTEGER :: imj, ijm, ipj, ijp
 !
       ij_g = myij( 0, 0, ij)
-      j  = ( ij_g - 1 ) / ndi + 1
-      i  = MOD( ( ij_g - 1 ), ndi) + 1
+      j  = ( ij_g - 1 ) / nr + 1
+      i  = MOD( ( ij_g - 1 ), nr) + 1
 !
       imj = myij(-1, 0, ij)
       IF (fl_l(imj) .NE. 1) THEN

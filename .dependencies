@@ -4,15 +4,13 @@ atmosphere.o : dimensions.o gas.o
 bdry.o : atmosphere.o dens.o dimensions.o eosg.o gas.o grid.o parallel.o  \
     particles.o press.o reactions.o subscl.o temp.o time.o velocity.o 
 
-coll.o : dens.o eosg.o grid.o hcapgs.o press.o temp.o turbo.o velocity.o  \
-    visc.o 
+coll.o : dens.o eosg.o grid.o hcapgs.o press.o temp.o velocity.o 
 
 dens.o : dimensions.o grid.o 
 
 dimensions.o : 
 
-distr.o : dens.o eosg.o grid.o hcapgs.o press.o temp.o turbo.o velocity.o  \
-    visc.o 
+distr.o : dens.o eosg.o grid.o hcapgs.o press.o temp.o turbo.o velocity.o 
 
 drag.o : dimensions.o particles.o time.o 
 
@@ -46,7 +44,7 @@ input.o : atmosphere.o dimensions.o gas.o grid.o iter.o matrix.o outp.o  \
     visc.o 
 
 io.o : dens.o dimensions.o eosg.o hcapgs.o parallel.o press.o temp.o time.o  \
-    velocity.o visc.o 
+    velocity.o 
 
 iter.o : dens.o dimensions.o eosg.o fluxes.o gas.o grid.o hcapgs.o matrix.o  \
     particles.o press.o subscl.o temp.o tilde.o time.o velocity.o 
@@ -57,8 +55,8 @@ letter.o :
 
 matrix.o : dimensions.o grid.o particles.o tilde.o time.o 
 
-outp.o : dens.o dimensions.o eosg.o grid.o parallel.o particles.o press.o  \
-    reactions.o temp.o time.o turbo.o velocity.o 
+outp.o : dens.o dimensions.o eosg.o parallel.o particles.o press.o  \
+    reactions.o temp.o time.o velocity.o 
 
 parallel.o : 
 
