@@ -957,28 +957,28 @@
           nflt=flag(ijkp)
           nflb=flag(ijkm)
 
-          IF( (nfle /= 1) .AND. (nfle /= 4) ) THEN
+          IF( (nfle /= 1) .AND. (nfle /= 4) .AND. (nfle /= 6) ) THEN
             iep_e = 0.D0
           ELSE
             iep_e = ( dx(i+1)*ep(ijk)+dx(i)*ep(ijke))*indxp*indxp*2.D0
             !iep_e = iep_e * upc_e
           END IF
 
-          IF( (nflw /= 1) .AND. (nflw /= 4) ) THEN
+          IF( (nflw /= 1) .AND. (nflw /= 4) .AND. (nflw /= 6) ) THEN
             iep_w = 0.D0
           ELSE
             iep_w = ( dx(i-1)*ep(ijk)+dx(i)*ep(ijkw) )*indxm*indxm*2.D0 
             !iep_w = iep_w * upc_w
           END IF
 !
-          IF( (nflt /= 1) .AND. (nflt /= 4) ) THEN 
+          IF( (nflt /= 1) .AND. (nflt /= 4) .AND. (nflt /= 6) ) THEN 
             iep_t = 0.0D0
           ELSE
             iep_t = ( dz(k+1)*ep(ijk)+dz(k)*ep(ijkt) )*indzp*indzp*2.D0 
             !iep_t = iep_t * upc_t 
           END IF
 
-          IF( (nflb /= 1) .AND. (nflb /= 4) ) THEN
+          IF( (nflb /= 1) .AND. (nflb /= 4) .AND. (nflb /= 6) ) THEN
             iep_b = 0.D0
           ELSE
             iep_b = ( dz(k-1)*ep(ijk)+dz(k)*ep(ijkb) )*indzm*indzm*2.D0
@@ -994,14 +994,14 @@
             nfln=flag(ijpk)
             nfls=flag(ijmk)
 
-            IF( (nfln /= 1) .AND. (nfln /= 4) ) THEN 
+            IF( (nfln /= 1) .AND. (nfln /= 4) .AND. (nfln /= 6) ) THEN 
               iep_n = 0.0D0
             ELSE
               iep_n = ( dy(j+1)*ep(ijk)+dy(j)*ep(ijkn) )*indyp*indyp*2.D0 
               iep_n = iep_n * upc_n 
             END IF
 
-            IF( (nfls /= 1) .AND. (nfls /= 4) ) THEN
+            IF( (nfls /= 1) .AND. (nfls /= 4) .AND. (nfls /= 6) ) THEN
               iep_s = 0.D0
             ELSE
               iep_s = ( dy(j-1)*ep(ijk)+dy(j)*ep(ijks) )*indym*indym*2.D0

@@ -113,7 +113,7 @@
 !
 ! ... Set initial velocity profiles
 !
-          IF ( flag(ijk) == 1 .OR. flag(ijk) == 4 ) THEN
+          IF ( flag(ijk) == 1 .OR. flag(ijk) == 4 .OR. flag(ijk) == 6 ) THEN
             IF( .NOT.forced(ijk) ) THEN
               ug(ijk) = u0
               wg(ijk) = w0
