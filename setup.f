@@ -26,7 +26,8 @@
 !----------------------------------------------------------------------
       SUBROUTINE setup
 !
-      USE atmosphere, ONLY: u0, v0, w0, p0, temp0, us0, vs0, ws0, ep0, atm
+      USE atmosphere, ONLY: u0, v0, w0, p0, temp0, us0, vs0, ws0, ep0
+      USE atmosphere, ONLY: atm, controlatm
       USE control_flags, ONLY: job_type
       USE dimensions
       USE eos_gas, ONLY: mas, mole, cnvertg, gc_molar_fraction, gc_mass_fraction
@@ -67,6 +68,7 @@
             zrif=zb(j)+0.5D0*(dz(1)-dz(j))
             DO i=1,nr
               ij=i+(j-1)*nr
+              CALL controlatm
               CALL atm(zrif,gas_pressure(ij),gas_temperature(ij))
 !
 ! ... Set initial gas composition and particles concentration
@@ -99,6 +101,8 @@
           DO k = 1, nz
 
             zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )
+
+            CALL controlatm
             CALL atm( zrif, prif, trif )
 
             DO j = 1, ny
@@ -257,7 +261,8 @@
 
       INTEGER :: is 
 !
-! molecular weight of chemical components (O2,N2,CO2,H2,H2O,Air,SO2)
+! ... molecular weight of chemical components (O2,N2,CO2,H2,H2O,Air,SO2)
+! ... expressed in grams per mole
 !
       gmw(1) = 32.D0              ! O2
       gmw(2) = 28.D0              ! N2
@@ -267,7 +272,12 @@
       gmw(6) = 28.96442D0         ! Air
       gmw(7) = 64.D0              ! SO2
 !
-! Lennard-Jones potentials (sigma and epsilon/k)
+! ... international unit system (MKS)
+      gmw = gmw * 1.D-3
+!
+! ... Lennard-Jones potential 
+! ... sigma (Angstroms)
+! ... epsilon/k (Kelvin/erg)
 !
       mmugs(1) = 3.467D0          ! O2
       mmugek(1) = 106.7D0
@@ -303,7 +313,7 @@
       tzero  = 0.D0                              ! costant reference temperature
       hzerog = 0.D0                              ! gas enthalpy at tzero
       hzeros = 0.D0                              ! particles enthalpy at tzero
-      rgas  = 8.31432D7                          ! perfect gas constant
+      rgas  = 8.31432                            ! perfect gas constant
       h1 = 0.D0                                  !
       h2 = 0.D0                                  !
       h3 = 0.D0                                  ! reaction enthalpies

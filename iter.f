@@ -25,7 +25,7 @@
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
       USE grid, ONLY: fl_l
       USE grid, ONLY: myijk, ncint, ncdom, data_exchange
-      USE heat_capacity, ONLY: cp
+      USE specific_heat, ONLY: cp
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE tilde_momentum, ONLY: appu, appv, appw
       USE parallel, ONLY: mpime

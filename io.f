@@ -2,7 +2,7 @@
       MODULE io_restart
 !----------------------------------------------------------------------
       USE eos_gas, ONLY: gc_bulk_density, gc_molar_fraction,            &
-                        gc_mass_fraction, gas_heat_capacity
+                        gc_mass_fraction, gas_specific_heat
       USE gas_solid_density, ONLY: gas_density, gas_bulk_density,       &
                                  solid_bulk_density
       USE gas_solid_velocity, ONLY: gas_velocity_r, gas_velocity_x,     &
@@ -13,7 +13,7 @@
                                      solid_temperature, solid_enthalpy
       USE parallel, ONLY: mpime, root
       USE pressure_epsilon, ONLY: gas_pressure , void_fraction
-      USE heat_capacity, ONLY: gc_heat_capacity, solid_heat_capacity
+      USE specific_heat, ONLY: gc_specific_heat, solid_specific_heat
       USE time_parameters, ONLY: time
       USE control_flags, ONLY: job_type
 !
@@ -84,9 +84,9 @@
 !
 ! ... store the final values of the constitutive parameters to be set up
 !
-        WRITE(9) (gas_heat_capacity(ijk),ijk=1,ntot)
-        WRITE(9) ((solid_heat_capacity(k,ijk),k=1,nsolid),ijk=1,ntot)
-        WRITE(9) ((gc_heat_capacity(ig,ijk),ig=1,ngas),ijk=1,ntot)
+        WRITE(9) (gas_specific_heat(ijk),ijk=1,ntot)
+        WRITE(9) ((solid_specific_heat(k,ijk),k=1,nsolid),ijk=1,ntot)
+        WRITE(9) ((gc_specific_heat(ig,ijk),ig=1,ngas),ijk=1,ntot)
 !
         CLOSE(9)
 ! 
@@ -164,9 +164,9 @@
 !
 ! ... read the values of the constitutive parameters
 !
-        READ(9) (gas_heat_capacity(ijk),ijk=1,ntot)
-        READ(9) ((solid_heat_capacity(k,ijk),k=1,nsolid),ijk=1,ntot)
-        READ(9) ((gc_heat_capacity(ig,ijk),ig=1,ngas),ijk=1,ntot)
+        READ(9) (gas_specific_heat(ijk),ijk=1,ntot)
+        READ(9) ((solid_specific_heat(k,ijk),k=1,nsolid),ijk=1,ntot)
+        READ(9) ((gc_specific_heat(ig,ijk),ig=1,ngas),ijk=1,ntot)
 !
         CLOSE (9)
       END IF
@@ -208,9 +208,9 @@
        CALL bcast_real(gc_bulk_density,SIZE(gc_bulk_density),root)
        CALL bcast_real(gc_molar_fraction,SIZE(gc_molar_fraction),root)
 !
-       CALL bcast_real(gas_heat_capacity,SIZE(gas_heat_capacity),root)
-       CALL bcast_real(gc_heat_capacity,SIZE(gc_heat_capacity),root)
-       CALL bcast_real(solid_heat_capacity,SIZE(solid_heat_capacity),root)
+       CALL bcast_real(gas_specific_heat,SIZE(gas_specific_heat),root)
+       CALL bcast_real(gc_specific_heat,SIZE(gc_specific_heat),root)
+       CALL bcast_real(solid_specific_heat,SIZE(solid_specific_heat),root)
 !
       END SUBROUTINE
 !----------------------------------------------------------------------

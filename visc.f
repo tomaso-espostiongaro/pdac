@@ -60,22 +60,36 @@
       REAL*8, INTENT(IN) :: xgc(:), tg
       REAL*8, INTENT(OUT) :: mu, kap
 !
-      REAL*8 :: bb, aa, cc, sum, om, c1, c2 
+      REAL*8 :: bb, aa, cc, sum, om
       REAL*8 :: tst, tr, t1, t2, t3
+      REAL*8 :: m
       INTEGER :: ig, jg
 !
-! ... Temperature Dependent Viscosity (Reid)
+! ... Compute Temperature Dependent Viscosity of each gas specie
 !
       DO ig=1,ngas
         IF (present_gas(ig) ) THEN
+!
+! ... non-dimensional temperature
+!
           tst=tg/mmugek(ig)
-          om=1.16145D0*tst**(-0.14874D0)+ 0.52487D0*DEXP(-0.77320D0*tst)+  &
-              2.16178D0*DEXP(-2.43787D0*tst)
-          mmug(ig)=26.69D0*(gmw(ig)*tg)**0.5D0/(mmugs(ig)**2*om)
+!
+! ... collision integral (omega) 
+!
+          om = 1.16145D0 * tst**(-0.14874D0) +  &
+               0.52487D0*DEXP(-0.77320D0*tst)+  &
+               2.16178D0*DEXP(-2.43787D0*tst)
+!
+! ... viscosity (Reid) is expressed in microPoise in cgs unit system
+!
+          m = 1.D3 * gmw(ig)
+          mmug(ig) = 26.69D0 * (m * tg)**0.5D0 / (mmugs(ig)**2 * om)
+          mmug(ig) = mmug(ig) * 1.D-7 
+!
         END IF
       END DO
 !
-! ... Temperature Dependent Conductivity (Wassilijewa)
+! ... Temperature Dependent Conductivity 
 !
       t1=tg
       t2=tg**2
@@ -91,7 +105,10 @@
                -1.92615D0*tr**(-1.D0)+2.00383D0*tr**(-2.D0)           &
                -1.07553D0*tr**(-3.D0)+0.229414D0*tr**(-4.D0))
       ckg(7) = -8.086D-3 + 6.344D-5*t1 - 1.382D-8*t2 + 2.303D-12*t3
-
+!
+! ... Calculation of Mixture Viscosity (Wilke)
+! ... and Mixture Conductivity (Mason and Saxema)
+!
       DO ig=1,ngas
         IF (present_gas(ig)) THEN
           DO jg=1,ngas
@@ -105,26 +122,21 @@
         END IF
       END DO
 !
-      c1=0.D0
-      c2=0.D0
+      mu=0.D0
+      kap=0.D0
       DO ig=1,ngas
         IF (present_gas(ig)) THEN
           sum=0.D0
           DO jg=1,ngas
             sum=sum+xgc(jg)*phij(ig,jg)
           END DO
-! ... Mixture Viscosity (Wilke)
-          c1 = c1 + xgc(ig) * mmug(ig) /sum     
-! ... Mixture Conductivity (Mason and Saxema)
-          c2 = c2 + xgc(ig) * ckg(ig) /sum       
+          mu = mu + xgc(ig) * mmug(ig) /sum     
+          kap = kap + xgc(ig) * ckg(ig) /sum       
         END IF
       END DO
 !
-      mu = c1*1.D-6
-      kap = c2*1.D5
-!
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE viscon
 !----------------------------------------------------------------------
       SUBROUTINE viscg
 !----------------------------------------------------------------------

@@ -14,7 +14,7 @@
       USE gas_solid_temperature, ONLY: sieg, sies, ts, tg
       USE glocal_arrays, ONLY: collect
       USE grid, ONLY: ncint, myijk, fl_l
-      USE heat_capacity, ONLY: cp, ck
+      USE specific_heat, ONLY: cp, ck
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE io_restart, ONLY: tapewr
       USE iterative_solver, ONLY: iter
@@ -235,4 +235,5 @@
               END IF
 ! 
       RETURN
-      END
+      END SUBROUTINE prog
+!----------------------------------------------------------------------

@@ -4,7 +4,7 @@
       IMPLICIT NONE
       SAVE
 !
-      REAL*8, DIMENSION(:), ALLOCATABLE :: gas_heat_capacity
+      REAL*8, DIMENSION(:), ALLOCATABLE :: gas_specific_heat
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: gc_mass_fraction
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: gc_molar_fraction
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: gc_bulk_density
@@ -19,12 +19,12 @@
       USE dimensions
       IMPLICIT NONE
 !
-       ALLOCATE(gas_heat_capacity(ntot))
+       ALLOCATE(gas_specific_heat(ntot))
        ALLOCATE(gc_mass_fraction(ngas,ntot),       &
                 gc_molar_fraction(ngas,ntot),      &
                 gc_bulk_density(ntot,ngas))
 
-       gas_heat_capacity     = 0.0d0
+       gas_specific_heat     = 0.0d0
        gc_mass_fraction      = 0.0d0
        gc_molar_fraction     = 0.0d0
        gc_bulk_density       = 0.0d0
@@ -92,8 +92,8 @@
         mass = mass + xg(ig)*gmw(ig)
       END DO
       DO ig=1,ngas
-        yg(ig)=xg(ig)*gmw(ig)/mass
         IF (mass == 0.D0) CALL error('mas','gas mass = 0',1)
+        yg(ig)=xg(ig)*gmw(ig)/mass
       END DO
 
       RETURN
@@ -106,8 +106,8 @@
 !
       USE dimensions
       USE grid, ONLY: fl
-      USE gas_constants, ONLY: gmw, c_erg, rgas, tzero, hzerog, gammaair
-      USE heat_capacity, ONLY:  hcapg
+      USE gas_constants, ONLY: gmw, c_joule, rgas, tzero, hzerog, gammaair
+      USE specific_heat, ONLY:  hcapg
       USE time_parameters, ONLY: time
       IMPLICIT NONE
 !
@@ -137,7 +137,7 @@
             CALL hcapg(cpgc(:), tg)
             hc=0.D0
             DO ig=1,ngas
-              hc=c_erg*cpgc(ig)*yg(ig)+hc
+              hc=cpgc(ig)*yg(ig)+hc
             END DO
             IF (tg == tg0) cgas0 = hc
             cgas = hc
@@ -160,7 +160,7 @@
           rog = p/(rgas*tg)*mg
         ENDIF
 !
-        IF(isound.GT.0) rags = rog/p/gammaair
+        IF(isound > 0) rags = rog/p/gammaair
       END IF
 !
       RETURN
@@ -171,11 +171,11 @@
 ! ... computes thermodynamic mean quantities
 !
       USE dimensions
-      USE gas_constants, ONLY: gmw, c_erg,rgas,tzero,hzerog
+      USE gas_constants, ONLY: gmw, c_joule,rgas,tzero,hzerog
       USE gas_solid_density, ONLY: gas_density, gas_bulk_density
       USE gas_solid_temperature, ONLY: gas_enthalpy, gas_temperature
       USE pressure_epsilon, ONLY: gas_pressure, void_fraction
-      USE heat_capacity, ONLY: gc_heat_capacity, solid_heat_capacity, hcapg
+      USE specific_heat, ONLY: gc_specific_heat, solid_specific_heat, hcapg
 !
       IMPLICIT NONE
 !
@@ -191,25 +191,28 @@
 
 ! ... gas density (from equation of state)
 !
-      gas_density(imesh) = gas_pressure(imesh) / (rgas*gas_temperature(imesh)) * mg
-      gas_bulk_density(imesh) = gas_density(imesh) * void_fraction(imesh)
+      gas_density(imesh)      = &
+          gas_pressure(imesh) / (rgas*gas_temperature(imesh)) * mg
+      gas_bulk_density(imesh) = &
+          gas_density(imesh) * void_fraction(imesh)
 
       DO ig = 1, ngas
-        gc_bulk_density(imesh,ig) = gc_mass_fraction(ig,imesh) * gas_bulk_density(imesh)
+        gc_bulk_density(imesh,ig) = &
+            gc_mass_fraction(ig,imesh) * gas_bulk_density(imesh)
       END DO
 
 !
 ! compute heat capacity (constant volume) for gas mixture
 !
-      CALL hcapg(gc_heat_capacity(:,imesh), gas_temperature(imesh))
+      CALL hcapg(gc_specific_heat(:,imesh), gas_temperature(imesh))
 
       hc = 0.D0
-      DO ig=1,ngas
-        hc = hc + c_erg*gc_heat_capacity(ig,imesh)*gc_mass_fraction(ig,imesh)
+      DO ig = 1, ngas
+        hc = hc + gc_specific_heat(ig,imesh)*gc_mass_fraction(ig,imesh)
       END DO 
-      gas_heat_capacity(imesh) = hc
+      gas_specific_heat(imesh) = hc
 
-      gas_enthalpy(imesh) = (gas_temperature(imesh)-tzero) * gas_heat_capacity(imesh) + hzerog
+      gas_enthalpy(imesh) = (gas_temperature(imesh)-tzero) * gas_specific_heat(imesh) + hzerog
 !
       RETURN
       END SUBROUTINE cnvertg

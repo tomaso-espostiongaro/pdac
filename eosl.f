@@ -10,17 +10,19 @@
 !
       USE dimensions
       USE gas_constants, ONLY: tzero, hzeros
-      USE heat_capacity, ONLY: hcaps
+      USE specific_heat, ONLY: hcaps
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: iheat, itemp
       REAL*8, INTENT(INOUT) :: tk
       REAL*8, INTENT(IN) ::  cps, siek
       REAL*8, INTENT(OUT) :: ck
-      IF(iheat.GT.0) CALL hcaps(ck, cps, tk)
-      IF(itemp.GT.0) THEN
+
+      IF(iheat > 0) CALL hcaps(ck, cps, tk)
+      IF(itemp > 0) THEN
         tk = tzero + (siek-hzeros) / ck
         CALL hcaps(ck, cps, tk)
       ENDIF
+
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
@@ -30,25 +32,24 @@
       USE gas_solid_temperature, ONLY: solid_enthalpy, solid_temperature
       USE gas_constants, ONLY: tzero, hzeros
       USE particles_constants, ONLY: cps
-      USE heat_capacity, ONLY: solid_heat_capacity, hcaps
+      USE specific_heat, ONLY: solid_specific_heat, hcaps
 !
       IMPLICIT NONE
 !
       INTEGER, INTENT(IN) :: imesh
-!
       INTEGER :: is
-
 !
 ! compute heat capacity (constant volume) for particles
 !
       DO is = 1, nsolid
-        CALL hcaps(solid_heat_capacity(is,imesh), cps(is), &
+        CALL hcaps(solid_specific_heat(is,imesh), cps(is), &
                    solid_temperature(imesh,is))
         solid_enthalpy(imesh,is) = ( solid_temperature(imesh,is) - tzero ) * &
-                                    solid_heat_capacity(is,imesh) + hzeros
+                                    solid_specific_heat(is,imesh) + hzeros
       END DO
 !
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE cnverts
 !----------------------------------------------------------------------
       END MODULE eos_solid
+!----------------------------------------------------------------------

@@ -1,11 +1,11 @@
 !----------------------------------------------------------------------
-      MODULE heat_capacity
+      MODULE specific_heat
 !----------------------------------------------------------------------
       IMPLICIT NONE
       SAVE
 !
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: gc_heat_capacity  
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: solid_heat_capacity
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: gc_specific_heat  
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: solid_specific_heat
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: cp ! heat capacity of gas comp.
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: ck ! heat capacity of particles
 !----------------------------------------------------------------------
@@ -14,13 +14,13 @@
       SUBROUTINE bounds_hcapgs
       USE dimensions
 !
-      ALLOCATE(gc_heat_capacity(ngas,ntot))
-      ALLOCATE(solid_heat_capacity(nsolid,ntot))
-      gc_heat_capacity = 0.0d0
-      solid_heat_capacity = 0.0d0
+      ALLOCATE(gc_specific_heat(ngas,ntot))
+      ALLOCATE(solid_specific_heat(nsolid,ntot))
+      gc_specific_heat = 0.0d0
+      solid_specific_heat = 0.0d0
 
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE bounds_hcapgs
 !----------------------------------------------------------------------
       SUBROUTINE local_bounds_hcapgs
       USE dimensions
@@ -30,12 +30,12 @@
       ALLOCATE(ck(nsolid,ncint))
 !
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE local_bounds_hcapgs
 !----------------------------------------------------------------------
       SUBROUTINE hcapg(cpc, tg)
 !----------------------------------------------------------------------
-! ... This routine computes the Temperature-dependent heat capacity 
-! ... for each gas phase 
+! ... This routine computes the Temperature-dependent specific heat
+! ... at constant pressure per kilograms of each gas phase 
 !
       USE dimensions
       USE gas_constants, ONLY: gmw, c_joule
@@ -50,28 +50,33 @@
         t1=tg
         t2=tg**2
         t3=tg**3
-
+!
+! ... molar capacity ( joule/(kelvin mole) )
+!
 ! ... o2
-        cpc(1)=(2.811D1-3.68D-6*t1+1.746D-5*t2-1.065D-8*t3)/c_joule/gmw(1)
+        cpc(1)=(2.811D1-3.68D-6*t1+1.746D-5*t2-1.065D-8*t3)
 ! ... n2  
-        cpc(2)=(3.115D1-1.357D-2*t1+2.680D-5*t2-1.168D-8*t3)/c_joule/gmw(2)
+        cpc(2)=(3.115D1-1.357D-2*t1+2.680D-5*t2-1.168D-8*t3)
 ! ... co2
-        cpc(3)=(1.980D1+7.344D-2*t1-5.602D-5*t2+1.715D-8*t3)/c_joule/gmw(3)
+        cpc(3)=(1.980D1+7.344D-2*t1-5.602D-5*t2+1.715D-8*t3)
 ! ... h2
-        cpc(4)=(2.714D1+9.274D-3*t1-1.381D-5*t2+7.645D-9*t3)/c_joule/gmw(4)
+        cpc(4)=(2.714D1+9.274D-3*t1-1.381D-5*t2+7.645D-9*t3)
 ! ... h2o
-        cpc(5)=(3.224D1+1.924D-3*t1+1.055D-5*t2-3.596D-9*t3)/c_joule/gmw(5)
+        cpc(5)=(3.224D1+1.924D-3*t1+1.055D-5*t2-3.596D-9*t3)
 ! ... Air
-        cpc(6)=(3.0413D1-1.059D-2*t1+2.458D-5*t2-1.135D-8*t3)/c_joule/gmw(6)
+        cpc(6)=(3.0413D1-1.059D-2*t1+2.458D-5*t2-1.135D-8*t3)
 ! ... so2
-        cpc(7)=(2.385D1+6.699D-2*t1-4.961D-5*t2+1.328D-8*t3)/c_joule/gmw(7)
+        cpc(7)=(2.385D1+6.699D-2*t1-4.961D-5*t2+1.328D-8*t3)
+!
+! ... specific heat ( joule/(kelvin kilogram) )
+        cpc = cpc/gmw
 
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE hcapg
 !----------------------------------------------------------------------
       SUBROUTINE hcaps(cs, cps, ts)
 !----------------------------------------------------------------------
-! ... This routine computes the heat capacity for particles
+! ... This routine computes the specific heat (MKS) of particles
 !
       USE dimensions
       IMPLICIT NONE
@@ -79,11 +84,12 @@
       REAL*8, INTENT(IN) :: cps, ts
       REAL*8, INTENT(OUT) :: cs
 !
-! if cs depends on temperature ts, change this dependence
+!... If cs depends on temperature (ts), change this dependence
 !
         cs = cps
 !
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE hcaps
 !----------------------------------------------------------------------
-      END MODULE heat_capacity
+      END MODULE specific_heat
+!----------------------------------------------------------------------

@@ -189,9 +189,9 @@
       IF(ep1 > 0.D0 .AND. ep2 > 0.D0) THEN
         xbar=ep1/epsum
         IF(xbar <= philim(k-1,kk-1)) THEN
-          epkl=epsl(k-1,kk-1)*xbar/phi(k1)+phi(k2)
+          epkl = epsl(k-1,kk-1)*xbar + phi(k2)
         ELSE
-          epkl=epsu(k-1,kk-1)*(1.D0-xbar)+phi(k1)
+          epkl = epsu(k-1,kk-1)*(1.D0-xbar) + phi(k1)
         ENDIF
 !
 ! ... for Nakamura & Capes correlation effe=1.5

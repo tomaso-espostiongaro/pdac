@@ -393,7 +393,6 @@
 
             CALL kdrags(kpgv(is), dugs, dvgs, dwgs, ep(ijk),         &
                         rgp(ijk), rlk(ijk,is), mug(ijk), is)                  
-
           END DO 
 !
 ! ... Compute the particle-particle coefficients and the interphase matrix

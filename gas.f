@@ -32,7 +32,7 @@
       mmugek = 0.D0
       gmw    = 0.D0
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE bounds_gas_constants
 !----------------------------------------------------------------------
-      END  MODULE
+      END  MODULE gas_constants
 !----------------------------------------------------------------------

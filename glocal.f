@@ -3,7 +3,7 @@
 !
       USE eos_gas, ONLY: gc_bulk_density, gc_mass_fraction, gc_molar_fraction
       USE eos_gas, ONLY: rgpgc, ygc, xgc
-      USE eos_gas, ONLY: gas_heat_capacity
+      USE eos_gas, ONLY: gas_specific_heat
       USE eos_gas, ONLY: cg
       USE gas_solid_velocity, ONLY: gas_velocity_r, gas_velocity_z,      &
                                     gas_velocity_x, gas_velocity_y
@@ -19,8 +19,8 @@
       USE gas_solid_temperature, ONLY: sieg, sies, tg, ts
       USE pressure_epsilon, ONLY: gas_pressure , void_fraction
       USE pressure_epsilon, ONLY: p, ep
-      USE heat_capacity, ONLY: gc_heat_capacity, solid_heat_capacity
-      USE heat_capacity, ONLY: cp, ck
+      USE specific_heat, ONLY: gc_specific_heat, solid_specific_heat
+      USE specific_heat, ONLY: cp, ck
 
       USE turbulence_model, ONLY: smag, smag_factor
       USE turbulence_model, ONLY: scoeff, smag_coeff
@@ -71,9 +71,9 @@
       gc_bulk_density             = 0.D0
       gc_molar_fraction           = 0.D0
 !
-      solid_heat_capacity         = 0.D0
-      gc_heat_capacity            = 0.D0
-      gas_heat_capacity           = 0.D0
+      solid_specific_heat         = 0.D0
+      gc_specific_heat            = 0.D0
+      gas_specific_heat           = 0.D0
 !
       smag_coeff                  = 0.D0
 !
@@ -108,9 +108,9 @@
         gc_bulk_density(imesh,:) = rgpgc(ijk,:)
         gc_molar_fraction(:, imesh) = xgc(:,ijk)
 !
-        solid_heat_capacity(:,imesh) = ck(:,ijk)
-        gc_heat_capacity(:,imesh) = cp(:,ijk)
-        gas_heat_capacity(imesh) = cg(ijk)
+        solid_specific_heat(:,imesh) = ck(:,ijk)
+        gc_specific_heat(:,imesh) = cp(:,ijk)
+        gas_specific_heat(imesh) = cg(ijk)
 !
         smag_coeff(imesh) = scoeff(ijk)
         
@@ -144,9 +144,9 @@
       CALL parallel_sum_real(gc_bulk_density, SIZE(gc_bulk_density))
       CALL parallel_sum_real(gc_molar_fraction, SIZE(gc_molar_fraction))
 !
-      CALL parallel_sum_real(solid_heat_capacity, SIZE(solid_heat_capacity) )
-      CALL parallel_sum_real(gc_heat_capacity, SIZE(gc_heat_capacity) )
-      CALL parallel_sum_real(gas_heat_capacity, SIZE(gas_heat_capacity) )
+      CALL parallel_sum_real(solid_specific_heat, SIZE(solid_specific_heat) )
+      CALL parallel_sum_real(gc_specific_heat, SIZE(gc_specific_heat) )
+      CALL parallel_sum_real(gas_specific_heat, SIZE(gas_specific_heat) )
 !
       CALL parallel_sum_real(smag_coeff, SIZE(smag_coeff) )
 !
@@ -233,9 +233,9 @@
         rgpgc(ijk,:) = gc_bulk_density(imesh,:)
         xgc(:,ijk) = gc_molar_fraction(:, imesh)
 !
-        ck(:,ijk) = solid_heat_capacity(:,imesh)
-        cp(:,ijk) = gc_heat_capacity(:,imesh)
-        cg(ijk) = gas_heat_capacity(imesh)
+        ck(:,ijk) = solid_specific_heat(:,imesh)
+        cp(:,ijk) = gc_specific_heat(:,imesh)
+        cg(ijk) = gas_specific_heat(imesh)
         smag(ijk) = smag_factor(imesh)
         mus(ijk,:) = particle_viscosity(imesh,:)
       END DO

@@ -108,21 +108,21 @@
       run_name = 'run2d'
       job_type = '2D'
       restart_mode = 'from_scratch'
-      time = 0.0d0
-      tstop = 1.0d0
-      dt = 0.01d0
+      time = 0.0D0
+      tstop = 1.0D0
+      dt = 0.01D0
       lpr = 1
-      tpr = 1.0d0
-      tdump = 20.0d0
+      tpr = 1.0D0
+      tdump = 20.0D0
       nfil = 0
       irex = 1
       iss  = 0
       iturb = 1
       modturbo = 1
-      cmut = 0.1d0
-      rlim = 1.0d-8
-      gravx = 0.0d0
-      gravz = -981.0d0
+      cmut = 0.1D0
+      rlim = 1.0D-8
+      gravx = 0.0D0
+      gravz = -9.81D0
       ngas = 7
       default_gas = 6
 
@@ -135,21 +135,21 @@
       itc = 0
       mesh_partition = 1
       iuni = 1
-      dr0  = 1000.0d0
-      dz0  = 1000.0d0
-      dx0  = 1000.0d0
-      dy0  = 1000.0d0
-      zzero = 0.0d0
+      dr0  = 10.D0
+      dz0  = 10.D0
+      dx0  = 10.D0
+      dy0  = 10.D0
+      zzero = 0.0D0
 
 ! ... Particles
  
       nsolid = 2
-      diameter = 0.01
-      density = 2.7
+      diameter = 100
+      density = 2700
       sphericity = 1.0
-      viscosity = 5.0
-      specific_heat = 1.2d7
-      thermal_conductivity = 2.0d5
+      viscosity = 0.5
+      specific_heat = 1.2D3
+      thermal_conductivity = 2.D0
 
 ! ... Numeric
 
@@ -165,7 +165,7 @@
 ! reading of input file
 !
 
-      IF(mpime .EQ. root) THEN
+      IF(mpime == root) THEN
         READ(iunit, control) 
       END IF
 !
@@ -213,7 +213,7 @@
 
       CALL subsc_setup( job_type )
 
-      IF(mpime .EQ. root) THEN
+      IF(mpime == root) THEN
         READ(iunit, mesh) 
       END IF
 
@@ -229,7 +229,7 @@
       CALL bcast_real(dz0,1,root)
       CALL bcast_real(zzero,1,root)
 
-      IF(mpime .EQ. root) THEN
+      IF(mpime == root) THEN
         READ(iunit, particles) 
       END IF
 
@@ -245,7 +245,7 @@
         CALL error( ' input ', ' nsolid out of range ', nsolid )
       END IF
 
-      IF(mpime .EQ. root) THEN
+      IF(mpime == root) THEN
         READ(iunit, numeric) 
       END IF
 
@@ -259,7 +259,7 @@
 
       CALL allocate_roughness( zrough, nroughx )
       tend = .FALSE.
-      IF(mpime .EQ. root) THEN
+      IF(mpime == root) THEN
         rough_search: DO 
           READ(5,*,END=100) card
           IF( TRIM(card) == 'ROUGHNESS' ) THEN
@@ -282,7 +282,7 @@
 !
 !
       tend = .FALSE.
-      IF(mpime .EQ. root) THEN
+      IF(mpime == root) THEN
         mesh_search: DO
           READ(5,*,END=200) card
           IF( TRIM(card) == 'MESH' ) THEN
@@ -320,7 +320,7 @@
       CALL bcast_real(delta_z,nz,root)
 
       tend = .FALSE.
-      IF(mpime .EQ. root) THEN
+      IF(mpime == root) THEN
         fixed_flows_search: DO
           READ(5,*,END=300) card
           IF( TRIM(card) == 'FIXED_FLOWS' ) THEN
@@ -384,7 +384,7 @@
 
 
       tend = .FALSE.
-      IF(mpime .EQ. root) THEN
+      IF(mpime == root) THEN
         initial_conditions_search: DO
           READ(5,*,END=400) card
           IF( TRIM(card) == 'INITIAL_CONDITIONS' ) THEN

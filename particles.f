@@ -37,41 +37,39 @@
       IMPLICIT NONE
 !
       INTEGER :: k2, k1, k, kk
-      REAL*8 :: dratx
-
+      REAL*8  :: a
 !
-! Syamlal's particle-particle interaction coefficients
+! ... set the maximum packing volume fraction for particles
+! ... (here assumed to be the same for all phases)
 !
-      DO k=1,nsolid
-        phi(k)=0.63
-      END DO
+        phi = 0.63
 !
-      DO k=1,nsolid
-      DO kk=1,nsolid
-        IF(dk(k).GE.dk(kk)) THEN
-          k1=k
-          k2=kk
-        ELSE
-          k1=kk
-          k2=k
-        ENDIF
-        dratx=DSQRT(dk(k2)/dk(k1))
-        philim(k,kk)=phi(k1)/(phi(k1)+(1.D0-phi(k1))*phi(k2))
-        epsl(k,kk)=(phi(k1)-phi(k2)+(1.D0-dratx)*(1.D0-phi(k1))*phi(k2))  &
-                   *(phi(k1)+(1.D0-phi(k2))*phi(k1))
-        epsu(k,kk)=(1.D0-dratx)*(phi(k1)+(1.D0-phi(k1))*phi(k2))
-      END DO
-      END DO
+! ... Syamlal's particle-particle interaction coefficients
 !
       DO k=1,nsolid
-        DO kk=1,k
+        DO kk=1,nsolid
+          IF(dk(k) >= dk(kk)) THEN
+            k1=k
+            k2=kk
+          ELSE
+            k1=kk
+            k2=k
+          ENDIF
+          a = DSQRT(dk(k2)/dk(k1))
+          philim(k,kk) = phi(k1) / ( phi(k1) + ( 1.D0 - phi(k1)) * phi(k2) )
+          epsl(k,kk) = ( phi(k1) - phi(k2) + &
+                       ( 1.D0 - a ) * ( 1.D0 - phi(k1) ) * phi(k2) ) * &
+                       ( phi(k1) + ( 1.D0 - phi(k2) ) * phi(k1) ) / phi(k1)
+          epsu(k,kk) = ( 1.D0 - a ) * (phi(k1) + ( 1.D0 - phi(k1)) * phi(k2) )
+!
           dkf(k,kk)=(dk(k)+dk(kk))**2/(rl(k)*dk(k)**3+rl(kk)*dk(kk)**3)
           dkf(kk,k)=dkf(k,kk)
+!
         END DO
       END DO
 !
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE particles_constants_set
 !----------------------------------------------------------------------
       END MODULE particles_constants
 !----------------------------------------------------------------------

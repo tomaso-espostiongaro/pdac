@@ -1,13 +1,14 @@
-!**************************************************************
+!******************************************************************************
 ! PROGRAM: pdac (pyroclastic dispersion analysis code)
 ! description: parallel multiphase and multicomponent fluid dynamic code
 !              for the simulation of pyroclastic dispersion
 !              processes
 ! version: 3.0
-! date: January 2001
+! date: June 2003
 ! authors: A.Neri, G.Macedonio, D.Gidaspow, T. Esposti Ongaro
 ! parallelized by: T. Esposti Ongaro, C. Cavazzoni, A. Neri
-!**************************************************************
+! 3d version implemented by: T. Esposti Ongaro, C. Cavazzoni
+!******************************************************************************
 !
       PROGRAM pdac
 
@@ -41,7 +42,7 @@
       USE initial_conditions, ONLY: setup, epsob, tpob, ygc0, ygcob, &
      &     ugob, vgob, wgob, upob, vpob, wpob, pob, tgob, epob, lpr, & 
      &     zzero, bounds_setup
-      USE heat_capacity, ONLY: bounds_hcapgs, local_bounds_hcapgs
+      USE specific_heat, ONLY: bounds_hcapgs, local_bounds_hcapgs
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut
       USE turbulence_model, ONLY: bounds_turbo, local_bounds_turbo
@@ -185,7 +186,7 @@
         present_gas(ig) = (ygc0(ig) /= 0.D0 .OR. ANY(ygcob(ig,:) /= 0.D0 ) )
       END DO
 !
-      dk(1:nsolid) = diameter(1:nsolid)
+      dk(1:nsolid) = diameter(1:nsolid) * 1.D-6
       rl(1:nsolid) = density(1:nsolid)
       phis(1:nsolid) = sphericity(1:nsolid)
       cmus(1:nsolid) = viscosity(1:nsolid)
