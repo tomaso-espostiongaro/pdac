@@ -127,7 +127,6 @@
         !
         CALL interpolate_2d(x, zb, topo_c, forcez)
 
-
         !
         ! ... Add external Forcing 
         DO k = 2, nz
@@ -136,20 +135,23 @@
             imjk = (k-1) * nx + (i-1)
             ijkm = (k-2) * nx + i
 
-        ! ... Add external Forcing in x 
+            ! ... Add external Forcing in x 
+            IF (forcez(ijk) .AND. forcex(ijk) .AND. (z(k) > topo_x(i-1)) ) THEN
+                  extfx(imjk) = .TRUE.
+                  IF( fl(ijk) /=5  ) fl(ijk) = 17
+            END IF
 
-            IF (forcez(ijk) .AND. forcex(ijk) .AND. &
-                (z(k) > topo_x(i-1)) ) extfx(imjk) = .TRUE.
-            IF (forcez(ijk) .AND. forcex(imjk) .AND. &
-                (z(k) > topo_x(i)) ) extfx(ijk) = .TRUE.
-        !
+            IF (forcez(ijk) .AND. forcex(imjk) .AND. (z(k) > topo_x(i)) ) THEN
+                  extfx(ijk) = .TRUE.
+                  IF( fl(ijk) /=5  ) fl(ijk) = 17
+            END IF
 
-        ! ... Add external Forcing in z 
-
-            IF (forcex(imjk) .AND. forcex(ijk) .AND. &
-                forcex(ijkm) .AND.                   &
-                (zb(k) > topo_c(i)) ) extfz(ijk) = .TRUE.
-        !
+            ! ... Add external Forcing in z 
+            IF ( forcex(imjk) .AND. forcex(ijk) .AND. forcez(ijkm) .AND. &
+                 (zb(k) > topo_c(i)) ) THEN
+                 extfz(ijk) = .TRUE.
+                 IF( fl(ijk) /=5  ) fl(ijk) = 17
+            END IF
 
           END DO
         END DO
@@ -159,7 +161,6 @@
 
         nfpz = COUNT(forcez) + COUNT(extfz)
         ALLOCATE(fptz(nfpz))
-
 
         !
         ! ... Forcing in x external points
@@ -171,8 +172,6 @@
             END IF
           END DO
         END DO
-        !
-
 
         !
         ! ... Forcing along x
@@ -185,13 +184,11 @@
           i = fptx(np)%i
           k = fptx(np)%k
           ijk = i + (k-1) * nx
-          IF (k>1) fl(ijk) = 1
+          IF (k>1 .AND. fl(ijk)==3) fl(ijk) = 1
         END DO
-
 
         !
         ! ... Forcing in z external points
-
         fp0 = 0
         DO k = 2, nz
           DO i = 2, nx-1
@@ -212,7 +209,7 @@
           i = fptz(np)%i
           k = fptz(np)%k
           ijk = i + (k-1) * nx
-          IF (k>1) fl(ijk) = 1
+          IF (k>1 .AND. fl(ijk)==3) fl(ijk) = 1
         END DO
         !
       ELSE IF (job_type == '3D') THEN
@@ -230,7 +227,6 @@
 
         !
         ! ... Add external Forcing 
-
         DO i = 2, nx - 1
           DO j = 2, ny - 1
             DO k = 2, nz-1
@@ -240,42 +236,53 @@
               ijmk = i + (j-2) * nx + (k-1) * nx * ny
               ijk = i + (j-1) * nx + (k-1) * nx * ny
               ijkm = i + (j-1) * nx + (k-2) * nx * ny
-        ! ... Add external Forcing in x
  
+              ! ... Add external Forcing in x
               IF (forcez(ijk) .AND. forcez(ijkm) .AND. &
                   forcey(ijk) .AND. forcey(ijmk) .AND. &
-                  forcex(ijk) .AND.                    & 
-                  (z(k) > topo2d_x(i-1,j)) ) extfx(imjk) = .TRUE.
+                  forcex(ijk) .AND.                    &
+                  (z(k) > topo2d_x(i-1,j)) ) THEN
+                    extfx(imjk) = .TRUE.
+                    IF( fl(ijk) /=5  ) fl(ijk) = 17
+              END IF
 
               IF (forcez(ijk) .AND. forcez(ijkm) .AND. &
                   forcey(ijk) .AND. forcey(ijmk) .AND. &
                   forcex(imjk) .AND.                   &
-                  (z(k) > topo2d_x(i,j)) ) extfx(ijk) = .TRUE.
+                  (z(k) > topo2d_x(i,j)) ) THEN
+                    extfx(ijk) = .TRUE.
+                    IF( fl(ijk) /=5  ) fl(ijk) = 17
+              END IF
 
-        ! ... Add external Forcing in y 
-
+              ! ... Add external Forcing in y 
               IF (forcez(ijk) .AND. forcez(ijkm) .AND. &
                   forcex(ijk) .AND. forcex(imjk) .AND. &
                   forcey(ijk) .AND.                    &
-                  (z(k) > topo2d_y(i,j-1)) ) extfy(ijmk) = .TRUE.
+                  (z(k) > topo2d_y(i,j-1)) ) THEN
+                    extfy(ijmk) = .TRUE.
+                    IF( fl(ijk) /=5  ) fl(ijk) = 17
+              END IF
 
               IF (forcez(ijk) .AND. forcez(ijkm) .AND. &
                   forcex(ijk) .AND. forcex(imjk) .AND. &
                   forcey(imjk) .AND.                   &
-                  (z(k) > topo2d_y(i,j)) ) extfy(ijk) = .TRUE.
+                  (z(k) > topo2d_y(i,j)) ) THEN
+                    extfy(ijk) = .TRUE.
+                    IF( fl(ijk) /=5  ) fl(ijk) = 17
+              END IF
 
-        ! ... Add external Forcing in z
- 
+              ! ... Add external Forcing in z
               IF (forcex(ijk) .AND. forcex(imjk) .AND. &
                   forcey(ijk) .AND. forcey(ijmk) .AND. &
                   forcez(ijkm) .AND.                   &
-                  (zb(k) > topo2d_c(i,j)) ) extfz(ijk) = .TRUE.
-
+                  (zb(k) > topo2d_c(i,j)) ) THEN
+                    extfz(ijk) = .TRUE.
+                    IF( fl(ijk) /=5  ) fl(ijk) = 17
+              END IF
 
             END DO
           END DO
         ENDDO
-
 
         nfpx = COUNT(forcex) + COUNT(extfx)
         ALLOCATE(fptx(nfpx))
@@ -283,8 +290,6 @@
         ALLOCATE(fpty(nfpy))
         nfpz = COUNT(forcez) + COUNT(extfz)
         ALLOCATE(fptz(nfpz))
-
-
 
         !
         ! ... External forcing along x
@@ -301,10 +306,6 @@
         !
         ! ... Forcing along x
         CALL forcing3d(xb, y, z, topo2d_x, fptx)
-        !
-
-
-
 
         ! ... Set flag = 1 on forcing points
         DO np = 1, nfpx
@@ -312,7 +313,7 @@
           j = fptx(np)%j
           k = fptx(np)%k
           ijk = i + (j-1) * nx + (k-1) * nx * ny
-          IF (k>1) fl(ijk) = 1
+          IF (k>1 .AND. fl(ijk)==3 ) fl(ijk) = 1
         END DO
         
         !
@@ -344,7 +345,7 @@
           j = fpty(np)%j
           k = fpty(np)%k
           ijk = i + (j-1) * nx + (k-1) * nx * ny
-          IF (k>1) fl(ijk) = 1
+          IF (k>1 .AND. fl(ijk)==3 ) fl(ijk) = 1
         END DO
         
         !
@@ -352,7 +353,6 @@
         ! ... and count the forcing points along z
         !
         CALL interpolate_dem(x, y, zb, topo2d_c, forcez)
-
         
         !
         ! ... External forcing along z
@@ -370,7 +370,6 @@
         !
         ! ... Forcing along z
 
-
         CALL forcing3d(x, y, zb, topo2d_c, fptz)
         !
         ! ... Set flag = 1 on forcing points
@@ -379,7 +378,7 @@
           j = fptz(np)%j
           k = fptz(np)%k
           ijk = i + (j-1) * nx + (k-1) * nx * ny
-          IF (k>1) fl(ijk) = 1
+          IF (k>1 .AND. fl(ijk)==3 ) fl(ijk) = 1
         END DO
         
       END IF
@@ -423,7 +422,6 @@
 !
       RETURN
       END SUBROUTINE set_forcing
-
 !----------------------------------------------------------------------
       SUBROUTINE ext_forcing2d(i, k, cx, cz, topo, fpt)
 

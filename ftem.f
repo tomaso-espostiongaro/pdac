@@ -86,16 +86,10 @@
 !
       DO ijk = 1, ncint
 
-        IF (immb == 1) THEN
-          fx = numx(ijk)
-          IF (job_type == '3D') fy = numy(ijk)
-          fz = numz(ijk)
-          forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
-          CALL faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
-        END IF
-
         IF (flag(ijk) == 1) THEN
 
+          IF (immb == 1) CALL faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
+  
           CALL meshinds(ijk,imesh,i,j,k)
           CALL subscr(ijk)
 !
@@ -108,17 +102,17 @@
           indxc = 1.D0/(dx(i)+(dx(i+1)+dx(i-1))*0.5D0)
           indzc = 1.D0/(dz(k)+(dz(k+1)+dz(k-1))*0.5D0)
 
-          !ugc = 0.5D0 * (b_e * ug(ijk) + b_w * ug(imjk))
-          ugc = 0.5D0 * (ug(ijk) + ug(imjk))
+          ugc = 0.5D0 * (b_e * ug(ijk) + b_w * ug(imjk))
+          !ugc = 0.5D0 * (ug(ijk) + ug(imjk))
 
-          !wgc = 0.5D0 * (b_t * wg(ijk) + b_b * wg(ijkm))
-          wgc = 0.5D0 * (wg(ijk) + wg(ijkm))
+          wgc = 0.5D0 * (b_t * wg(ijk) + b_b * wg(ijkm))
+          !wgc = 0.5D0 * (wg(ijk) + wg(ijkm))
 
           IF (job_type == '3D') THEN
             indyc = 1.D0 / (dy(j)+(dy(j+1)+dy(j-1))*0.5D0)
 
-            !vgc = 0.5D0 * (b_n * vg(ijk) + b_s * vg(ijmk))
-            vgc = 0.5D0 * (vg(ijk) + vg(ijmk))
+            vgc = 0.5D0 * (b_n * vg(ijk) + b_s * vg(ijmk))
+            !vgc = 0.5D0 * (vg(ijk) + vg(ijmk))
           END IF
 !
 ! ... Pressure term (can be coupled in pressure algorithm)

@@ -80,7 +80,7 @@
         INTEGER, ALLOCATABLE :: myijk(:,:)
         INTEGER, ALLOCATABLE :: myinds(:,:)
 !
-        INTEGER :: countfl(10)
+        INTEGER :: countfl(20)
 
         INTERFACE data_exchange
           MODULE PROCEDURE data_exchange_i, data_exchange_r, data_exchange_rm, &
@@ -1315,7 +1315,7 @@
 
       IF ( proc_map(mpime)%type == LAYER_MAP ) THEN
         DO ijk = proc_map(mpime)%lay(1), proc_map(mpime)%lay(2)
-          IF ( fl( ijk ) == 1 ) THEN
+          IF ( fl( ijk ) == 1 .OR. fl(ijk) == 17 ) THEN
             ncext = ncext + cell_neighbours( ijk, mpime, nset)
           END IF
         END DO
@@ -1328,7 +1328,7 @@
           DO k = k1, k2
             DO i = i1, i2
               ijk = i + (k-1) * nx
-              IF ( fl(ijk) == 1 ) THEN
+              IF ( fl(ijk) == 1 .OR. fl(ijk) == 17 ) THEN
                 ncext = ncext + cell_neighbours(ijk, mpime, nset)
               END IF
             END DO
@@ -1343,7 +1343,7 @@
             DO j = j1, j2
               DO i = i1, i2
                 ijk = i + (j-1)*nx + (k-1)*nx*ny 
-                IF ( fl(ijk) == 1 ) THEN
+                IF ( fl(ijk) == 1 .OR. fl(ijk) == 17 ) THEN
                   ncext = ncext + cell_neighbours(ijk, mpime, nset)
                 END IF
               END DO
@@ -1364,7 +1364,7 @@
             DO j = j1, j2
               DO i = i1, i2
                 ijk = i + (j-1)*nx + (k-1)*nx*ny
-                IF ( fl(ijk) == 1 ) THEN
+                IF ( fl(ijk) == 1 .OR. fl(ijk) == 17 ) THEN
                   ncext = ncext + cell_neighbours(ijk, mpime, nset)
                 END IF
               END DO
@@ -1412,7 +1412,7 @@
 
       IF ( proc_map(mpime)%type == LAYER_MAP ) THEN
         DO ijk = proc_map(mpime)%lay(1), proc_map(mpime)%lay(2)
-          IF ( fl(ijk) == 1 ) THEN
+          IF ( fl(ijk) == 1 .OR. fl(ijk) == 17 ) THEN
             icnt = icnt + cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
           END IF
         END DO
@@ -1425,7 +1425,7 @@
           DO k = k1, k2
             DO i = i1, i2
               ijk = i + (k-1) * nx
-              IF ( fl(ijk) == 1 ) THEN
+              IF ( fl(ijk) == 1 .OR. fl(ijk) == 17 ) THEN
                 icnt = icnt + cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
               END IF
             END DO
@@ -1439,7 +1439,7 @@
             DO j = j1, j2
               DO i = i1, i2
                 ijk = i + (j-1)*nx + (k-1)*nx*ny
-                IF ( fl(ijk) == 1 ) THEN
+                IF ( fl(ijk) == 1 .OR. fl(ijk) == 17 ) THEN
                   icnt = icnt + cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
                 END IF
               END DO
@@ -1460,7 +1460,7 @@
             DO j = j1, j2
               DO i = i1, i2
                 ijk = i + (j-1)*nx + (k-1)*nx*ny
-                IF ( fl(ijk) == 1 ) THEN
+                IF ( fl(ijk) == 1 .OR. fl(ijk) == 17 ) THEN
                   icnt = icnt + cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
                 END IF
               END DO
@@ -2215,17 +2215,33 @@
 ! ... First neighbours: near the axis or solid boundaries 
 ! ... impose homogeneous Neumann conditions
 !
-              ijke = ipjk
-              IF((flag(ipjk) == 2).OR.(flag(ipjk) == 3)) ijke = ijk
+              SELECT CASE (flag(ipjk))
+                CASE (2,3,17)
+                        ijke = ijk
+                CASE DEFAULT
+                        ijke = ipjk
+              END SELECT
 
-              ijkw = imjk
-              IF((flag(imjk) == 2).OR.(flag(imjk) == 3)) ijkw = ijk
+              SELECT CASE (flag(imjk))
+                CASE (2,3,17)
+                        ijkw = ijk
+                CASE DEFAULT
+                        ijkw = imjk
+              END SELECT
 
-              ijkt = ijkp
-              IF((flag(ijkp) == 2).OR.(flag(ijkp) == 3)) ijkt = ijk
+              SELECT CASE (flag(ijkp))
+                CASE (2,3,17)
+                        ijkt = ijk
+                CASE DEFAULT
+                        ijkt = ijkp
+              END SELECT
 
-              ijkb = ijkm
-              IF((flag(ijkm) == 2).OR.(flag(ijkm) == 3)) ijkb = ijk
+              SELECT CASE (flag(ijkm))
+                CASE (2,3,17)
+                        ijkb = ijk
+                CASE DEFAULT
+                        ijkb = ijkm
+              END SELECT
 !
 ! ... diagonal neighbours
 !
@@ -2319,23 +2335,47 @@
               ijkpp  = myijk( ip0_jp0_kp2_ , ijk )
               ijkmm  = myijk( ip0_jp0_km2_ , ijk )
   
-              ijke  =  ipjk
-              if( flag( ipjk  ) == 2 .OR. flag( ipjk )  == 3 ) ijke = ijk
+              SELECT CASE (flag(ipjk))
+                CASE (2,3,17)
+                        ijke = ijk
+                CASE DEFAULT
+                        ijke  =  ipjk
+              END SELECT
 
-              ijkw  =  imjk
-              if( flag( imjk  ) == 2 .OR. flag( imjk )  == 3 ) ijkw = ijk
+              SELECT CASE (flag(imjk))
+                CASE (2,3,17)
+                        ijkw = ijk
+                CASE DEFAULT
+                        ijkw  =  imjk
+              END SELECT
 
-              ijkn  =  ijpk
-              if( flag( ijpk ) == 2 .OR. flag( ijpk ) == 3 ) ijkn = ijk
+              SELECT CASE (flag(ijpk))
+                CASE (2,3,17)
+                        ijkn = ijk
+                CASE DEFAULT
+                        ijkn  =  ijpk
+              END SELECT
 
-              ijks  =  ijmk
-              if( flag( ijmk ) == 2 .OR. flag( ijmk ) == 3 ) ijks = ijk
+              SELECT CASE (flag(ijmk))
+                CASE (2,3,17)
+                        ijks = ijk
+                CASE DEFAULT
+                        ijks  =  ijmk
+              END SELECT
 
-              ijkt  =  ijkp
-              if( flag( ijkp ) == 2 .OR. flag( ijkp ) == 3 ) ijkt = ijk
+              SELECT CASE (flag(ijkp))
+                CASE (2,3,17)
+                        ijkt = ijk
+                CASE DEFAULT
+                        ijkt  =  ijkp
+              END SELECT
 
-              ijkb  =  ijkm
-              if( flag( ijkm ) == 2 .OR. flag( ijkm ) == 3 ) ijkb = ijk
+              SELECT CASE (flag(ijkm))
+                CASE (2,3,17)
+                        ijkb = ijk
+                CASE DEFAULT
+                        ijkb  =  ijkm
+              END SELECT
 
 !
 ! ... Second neighbours are not available on boundaries
@@ -2885,6 +2925,7 @@
       SUBROUTINE local_forcing
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nx, ny, nz
+      USE grid, ONLY: flag
       USE immersed_boundaries, ONLY: numx, fptx, numy, fpty, numz, fptz
       USE parallel, ONLY: mpime
 
@@ -2995,7 +3036,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
         CALL data_exchange(numz)
 
         CALL fill_cells_int
-        CALL fill_cells_real
+        !CALL fill_cells_real
 
       RETURN
       END SUBROUTINE local_forcing
@@ -3113,6 +3154,12 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               vf(ijk) = vf(ijk) / 6.D0
             END IF
 
+            ! ... cells that are completely immersed
+            ! ... are excluded from computation. Only
+            ! ... compute interpolated velocities.
+            !
+            IF (vf(ijk) == 0.D0) flag(ijk) = 17
+
             IF (bd(ijk) /= filled  .AND. lpr > 1 ) THEN
               WRITE( 7, fmt = "( I8,3I4,2X,B8 )" ) ijk, i, j, k, bd(ijk)
             END IF
@@ -3120,6 +3167,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
           END IF
 
         END DO
+        CALL data_exchange(flag)
       
       RETURN
       END SUBROUTINE fill_cells_int

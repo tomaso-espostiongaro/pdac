@@ -255,6 +255,7 @@
             END DO
             tem  = p(ijk) * mass / rgas / tg(ijk)
             tg(ijk) = tem
+            ts(ijk,:) = tem
           END IF
 
           ! ... compute gas density from thermal equation of state
@@ -388,9 +389,13 @@
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: n
-      REAL*8 :: ygcsum, dist2
+      REAL*8 :: ygcsum
+!      REAL*8 :: dist, radius
       INTEGER :: ijk,i,j,k,imesh
       INTEGER :: ig, is, dfg
+
+!      dist = 0.D0
+!      radius = 40.D0
 
         DO ijk = 1, ncint
           CALL meshinds(ijk,imesh,i,j,k)
@@ -400,6 +405,11 @@
                                     .OR. job_type == '2D') THEN
               IF ( i >= iob(n)%xlo .AND. i <= iob(n)%xhi  ) THEN
                 
+!              dist = DSQRT( (x(i)-x(iob(n)%xlo))**2 + &
+!                            (z(k)-z(iob(n)%zlo))**2 )
+!
+!              IF( dist < radius ) THEN
+!
                 ug(ijk) = ugob(n)
                 IF (job_type == '3D') vg(ijk) = vgob(n)
                 wg(ijk) = wgob(n)
@@ -422,11 +432,13 @@
                 IF ( ygcsum /= 1.D0 ) THEN
                   ygc(ijk,ngas) = 1.D0 - SUM( ygc(ijk,1:ngas-1) )
                 END IF
-
+!
+!              END IF
+!
               END IF
             END IF
           END IF
-!
+
         END DO 
 
       END SUBROUTINE specified_flow

@@ -14,6 +14,7 @@
       CHARACTER(LEN=80) :: run_name
       CHARACTER(LEN=80) :: restart_mode
       INTEGER :: iuni
+      INTEGER :: mass_limiter, vel_limiter
 
 ! ... MESH
       REAL*8 :: delta_x(max_size)
@@ -73,7 +74,7 @@
       USE domain_decomposition, ONLY: mesh_partition
       USE enthalpy_matrix, ONLY: flim
       USE eos_gas, ONLY: update_eosg
-      USE flux_limiters, ONLY: beta, muscl, lim_type
+      USE flux_limiters, ONLY: beta, muscl
       USE gas_solid_viscosity, ONLY: gas_viscosity, part_viscosity
       USE gas_solid_viscosity, ONLY: repulsive_model
       USE grid, ONLY: dx, dy, dz, itc, zzero
@@ -137,11 +138,11 @@
       NAMELIST / particles / nsolid, diameter, density, sphericity, &
         viscosity, specific_heat, thermal_conductivity
 
-      NAMELIST / numeric / rungekut, beta, muscl, lim_type, &
+      NAMELIST / numeric / rungekut, beta, muscl, mass_limiter, vel_limiter, &
         inmax, maxout, omega, implicit_fluxes, implicit_enthalpy, &
-        update_eosg, optimization
+        update_eosg, optimization, lim_type
 
-      INTEGER :: i, j, k, n, m, ig, ierr
+      INTEGER :: i, j, k, n, m, ig, ierr, lim_type
       CHARACTER(LEN=80) :: card
       LOGICAL :: tend
 !
@@ -291,7 +292,8 @@
 
       rungekut = 1      !  number of runge-kutta cycles
       beta = 0.25       !  upwinding degree
-      lim_type = 2      !  limiter type 
+      mass_limiter = 0  !  limiter type in mass equation
+      vel_limiter = 0   !  limiter type in momentum equation
       muscl = 0         !  0 first order, 1 muscl ( high order )
       inmax = 8         !  maximum number of pressure correction steps
       maxout = 500      !  maximum number of solver iteration
@@ -493,7 +495,8 @@
 
       CALL bcast_integer(rungekut,1,root)
       CALL bcast_real(beta,1,root)
-      CALL bcast_integer(lim_type,1,root)
+      CALL bcast_integer(mass_limiter,1,root)
+      CALL bcast_integer(vel_limiter,1,root)
       CALL bcast_integer(muscl,1,root)
       CALL bcast_integer(inmax,1,root)
       CALL bcast_integer(maxout,1,root)
@@ -777,7 +780,8 @@
             CALL iotk_write_dat( iuni_nml, "rungekut", rungekut )
             CALL iotk_write_dat( iuni_nml, "beta", beta )
             CALL iotk_write_dat( iuni_nml, "muscl", muscl )
-            CALL iotk_write_dat( iuni_nml, "lim_type", lim_type )
+            CALL iotk_write_dat( iuni_nml, "mass_limiter", mass_limiter )
+            CALL iotk_write_dat( iuni_nml, "vel_limiter", vel_limiter )
             CALL iotk_write_dat( iuni_nml, "linmax", inmax )
             CALL iotk_write_dat( iuni_nml, "maxout", maxout )
             CALL iotk_write_dat( iuni_nml, "optimization", optimization )
@@ -843,6 +847,7 @@
       USE atmospheric_conditions, ONLY: atm_ygc
       USE control_flags, ONLY: job_type
       USE dimensions
+      USE flux_limiters, ONLY: lv, lm
       USE grid, ONLY: dx, dy, dz, itc
       USE grid, ONLY: iob, zzero, grigen
       USE initial_conditions, ONLY: epsob, tpob, ygcob,   &
@@ -853,6 +858,11 @@
       IMPLICIT NONE
 
       INTEGER :: ig, is
+!
+! ... numeric
+!
+      lv = vel_limiter
+      lm = mass_limiter
 !
 ! ... mesh
 !

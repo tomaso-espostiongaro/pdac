@@ -667,7 +667,7 @@
           DO k = 1, nz
             ijk = i + (k-1) * nx
             IF (quota >= k) THEN
-              fl(ijk) = 3
+                    IF( fl(ijk)/=5 ) fl(ijk) = 3
             ELSE
               EXIT
             END IF
@@ -680,7 +680,7 @@
             DO k = 1, nz
               ijk = i + (j-1) * nx + (k-1) * nx * ny
               IF (quota >= k) THEN
-                fl(ijk) = 3
+                      IF( fl(ijk)/=5 ) fl(ijk) = 3
               ELSE
                 EXIT
               END IF

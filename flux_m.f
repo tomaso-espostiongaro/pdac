@@ -9,7 +9,7 @@
 !
 !----------------------------------------------------------------------
 !
-      USE flux_limiters, ONLY: muscl, limiters
+      USE flux_limiters, ONLY: muscl, limiters, lm
 
       IMPLICIT NONE
       SAVE
@@ -187,7 +187,7 @@
 	incr = - 0.5D0 * dx(i)
       ENDIF
 !
-      IF (i/=2) CALL limiters(lim,erre)
+      IF (i/=2) CALL limiters(lm,lim,erre)
 !
       upwnd = lim * gradc * incr
       centrd = ( dx(i) * dens%w + dx(i-1) * dens%c ) * indxm
@@ -215,7 +215,7 @@
 	incr = - 0.5D0 * dx(i+1)
       ENDIF
 !
-      IF (i/=nx-1) CALL limiters(lim,erre)
+      IF (i/=nx-1) CALL limiters(lm,lim,erre)
 !
       upwnd = lim * gradc * incr
       centrd = ( dx(i) * dens%e + dx(i+1) * dens%c ) * indxp
@@ -243,7 +243,7 @@
 	incr = - 0.5D0 * dy(j)
       ENDIF
 !
-      IF (j/=2) CALL limiters(lim,erre)
+      IF (j/=2) CALL limiters(lm,lim,erre)
 !
       upwnd = lim * gradc * incr
       centrd = ( dy(j) * dens%s + dy(j-1) * dens%c ) * indym
@@ -271,7 +271,7 @@
 	incr = - 0.5D0 * dy(j+1)
       ENDIF
 !
-      IF (j/=ny-1) CALL limiters(lim,erre)
+      IF (j/=ny-1) CALL limiters(lm,lim,erre)
 !
       upwnd = lim * gradc * incr
       centrd = ( dy(j) * dens%n + dy(j+1) * dens%c ) * indyp
@@ -299,7 +299,7 @@
 	incr = - 0.5D0 * dz(k)
       ENDIF
 !
-      IF (k/=2) CALL limiters(lim,erre)
+      IF (k/=2) CALL limiters(lm,lim,erre)
 !
       upwnd = lim * gradc * incr
       centrd = ( dz(k) * dens%b + dz(k-1) * dens%c ) * indzm
@@ -327,7 +327,7 @@
 	incr = - 0.5D0 * dz(k+1)
       ENDIF
 !
-      IF (k/=nz-1) CALL limiters(lim,erre)
+      IF (k/=nz-1) CALL limiters(lm,lim,erre)
 !
       upwnd = lim * gradc * incr
       centrd = ( dz(k) * dens%t + dz(k+1) * dens%c ) * indzp
@@ -466,7 +466,7 @@
 	incr = - 0.5D0 * dx(i)
       ENDIF
 !
-      IF (i/=2) CALL limiters(lim,erre)
+      IF (i/=2) CALL limiters(lm,lim,erre)
 !
       upwnd = lim * gradc * incr
       centrd = (dx(i)*dens%w+dx(i-1)*dens%c)*indxm
@@ -494,7 +494,7 @@
 	incr = - 0.5D0 * dx(i+1)
       ENDIF
 !
-      IF (i/=nx-1) CALL limiters(lim,erre)
+      IF (i/=nx-1) CALL limiters(lm,lim,erre)
 !
       upwnd = lim * gradc * incr
       centrd = (dx(i)*dens%e+dx(i+1)*dens%c)*indxp
@@ -522,7 +522,7 @@
 	incr = - 0.5D0 * dz(k)
       ENDIF
 !
-      IF (k/=2) CALL limiters(lim,erre)
+      IF (k/=2) CALL limiters(lm,lim,erre)
 !
       upwnd = lim * gradc * incr
       centrd = (dz(k)*dens%b+dz(k-1)*dens%c)*indzm
@@ -550,7 +550,7 @@
 	incr = - 0.5D0 * dz(k+1)
       ENDIF
 !
-      IF (k/=nz-1) CALL limiters(lim,erre)
+      IF (k/=nz-1) CALL limiters(lm,lim,erre)
 !
       upwnd = lim * gradc * incr
       centrd = (dz(k)*dens%t+dz(k+1)*dens%c)*indzp

@@ -56,14 +56,14 @@
 !
       DO ijk = 1, ncint
 
+        CALL subscr(ijk)
         CALL meshinds(ijk,imesh,i,j,k)
 
         IF (flag(ijk) == 8) THEN
 
           CALL update_ventc(ijk,imesh,sweep)
 
-        ELSE IF( flag(ijk) == 1 ) THEN
-          CALL subscr(ijk)
+        ELSE IF( flag(ijk) == 1 .OR. flag(ijk) == 17) THEN
 !
 ! ... If (ijk) is a forcing point, compute the pseudo-velocities
 ! ... that are used in the "immersed boundary" technique ...
@@ -86,6 +86,15 @@
                 fptx(fx)%ul = ug(ijk)
                 fptx(fx)%wl = wg(ijk)
 
+                ! ... Set the pressure in non-resolved forcing points
+                IF( fptx(fx)%int == 17 ) THEN
+                        IF (flag(ijk) == 1) THEN
+                                p(ipjk) = p(ijk)
+                        ELSE
+                                p(ijk) = p(ipjk)
+                        END IF
+                END IF
+                
                 ! ... Initialize x-velocity in the forced points
                 ug(ijk) = vel
                 us(ijk,:) = vel
@@ -98,6 +107,11 @@
                 fptz(fz)%ul = ug(ijk)
                 fptz(fz)%wl = wg(ijk)
 
+                ! ... Set the pressure in non-resolved forcing points
+                IF( fptz(fz)%int == 17 ) THEN
+                        p(ijk) = p(ipjk)
+                END IF
+                
                 ! ... Initialize z-velocity in the forced points
                 wg(ijk) = vel
                 ws(ijk,:) = vel
@@ -110,6 +124,15 @@
                 fptx(fx)%vel = vel
                 fptx(fx)%p = p(ijk)
 
+                ! ... Set the pressure in non-resolved forcing points
+                IF( fptx(fx)%int == 17 ) THEN
+                        IF (flag(ijk) == 1) THEN
+                                p(ipjk) = p(ijk)
+                        ELSE
+                                p(ijk) = p(ipjk)
+                        END IF
+                END IF
+                
                 ! ... Initialize x-velocity in the forced points
                 ug(ijk) = vel
                 us(ijk,:) = vel
@@ -120,6 +143,15 @@
                 fpty(fy)%vel = vel
                 fpty(fy)%p = p(ijk)
 
+                ! ... Set the pressure in non-resolved forcing points
+                IF( fpty(fy)%int == 17 ) THEN
+                        IF (flag(ijk) == 1) THEN
+                                p(ijpk) = p(ijk)
+                        ELSE
+                                p(ijk) = p(ijpk)
+                        END IF
+                END IF
+                
                 ! ... Initialize y-velocity in the forced points
                 vg(ijk) = vel
                 vs(ijk,:) = vel
@@ -130,6 +162,11 @@
                 fptz(fz)%vel = vel
                 fptz(fz)%p = p(ijk)
 
+                ! ... Set the pressure in non-resolved forcing points
+                IF( fptz(fz)%int == 17 ) THEN
+                        p(ijk) = p(ijkp)
+                END IF
+                
                 ! ... Initialize z-velocity in the forced points
                 wg(ijk) = vel
                 ws(ijk,:) = vel
@@ -1297,7 +1334,9 @@
 ! ... Interpolate velocities on a forcing point to get no-slip
 ! ... conditions on a solid immersed boundary 
 
-      USE set_indexes
+      USE set_indexes, ONLY: ipjk, imjk, ippjk, immjk, ijpk, ipjpk,    &
+        imjpk, ijmk, ipjmk, imjmk, ijppk, ijmmk, ijkp, ipjkp, imjkp,   &
+        ijpkp, ijmkp, ijkm, ipjkm, imjkm, ijpkm, ijmkm, ijkpp, ijkmm
       USE immersed_boundaries, ONLY: forcing_point
       IMPLICIT NONE
 
@@ -1389,6 +1428,10 @@
          ELSE
             zB=SQRT((cx(i)-nsx)**2+(cz(k+2)-nsz)**2)
             velint=-((zB-h)*vel(ijkp)+(h-zA)*vel(ijkpp))/(zB-zA)
+
+! ... Quadratic interpolation
+!            velint=- ((vel(ijkp)*zB-vel(ijkpp)*zA)/(zA*zB*(zA-zB))*h**2   &
+!                    +(vel(ijkpp)*zA**2-vel(ijkp)*zB**2)/(zA*zB*(zA-zB))*h)
          ENDIF
 
       CASE (1)
@@ -1445,8 +1488,11 @@
          h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
          zA=SQRT((cx(i)-nsx)**2+(cz(k+1)-nsz)**2)
          velint= + h/zA*vel(ijkp)
-         !zB=SQRT((cx(i)-nsx)**2+(cz(k+2)-nsz)**2)
-         !velint=+((zB-h)*vel(ijkp)+(h-zA)*vel(ijkpp))/(zB-zA)
+
+! ... Quadratic interpolation
+!         zB=SQRT((cx(i)-nsx)**2+(cz(k+2)-nsz)**2)
+!         velint= (vel(ijkp)*zB-vel(ijkpp)*zA)/(zA*zB*(zA-zB))*h**2 &
+!                +(vel(ijkpp)*zA**2-vel(ijkp)*zB**2)/(zA*zB*(zA-zB))*h
 
       CASE DEFAULT
    

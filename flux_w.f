@@ -98,7 +98,7 @@
 ! ... for the momentum density along z.
 !
       USE dimensions, ONLY: nx, ny, nz
-      USE flux_limiters, ONLY: limiters
+      USE flux_limiters, ONLY: limiters, lv
       USE grid, ONLY: dx, dy, dz, indz, flag
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt
@@ -159,7 +159,7 @@
 	incr = - 0.5D0 * dx(i+1)
       END IF
 !
-      CALL limiters(lim,erre)
+      CALL limiters(lv,lim,erre)
 !
       upwnd = lim * gradc * incr
 !
@@ -186,7 +186,7 @@
         incr = - 0.5D0 * dy(j+1)
       END IF
 !
-      CALL limiters(lim,erre)
+      CALL limiters(lv,lim,erre)
 !
       upwnd = lim * gradc * incr
 !
@@ -213,7 +213,7 @@
         incr = - 0.5D0 * dz(k+1)
       END IF 
 !
-      CALL limiters(lim,erre)
+      CALL limiters(lv,lim,erre)
 !
       upwnd = lim * gradc * incr
 !
@@ -279,7 +279,7 @@
 ! ... for the momentum density along z.
 !
       USE dimensions, ONLY: nx, ny, nz
-      USE flux_limiters, ONLY: limiters
+      USE flux_limiters, ONLY: limiters, lv
       USE grid, ONLY: dx, rb, dz, indz, flag
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt
@@ -330,7 +330,7 @@
         incr = - 0.5D0 * dx(i+1)
       END IF
 !
-      CALL limiters(lim,erre)
+      CALL limiters(lv,lim,erre)
 !
       upwnd = lim * gradc * incr
 !
@@ -355,7 +355,7 @@
         incr = - 0.5D0 * dz(k+1)
       END IF 
 !
-      CALL limiters(lim,erre)
+      CALL limiters(lv,lim,erre)
 !
       upwnd = lim * gradc * incr
 !

@@ -105,7 +105,7 @@
 ! ... The stencils must be staggered
 !
       USE dimensions
-      USE flux_limiters, ONLY: limiters
+      USE flux_limiters, ONLY: limiters, lv
       USE grid, ONLY: dx, dy, dz, indx, flag
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt
@@ -167,7 +167,7 @@
         incr = - 0.5D0 * dx(i+1)
       END IF
 !
-      CALL limiters(lim,erre)
+      CALL limiters(lv,lim,erre)
 !
       upwnd = lim * gradc * incr
 !
@@ -194,7 +194,7 @@
 	incr = - 0.5D0 * dy(j+1)
       END IF 
 !
-      CALL limiters(lim,erre)
+      CALL limiters(lv,lim,erre)
 !
       upwnd = lim * gradc * incr
 !
@@ -221,7 +221,7 @@
 	incr = - 0.5D0 * dz(k+1)
       END IF 
 !
-      CALL limiters(lim,erre)
+      CALL limiters(lv,lim,erre)
 !
       upwnd = lim * gradc * incr
 !
@@ -291,7 +291,7 @@
 ! ... Stencils must be staggered
 !
       USE dimensions
-      USE flux_limiters, ONLY: limiters
+      USE flux_limiters, ONLY: limiters, lv
       USE grid, ONLY: flag
       USE grid, ONLY: dx, indx, r, dz
       USE set_indexes, ONLY: stencil
@@ -343,7 +343,7 @@
         incr = - 0.5D0 * dx(i+1)
       END IF
 !
-      CALL limiters(lim,erre)
+      CALL limiters(lv,lim,erre)
 !
       upwnd = lim * gradc * incr
 !
@@ -368,7 +368,7 @@
 	incr = - 0.5D0 * dz(k+1)
       END IF 
 !
-      CALL limiters(lim,erre)
+      CALL limiters(lv,lim,erre)
 !
       upwnd = lim * gradc * incr
 !

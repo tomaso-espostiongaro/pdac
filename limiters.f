@@ -5,13 +5,13 @@
 !
       INTEGER, PUBLIC :: muscl
       REAL*8, PUBLIC  :: beta
-      INTEGER :: lim_type
+      INTEGER :: lv, lm
 !
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE limiters(limiter,erre)
+      SUBROUTINE limiters(lim_type,limiter,erre)
 ! ... this routine computes the flux limiter accordingly to the
 ! ... different methods reviewed in Sweby'84' and Leonard'90'
 ! ... ('Ultra-Sharp' technique) papers
@@ -19,6 +19,7 @@
 
       REAL*8, INTENT(OUT) :: limiter
       REAL*8, INTENT(IN)  :: erre
+      INTEGER, INTENT(IN)  :: lim_type
       REAL*8 :: beta_unlimited
       
       SELECT CASE (lim_type)
@@ -51,6 +52,7 @@
       
       END SELECT
         
+      RETURN
       END SUBROUTINE limiters
 !-----------------------------------------------------------------------
       END MODULE flux_limiters
