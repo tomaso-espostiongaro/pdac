@@ -7,7 +7,7 @@
 !-----------------------------------------------------------------------
 ! ... This routine computes boundary conditions 
 !
-      USE atmosphere, ONLY: gravx, gravz, atm
+      USE atmosphere, ONLY: gravz, atm
       USE dimensions
       USE eos_gas, ONLY: rgpgc, xgc
       USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
@@ -631,7 +631,7 @@
 !-----------------------------------------------------------------------
 ! ... This routine computes (x,y,z) boundary conditions 
 !
-      USE atmosphere, ONLY: gravx, gravz, atm
+      USE atmosphere, ONLY: gravz, atm
       USE dimensions
       USE eos_gas, ONLY: rgpgc, xgc
       USE gas_constants, ONLY: gmw, gammaair, gamn, rgas

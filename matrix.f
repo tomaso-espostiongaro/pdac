@@ -160,9 +160,9 @@
 !
 ! ... Forward ...
 !
-      dxp=dxi+dx(i+1)
-      dyp=dyj+dy(j+1)
-      dzp=dzk+dz(k+1)
+      dxp=dxi+dxip1
+      dyp=dyj+dyjp1
+      dzp=dzk+dzkp1
 !
       indxp=1.D0/dxp
       indyp=1.D0/dyp

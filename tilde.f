@@ -133,7 +133,8 @@
       USE gas_solid_viscosity, ONLY: gvisx, gvisy, gvisz, pvisx, pvisy, pvisz
       USE grid, ONLY: ncint, myijk, ncdom, data_exchange
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE set_indexes
+      USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm, ijkt
+      USE set_indexes, ONLY: stencil, nb, rnb
 !
       IMPLICIT NONE
       SAVE
