@@ -139,20 +139,19 @@
 !
 !         call f_hpmstart( 2, ' SWEEP ' )
 !
-         converge = .FALSE.
-!
          mesh_loop: DO ijk = 1, ncint
 
-           imesh = myijk( ip0_jp0_kp0_, ijk)
-	   i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
-           j = MOD( imesh - 1, nx*ny ) / nx + 1
-           k = ( imesh - 1 ) / ( nx*ny ) + 1
-           CALL subscr(ijk)
-
+           converge(ijk) = .FALSE.
            first = .TRUE.
 
            IF( fl_l(ijk) /= 1 ) converge(ijk) = .TRUE.
            IF( fl_l(ijk) == 1 ) THEN
+
+             imesh = myijk( ip0_jp0_kp0_, ijk)
+	     i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
+             j = MOD( imesh - 1, nx*ny ) / nx + 1
+             k = ( imesh - 1 ) / ( nx*ny ) + 1
+             CALL subscr(ijk)
 !
               CALL calc_res(dg)
               dgorig = dg
