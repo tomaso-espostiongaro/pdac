@@ -180,10 +180,9 @@
         OPEN(UNIT=9,form='unformatted',FILE='pdac.res')
 
         IF( old_restart ) THEN
-          READ(9) time, nx_, ny_, nz_, nsolid_
-        ELSE
-          !READ(9) time, nx_, ny_, nz_, nsolid_, ngas_, nfil
           READ(9) time, nx_, ny_, nz_, nsolid_, nfil
+        ELSE
+          READ(9) time, nx_, ny_, nz_, nsolid_, ngas_, nfil
         END IF
 
         WRITE(6,*) ' time =  ', time
@@ -212,6 +211,8 @@
         CALL error(' taperd ',' inconsistent dimension nz ', nz_ )
       IF( nsolid_ /= nsolid ) &
         CALL error(' taperd ',' inconsistent dimension nsolid ', nsolid_ )
+      IF( ngas_ /= ngas .AND. .NOT. old_restart ) &
+        CALL error(' taperd ',' inconsistent dimension ngas ', ngas_ )
 
       !
       !  read pressure
@@ -310,18 +311,26 @@
       !
       !  read gas components
 
-      ALLOCATE( rtmp( max_ngas, SIZE( ygc, 2 ) ) )
+      IF( old_restart ) THEN
+        ALLOCATE( rtmp( max_ngas, SIZE( ygc, 2 ) ) )
+      END IF
 
       ygc = 0.0d0
-      rtmp = 0.0d0
-      !DO ig = 1, ngas
-      DO ig = 1, max_ngas
-        !CALL read_array( 9, ygc(ig,:), dbl, lform )
-        CALL read_array( 9, rtmp(ig,:), dbl, lform )
-      END DO
-      DO ig = 1, ngas
-        ygc( ig, : ) = rtmp( gas_type(ig), : )
-      END DO
+
+      IF( old_restart ) THEN
+        rtmp = 0.0d0
+        DO ig = 1, max_ngas
+          CALL read_array( 9, rtmp(ig,:), dbl, lform )
+        END DO
+        DO ig = 1, ngas
+          ygc( ig, : ) = rtmp( gas_type(ig), : )
+        END DO
+      ELSE
+        DO ig = 1, ngas
+          CALL read_array( 9, ygc(ig,:), dbl, lform )
+        END DO
+      END IF
+
       IF( ANY( ygc < 0 ) ) THEN
          WRITE(6,*) 'WARNING reading restart, ycg < 0'
       END IF
@@ -359,29 +368,39 @@
       END IF
 
       rgpgc = 0.0d0
-      rtmp = 0.0d0
-      !DO ig = 1, ngas
-      DO ig = 1, max_ngas
-        !CALL read_array( 9, rgpgc(:,ig), dbl, lform )
-        CALL read_array( 9, rtmp(ig,:), dbl, lform )
-      END DO
-      DO ig = 1, ngas
-        rgpgc( :, ig ) = rtmp( gas_type(ig), : )
-      END DO
+
+      IF( old_restart ) THEN
+        rtmp = 0.0d0
+        DO ig = 1, max_ngas
+          CALL read_array( 9, rtmp(ig,:), dbl, lform )
+        END DO
+        DO ig = 1, ngas
+          rgpgc( :, ig ) = rtmp( gas_type(ig), : )
+        END DO
+      ELSE
+        DO ig = 1, ngas
+          CALL read_array( 9, rgpgc(:,ig), dbl, lform )
+        END DO
+      END IF
       IF( ANY( rgpgc < 0 ) ) THEN
          WRITE(6,*) 'WARNING reading restart, rgpgc < 0'
       END IF
 
       xgc = 0.0d0
-      rtmp = 0.0d0
-      !DO ig = 1, ngas
-      DO ig = 1, max_ngas
-        !CALL read_array( 9, xgc(ig,:), dbl, lform )
-        CALL read_array( 9, rtmp(ig,:), dbl, lform )
-      END DO
-      DO ig = 1, ngas
-        xgc( ig, : ) = rtmp( gas_type(ig), : )
-      END DO
+
+      IF( old_restart ) THEN
+        rtmp = 0.0d0
+        DO ig = 1, max_ngas
+          CALL read_array( 9, rtmp(ig,:), dbl, lform )
+        END DO
+        DO ig = 1, ngas
+          xgc( ig, : ) = rtmp( gas_type(ig), : )
+        END DO
+      ELSE
+        DO ig = 1, ngas
+          CALL read_array( 9, xgc(ig,:), dbl, lform )
+        END DO
+      END IF
       IF( ANY( xgc < 0 ) ) THEN
          WRITE(6,*) 'WARNING reading restart, xgc < 0'
       END IF
@@ -406,6 +425,10 @@
       END DO
       IF( ANY( cp < 0 ) ) THEN
          WRITE(6,*) 'WARNING reading restart, cp < 0'
+      END IF
+
+      IF( old_restart ) THEN
+        DEALLOCATE( rtmp )
       END IF
 
       ! Repair array (Carlo Debug)
