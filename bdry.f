@@ -51,8 +51,6 @@
       fy = 0 
       fz = 0
       forced = .FALSE.
-      WRITE(*,*) 'maxnum'
-      WRITE(*,*) MAXVAL(numx), MAXVAL(numz)
 !
       DO ijk = 1, ncint
 
