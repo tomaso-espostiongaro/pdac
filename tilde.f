@@ -104,7 +104,8 @@
       USE grid, ONLY: dz, dr
       USE grid, ONLY: inr, inrb, indr, indz
       USE momentum_transfer, ONLY: kdrags, inter
-      USE nondim_numbers, ONLY: drag_ratio, richardson, ratio, rich, print_numbers
+      USE nondim_numbers, ONLY: drag_ratio, richardson, ratio, rich, mut2mu, &
+                                print_numbers
       USE particles_constants, ONLY: phi, epsl, dkf, epsu, dk, rl, inrl, philim
       USE pressure_epsilon, ONLY: ep
       USE time_parameters, ONLY: dt
@@ -146,6 +147,9 @@
       CALL data_exchange(rlk)
 !
 ! ... Calculate gvisx gvisz (gas viscous stress tensor).
+!
+      ALLOCATE(mut2mu(ncint))
+      mut2mu  = 0.D0
 !
       CALL viscg        
 !
@@ -342,7 +346,8 @@
      &               us(:,ij), us(:,imj), ws(:,ij), ws(:,ijm), rlk(:,ij))
 !
           CALL drag_ratio(appu(:,ij),appw(:,ij),kpgv(:,ij),ij)
-          CALL richardson(rgp(ij),rlk(:,ij),ug(ij),wg(ij),us(:,ij),ws(:,ij),ij)
+          CALL richardson(rgp(:),rlk(:,:),ug(ij),wg(ij),us(:,ij),ws(:,ij),&
+                          ij,ijp)
 !
         END IF
 !
@@ -365,6 +370,7 @@
       DEALLOCATE(kpgv)
       DEALLOCATE(ratio)
       DEALLOCATE(rich)
+      DEALLOCATE(mut2mu)
 !
       CALL data_exchange(appu)
       CALL data_exchange(appw)

@@ -15,8 +15,7 @@
      &                      ep0, epsmx0, gravx, gravz
       USE dimensions
       USE eos_gas, ONLY: bounds_eosg, local_bounds_eosg
-      USE gas_constants, ONLY: phij, ckg, mmug, mmugs, mmugek, gmw , &
-     &    bounds_gas_constants, present_gas
+      USE gas_constants, ONLY: bounds_gas_constants, present_gas
       USE gas_solid_density, ONLY: bounds_density, &
      &    local_bounds_density
       USE gas_solid_velocity, ONLY: bounds_velocity, &

@@ -44,7 +44,7 @@
       RETURN
       END SUBROUTINE drag_ratio
 !----------------------------------------------------------------------
-      SUBROUTINE richardson(rgp,rlk,ug,wg,uk,wk,ijk)
+      SUBROUTINE richardson(rgp,rlk,ug,wg,uk,wk,ijk,ijpk)
 !
         USE atmosphere, ONLY : gravz, atm
         USE gas_constants, ONLY: gmw, rgas
@@ -53,44 +53,47 @@
         USE indijk_module, ONLY: ip0_jp0_kp0_
         IMPLICIT NONE
 !
-        REAL*8,  INTENT(IN) :: rgp
-        REAL*8,  INTENT(IN) :: rlk(:)
+        REAL*8,  INTENT(IN) :: rgp(:)
+        REAL*8,  INTENT(IN) :: rlk(:,:)
         REAL*8,  INTENT(IN) :: ug,wg
         REAL*8,  INTENT(IN) :: uk(:),wk(:)
-        INTEGER, INTENT(IN) :: ijk
+        INTEGER, INTENT(IN) :: ijk, ijpk
 !
         INTEGER :: j, imesh, is
-        REAL*8 :: rhom, um, wm
+        REAL*8 :: rhom, rhom1, um, wm
         REAL*8 :: rhorif, prif, trif
         REAL*8 :: zrif
         REAL*8 :: epsk
 !
         imesh = myijk( ip0_jp0_kp0_, ijk)
-
         j = ( imesh - 1 ) / nr + 1
         zrif=zb(j)+0.5D0*(dz(1)-dz(j))
 
         CALL atm(zrif,prif,trif)
         rhorif = prif*gmw(6)/(rgas*trif)
 
-        rich(ijk) = 0.D0
         epsk = 0.D0
-        rhom = rgp 
-        um   = rgp * ug
-        wm   = rgp * wg
+        rich(ijk) = 0.D0
+        rhom = rgp(ijk) 
+        rhom1 = rgp(ijpk) 
+        um   = rgp(ijk) * ug
+        wm   = rgp(ijk) * wg
         DO is = 1, nsolid
-          epsk = epsk + rlk(is)*inrl(is)
-          rhom = rhom + rlk(is)
-          um = um + rlk(is) * uk(is)
-          wm = wm + rlk(is) * wk(is)
+          epsk = epsk + rlk(is,ijk)*inrl(is)
+          rhom = rhom + rlk(is,ijk)
+          rhom1 = rhom1 + rlk(is,ijpk)
+          um = um + rlk(is,ijk) * uk(is)
+          wm = wm + rlk(is,ijk) * wk(is)
         END DO
         um = um / rhom
         wm = wm / rhom
 
-        IF (epsk > 0.D0) THEN
-          rich(ijk) = ((rhom - rhorif) * gravz * zb(j))/(rhom*(um**2+wm**2))
-        END IF 
-
+        IF (epsk > 1E-6 ) THEN
+          rich(ijk) = ((rhom - rhom1) * gravz * dz(j))/(rhom*(um**2+wm**2))
+        ELSE 
+          rich(ijk) = 0.D0
+        END IF
+ 
         RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
@@ -113,7 +116,7 @@
         WRITE(3,550)(rich(ijl),ijl=ij1,ij2)
       END DO
 
-      WRITE(3,101)
+      WRITE(3,103)
       DO j=1,nz
         ij1=1+(nz-j)*nr
         ij2=nr+(nz-j)*nr

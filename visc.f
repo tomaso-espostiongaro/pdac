@@ -144,8 +144,7 @@
       CALL data_exchange(mugt)
 !
       IF (iturb .GE. 1) THEN
-        IF(.NOT.ALLOCATED(mut2mu)) ALLOCATE(mut2mu(ncint))
-        mut2mu = mugt / mug
+        mut2mu(1:ncint) = mugt(1:ncint) / mug(1:ncint)
         mugt = mug + mugt
       ELSE
         mugt = mug

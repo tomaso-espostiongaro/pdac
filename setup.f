@@ -30,7 +30,7 @@
       USE dimensions
       USE eos_gas, ONLY: mas, mole, cnvertg, gc_molar_fraction, gc_mass_fraction
       USE eos_solid, ONLY: cnverts
-      USE gas_constants, ONLY: gmw, rgas, default_gas, present_gas
+      USE gas_constants, ONLY: default_gas, present_gas
       USE gas_solid_density, ONLY: gas_bulk_density, solid_bulk_density
       USE gas_solid_velocity, ONLY: gas_velocity_r, gas_velocity_z, &
           gas_velocity_x, gas_velocity_y
