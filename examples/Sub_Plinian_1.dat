@@ -53,6 +53,9 @@
   south = 4,
   top   = 4,
   bottom = 3,
+/
+
+&topography
   itp = 0
 /
 

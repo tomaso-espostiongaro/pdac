@@ -37,9 +37,6 @@
 ! ... flags for the domain boundary condition
       INTEGER :: west, east, south, north, bottom, top
 !
-! ... file name for the topography
-      CHARACTER(LEN=80) :: topography
-!
 ! ... origin of atmospheric stratification
       REAL*8 :: zzero
 !

@@ -26,7 +26,11 @@
   east = 4,
   bottom = 2,
   top = 2,
-  topography = 'wall.dat'
+/
+
+&topography
+  itp = 1,
+  dem_file = 'wall.dat'
 /
 
 &inlet

@@ -25,6 +25,10 @@
 &boundaries
 /
 
+&topography
+  itp = 0
+/
+
 &inlet
 /
 

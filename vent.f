@@ -8,7 +8,7 @@
       !
       INTEGER :: ivent, irand, iali
 
-      REAL*8 :: xvent, yvent, radius, base_radius
+      REAL*8 :: xvent, yvent, vent_radius, base_radius, crater_radius
       REAL*8 :: wrat
       REAL*8 :: u_gas, v_gas, w_gas, p_gas, t_gas
       REAL*8 :: u_solid(max_nsolid), v_solid(max_nsolid), w_solid(max_nsolid), &
@@ -40,7 +40,9 @@
       USE grid, ONLY: x, y, z, fl, xb, yb, zb, dz
       USE grid, ONLY: bottom, iv, jv, kv, grigen
       USE grid, ONLY: center_x, center_y
-      USE volcano_topography, ONLY: itp, iavv, dist, ord2d, vdem, xtop, ytop, ztop2d
+      USE volcano_topography, ONLY: itp, iavv, ord2d
+      USE volcano_topography, ONLY: flatten_crater, flatten_dem
+      USE volcano_topography, ONLY: rim_quota
       USE parallel, ONLY: mpime, root
 
       IMPLICIT NONE
@@ -71,7 +73,7 @@
 !
 ! ... Define the 'quota' of the volcanic vent
 ! ... (considering the topography). If the topography
-! ... has been red from a file 'kv' has already been set
+! ... has been red from a file, 'kv' has already been set
 ! ... in the 'volcano_topography' module.
 !
       IF( itp < 1 ) THEN
@@ -84,72 +86,38 @@
 
       ELSE
 !
-! ... Modify the topography at the base of the crater to
-! ... flatten the profile around the vent
-!
         ! ... The crater base radius must include, at least, 
         ! ... the rectancle containing the vent
         !
-        IF( base_radius < 2.0D0*radius ) THEN
-                base_radius = 2.0D0*radius
+        IF( base_radius < 2.0D0*vent_radius ) THEN
+                base_radius = 2.0D0*vent_radius
                 WRITE(8,*) 'WARNING! control the crater base!'
         END IF
 
-        ! ... Reset the 'quota'
+        ! ... Reset the vent quota
         !
-        quota = kv
-
         dk = 0
-        DO j = 1, ny
-          DO i = 1, nx
-            IF ( ((x(i)-xvent)**2 + (y(j)-yvent)**2 < base_radius**2) .AND. &
-                                                         (iavv > 0) ) THEN
-                    dk = MAX(ord2d(i,j)-quota, dk)
-            END IF
+        IF (iavv > 0) THEN
+          DO j = 1, ny
+            DO i = 1, nx
+              IF ( (x(i)-xvent)**2 + (y(j)-yvent)**2 < base_radius**2 ) THEN
+                      dk = MAX(ord2d(i,j)-quota, dk)
+              END IF
+            END DO
           END DO
-        END DO
-        kv = kv + dk
+          kv = kv + dk
+        ELSE IF (flatten_crater) THEN
+          DO k = 1, nz
+            IF (zb(k) <= rim_quota) kv = k
+          END DO
+        END IF
         quota = kv
 !
-        DO j = 1, vdem%ny
-          DO i = 1, vdem%nx
-            IF( (xtop(i)-xvent)**2 + (ytop(j)-yvent)**2 < base_radius**2 ) THEN
-              ztop2d(i,j) = zb(quota)
-            END IF
-          END DO
-        END DO
-!
-! ... Write out the new DEM file
-        OPEN(17,FILE='newdem.dat')
-        WRITE(17,*) vdem%nx
-        WRITE(17,*) vdem%ny
-        WRITE(17,*) vdem%xcorner
-        WRITE(17,*) vdem%ycorner
-        WRITE(17,*) vdem%cellsize
-        WRITE(17,*) vdem%nodata_value
-        WRITE(17,*) NINT(ztop2d*100.D0)
-        CLOSE(17)
-!
-        ! ... Re-set the cell flags at the base of the crater 
-        ! ... and the 'dist' array
+        ! ... Modify the topography at the base or at the top
+        ! ... of the crater to flatten the profile around the vent. 
+        ! ... Reset the cell flags and the 'dist' array.
         !
-        DO j = 1, ny
-          DO i = 1, nx
-            IF ( (x(i)-xvent)**2 + (y(j)-yvent)**2 < base_radius**2 ) THEN
-              !
-              DO k=1, quota
-                ijk = (k-1) * nx * ny + (j-1) * nx + i
-                fl(ijk) = bottom
-                dist(ijk) = z(k) - zb(quota)
-              END DO
-              DO k= quota+1, nz-1
-                ijk = (k-1) * nx * ny + (j-1) * nx + i
-                fl(ijk) = 1
-                dist(ijk) = z(k) - zb(quota)
-              END DO
-            END IF
-          END DO
-        END DO
+        CALL flatten_dem(xvent,yvent,base_radius,crater_radius,quota)
 !
       END IF
 !
@@ -168,12 +136,12 @@
       iwest = 1
       jsouth = 1
       DO i = 2, nx
-        IF (xb(i-1) <= (xvent-radius)) iwest = i
-        IF (xb(i-1) < (xvent+radius)) ieast = i
+        IF (xb(i-1) <= (xvent-vent_radius)) iwest = i
+        IF (xb(i-1) < (xvent+vent_radius)) ieast = i
       END DO
       DO j = 2, ny
-        IF (yb(j-1) <= (yvent-radius)) jsouth = j
-        IF (yb(j-1) < (yvent+radius)) jnorth = j
+        IF (yb(j-1) <= (yvent-vent_radius)) jsouth = j
+        IF (yb(j-1) < (yvent+vent_radius)) jnorth = j
       END DO
       nvt = (ieast-iwest+1)*(jnorth-jsouth+1)
 !
@@ -337,7 +305,7 @@
             dey = y(j)-yvent
             dex = x(i)-xvent
             ra = DSQRT(dex**2 + dey**2)
-            ra = MIN(ra / radius, 1.D0)
+            ra = MIN(ra / vent_radius, 1.D0)
             fact_r = wrat * (1.D0 - ra ** beta)
             !
             ! ... Angular modulation of the velocity profile
@@ -581,14 +549,14 @@
       
       n=0
       
-      IF ( (xb(i-1)-xvent)**2 + (yb(j-1)-yvent)**2 <= radius**2 ) THEN
+      IF ( (xb(i-1)-xvent)**2 + (yb(j-1)-yvent)**2 <= vent_radius**2 ) THEN
          n=n+1
          poly_p(n)%x=xb(i-1)
          poly_p(n)%y=yb(j-1)
          poly_p(n)%side=0
       ENDIF
       
-      delta_sol=radius**2-(xb(i-1)-xvent)**2
+      delta_sol=vent_radius**2-(xb(i-1)-xvent)**2
       
       IF ( delta_sol > 0 ) THEN
          y_sol1= yvent-SQRT (delta_sol)
@@ -608,14 +576,14 @@
          ENDIF 
       ENDIF
       
-      IF ( (xb(i-1)-xvent)**2 + (yb(j)-yvent)**2 <= radius**2 ) THEN
+      IF ( (xb(i-1)-xvent)**2 + (yb(j)-yvent)**2 <= vent_radius**2 ) THEN
          n=n+1
          poly_p(n)%x=xb(i-1)
          poly_p(n)%y=yb(j)
          poly_p(n)%side=0
       ENDIF
       
-      delta_sol=radius**2-(yb(j)-yvent)**2
+      delta_sol=vent_radius**2-(yb(j)-yvent)**2
       
       IF ( delta_sol > 0 ) THEN
          x_sol1= xvent-SQRT (delta_sol)
@@ -636,14 +604,14 @@
          ENDIF 
       ENDIF
       
-      IF ( (xb(i)-xvent)**2 + (yb(j)-yvent)**2 <= radius**2 ) THEN
+      IF ( (xb(i)-xvent)**2 + (yb(j)-yvent)**2 <= vent_radius**2 ) THEN
          n=n+1
          poly_p(n)%x=xb(i)
          poly_p(n)%y=yb(j)
          poly_p(n)%side=0
       ENDIF
       
-      delta_sol=radius**2-(xb(i)-xvent)**2
+      delta_sol=vent_radius**2-(xb(i)-xvent)**2
       
       IF ( delta_sol > 0 ) THEN
          y_sol1= yvent+SQRT (delta_sol)
@@ -664,14 +632,14 @@
          ENDIF 
       ENDIF
       
-      IF ( (xb(i)-xvent)**2 + (yb(j-1)-yvent)**2 <= radius**2 ) THEN
+      IF ( (xb(i)-xvent)**2 + (yb(j-1)-yvent)**2 <= vent_radius**2 ) THEN
          n=n+1
          poly_p(n)%x=xb(i)
          poly_p(n)%y=yb(j-1)
          poly_p(n)%side=0
       ENDIF
       
-      delta_sol=radius**2-(yb(j-1)-yvent)**2
+      delta_sol=vent_radius**2-(yb(j-1)-yvent)**2
       
       IF ( delta_sol > 0 ) THEN
          x_sol1= xvent+SQRT (delta_sol)
@@ -709,7 +677,7 @@
              ( poly_p(l)%side /= poly_p(l+1)%side ) ) THEN
            
              area_p = area_p + areaSEC(poly_p(l)%x,poly_p(l+1)%x,  &
-             poly_p(l)%y,poly_p(l+1)%y,xvent,yvent,radius) &
+             poly_p(l)%y,poly_p(l+1)%y,xvent,yvent,vent_radius) &
              - areaT(poly_p(l)%x,poly_p(l+1)%x,xvent,poly_p(l)%y, &
              poly_p(l+1)%y,yvent)
              

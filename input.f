@@ -78,7 +78,7 @@
       USE gas_solid_viscosity, ONLY: gas_viscosity, part_viscosity
       USE gas_solid_viscosity, ONLY: repulsive_model
       USE grid, ONLY: dx, dy, dz, itc, zzero
-      USE grid, ONLY: west, east, south, north, bottom, top, topography
+      USE grid, ONLY: west, east, south, north, bottom, top
       USE grid, ONLY: domain_x, domain_y, domain_z, n0x, n0y, n0z
       USE grid, ONLY: alpha_x, alpha_y, alpha_z
       USE grid, ONLY: center_x, center_y
@@ -87,7 +87,7 @@
       USE initial_conditions, ONLY: density_specified
       USE vent_conditions, ONLY: u_gas,v_gas,w_gas,p_gas,t_gas, wrat, &
           u_solid, v_solid, w_solid,  ep_solid, t_solid, base_radius, &
-          radius, xvent, yvent, ivent, iali, irand
+          crater_radius, vent_radius, xvent, yvent, ivent, iali, irand
       USE immersed_boundaries, ONLY: immb
       USE iterative_solver, ONLY: inmax, maxout, omega, optimization
       USE io_restart, ONLY: max_seconds, nfil
@@ -102,7 +102,8 @@
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut, tau
       USE turbulence_model, ONLY: iturb, cmut, iss, modturbo
-      USE volcano_topography, ONLY: itp, iavv, cellsize
+      USE volcano_topography, ONLY: itp, iavv, cellsize, filtersize, &
+                         dem_file, flatten_crater, rim_quota
 !
       IMPLICIT NONE
  
@@ -124,10 +125,13 @@
         domain_x, domain_y, domain_z, maxbeta, grigen, mesh_partition
 
       NAMELIST / boundaries / west, east, south, north, bottom, top, &
-        itp, iavv, cellsize, topography, immb, ibl, deltaz, imap
+        immb, ibl, deltaz
+
+      NAMELIST / topography / dem_file, itp, iavv, flatten_crater, &
+        rim_quota, imap, filtersize, cellsize
       
-      NAMELIST / inlet / ivent, iali, irand, wrat, &
-        xvent, yvent, radius, base_radius, u_gas, v_gas, w_gas,  &
+      NAMELIST / inlet / ivent, iali, irand, wrat, crater_radius, &
+        xvent, yvent, vent_radius, base_radius, u_gas, v_gas, w_gas,  &
         p_gas, t_gas, u_solid, v_solid, w_solid, ep_solid, t_solid, &
         vent_O2, vent_N2, vent_CO2, vent_H2, vent_H2O, vent_Air, vent_SO2
 
@@ -227,14 +231,20 @@
       top = 6                 !
       south = 6               !
       north = 6               !
-      itp   = 0               ! itp = 1 => read topography from file
-      iavv   = 0              ! iavv = 1 => average volcano topography
-      cellsize  = 10          ! resolution of the resized dem
-      topography = 'topo.dat' ! file containing the topographic profile
       immb  = 0               ! 1: use immersed boundaries
-      imap  = 0               ! 1: map output
       deltaz = 20.D0             ! distance from the ground to plot maps
       ibl  = 0                ! 1: compute drag and lift on blocks
+
+! ... Topography
+
+      dem_file = 'topo.dat' ! file containing the topographic profile
+      itp   = 0               ! itp = 1 => read topography from file
+      iavv   = 0              ! iavv = 1 => average volcano topography
+      flatten_crater = .FALSE. ! flatten the crater
+      rim_quota = 1000.D0     ! index of the rim quota 
+      imap  = 0               ! 1: map output
+      filtersize  = 50        ! low-pass filter size
+      cellsize  = 10          ! resolution of the resized dem
 
 ! ... Inlet
 
@@ -243,8 +253,9 @@
       irand = 0               ! 1: circular vent specified on average
       xvent  = 0.D0           ! coordinates of the vent
       yvent  = 0.D0           ! coordinates of the vent
-      radius = 100.D0         ! vent radius
+      vent_radius = 100.D0    ! vent radius
       base_radius = 200.D0    ! base radius
+      crater_radius = 500.D0  ! maximum radius of the external crater rim
       u_gas = 0.D0            ! gas velocity x
       v_gas = 0.D0            ! gas velocity y
       w_gas = 0.D0            ! gas velocity z
@@ -421,14 +432,22 @@
       CALL bcast_integer(south,1,root)
       CALL bcast_integer(bottom,1,root)
       CALL bcast_integer(top,1,root)
+      CALL bcast_integer(immb,1,root)
+      CALL bcast_real(deltaz,1,root)
+      CALL bcast_integer(ibl,1,root)
+!
+! ... Topography Namelist ................................................
+!
+      IF(mpime == root) READ(iunit, topography) 
+
+      CALL bcast_character(dem_file,80,root)
       CALL bcast_integer(itp,1,root)
       CALL bcast_integer(iavv,1,root)
-      CALL bcast_character(topography,80,root)
-      CALL bcast_integer(immb,1,root)
+      CALL bcast_logical(flatten_crater,1,root)
+      CALL bcast_real(rim_quota,1,root)
       CALL bcast_integer(imap,1,root)
-      CALL bcast_real(deltaz,1,root)
+      CALL bcast_real(filtersize,1,root)
       CALL bcast_real(cellsize,1,root)
-      CALL bcast_integer(ibl,1,root)
 !
 ! ... Inlet Namelist ................................................
 !
@@ -439,8 +458,9 @@
       CALL bcast_integer(irand,1,root)
       CALL bcast_real(xvent,1,root)
       CALL bcast_real(yvent,1,root)
-      CALL bcast_real(radius,1,root)
+      CALL bcast_real(vent_radius,1,root)
       CALL bcast_real(base_radius,1,root)
+      CALL bcast_real(crater_radius,1,root)
       CALL bcast_real(wrat,1,root)
       CALL bcast_real(u_gas,1,root)
       CALL bcast_real(v_gas,1,root)
@@ -772,17 +792,23 @@
             CALL iotk_write_dat( iuni_nml, "north", north )
             CALL iotk_write_dat( iuni_nml, "top", top )
             CALL iotk_write_dat( iuni_nml, "bottom", bottom )
-            CALL iotk_write_dat( iuni_nml, "itp", itp )
-            CALL iotk_write_dat( iuni_nml, "iavv", iavv )
-            CALL iotk_write_dat( iuni_nml, "cellsize", cellsize )
-            CALL iotk_write_begin( iuni_nml, "topography" )
-              WRITE( iuni_nml, * ) topography
-            CALL iotk_write_end( iuni_nml, "topography" )
             CALL iotk_write_dat( iuni_nml, "immb", immb )
-            CALL iotk_write_dat( iuni_nml, "imap", imap )
             CALL iotk_write_dat( iuni_nml, "deltaz", deltaz )
             CALL iotk_write_dat( iuni_nml, "ibl", ibl )
           CALL iotk_write_end( iuni_nml, "boundaries" )
+
+          CALL iotk_write_begin( iuni_nml, "topography" )
+            CALL iotk_write_begin( iuni_nml, "dem_file" )
+              WRITE( iuni_nml, * ) dem_file
+            CALL iotk_write_end( iuni_nml, "dem_file" )
+            CALL iotk_write_dat( iuni_nml, "itp", itp )
+            CALL iotk_write_dat( iuni_nml, "iavv", iavv )
+            CALL iotk_write_dat( iuni_nml, "imap", imap )
+            CALL iotk_write_dat( iuni_nml, "flatten_crater", flatten_crater )
+            CALL iotk_write_dat( iuni_nml, "rim_quota", rim_quota )
+            CALL iotk_write_dat( iuni_nml, "filtersize", filtersize )
+            CALL iotk_write_dat( iuni_nml, "cellsize", cellsize )
+          CALL iotk_write_end( iuni_nml, "topography" )
 
           CALL iotk_write_begin( iuni_nml, "inlet" )
             CALL iotk_write_dat( iuni_nml, "ivent", ivent )
@@ -791,8 +817,9 @@
             CALL iotk_write_dat( iuni_nml, "irand", irand )
             CALL iotk_write_dat( iuni_nml, "xvent", xvent )
             CALL iotk_write_dat( iuni_nml, "yvent", yvent )
-            CALL iotk_write_dat( iuni_nml, "radius", radius )
+            CALL iotk_write_dat( iuni_nml, "vent_radius", vent_radius )
             CALL iotk_write_dat( iuni_nml, "base_radius", base_radius )
+            CALL iotk_write_dat( iuni_nml, "crater_radius", crater_radius )
             CALL iotk_write_dat( iuni_nml, "u_gas", u_gas )
             CALL iotk_write_dat( iuni_nml, "v_gas", v_gas )
             CALL iotk_write_dat( iuni_nml, "w_gas", w_gas )

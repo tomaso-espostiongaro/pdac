@@ -54,7 +54,11 @@
 !
       ! ... Input parameters
       INTEGER :: itp, iavv
-      REAL*8 :: cellsize
+      REAL*8 :: cellsize, filtersize
+      REAL*8 :: rim_quota, flatten_crater
+!
+! ... file name for the topography
+      CHARACTER(LEN=80) :: dem_file
 !
       PUBLIC
       PRIVATE :: icenter,jcenter,xdem,ydem,zdem
@@ -82,12 +86,30 @@
 ! ... (geographic UTM coordinates).
 !
       IF (job_type == '2D') THEN
+
         CALL read_2Dprofile
+
       ELSE IF (job_type == '3D') THEN
+        ! ... Read the original topography
+        !
         CALL read_dem_ascii
+
+        ! ... Crop the dem and change the resolution
+        !
         CALL resize_dem
-        IF (iavv >= 1) CALL average_dem
+        
+        IF (iavv >= 1) THEN
+                ! ... Radial averaging + Filtering
+                !
+                CALL average_dem
+        ELSE
+                ! ... Just Filter the high frequencies
+                !
+                CALL filter_2d(xtop,ytop,ztop2d,100,100)
+        END IF
+
         CALL compute_UTM_coords
+        
       END IF
 !
 ! ... Interpolate the topography on the cell centers.
@@ -105,7 +127,6 @@
       END SUBROUTINE import_topography
 !----------------------------------------------------------------------
       SUBROUTINE read_2Dprofile
-      USE grid, ONLY: topography
       USE parallel, ONLY: mpime, root
       IMPLICIT NONE
 
@@ -116,7 +137,7 @@
 ! ... (generic) rectilinear mesh "xtop". Then broadcast
 ! ... to all processors.
 !
-      topo_file = TRIM(topography)
+      topo_file = TRIM(dem_file)
       IF (mpime == root) THEN
         OPEN(UNIT=3, FILE=topo_file, STATUS='OLD')
         READ(3,*) noditop
@@ -142,7 +163,6 @@
 !----------------------------------------------------------------------
       SUBROUTINE read_dem_ascii
 !
-      USE grid, ONLY: topography
       USE parallel, ONLY: mpime, root
       IMPLICIT NONE
 
@@ -160,7 +180,7 @@
 ! ... ASCII DEM format, then broadcasts it to all processors.
 !
       IF (mpime == root) THEN
-        topo_file = TRIM(topography)
+        topo_file = TRIM(dem_file)
         OPEN(UNIT=3, FILE=topo_file, STATUS='OLD')
         WRITE(6,*) 'Reading topography file: ', topo_file
         READ(3,*) nodidemx
@@ -393,15 +413,100 @@
       RETURN
       END SUBROUTINE average_dem
 !----------------------------------------------------------------------
+      SUBROUTINE flatten_dem(xvent,yvent,base_radius,crater_radius,quota)
+      USE grid, ONLY: zb
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: xvent,yvent,base_radius,crater_radius
+      INTEGER, INTENT(IN) :: quota
+      REAL*8 :: distance2
+      INTEGER, ALLOCATABLE :: rim_east(:), rim_west(:)
+      INTEGER, ALLOCATABLE :: rim_north(:), rim_south(:)
+      INTEGER :: i,j,k
+!
+      IF (flatten_crater) THEN
+        !
+        ALLOCATE( rim_east(vdem%ny), rim_west(vdem%ny) )
+        ALLOCATE( rim_north(vdem%nx), rim_south(vdem%nx) )
+        !
+        DO j = 1, vdem%ny
+          rim_west(j) = vdem%nx 
+          rim_east(j) = 1
+          DO i = 1, vdem%nx
+            distance2 = (xtop(i)-xvent)**2 + (ytop(j)-yvent)**2 
+            IF ( (distance2 < crater_radius**2)   .AND. &
+                 (ztop2d(i,j) > zb(quota) ) ) THEN
+                rim_west(j) = MIN(i,rim_west(j))
+                rim_east(j) = MAX(i,rim_east(j))
+            END IF
+          END DO
+        END DO
+        !
+        DO i = 1, vdem%nx
+          rim_south(i) = vdem%ny 
+          rim_north(i) = 1
+          DO j = 1, vdem%ny
+            distance2 = (xtop(i)-xvent)**2 + (ytop(j)-yvent)**2 
+            IF ( (distance2 < crater_radius**2)   .AND. &
+                 (ztop2d(i,j) > zb(quota) ) ) THEN
+                rim_south(i) = MIN(j,rim_south(i))
+                rim_north(i) = MAX(j,rim_north(i))
+            END IF
+          END DO
+        END DO
+        !
+        DO j = 1, vdem%ny
+          DO i = 1, vdem%nx
+            IF( i >= rim_west(j) .AND. i <= rim_east(j) .AND. &
+                j >= rim_south(i) .AND. j <= rim_north(i) ) THEN
+                ztop2d(i,j) = zb(quota)
+            END IF
+          END DO
+        END DO
+        !
+        DEALLOCATE( rim_east, rim_west )
+        DEALLOCATE( rim_north, rim_south )
+        !
+      ELSE
+        !
+        DO j = 1, vdem%ny
+          DO i = 1, vdem%nx
+            distance2 = (xtop(i)-xvent)**2 + (ytop(j)-yvent)**2 
+            IF( distance2 < base_radius**2 ) THEN
+              ztop2d(i,j) = zb(quota)
+            END IF
+          END DO
+        END DO
+!
+      END IF
+!
+      ! ... Re-set the cell flags at the base of the crater
+      ! ... and the 'ord2d' and 'dist' arrays
+      !
+      CALL set_profile
+!
+! ... Write out the new DEM file
+      OPEN(17,FILE='newdem.dat')
+      WRITE(17,*) vdem%nx
+      WRITE(17,*) vdem%ny
+      WRITE(17,*) vdem%xcorner
+      WRITE(17,*) vdem%ycorner
+      WRITE(17,*) vdem%cellsize
+      WRITE(17,*) vdem%nodata_value
+      WRITE(17,*) NINT(ztop2d*100.D0)
+      CLOSE(17)
+!
+      RETURN
+      END SUBROUTINE flatten_dem
+!----------------------------------------------------------------------
 ! ... Filter out high frequency modes by successively subsampling,
 ! ... averaging and interpolating 
 !
-      SUBROUTINE filter_1d(x1,y1,nsm)
+      SUBROUTINE filter_1d(x1,f1,nsm)
 
       IMPLICIT NONE
-      REAL*8, INTENT(INOUT), DIMENSION(:) :: x1, y1
+      REAL*8, INTENT(INOUT), DIMENSION(:) :: x1, f1
       INTEGER, INTENT(IN) :: nsm
-      REAL*8, ALLOCATABLE, DIMENSION(:) :: x2, y2
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: x2, f2
       INTEGER, ALLOCATABLE :: dummy(:)
       REAL*8 :: sstep
       INTEGER :: i,j
@@ -410,38 +515,152 @@
       counter = SIZE(x1)
 
       ! ... 'x2' is a uniform subsample of 'x1'
-      ! ... 'y2' is an average of 'y1' at 'x2' locations 
-      ALLOCATE( x2(nsm), y2(nsm) )
+      ! ... 'f2' is an average of 'f1' at 'x2' locations 
+      ALLOCATE( x2(nsm), f2(nsm) )
       ALLOCATE( dummy(counter) )
 
-      x2 = 0.D0; y2 = 0.D0
+      x2 = 0.D0; f2 = 0.D0
       ! ... Uniformly Subsample and smooth the radial function 
       ! ... of the averaged quota
       !
       sstep = REAL(x1(counter)/(nsm-1),8)
       x2(1) = x1(1)
-      y2(1) = y1(1)
+      f2(1) = f1(1)
       DO i = 2, nsm-1
         x2(i) = x2(i-1) + sstep
         cnt = 0
         jloop: DO j = 1, counter
           IF (DABS(x1(j)-x2(i)) <= sstep ) THEN
-                  y2(i) = y2(i) + y1(j)
+                  f2(i) = f2(i) + f1(j)
                   cnt = cnt + 1
           END IF
         END DO jloop
-        y2(i) = y2(i) / cnt
+        f2(i) = f2(i) / cnt
       END DO
       x2(nsm) = x1(counter)
-      y2(nsm) = y1(counter)
+      f2(nsm) = f1(counter)
 !
       ! ... Linearly interpolate quotas
       !
-      CALL interp_1d(x2, y2, x1, y1, dummy)
+      CALL interp_1d(x2, f2, x1, f1, dummy)
 
-      DEALLOCATE(y2, x2, dummy)
+      DEALLOCATE(x2, f2, dummy)
       RETURN
       END SUBROUTINE filter_1d
+!----------------------------------------------------------------------
+! ... Filter out high frequency modes by successively subsampling,
+! ... averaging and interpolating 
+!
+      SUBROUTINE filter_2d(x1,y1,f1,nsmx,nsmy)
+
+      IMPLICIT NONE
+      REAL*8, INTENT(INOUT), DIMENSION(:) :: x1, y1
+      REAL*8, INTENT(INOUT), DIMENSION(:,:) :: f1
+      INTEGER, INTENT(IN) :: nsmx, nsmy
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: x2, y2
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: f2
+      INTEGER, ALLOCATABLE :: dmx(:), dmy(:)
+      INTEGER, ALLOCATABLE :: dcx(:,:), dcy(:,:)
+      REAL*8 :: sstepx, sstepy
+      INTEGER :: i,j,cx,cy,c
+      INTEGER :: counterx, countery, cnt
+
+      counterx = SIZE(x1)
+      countery = SIZE(y1)
+
+      ! ... 'x2' is a uniform subsample of 'x1'
+      ! ... 'f2' is an average of 'f1' at 'x2' locations 
+      ALLOCATE( x2(nsmx), y2(nsmy), f2(nsmx,nsmy) )
+      ALLOCATE( dmx(counterx), dmy(countery)  )
+      ALLOCATE( dcx(counterx,2), dcy(countery,2)  )
+
+      x2 = 0.D0; y2 = 0.D0; f2 = 0.D0
+      dcx(:,1) = counterx; dcy(:,1) = countery 
+      dcx(:,2) = 0; dcy(:,2) = 0
+      ! ... Uniformly Subsample and smooth the x-y function 
+      ! ... of the quota
+      !
+      sstepx = REAL( (x1(counterx)-x1(1))/(nsmx-1) , 8 )
+      sstepy = REAL( (y1(countery)-y1(1))/(nsmy-1) , 8 )
+
+      ! ... corners
+      !
+      ! ... Coordinates of the subsampled set
+      !
+      x2(1) = x1(1)
+      y2(1) = y1(1)
+      !
+      DO i = 2, nsmx-1
+        x2(i) = x2(i-1) + sstepx
+      END DO
+      DO j = 2, nsmy-1
+        y2(j) = y2(j-1) + sstepy
+      END DO
+      !
+      x2(nsmx) = x1(counterx)
+      y2(nsmy) = y1(countery)
+!      
+      f2(1,1) = f1(1,1)
+      f2(nsmx,nsmy) = f1(counterx,countery)
+      f2(1,nsmy) = f1(1,countery)
+      f2(nsmx,1) = f1(counterx,1)
+
+      ! ... 1D average on boundaries
+      !
+      DO i = 2, nsmx-1
+        cnt = 0
+        DO c = 1, counterx
+          IF (DABS(x1(c)-x2(i)) <= sstepx ) THEN
+                  f2(i,1) = f2(i,1) + f1(c,1)
+                  f2(i,nsmy) = f2(i,nsmy) + f1(c,countery)
+                  cnt = cnt + 1
+                  dcx(i,1) = MIN(c,dcx(i,1))
+                  dcx(i,2) = MAX(c,dcx(i,2))
+          END IF
+        END DO
+        f2(i,1) = f2(i,1) / cnt
+        f2(i,nsmy) = f2(i,nsmy) / cnt
+      END DO
+      !
+      DO j = 2, nsmy-1
+        cnt = 0
+        DO c = 1, countery
+          IF (DABS(y1(c)-y2(j)) <= sstepy ) THEN
+                  f2(1,j) = f2(1,j) + f1(1,c)
+                  f2(nsmx,j) = f2(nsmx,j) + f1(counterx,c)
+                  cnt = cnt + 1
+                  dcy(j,1) = MIN(c,dcy(j,1))
+                  dcy(j,2) = MAX(c,dcy(j,2))
+          END IF
+        END DO
+        f2(1,j) = f2(1,j) / cnt
+        f2(nsmx,j) = f2(nsmx,j) / cnt
+      END DO
+      !
+      DO j = 2, nsmy-1
+        DO i = 2, nsmx-1
+          cnt = 0
+          DO cy = dcy(j,1), dcy(j,2)
+            DO cx = dcx(i,1), dcx(i,2)
+              IF (DABS(y1(cy)-y2(j)) <= sstepy   .AND. &
+                  DABS(x1(cx)-x2(i)) <= sstepx ) THEN
+                      f2(i,j) = f2(i,j) + f1(cx,cy)
+                      cnt = cnt + 1
+              END IF
+            END DO
+          END DO
+          f2(i,j) = f2(i,j) / cnt
+        END DO
+      END DO
+      WRITE(*,'F14.6') f2(:,50)
+!
+      ! ... Linearly interpolate quotas
+      !
+      CALL interp_2d(x2, y2, f2, x1, y1, f1, dmx, dmy)
+
+      DEALLOCATE(y2, x2, f2, dmx, dmy)
+      RETURN
+      END SUBROUTINE filter_2d
 !----------------------------------------------------------------------
       SUBROUTINE smooth_dem(ft)
       IMPLICIT NONE
@@ -965,14 +1184,14 @@
       IMPLICIT NONE
 
       INTEGER :: i, j, k, ijk
-      INTEGER :: quota
+      INTEGER :: q
 !
       IF( job_type == '2D') THEN
         DO i = 1, nx
-          quota = ord(i)
+          q = ord(i)
           DO k = 1, nz
             ijk = i + (k-1) * nx
-            IF (quota >= k) THEN
+            IF (q >= k) THEN
                     IF( fl(ijk)/=5 ) fl(ijk) = 3
             ELSE
               EXIT
@@ -982,10 +1201,10 @@
       ELSE IF( job_type == '3D') THEN
         DO j = 1, ny
           DO i = 1, nx
-            quota = ord2d(i,j)
+            q = ord2d(i,j)
             DO k = 1, nz
               ijk = i + (j-1) * nx + (k-1) * nx * ny
-              IF (quota >= k) THEN
+              IF (q >= k) THEN
                       IF( fl(ijk)/=5 ) fl(ijk) = 3
               ELSE
                 EXIT
