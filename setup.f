@@ -516,18 +516,18 @@
       SUBROUTINE gas_check
       USE atmospheric_conditions, ONLY: atm_ygc
       USE dimensions
-      USE dome_conditions, ONLY: dome_ygc
+      USE dome_conditions, ONLY: dome_ygc, idome
       USE gas_constants, ONLY: gas_type, present_gas
       USE eos_gas, ONLY: ygc
       USE time_parameters, ONLY: itd
-      USE vent_conditions, ONLY: vent_ygc
+      USE vent_conditions, ONLY: vent_ygc, ivent
       USE parallel, ONLY: mpime, root
       IMPLICIT NONE
       INTEGER :: ig, igg
       
       present_gas = .FALSE.
 
-      IF (itd <= 1 .OR. itd > 2) THEN
+      IF (itd /= 2) THEN
 
         ig = 0
         DO igg = 1, max_ngas
@@ -535,22 +535,23 @@
           ! ... check gas species in specified-flow blocks
           !
           IF (no > 0 ) THEN
-            IF( ANY(ygcob(igg,:) /= 0.0) ) present_gas(igg) = .TRUE.
+            IF( ANY(ygcob(igg,:) /= 0.0) ) THEN
+              present_gas(igg) = .TRUE.
+            END IF
           END IF 
           !
           ! ... check gas species in atmosphere and inlet
           !
-          IF ((atm_ygc(igg) /= 0.D0) .OR. (vent_ygc(igg) /= 0.D0) .OR. &
-                                           dome_ygc(igg) /= 0.D0) THEN
-            present_gas(igg) = .TRUE.
-          END IF
+          IF (atm_ygc(igg) /= 0.D0)  present_gas(igg) = .TRUE.
+          IF (ivent > 0 .AND. vent_ygc(igg) /= 0.D0) present_gas(igg) = .TRUE.
+          IF (idome > 0 .AND. dome_ygc(igg) /= 0.D0) present_gas(igg) = .TRUE.
 
           IF (present_gas(igg)) THEN
             ig = ig + 1
             gas_type(ig) = igg
           END IF
-
         END DO
+
         IF (ig /= ngas) CALL error('setup','wrong number of gas species',ig)
 
       ELSE IF (itd == 2) THEN
