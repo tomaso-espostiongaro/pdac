@@ -878,7 +878,7 @@
                 END DO
               END DO
             END DO
-            IF (lpr > 0 .AND. ionode ) &
+            IF (lpr > 2 .AND. ionode ) &
               WRITE(6,*) 'proc_map(',ipe,'): ', proc_map(ipe)%corner1(:), proc_map(ipe)%corner2(:)
           END DO
         END DO
@@ -1238,7 +1238,7 @@
                 END DO
               END DO
 
-              IF (lpr > 0 .AND. ionode ) THEN
+              IF (lpr > 2 .AND. ionode ) THEN
                  WRITE(6,1000) ipe, proc_map(ipe)%blkbsw(:),proc_map(ipe)%blktne(:)
   1000           FORMAT( ' proc_map(',I4,'): BSW = ', 3I4, ' TNE = ', 3I4 )
               END IF
@@ -1650,6 +1650,7 @@
 !
       IF (immb == 1) CALL local_forcing
 
+      IF( mpime == root ) WRITE(6,*) 'END of Ghost'
       WRITE(7,*) 'End of Ghost'
 !
       RETURN
