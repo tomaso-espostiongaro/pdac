@@ -30,8 +30,6 @@
         INTEGER :: int
         TYPE(point) :: nsl
         REAL*8  :: vel
-        REAL*8  :: p
-        REAL*8  :: t
       END TYPE forcing_point
 !
       TYPE(forcing_point), ALLOCATABLE :: fptx(:), fpty(:), fptz(:)
@@ -199,6 +197,30 @@
           IF (k>1) fl(ijk) = 1
         END DO
         
+      END IF
+
+      IF (lpr > 1) THEN
+        IF (mpime == root) THEN
+          OPEN(UNIT=15,FILE='fptx.dat',STATUS='UNKNOWN')
+          IF (job_type == '3D') &
+            OPEN(UNIT=16,FILE='fpty.dat',STATUS='UNKNOWN')
+          OPEN(UNIT=17,FILE='fptz.dat',STATUS='UNKNOWN')
+          DO np = 1, SIZE(fptx)
+            WRITE(15,33) np, fptx(np)
+          END DO
+          CLOSE(15)
+          IF (job_type == '3D') THEN
+            DO np = 1, SIZE(fpty)
+              WRITE(16,33) np, fpty(np)
+            END DO
+            CLOSE(16)
+          END IF
+          DO np = 1, SIZE(fptz)
+            WRITE(17,33) np, fptz(np)
+          END DO
+          CLOSE(17)
+        END IF
+ 33   FORMAT(5(I6),4(F18.3))
       END IF
 !
       DEALLOCATE (force)

@@ -50,11 +50,17 @@
       REAL*8 :: indxc, indyc, indzc
       REAL*8 :: ugc, vgc, wgc
       INTEGER :: is, is1
-      INTEGER :: ijk, i, j, k, imesh, info
+      INTEGER :: ijk, i, j, k, imesh, info, num
       INTEGER :: b_e, b_w, b_t, b_b, b_n, b_s
+      INTEGER :: fx, fy, fz
       REAL*8 :: ivf
 
       LOGICAL :: forced = .FALSE.
+      info = 0
+      num = 0
+      fx = 0
+      fy = 0
+      fz = 0
 !
 ! ... Initialize the cell fractions for immersed boundaries
 !
@@ -81,16 +87,14 @@
       DO ijk = 1, ncint
 
         IF (immb == 1) THEN
-          IF (job_type == '2D') THEN
-            forced = (numx(ijk)/=0 .OR. numz(ijk)/=0)
-          ELSE IF (job_type == '3D') THEN
-            forced = (numx(ijk)/=0 .OR. numy(ijk)/=0 .OR. numz(ijk)/=0)
-          END IF
+          fx = numx(ijk)
+          IF (job_type == '3D') fy = numy(ijk)
+          fz = numz(ijk)
+          forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
+          CALL faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
         END IF
-        
-        IF(flag(ijk) == 1) THEN
 
-          IF (immb == 1) CALL faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
+        IF (flag(ijk) == 1) THEN
 
           CALL meshinds(ijk,imesh,i,j,k)
           CALL subscr(ijk)
@@ -104,21 +108,25 @@
           indxc = 1.D0/(dx(i)+(dx(i+1)+dx(i-1))*0.5D0)
           indzc = 1.D0/(dz(k)+(dz(k+1)+dz(k-1))*0.5D0)
 
-          ugc = 0.5D0 * (b_e * ug(ijk) + b_w * ug(imjk))
+          !ugc = 0.5D0 * (b_e * ug(ijk) + b_w * ug(imjk))
+          ugc = 0.5D0 * (ug(ijk) + ug(imjk))
 
-          wgc = 0.5D0 * (b_t * wg(ijk) + b_b * wg(ijkm))
+          !wgc = 0.5D0 * (b_t * wg(ijk) + b_b * wg(ijkm))
+          wgc = 0.5D0 * (wg(ijk) + wg(ijkm))
 
           IF (job_type == '3D') THEN
             indyc = 1.D0 / (dy(j)+(dy(j+1)+dy(j-1))*0.5D0)
 
-            vgc = 0.5D0 * (b_n * vg(ijk) + b_s * vg(ijmk))
+            !vgc = 0.5D0 * (b_n * vg(ijk) + b_s * vg(ijmk))
+            vgc = 0.5D0 * (vg(ijk) + vg(ijmk))
           END IF
 !
 ! ... Pressure term (can be coupled in pressure algorithm)
 !
-          dpxyz= dt * indxc * ugc * (p(ijke)-p(ijkw)) +   &
-                 dt * indyc * vgc * (p(ijkn)-p(ijks)) +   &
-                 dt * indzc * wgc * (p(ijkt)-p(ijkb))
+          dpxyz= 0.D0
+          dpxyz = dpxyz + dt * indxc * ugc * (p(ijke)-p(ijkw))
+          dpxyz = dpxyz + dt * indyc * vgc * (p(ijkn)-p(ijks))
+          dpxyz = dpxyz + dt * indzc * wgc * (p(ijkt)-p(ijkb))
 !
           deltap = ep(ijk) * (p(ijk) - pn(ijk) + dpxyz)
 !
@@ -140,8 +148,8 @@
             END IF
 
             CALL hvs(hv, rlk(ijk,is), rog(ijk), ep(ijk), &
-                     dugs, dvgs, dwgs, mug(ijk), kapg(ijk), cg(ijk), is)
-!
+                   dugs, dvgs, dwgs, mug(ijk), kapg(ijk), cg(ijk), is)
+
             at(1,1)     = at(1,1)     + dt * hv / cg(ijk)
             at(1,is1)   =             - dt * hv / ck(is,ijk)
             at(is1,1)   =             - dt * hv / cg(ijk)
@@ -153,7 +161,7 @@
 ! ... Solve the interphase enthalpy matrix by using Gauss inversion
 !
           CALL invdm(at, bt, ijk)
-
+!
           sieg(ijk) = bt(1)
           DO is=1, nsolid
             sies(ijk,is) = bt(is+1)
@@ -165,6 +173,7 @@
 !
           CALL caloric_eosg(cp(:,ijk), cg(ijk), tg(ijk), ygc(ijk,:), &
                             sieg(ijk), ijk, info)
+          num = num + info
 
           DO is=1, nsolid
             CALL caloric_eosl(ts(ijk,is),cps(is),ck(is,ijk),sies(ijk,is),ijk) 
@@ -173,6 +182,13 @@
         END IF
 
       END DO
+!
+! ... Check the simultaneous convergence of the caloric eos 
+! ... for all procs
+!
+      CALL parallel_sum_integer( num, 1 )
+      IF ( num > 0 ) &
+        CALL error('ftem','Error in caloric equation of state', num)
 !
       DEALLOCATE(at)
       DEALLOCATE(bt)

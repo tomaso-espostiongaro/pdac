@@ -205,9 +205,6 @@
             WRITE(6,*) 'temperature:', tg0, tg
             WRITE(6,*) 'enthalpy:', sieg0
             WRITE(6,*) 'concentrations:', yg(:)
-            WRITE(6,*) 'topography:',topo2d_c(i,j),topo2d_x(i,j),topo2d_y(i,j)
-            WRITE(6,*) 'quota:',z(k),zb(k),zb(k-1)
-            CALL error( 'eosg', 'max number of iteration reached in eosg', 1)
 !**********************************************************************
           END IF
 

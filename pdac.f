@@ -29,6 +29,7 @@
       USE initial_conditions, ONLY: setpar, setup, cnvert, allocate_setup, npr
       USE input_module, ONLY: input, initc, number_of_block
       USE io_restart, ONLY: taperd, tapewr
+      USE output_dump, ONLY: outp_recover
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
      &    mpime, root
       USE particles_constants, ONLY: allocate_part_constants
@@ -209,12 +210,13 @@
           call MP_WALLTIME(pt4,mpime)
       END IF
 !
-! ... Read restart file
+! ... Read restart file or recover initial
+! ... conditions from an output file
 !
       IF(itd == 2) THEN 
         CALL taperd
       ELSE IF (itd > 2) THEN
-        CALL error('setup','Output recovering not implemented',1)         
+        CALL outp_recover
       END IF
 !
 ! ... Compute initial conditions depending on restart mode

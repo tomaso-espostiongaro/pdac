@@ -144,18 +144,23 @@
                 fy = numy(ijk)
               END IF
               fz = numz(ijk)
-              forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
+            ELSE
+              fx = 0
+              fy = 0
+              fz = 0
             END IF
 
-            IF( .NOT.forced ) THEN
+            IF (fx /= 0) THEN
               ug(ijk) = wind_x
-              wg(ijk) = wind_z
               us(ijk,:) = ug(ijk)
+            END IF
+            IF (fz /= 0) THEN
+              wg(ijk) = wind_z
               ws(ijk,:) = wg(ijk)
-              IF ( job_type == '3D' ) THEN
-                vg(ijk) = wind_y
-                vs(ijk,:) = vg(ijk)
-              END IF
+            END IF
+            IF ( job_type == '3D' .AND. fy /= 0) THEN
+              vg(ijk) = wind_y
+              vs(ijk,:) = vg(ijk)
             END IF
 
           CASE DEFAULT
@@ -193,7 +198,7 @@
 
         CONTINUE
 !
-! ... set initial conditions from OUTPUT file
+! ... recover initial conditions from OUTPUT file
 !
       ELSE IF (itd >= 3) THEN 
 
@@ -214,8 +219,7 @@
       USE dimensions
       USE domain_decomposition, ONLY: ncint
       USE eos_gas, ONLY: mas, xgc, ygc
-      USE eos_gas, ONLY: cg, caloric_eosg, thermal_eosg, mole
-      USE eos_solid, ONLY: caloric_eosl
+      USE eos_gas, ONLY: cg, thermal_eosg, mole
       USE gas_constants, ONLY: gas_type, gmw, rgas, tzero, hzerog, hzeros
       USE gas_solid_density, ONLY: rlk, rog, rgp
       USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
@@ -315,10 +319,52 @@
           END DO
         END DO
 !
-      ELSE IF (itd >= 3) THEN 
+      ELSE IF (itd > 2) THEN 
 
-        CONTINUE
+        DO ijk = 1, ncint
+          ! ... compute gas components mass fractions 
+          ! ... from molar fractions
+          !
+          CALL mas( ygc(ijk,:), xgc(ijk,:) )
 
+          ! ... compute gas density from thermal equation of state
+          !
+          xgcl(1:ngas) = xgc(ijk,:)
+          CALL thermal_eosg( rog(ijk), tg(ijk), p(ijk), xgcl(:) )
+
+          ! ... compute void fraction
+          !
+          ep(ijk)  = 1.D0 
+          DO is = 1, nsolid
+            ep(ijk) = ep(ijk) - rlk(ijk,is)*inrl(is)
+          END DO
+
+          ! ... compute gas bulk density
+          !
+          rgp(ijk) = rog(ijk) * ep(ijk)
+
+          ! ... compute specific heat from temperature
+          !
+          CALL hcapg(cp(:,ijk), tg(ijk))
+          hc = 0.D0
+          DO ig = 1, ngas
+            hc = hc + cp(gas_type(ig),ijk) * ygc(ijk,ig)
+          END DO
+          cg(ijk) = hc
+
+          ! ... compute gas Enthalpy from temperature
+          !
+          sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
+
+          ! ... compute particle specific heat and entahlpy 
+          ! ... from temperature
+          !
+          DO is = 1, nsolid
+            CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
+            sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
+          END DO
+
+        END DO
       END IF
 
       RETURN
@@ -464,7 +510,7 @@
       
       present_gas = .FALSE.
 
-      IF (itd == 1) THEN
+      IF (itd == 1 .OR. itd > 2) THEN
 
         ig = 0
         DO igg = 1, max_ngas

@@ -2,7 +2,6 @@
 
 !  this routine prints an error message and terminates the program
 !  ----------------------------------------------
-!  END manual
 
       IMPLICIT NONE
 

@@ -31,6 +31,7 @@
       USE grid, ONLY: bottom, iv, jv, kv, grigen
       USE grid, ONLY: center_x, center_y
       USE volcano_topography, ONLY: itp
+      USE immersed_boundaries, ONLY: immb, topo2d_c, topo2d_x, topo2d_y
 
       IMPLICIT NONE
       
@@ -122,7 +123,16 @@
             ijk = i + (j-1) * nx + (k-1) * nx * ny
             fl(ijk) = 1
           END DO
-          
+!          
+! ... Topography at the vent must coincide
+! ... with the quota of inlet cells
+!
+          IF (immb == 1) THEN
+            topo2d_c(i,j) = zb(quota)
+            topo2d_x(i,j) = zb(quota)
+            topo2d_y(i,j) = zb(quota)
+          END IF
+!
         END DO
       END DO
 !

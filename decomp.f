@@ -2895,7 +2895,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
       END IF
 
       bd(:) = 0
-      vf(:) = 1.D0
+      vf(:) = 0.D0
 
       WRITE( 7, * ) 
       WRITE( 7, * ) 'b coefficients for immersed bndaries' 

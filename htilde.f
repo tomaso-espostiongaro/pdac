@@ -112,7 +112,6 @@
           flx = dt * indx(i) * egfx * inr(i) +   &
                 dt * indy(j) * egfy          +   &
                 dt * indz(k) * egfz
-
           !
           ! ... volume correction for cells partially 
           ! ... filled by the topography
@@ -146,7 +145,6 @@
             flx = dt * indx(i) * esfx * inr(i) +  &
                   dt * indy(j) * esfy          +  &
                   dt * indz(k) * esfz
-
             !
             ! ... volume correction for cells partially 
             ! ... filled by the topography
