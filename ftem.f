@@ -139,7 +139,9 @@
           CALL caloric_eosg(cp(:,ijk), cg(ijk), tg(ijk), ygc(:,ijk), &
                             sieg(ijk), ijk, info)
 
-          CALL caloric_eosl(ts(ijk,:), ck(:,ijk), cps(is), sies(ijk,:)) 
+          DO is=1, nsolid
+            CALL caloric_eosl(ts(ijk,is), ck(is,ijk), cps(is), sies(ijk,is)) 
+          END DO
 
         END IF
       END DO
