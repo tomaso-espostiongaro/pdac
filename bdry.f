@@ -231,7 +231,7 @@
               ! ... Compute the normal component of the velocities 
               ! ... and scalar fields 
               !
-              CALL inout_flow( ug(n0), ug(n1), ug(n2),              &
+              CALL ent_inout4( ug(n0), ug(n1), ug(n2),              &
                       us(n0,:), us(n1,:), us(n2,:), d1, d2, gravx, k )
 
               ! ... Compute tangential components of velocities
@@ -253,7 +253,7 @@
               ! ... Compute the normal component of the velocities 
               ! ... and scalar fields
               !
-              CALL free_inout( ug(n1), ug(n2), us(n1,:), us(n2,:), d1, d2, k)
+              CALL ent_inout6( ug(n1), ug(n2), us(n1,:), us(n2,:), d1, d2, k)
 
               ! ... Compute tangential components of velocities
               !
@@ -316,7 +316,7 @@
               ! ... Compute the normal component of the velocities 
               ! ... and scalar fields
               !
-              CALL outin_flow( ug(n1), ug(n2), us(n1,:), us(n2,:), d1, d2, k )
+              CALL wsb_inout4( ug(n1), ug(n2), us(n1,:), us(n2,:), d1, d2, k )
 
               ! ... Compute tangential components of velocities
               !
@@ -337,7 +337,7 @@
               ! ... Compute the normal component of the velocities 
               ! ... and scalar fields
               !
-              CALL free_outin( ug(n1), ug(n2), us(n1,:), us(n2,:), d1, d2, k )
+              CALL wsb_inout6( ug(n1), ug(n2), us(n1,:), us(n2,:), d1, d2, k )
 
               ! ... Compute tangential components of velocities
               !
@@ -400,7 +400,7 @@
                 ! ... Compute the normal component of the velocities 
                 ! ... and scalar fields
                 !
-                CALL inout_flow( vg(n0), vg(n1), vg(n2),              &
+                CALL ent_inout4( vg(n0), vg(n1), vg(n2),              &
                              vs(n0,:), vs( n1,:), vs(n2,:), d1, d2, gravy, k )
 
                 ! ... Compute tangential components of velocities
@@ -422,7 +422,7 @@
                 ! ... Compute the normal component of the velocities 
                 ! ... and scalar fields
                 !
-                CALL free_inout( vg(n1), vg(n2), vs(n1,:), vs(n2,:), d1, d2, k)
+                CALL ent_inout6( vg(n1), vg(n2), vs(n1,:), vs(n2,:), d1, d2, k)
 
                 ! ... Compute tangential components of velocities
                 !
@@ -484,7 +484,7 @@
                 ! ... Compute the normal component of the velocities 
                 ! ... and scalar fields
                 !
-                CALL outin_flow( vg(n1), vg(n2), vs(n1,:), vs(n2,:), d1, d2, k )
+                CALL wsb_inout4( vg(n1), vg(n2), vs(n1,:), vs(n2,:), d1, d2, k )
 
                 ! ... Compute tangential components of velocities
                 !             
@@ -505,7 +505,7 @@
                 ! ... Compute the normal component of the velocities 
                 ! ... and scalar fields
                 !
-                CALL free_outin( vg(n1), vg(n2), vs(n1,:), vs(n2,:), d1, d2, k )
+                CALL wsb_inout6( vg(n1), vg(n2), vs(n1,:), vs(n2,:), d1, d2, k )
 
                 ! ... Compute tangential components of velocities
                 !             
@@ -571,7 +571,7 @@
               ! ... Compute the normal component of the velocities 
               ! ... and scalar fields
               !
-              CALL inout_flow( wg(n0), wg(n1), wg(n2),              &
+              CALL ent_inout4( wg(n0), wg(n1), wg(n2),              &
                              ws(n0,:), ws(n1,:), ws(n2,:), d1, d2, gravz, k )
 
               ! ... Compute tangential components of velocities
@@ -593,7 +593,7 @@
               ! ... Compute the normal component of the velocities 
               ! ... and scalar fields
               !
-              CALL free_inout( wg(n1), wg(n2), ws(n1,:), ws(n2,:), d1, d2, k)
+              CALL ent_inout6( wg(n1), wg(n2), ws(n1,:), ws(n2,:), d1, d2, k)
                              
               ! ... Compute tangential components of velocities
               !
@@ -712,7 +712,7 @@
 !----------------------------------------------------------------------
 !     I N - O U T   F L O W   P R O C E D U R E S 
 !----------------------------------------------------------------------
-      SUBROUTINE inout_flow(umn, ucn, upn, usmn, uscn, uspn, d1, d2, grav, k)
+      SUBROUTINE ent_inout4(umn, ucn, upn, usmn, uscn, uspn, d1, d2, grav, k)
 !
 ! ... This routine computes the free in/outflow conditions in the boundary
 ! ... cell, i.e. the normal component of the velocity and the scalar fields
@@ -902,9 +902,9 @@
       END DO
 !                
       RETURN
-      END SUBROUTINE inout_flow
+      END SUBROUTINE ent_inout4
 !----------------------------------------------------------------------
-      SUBROUTINE outin_flow(ucn, umn, uscn, usmn, d1, d2, k)
+      SUBROUTINE wsb_inout4(ucn, umn, uscn, usmn, d1, d2, k)
 !
 ! ... This routine computes the free in/outflow conditions in the boundary
 ! ... cell, i.e. the normal component of the velocity and the scalar fields
@@ -1090,9 +1090,9 @@
       END DO
 !
       RETURN
-      END SUBROUTINE outin_flow
+      END SUBROUTINE wsb_inout4
 !-----------------------------------------------------------------------
-      SUBROUTINE free_inout(ucn, upn, uscn, uspn, d1, d2, k)
+      SUBROUTINE ent_inout6(ucn, upn, uscn, uspn, d1, d2, k)
 ! ... This routine computes continuous inoutflow conditions.
 ! ... This procedure is suited for low-Mach number regimes
 ! ... (incompressible flow)
@@ -1201,9 +1201,9 @@
       p(n2) = rog(n2) * tg(n2) * ( rgas / mg )
 
       RETURN
-      END SUBROUTINE free_inout
+      END SUBROUTINE ent_inout6
 !-----------------------------------------------------------------------
-      SUBROUTINE free_outin(ucn, umn, uscn, usmn, d1, d2, k)
+      SUBROUTINE wsb_inout6(ucn, umn, uscn, usmn, d1, d2, k)
 ! ... This routine computes continuous inoutflow conditions.
 ! ... This procedure is suited for low-Mach number regimes
 ! ... (incompressible flow)
@@ -1329,7 +1329,7 @@
       p(n2) = rog(n2) * tg(n2) * ( rgas / mg )
 !
       RETURN
-      END SUBROUTINE free_outin
+      END SUBROUTINE wsb_inout6
 !-----------------------------------------------------------------------
 !     I N T E R P O L A T I O N     P R O C E D U R E S 
 !-----------------------------------------------------------------------
