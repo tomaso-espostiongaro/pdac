@@ -976,7 +976,6 @@
       SUBROUTINE matsvels_solve( a, b )
 
       REAL*8 :: a(3,3), b(3)
-      ! REAL*8 :: rlim = 1.0d-8
       REAL*8 :: d, x1, x2, amul
 
       IF( a(2,2) < rlim ) THEN
@@ -1179,7 +1178,6 @@
       SUBROUTINE matsvels_solve_old( a, b )
 
       real*8 :: a(3,3), b(3)
-      !real*8 :: rlim = 1.0d-8
       real*8 :: div, amul
 
       IF( a(2,2) < rlim ) THEN
