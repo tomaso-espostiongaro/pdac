@@ -126,11 +126,19 @@
 ! ... generate the non-uniform mesh (without referencing)
 !
       IF (grigen > 0) THEN
+
+        WRITE(7,*) 'Generate grid along x'
         CALL gen_grid(dx,nx,domain_x,alpha_x,dxmin,dxmax,n0x,iv) 
+
         IF (job_type == '3D') THEN
+
+          WRITE(7,*) 'Generate grid along y'
           CALL gen_grid(dy,ny,domain_y,alpha_y,dymin,dymax,n0y,jv) 
         END IF
+
+        WRITE(7,*) 'Generate grid along z'
         CALL gen_grid(dz,nz,domain_z,alpha_z,dzmin,dzmax,n0z,kv) 
+
       END IF
 !
       OPEN(17,FILE='mesh.dat')
@@ -612,12 +620,12 @@
         
       END IF
 
-      WRITE(6,*) 'n01,n02,l1,l2',n01,n02,l1,l2
+      WRITE(7,*) 'n01,n02,l1,l2',n01,n02,l1,l2
 !
       der = demax / demin
       beta = 1.2D0
       dbeta = dbeta0
-      WRITE(6,*) 'Initial beta = ',beta
+      WRITE(7,*) 'Initial beta = ',beta
 !
 ! .. loop over the decreasing 'beta' to fit the domain size
 !
@@ -670,8 +678,8 @@
          ENDIF 
 !
         IF ( n11+n12 == 0 ) THEN
-          WRITE(6,*) 'WARNING!!: no cells with maximum size!'
-          WRITE(6,*) 'Please decrease beta or dmax'
+          WRITE(7,*) 'WARNING!!: no cells with maximum size!'
+          WRITE(7,*) 'Please decrease beta or dmax'
         ENDIF 
 !    
         IF ( (l2+l1) / demax > nd - n01 - n02 - 1 ) CALL error('grid', 'number of cells &
@@ -679,8 +687,8 @@
 !
         IF ( (n01+m1+n11)+(n02+m2+n12)+1 < nd ) THEN 
            IF ( beta*dbeta < minbeta) THEN
-              WRITE(6,*) 'WARNING!!: beta = minimum beta!'
-              WRITE(6,*) 'Please decrease minimum beta or number of cells'
+              WRITE(7,*) 'WARNING!!: beta = minimum beta!'
+              WRITE(7,*) 'Please decrease minimum beta or number of cells'
               print_mesh = .TRUE.
            ELSE
               IF ( already ) THEN
@@ -688,7 +696,7 @@
                  already = .FALSE.
               ENDIF
               beta = beta * dbeta 
-              WRITE(6,*) 'Reducing beta = ', beta, ' n = ', &
+              WRITE(7,*) 'Reducing beta = ', beta, ' n = ', &
               (n01+m1+n11)+(n02+m2+n12)+1 
            ENDIF
         ELSE IF ( (n01+m1+n11)+(n02+m2+n12)+1 > nd ) THEN
@@ -697,12 +705,12 @@
               already = .TRUE.
            ENDIF
            beta = beta / dbeta
-           WRITE(6,*) 'Increasing beta = ', beta, ' n = ', &
-           (n01+m1+n11)+(n02+m2+n12)+1
+           WRITE(7,*) 'Increasing beta = ', beta, ' n = ', &
+             (n01+m1+n11)+(n02+m2+n12)+1
         ELSE 
            IF ( (1.D0-dbeta) <= 1.D-15 ) THEN
               print_mesh= .TRUE.
-              WRITE(6,*) 'Final beta = ', beta, ' n= ', &
+              WRITE(7,*) 'Final beta = ', beta, ' n= ', &
               (n01+m1+n11)+(n02+m2+n12)+1
            ELSE
               beta = beta / dbeta
@@ -714,8 +722,8 @@
       END DO
 !
       IF ( beta >= maxbeta ) THEN
-         WRITE(6,*) 'WARNING!!: beta >= maximum beta!'
-         WRITE(6,*) 'Please increase maximum beta or number of cells'
+         WRITE(7,*) 'WARNING!!: beta >= maximum beta!'
+         WRITE(7,*) 'Please increase maximum beta or number of cells'
       ENDIF
 !
       ntilde1 = ( l1 - n11*demax ) / demin + 1.D0
@@ -736,9 +744,9 @@
          ENDDO
       ENDIF
 !
-      WRITE(6,*) 'beta, beta1, beta2: ', beta, beta1, beta2 
-      WRITE(6,*) 'n01,m1,n11',n01,m1,n11
-      WRITE(6,*) 'n02,m2,n12',n02,m2,n12
+      WRITE(7,*) 'beta, beta1, beta2: ', beta, beta1, beta2 
+      WRITE(7,*) 'n01,m1,n11',n01,m1,n11
+      WRITE(7,*) 'n02,m2,n12',n02,m2,n12
 !
       center = n11 + m1 + n01 + 1
 
@@ -762,11 +770,11 @@
         delta(i) = delta(i) * 100.D0
         idelta = NINT(delta(i))
         delta(i) = idelta / 100.D0
-        WRITE(6,'(F8.2)') delta(i)
+        WRITE(7,'(F8.2)') delta(i)
       END DO
       
-      WRITE(6,777) domain_size
-      WRITE(6,888) SUM(delta)
+      WRITE(7,777) domain_size
+      WRITE(7,888) SUM(delta)
 
  777  FORMAT('domain_size = ',(F8.2)) 
  888  FORMAT('mesh_size = ',(F8.2)) 

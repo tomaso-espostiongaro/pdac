@@ -138,7 +138,6 @@
 ! ... Setup cell-sizes and cell-flags
 !
       CALL grid_setup
-      CALL error('main','debug',1)
 
       IF (timing) then
           s1 = cpclock()
@@ -157,6 +156,7 @@
 ! ... and set immersed boundary parameters
 !
       IF (itp >= 1) CALL import_topo
+      CALL error('main','debug',1)
 !
 ! ... Domain decomposition for parallelization 
 !
