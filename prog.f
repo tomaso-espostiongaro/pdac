@@ -64,6 +64,9 @@
 !
        IF( timing ) s1 = cpclock()
 
+       WRITE(6,fmt="(/,'* Starting iteration ',I5,' * ')" ) irest
+       WRITE(6,fmt="('  Simulated time = ',F12.5)" ) time
+
        irest=irest+1
        IF ( (itd == 1) .OR. (irest > 1) ) THEN
 !
@@ -132,7 +135,7 @@
 
               IF( timing ) s4 = cpclock()
 
-       WRITE(6,fmt="('walltime = ',F10.2)") elapsed_seconds()
+       WRITE(6,fmt="('  walltime = ',F10.2)") elapsed_seconds()
 !
 !------------------------------------------------------------ 
        IF (time + 0.1D0*dt >= tstop)     EXIT time_sweep

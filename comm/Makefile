@@ -2,7 +2,7 @@ include ../Machine
 MODULES=
 
 comm.a : startup.o hangup.o bcast.o localdim.o gather.o scatter.o sendrecv.o \
-	reduce.o error.o
+	reduce.o error.o wtime.o
 	ar rv $@ $?
 
 clean : 

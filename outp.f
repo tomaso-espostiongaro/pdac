@@ -99,6 +99,8 @@
           OPEN(UNIT=12,FORM='UNFORMATTED',FILE=filnam)
           WRITE(12) REAL(time,4)
         END IF
+
+        WRITE(6,fmt="('  from outp: writing file ',A20)") filnam
  
       END IF
 !

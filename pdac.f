@@ -47,7 +47,7 @@
       USE control_flags, ONLY: job_type
 !
       IMPLICIT NONE
-      CHARACTER(LEN=11) :: errnb, testnb
+      CHARACTER(LEN=11) :: errnb, testnb, lognb
       CHARACTER(LEN=8) :: inputfile, logfile, errorfile, testfile
       CHARACTER(LEN=3) :: procnum
 !
@@ -83,12 +83,14 @@
       errorfile = 'pdac.err'
       errnb = errorfile//procnum(mpime)
       testnb = testfile//procnum(mpime)
+      lognb = logfile//procnum(mpime)
       IF(mpime .EQ. root) THEN
         OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN')
         IF( .NOT. debug ) OPEN(UNIT=logunit,   FILE=logfile,   STATUS='UNKNOWN')
         OPEN(UNIT=testunit,  FILE=testfile,  STATUS='UNKNOWN')
         OPEN(UNIT=errorunit, FILE=errorfile, STATUS='UNKNOWN')
       ELSE
+        IF( .NOT. debug ) OPEN(UNIT=logunit,   FILE=lognb,   STATUS='UNKNOWN')
         OPEN(UNIT=testunit,  FILE=testnb,    STATUS='UNKNOWN')
         OPEN(UNIT=errorunit, FILE=errnb,     STATUS='UNKNOWN')
       END IF

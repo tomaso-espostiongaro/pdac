@@ -30,35 +30,27 @@
 ! ...   to the function itself
         FUNCTION elapsed_seconds()
           REAL*8 :: elapsed_seconds
-          INTEGER :: iclk, nclk
+          INTEGER :: iclk, nclk, xclk
+          INTEGER, SAVE :: nover = 0
+          INTEGER, SAVE :: iclk_old
           INTEGER, SAVE :: iclk_first = 0
           LOGICAL, SAVE :: first = .TRUE.
-          CALL SYSTEM_CLOCK( iclk, count_rate = nclk )
+          CALL SYSTEM_CLOCK( iclk, count_rate = nclk, count_max = xclk )
           IF( first ) THEN
             iclk_first = iclk
+            iclk_old   = iclk
             first = .FALSE.
           END IF
           clocks_per_second = DBLE(nclk)
-          elapsed_seconds = DBLE( iclk - iclk_first ) / clocks_per_second
+          IF( iclk < iclk_old ) THEN
+            nover = nover + 1
+          END IF
+          elapsed_seconds = DBLE( iclk + nover * xclk - iclk_first ) &
+                          / clocks_per_second
+          iclk_old = iclk
           RETURN
         END FUNCTION
 
-
-!---------------------------------------------------------------------
-        FUNCTION DIFFCLOCK(old_clock)
-          REAL*8, INTENT(INOUT) :: old_clock
-          REAL*8 :: diffclock, tmp, cclock
-!          INTEGER mclock
-          INTEGER   iclk
-          CALL SYSTEM_CLOCK(iclk)
-! ... IBM/SGI ... 
-!          tmp = DBLE(mclock()) * 10.d0
-! ... T3E ...
-          tmp = DBLE(iclk) / clocks_per_second * 1000.d0
-          diffclock = tmp - old_clock
-          old_clock = tmp
-          RETURN
-        END FUNCTION
 !---------------------------------------------------------------------
       END MODULE environment
 !---------------------------------------------------------------------

@@ -293,8 +293,8 @@
 !*******************************************************************
 ! ... write out the final number of iterations
 !
-          WRITE(6,277) time+dt, nit
- 277      FORMAT('time = ', F8.3, '  nit = ', I4)
+          WRITE(6,277) nit
+ 277      FORMAT('  from iter: nit = ', I4)
 !*******************************************************************
           EXIT sor_loop
         ENDIF
