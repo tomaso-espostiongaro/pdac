@@ -196,7 +196,8 @@
         DO j = vdem%ny, 1, -1
           DO i = 1, vdem%nx
             READ(3,*) elevation
-            ztop2d(i,j) = DBLE(elevation) / 100.D0
+            !ztop2d(i,j) = DBLE(elevation) / 100.D0
+            ztop2d(i,j) = DBLE(elevation)
           END DO
         END DO
       END IF
@@ -260,6 +261,7 @@
         ! ... number of topographic cells
         !
         transl_z = MINVAL(topo)
+        transl_z = 0.D0
 
         IF( mpime == root ) THEN
           WRITE(6,*) 'Translating mesh vertically'
@@ -278,9 +280,9 @@
 	    IF (zb(k) <= topo(i)) ord(i) = k  
             ijk = i + (k-1) * nx
             dist(ijk) = z(k) - topo(i)
-            IF (lpr > 1 .AND. mpime == root) &
-              WRITE(7,*) i, ord(i)
           END DO
+          IF (lpr > 1 .AND. mpime == root) &
+            WRITE(7,*) i, ord(i)
         END DO
 
         DEALLOCATE(topo)
@@ -299,6 +301,7 @@
         ! ... number of topographic cells
         !
         transl_z = MINVAL(topo2d)
+        transl_z = 0.D0
 
         IF( mpime == root ) WRITE(*,*) 'Minimum topographic quota: ', transl_z
 
@@ -348,6 +351,7 @@
       REAL*8, INTENT(OUT), DIMENSION(:) :: topo
 
       INTEGER :: i, k, ijk, l, n
+      INTEGER :: itopo
       REAL*8 :: grad
 !
 ! ... locate the grid points near the topographic points
@@ -375,6 +379,12 @@
               grad = (ztop(n)-ztop(n-1))/(xtop(n)-xtop(n-1))
               topo(i) = ztop(n-1) + (cx(i)-xtop(n-1)) * grad
             END IF
+
+            ! ... Topography is expressed in centimeters
+            !
+            topo(i) = topo(i) * 1.D2
+            itopo = NINT(topo(i))
+            topo(i) = itopo * 1.D-2
 
 	    l=l+1
 
@@ -428,6 +438,7 @@
       REAL*8 dist1y,dist2y,dist1x,dist2x,alpha,beta
       INTEGER i,j,k,h,l,ii,jj
       INTEGER ijk, tp1, tp2
+      INTEGER itopo
 
       ff = .FALSE.
         
@@ -504,6 +515,12 @@
                        (1.D0 - alpha) * ztop2d(nextx(i)-1,nexty(j)-1)
 
               topo2d(i,j) = beta * tp1 + (1.D0 - beta) * tp2
+ 
+              ! ... Topography is expressed in centimeters
+              !
+              topo2d(i,j) = topo2d(i,j) * 1.D2
+              itopo = NINT(topo2d(i,j))
+              topo2d(i,j) = itopo * 1.D-2
 
 	   ENDDO
 

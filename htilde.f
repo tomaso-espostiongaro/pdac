@@ -51,8 +51,8 @@
       INTEGER :: is, m, l, is1
       INTEGER :: i, j, k, ijk, imesh
 
-      !INTEGER :: b_e, b_w, b_t, b_b, b_n, b_s
-      REAL*8 :: b_e, b_w, b_t, b_b, b_n, b_s
+      INTEGER :: b_e, b_w, b_t, b_b, b_n, b_s
+      !REAL*8 :: b_e, b_w, b_t, b_b, b_n, b_s
       REAL*8 :: ivf
 !
 ! ... Initialize the cell fractions for immersed boundaries

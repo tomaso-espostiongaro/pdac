@@ -30,6 +30,9 @@
         INTEGER :: int
         TYPE(point) :: nsl
         REAL*8  :: vel
+        REAL*8  :: p
+        REAL*8  :: ul
+        REAL*8  :: wl
       END TYPE forcing_point
 !
       TYPE(forcing_point), ALLOCATABLE :: fptx(:), fpty(:), fptz(:)
@@ -54,6 +57,7 @@
       REAL*8, ALLOCATABLE :: vf(:)
 
       INTEGER :: immb           
+      INTEGER :: fp0 = 0
 !
       INTERFACE faces
         MODULE PROCEDURE faces_real, faces_int
@@ -73,18 +77,22 @@
 
       IMPLICIT NONE
       INTEGER :: p, np
-      INTEGER :: i,j,k,ijk
+      INTEGER :: i,j,k,ijk,imjk,ijmk,ijkm
       INTEGER :: nfpx, nfpy, nfpz
 !
 ! ... Conditional array to be used in loops:
 ! ... this value is .TRUE. when force has to be computed at a given location
 !
-      LOGICAL, ALLOCATABLE :: force(:)
+      LOGICAL, ALLOCATABLE :: forcex(:)
+      LOGICAL, ALLOCATABLE :: forcey(:)
+      LOGICAL, ALLOCATABLE :: forcez(:)
+      LOGICAL, ALLOCATABLE :: extfx(:)
+      LOGICAL, ALLOCATABLE :: extfy(:)
+      LOGICAL, ALLOCATABLE :: extfz(:)
 !
 ! ... If Immersed Boundaries are used, identify the forcing points
 ! ... and set interpolation parameters
 !
-
       IF( mpime == root ) THEN
         WRITE(6,*)
         WRITE(6,*) 'Set forcing point for immersed boundaries'
@@ -94,7 +102,13 @@
       ! ... Allocate the logical array that is used to 
       ! ... identify the forcing points
       !
-      ALLOCATE(force(ntot)); force = .FALSE.
+
+      ALLOCATE(forcex(ntot)); forcex = .FALSE.
+      ALLOCATE(forcey(ntot)); forcey = .FALSE.
+      ALLOCATE(forcez(ntot)); forcez = .FALSE.
+      ALLOCATE(extfx(ntot)); extfx = .FALSE.
+      ALLOCATE(extfy(ntot)); extfy = .FALSE.
+      ALLOCATE(extfz(ntot)); extfz = .FALSE.
 
       IF (job_type == '2D') THEN
 
@@ -105,12 +119,66 @@
         ! ... interpolate the topography on x-staggered mesh
         ! ... and count the forcing points along x
         !
-        CALL interpolate_2d(xb, z, topo_x, force)
-        nfpx = COUNT(force)
+        CALL interpolate_2d(xb, z, topo_x, forcex)
+
+        !
+        ! ... interpolate the topography on z-staggered mesh
+        ! ... and count the forcing points along z
+        !
+        CALL interpolate_2d(x, zb, topo_c, forcez)
+
+
+        !
+        ! ... Add external Forcing 
+        DO k = 2, nz
+          DO i = 2, nx-1
+            ijk = (k-1) * nx + i
+            imjk = (k-1) * nx + (i-1)
+            ijkm = (k-2) * nx + i
+
+        ! ... Add external Forcing in x 
+
+            IF (forcez(ijk) .AND. forcex(ijk) .AND. &
+                (z(k) > topo_x(i-1)) ) extfx(imjk) = .TRUE.
+            IF (forcez(ijk) .AND. forcex(imjk) .AND. &
+                (z(k) > topo_x(i)) ) extfx(ijk) = .TRUE.
+        !
+
+        ! ... Add external Forcing in z 
+
+            IF (forcex(imjk) .AND. forcex(ijk) .AND. &
+                forcex(ijkm) .AND.                   &
+                (zb(k) > topo_c(i)) ) extfz(ijk) = .TRUE.
+        !
+
+          END DO
+        END DO
+
+        nfpx = COUNT(forcex) + COUNT(extfx) 
         ALLOCATE(fptx(nfpx))
+
+        nfpz = COUNT(forcez) + COUNT(extfz)
+        ALLOCATE(fptz(nfpz))
+
+
+        !
+        ! ... Forcing in x external points
+        DO k = 2, nz
+          DO i = 2, nx-1
+            ijk = (k-1) * nx + i
+            IF (extfx(ijk)) THEN
+              CALL ext_forcing2d(i, k, xb, z, topo_x, fptx)
+            END IF
+          END DO
+        END DO
+        !
+
+
         !
         ! ... Forcing along x
+        CALL interpolate_2d(xb, z, topo_x, forcex)
         CALL forcing2d(xb, z, topo_x, fptx)
+
         !
         ! ... Set flag = 1 on forcing points
         DO np = 1, nfpx
@@ -120,16 +188,24 @@
           IF (k>1) fl(ijk) = 1
         END DO
 
+
         !
-        ! ... interpolate the topography on z-staggered mesh
-        ! ... and count the forcing points along z
-        !
-        CALL interpolate_2d(x, zb, topo_c, force)
-        nfpz = COUNT(force)
-        ALLOCATE(fptz(nfpz))
+        ! ... Forcing in z external points
+
+        fp0 = 0
+        DO k = 2, nz
+          DO i = 2, nx-1
+            ijk = (k-1) * nx + i
+            IF (extfz(ijk)) THEN
+              CALL ext_forcing2d(i, k, x, zb, topo_c, fptz)
+            END IF
+          END DO
+        END DO
         !
         ! ... Forcing along z
+        CALL interpolate_2d(x, zb, topo_c, forcez)
         CALL forcing2d(x, zb, topo_c, fptz)
+
         !
         ! ... Set flag = 1 on forcing points
         DO np = 1, nfpz
@@ -148,13 +224,88 @@
         ! ... interpolate the topography on x-staggered mesh
         ! ... and count the forcing points along x
         !
-        CALL interpolate_dem(xb, y, z, topo2d_x, force)
-        nfpx = COUNT(force)
+        CALL interpolate_dem(x, yb, z, topo2d_y, forcey)
+        CALL interpolate_dem(x, y, zb, topo2d_c, forcez)
+        CALL interpolate_dem(xb, y, z, topo2d_x, forcex)
+
+        !
+        ! ... Add external Forcing 
+
+        DO i = 2, nx - 1
+          DO j = 2, ny - 1
+            DO k = 2, nz-1
+              ijk = i + (j-1) * nx + (k-1) * nx * ny
+              imjk = (i-1) + (j-1) * nx + (k-1) * nx * ny
+              ijk = i + (j-1) * nx + (k-1) * nx * ny
+              ijmk = i + (j-2) * nx + (k-1) * nx * ny
+              ijk = i + (j-1) * nx + (k-1) * nx * ny
+              ijkm = i + (j-1) * nx + (k-2) * nx * ny
+        ! ... Add external Forcing in x
+ 
+              IF (forcez(ijk) .AND. forcez(ijkm) .AND. &
+                  forcey(ijk) .AND. forcey(ijmk) .AND. &
+                  forcex(ijk) .AND.                    & 
+                  (z(k) > topo2d_x(i-1,j)) ) extfx(imjk) = .TRUE.
+
+              IF (forcez(ijk) .AND. forcez(ijkm) .AND. &
+                  forcey(ijk) .AND. forcey(ijmk) .AND. &
+                  forcex(imjk) .AND.                   &
+                  (z(k) > topo2d_x(i,j)) ) extfx(ijk) = .TRUE.
+
+        ! ... Add external Forcing in y 
+
+              IF (forcez(ijk) .AND. forcez(ijkm) .AND. &
+                  forcex(ijk) .AND. forcex(imjk) .AND. &
+                  forcey(ijk) .AND.                    &
+                  (z(k) > topo2d_y(i,j-1)) ) extfy(ijmk) = .TRUE.
+
+              IF (forcez(ijk) .AND. forcez(ijkm) .AND. &
+                  forcex(ijk) .AND. forcex(imjk) .AND. &
+                  forcey(imjk) .AND.                   &
+                  (z(k) > topo2d_y(i,j)) ) extfy(ijk) = .TRUE.
+
+        ! ... Add external Forcing in z
+ 
+              IF (forcex(ijk) .AND. forcex(imjk) .AND. &
+                  forcey(ijk) .AND. forcey(ijmk) .AND. &
+                  forcez(ijkm) .AND.                   &
+                  (zb(k) > topo2d_c(i,j)) ) extfz(ijk) = .TRUE.
+
+
+            END DO
+          END DO
+        ENDDO
+
+
+        nfpx = COUNT(forcex) + COUNT(extfx)
         ALLOCATE(fptx(nfpx))
+        nfpy = COUNT(forcey) + COUNT(extfy)
+        ALLOCATE(fpty(nfpy))
+        nfpz = COUNT(forcez) + COUNT(extfz)
+        ALLOCATE(fptz(nfpz))
+
+
+
+        !
+        ! ... External forcing along x
+        fp0=0
+        DO i = 2, nx - 1
+          DO j = 2, ny - 1
+            DO k = 2, nz-1
+              ijk = i + (j-1) * nx + (k-1) * nx * ny
+              IF (extfx(ijk)) CALL ext_forcing3d(i, j, k, xb, y, topo2d_x, fptx)
+            END DO
+          END DO
+        END DO
+
         !
         ! ... Forcing along x
         CALL forcing3d(xb, y, z, topo2d_x, fptx)
         !
+
+
+
+
         ! ... Set flag = 1 on forcing points
         DO np = 1, nfpx
           i = fptx(np)%i
@@ -168,11 +319,23 @@
         ! ... interpolate the topography on y-staggered mesh
         ! ... and count the forcing points along y
         !
-        CALL interpolate_dem(x, yb, z, topo2d_y, force)
-        nfpy = COUNT(force)
-        ALLOCATE(fpty(nfpy))
+        CALL interpolate_dem(x, yb, z, topo2d_y, forcey)
+
+        !
+        ! ... External forcing along y
+        fp0=0 
+        DO i = 2, nx - 1
+          DO j = 2, ny - 1
+            DO k = 2, nz-1
+              ijk = i + (j-1) * nx + (k-1) * nx * ny
+              IF (extfy(ijk)) CALL ext_forcing3d(i, j, k, x, yb, topo2d_y, fpty)
+            END DO
+          END DO
+        END DO
+
         !
         ! ... Forcing along y
+
         CALL forcing3d(x, yb, z, topo2d_y, fpty)
         !
         ! ... Set flag = 1 on forcing points
@@ -188,11 +351,26 @@
         ! ... interpolate the topography on z-staggered mesh
         ! ... and count the forcing points along z
         !
-        CALL interpolate_dem(x, y, zb, topo2d_c, force)
-        nfpz = COUNT(force)
-        ALLOCATE(fptz(nfpz))
+        CALL interpolate_dem(x, y, zb, topo2d_c, forcez)
+
+        
+        !
+        ! ... External forcing along z
+        
+        fp0=0
+        DO i = 2, nx - 1
+          DO j = 2, ny - 1
+            DO k = 2, nz-1
+              ijk = i + (j-1) * nx + (k-1) * nx * ny
+              IF (extfz(ijk)) CALL ext_forcing3d(i, j, k, x, y, topo2d_c, fptz)
+            END DO
+          END DO
+        END DO
+
         !
         ! ... Forcing along z
+
+
         CALL forcing3d(x, y, zb, topo2d_c, fptz)
         !
         ! ... Set flag = 1 on forcing points
@@ -206,7 +384,7 @@
         
       END IF
 
-      IF (lpr > 1) THEN
+      IF (lpr > 0) THEN
         IF (mpime == root) THEN
           OPEN(UNIT=15,FILE='fptx.dat',STATUS='UNKNOWN')
           IF (job_type == '3D') &
@@ -227,10 +405,17 @@
           END DO
           CLOSE(17)
         END IF
- 33   FORMAT(5(I6),4(F18.3))
+ 33   FORMAT(5(I6),10(F16.3))
       END IF
 !
-      DEALLOCATE (force)
+      DEALLOCATE (forcex)
+      DEALLOCATE (forcez)
+      DEALLOCATE (extfx)
+      DEALLOCATE (extfz)
+      IF (job_type=='3D') THEN
+        DEALLOCATE (forcey)
+        DEALLOCATE (extfy)
+      END IF
 
       IF( mpime == root ) THEN
         WRITE(6,*) 'END Set forcing'
@@ -238,6 +423,32 @@
 !
       RETURN
       END SUBROUTINE set_forcing
+
+!----------------------------------------------------------------------
+      SUBROUTINE ext_forcing2d(i, k, cx, cz, topo, fpt)
+
+!
+      IMPLICIT NONE
+
+      INTEGER, INTENT(IN) :: i,k
+      REAL*8, DIMENSION(:), INTENT(IN) :: cx, cz
+      REAL*8, DIMENSION(:), INTENT(IN) :: topo
+      TYPE(forcing_point), DIMENSION(:), INTENT(OUT) :: fpt
+
+
+      fp0 = fp0 + 1
+
+      fpt(fp0)%int = 17
+      fpt(fp0)%i = i
+      fpt(fp0)%j = 0
+      fpt(fp0)%k = k
+      fpt(fp0)%nsl%x = cx(i) 
+      fpt(fp0)%nsl%z = topo(i)
+      
+
+
+      RETURN
+      END SUBROUTINE ext_forcing2d
 !----------------------------------------------------------------------
       SUBROUTINE forcing2d(cx, cz, topo, fpt)
       USE volcano_topography, ONLY: ord, next
@@ -257,7 +468,7 @@
 ! ... Skip the -- first grid point -- 
 ! ... Loop over grid points in x-direction
 !
-      fp = 0
+      fp = fp0
       DO i=2,nx-1
          
          IF ((ord(i)-ord(i-1) > 0).AND.(topo(i+1)-topo(i-1) >= 0)) THEN
@@ -535,6 +746,35 @@
       END SUBROUTINE forcing2d
 !
 !----------------------------------------------------------------------
+      SUBROUTINE ext_forcing3d(i, j, k, cx, cy, topo2d, fpt)
+
+      IMPLICIT NONE
+
+      INTEGER, INTENT(IN) :: i, j, k
+       
+      REAL*8, DIMENSION(:), INTENT(IN) :: cx, cy
+      REAL*8, DIMENSION(:,:), INTENT(IN) :: topo2d
+      TYPE(forcing_point), DIMENSION(:), INTENT(OUT) :: fpt
+ 
+      INTEGER :: fp0
+
+
+
+      
+      fp0 = fp0 + 1 
+      fpt(fp0)%i  = i
+      fpt(fp0)%j  = j
+      fpt(fp0)%k  = k
+      fpt(fp0)%int = 17
+      fpt(fp0)%nsl%x = cx(i)
+      fpt(fp0)%nsl%y = cy(j)
+      fpt(fp0)%nsl%z = topo2d(i,j)
+
+
+
+      END SUBROUTINE ext_forcing3d
+
+!----------------------------------------------------------------------
       SUBROUTINE forcing3d(cx, cy, cz, topo2d, fpt)
       USE volcano_topography, ONLY: ord2d, next
 !
@@ -552,7 +792,7 @@
       INTEGER :: delta_i(8), delta_j(8)
       INTEGER :: gint
 !
-      fp = 0
+      fp = fp0
 !
 ! ... LINEAR interpolation criteria ('fpt%int'):
 ! ... 0: top
@@ -688,6 +928,14 @@
       REAL*8, INTENT(OUT) :: ivf
       INTEGER*2 :: num
  
+      IF (numx(ijk)/=0 .AND. numz(ijk) /=0) THEN
+        b_e = 0
+        b_w = 0
+        b_t = 0
+        b_b = 0
+        RETURN
+      END IF 
+
       b_e = 0
       num = 1
       IF( IAND(bd(ijk),num) /= 0 )  b_e = 1 

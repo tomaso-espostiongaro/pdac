@@ -132,6 +132,8 @@
       staggered_field%s = (dz(k+1) * field%s + dz(k)   * field%st) * indzp
       staggered_field%b = (dz(k)   * field%b + dz(k-1) * field%c ) * indzm
 !
+! ... an arbitrary choice !
+!
       staggered_field%ee = staggered_field%e
       staggered_field%nn = staggered_field%n
       staggered_field%tt = staggered_field%t

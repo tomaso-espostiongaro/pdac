@@ -2971,7 +2971,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
             IF (job_type == '2D') THEN
               ijk = i + (k-1) * nx
             ELSE IF (job_type == '3D') THEN
-              IF (j == 0) CALL error('decomp','control numz',1)
+              IF (j == 0) CALL error('decomp','control numz',n)
               ijk = i + (j-1) * nx + (k-1) * nx * ny
             END IF
             IF( cell_owner(ijk)== mpime ) THEN
@@ -2985,7 +2985,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               END IF
             END IF
           ELSE
-            CALL error('decomp','control numz',1)
+            CALL error('decomp','control numz',n)
           END IF set_numz
         
         END DO
@@ -2995,6 +2995,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
         CALL data_exchange(numz)
 
         CALL fill_cells_int
+        CALL fill_cells_real
 
       RETURN
       END SUBROUTINE local_forcing
@@ -3169,8 +3170,8 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               vf(ijk) = vf(ijk) + alpha
               bdr(ijk,2) = alpha**2/( 2.D0 * alpha - 1.D0 )
               !
-              IF (zb(k) > topo_c(i))    bdr(ijk,3) = 1.D0 ! Top
-              IF (zb(k-1) >= topo_c(i)) bdr(ijk,4) = 1.D0 ! Bottom
+              IF (zb(k) - topo_c(i) >= 0.D0 ) bdr(ijk,3) = 1.D0 ! Top
+              IF (zb(k-1) - topo_c(i) >= 0.D0) bdr(ijk,4) = 1.D0 ! Bottom
               !
             ELSE IF (job_type == '3D') THEN
               !

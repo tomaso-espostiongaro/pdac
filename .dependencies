@@ -24,7 +24,7 @@ environment.o :
 
 eosg.o : decomp.o dimensions.o gas.o grid.o hcapgs.o immb.o parallel.o time.o 
 
-eosl.o : decomp.o dimensions.o gas.o hcapgs.o 
+eosl.o : decomp.o dimensions.o gas.o hcapgs.o parallel.o 
 
 filter.o : outp.o 
 
@@ -105,10 +105,10 @@ pdac.o : blunt.o decomp.o dens.o dimensions.o environment.o eosg.o gas.o  \
 
 postin.o : process.o 
 
-postout.o : grid.o iotk_module.o 
+postout.o : control.o dimensions.o grid.o iotk_module.o outp.o 
 
-postp.o : dimensions.o gas.o grid.o input.o particles.o postin.o process.o  \
-    setup.o 
+postp.o : dimensions.o gas.o grid.o input.o particles.o postin.o postout.o  \
+    process.o setup.o 
 
 press.o : decomp.o dimensions.o 
 
@@ -118,6 +118,8 @@ prog.o : bdry.o blunt.o control.o decomp.o dens.o dimensions.o environment.o  \
     eosg.o ftem.o htilde.o indijk.o io.o iter.o outp.o parallel.o particles.o  \
     press.o reactions.o residuals.o sampling.o temp.o tilde.o time.o turbo.o  \
     ygas.o 
+
+rannum.o : 
 
 reactions.o : decomp.o dimensions.o grid.o indijk.o time.o 
 

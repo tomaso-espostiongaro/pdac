@@ -565,8 +565,6 @@
                WRITE(7,*) 'Increasing beta = ', beta, ' n = ', (n01+m1+n11)+(n02+m2+n12)+1
            ENDIF
         ENDIF
-        
-        CALL myflush( 7 )
       END DO
 !
       IF ( beta >= maxbeta ) THEN

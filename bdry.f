@@ -82,6 +82,9 @@
               IF( fx/=0 ) THEN
                 vel = velint(fptx(fx), ug, ijk, xb, y, z)  
                 fptx(fx)%vel = vel
+                fptx(fx)%p = p(ijk)
+                fptx(fx)%ul = ug(ijk)
+                fptx(fx)%wl = wg(ijk)
 
                 ! ... Initialize x-velocity in the forced points
                 ug(ijk) = vel
@@ -91,6 +94,9 @@
               IF( fz/=0 ) THEN
                 vel = velint(fptz(fz), wg, ijk, x, y, zb)  
                 fptz(fz)%vel = vel
+                fptz(fz)%p = p(ijk)
+                fptz(fz)%ul = ug(ijk)
+                fptz(fz)%wl = wg(ijk)
 
                 ! ... Initialize z-velocity in the forced points
                 wg(ijk) = vel
@@ -102,6 +108,7 @@
               IF( fx/=0 ) THEN
                 vel = velint3d(fptx(fx), ug, ijk, xb, y, z)  
                 fptx(fx)%vel = vel
+                fptx(fx)%p = p(ijk)
 
                 ! ... Initialize x-velocity in the forced points
                 ug(ijk) = vel
@@ -111,6 +118,7 @@
               IF( fy/=0 ) THEN
                 vel = velint3d(fpty(fy), vg, ijk, x, yb, z)  
                 fpty(fy)%vel = vel
+                fpty(fy)%p = p(ijk)
 
                 ! ... Initialize y-velocity in the forced points
                 vg(ijk) = vel
@@ -120,6 +128,7 @@
               IF( fz/=0 ) THEN
                 vel = velint3d(fptz(fz), wg, ijk, x, y, zb)  
                 fptz(fz)%vel = vel
+                fptz(fz)%p = p(ijk)
 
                 ! ... Initialize z-velocity in the forced points
                 wg(ijk) = vel
@@ -632,6 +641,30 @@
           END IF
         END IF
       END DO
+!
+      IF (lpr > 1 .AND. immb >0) THEN
+        IF (mpime == root) THEN
+          OPEN(UNIT=15,FILE='fptx.dat',STATUS='UNKNOWN')
+          IF (job_type == '3D') &
+            OPEN(UNIT=16,FILE='fpty.dat',STATUS='UNKNOWN')
+          OPEN(UNIT=17,FILE='fptz.dat',STATUS='UNKNOWN')
+          DO np = 1, SIZE(fptx)
+            WRITE(15,33) np, fptx(np)
+          END DO
+          CLOSE(15)
+          IF (job_type == '3D') THEN
+            DO np = 1, SIZE(fpty)
+              WRITE(16,33) np, fpty(np)
+            END DO
+            CLOSE(16)
+          END IF
+          DO np = 1, SIZE(fptz)
+            WRITE(17,33) np, fptz(np)
+          END DO
+          CLOSE(17)
+        END IF
+ 33   FORMAT(5(I6),10(F16.3))
+      END IF
 !
       RETURN
       END SUBROUTINE boundary
@@ -1341,7 +1374,7 @@
          beta=(cz(k+1)-nsz)/(cz(k+1)-cz(k))
          velint=-(alpha*(1-beta)*vel(ijkp)+(1-alpha)*(1-beta)*vel(imjkp)+ &
                  (1-alpha)*beta*vel(imjk))/(alpha*beta)
-
+!
       CASE (0)
    
 !===========================================
@@ -1354,7 +1387,7 @@
          IF (h <= zA) THEN
             velint=-h/zA*vel(ijkp)
          ELSE
-            zB=SQRT((cx(i+2)-nsx)**2+(cz(k)-nsz)**2)
+            zB=SQRT((cx(i)-nsx)**2+(cz(k+2)-nsz)**2)
             velint=-((zB-h)*vel(ijkp)+(h-zA)*vel(ijkpp))/(zB-zA)
          ENDIF
 
@@ -1402,6 +1435,19 @@
             velint=-((zB-h)*vel(ipjkp)+(h-zA)*vel(ippjkpp))/(zB-zA)
          ENDIF
    
+      CASE (17)
+   
+!===========================================
+!====   interpolazione lineare      	====
+!====   esterna             		====
+!===========================================
+   
+         h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
+         zA=SQRT((cx(i)-nsx)**2+(cz(k+1)-nsz)**2)
+         velint= + h/zA*vel(ijkp)
+         !zB=SQRT((cx(i)-nsx)**2+(cz(k+2)-nsz)**2)
+         !velint=+((zB-h)*vel(ijkp)+(h-zA)*vel(ijkpp))/(zB-zA)
+
       CASE DEFAULT
    
 !===========================================
@@ -1461,6 +1507,7 @@
 ! ... 6: north-east
 ! ... 7: north
 ! ... 8: north-west
+! ... 17: external top
 
       SELECT CASE (interp)
 
@@ -1523,12 +1570,20 @@
         delta_k = 0
         index_q  = imjpk
 
+        CASE (17)
+        delta_i = 0
+        delta_j = 0
+        delta_k = 1
+        index_q  = ijkp
+        index_qq = ijkpp
+
         CASE DEFAULT
         delta_i = 0
         delta_j = 0
         delta_k = 0
         index_q  = ijk
         index_qq = ijk
+
 
       END SELECT
 
@@ -1539,7 +1594,9 @@
       zA = SQRT( (cx(i+delta_i)-nsx)**2 + (cy(j+delta_j)-nsy)**2 + &
                  (cz(k+delta_k)-nsz)**2 )
 
-      IF (h <= zA .OR. diagonal) THEN
+      IF (interp == 17) THEN
+         velint3d = h/zA*vel(index_q)         
+      ELSEIF (h <= zA .OR. diagonal) THEN
          velint3d = -h/zA*vel(index_q)
       ELSE 
          zB=SQRT( (cx(i+2*delta_i)-nsx)**2 + (cy(j+2*delta_j)-nsy)**2 +  &

@@ -90,7 +90,7 @@
       lognb  = logfile//procnum(mpime)
       IF(mpime == root) THEN
         OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN')
-        IF( .NOT. debug ) OPEN(UNIT=logunit,   FILE=logfile,   STATUS='UNKNOWN')
+        IF(.NOT.debug ) OPEN(UNIT=logunit,FILE=logfile,STATUS='UNKNOWN')
         OPEN(UNIT=testunit,  FILE=testfile,  STATUS='UNKNOWN')
         OPEN(UNIT=errorunit, FILE=errorfile, STATUS='UNKNOWN')
         OPEN(UNIT=checkunit, FILE=checkfile, STATUS='UNKNOWN')
@@ -104,12 +104,12 @@
         WRITE(6,*) 'Number of processor in use: ', nproc
       END IF
 100   FORMAT( ' Pyroclastic Dispersion Analysis Code', /, &
-              ' version: 3.0, June 2003',/, &
-              ' authors: A.Neri, G.Macedonio, D.Gidaspow, T. Esposti Ongaro',/, &
-              ' parallelized by: T. Esposti Ongaro, C. Cavazzoni, A. Neri',/, &
-              ' 3d version implemented by: T. Esposti Ongaro, C. Cavazzoni',//, &
-              ' This run began at ', I2, ':', I2, ':', I2, 3X, 'day ', I2, &
-              ' month ', I2, ' year ', I4 )
+           &  ' version: 3.0, June 2003',/, &
+           &  ' authors: A.Neri, G.Macedonio, D.Gidaspow, T. Esposti Ongaro',/, &
+           &  ' parallelized by: T. Esposti Ongaro, C. Cavazzoni, A. Neri',/, &
+           &  ' 3d version implemented by: T. Esposti Ongaro, C. Cavazzoni',//, &
+           &  ' This run began at ', I2, ':', I2, ':', I2, 3X, 'day ', I2, &
+           &  ' month ', I2, ' year ', I4 )
 !
 ! ... Read Input file
 !
