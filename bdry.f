@@ -81,6 +81,7 @@
                 vel = velint(fptx(fx), ug, ijk, xb, y, z)  
                 fptx(fx)%vel = vel
                 fptx(fx)%p = p(ijk)
+                fptx(fx)%t = tg(ijk)
 
                 ! ... Initialize x-velocity in the forced points
                 ug(ijk) = vel
@@ -91,6 +92,7 @@
                 vel = velint(fptz(fz), wg, ijk, x, y, zb)  
                 fptz(fz)%vel = vel
                 fptz(fz)%p = p(ijk)
+                fptz(fz)%t = tg(ijk)
 
                 ! ... Initialize z-velocity in the forced points
                 wg(ijk) = vel
@@ -103,6 +105,7 @@
                 vel = velint3d(fptx(fx), ug, ijk, xb, y, z)  
                 fptx(fx)%vel = vel
                 fptx(fx)%p = p(ijk)
+                fptx(fx)%t = tg(ijk)
 
                 ! ... Initialize x-velocity in the forced points
                 ug(ijk) = vel
@@ -113,6 +116,7 @@
                 vel = velint3d(fpty(fy), vg, ijk, x, yb, z)  
                 fpty(fy)%vel = vel
                 fpty(fy)%p = p(ijk)
+                fpty(fy)%t = tg(ijk)
 
                 ! ... Initialize y-velocity in the forced points
                 vg(ijk) = vel
@@ -123,6 +127,7 @@
                 vel = velint3d(fptz(fz), wg, ijk, x, y, zb)  
                 fptz(fz)%vel = vel
                 fptz(fz)%p = p(ijk)
+                fptz(fz)%t = tg(ijk)
 
                 ! ... Initialize z-velocity in the forced points
                 wg(ijk) = vel
@@ -657,7 +662,7 @@
           END DO
           CLOSE(17)
         END IF
- 33   FORMAT(5(I6),5(F18.3))
+ 33   FORMAT(5(I6),6(F18.3))
       END IF
 !
       RETURN

@@ -89,7 +89,7 @@
       USE immersed_boundaries, ONLY: immb
       USE iterative_solver, ONLY: inmax, maxout, omega, optimization
       USE io_restart, ONLY: max_seconds, nfil
-      USE output_dump, ONLY: formatted_output
+      USE output_dump, ONLY: formatted_output, deltaz, imap
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl, kap, &
      &     cmus, phis, cps, dk, nsolid
@@ -122,7 +122,7 @@
         domain_x, domain_y, domain_z, maxbeta, grigen, mesh_partition
 
       NAMELIST / boundaries / west, east, south, north, bottom, top, &
-        itp, topography, immb, ibl
+        itp, topography, immb, ibl, deltaz, imap
       
       NAMELIST / inlet / ivent, wrat, xvent, yvent, radius, u_gas, v_gas, w_gas,  &
         p_gas, t_gas, u_solid, v_solid, w_solid, ep_solid, t_solid, &
@@ -227,6 +227,8 @@
       itp   = 0               ! itp = 1 => read topography from file
       topography = 'topo.dat' ! file containing the topographic profile
       immb  = 0               ! 1: use immersed boundaries
+      imap  = 0               ! 1: map output
+      deltaz = 20             ! distance from the ground to plot maps
       ibl  = 0                ! 1: compute drag and lift on blocks
 
 ! ... Inlet
@@ -408,6 +410,8 @@
       CALL bcast_integer(itp,1,root)
       CALL bcast_character(topography,80,root)
       CALL bcast_integer(immb,1,root)
+      CALL bcast_integer(imap,1,root)
+      CALL bcast_real(deltaz,1,root)
       CALL bcast_integer(ibl,1,root)
 !
 ! ... Inlet Namelist ................................................
@@ -721,6 +725,8 @@
               WRITE( iuni_nml, * ) topography
             CALL iotk_write_end( iuni_nml, "topography" )
             CALL iotk_write_dat( iuni_nml, "immb", immb )
+            CALL iotk_write_dat( iuni_nml, "imap", imap )
+            CALL iotk_write_dat( iuni_nml, "deltaz", deltaz )
             CALL iotk_write_dat( iuni_nml, "ibl", ibl )
           CALL iotk_write_end( iuni_nml, "boundaries" )
 

@@ -35,6 +35,7 @@
       USE gas_solid_temperature, ONLY: siegn, siesn
       USE grid, ONLY: dx, dy, dz, indx, indy, indz, inr
       USE grid, ONLY: flag
+      USE immersed_boundaries, ONLY: faces, immb
       USE particles_constants, ONLY: inrl
       USE pressure_epsilon, ONLY: ep
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
@@ -49,6 +50,14 @@
       REAL*8 :: flx
       INTEGER :: is, m, l, is1
       INTEGER :: i, j, k, ijk, imesh
+
+      INTEGER :: b_e, b_w, b_t, b_b, b_n, b_s
+      !REAL*8 :: b_e, b_w, b_t, b_b, b_n, b_s
+      REAL*8 :: ivf
+!
+! ... Initialize the cell fractions for immersed boundaries
+!
+      b_e = 1; b_w = 1; b_t = 1; b_b = 1; b_n = 1; b_s = 1; ivf = 1.D0
 !
       ALLOCATE(egfe(ncdom), egft(ncdom))
       ALLOCATE(esfe(ncdom,nsolid), esft(ncdom,nsolid))
@@ -85,19 +94,29 @@
 !
       DO ijk = 1, ncint
         IF(flag(ijk) == 1) THEN
+
+          ! ... Compute the volumes partially filled by the
+          ! ... topography
+          IF (immb == 1) CALL faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
+
           CALL meshinds(ijk,imesh,i,j,k)
           CALL subscr(ijk)
 ! 
-          egfx = egfe(ijk) - egfe(imjk)
-          egfz = egft(ijk) - egft(ijkm)
+          egfx = b_e * egfe(ijk) - b_w * egfe(imjk)
+          egfz = b_t * egft(ijk) - b_b * egft(ijkm)
 !
           IF (job_type == '3D') THEN
-            egfy = egfn(ijk) - egfn(ijmk)
+            egfy = b_n * egfn(ijk) - b_s * egfn(ijmk)
           END IF
 
           flx = dt * indx(i) * egfx * inr(i) +   &
                 dt * indy(j) * egfy          +   &
                 dt * indz(k) * egfz
+
+          !
+          ! ... volume correction for cells partially 
+          ! ... filled by the topography
+          flx = flx * ivf
 !
           rhg(ijk) = - flx
 !
@@ -105,28 +124,33 @@
 !
           DO is=1, nsolid
            IF (rlk(imjk,is) * inrl(is) <= 1.D-9) THEN
-             esfx = esfe(ijk, is)
+             esfx = b_e * esfe(ijk, is)
            ELSE
-             esfx = esfe(ijk, is) - esfe(imjk, is)
+             esfx = b_e * esfe(ijk, is) - b_w * esfe(imjk, is)
            END IF
 
            IF (rlk(ijkm,is) * inrl(is) <= 1.D-9) THEN
-             esfz = esft(ijk, is)
+             esfz = b_t * esft(ijk, is)
            ELSE
-             esfz = esft(ijk, is) - esft(ijkm, is)
+             esfz = b_t * esft(ijk, is) - b_b * esft(ijkm, is)
            END IF
 
            IF (job_type == '3D') THEN
              IF (rlk(ijmk,is) * inrl(is) <= 1.D-9) THEN
-               esfy = esfn(ijk, is)
+               esfy = b_n * esfn(ijk, is)
              ELSE
-               esfy = esfn(ijk, is) - esfn(ijmk, is)
+               esfy = b_n * esfn(ijk, is) - b_s * esfn(ijmk, is)
              END IF
            END IF
 !
             flx = dt * indx(i) * esfx * inr(i) +  &
                   dt * indy(j) * esfy          +  &
                   dt * indz(k) * esfz
+
+            !
+            ! ... volume correction for cells partially 
+            ! ... filled by the topography
+            flx = flx * ivf
 !
             rhs(ijk,is) = - flx
 

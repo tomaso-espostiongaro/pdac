@@ -31,6 +31,7 @@
         TYPE(point) :: nsl
         REAL*8  :: vel
         REAL*8  :: p
+        REAL*8  :: t
       END TYPE forcing_point
 !
       TYPE(forcing_point), ALLOCATABLE :: fptx(:), fpty(:), fptz(:)
@@ -47,7 +48,18 @@
 ! ... This function gives the increasing number of local forcing points 
       INTEGER, ALLOCATABLE :: numx(:), numy(:), numz(:)
 !
+! ... This array associates to each local mesh point an integer that
+! ... is the decimal representation of the binary number giving the
+! ... number of cell faces laying outside the topography
+      INTEGER*2, ALLOCATABLE :: bd(:)
+      REAL*8, ALLOCATABLE :: bdr(:,:)
+      REAL*8, ALLOCATABLE :: vf(:)
+
       INTEGER :: immb           
+!
+      INTERFACE faces
+        MODULE PROCEDURE faces_real, faces_int
+      END INTERFACE
 !
       SAVE
 !----------------------------------------------------------------------
@@ -620,6 +632,128 @@
 !
       END SUBROUTINE forcing3d
 !
+!----------------------------------------------------------------------
+      SUBROUTINE faces_int(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
+      USE control_flags, ONLY: job_type
+ 
+      IMPLICIT NONE
+ 
+      INTEGER, INTENT(IN) :: ijk
+      INTEGER, INTENT(OUT) :: b_e, b_w, b_t, b_b, b_n, b_s
+      REAL*8, INTENT(OUT) :: ivf
+ 
+      b_e = 0
+      IF( IAND(bd(ijk),1) /= 0 )  b_e = 1 
+ 
+      b_w = 0
+      IF( IAND(bd(ijk),2) /= 0 )  b_w = 1
+ 
+      b_t = 0
+      IF( IAND(bd(ijk),4) /= 0 )  b_t = 1
+ 
+      b_b = 0
+      IF( IAND(bd(ijk),8) /= 0 )  b_b = 1
+      
+      b_n = 0
+      IF( IAND(bd(ijk),16) /= 0 ) b_n = 1
+ 
+      b_s = 0
+      IF( IAND(bd(ijk),32) /= 0 ) b_s = 1
+ 
+      IF (vf(ijk) > 0.D0) THEN
+        ivf = 1.D0 / vf(ijk)
+      ELSE
+        ivf = 0.D0
+      END IF
+ 
+      RETURN
+      END SUBROUTINE faces_int
+!----------------------------------------------------------------------
+      SUBROUTINE faces_real(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
+      USE control_flags, ONLY: job_type
+ 
+      IMPLICIT NONE
+ 
+      INTEGER, INTENT(IN) :: ijk
+      REAL*8, INTENT(OUT) :: b_e, b_w, b_t, b_b, b_n, b_s
+      REAL*8, INTENT(OUT) :: ivf
+ 
+      b_e = bdr(ijk,1)
+      b_w = bdr(ijk,2)
+      b_t = bdr(ijk,3)
+      b_b = bdr(ijk,4)
+      b_n = bdr(ijk,5)
+      b_s = bdr(ijk,6)
+
+      IF (vf(ijk) > 0.D0) THEN
+        ivf = 1.D0 / vf(ijk)
+      ELSE
+        ivf = 0.D0
+      END IF
+ 
+      RETURN
+      END SUBROUTINE faces_real
+!----------------------------------------------------------------------
+      SUBROUTINE faces_real_2(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
+ 
+      IMPLICIT NONE
+ 
+      INTEGER, INTENT(IN) :: ijk
+      REAL*8, INTENT(OUT) :: b_e, b_w, b_t, b_b, b_n, b_s
+      REAL*8, INTENT(OUT) :: ivf
+ 
+      ivf = 0.D0
+ 
+      b_e = bdr(ijk,1)
+      IF (b_e  <= 0.D0) THEN
+        b_e = b_e + DSQRT( b_e**2 - b_e )
+      ELSE
+        b_e = b_e - DSQRT( b_e**2 - b_e )
+      END IF
+      b_e = b_e / ( 2.D0 * b_e - 1.D0 )
+
+      b_w = bdr(ijk,2)
+      IF (b_w  <= 0.D0) THEN
+        b_w = b_w + DSQRT( b_w**2 - b_w )
+      ELSE
+        b_w = b_w - DSQRT( b_w**2 - b_w )
+      END IF
+      b_w = b_w / ( 2.D0 * b_w - 1.D0 )
+
+      b_t = bdr(ijk,3)
+      IF (b_t  <= 0.D0) THEN
+        b_t = b_t + DSQRT( b_t**2 - b_t )
+      ELSE
+        b_t = b_t - DSQRT( b_t**2 - b_t )
+      END IF
+      b_t = b_t / ( 2.D0 * b_t - 1.D0 )
+
+      b_b = bdr(ijk,4)
+      IF (b_b  <= 0.D0) THEN
+        b_b = b_b + DSQRT( b_b**2 - b_b )
+      ELSE
+        b_b = b_b - DSQRT( b_b**2 - b_b )
+      END IF
+      b_b = b_b / ( 2.D0 * b_b - 1.D0 )
+
+      b_n = bdr(ijk,5)
+      IF (b_n  <= 0.D0) THEN
+        b_n = b_n + DSQRT( b_n**2 - b_n )
+      ELSE
+        b_n = b_n - DSQRT( b_n**2 - b_n )
+      END IF
+      b_n = b_n / ( 2.D0 * b_n - 1.D0 )
+
+      b_s = bdr(ijk,2)
+      IF (b_s  <= 0.D0) THEN
+        b_s = b_s + DSQRT( b_s**2 - b_s )
+      ELSE
+        b_s = b_s - DSQRT( b_s**2 - b_s )
+      END IF
+      b_s = b_s / ( 2.D0 * b_s - 1.D0 )
+
+      RETURN
+      END SUBROUTINE faces_real_2
 !----------------------------------------------------------------------
       END MODULE immersed_boundaries
 !----------------------------------------------------------------------

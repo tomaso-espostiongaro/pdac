@@ -16,26 +16,24 @@
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: time
 !
-        IMPLICIT NONE
-        PRIVATE
+      IMPLICIT NONE
+      PRIVATE
 
-        LOGICAL :: dump_all = .FALSE.
-        INTEGER :: nfil
+      INTEGER :: nfil
 
-        REAL*8 :: max_seconds
+      REAL*8 :: max_seconds
 
-        INTERFACE read_array
-           MODULE PROCEDURE read_array_dpara, read_array_sserial
-        END INTERFACE
+      INTERFACE read_array
+         MODULE PROCEDURE read_array_dpara, read_array_sserial
+      END INTERFACE
 
-        PUBLIC :: taperd, tapewr
-        PUBLIC :: write_array, read_array
-        PUBLIC :: max_seconds
-        PUBLIC :: dump_all
-        PUBLIC :: nfil
+      PUBLIC :: taperd, tapewr
+      PUBLIC :: write_array, read_array
+      PUBLIC :: max_seconds
+      PUBLIC :: nfil
 
 !----------------------------------------------------------------------
-        CONTAINS
+      CONTAINS
 !----------------------------------------------------------------------
 
       SUBROUTINE tapewr
@@ -121,22 +119,11 @@
 
       CALL write_array( 9, rog, dbl, lform )
 
-
-      IF( dump_all ) THEN
-
-        CALL write_array( 9, tg, dbl, lform )
+      CALL write_array( 9, tg, dbl, lform )
       
-        DO is = 1, nsolid
-          CALL write_array( 9, ts(:,is), dbl, lform )
-        END DO
-
-        CALL write_array( 9, ep, dbl, lform )
-
-        DO ig = 1, ngas
-          CALL write_array( 9, xgc(:,ig), dbl, lform )
-        END DO
-
-      END IF
+      DO is = 1, nsolid
+        CALL write_array( 9, ts(:,is), dbl, lform )
+      END DO
 !
       IF( mpime .EQ. root ) THEN
         CLOSE(9)
@@ -312,6 +299,9 @@
          WRITE(6,*) 'WARNING reading restart, ygc < 0'
       END IF
 
+      !
+      ! read gas density
+
       rgp = 0.0d0
       CALL read_array( 9, rgp, dbl, lform )
       IF( ANY( rgp < 0 ) ) THEN
@@ -324,36 +314,21 @@
          WRITE(6,*) 'WARNING reading restart, rog < 0'
       END IF
 
-      IF( dump_all ) THEN
+      !
+      ! read gas and particle temperature
 
-        tg = 0.0d0
-        CALL read_array( 9, tg, dbl, lform ) 
-        IF( ANY( tg < 0 ) ) THEN
-           WRITE(6,*) 'WARNING reading restart, tg < 0'
-        END IF
+      tg = 0.0d0
+      CALL read_array( 9, tg, dbl, lform ) 
+      IF( ANY( tg < 0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, tg < 0'
+      END IF
 
-        ts = 0.0d0
-        DO is = 1, nsolid
-          CALL read_array( 9, ts(:,is), dbl, lform )
-        END DO
-        IF( ANY( ts < 0 ) ) THEN
-           WRITE(6,*) 'WARNING reading restart, ts < 0'
-        END IF
-
-        ep = 0.0d0
-        CALL read_array( 9, ep, dbl, lform )
-        IF( ANY( ep < 0 ) ) THEN
-           WRITE(6,*) 'WARNING reading restart, ep < 0'
-        END IF
-
-        xgc = 0.0d0
-        DO ig = 1, ngas
-          CALL read_array( 9, xgc(:,ig), dbl, lform )
-        END DO
-        IF( ANY( xgc < 0 ) ) THEN
-           WRITE(6,*) 'WARNING reading restart, xgc < 0'
-        END IF
-
+      ts = 0.0d0
+      DO is = 1, nsolid
+        CALL read_array( 9, ts(:,is), dbl, lform )
+      END DO
+      IF( ANY( ts < 0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, ts < 0'
       END IF
 
       IF( mpime .EQ. root ) THEN

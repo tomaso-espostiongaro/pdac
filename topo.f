@@ -229,7 +229,7 @@
       LOGICAL, ALLOCATABLE :: dummy(:)
       REAL*8, ALLOCATABLE  :: topo(:)
       REAL*8, ALLOCATABLE  :: topo2d(:,:)
-      REAL*8 :: transl_z
+      REAL*8 :: transl_z = 0.D0
 !
       ALLOCATE (dummy(ntot))
       ! ... dist defines implicitly the profile
@@ -250,6 +250,7 @@
         ! ... number of topographic cells
         !
         transl_z = MINVAL(topo)
+
         WRITE(6,*) 'Translating mesh vertically: '
         WRITE(6,*) '     minimum topographic quota: ', transl_z
 
@@ -260,9 +261,9 @@
         !
         DO i = 1, nx
           DO k = 1, nz
-	    IF (z(k) <= topo(i)) ord(i) = k  
+	    IF (zb(k) <= topo(i)) ord(i) = k  
             ijk = i + (k-1) * nx
-            dist(ijk) = zb(k) - topo(i)
+            dist(ijk) = z(k) - topo(i)
           END DO
         END DO
 
@@ -282,6 +283,7 @@
         ! ... number of topographic cells
         !
         transl_z = MINVAL(topo2d)
+
         WRITE(*,*) 'Minimum topographic quota: ', transl_z
 
         z  = z  + transl_z
@@ -292,9 +294,9 @@
 	DO j = 1, ny
 	  DO i = 1, nx
 	    DO k = 1, nz
-	      IF (z(k) <= topo2d(i,j)) ord2d(i,j) = k  
+	      IF (zb(k) <= topo2d(i,j)) ord2d(i,j) = k  
               ijk = i + (j-1) * nx + (k-1) * nx * ny
-              dist(ijk) = zb(k) - topo2d(i,j)
+              dist(ijk) = z(k) - topo2d(i,j)
 	    END DO
 	  END DO
 	END DO

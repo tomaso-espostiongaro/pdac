@@ -17,7 +17,9 @@
       INTEGER :: inmax, maxout
       INTEGER :: optimization
 
-      INTEGER, ALLOCATABLE, DIMENSION(:) :: b_e, b_w, b_t, b_b, b_n, b_s
+      INTEGER :: b_e, b_w, b_t, b_b, b_n, b_s
+      !REAL*8  :: b_e, b_w, b_t, b_b, b_n, b_s
+      REAL*8 :: ivf
 
       TYPE(stencil) :: u, v, w, dens         
 
@@ -46,7 +48,7 @@
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
       USE grid, ONLY: flag
-      USE immersed_boundaries, ONLY: immb
+      USE immersed_boundaries, ONLY: immb, faces
       USE indijk_module
       USE parallel, ONLY: mpime
       USE particles_constants, ONLY: rl, inrl
@@ -59,7 +61,7 @@
       USE set_indexes, ONLY: subscr, first_subscr
       USE tilde_energy, ONLY: htilde
       USE tilde_momentum, ONLY: tilde, appu, appv, appw
-      USE time_parameters, ONLY: time, dt, timestart, tpr
+      USE time_parameters, ONLY: time, dt, timestart, tpr, sweep
 !
       IMPLICIT NONE
 !
@@ -90,6 +92,10 @@
 
       LOGICAL, ALLOCATABLE :: converge(:)
       LOGICAL :: cvg
+!
+! ... Initialize the cell fractions for immersed boundaries
+!
+      b_e = 1; b_w = 1; b_t = 1; b_b = 1; b_n = 1; b_s = 1; ivf = 1.D0
 !
       ALLOCATE(conv(ncint), abeta(ncint))
       conv = 0.0D0
@@ -148,10 +154,6 @@
       IF( optimization == 3 ) THEN
         ALLOCATE( amats( 6, 6, ncint ) )
       END IF
-!
-! ... compute the fraction of partially filled boundary cells
-!
-      CALL fill_cells
 !
 ! ... Guess an approximate value for gas density fluxes
 ! ... using the estimates of velocity and pressure.
@@ -229,6 +231,10 @@
 
              CALL meshinds(ijk,imesh,i,j,k)
              CALL first_subscr(ijk)
+
+             ! ... Compute the volumes partially filled by the
+             ! ... topography
+             IF (immb == 1) CALL faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
 
              ! ... Compute locally the residual 'dg' of the
              ! ... mass balance equation of the gas phase
@@ -431,8 +437,6 @@
       DEALLOCATE(abeta)
       DEALLOCATE(converge)
       IF( ALLOCATED( amats ) )  DEALLOCATE( amats )
-      DEALLOCATE(b_e, b_w, b_t, b_b)
-      IF (job_type == '3D') DEALLOCATE(b_n, b_s)
 !
       RETURN
       END SUBROUTINE iter
@@ -637,31 +641,18 @@
       REAL*8 :: resx, resy, resz
       REAL*8, INTENT(OUT) :: res
       INTEGER, INTENT(IN) :: i, j, k, ijk
-      REAL*8 :: vf, ivf
 !      
-! ... volume fraction not occupied by the topography
-!
-      vf = b_e(ijk) + b_w(ijk) + b_t(ijk) + b_b(ijk)
-!
-      resx = ( b_e(ijk)*rgfe(ijk) - b_w(ijk)*rgfe(imjk) ) * indx(i) * inr(i)
-      resz = ( b_t(ijk)*rgft(ijk) - b_b(ijk)*rgft(ijkm) ) * indz(k)
+      resx = ( b_e * rgfe(ijk) - b_w * rgfe(imjk) ) * indx(i) * inr(i)
+      resz = ( b_t * rgft(ijk) - b_b * rgft(ijkm) ) * indz(k)
 !
       IF (job_type == '2D') THEN
         resy = 0.D0
-        vf = 0.25D0 * vf
       ELSE IF (job_type == '3D') THEN
-        resy = (b_n(ijk)*rgfn(ijk) - b_s(ijk)*rgfn(ijmk)) * indy(j)
-        vf = vf + b_n(ijk) + b_s(ijk)
-        vf = vf / 6.D0
-      END IF
-
-      IF (vf > 0.D0) THEN
-        ivf = 1.D0 / vf
-      ELSE
-        ivf = 0.D0
+        resy = (b_n * rgfn(ijk) - b_s * rgfn(ijmk)) * indy(j)
       END IF
 !
       res  = rgp(ijk) - rgpn(ijk) + dt * ivf * (resx+resy+resz)
+!      
 !          - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
 
       RETURN
@@ -769,37 +760,23 @@
       REAL*8 :: rlkx, rlky, rlkz, rls, rlk_tmp
       INTEGER, INTENT(IN) :: i, j, k, ijk
       INTEGER :: is
-      REAL*8 :: vf, ivf
       INTEGER :: fx, fy, fz
       LOGICAL :: forced = .FALSE.
-
-      IF (job_type == '2D') THEN
-        vf = b_e(ijk) + b_w(ijk) + b_t(ijk) + b_b(ijk)
-        vf = 0.25D0 * vf
-      ELSE IF (job_type == '3D') THEN
-        vf = b_e(ijk) + b_w(ijk) + b_t(ijk) + b_b(ijk) + b_n(ijk) + b_s(ijk)
-        vf = vf / 6.D0
-      END IF
-
-      IF (vf > 0.D0) THEN
-        ivf = 1.D0 / vf
-      ELSE
-        ivf = 0.D0
-      END IF
 
       rls = 0.D0
       DO is = 1, nsolid
 
-        rlkx = (b_e(ijk)*rsfe(ijk,is) - b_w(ijk)*rsfe(imjk,is)) * indx(i) * inr(i)
-        rlkz = (b_t(ijk)*rsft(ijk,is) - b_b(ijk)*rsft(ijkm,is)) * indz(k)
+        rlkx = (b_e * rsfe(ijk,is) - b_w * rsfe(imjk,is)) * indx(i) * inr(i)
+        rlkz = (b_t * rsft(ijk,is) - b_b * rsft(ijkm,is)) * indz(k)
 
         IF (job_type == '2D') THEN
           rlky = 0.D0
         ELSE IF (job_type == '3D') THEN
-          rlky = (b_n(ijk)*rsfn(ijk,is) - b_s(ijk)*rsfn(ijmk,is)) * indy(j)
+          rlky = (b_n * rsfn(ijk,is) - b_s * rsfn(ijmk,is)) * indy(j)
         END IF
 
         rlk_tmp = rlkn( ijk, is ) - dt * ivf * ( rlkx + rlky + rlkz )
+              !
               !- dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
 
         rlk( ijk, is ) = MAX( 0.0d0, rlk_tmp )
@@ -811,7 +788,7 @@
         IF (lpr >= 1) THEN
           WRITE(8,*) ' warning1: mass is not conserved'
           WRITE(8,*) ' time, i, j, k ', time, i, j, k
-          WRITE(8,*) ' rls, volfrac ', rls, vf
+          WRITE(8,*) ' rls, volfrac ', rls, 1.D0/ivf
         END IF
 
         IF (immb == 1) THEN
@@ -1060,9 +1037,9 @@
 
           iepx = (  rb(i) * iep_e + rb(i-1) * iep_w ) * indx(i) * inr(i) 
           iepz = (  iep_t + iep_b ) * indz(k)
-	  IF (job_type == '2D') THEN
+          IF (job_type == '2D') THEN
             iepy = 0.D0
-	  ELSE IF (job_type == '3D') THEN
+          ELSE IF (job_type == '3D') THEN
             iepy = (  iep_n + iep_s ) * indy(j)
           END IF
 !
@@ -1081,69 +1058,6 @@
 !
       RETURN
       END SUBROUTINE betas
-!----------------------------------------------------------------------
-      SUBROUTINE fill_cells
-!
-! ... Coefficients b(1:6) are multiplied to the numerical mass
-! ... fluxes to take into account that some cell face could be
-! ... immersed. b=1 if the cell face is external, b=0 if the
-! ... cell face is inside the topography.
-!
-      USE control_flags, ONLY: job_type
-      USE domain_decomposition, ONLY: ncint, meshinds
-      USE grid, ONLY: z, zb, flag
-      USE immersed_boundaries, ONLY: immb
-      USE immersed_boundaries, ONLY: topo_c, topo_x
-      USE immersed_boundaries, ONLY: topo2d_c, topo2d_x, topo2d_y
-      USE time_parameters, ONLY: sweep
-      IMPLICIT NONE
-
-      INTEGER :: i,j,k,ijk,imesh
-      LOGICAL :: fillc
-!
-! ... Allocate and initialize coefficients
-!
-      ALLOCATE(b_e(ncint)); b_e = 1
-      ALLOCATE(b_w(ncint)); b_w = 1
-      ALLOCATE(b_t(ncint)); b_t = 1
-      ALLOCATE(b_b(ncint)); b_b = 1
-      IF (job_type == '3D') THEN
-        ALLOCATE(b_n(ncint)); b_n = 1
-        ALLOCATE(b_s(ncint)); b_s = 1
-      END IF
-!
-      IF (immb == 1) THEN
-        DO ijk=1, ncint
-          IF( flag(ijk) == 1 ) THEN
-            CALL meshinds(ijk,imesh,i,j,k)
-  
-            IF (job_type == '2D') THEN
-              IF (z(k) < topo_x(i))     b_e(ijk) = 0 ! East
-              IF (z(k) < topo_x(i-1))   b_w(ijk) = 0 ! West
-              IF (zb(k) < topo_c(i))    b_t(ijk) = 0 ! Top
-              IF (zb(k-1) < topo_c(i))  b_b(ijk) = 0 ! Bottom
-            ELSE IF (job_type == '3D') THEN
-              IF (z(k) < topo2d_x(i,j))     b_e(ijk) = 0 ! East
-              IF (z(k) < topo2d_x(i-1,j))   b_w(ijk) = 0 ! West
-              IF (z(k) < topo2d_y(i,j))     b_n(ijk) = 0 ! North
-              IF (z(k) < topo2d_y(i,j-1))   b_s(ijk) = 0 ! South
-              IF (zb(k) < topo2d_c(i,j))    b_t(ijk) = 0 ! Top
-              IF (zb(k-1) < topo2d_c(i,j))  b_b(ijk) = 0 ! Bottom
-            END IF
-
-!            IF (sweep == 1) THEN
-!              IF (b_e(ijk)==0 .OR. &
-!                  b_w(ijk)==0 .OR. &
-!                  b_t(ijk)==0 .OR. &
-!                  b_b(ijk)==0 )    &
-!              WRITE(6,('I8,7(I4)')) ijk, i, j, k, b_e(ijk), b_w(ijk), b_t(ijk), b_b(ijk)
-!            END IF
-          END IF
-
-        END DO
-      END IF
-      
-      END SUBROUTINE fill_cells
 !----------------------------------------------------------------------
 !     H E R E   S T A R T   T H E  O P T I M I Z E D   R O U T I N E S 
 !----------------------------------------------------------------------

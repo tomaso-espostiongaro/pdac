@@ -19,7 +19,7 @@
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE io_restart, ONLY: tapewr, max_seconds
       USE iterative_solver, ONLY: iter
-      USE output_dump, ONLY: outp, shock_tube_out
+      USE output_dump, ONLY: outp, shock_tube_out, outp_map, imap
       USE particles_constants, ONLY: cps
       USE pressure_epsilon, ONLY: p, ep
       USE reactions, ONLY: rexion, irex
@@ -289,6 +289,7 @@
 ! ... Write OUTPUT file
 ! 
         IF(MOD(sweep,nprint) == 0) THEN
+          IF (imap > 0) CALL outp_map(tg)
           CALL outp
         ENDIF
 !

@@ -31,7 +31,7 @@
       USE gas_solid_viscosity, ONLY: mug, kapg
       USE grid, ONLY: flag
       USE grid, ONLY: dx, dy, dz
-      USE immersed_boundaries, ONLY: numx, numy, numz, immb
+      USE immersed_boundaries, ONLY: numx, numy, numz, immb, faces
       USE specific_heat_module, ONLY: ck, cp
       USE heat_transfer, ONLY: hvs
       USE particles_constants, ONLY: cps
@@ -51,10 +51,16 @@
       REAL*8 :: ugc, vgc, wgc
       INTEGER :: is, is1
       INTEGER :: ijk, i, j, k, imesh, info
-      INTEGER :: fx, fy, fz
+      INTEGER :: b_e, b_w, b_t, b_b, b_n, b_s
+      REAL*8 :: ivf
+
       LOGICAL :: forced = .FALSE.
 !
-      fx = 0; fy = 0; fz = 0
+! ... Initialize the cell fractions for immersed boundaries
+!
+      b_e = 1; b_w = 1; b_t = 1; b_b = 1; b_n = 1; b_s = 1; ivf = 1.D0
+!
+! ... Allocate and initialize the enthalpy matrix elements
 !
       ALLOCATE(at(nphase, nphase))
       ALLOCATE(bt(nphase))
@@ -75,17 +81,17 @@
       DO ijk = 1, ncint
 
         IF (immb == 1) THEN
-          fx = numx(ijk)
           IF (job_type == '2D') THEN
-            fy = 0
+            forced = (numx(ijk)/=0 .OR. numz(ijk)/=0)
           ELSE IF (job_type == '3D') THEN
-            fy = numy(ijk)
+            forced = (numx(ijk)/=0 .OR. numy(ijk)/=0 .OR. numz(ijk)/=0)
           END IF
-          fz = numz(ijk)
-          forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
         END IF
         
-        IF(flag(ijk) == 1 .AND. .NOT.forced) THEN
+        IF(flag(ijk) == 1) THEN
+
+          IF (immb == 1) CALL faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
+
           CALL meshinds(ijk,imesh,i,j,k)
           CALL subscr(ijk)
 !
@@ -93,15 +99,19 @@
 !
 ! ... The pressure terms can be treated implicitly
 ! ... (coupled with momentum equation into the iterative solver)
+! ... This term is not modified (?) by the forcing procedure
 !
           indxc = 1.D0/(dx(i)+(dx(i+1)+dx(i-1))*0.5D0)
           indzc = 1.D0/(dz(k)+(dz(k+1)+dz(k-1))*0.5D0)
-          ugc = 0.5D0*(ug(ijk)+ug(imjk))
-          wgc = 0.5D0*(wg(ijk)+wg(ijkm))
+
+          ugc = 0.5D0 * (b_e * ug(ijk) + b_w * ug(imjk))
+
+          wgc = 0.5D0 * (b_t * wg(ijk) + b_b * wg(ijkm))
 
           IF (job_type == '3D') THEN
             indyc = 1.D0 / (dy(j)+(dy(j+1)+dy(j-1))*0.5D0)
-            vgc = 0.5D0*(vg(ijk)+vg(ijmk))
+
+            vgc = 0.5D0 * (b_n * vg(ijk) + b_s * vg(ijmk))
           END IF
 !
 ! ... Pressure term (can be coupled in pressure algorithm)

@@ -147,12 +147,13 @@
 !
       USE dimensions
       USE domain_decomposition, ONLY: meshinds
-      USE grid, ONLY: flag
+      USE grid, ONLY: flag, z, zb
       USE gas_constants, ONLY: gmw, c_joule, rgas, tzero, hzerog, gammaair
       USE gas_constants, ONLY: gas_type
       USE parallel, ONLY: mpime
       USE specific_heat_module, ONLY: hcapg
       USE time_parameters, ONLY: time
+      USE immersed_boundaries, ONLY: topo2d_c, topo2d_x, topo2d_y
       IMPLICIT NONE
 !
       REAL*8, INTENT(IN) :: sieg
@@ -162,7 +163,7 @@
       INTEGER, INTENT(IN) :: ijk
       INTEGER, INTENT(INOUT) :: info
 !
-      REAL*8 :: tgnn, mg, hc, ratmin
+      REAL*8 :: tgnn, mg, ratmin
       REAL*8 :: tg0, sieg0, cgas0
       INTEGER :: ii, nlmax
       INTEGER :: ig, i, j, k, imesh
@@ -178,43 +179,37 @@
             WRITE(6,*) 'coord: ', i,j,k,' sieg= ', sieg
           END IF
 
-          tgnn = tg
-          CALL hcapg( cpgc(:), tg )
-          cgas0 = 0.D0
-          DO ig = 1, ngas
-            cgas0 = cpgc( gas_type( ig ) ) * yg(ig) + cgas0
-          END DO
-          cgas  = cgas0
-          tg = tzero + ( sieg - hzerog ) / cgas
-          IF ( DABS( ( tgnn - tg ) / tgnn ) <= ratmin ) GOTO 223
-
-          DO ii = 2, nlmax
+          info = 1
+          DO ii = 1, nlmax
             tgnn = tg
             CALL hcapg( cpgc(:), tg )
-            hc = 0.D0
+            cgas = 0.D0
             DO ig = 1, ngas
-              hc = cpgc( gas_type(ig) ) * yg(ig) + hc
+              cgas = cpgc( gas_type(ig) ) * yg(ig) + cgas
             END DO
-            cgas = hc
             tg = tzero + ( sieg - hzerog ) / cgas
-            IF ( DABS( ( tgnn - tg ) / tgnn ) <= ratmin ) GOTO 223
+            IF ( DABS( ( tgnn - tg ) / tgnn ) <= ratmin ) THEN
+              info = 0
+              EXIT
+            END IF
           END DO
+
+          IF (info == 1) THEN
 !**********************************************************************
-          !  Error report
-          CALL meshinds(ijk,imesh,i,j,k)
-          WRITE(8,*) 'max number of iteration reached in eosg'
-          WRITE(8,*) 'time:', time, 'proc:', mpime
-          WRITE(8,*) 'local cell:', ijk , i, j, k
-          WRITE(8,*) 'temperature:',tg0, 'enthalpy:',sieg0
-          WRITE(8,*) 'specific heat:',cgas0
-          WRITE(6,*) 'max number of iteration reached in eosg'
-          WRITE(6,*) 'time:', time, 'proc:', mpime, 'cell:', ijk 
-          WRITE(6,*) 'temperature:',tg0, 'enthalpy:',sieg0
-          WRITE(6,*) 'specific heat:',cgas0
-          info = 1
-          CALL error( 'eosg', 'max number of iteration reached in eosg', 1)
-  223     CONTINUE
+            !  Error report
+            CALL meshinds(ijk,imesh,i,j,k)
+            WRITE(6,*) 'max number of iteration reached in eosg'
+            WRITE(6,*) 'time:', time
+            WRITE(6,*) 'proc:', mpime
+            WRITE(6,*) 'local cell:', ijk , i, j, k
+            WRITE(6,*) 'temperature:', tg0, tg
+            WRITE(6,*) 'enthalpy:', sieg0
+            WRITE(6,*) 'concentrations:', yg(:)
+            WRITE(6,*) 'topography:',topo2d_c(i,j),topo2d_x(i,j),topo2d_y(i,j)
+            WRITE(6,*) 'quota:',z(k),zb(k),zb(k-1)
+            CALL error( 'eosg', 'max number of iteration reached in eosg', 1)
 !**********************************************************************
+          END IF
 
           IF( tg <= 0.0d0 ) THEN
             CALL meshinds(ijk,imesh,i,j,k)

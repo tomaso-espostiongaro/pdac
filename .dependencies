@@ -22,7 +22,7 @@ drag.o : dimensions.o particles.o subscr.o time.o
 
 environment.o : 
 
-eosg.o : decomp.o dimensions.o gas.o grid.o hcapgs.o parallel.o time.o 
+eosg.o : decomp.o dimensions.o gas.o grid.o hcapgs.o immb.o parallel.o time.o 
 
 eosl.o : decomp.o dimensions.o gas.o hcapgs.o 
 
@@ -51,8 +51,8 @@ hcapgs.o : decomp.o dimensions.o gas.o
 hotc.o : decomp.o dimensions.o grid.o indijk.o subscr.o 
 
 htilde.o : control.o decomp.o dens.o dimensions.o flux_sc.o grid.o hotc.o  \
-    limiters.o particles.o press.o subscr.o temp.o time.o turbo.o velocity.o  \
-    visc.o 
+    immb.o limiters.o particles.o press.o subscr.o temp.o time.o turbo.o  \
+    velocity.o visc.o 
 
 hvs.o : dimensions.o particles.o 
 
@@ -125,7 +125,7 @@ residuals.o : control.o decomp.o dens.o dimensions.o eosg.o grid.o  \
 roughness.o : dimensions.o 
 
 setup.o : atmosphere.o control.o decomp.o dens.o dimensions.o eosg.o eosl.o  \
-    gas.o grid.o hcapgs.o immb.o indijk.o io.o particles.o press.o reactions.o  \
+    gas.o grid.o hcapgs.o immb.o indijk.o particles.o press.o reactions.o  \
     temp.o time.o turbo.o velocity.o vent.o visc.o 
 
 subscr.o : decomp.o dimensions.o indijk.o 

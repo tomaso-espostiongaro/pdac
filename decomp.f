@@ -7,7 +7,6 @@
 !----------------------------------------------------------------------
         USE grid, ONLY: fl, flag
         USE indijk_module
-        USE immersed_boundaries, ONLY: numx, fptx, numy, fpty, numz, fptz
         USE immersed_boundaries, ONLY: immb
         USE control_flags, ONLY: lpr
 !
@@ -807,7 +806,6 @@
       INTEGER :: localdim
       INTEGER :: layer, k2, k1, j2, j1, i2, i1, nkt
       INTEGER :: me, whose
-      INTEGER :: nfpx, nfpy, nfpz
 !
       IF(ALLOCATED(rcv_map)) DEALLOCATE(rcv_map)
       IF(ALLOCATED(snd_map)) DEALLOCATE(snd_map)
@@ -1110,118 +1108,17 @@
 
       CALL data_exchange(flag)
 !
-! ... Map the forcing points on local domains
-! ... by using array numx/z. Scatter the array
-! ... of forcing points among processors.
-!
-      IF (immb == 1) THEN
-
-        ALLOCATE( numx(ncint) ); numx = 0
-        nfpx = SIZE(fptx)
-
-        IF (job_type == '3D') THEN
-          ALLOCATE( numy(ncint) ); numy = 0
-          nfpy = SIZE(fpty)
-        ELSE
-          nfpy = 0.D0
-        END IF
-
-        ALLOCATE( numz(ncint) ); numz = 0
-        nfpz = SIZE(fptz)
-
-        DO n = 1, nfpx
-          i = fptx(n)%i
-          j = fptx(n)%j
-          k = fptx(n)%k
-set_numx: IF (i/=0 .AND. k/=0) THEN
-            IF (job_type == '2D') THEN
-              ijk = i + (k-1) * nx
-            ELSE IF (job_type == '3D') THEN
-              IF (j == 0) CALL error('decomp','control numx',1)
-              ijk = i + (j-1) * nx + (k-1) * nx * ny
-            END IF
-            IF( cell_owner(ijk) == mpime ) THEN
-
-              ijkl = cell_g2l(ijk,mpime)
-              numx(ijkl) = n 
-
-              IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
-                  j==1 .OR. j==ny) THEN
-                WRITE(8,*) 'x-forcing on boundaries', i, j, k
-              END IF
-            END IF
-          ELSE
-            CALL error('decomp','control numx',1)
-          END IF set_numx
-
-        END DO
-        !
-        DO n = 1, nfpy
-        
-          IF (job_type == '3D') THEN
-            i = fpty(n)%i
-            j = fpty(n)%j
-            k = fpty(n)%k
-set_numy:   IF (i/=0 .AND. k/=0) THEN
-              IF (job_type == '2D') THEN
-                ijk = i + (k-1) * nx
-              ELSE IF (job_type == '3D') THEN
-                IF (j == 0) CALL error('decomp','control numy',1)
-                ijk = i + (j-1) * nx + (k-1) * nx * ny
-              END IF
-              IF( cell_owner(ijk)== mpime ) THEN
-
-                ijkl = cell_g2l(ijk,mpime)
-                numy(ijkl) = n 
-
-                IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
-                    j==1 .OR. j==ny) THEN
-                  WRITE(8,*) 'y-forcing on boundaries', i, j, k
-                END IF
-              END IF
-            ELSE
-              CALL error('decomp','control numy',1)
-            END IF set_numy
-          END IF
-
-        END DO
-        !
-        DO n = 1, nfpz
-        
-          i = fptz(n)%i
-          j = fptz(n)%j
-          k = fptz(n)%k
-set_numz: IF (i/=0 .AND. k/=0) THEN
-            IF (job_type == '2D') THEN
-              ijk = i + (k-1) * nx
-            ELSE IF (job_type == '3D') THEN
-              IF (j == 0) CALL error('decomp','control numz',1)
-              ijk = i + (j-1) * nx + (k-1) * nx * ny
-            END IF
-            IF( cell_owner(ijk)== mpime ) THEN
-
-              ijkl = cell_g2l(ijk,mpime)
-              numz(ijkl) = n 
-
-              IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
-                  j==1 .OR. j==ny) THEN
-                WRITE(8,*) 'z-forcing on boundaries', i, j, k
-              END IF
-            END IF
-          ELSE
-            CALL error('decomp','control numz',1)
-          END IF set_numz
-        
-        END DO
-
-      END IF
-!
 ! ... fill in the array myinds using myijk
 !
       CALL set_myinds(myinds, myijk)
 !
+! ... Map the forcing points on local domains
+! ... by using array numx/y/z. Scatter the array
+! ... of forcing points among processors.
+!
+      IF (immb == 1) CALL local_forcing
+!
       RETURN
-
       END SUBROUTINE ghost
 !----------------------------------------------------------------------
 !
@@ -1678,7 +1575,6 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
       END SUBROUTINE set_rcv_map
 
 !---------------------------------------------------
-!
       SUBROUTINE set_myinds(myinds, myijk)
 !
         USE dimensions
@@ -1733,7 +1629,9 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
 
               ijkb = ijkm
               IF((flag(ijkm) == 2).OR.(flag(ijkm) == 3)) ijkb = ijk
-
+!
+! ... diagonal neighbours
+!
               ijkwt = imjkp
               IF(flag(imjkp) == 2 .OR. flag(imjkp) == 3) ijkwt = ijkp 
 
@@ -1760,20 +1658,20 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
 ! ... Second neighbours are not available on boundaries
 !
               ijkee = ippjk
-              IF(i == (nx-1)) ijkee = ijke
               IF( (flag(ippjk) == 2) .OR. (flag(ippjk) == 3) ) ijkee = ipjk
+              IF(i == (nx-1)) ijkee = ijke
 
               ijktt = ijkpp
-              IF(k == (nz-1)) ijktt = ijkt
               IF( (flag(ijkpp) == 2) .OR. (flag(ijkpp) == 3) ) ijktt = ijkp
+              IF(k == (nz-1)) ijktt = ijkt
   
               ijkww = immjk
-              IF(i == 2) ijkww = ijkw
               IF( (flag(immjk) == 2) .OR. (flag(immjk) == 3) ) ijkww = imjk
+              IF(i == 2) ijkww = ijkw
 
               ijkbb = ijkmm
-              IF(k == 2) ijkbb = ijkb
               IF( (flag(ijkmm) == 2) .OR. (flag(ijkmm) == 3) ) ijkbb = ijkm
+              IF(k == 2) ijkbb = ijkb
 !
               myinds(ip0_jp0_km2_, ijk) = ijkbb
               myinds(im1_jp0_km1_, ijk) = ijkwb
@@ -1795,7 +1693,10 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
             IF( (i >= 2) .AND. (i <= (nx-1)) .AND.   &
                 (j >= 2) .AND. (j <= (ny-1)) .AND.   &
                 (k >= 2) .AND. (k <= (nz-1))         ) THEN
-  
+!
+! ... First neighbours: near the axis or solid boundaries 
+! ... impose homogeneous Neumann conditions
+!
               ipjk   = myijk( ip1_jp0_kp0_ , ijk )
               imjk   = myijk( im1_jp0_kp0_ , ijk )
               ippjk  = myijk( ip2_jp0_kp0_ , ijk )
@@ -1822,53 +1723,65 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               ijkmm  = myijk( ip0_jp0_km2_ , ijk )
   
               ijke  =  ipjk
+              if( flag( ipjk  ) == 2 .OR. flag( ipjk )  == 3 ) ijke = ijk
+
               ijkw  =  imjk
-              ijkee =  ippjk
-              ijkww =  immjk
+              if( flag( imjk  ) == 2 .OR. flag( imjk )  == 3 ) ijkw = ijk
+
               ijkn  =  ijpk
+              if( flag( ijpk ) == 2 .OR. flag( ijpk ) == 3 ) ijkn = ijk
+
+              ijks  =  ijmk
+              if( flag( ijmk ) == 2 .OR. flag( ijmk ) == 3 ) ijks = ijk
+
+              ijkt  =  ijkp
+              if( flag( ijkp ) == 2 .OR. flag( ijkp ) == 3 ) ijkt = ijk
+
+              ijkb  =  ijkm
+              if( flag( ijkm ) == 2 .OR. flag( ijkm ) == 3 ) ijkb = ijk
+
+!
+! ... Second neighbours are not available on boundaries
+!
+              ijkee =  ippjk
+              if( flag( ippjk ) == 2 .OR. flag( ippjk ) == 3 ) ijkee = ijke
+              if( i == (nx-1) ) ijkee = ijke
+
+              ijkww =  immjk
+              if( flag( immjk ) == 2 .OR. flag( immjk ) == 3 ) ijkww = ijkw
+              if( (i == 2) ) ijkww = ijkw
+
+              ijknn =  ijppk
+              if( flag( ijppk ) == 2 .OR. flag( ijppk ) == 3 ) ijknn = ijkn
+              if( (j == (ny-1)) ) ijknn = ijkn
+
+              ijkss =  ijmmk
+              if( flag( ijmmk ) == 2 .OR. flag( ijmmk ) == 3 ) ijkss = ijks
+              if( (j == 2) ) ijkss = ijks
+
+              ijktt =  ijkpp
+              if( flag( ijkpp ) == 2 .OR. flag( ijkpp ) == 3 ) ijktt = ijkt
+              if( k == (nz-1) ) ijktt = ijkt
+
+              ijkbb =  ijkmm
+              if( flag( ijkmm ) == 2 .OR. flag( ijkmm ) == 3 ) ijkbb = ijkb
+              if( k == 2 ) ijkbb = ijkb
+
+              !!!!! check diagonals
+
               ijken =  ipjpk
               ijkwn =  imjpk
-              ijks  =  ijmk
               ijkes =  ipjmk
               ijkws =  imjmk
-              ijknn =  ijppk
-              ijkss =  ijmmk
-              ijkt  =  ijkp
               ijket =  ipjkp
               ijkwt =  imjkp
               ijknt =  ijpkp
               ijkst =  ijmkp
-              ijkb  =  ijkm
               ijkeb =  ipjkm
               ijkwb =  imjkm
               ijknb =  ijpkm
               ijksb =  ijmkm
-              ijktt =  ijkpp
-              ijkbb =  ijkmm
-  
-              if( flag( ipjk  ) == 2 .OR. flag( ipjk )  == 3 ) ijke = ijk
-              if( flag( imjk  ) == 2 .OR. flag( imjk )  == 3 ) ijkw = ijk
-              if( (i /= (nx-1)) .AND. ( flag( ippjk ) == 2 .OR. flag( ippjk ) == 3 ) ) ijkee = ijke
-              if( (i == (nx-1)) ) ijkee = ijke
-              if( (i /= 2) .AND. ( flag( immjk ) == 2 .OR. flag( immjk ) == 3 ) ) ijkww = ijkw
-              if( (i == 2) ) ijkww = ijkw
-              if( flag( ijpk ) == 2 .OR. flag( ijpk ) == 3 ) ijkn = ijk
-              ! check corners   ijken ijkwn
-              if( flag( ijmk ) == 2 .OR. flag( ijmk ) == 3 ) ijks = ijk
-              ! check corners   ijkes ijkws
-              if( (j /= (ny-1)) .AND. ( flag( ijppk ) == 2 .OR. flag( ijppk ) == 3 ) ) ijknn = ijkn
-              if( (j == (ny-1)) ) ijknn = ijkn
-              if( (j /= 2) .AND. ( flag( ijmmk ) == 2 .OR. flag( ijmmk ) == 3 ) ) ijkss = ijks
-              if( (j == 2) ) ijkss = ijks
-              if( flag( ijkp ) == 2 .OR. flag( ijkp ) == 3 ) ijkt = ijk
-              ! check corners   ijket ijkwt ijknt ijkst
-              if( flag( ijkm ) == 2 .OR. flag( ijkm ) == 3 ) ijkb = ijk
-              ! check corners   ijkeb ijkwb ijknb ijksb
-              if( (k /= (nz-1)) .AND. ( flag( ijkpp ) == 2 .OR. flag( ijkpp ) == 3 ) ) ijktt = ijkt
-              if( (k == (nz-1)) ) ijktt = ijkt
-              if( (k /= 2) .AND. ( flag( ijkmm ) == 2 .OR. flag( ijkmm ) == 3 ) ) ijkbb = ijkb
-              if( (k == 2) ) ijkbb = ijkb
-
+!
               myinds( ip1_jp0_kp0_ , ijk ) = ijke
               myinds( im1_jp0_kp0_ , ijk ) = ijkw
               myinds( ip2_jp0_kp0_ , ijk ) = ijkee
@@ -2284,6 +2197,326 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
         END IF
 
       END SUBROUTINE meshinds
+!----------------------------------------------------------------------
+      SUBROUTINE local_forcing
+      USE control_flags, ONLY: job_type
+      USE dimensions, ONLY: nx, ny, nz
+      USE immersed_boundaries, ONLY: numx, fptx, numy, fpty, numz, fptz
+      USE parallel, ONLY: mpime
+
+      IMPLICIT NONE
+      INTEGER :: n, i, j, k, ijk, ijkl
+      INTEGER :: nfpx, nfpy, nfpz
+!
+        ALLOCATE( numx(ncdom) ); numx = 0
+        nfpx = SIZE(fptx)
+
+        IF (job_type == '3D') THEN
+          ALLOCATE( numy(ncdom) ); numy = 0
+          nfpy = SIZE(fpty)
+        ELSE
+          nfpy = 0.D0
+        END IF
+
+        ALLOCATE( numz(ncdom) ); numz = 0
+        nfpz = SIZE(fptz)
+
+        DO n = 1, nfpx
+          i = fptx(n)%i
+          j = fptx(n)%j
+          k = fptx(n)%k
+set_numx: IF (i/=0 .AND. k/=0) THEN
+            IF (job_type == '2D') THEN
+              ijk = i + (k-1) * nx
+            ELSE IF (job_type == '3D') THEN
+              IF (j == 0) CALL error('decomp','control numx',1)
+              ijk = i + (j-1) * nx + (k-1) * nx * ny
+            END IF
+            IF( cell_owner(ijk) == mpime ) THEN
+
+              ijkl = cell_g2l(ijk,mpime)
+              numx(ijkl) = n 
+
+              IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
+                  j==1 .OR. j==ny) THEN
+                WRITE(8,*) 'x-forcing on boundaries', i, j, k
+              END IF
+            END IF
+          ELSE
+            CALL error('decomp','control numx',1)
+          END IF set_numx
+
+        END DO
+        !
+        DO n = 1, nfpy
+        
+          IF (job_type == '3D') THEN
+            i = fpty(n)%i
+            j = fpty(n)%j
+            k = fpty(n)%k
+set_numy:   IF (i/=0 .AND. k/=0) THEN
+              IF (job_type == '2D') THEN
+                ijk = i + (k-1) * nx
+              ELSE IF (job_type == '3D') THEN
+                IF (j == 0) CALL error('decomp','control numy',1)
+                ijk = i + (j-1) * nx + (k-1) * nx * ny
+              END IF
+              IF( cell_owner(ijk)== mpime ) THEN
+
+                ijkl = cell_g2l(ijk,mpime)
+                numy(ijkl) = n 
+
+                IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
+                    j==1 .OR. j==ny) THEN
+                  WRITE(8,*) 'y-forcing on boundaries', i, j, k
+                END IF
+              END IF
+            ELSE
+              CALL error('decomp','control numy',1)
+            END IF set_numy
+          END IF
+
+        END DO
+        !
+        DO n = 1, nfpz
+        
+          i = fptz(n)%i
+          j = fptz(n)%j
+          k = fptz(n)%k
+set_numz: IF (i/=0 .AND. k/=0) THEN
+            IF (job_type == '2D') THEN
+              ijk = i + (k-1) * nx
+            ELSE IF (job_type == '3D') THEN
+              IF (j == 0) CALL error('decomp','control numz',1)
+              ijk = i + (j-1) * nx + (k-1) * nx * ny
+            END IF
+            IF( cell_owner(ijk)== mpime ) THEN
+
+              ijkl = cell_g2l(ijk,mpime)
+              numz(ijkl) = n 
+
+              IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
+                  j==1 .OR. j==ny) THEN
+                WRITE(8,*) 'z-forcing on boundaries', i, j, k
+              END IF
+            END IF
+          ELSE
+            CALL error('decomp','control numz',1)
+          END IF set_numz
+        
+        END DO
+
+        CALL data_exchange(numx)
+        IF (job_type == '3D') CALL data_exchange(numy)
+        CALL data_exchange(numz)
+
+        CALL fill_cells_int
+
+      RETURN
+      END SUBROUTINE local_forcing
+!----------------------------------------------------------------------
+      SUBROUTINE fill_cells_int
+!
+! ... Coefficients b(1:6) are multiplied to the numerical mass
+! ... fluxes to take into account that some cell face could be
+! ... immersed. b=1 if the cell face is external, b=0 if the
+! ... cell face is inside the topography.
+!
+      USE control_flags, ONLY: job_type
+      USE grid, ONLY: z, zb, flag, dz
+      USE immersed_boundaries, ONLY: immb, bd, vf
+      USE immersed_boundaries, ONLY: topo_c, topo_x
+      USE immersed_boundaries, ONLY: topo2d_c, topo2d_x, topo2d_y
+      IMPLICIT NONE
+
+      INTEGER :: i,j,k,ijk,imesh
+      INTEGER :: filled
+!
+! ... Allocate and initialize coefficients
+!
+      ALLOCATE(bd(ncint))
+      ALLOCATE(vf(ncint))
+
+      IF (job_type == '2D') THEN
+        filled = 15
+      ELSE IF (job_type == '3D') THEN
+        filled = 63
+      END IF
+
+      bd(:) = 0
+      vf(:) = 1.D0
+!
+        DO ijk=1, ncint
+          IF( flag(ijk) == 1 ) THEN
+            CALL meshinds(ijk,imesh,i,j,k)
+  
+            IF (job_type == '2D') THEN
+              ! 
+              ! East
+              IF (z(k) > topo_x(i)) THEN
+                bd(ijk) = bd(ijk) + 1
+                vf(ijk) = vf(ijk) + 1.D0
+              END IF
+              !
+              ! West
+              IF (z(k) > topo_x(i-1)) THEN
+                bd(ijk) = bd(ijk) + 2
+                vf(ijk) = vf(ijk) + 1.D0
+              END IF
+              !  
+              ! Top
+              IF (zb(k) > topo_c(i)) THEN
+                bd(ijk) = bd(ijk) + 4 
+                vf(ijk) = vf(ijk) + 1.D0
+              END IF
+              !
+              ! Bottom
+              IF (zb(k-1) >= topo_c(i)) THEN
+                bd(ijk) = bd(ijk) + 8 
+                vf(ijk) = vf(ijk) + 1.D0
+              END IF
+              !
+            ELSE IF (job_type == '3D') THEN
+              ! 
+              ! East
+              IF (z(k) > topo2d_x(i,j)) THEN
+                bd(ijk) = bd(ijk) + 1
+                vf(ijk) = vf(ijk) + 1.D0
+              END IF
+              !
+              ! West
+              IF (z(k) > topo2d_x(i-1,j)) THEN
+                bd(ijk) = bd(ijk) + 2
+                vf(ijk) = vf(ijk) + 1.D0
+              END IF
+              !
+              ! Top
+              IF (zb(k) > topo2d_c(i,j))  THEN
+                bd(ijk) = bd(ijk) + 4 
+                vf(ijk) = vf(ijk) + 1.D0
+              END IF
+              !
+              ! Bottom
+              IF (zb(k-1) >= topo2d_c(i,j)) THEN
+                bd(ijk) = bd(ijk) + 8
+                vf(ijk) = vf(ijk) + 1.D0
+              END IF
+              !
+              ! North
+              IF (z(k) > topo2d_y(i,j)) THEN
+                bd(ijk) = bd(ijk) + 16
+                vf(ijk) = vf(ijk) + 1.D0
+              END IF
+              !
+              ! South
+              IF (z(k) > topo2d_y(i,j-1)) THEN
+                bd(ijk) = bd(ijk) + 32
+                vf(ijk) = vf(ijk) + 1.D0
+              END IF
+              !
+            END IF
+
+            IF (job_type == '2D') THEN
+              vf(ijk) = 0.25D0 * vf(ijk)
+            ELSE IF( job_type == '3D') THEN
+              vf(ijk) = vf(ijk) / 6.D0
+            END IF
+
+            IF (bd(ijk) /= filled) THEN
+              WRITE(6,('I8,3(I4),B8')) ijk, i, j, k, bd(ijk)
+            END IF
+
+          END IF
+
+        END DO
+      
+      RETURN
+      END SUBROUTINE fill_cells_int
+!----------------------------------------------------------------------
+      SUBROUTINE fill_cells_real
+!
+! ... Coefficients b(1:6) are multiplied to the numerical mass
+! ... fluxes to take into account that some cell face could be
+! ... immersed. b=1 if the cell face is external, b=0 if the
+! ... cell face is inside the topography.
+!
+      USE control_flags, ONLY: job_type
+      USE grid, ONLY: z, zb, flag, dz
+      USE immersed_boundaries, ONLY: immb, bdr, vf
+      USE immersed_boundaries, ONLY: topo_c, topo_x
+      USE immersed_boundaries, ONLY: topo2d_c, topo2d_x, topo2d_y
+      IMPLICIT NONE
+
+      INTEGER :: i,j,k,ijk,imesh
+      INTEGER :: filled
+      REAL*8 :: alpha
+!
+! ... Allocate and initialize coefficients
+!
+      ALLOCATE(bdr(ncint,6)); bdr(:,:) = 0.D0
+      ALLOCATE(vf(ncint)); vf(:) = 0.D0
+!
+        DO ijk=1, ncint
+          IF( flag(ijk) == 1 ) THEN
+            CALL meshinds(ijk,imesh,i,j,k)
+  
+            alpha = 0.D0
+            IF (job_type == '2D') THEN
+              !
+              alpha = MAX(zb(k) - topo_x(i),0.D0) ! East
+              alpha = MIN(alpha / dz(k),1.D0)
+              vf(ijk) = vf(ijk) + alpha
+              bdr(ijk,1) = alpha**2/( 2.D0 * alpha - 1.D0 )
+              !
+              alpha = MAX(zb(k) - topo_x(i-1),0.D0) ! West
+              alpha = MIN(alpha / dz(k),1.D0)
+              vf(ijk) = vf(ijk) + alpha
+              bdr(ijk,2) = alpha**2/( 2.D0 * alpha - 1.D0 )
+              !
+              IF (zb(k) > topo_c(i))    bdr(ijk,3) = 1.D0 ! Top
+              IF (zb(k-1) >= topo_c(i)) bdr(ijk,4) = 1.D0 ! Bottom
+              !
+            ELSE IF (job_type == '3D') THEN
+              !
+              alpha = MAX(zb(k) - topo2d_x(i,j),0.D0) ! East
+              alpha = MIN(alpha / dz(k),1.D0)
+              vf(ijk) = vf(ijk) + alpha
+              bdr(ijk,1) = alpha**2/( 2.D0 * alpha - 1.D0 )
+              !
+              alpha = MAX(zb(k) - topo2d_x(i-1,j),0.D0) ! West
+              alpha = MIN(alpha / dz(k),1.D0)
+              vf(ijk) = vf(ijk) + alpha
+              bdr(ijk,2) = alpha**2/( 2.D0 * alpha - 1.D0 )
+              !
+              IF (zb(k) > topo2d_c(i,j))      bdr(ijk,3) = 1.D0 ! Top
+              IF (zb(k-1) >= topo2d_c(i,j))   bdr(ijk,4) = 1.D0 ! Bottom
+              !
+              alpha = MAX(zb(k) - topo2d_y(i,j),0.D0) ! North
+              alpha = MIN(alpha / dz(k),1.D0)
+              vf(ijk) = vf(ijk) + alpha
+              bdr(ijk,5) = alpha**2/( 2.D0 * alpha - 1.D0 )
+              !
+              alpha = MAX(zb(k) - topo2d_y(i,j-1),0.D0) ! South
+              alpha = MIN(alpha / dz(k),1.D0)
+              vf(ijk) = vf(ijk) + alpha
+              bdr(ijk,6) = alpha**2/( 2.D0 * alpha - 1.D0 )
+              !
+            END IF
+
+            IF (job_type == '2D') THEN
+              vf(ijk)  = 0.5D0 * vf(ijk)
+            ELSE IF( job_type == '3D') THEN
+              vf(ijk)  = 0.25D0 * vf(ijk)
+            END IF
+
+            WRITE(6,('I8,3(I4),6(F8.4)')) ijk, i, j, k, bdr(ijk,:)
+
+          END IF
+
+        END DO
+      
+      RETURN
+      END SUBROUTINE fill_cells_real
 !----------------------------------------------------------------------
       END MODULE domain_decomposition
 !----------------------------------------------------------------------

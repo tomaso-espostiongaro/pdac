@@ -220,7 +220,6 @@
       USE gas_solid_density, ONLY: rlk, rog, rgp
       USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
       USE grid, ONLY: flag
-      USE io_restart, ONLY: dump_all
       USE particles_constants, ONLY: inrl, cps
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: itd
@@ -286,48 +285,35 @@
 !
       ELSE IF (itd == 2) THEN 
 !
-        IF( .NOT. dump_all ) THEN
+        DO ijk = 1, ncint
+          ! ... compute gas components molar fractions 
+          ! ... from mass fractions
+          !
+          CALL mole( xgc(ijk,:), ygc(ijk,:) )
 
-          DO ijk = 1, ncint
-            ! ... compute gas components molar fractions 
-            ! ... from mass fractions
-            !
-            CALL mole( xgc(ijk,:), ygc(ijk,:) )
-
-            ! ... compute void fraction
-            !
-            rls = 0.0d0
-            DO is = 1, nsolid
-              rls = rls + rlk(ijk,is) * inrl(is)
-            END DO
-            ep(ijk) = 1.D0 - rls
-
-            ! ... WARNING!: an error is introduced in gas temperature ...
-            ! ... In the iterative inversion of the enthalpy equation 
-            ! ... the initial value of temperature is different
-            !
-            CALL caloric_eosg(cp(:,ijk), cg(ijk), tg(ijk), ygc(ijk,:), &
-                            sieg(ijk), ijk, info)
-            DO is=1, nsolid
-              CALL caloric_eosl(ts(ijk,is),cps(is),ck(is,ijk),sies(ijk,is),ijk)
-            END DO
+          ! ... compute void fraction
+          !
+          rls = 0.0d0
+          DO is = 1, nsolid
+            rls = rls + rlk(ijk,is) * inrl(is)
           END DO
+          ep(ijk) = 1.D0 - rls
 
-        ELSE
-
-          DO ijk = 1, ncint
-            CALL hcapg(cp(:,ijk), tg(ijk))
-            hc = 0.D0
-            DO ig = 1, ngas
-              hc = hc + cp(gas_type(ig),ijk) * ygc(ijk,ig)
-            END DO
-            cg(ijk) = hc
-            DO is = 1, nsolid
-              CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
-            END DO
+          ! ... compute specific heats for gas ...
+          !
+          CALL hcapg(cp(:,ijk), tg(ijk))
+          hc = 0.D0
+          DO ig = 1, ngas
+            hc = hc + cp(gas_type(ig),ijk) * ygc(ijk,ig)
           END DO
+          cg(ijk) = hc
 
-        END IF
+          ! ... and particles
+          !
+          DO is = 1, nsolid
+            CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
+          END DO
+        END DO
 !
       ELSE IF (itd >= 3) THEN 
 
