@@ -58,13 +58,6 @@
         REAL*8 :: bb
       END TYPE stencil
 !
-      INTERFACE nb
-        MODULE PROCEDURE nb_rank1, nb_rank2
-      END INTERFACE
-      INTERFACE rnb
-        MODULE PROCEDURE rnb_rank1, rnb_rank2
-      END INTERFACE
-
       INTERFACE OPERATOR(+)
         MODULE PROCEDURE sumstencil
       END INTERFACE
@@ -384,7 +377,7 @@
       
       END FUNCTION fracstencil
 !-----------------------------------------------------------------------
-      FUNCTION nb_rank1( array, ijk )
+      SUBROUTINE nb( nb_rank1, array, ijk )
 
       IMPLICIT NONE 
 !
@@ -439,9 +432,9 @@
       END IF
 
       RETURN
-      END FUNCTION nb_rank1
+      END SUBROUTINE nb
 !-----------------------------------------------------------------------
-      FUNCTION rnb_rank1(array,ijk)
+      SUBROUTINE rnb(rnb_rank1,array,ijk)
       USE dimensions
       IMPLICIT NONE 
 !
@@ -517,200 +510,7 @@
       END IF
 
       RETURN
-      END FUNCTION rnb_rank1
-!-----------------------------------------------------------------------
-
-      FUNCTION nb_rank2( array, l, ijk )
-
-      IMPLICIT NONE 
-!
-      TYPE(stencil) :: nb_rank2
-      REAL*8, INTENT(IN) :: array(:,:)
-      INTEGER, INTENT(IN) :: l, ijk
-!
-      IF( job_type_flag == 2 ) THEN
-
-        nb_rank2%c  = array(l, ijk)
-        nb_rank2%e  = array(l, ijr)
-        nb_rank2%n  = array(l, ijt)
-        nb_rank2%w  = array(l, ijl)
-        nb_rank2%s  = array(l, ijb)
-        nb_rank2%en  = array(l, ijtr)
-        nb_rank2%wn  = array(l, ijtl)
-        nb_rank2%es  = array(l, ijbr)
-        nb_rank2%ws  = array(l, ijbl)
-        nb_rank2%ee  = array(l, ijrr)
-        nb_rank2%nn  = array(l, ijtt)
-        nb_rank2%ww  = array(l, ijll)
-        nb_rank2%ss  = array(l, ijbb)
-
-      ELSE IF( job_type_flag == 3 ) THEN
-
-        nb_rank2%c = array( l, ijk )
-        nb_rank2%e = array( l, ijke )
-        nb_rank2%w = array( l, ijkw )
-        nb_rank2%ee = array( l, ijkee )
-        nb_rank2%ww = array( l, ijkww )
-        nb_rank2%n = array( l, ijkn )
-        nb_rank2%en = array( l, ijken )
-        nb_rank2%wn = array( l, ijkwn )
-        nb_rank2%s = array( l, ijks )
-        nb_rank2%es = array( l, ijkes )
-        nb_rank2%ws = array( l, ijkws )
-        nb_rank2%nn = array( l, ijknn )
-        nb_rank2%ss = array( l, ijkss )
-        nb_rank2%t = array( l, ijkt )
-        nb_rank2%et = array( l, ijket )
-        nb_rank2%wt = array( l, ijkwt )
-        nb_rank2%nt = array( l, ijknt )
-        nb_rank2%st = array( l, ijkst )
-        nb_rank2%b = array( l, ijkb )
-        nb_rank2%eb = array( l, ijkeb )
-        nb_rank2%wb = array( l, ijkwb )
-        nb_rank2%nb = array( l, ijknb )
-        nb_rank2%sb = array( l, ijksb )
-        nb_rank2%tt = array( l, ijktt )
-        nb_rank2%bb = array( l, ijkbb )
-
-      END IF
-
-      RETURN
-      END FUNCTION nb_rank2
-
-      SUBROUTINE nb_rank2bis(  nbbis, array, ijk )
-
-      IMPLICIT NONE 
-!
-      TYPE(stencil), INTENT(OUT) :: nbbis
-      REAL*8, INTENT(IN) :: array(:)
-      INTEGER, INTENT(IN) :: ijk
-!
-      IF( job_type_flag == 2 ) THEN
-
-        nbbis%c  = array(ijk)
-        nbbis%e  = array(ijr)
-        nbbis%n  = array(ijt)
-        nbbis%w  = array(ijl)
-        nbbis%s  = array(ijb)
-        nbbis%en  = array(ijtr)
-        nbbis%wn  = array(ijtl)
-        nbbis%es  = array(ijbr)
-        nbbis%ws  = array(ijbl)
-        nbbis%ee  = array(ijrr)
-        nbbis%nn  = array(ijtt)
-        nbbis%ww  = array(ijll)
-        nbbis%ss  = array(ijbb)
-
-      ELSE IF( job_type_flag == 3 ) THEN
-
-        nbbis%c = array( ijk )
-        nbbis%e = array( ijke )
-        nbbis%w = array( ijkw )
-        nbbis%ee = array( ijkee )
-        nbbis%ww = array( ijkww )
-        nbbis%n = array( ijkn )
-        nbbis%en = array( ijken )
-        nbbis%wn = array( ijkwn )
-        nbbis%s = array( ijks )
-        nbbis%es = array( ijkes )
-        nbbis%ws = array( ijkws )
-        nbbis%nn = array( ijknn )
-        nbbis%ss = array( ijkss )
-        nbbis%t = array( ijkt )
-        nbbis%et = array( ijket )
-        nbbis%wt = array( ijkwt )
-        nbbis%nt = array( ijknt )
-        nbbis%st = array( ijkst )
-        nbbis%b = array( ijkb )
-        nbbis%eb = array( ijkeb )
-        nbbis%wb = array( ijkwb )
-        nbbis%nb = array( ijknb )
-        nbbis%sb = array( ijksb )
-        nbbis%tt = array( ijktt )
-        nbbis%bb = array( ijkbb )
-
-      END IF
-
-      RETURN
-      END SUBROUTINE nb_rank2bis
-!-----------------------------------------------------------------------
-      FUNCTION rnb_rank2(array, l, ijk)
-      USE dimensions
-      IMPLICIT NONE 
-!
-      TYPE(stencil) :: rnb_rank2
-      REAL*8, INTENT(IN) :: array(:, :)
-      INTEGER, INTENT(IN) :: l, ijk
-      INTEGER :: i,j,k,imesh
-!
-      imesh = myijk( ip0_jp0_kp0_, ijk)
-
-      IF( job_type_flag == 2 ) THEN
-
-        i  = MOD( ( imesh - 1 ), nr) + 1
-        j  = ( imesh - 1 ) / nr + 1
-!
-        rnb_rank2%c  = array(l, ijk)
-        rnb_rank2%e  = array(l, ipj)
-        rnb_rank2%n  = array(l, ijp)
-        rnb_rank2%w  = array(l, imj)
-        rnb_rank2%s  = array(l, ijm)
-        rnb_rank2%en  = array(l, ipjp)
-        rnb_rank2%wn  = array(l, imjp)
-        rnb_rank2%es  = array(l, ipjm)
-        rnb_rank2%ws  = array(l, imjm)
-        rnb_rank2%ee  = array(l, ippj)
-        IF (i == (nr-1))  rnb_rank2%ee  = array(l, ipj)
-        rnb_rank2%nn  = array(l, ijpp)
-        IF (j == (nz-1))  rnb_rank2%nn  = array(l, ijp)
-        rnb_rank2%ww  = array(l, immj)
-        IF (i == 2)  rnb_rank2%ww  = array(l, imj)
-        rnb_rank2%ss  = array(l, ijmm)
-        IF (j == (2))  rnb_rank2%ss  = array(l, ijm)
-
-      ELSE IF( job_type_flag == 3 ) THEN
-
-         i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
-         j = MOD( ijk - 1, nx*ny ) / nx + 1
-         k = ( ijk - 1 ) / ( nx*ny ) + 1
-
-         rnb_rank2%ww = array( l, immjk )
-         rnb_rank2%c = array( l, ijk )
-         rnb_rank2%e = array( l, ipjk )
-         rnb_rank2%w = array( l, imjk )
-         rnb_rank2%ee = array( l, ippjk )
-         rnb_rank2%n = array( l, ijpk )
-         rnb_rank2%en = array( l, ipjpk )
-         rnb_rank2%wn = array( l, imjpk )
-         rnb_rank2%s = array( l, ijmk )
-         rnb_rank2%es = array( l, ipjmk )
-         rnb_rank2%ws = array( l, imjmk )
-         rnb_rank2%nn = array( l, ijppk )
-         rnb_rank2%ss = array( l, ijmmk )
-         rnb_rank2%t = array( l, ijkp )
-         rnb_rank2%et = array( l, ipjkp )
-         rnb_rank2%wt = array( l, imjkp )
-         rnb_rank2%nt = array( l, ijpkp )
-         rnb_rank2%st = array( l, ijmkp )
-         rnb_rank2%b = array( l, ijkm )
-         rnb_rank2%eb = array( l, ipjkm )
-         rnb_rank2%wb = array( l, imjkm )
-         rnb_rank2%nb = array( l, ijpkm )
-         rnb_rank2%sb = array( l, ijmkm )
-         rnb_rank2%tt = array( l, ijkpp )
-         rnb_rank2%bb = array( l, ijkmm )
-
-         IF (i == (nx-1))  rnb_rank2%ee  = array(l, ipjk)
-         IF (i == 2)       rnb_rank2%ww  = array(l, imjk)
-         IF (j == (ny-1))  rnb_rank2%nn  = array(l, ijpk)
-         IF (j == 2)       rnb_rank2%ss  = array(l, ijmk)
-         IF (k == (nz-1))  rnb_rank2%tt  = array(l, ijkp)
-         IF (k == 2)       rnb_rank2%bb  = array(l, ijkm)
-
-      END IF
-
-      RETURN
-      END FUNCTION rnb_rank2
+      END SUBROUTINE rnb
 !-----------------------------------------------------------------------
       END MODULE set_indexes
 !-----------------------------------------------------------------------

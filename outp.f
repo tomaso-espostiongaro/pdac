@@ -54,7 +54,7 @@
         DO j=1,nz
           ij1=1+(nz-j)*nr
           ij2=nr+(nz-j)*nr
-          WRITE(3,550)(solid_bulk_density(is,ijl)*inrl(is),ijl=ij1,ij2)
+          WRITE(3,550)(solid_bulk_density(ijl,is)*inrl(is),ijl=ij1,ij2)
         END DO
       END DO
 !
@@ -96,21 +96,21 @@
         DO j=1,nz
           ij1=1+(nz-j)*nr 
           ij2=nr+(nz-j)*nr
-          WRITE(3,550)(solid_velocity_r(is,ijl),ijl=ij1,ij2)
+          WRITE(3,550)(solid_velocity_r(ijl,is),ijl=ij1,ij2)
         END DO
 !
         WRITE(3,557)is 
         DO  j=1,nz
           ij1=1+(nz-j)*nr
           ij2=nr+(nz-j)*nr
-          WRITE(3,550)(solid_velocity_z(is,ijl),ijl=ij1,ij2)
+          WRITE(3,550)(solid_velocity_z(ijl,is),ijl=ij1,ij2)
         END DO
 !
         WRITE(3,561)is 
         DO j=1,nz
           ij1=1+(nz-j)*nr
           ij2=nr+(nz-j)*nr
-          WRITE(3,550)(solid_temperature(is,ijl),ijl=ij1,ij2)
+          WRITE(3,550)(solid_temperature(ijl,is),ijl=ij1,ij2)
         END DO
 !
       END DO
@@ -192,9 +192,9 @@
           DO j=1,nz
             ij1=1+(nz-j)*nr
             ij2=nr+(nz-j)*nr
-            READ(3,650)(solid_bulk_density(is,ijl),ijl=ij1,ij2)
+            READ(3,650)(solid_bulk_density(ijl,is),ijl=ij1,ij2)
           END DO
-          solid_bulk_density(is,:) = solid_bulk_density(is,:)*rl(is)
+          solid_bulk_density(:,is) = solid_bulk_density(:,is)*rl(is)
         END DO
 !
         READ(3,640)
@@ -235,21 +235,21 @@
           DO  j=1,nz
             ij1=1+(nz-j)*nr
             ij2=nr+(nz-j)*nr
-            READ(3,650)(solid_velocity_z(is,ijl),ijl=ij1,ij2)
+            READ(3,650)(solid_velocity_z(ijl,is),ijl=ij1,ij2)
           END DO
 !
             READ(3,640)
           DO j=1,nz
             ij1=1+(nz-j)*nr 
             ij2=nr+(nz-j)*nr
-            READ(3,650)(solid_velocity_r(is,ijl),ijl=ij1,ij2)
+            READ(3,650)(solid_velocity_r(ijl,is),ijl=ij1,ij2)
           END DO
 !
           READ(3,640)
           DO j=1,nz
             ij1=1+(nz-j)*nr
             ij2=nr+(nz-j)*nr
-            READ(3,650)(solid_temperature(is,ijl),ijl=ij1,ij2)
+            READ(3,650)(solid_temperature(ijl,is),ijl=ij1,ij2)
           END DO
 !
         END DO
@@ -418,7 +418,7 @@
         DO k=1,nz
           ijk1 = (k-1)*nx*ny +1
           ijk2 = k*nx*ny
-          WRITE(3,550)(solid_bulk_density(is,ijk)*inrl(is),ijk=ijk1,ijk2)
+          WRITE(3,550)(solid_bulk_density(ijk,is)*inrl(is),ijk=ijk1,ijk2)
         END DO
       END DO
 !
@@ -467,28 +467,28 @@
         DO k=1,nz
           ijk1 = (k-1)*nx*ny +1
           ijk2 = k*nx*ny
-          WRITE(3,550)(solid_velocity_x(is,ijk),ijk=ijk1,ijk2)
+          WRITE(3,550)(solid_velocity_x(ijk,is),ijk=ijk1,ijk2)
         END DO
 !
         WRITE(3,556)is 
         DO k=1,nz
           ijk1 = (k-1)*nx*ny +1
           ijk2 = k*nx*ny
-          WRITE(3,550)(solid_velocity_y(is,ijk),ijk=ijk1,ijk2)
+          WRITE(3,550)(solid_velocity_y(ijk,is),ijk=ijk1,ijk2)
         END DO
 !
         WRITE(3,557)is 
         DO  k=1,nz
           ijk1 = (k-1)*nx*ny +1
           ijk2 = k*nx*ny
-          WRITE(3,550)(solid_velocity_z(is,ijk),ijk=ijk1,ijk2)
+          WRITE(3,550)(solid_velocity_z(ijk,is),ijk=ijk1,ijk2)
         END DO
 !
         WRITE(3,561)is 
         DO k=1,nz
           ijk1 = (k-1)*nx*ny +1
           ijk2 = k*nx*ny
-          WRITE(3,550)(solid_temperature(is,ijk),ijk=ijk1,ijk2)
+          WRITE(3,550)(solid_temperature(ijk,is),ijk=ijk1,ijk2)
         END DO
 !
       END DO
@@ -578,16 +578,16 @@
         END DO
 !
         DO is=1,nsolid
-          WRITE(12) REAL(solid_bulk_density(is,:)*inrl(is),4)
+          WRITE(12) REAL(solid_bulk_density(:,is)*inrl(is),4)
           IF (job_type == '2D') THEN
-            WRITE(12) REAL(solid_velocity_r(is,:),4)
-            WRITE(12) REAL(solid_velocity_z(is,:),4)
+            WRITE(12) REAL(solid_velocity_r(:,is),4)
+            WRITE(12) REAL(solid_velocity_z(:,is),4)
           ELSE IF (job_type == '3D') THEN
-            WRITE(12) REAL(solid_velocity_x(is,:),4)
-            WRITE(12) REAL(solid_velocity_y(is,:),4)
-            WRITE(12) REAL(solid_velocity_z(is,:),4)
+            WRITE(12) REAL(solid_velocity_x(:,is),4)
+            WRITE(12) REAL(solid_velocity_y(:,is),4)
+            WRITE(12) REAL(solid_velocity_z(:,is),4)
           END IF
-          WRITE(12) REAL(solid_temperature(is,:),4)
+          WRITE(12) REAL(solid_temperature(:,is),4)
         END DO
 
         CLOSE (12)

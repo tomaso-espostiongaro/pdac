@@ -60,14 +60,14 @@
 
             wg(n2)=wg(ij)
             DO is=1,nsolid
-              ws(is,n2)=ws(is,ij)
+              ws(n2,is)=ws(ij,is)
             END DO
 
           CASE (3)
 
             wg(n2)=-wg(ij)
             DO is=1,nsolid
-              IF(rlk(ij,is).GT.0.D0) ws(is,n2)=-ws(is,ij)
+              IF(rlk(ij,is).GT.0.D0) ws(n2,is)=-ws(ij,is)
             END DO  
 
           CASE (4)
@@ -108,7 +108,7 @@
               epc=0.D0
               DO is=1,nsolid
                 eps = rlk(ij,is)*inrl(is) - dt*inrl(is)*inr(i)/dr1*          &
-                      (rb(i)*us(is,ij)*rlk(ij,is) - rb(i-1)*us(is,imj)*rlk(imj,is))
+                      (rb(i)*us(ij,is)*rlk(ij,is) - rb(i-1)*us(imj,is)*rlk(imj,is))
                 epc=epc+eps
               END DO
               ep1nn=1.D0-epc
@@ -154,7 +154,8 @@
               ep(n2) = ep(ij)
               tg(n2) = tg(ij)
               DO ig=1,ngas
-                rgpgc(ig,n2) = rgpgc(ig,n2) - ucn * dt/dr(nr) * (rgpgc(ig,n2) - rgpgc(ig,ij))
+                rgpgc(n2,ig) = rgpgc(n2,ig) -   &
+                               ucn * dt/dr(nr) * (rgpgc(n2,ig) - rgpgc(ij,ig))
               END DO
 !
 ! ... Correct non-physical pressure
@@ -180,7 +181,7 @@
               ep(n2) = 1.D0
               tg(n2) = trif
               DO ig=1,ngas
-                rgpgc(ig,n2) = rgpgc(ig,ij)
+                rgpgc(n2,ig) = rgpgc(ij,ig)
               END DO
 
 ! ... Correct non-physical pressure
@@ -193,7 +194,7 @@
               ep(n2) = ep(ij)
               tg(n2) = tg(ij)
               DO ig=1,ngas
-                rgpgc(ig,n2) = rgpgc(ig,ij)
+                rgpgc(n2,ig) = rgpgc(ij,ig)
               END DO
 
             ENDIF
@@ -203,19 +204,19 @@
             IF( fl_l (ipjp) == 3 ) ug(ipjp) = -ug(n2)
             IF( fl_l (ipjp) == 4 ) wg(n2) = wg(ij)
             DO is=1,nsolid
-              IF( fl_l (ipjp) == 4 ) ws(is,n2)=ws(is,ij)
-              IF(us(is,ij).GE.0.D0) THEN
+              IF( fl_l (ipjp) == 4 ) ws(n2,is)=ws(ij,is)
+              IF(us(ij,is).GE.0.D0) THEN
                 rlk(n2,is)=rlk(ij,is)
-                us(is,n2)=ug(n2)
+                us(n2,is)=ug(n2)
               ELSE
                 rlk(n2,is)=0.0D0
-                us(is,n2) =0.0D0
+                us(n2,is) =0.0D0
               ENDIF
             END DO
 
             sieg(n2) = sieg(ij)
             DO is=1,nsolid
-              sies(is,n2)=sies(is,ij)
+              sies(n2,is)=sies(ij,is)
             END DO
 !
           CASE DEFAULT
@@ -232,12 +233,12 @@
           CASE (2)
             wg(n2)=wg(ij)
             DO is=1,nsolid
-              ws(is,n2)=ws(is,ij)
+              ws(n2,is)=ws(ij,is)
             END DO 
           CASE (3)
             wg(n2)=-wg(ij)
             DO is=1,nsolid
-              IF(rlk(ij,is).GT.0.D0) ws(is,n2)=-ws(is,ij)
+              IF(rlk(ij,is).GT.0.D0) ws(n2,is)=-ws(ij,is)
             END DO 
           CASE (4)
 !
@@ -274,8 +275,8 @@
               epc=0.D0
               DO is=1,nsolid
                eps=rlk(ij,is)*inrl(is) -                                 &
-                   dt*inrl(is)*inr(i)/dr1*(rb(i)*us(is,ij)*rlk(ipj,is) -  &
-                   rb(i-1)*us(is,imj)*rlk(ij,is))
+                   dt*inrl(is)*inr(i)/dr1*(rb(i)*us(ij,is)*rlk(ipj,is) -  &
+                   rb(i-1)*us(imj,is)*rlk(ij,is))
                epc=epc+eps
               END DO
               ep1nn=1.D0-epc
@@ -324,14 +325,15 @@
               ep(n2) = ep(ij)
               tg(n2) = tg(ij)
               DO ig=1,ngas
-                rgpgc(ig,n2) = rgpgc(ig,n2) - uc1n * dt/dr(1) * (rgpgc(ig,ij) - rgpgc(ig,n2))
+                rgpgc(n2,ig) = rgpgc(n2,ig) - &
+                               uc1n * dt/dr(1) * (rgpgc(ij,ig) - rgpgc(n2,ig))
               END DO
 !
 ! ... extrapolation of the temperature and solid fraction to time (n+1)dt
               DO is=1,nsolid
-                IF(fl_l( imjp ) == 4) ws(is,n2)=ws(is,ij)
+                IF(fl_l( imjp ) == 4) ws(n2,is)=ws(ij,is)
                 rlk(n2,is)=rlk(ij,is)
-                us(is,n2)=us(is,ij)
+                us(n2,is)=us(ij,is)
               END DO
 !
 ! ... INFLOW ...
@@ -354,7 +356,7 @@
               ep(n2) = 1.D0
               tg(n2) = trif
               DO ig=1,ngas
-                rgpgc(ig,n2) = rgpgc(ig,ij)
+                rgpgc(n2,ig) = rgpgc(ij,ig)
               END DO
 
             ELSE IF (uc1n == 0.D0) THEN
@@ -364,7 +366,7 @@
               ep(n2) = ep(ij)
               tg(n2) = tg(ij)
               DO ig=1,ngas
-                rgpgc(ig,n2) = rgpgc(ig,ij)
+                rgpgc(n2,ig) = rgpgc(ij,ig)
               END DO
 
             ENDIF
@@ -374,16 +376,16 @@
             IF( fl_l ( imjp ) == 4 ) wg(n2) = wg(ij)
             IF( fl_l ( imjp ) == 3 ) ug(ipjp) = -ug(n2)
             DO is=1,nsolid
-              IF( fl_l ( imjp ) == 4 ) ws(is,n2)=ws(is,ij)
-              IF(us(is,ij).GE.0.D0) THEN
+              IF( fl_l ( imjp ) == 4 ) ws(n2,is)=ws(ij,is)
+              IF(us(ij,is).GE.0.D0) THEN
                 rlk(n2,is)=rlk(ij,is)
-                us(is,n2)=ug(n2)
+                us(n2,is)=ug(n2)
               ELSE
                 rlk(n2,is)=0.0D0
-                us(is,n2) =0.0D0
+                us(n2,is) =0.0D0
               ENDIF
-              sies(is,n2)=sies(is,ij)
-              ts(is,n2)=ts(is,ij)
+              sies(n2,is)=sies(ij,is)
+              ts(n2,is)=ts(ij,is)
             END DO
             sieg(n2) = sieg(ij)
 
@@ -403,7 +405,7 @@
 
             ug(n2)=ug(ij)
             DO is=1,nsolid
-              us(is,n2)=us(is,ij)
+              us(n2,is)=us(ij,is)
             END DO
 
             IF (j .EQ. (nz-1)) THEN
@@ -418,7 +420,7 @@
 
             ug(n2)=-ug(ij)
             DO is=1,nsolid
-              IF(rlk(ij,is).GT.0.D0) us(is,n2)=-us(is,ij)
+              IF(rlk(ij,is).GT.0.D0) us(n2,is)=-us(ij,is)
             END DO
 
           CASE (4)
@@ -454,8 +456,8 @@
 ! ... from the mass balance equation of solids, in cell (ij)
               epc=0.D0
               DO is=1,nsolid
-                eps=rlk(ij,is)*inrl(is) - dt*inrl(is)/dz1*(ws(is,ij)*rlk(ij,is) -  &
-                    ws(is,ijm)*rlk(ijm,is))
+                eps=rlk(ij,is)*inrl(is) - dt*inrl(is)/dz1*(ws(ij,is)*rlk(ij,is) -  &
+                    ws(ijm,is)*rlk(ijm,is))
                 epc=epc+eps
               END DO 
               ep1nn=1.D0-epc
@@ -503,7 +505,8 @@
               ep(n2) = ep(ij)
               tg(n2) = tg(ij)
               DO ig=1,ngas
-                rgpgc(ig,n2) = rgpgc(ig,n2) - wcn*dt/dz(nz) * (rgpgc(ig,n2) - rgpgc(ig,ij))
+                rgpgc(n2,ig) = rgpgc(n2,ig) - &
+                               wcn*dt/dz(nz) * (rgpgc(n2,ig) - rgpgc(ij,ig))
               END DO
              
             ELSEIF(wcn < 0.D0) THEN
@@ -526,7 +529,7 @@
               ep(n2)=1.D0
               tg(n2)=trif
               DO ig=1,ngas
-                rgpgc(ig,n2) = rgpgc(ig,ij)
+                rgpgc(n2,ig) = rgpgc(ij,ig)
               END DO
 
             ELSEIF(wcn == 0.D0) THEN
@@ -535,7 +538,7 @@
               ep(n2) = ep(ij)
               tg(n2) = tg(ij)
               DO ig=1,ngas
-                rgpgc(ig,n2) = rgpgc(ig,ij)
+                rgpgc(n2,ig) = rgpgc(ij,ig)
               END DO
             ENDIF
 !
@@ -555,25 +558,25 @@
             sieg(n2) = sieg(ij)
 !
             DO is=1,nsolid
-              IF( fl_l( ipjp ) == 4 ) us(is,n2)=us(is,ij)
-              IF(ws(is,ij).GE.0.D0) THEN
+              IF( fl_l( ipjp ) == 4 ) us(n2,is)=us(ij,is)
+              IF(ws(ij,is).GE.0.D0) THEN
                 rlk(n2,is)=rlk(ij,is)
-                ws(is,n2)=ws(is,ij)
+                ws(n2,is)=ws(ij,is)
               ELSE
                 rlk(n2,is)=0.D0
-                ws(is,n2)=0.D0
+                ws(n2,is)=0.D0
               ENDIF
               IF(i .EQ. (nr-1) .AND. j .EQ. (nz-1)) THEN
-                ws(is,ipjp)=ws(is,n2)
-                us(is,ipjp)=us(is,n2)
+                ws(ipjp,is)=ws(n2,is)
+                us(ipjp,is)=us(n2,is)
               ENDIF
             END DO 
 
             DO is=1,nsolid
-              sies(is,n2)=sies(is,ij)
-              ts(is,n2)=ts(is,ij)
+              sies(n2,is)=sies(ij,is)
+              ts(n2,is)=ts(ij,is)
               IF (i .EQ. (nr-1) .AND. j .EQ. (nz-1)) THEN
-                ts(is,ipjp)=ts(is,n2)
+                ts(ipjp,is)=ts(n2,is)
               END IF
             END DO
          
@@ -593,7 +596,7 @@
 
             ug(n2)=ug(ij)
             DO is=1,nsolid
-              us(is,n2)=us(is,ij)
+              us(n2,is)=us(ij,is)
             END DO 
             IF (j .EQ. (2)) THEN
               IF(i .EQ. (nr-1)) THEN
@@ -607,7 +610,7 @@
 
             ug(n2)=-ug(ij)
             DO is=1,nsolid
-              IF(rlk(ij,is).GT.0.D0) us(is,n2)=-us(is,ij)
+              IF(rlk(ij,is).GT.0.D0) us(n2,is)=-us(ij,is)
             END DO 
 
           CASE DEFAULT
@@ -688,8 +691,8 @@
               vg( n2 ) = vg( ijk )
               wg( n2 ) = wg( ijk )
               DO is = 1, nsolid
-                vs( is, n2 ) = vs( is, ijk )
-                ws( is, n2 ) = ws( is, ijk )
+                vs( n2, is ) = vs( ijk, is )
+                ws( n2, is ) = ws( ijk, is )
               END DO
 
             CASE (3)
@@ -697,8 +700,8 @@
               vg( n2 ) = -vg( ijk )
               wg( n2 ) = -wg( ijk )
               DO is = 1, nsolid
-                vs( is, n2 ) = -vs( is, ijk )
-                ws( is, n2 ) = -ws( is, ijk )
+                vs( n2, is ) = -vs( ijk, is )
+                ws( n2, is ) = -ws( ijk, is )
               END DO  
 
             CASE (4)
@@ -746,7 +749,7 @@
                 epc = 0.D0
                 DO is = 1, nsolid
                   eps = rlk(ijk,is) * inrl(is) - ( dt * inrl(is) / dx1 )  *          &
-                        ( us(is,ijk)*rlk(ijk,is) - us(is,imjk)*rlk(imjk,is) )
+                        ( us(ijk,is)*rlk(ijk,is) - us(imjk,is)*rlk(imjk,is) )
                   epc = epc + eps
                 END DO
                 ep1nn = 1.D0 - epc
@@ -793,8 +796,8 @@
                 ep(n2) = ep(ijk)
                 tg(n2) = tg(ijk)
                 DO ig=1,ngas
-                   rgpgc(ig,n2) = rgpgc(ig,n2) - &
-                                  ucn * dt/dx(nx) * (rgpgc(ig,n2) - rgpgc(ig,ijk))
+                   rgpgc(n2,ig) = rgpgc(n2,ig) - &
+                                  ucn * dt/dx(nx) * (rgpgc(n2,ig)-rgpgc(ijk,ig))
                 END DO
 !
 ! ... Correct non-physical pressure
@@ -825,7 +828,7 @@
                 ep(n2) = 1.D0
                 tg(n2) = trif
                 DO ig=1,ngas
-                  rgpgc(ig,n2) = rgpgc(ig,ijk)
+                  rgpgc(n2,ig) = rgpgc(ijk,ig)
                 END DO
 
 ! ... Correct non-physical pressure
@@ -839,7 +842,7 @@
                 ep(n2)   = ep(ijk)
                 tg(n2)   = tg(ijk)
                 DO ig=1,ngas
-                  rgpgc(ig,n2) = rgpgc(ig,ijk)
+                  rgpgc(n2,ig) = rgpgc(ijk,ig)
                 END DO
 
               ENDIF
@@ -849,19 +852,19 @@
               ! ... IF(nfltr.EQ.3) ug(ipjp) = -ug(n2)
               ! ... IF(nfltr.EQ.4) wg(n2) = wg(ijk)
               DO is = 1, nsolid
-                ! .. IF(nfltr.EQ.4) ws(is,n2)=ws(is,ijk)
-                IF( us(is,ijk) >= 0.D0 ) THEN
+                ! .. IF(nfltr.EQ.4) ws(n2, is)=ws(ijk, is)
+                IF( us(ijk,is) >= 0.D0 ) THEN
                   rlk(n2,is) = rlk(ijk,is)
-                  us(is,n2)  = us(is,ijk)
+                  us(n2,is)  = us(ijk,is)
                 ELSE
                   rlk(n2,is) = 0.0D0
-                  us(is,n2)  = 0.0D0
+                  us(n2,is)  = 0.0D0
                 ENDIF
               END DO
 
               sieg(n2) = sieg(ijk)
               DO is = 1, nsolid
-                sies(is,n2) = sies(is,ijk)
+                sies(n2,is) = sies(ijk,is)
               END DO
 !              
             CASE DEFAULT
@@ -883,8 +886,8 @@
               vg(n2)=vg(ijk)
               wg(n2)=wg(ijk)
               DO is=1,nsolid
-                vs(is,n2)=vs(is,ijk)
-                ws(is,n2)=ws(is,ijk)
+                vs(n2,is)=vs(ijk,is)
+                ws(n2,is)=ws(ijk,is)
               END DO 
 
             CASE (3)
@@ -892,8 +895,8 @@
               vg(n2)=-vg(ijk)
               wg(n2)=-wg(ijk)
               DO is=1,nsolid
-                vs(is,n2)=-vs(is,ijk)
-                ws(is,n2)=-ws(is,ijk)
+                vs(n2,is)=-vs(ijk,is)
+                ws(n2,is)=-ws(ijk,is)
               END DO 
 
             CASE (4)
@@ -936,7 +939,7 @@
                 epc = 0.D0
                 DO is = 1, nsolid
                  eps = rlk(ijk,is) * inrl(is) -                                 &
-                     dt*inrl(is)/dx1*(us(is,ijk)*rlk(ipjk,is) - us(is,imjk)*rlk(ijk,is))
+                     dt*inrl(is)/dx1*(us(ijk,is)*rlk(ipjk,is) - us(imjk,is)*rlk(ijk,is))
                  epc=epc+eps
                 END DO
                 ep1nn=1.D0-epc
@@ -985,16 +988,16 @@
                 ep(n2) = ep(ijk)
                 tg(n2) = tg(ijk)
                 DO ig=1,ngas
-                  rgpgc(ig,n2) = rgpgc(ig,n2) - &
-                                 uc1n * dt/dx(1) * (rgpgc(ig,ijk) - rgpgc(ig,n2))
+                  rgpgc(n2,ig) = rgpgc(n2,ig) - &
+                                 uc1n * dt/dx(1) * (rgpgc(ijk,ig)-rgpgc(n2,ig))
                 END DO
 !
 ! ... extrapolation of the temperature and solid fraction to time (n+1)dt
 
                 DO is=1,nsolid
-                  ! IF(nfllt.EQ.4) ws(is,n2)=ws(is,ijk)
+                  ! IF(nfllt.EQ.4) ws(n2,is)=ws(ijk,is)
                   rlk(n2,is)=rlk(ijk,is)
-                  us(is,n2)=us(is,ijk)
+                  us(n2,is)=us(ijk,is)
                 END DO
 
               ELSE IF( uc1n > 0.D0 ) THEN
@@ -1020,7 +1023,7 @@
                 ep(n2) = 1.D0
                 tg(n2) = trif
                 DO ig=1,ngas
-                  rgpgc(ig,n2) = rgpgc(ig,ijk)
+                  rgpgc(n2,ig) = rgpgc(ijk,ig)
                 END DO
 
               ENDIF
@@ -1030,19 +1033,19 @@
               ! ... IF(nfllt.EQ.4) wg(n2)=wg(ijk)
               ! ... IF(nfllt.EQ.3) ug(ipjp) = -ug(n2)
               DO is=1,nsolid
-                ! .. IF(nfllt.EQ.4) ws(is,n2)=ws(is,ijk)
-                IF( us(is,ijk) >= 0.D0 ) THEN
+                ! .. IF(nfllt.EQ.4) ws(n2,is)=ws(ijk,is)
+                IF( us(ijk,is) >= 0.D0 ) THEN
                   rlk(n2,is)=rlk(ijk,is)
-                  us(is,n2)=us(is,ijk)
+                  us(n2,is)=us(ijk,is)
                 ELSE
                   rlk(n2,is)=0.0D0
-                  us(is,n2) =0.0D0
+                  us(n2,is) =0.0D0
                 ENDIF
               END DO
 !
               sieg(n2) = sieg(ijk)
               DO is=1,nsolid
-                sies(is,n2)=sies(is,ijk)
+                sies(n2,is)=sies(ijk,is)
               END DO
 !
             CASE DEFAULT
@@ -1063,8 +1066,8 @@
               ug( n2 ) = ug( ijk )
               wg( n2 ) = wg( ijk )
               DO is = 1, nsolid
-                us(is,n2) = us(is,ijk)
-                ws(is,n2) = ws(is,ijk)
+                us(n2,is) = us(ijk,is)
+                ws(n2,is) = ws(ijk,is)
               END DO 
 
             CASE (3)
@@ -1072,8 +1075,8 @@
               ug(n2) = -ug(ijk)
               wg(n2) = -wg(ijk)
               DO is = 1, nsolid
-                 us(is,n2) = -ws(is,ijk)
-                 ws(is,n2) = -ws(is,ijk)
+                 us(n2,is) = -ws(ijk,is)
+                 ws(n2,is) = -ws(ijk,is)
               END DO 
 
             CASE DEFAULT
@@ -1094,8 +1097,8 @@
               ug( n2 ) = ug( ijk )
               wg( n2 ) = wg( ijk )
               DO is = 1, nsolid
-                us(is,n2) = us(is,ijk)
-                ws(is,n2) = ws(is,ijk)
+                us(n2,is) = us(ijk,is)
+                ws(n2,is) = ws(ijk,is)
               END DO 
 
             CASE (3)
@@ -1103,8 +1106,8 @@
               ug(n2) = -ug(ijk)
               wg(n2) = -wg(ijk)
               DO is = 1, nsolid
-                 us(is,n2) = -us(is,ijk)
-                 ws(is,n2) = -ws(is,ijk)
+                 us(n2,is) = -us(ijk,is)
+                 ws(n2,is) = -ws(ijk,is)
               END DO 
 
             CASE DEFAULT
@@ -1125,8 +1128,8 @@
               ug(n2) = ug(ijk)
               vg(n2) = vg(ijk)
               DO is = 1, nsolid
-                us(is,n2) = us(is,ijk)
-                vs(is,n2) = vs(is,ijk)
+                us(n2,is) = us(ijk,is)
+                vs(n2,is) = vs(ijk,is)
               END DO
 
               IF ( k == (nz-1) ) THEN
@@ -1144,8 +1147,8 @@
               ug(n2) = -ug(ijk)
               vg(n2) = -vg(ijk)
               DO is = 1, nsolid
-                 us(is,n2) = -us(is,ijk)
-                 vs(is,n2) = -vs(is,ijk)
+                 us(n2,is) = -us(ijk,is)
+                 vs(n2,is) = -vs(ijk,is)
               END DO
 
             CASE (4)
@@ -1185,8 +1188,8 @@
 
                 epc = 0.D0
                 DO is = 1, nsolid
-                  eps = rlk(ijk,is)*inrl(is) - dt*inrl(is)/dz1*(ws(is,ijk)*rlk(ijk,is) -  &
-                      ws(is,ijkm)*rlk(ijkm,is))
+                  eps = rlk(ijk,is)*inrl(is) - dt*inrl(is)/dz1*(ws(ijk,is)*rlk(ijk,is) -  &
+                      ws(ijkm,is)*rlk(ijkm,is))
                   epc = epc + eps
                 END DO 
                 ep1nn = 1.D0 - epc
@@ -1233,8 +1236,8 @@
                 ep(n2) = ep(ijk)
                 tg(n2) = tg(ijk)
                 DO ig=1,ngas
-                  rgpgc(ig,n2) = rgpgc(ig,n2) - &
-                                 wcn*dt/dz(nz) * (rgpgc(ig,n2) - rgpgc(ig,ijk))
+                  rgpgc(n2,ig) = rgpgc(n2,ig) - &
+                                 wcn*dt/dz(nz) * (rgpgc(n2,ig) - rgpgc(ijk,ig))
                 END DO
 !
 ! ... (Correct non-physical pressure)
@@ -1262,7 +1265,7 @@
                 ep(n2)=1.D0
                 tg(n2)=trif
                 DO ig=1,ngas
-                  rgpgc(ig,n2) = rgpgc(ig,ijk)
+                  rgpgc(n2,ig) = rgpgc(ijk,ig)
                 END DO
 
                 pnn2=p(n2)
@@ -1279,7 +1282,7 @@
                 ep(n2) = ep(ijk)
                 tg(n2) = tg(ijk)
                 DO ig=1,ngas
-                  rgpgc(ig,n2) = rgpgc(ig,ijk)
+                  rgpgc(n2,ig) = rgpgc(ijk,ig)
                 END DO
 
               ENDIF
@@ -1301,26 +1304,26 @@
               !  IF(nfltr.EQ.4) ug(n2) = ug(ijk)
 !
               DO is=1,nsolid
-                !  IF(nfltr.EQ.4) us(is,n2)=us(is,ijk)
-                IF( ws(is,ijk) >= 0.D0) THEN
+                !  IF(nfltr.EQ.4) us(n2,is)=us(ijk,is)
+                IF( ws(ijk,is) >= 0.D0) THEN
                   rlk(n2,is)=rlk(ijk,is)
-                  ws(is,n2)=ws(is,ijk)
+                  ws(n2,is)=ws(ijk,is)
                 ELSE
                   rlk(n2,is)=0.D0
-                  ws(is,n2)=0.D0
+                  ws(n2,is)=0.D0
                 ENDIF
                 ! IF(i .EQ. (nr-1) .AND. j .EQ. (nz-1)) THEN
-                !   ws(is,ipjp)=ws(is,n2)
-                !   us(is,ipjp)=us(is,n2)
+                !   ws(ipjp,is)=ws(n2,is)
+                !   us(ipjp,is)=us(n2,is)
                 ! ENDIF
               END DO 
 
               sieg(n2) = sieg(ijk)
               DO is=1,nsolid
-                sies(is,n2)=sies(is,ijk)
-                ts(is,n2)=ts(is,ijk)
+                sies(n2,is)=sies(ijk,is)
+                ts(n2,is)=ts(ijk,is)
                 ! IF (i .EQ. (nr-1) .AND. j .EQ. (nz-1)) THEN
-                !   ts(is,ipjp)=ts(is,n2)
+                !   ts(ipjp,is)=ts(n2,is)
                 ! END IF
               END DO
 !
@@ -1343,8 +1346,8 @@
               ug( n2 ) = ug( ijk )
               vg( n2 ) = vg( ijk )
               DO is = 1, nsolid
-                us(is,n2) = us(is,ijk)
-                vs(is,n2) = vs(is,ijk)
+                us(n2,is) = us(ijk,is)
+                vs(n2,is) = vs(ijk,is)
               END DO 
               IF (k == 2) THEN
                 IF( ( i == (nx-1) ) .AND. ( j == (ny-1) ) ) THEN
@@ -1361,8 +1364,8 @@
               ug(n2) = -ug(ijk)
               vg(n2) = -vg(ijk)
               DO is = 1, nsolid
-                 us(is,n2) = -us(is,ijk)
-                 vs(is,n2) = -vs(is,ijk)
+                 us(n2,is) = -us(ijk,is)
+                 vs(n2,is) = -vs(ijk,is)
               END DO 
 
             CASE DEFAULT

@@ -22,7 +22,7 @@
        ALLOCATE(gas_heat_capacity(ntot))
        ALLOCATE(gc_mass_fraction(ngas,ntot),       &
                 gc_molar_fraction(ngas,ntot),      &
-                gc_bulk_density(ngas,ntot))
+                gc_bulk_density(ntot,ngas))
 
        gas_heat_capacity     = 0.0d0
        gc_mass_fraction      = 0.0d0
@@ -39,7 +39,7 @@
 !
        ALLOCATE(cg(ncint))
        ALLOCATE(ygc(ngas,ncint),xgc(ngas,ncint),             &
-                rgpgc(ngas,ncdom), rgpgcn(ngas,ncint))
+                rgpgc(ncdom,ngas), rgpgcn(ncint,ngas))
 !
       cg     = 0.D0
       ygc    = 0.D0
@@ -193,7 +193,7 @@
       gas_bulk_density(imesh) = gas_density(imesh) * void_fraction(imesh)
 
       DO ig = 1, ngas
-        gc_bulk_density(ig,imesh) = gc_mass_fraction(ig,imesh) * gas_bulk_density(imesh)
+        gc_bulk_density(imesh,ig) = gc_mass_fraction(ig,imesh) * gas_bulk_density(imesh)
       END DO
 
 !

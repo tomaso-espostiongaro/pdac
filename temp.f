@@ -16,7 +16,7 @@
       IMPLICIT NONE
 !
       ALLOCATE(gas_enthalpy(ntot), gas_temperature(ntot))
-      ALLOCATE(solid_enthalpy(nsolid,ntot), solid_temperature(nsolid,ntot))
+      ALLOCATE(solid_enthalpy(ntot,nsolid), solid_temperature(ntot,nsolid))
 !
       RETURN
       END SUBROUTINE
@@ -27,8 +27,8 @@
       IMPLICIT NONE
 !
       ALLOCATE(sieg(ncdom), siegn(ncint), tg(ncdom))
-      ALLOCATE(sies(nsolid,ncdom), siesn(nsolid,ncint))
-      ALLOCATE(ts(nsolid,ncdom))
+      ALLOCATE(sies(ncdom,nsolid), siesn(ncint,nsolid))
+      ALLOCATE(ts(ncdom,nsolid))
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------

@@ -184,7 +184,7 @@
       DO is = 1, nsolid
         CALL stress3D(pvisx(is,:), pvisy(is,:), pvisz(is,:),    &
 	            mus(is,:), mus(is,:), rlk(:,is)*inrl(is), &
-		    us(is,:), vs(is,:), ws(is,:))
+		    us(:,is), vs(:,is), ws(:,is))
       END DO
 !
 ! ... Repulsive model (Gidaspow and Ettehadieh, 1983)

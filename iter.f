@@ -90,7 +90,7 @@
           CALL subscr(ijk)
           CALL mats2(ijk)
           CALL velsk2(ug(ijk),   vg(ijk),   wg(ijk),         &
-	              us(:,ijk), vs(:,ijk), ws(:,ijk))
+	              us(ijk,:), vs(ijk,:), ws(ijk,:))
         END IF
       END DO
 ! 
@@ -108,10 +108,11 @@
         IF (fl_l(ijk) == 1) THEN
           CALL subscr(ijk)
           imesh = myijk( ip0_jp0_kp0_, ijk)
-          dens = nb(rgp,ijk)
-          u    = rnb(ug,ijk)
-          v    = rnb(vg,ijk)
-          w    = rnb(wg,ijk)
+          CALL nb(dens,rgp,ijk)
+          CALL rnb(u,ug,ijk)
+          CALL rnb(v,vg,ijk)
+          CALL rnb(w,wg,ijk)
+          
           CALL masf(rgfe(imjk), rgfn(ijmk), rgft(ijkm),   &
 	             rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &
                      u, v, w, dens)
@@ -238,9 +239,9 @@
                 CALL mats(ijk)
 
                 CALL velsk(ug(ijk), vg(ijk), wg(ijk),               &
-		           us(:,ijk), vs(:,ijk), ws(:,ijk),         &
+		           us(ijk,:), vs(ijk,:), ws(ijk,:),         &
 			   ug(imjk), vg(ijmk), wg(ijkm),            &
-			   us(:,imjk), vs(:,imjk), ws(:,ijkm)) 
+			   us(imjk,:), vs(imjk,:), ws(ijkm,:)) 
 
 !
 ! ... Put the new biassed velocities into the Particle Mass Balance
@@ -248,11 +249,10 @@
 !
                 rls=0.D0
                 DO is=1,nsolid
-                  CALL nb_rank2bis(dens, rlk(:,is),ijk)
-                  u    = rnb(us,is,ijk)
-                  v    = rnb(vs,is,ijk)
-                  w    = rnb(ws,is,ijk)
-
+                  CALL nb(dens,rlk(:,is),ijk)
+                  CALL rnb(u,us(:,is),ijk)
+                  CALL rnb(v,vs(:,is),ijk)
+                  CALL rnb(w,ws(:,is),ijk)
 
                   CALL masf(rsfe(is,imjk), rsfn(is,ijmk), rsft(is,ijkm),   &
 	                     rsfe(is,ijk),  rsfn(is,ijk),  rsft(is,ijk),    &
@@ -287,10 +287,10 @@
 ! ... (at least one internal iteration must be done).
 !
                 IF(DABS(dg) > conv(ijk)) THEN
-                   dens = nb(rgp,ijk)
-                   u    = rnb(ug,ijk)
-                   v    = rnb(vg,ijk)
-                   w    = rnb(wg,ijk)
+                   CALL nb(dens,rgp,ijk)
+                   CALL rnb(u,ug,ijk)
+                   CALL rnb(v,vg,ijk)
+                   CALL rnb(w,wg,ijk)
 
                    CALL masf(rgfe(imjk), rgfn(ijmk), rgft(ijkm),    &
 	                      rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &

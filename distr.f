@@ -67,7 +67,7 @@
         imesh = myijk( ip0_jp0_kp0_, ijk)
 !
         p(ijk) = gas_pressure(imesh)
-        rlk(ijk,:) = solid_bulk_density(:,imesh)
+        rlk(ijk,:) = solid_bulk_density(imesh,:)
         sieg(ijk) = gas_enthalpy(imesh)
 
         IF( job_type == '2D' ) THEN
@@ -78,15 +78,15 @@
         END IF
         wg(ijk) = gas_velocity_z(imesh)
 
-        sies(:,ijk) = solid_enthalpy(:,imesh)
+        sies(ijk,:) = solid_enthalpy(imesh,:)
 
         IF( job_type == '2D' ) THEN
-          us(:,ijk) = solid_velocity_r(:,imesh)
+          us(ijk,:) = solid_velocity_r(imesh,:)
         ELSE
-          us(:,ijk) = solid_velocity_x(:,imesh)
-          vs(:,ijk) = solid_velocity_y(:,imesh)
+          us(ijk,:) = solid_velocity_x(imesh,:)
+          vs(ijk,:) = solid_velocity_y(imesh,:)
         END IF
-        ws(:,ijk) = solid_velocity_z(:,imesh)
+        ws(ijk,:) = solid_velocity_z(imesh,:)
 
         ygc(:, ijk) = gc_mass_fraction(:, imesh)
 !
@@ -94,9 +94,9 @@
         rog(ijk) = gas_density(imesh)
         ep(ijk) = void_fraction(imesh)
         tg(ijk) = gas_temperature(imesh)
-        ts(:,ijk) = solid_temperature(:,imesh)
-        rgpgc(:, ijk) = gc_bulk_density(:, imesh)
-        xgc(:, ijk) = gc_molar_fraction(:, imesh)
+        ts(ijk,:) = solid_temperature(imesh,:)
+        rgpgc(ijk,:) = gc_bulk_density(imesh,:)
+        xgc(:,ijk) = gc_molar_fraction(:, imesh)
 !
         ck(:,ijk) = solid_heat_capacity(:,imesh)
         cp(:,ijk) = gc_heat_capacity(:,imesh)

@@ -83,20 +83,21 @@
 !
 ! ... convective fluxes (gas)
 !
-          enth  = nb(sieg,ijk)
-          dens  = nb(rgp,ijk)
-          u     = rnb(ug,ijk)
-          v     = rnb(vg,ijk)
-          w     = rnb(wg,ijk)
+          CALL nb(enth,sieg,ijk)
+          CALL nb(dens,rgp,ijk)
+          CALL rnb(u,ug,ijk)
+          CALL rnb(v,vg,ijk)
+          CALL rnb(w,wg,ijk)
+
           CALL fsc(egfe(ijk), egfn(ijk), egft(ijk),    &
                    egfe(imjk), egfn(ijmk), egft(ijkm),    &
                    enth, dens, u, v, w, ijk)
 !
 ! ... diffusive fluxes (gas)
 !
-          eps   = nb(ep,ijk)
-          temp  = nb(tg,ijk)
-          kappa = nb(kapgt,ijk)
+          CALL nb(eps,ep,ijk)
+          CALL nb(temp,tg,ijk)
+          CALL nb(kappa,kapgt,ijk)
           CALL hotc(hgfe(ijk), hgfn(ijk), hgft(ijk),      &
                     hgfe(imjk), hgfn(ijmk), hgft(ijkm),      &
                     eps, temp, kappa, ijk)
@@ -113,11 +114,12 @@
 !
 ! ... convective fluxes (particles)
 !
-            enth  = nb(sies,is,ijk)
-            CALL nb_rank2bis(dens, rlk(:,is),ijk)
-            u     = rnb(us,is,ijk)
-            v     = rnb(vs,is,ijk)
-            w     = rnb(ws,is,ijk)
+            CALL nb(enth,sies(:,is),ijk)
+            CALL nb(dens,rlk(:,is),ijk)
+            CALL rnb(u, us(:,is),ijk)
+            CALL rnb(v, vs(:,is),ijk)
+            CALL rnb(w, ws(:,is),ijk)
+            
             CALL fsc(esfe(is, ijk), esfn(is, ijk), esft(is, ijk),  &
                      esfe(is, imjk), esfn(is, ijmk), esft(is, ijkm),  &
                      enth, dens, u, v, w, ijk)
@@ -125,7 +127,7 @@
 ! ... diffusive fluxes (particles)
 !
             eps   = inrl(is) * dens
-            temp  = nb(ts,is,ijk)
+            CALL nb(temp,ts(:,is),ijk)
             kappa = cte(kap(is))
             CALL hotc(hsfe(is,ijk), hsfn(is, ijk), hsft(is,ijk),    &
                       hsfe(is,imjk), hsfn(is, ijmk), hsft(is,ijkm),    &
@@ -211,6 +213,7 @@
 !
         END IF
       END DO
+
 !
       DEALLOCATE(egfe, egfn, egft)
       DEALLOCATE(esfe, esfn, esft)

@@ -16,7 +16,7 @@
       USE dimensions
 !
       ALLOCATE(gas_bulk_density(ntot), gas_density(ntot))
-      ALLOCATE(solid_bulk_density(nsolid,ntot))
+      ALLOCATE(solid_bulk_density(ntot,nsolid))
 
       gas_bulk_density   = 0.D0
       gas_density        = 0.D0

@@ -27,7 +27,6 @@
       SUBROUTINE cnverts(imesh)
 !
       USE dimensions
-      USE gas_solid_density, ONLY: solid_bulk_density
       USE gas_solid_temperature, ONLY: solid_enthalpy, solid_temperature
       USE gas_constants, ONLY: tzero, hzeros
       USE particles_constants, ONLY: cps
@@ -43,8 +42,10 @@
 ! compute heat capacity (constant volume) for particles
 !
       DO is = 1, nsolid
-        CALL hcaps(solid_heat_capacity(is,imesh), cps(is), solid_temperature(is,imesh))
-        solid_enthalpy(is,imesh)=(solid_temperature(is,imesh)-tzero)*solid_heat_capacity(is,imesh)+hzeros
+        CALL hcaps(solid_heat_capacity(is,imesh), cps(is), &
+                   solid_temperature(imesh,is))
+        solid_enthalpy(imesh,is) = ( solid_temperature(imesh,is) - tzero ) * &
+                                    solid_heat_capacity(is,imesh) + hzeros
       END DO
 !
       RETURN

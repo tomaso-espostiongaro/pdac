@@ -165,7 +165,7 @@
       USE eos_gas, ONLY: cg
       USE gas_solid_density, ONLY: rog
       USE gas_solid_velocity, ONLY: ug,vg,wg 
-      USE set_indexes, ONLY: subscr, rnb
+      USE set_indexes, ONLY: subscr, stencil, rnb
       USE grid, ONLY: dx, dy, dz 
       IMPLICIT NONE
 !
@@ -181,6 +181,7 @@
       REAL*8 :: num, den
       REAL*8 :: delt
       INTEGER  :: i, j, k, ijk, imesh  
+      TYPE(stencil) :: sp11, sp12, sp22, sp13, sp23, sp33
 !
       ALLOCATE(modsr(ncdom));     modsr = 0.0D0
       IF (modturbo == 2) THEN
@@ -271,12 +272,23 @@
              CALL straing(ijk, fug, fvg, fwg, fmodsr, fsr11, fsr12, fsr22, &
 	                 fsr13, fsr23, fsr33)
 !
-             fp11 = filter_3d(rnb(p11,ijk))
-             fp12 = filter_3d(rnb(p12,ijk))   
-             fp22 = filter_3d(rnb(p22,ijk))
-             fp13 = filter_3d(rnb(p13,ijk))
-             fp23 = filter_3d(rnb(p23,ijk))
-             fp33 = filter_3d(rnb(p33,ijk))
+             CALL rnb(sp11,p11,ijk)
+             fp11 = filter_3d(sp11)
+             
+             CALL rnb(sp12,p12,ijk)
+             fp12 = filter_3d(sp12)   
+             
+             CALL rnb(sp22,p22,ijk)
+             fp22 = filter_3d(sp22)
+             
+             CALL rnb(sp13,p13,ijk)
+             fp13 = filter_3d(sp13)
+             
+             CALL rnb(sp23,p23,ijk)
+             fp23 = filter_3d(sp23)
+
+             CALL rnb(sp33,p33,ijk)
+             fp33 = filter_3d(sp33)
 !         
              l11  = fug(ijk)**2 - fu2g(ijk)
              l12  = fug(ijk)*fvg(ijk) - fuvg(ijk)
@@ -366,11 +378,21 @@
  
       INTEGER, INTENT(IN) :: ijk
       REAL*8, INTENT(OUT) :: fu, fv, fw, fu2, fv2, fw2, fuv, fuw, fvw
+      TYPE(stencil) :: um, up, vm, vp, wm, wp
       TYPE(stencil) :: u, v, w, u2, v2, w2, uv, uw, vw
 !
-      u = 0.5D0 * (rnb(ug,ijk) + rnb(ug,imjk))
-      v = 0.5D0 * (rnb(vg,ijk) + rnb(vg,ijmk))
-      w = 0.5D0 * (rnb(wg,ijk) + rnb(wg,ijkm))
+      CALL rnb(up,ug,ijk)
+      CALL rnb(um,ug,imjk)
+      u = 0.5D0 * (up + um) 
+
+      CALL rnb(vp,vg,ijk)
+      CALL rnb(vm,vg,ijmk)
+      v = 0.5D0 * (vp + vm)
+
+      CALL rnb(wp,wg,ijk)
+      CALL rnb(wm,wg,ijkm)
+      w = 0.5D0 * (wp + wm)
+
       u2 = u * u
       v2 = v * v
       w2 = w * w

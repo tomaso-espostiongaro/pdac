@@ -88,7 +88,7 @@
          rgpn(ijk)  = rgp(ijk)
          siegn(ijk) = sieg(ijk)
          DO ig=1,ngas
-           rgpgcn(ig,ijk) = rgpgc(ig,ijk)
+           rgpgcn(ijk,ig) = rgpgc(ijk,ig)
          END DO
 !
          DO is = 1, nsolid
@@ -96,12 +96,12 @@
           rlk_n = (rlk(ijk,is)*dy(j+1)+rlk(ijkn,is)*dy(j))*indyp
           rlk_t = (rlk(ijk,is)*dz(k+1)+rlk(ijkt,is)*dz(k))*indzp
 !
-          rusn(is,ijk)  = rlk_e * us(is,ijk)
-          rvsn(is,ijk)  = rlk_n * vs(is,ijk)
-          rwsn(is,ijk)  = rlk_t * ws(is,ijk)
+          rusn(is,ijk)  = rlk_e * us(ijk,is)
+          rvsn(is,ijk)  = rlk_n * vs(ijk,is)
+          rwsn(is,ijk)  = rlk_t * ws(ijk,is)
 !
           rlkn(ijk,is)  = rlk(ijk,is)
-          siesn(is,ijk) = sies(is,ijk)
+          siesn(ijk,is) = sies(ijk,is)
          END DO
 !
 ! ... Compute the temperature-dependent gas viscosity and th. conductivity
@@ -226,10 +226,10 @@
         imesh = myijk( ip0_jp0_kp0_, ijk)
         IF(fl_l(ijk) == 1) THEN
           CALL subscr(ijk)
-          dens = nb(rgp,ijk)
-          u    = rnb(ug,ijk)
-          v    = rnb(vg,ijk)
-          w    = rnb(wg,ijk)
+          CALL nb(dens,rgp,ijk)
+          CALL rnb(u,ug,ijk)
+          CALL rnb(v,vg,ijk)
+          CALL rnb(w,wg,ijk)
 !
           CALL flu(ugfe(ijk), ugfn(ijk), ugft(ijk),                        &
                   ugfe(imjk), ugfn(ijmk), ugft(ijkm), dens, u, v, w, ijk)
@@ -239,10 +239,10 @@
                   wgfe(imjk), wgfn(ijmk), wgft(ijkm), dens, u, v, w, ijk)
 !
           DO is = 1, nsolid
-            CALL nb_rank2bis( dens, rlk(:,is), ijk)
-            u    = rnb(us,is,ijk)
-            v    = rnb(vs,is,ijk)
-            w    = rnb(ws,is,ijk)
+            CALL nb(dens,rlk(:,is),ijk)
+            CALL rnb(u,us(:,is),ijk)
+            CALL rnb(v,vs(:,is),ijk)
+            CALL rnb(w,ws(:,is),ijk)
 !
             CALL flu(usfe(is,ijk), usfn(is,ijk), usft(is,ijk),           &
                     usfe(is,imjk), usfn(is,ijmk), usft(is,ijkm),        &
@@ -386,9 +386,9 @@
 !
 ! ... Compute the gas-particle drag coefficients
 !
-            dugs = ( (ug(ijk)-us(is,ijk)) + (ug(imjk)-us(is,imjk)) )*0.5D0
-            dvgs = ( (vg(ijk)-vs(is,ijk)) + (vg(ijmk)-vs(is,ijmk)) )*0.5D0
-            dwgs = ( (wg(ijk)-ws(is,ijk)) + (wg(ijkm)-ws(is,ijkm)) )*0.5D0
+            dugs = ( (ug(ijk)-us(ijk,is)) + (ug(imjk)-us(imjk,is)) )*0.5D0
+            dvgs = ( (vg(ijk)-vs(ijk,is)) + (vg(ijmk)-vs(ijmk,is)) )*0.5D0
+            dwgs = ( (wg(ijk)-ws(ijk,is)) + (wg(ijkm)-ws(ijkm,is)) )*0.5D0
 
             CALL kdrags(kpgv(is), dugs, dvgs, dwgs, ep(ijk),         &
                         rgp(ijk), rlk(ijk,is), mug(ijk), is)                  

@@ -94,13 +94,13 @@
            rgp(ijk)=rog(ijk)*ep(ijk)
 ! 
            DO ig=1,ngas
-             rgpgc(ig,ijk)=ygc(ig,ijk)*rgp(ijk)
+             rgpgc(ijk,ig)=ygc(ig,ijk)*rgp(ijk)
            END DO
 ! 
 ! ... Compute particle specific heat and temperatures from Equation of State
 !
            DO is=1,nsolid
-             CALL eosl(ts(is,ijk),ck(is,ijk),cps(is),sies(is,ijk),1,1)
+             CALL eosl(ts(ijk,is),ck(is,ijk),cps(is),sies(ijk,is),1,1)
            END DO
         END DO
 !
@@ -119,7 +119,8 @@
        ELSE IF( job_type == '3D' ) THEN
          IF(time+0.1D0*dt >= tpri) THEN
            CALL collect
-           CALL outp_bin
+!           CALL outp_bin
+           CALL outp_3d
            tpri=tpri+tpr
          ENDIF
        ELSE

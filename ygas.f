@@ -45,10 +45,11 @@
          
          DO ig=1,ngas
 	   one  = cte(1.D0)
-	   field = nb(rgpgc,ig,ijk)
-	   u    = rnb(ug,ijk)
-	   v    = rnb(vg,ijk)
-	   w    = rnb(wg,ijk)
+	   CALL nb(field,rgpgc(:,ig),ijk)
+	   CALL rnb(u,ug,ijk)
+	   CALL rnb(v,vg,ijk)
+	   CALL rnb(w,wg,ijk)
+
 	   CALL fsc(yfe(ig,ijk), yfn(ig,ijk), yft(ig,ijk),      &
                     yfe(ig,imjk), yfn(ig,ijmk), yft(ig,ijkm),   &
                     one, field, u, v, w, ijk)
@@ -61,6 +62,7 @@
       CALL data_exchange(yfn)
       CALL data_exchange(yft)
 
+      rgp = 0.D0
       DO ijk = 1, ncint
        imesh = myijk( ip0_jp0_kp0_, ijk)
        IF( fl_l(ijk) == 1 ) THEN
@@ -79,19 +81,21 @@
 	   yfy = yfn(ig,ijk) - yfs
 	   yfz = yft(ig,ijk) - yfb
 
-	   rgpgc(ig,ijk) = rgpgcn(ig,ijk)                  &
+	   rgpgc(ijk,ig) = rgpgcn(ijk,ig)                  &
 	                 - dt * indx(i) * yfx              &
 	                 - dt * indy(j) * yfy              &
 	                 - dt * indz(k) * yfz
 
-           IF(rgpgc(ig,ijk) < 0.D0) CALL error('ygas','gas mass not conserved',1)
+           IF(rgpgc(ijk,ig) < 0.D0) CALL error('ygas','gas mass not conserved',1)
+           rgp = rgp + rgpgc(ijk,ig)
 
          END DO
        END IF
       END DO
 	
-      rgp = SUM(rgpgc(:,ijk))
-      ygc(:,ijk)=rgpgc(:,ijk)/rgp
+      DO ig=1,ngas
+        ygc(ig,ijk)=rgpgc(ijk,ig)/rgp
+      END DO
 !
       DEALLOCATE(yfe, yfn, yft)
 !

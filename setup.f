@@ -76,8 +76,8 @@
                 gc_mass_fraction(ig,ij)=ygc0(ig)
               END DO
               DO is=1,nsolid
-                solid_bulk_density(is,ij)=rl(is)*(1.D0-ep0)/DBLE(nsolid)
-                solid_temperature(is,ij)=gas_temperature(ij)
+                solid_bulk_density(ij,is)=rl(is)*(1.D0-ep0)/DBLE(nsolid)
+                solid_temperature(ij,is)=gas_temperature(ij)
               END DO
 !
 ! ... Set velocity profiles
@@ -86,8 +86,8 @@
                gas_velocity_r(ij)=u0
                gas_velocity_z(ij)=w0
                DO is=1,nsolid
-                 solid_velocity_r(is,ij)=us0
-                 solid_velocity_z(is,ij)=ws0
+                 solid_velocity_r(ij,is)=us0
+                 solid_velocity_z(ij,is)=ws0
                END DO
               END IF
 !
@@ -116,8 +116,8 @@
                   gc_mass_fraction(ig,ijk)=ygc0(ig)
                 END DO
                 DO is=1,nsolid
-                  solid_bulk_density(is,ijk)=rl(is)*(1.D0-ep0)/DBLE(nsolid)
-                  solid_temperature(is,ijk)=gas_temperature(ijk)
+                  solid_bulk_density(ijk,is)=rl(is)*(1.D0-ep0)/DBLE(nsolid)
+                  solid_temperature(ijk,is)=gas_temperature(ijk)
                 END DO
 !
 ! ... Set velocity profiles
@@ -127,9 +127,9 @@
                   gas_velocity_y(ijk)=v0
                   gas_velocity_z(ijk)=w0
                   DO is = 1, nsolid
-                    solid_velocity_x(is,ijk) = us0
-                    solid_velocity_y(is,ijk) = vs0
-                    solid_velocity_z(is,ijk) = ws0
+                    solid_velocity_x(ijk,is) = us0
+                    solid_velocity_y(ijk,is) = vs0
+                    solid_velocity_z(ijk,is) = ws0
                   END DO
                 END IF
 
@@ -158,10 +158,10 @@
                   gc_mass_fraction(ig,ij)=ygcob(ig,n)
                 END DO
                 DO is=1,nsolid
-                  solid_temperature(is,ij)=tpob(is,n)
-                  solid_velocity_r(is,ij)=upob(is,n)
-                  solid_velocity_z(is,ij)=wpob(is,n)
-                  solid_bulk_density(is,ij)=epsob(is,n)*rl(is)
+                  solid_temperature(ij,is)=tpob(is,n)
+                  solid_velocity_r(ij,is)=upob(is,n)
+                  solid_velocity_z(ij,is)=wpob(is,n)
+                  solid_bulk_density(ij,is)=epsob(is,n)*rl(is)
                 END DO
               ENDIF
             END DO
@@ -188,11 +188,11 @@
                       gc_mass_fraction(ig,ijk)=ygcob(ig,n)
                     END DO
                     DO is=1,nsolid
-                      solid_temperature(is,ijk)=tpob(is,n)
-                      solid_velocity_x(is,ijk)=upob(is,n)
-                      solid_velocity_y(is,ijk)=vpob(is,n)
-                      solid_velocity_z(is,ijk)=wpob(is,n)
-                      solid_bulk_density(is,ijk)=epsob(is,n)*rl(is)
+                      solid_temperature(ijk,is)=tpob(is,n)
+                      solid_velocity_x(ijk,is)=upob(is,n)
+                      solid_velocity_y(ijk,is)=vpob(is,n)
+                      solid_velocity_z(ijk,is)=wpob(is,n)
+                      solid_bulk_density(ijk,is)=epsob(is,n)*rl(is)
                     END DO
                   ENDIF
 
@@ -230,7 +230,7 @@
           END DO
           DO is=1,nsolid
             void_fraction(imesh) = &
-            void_fraction(imesh) - solid_bulk_density(is,imesh)*inrl(is)
+            void_fraction(imesh) - solid_bulk_density(imesh,is)*inrl(is)
           END DO
 
           CALL mas(gc_mass_fraction(:,imesh), gc_molar_fraction(:,imesh)) 

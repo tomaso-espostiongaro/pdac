@@ -66,9 +66,9 @@
 !
 ! ... Compute gas-particle heat transfer coefficients
 !
-            dugs = ( (ug(ijk)-us(is,ijk)) + (ug(imjk)-us(is,imjk)) ) * 0.5D0
-            dvgs = ( (vg(ijk)-vs(is,ijk)) + (vg(ijmk)-vs(is,ijmk)) ) * 0.5D0
-            dwgs = ( (wg(ijk)-ws(is,ijk)) + (wg(ijkm)-ws(is,ijkm)) ) * 0.5D0
+            dugs = ( (ug(ijk)-us(ijk,is)) + (ug(imjk)-us(imjk,is)) ) * 0.5D0
+            dvgs = ( (vg(ijk)-vs(ijk,is)) + (vg(ijmk)-vs(ijmk,is)) ) * 0.5D0
+            dwgs = ( (wg(ijk)-ws(ijk,is)) + (wg(ijkm)-ws(ijkm,is)) ) * 0.5D0
 
             CALL hvs(hv, rlk(ijk,is), rog(ijk), ep(ijk), &
                      dugs, dvgs, dwgs, mug(ijk), kapg(ijk), cg(ijk), is)
@@ -78,7 +78,7 @@
             at(is1,1)   =             - dt * hv / cg(ijk)
             at(is1,is1) = rlk(ijk,is) + dt * hv / ck(is,ijk)
 !
-            bt(is1) = rlkn(ijk,is) * siesn(is,ijk) + rhs(is, ijk)
+            bt(is1) = rlkn(ijk,is) * siesn(ijk,is) + rhs(is, ijk)
           END DO
 !
 ! ... Solve the interphase enthalpy matrix by using Gauss inversion
@@ -87,7 +87,7 @@
 !
           sieg(ijk) = bt(1)
           DO is=1, nsolid
-            sies(is,ijk) = bt(is+1)
+            sies(ijk,is) = bt(is+1)
           END DO
 !
         END IF
