@@ -36,7 +36,7 @@
       USE set_indexes, ONLY: ipjk, imjk, ippjk, immjk, ijpk, ipjpk,    &
         imjpk, ijmk, ipjmk, imjmk, ijppk, ijmmk, ijkp, ipjkp, imjkp,   &
         ijpkp, ijmkp, ijkm, ipjkm, imjkm, ijpkm, ijmkm, ijkpp, ijkmm
-      USE vent_conditions, ONLY: update_ventc
+      USE vent_conditions, ONLY: update_ventc, random_switch, irand
 !
       IMPLICIT NONE
 !
@@ -52,13 +52,15 @@
       fz = 0
       forced = .FALSE.
 !
+      IF (irand >= 1) CALL random_switch(sweep)
+!
       DO ijk = 1, ncint
 
         CALL meshinds(ijk,imesh,i,j,k)
 
         IF (flag(ijk) == 8) THEN
 
-          !CALL update_ventc(sweep,ijk)
+          CALL update_ventc(ijk,imesh,sweep)
 
         ELSE IF( flag(ijk) == 1 ) THEN
           CALL subscr(ijk)

@@ -4,7 +4,8 @@
 
       USE blunt_body, ONLY: bluntb, ibl
       USE boundary_conditions, ONLY: boundary
-      USE check_residuals, ONLY: print_mass_residuals
+      USE check_residuals, ONLY: print_mass_residuals, &
+                                 print_mass_flow_rate
       USE control_flags, ONLY: job_type, lpr, run, imr
       USE control_flags, ONLY: implicit_enthalpy, implicit_fluxes
       USE dimensions
@@ -277,12 +278,12 @@
 
         END DO runge_kutta
 !
+        CALL deallocate_fluxes
+!
 ! ... End the Runge-Kutta iteration and advance time
 !
         dt = dt0
-        time = time + dt
-!
-        CALL deallocate_fluxes
+ 100    time = time + dt
 !
 ! ... Force the writing on the standard output
 !
@@ -346,6 +347,10 @@
 ! ... Print the total residuals of the mass conservation equation
 !
         IF ( imr >= 1 ) CALL print_mass_residuals(sweep)
+!
+! ... Print the mass flow-rate
+!
+        CALL print_mass_flow_rate(sweep)
 !
         !IF (mpime == psmp) CALL sample_pressure(ismp)
 !

@@ -84,8 +84,9 @@
       USE grid, ONLY: dxmin, dxmax, dymin, dymax, dzmin, dzmax
       USE grid, ONLY: maxbeta, grigen
       USE initial_conditions, ONLY: density_specified
-      USE vent_conditions, ONLY: ivent, u_gas,v_gas,w_gas,p_gas,t_gas,wrat, &
-          u_solid, v_solid, w_solid,  ep_solid, t_solid, radius, xvent, yvent
+      USE vent_conditions, ONLY: u_gas,v_gas,w_gas,p_gas,t_gas, wrat, &
+          u_solid, v_solid, w_solid,  ep_solid, t_solid, radius, xvent,&
+          yvent, ivent, iali, irand
       USE immersed_boundaries, ONLY: immb
       USE iterative_solver, ONLY: inmax, maxout, omega, optimization
       USE io_restart, ONLY: max_seconds, nfil
@@ -124,7 +125,8 @@
       NAMELIST / boundaries / west, east, south, north, bottom, top, &
         itp, topography, immb, ibl, deltaz, imap
       
-      NAMELIST / inlet / ivent, wrat, xvent, yvent, radius, u_gas, v_gas, w_gas,  &
+      NAMELIST / inlet / ivent, iali, irand, wrat, &
+        xvent, yvent, radius, u_gas, v_gas, w_gas,  &
         p_gas, t_gas, u_solid, v_solid, w_solid, ep_solid, t_solid, &
         vent_O2, vent_N2, vent_CO2, vent_H2, vent_H2O, vent_Air, vent_SO2
 
@@ -234,6 +236,8 @@
 ! ... Inlet
 
       ivent = 0               ! 0: specify inlet blocks 1: circular vent
+      iali  = 0               ! 1: vent antialiasing ON
+      irand = 0               ! 1: circular vent specified on average
       xvent  = 0.D0           ! coordinates of the vent
       yvent  = 0.D0           ! coordinates of the vent
       radius = 100.D0         ! vent radius
@@ -424,6 +428,8 @@
       IF(mpime == root) READ(iunit, inlet) 
 
       CALL bcast_integer(ivent,1,root)
+      CALL bcast_integer(iali,1,root)
+      CALL bcast_integer(irand,1,root)
       CALL bcast_real(xvent,1,root)
       CALL bcast_real(yvent,1,root)
       CALL bcast_real(radius,1,root)
@@ -743,6 +749,8 @@
 
           CALL iotk_write_begin( iuni_nml, "inlet" )
             CALL iotk_write_dat( iuni_nml, "ivent", ivent )
+            CALL iotk_write_dat( iuni_nml, "iali", iali )
+            CALL iotk_write_dat( iuni_nml, "irand", irand )
             CALL iotk_write_dat( iuni_nml, "xvent", xvent )
             CALL iotk_write_dat( iuni_nml, "yvent", yvent )
             CALL iotk_write_dat( iuni_nml, "radius", radius )

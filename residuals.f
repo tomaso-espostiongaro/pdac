@@ -67,7 +67,7 @@
           ELSE IF (job_type == '3D') THEN
             sx = dz(k)*dy(j)
             sy = dx(i)*dz(k)
-            sz = dy(j)*dx(k)
+            sz = dy(j)*dx(i)
           END IF
           
           flux = ug(ijk)*sx + wg(ijk) * sz
@@ -109,6 +109,76 @@
 
       RETURN
       END SUBROUTINE print_mass_residuals
+!----------------------------------------------------------------------
+      SUBROUTINE print_mass_flow_rate(nswp)
+
+      USE control_flags, ONLY: job_type
+      USE dimensions, ONLY: ngas, nsolid
+      USE domain_decomposition, ONLY: meshinds
+      USE eos_gas, ONLY: ygc
+      USE gas_solid_density, ONLY: rgp, rlk
+      USE gas_solid_temperature, ONLY: tg, ts
+      USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
+      USE grid, ONLY: dx, dy, dz, r, rb, flag
+      USE pressure_epsilon, ONLY: p, ep
+      USE time_parameters, ONLY: dt
+      IMPLICIT NONE
+
+      INTEGER, INTENT(IN) :: nswp
+      INTEGER :: ijk, i, j, k, imesh
+      INTEGER :: ig, is
+      REAL*8 :: volume, sx, sy, sz, flux
+      REAL*8 :: mfr
+
+      mfr  = 0.D0
+
+      DO ijk = 1, ncint
+        CALL meshinds(ijk,imesh,i,j,k)
+
+        IF (flag(ijk) == 8) THEN
+          !
+          ! ... Compute the mass entered since the beginning
+          !
+          IF (job_type == '2D') THEN
+            sx = dz(k)*rb(i)
+            sy = 0.D0
+            sz = dx(i)*r(i)
+          ELSE IF (job_type == '3D') THEN
+            sx = dz(k)*dy(j)
+            sy = dx(i)*dz(k)
+            sz = dy(j)*dx(i)
+          END IF
+          
+          WRITE(*,*) ijk
+          WRITE(*,*) wg(ijk), ws(ijk,:)
+          WRITE(*,*) ep(ijk), p(ijk)
+          WRITE(*,*) tg(ijk), ts(ijk,:)
+          WRITE(*,*) rgp(ijk), rlk(ijk,:)
+          WRITE(*,*) ygc(ijk,:)
+          WRITE(*,*) 
+          
+          flux = rgp(ijk) * wg(ijk) * sz
+          mfr = mfr + flux
+
+          DO is = 1, nsolid
+            flux = rlk(ijk,is) * ws(ijk,is) * sz
+            mfr = mfr + flux
+          END DO
+          
+        END IF
+
+      END DO
+
+      CALL parallel_sum_real(mfr, 1)
+
+      IF (mpime == root) THEN
+        WRITE(13,55) nswp, mfr
+      END IF
+
+ 55   FORMAT(I8,G30.20E3)
+
+      RETURN
+      END SUBROUTINE print_mass_flow_rate
 !----------------------------------------------------------------------
       END MODULE check_residuals
 !----------------------------------------------------------------------

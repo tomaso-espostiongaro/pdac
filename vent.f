@@ -4,7 +4,10 @@
       USE dimensions, ONLY: max_nsolid, max_ngas
       IMPLICIT NONE
 
-      INTEGER :: ivent
+      ! ... flags
+      !
+      INTEGER :: ivent, irand, iali
+
       REAL*8 :: xvent, yvent, radius
       REAL*8 :: wrat
       REAL*8 :: u_gas, v_gas, w_gas, p_gas, t_gas
@@ -15,9 +18,13 @@
       TYPE inlet_cell
         INTEGER :: imesh
         REAL*8  :: frac
+        REAL*8  :: fact
       END TYPE inlet_cell
+
       TYPE(inlet_cell), ALLOCATABLE :: vcell(:)
+
       INTEGER :: nvt
+      INTEGER :: seed
 
       SAVE
 !-----------------------------------------------------------------------
@@ -39,7 +46,7 @@
       INTEGER :: i, j, k
       INTEGER :: ijk, nv
       INTEGER :: iwest, ieast, jnorth, jsouth
-      REAL*8 :: quota
+      INTEGER :: quota
       
       IF( job_type == '2D') RETURN
 !
@@ -158,7 +165,6 @@
 ! ... An aribtrary radial profile can be assigned, as a function
 ! ... of the averaged vertical velocity
 !
-      USE atmospheric_conditions, ONLY: p_ground, t_ground
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nsolid, ngas
       USE domain_decomposition, ONLY: ncint, meshinds
@@ -168,15 +174,14 @@
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
-      USE grid, ONLY: x, y, z, flag
+      USE grid, ONLY: flag, x, y
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
       IMPLICIT NONE
 
-      REAL*8 :: area, ygcsum
-      REAL*8 :: mixdens, mixvel, mfr, mg
-      REAL*8 :: alpha, ep0, ra, beta, fact_r
+      REAL*8 :: ygcsum
       INTEGER :: ijk, imesh, i,j,k, is, ig, n
+      REAL*8 :: fact_r, alpha, beta, ra
 
       IF (job_type == '2D') RETURN
       
@@ -184,33 +189,26 @@
         IF(flag(ijk) == 8) THEN
           CALL meshinds(ijk,imesh,i,j,k)
 
-          IF (wrat > 1.D0) THEN
-            beta = 1.D0 / (wrat - 1.D0)
-            ra = DSQRT((x(i)-xvent)**2 + (y(j)-yvent)**2)
-            ra = MIN(ra / radius, 1.D0)
-            fact_r = wrat * (1.D0 - ra ** beta)
-          ELSE IF (wrat <= 1.D0) THEN
-            fact_r = 1.D0
-          END IF
-
+          ! ... determine the fraction of the cell
+          ! ... not occupied by the topography
+          !
           DO n = 1, nvt
             IF (vcell(n)%imesh == imesh) THEN
               alpha = vcell(n)%frac
             END IF
           END DO
           
+          ! ... Set the initial conditions, as
+          ! ... specified in the input file on 
+          ! ... all cells enclosing the vent
+          !
           ug(ijk) = u_gas 
           IF (job_type == '3D') vg(ijk) = v_gas 
-          
-          !
-          ! ... vertical velocity profile
-          !
-          wg(ijk) = w_gas * fact_r
+          wg(ijk) = w_gas
           
           tg(ijk) = t_gas
-          ep0     = 1.D0 - SUM(ep_solid(1:nsolid))
-          ep(ijk) = 1.D0 - alpha * SUM(ep_solid(1:nsolid))
-          p(ijk)  = p_gas * alpha * ep0 / ep(ijk)
+          ep(ijk) = 1.D0 - SUM(ep_solid(1:nsolid))
+          p(ijk)  = p_gas
 
           DO ig = 1, ngas
             ygc(ijk,ig) = vent_ygc(gas_type(ig))
@@ -220,14 +218,10 @@
 
             us(ijk,is)  = u_solid(is) 
             IF (job_type == '3D') vs(ijk,is)  = v_solid(is) 
-          
-            !
-            ! ... vertical velocity profile
-            !
-            ws(ijk,is) = w_solid(is) * fact_r
+            ws(ijk,is) = w_solid(is)
 
             ts(ijk,is)  = t_solid(is)
-            rlk(ijk,is) = ep_solid(is)*rl(is) * alpha
+            rlk(ijk,is) = ep_solid(is)*rl(is)
           END DO
           !
           ! ... check gas components closure relation
@@ -236,59 +230,174 @@
             ygc(ijk,ngas) = 1.D0 - SUM( ygc(ijk,1:ngas-1) )
           END IF
           
+          ! ... Mixture density is corrected in those cells
+          ! ... partially filled by the topography in order
+          ! ... to respect the mass flux
+          !
+          IF (iali >= 1) CALL correct_vent_density(ijk,alpha)
+
+          ! ... 'wrat' is the ratio between the maximum
+          ! ... vertical velocity and the averaged velocity
+          ! ... If 'wrat' is greater than 1, the inlet profile
+          ! ... goes to 0 at the vent rim. 
+          ! 
+          IF (wrat > 1.D0) THEN
+
+            beta = 1.D0 / (wrat - 1.D0)
+            ra = DSQRT((x(i)-xvent)**2 + (y(j)-yvent)**2)
+            ra = MIN(ra / radius, 1.D0)
+            fact_r = wrat * (1.D0 - ra ** beta)
+
+            CALL correct_vent_profile(ijk,fact_r)
+
+          END IF
+
+          !
+          ! ... determine the initial random seed
+          !
+          IF (irand >= 1) THEN
+            IF (mpime == root) seed = cpclock()
+            CALL bcast_integer(seed,1,root)
+          END IF
+        
         END IF
       END DO
-
-      DEALLOCATE(vcell)
 
       RETURN
       END SUBROUTINE set_ventc
 !-----------------------------------------------------------------------
-      SUBROUTINE update_ventc(sweep,ijk)
+      SUBROUTINE correct_vent_density(ijk,alpha)
 !
-! ... Update the vertical velocity profile as a function of time
-! ... The time scale is 'tau'
+! ... Compute the steady inlet conditions for a circular vent
+! ... An aribtrary radial profile can be assigned, as a function
+! ... of the averaged vertical velocity
 !
-      USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nsolid
-      USE domain_decomposition, ONLY: ncint, meshinds
-      USE gas_solid_velocity, ONLY: ug, wg, vg
-      USE gas_solid_velocity, ONLY: us, vs, ws
-      USE grid, ONLY: flag
+      USE gas_solid_density, ONLY: rlk
+      USE particles_constants, ONLY: rl, inrl
+      USE pressure_epsilon, ONLY: ep, p
       IMPLICIT NONE
 
-      INTEGER, INTENT(IN) :: sweep, ijk
-      REAL*8 :: f1, f2, fact
+      INTEGER, INTENT(IN) :: ijk
+      REAL*8, INTENT(IN) :: alpha
+      REAL*8 :: ep0
+      INTEGER :: is
+      
+      ! ... solid bulk density is reduced by the factor 'alpha'
+      !
+      DO is = 1,nsolid
+        rlk(ijk,is) = ep_solid(is)*rl(is) * alpha
+      END DO
+      
+      ! ... gas bulk density is reduced by the factor 'alpha'
+      ! ... by correcting the pressure and the void fraction
+      !
+      ep0     = 1.D0 - SUM(ep_solid(1:nsolid))
+      ep(ijk) = 1.D0 - alpha * SUM(ep_solid(1:nsolid))
+      p(ijk)  = p_gas * alpha * ep0 / ep(ijk)
+
+      RETURN
+      END SUBROUTINE correct_vent_density
+!-----------------------------------------------------------------------
+      SUBROUTINE correct_vent_profile(ijk,factor)
+!
+! ... Compute the steady inlet conditions for a circular vent
+! ... An aribtrary radial profile can be assigned, as a function
+! ... of the averaged vertical velocity
+!
+      USE dimensions, ONLY: nsolid
+      USE gas_solid_velocity, ONLY: wg, ws
+      IMPLICIT NONE
+
+      REAL*8, INTENT(IN) :: factor
+      INTEGER, INTENT(IN) :: ijk
       INTEGER :: is
 
-      IF (job_type == '2D') RETURN
+      wg(ijk) = w_gas * factor
       
-      f1 = ft(sweep)
-      f2 = ft(sweep-1)
-      IF (sweep == 1) THEN
-        fact = f1
-      ELSE
-        fact = f1/f2
-      END IF
-      
-      wg(ijk) = wg(ijk) * fact
       DO is = 1,nsolid
-        ws(ijk,is) = ws(ijk,is) * fact
+        ws(ijk,is) = w_solid(is) * factor
+      END DO
+
+      RETURN
+      END SUBROUTINE correct_vent_profile
+!-----------------------------------------------------------------------
+      SUBROUTINE update_ventc(ijk,imesh,sweep)
+!
+! ... Compute the steady inlet conditions for a circular vent
+! ... An aribtrary radial profile can be assigned, as a function
+! ... of the averaged vertical velocity
+!
+      USE dimensions, ONLY: nsolid
+      USE gas_solid_velocity, ONLY: wg, ws
+      IMPLICIT NONE
+
+      INTEGER, INTENT(IN) :: ijk, imesh, sweep
+      INTEGER :: is, n
+      REAL*8 :: switch, growth_factor
+
+      ! ... Determine whether the inlet cell is on/off
+      ! 
+      DO n = 1, nvt
+        IF (vcell(n)%imesh == imesh) THEN
+          switch = vcell(n)%fact
+        END IF
+      END DO
+
+      grow_factor = ft(sweep)
+      
+      wg(ijk) = w_gas * switch * growth_factor
+      
+      DO is = 1,nsolid
+        ws(ijk,is) = w_solid(is) * switch * growth_factor
       END DO
 
       RETURN
       END SUBROUTINE update_ventc
 !-----------------------------------------------------------------------
+      SUBROUTINE random_switch(sweep)
+!
+! ... Randomly switch vent cells on, with probability
+! ... equal to the cell fraction
+!
+      USE control_flags, ONLY: job_type
+      USE environment, ONLY: cpclock
+      IMPLICIT NONE
+
+      INTEGER, INTENT(IN) :: sweep
+      REAL*8 :: rnv
+      REAL*8 :: ran0
+      EXTERNAL :: ran0
+      INTEGER :: n
+
+      IF (job_type == '2D') RETURN
+
+      DO n = 1, nvt
+        rnv = ran0(seed)
+        IF (rnv <= vcell(n)%frac) THEN
+          vcell(n)%fact = 1.D0
+        ELSE
+          vcell(n)%fact = 0.D0
+        END IF
+      END DO
+
+      RETURN
+      END SUBROUTINE random_switch
+!-----------------------------------------------------------------------
       REAL*8 FUNCTION ft(n)
       USE time_parameters, ONLY: tau, dt
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: n
-      REAL*8 :: t
+      REAL*8 :: t, tr
 
       t = n * dt
+!
+! ... The function 'ft' grows smoothly from 0 to 1 in a time 'tau'
+!
+      tr = t / tau
 
-      IF (t <= tau) THEN
-        ft = 3.D0 * (t / tau)**2 - 2.D0 * (t / tau)**3     
+      IF (tr <= 1.D0) THEN
+        ft = 3.D0 * (tr)**2 - 2.D0 * (tr)**3     
       ELSE
         ft = 1.D0
       END IF
@@ -515,6 +624,6 @@
       
       END FUNCTION areaSEC
       
-
+!-----------------------------------------------------------------------
       END MODULE vent_conditions
 !-----------------------------------------------------------------------
