@@ -23,8 +23,7 @@
      &    local_bounds_velocity
       USE gas_solid_temperature, ONLY: bounds_temperature, &
      &    local_bounds_temperature
-      USE gas_solid_viscosity, ONLY: icoh, bounds_viscosity,  &
-     &    local_bounds_viscosity
+      USE gas_solid_viscosity, ONLY: bounds_viscosity, local_bounds_viscosity
       USE grid, ONLY: dz, dr, itc
       USE grid, ONLY: nso, iob, flic, partition, ghost, &
      &    bounds_blocks, bounds_grid
@@ -167,7 +166,7 @@
 ! 
       IF (mpime .EQ. root) THEN
         WRITE(6,200) run_name
-        WRITE(6,220) itc,nr,nz,dr0,dz0,zzero,iturb,modturbo,iss,icoh,irex,ngas
+        WRITE(6,220) itc,nr,nz,dr0,dz0,zzero,iturb,modturbo,iss,irex,ngas
         WRITE(6,611) (dr(i),i=1,nr)
         WRITE(6,622) (dz(j),j=1,nz)
         WRITE(6,221) cmut,inmax,maxout,omega

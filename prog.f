@@ -13,7 +13,7 @@
       USE io_restart, ONLY: tapewr
       USE iterative_solver, ONLY: iter
       USE output_dump, ONLY: outp
-      USE particles_constants, ONLY: nsolid, cps
+      USE particles_constants, ONLY: cps
       USE pressure_epsilon, ONLY: p, pn, ep
       USE reactions, ONLY: rexion, irex
       USE tilde_energy, ONLY: htilde
@@ -21,9 +21,8 @@
       USE time_parameters, ONLY: time, tpr, tdump, tstop, dt, itd
       USE time_parameters, ONLY: rungekut
       USE turbulence, ONLY: iturb, iss
-      USE turbulence, ONLY: sgsgdyn, sgss, mugt, kapgt
-      USE gas_solid_viscosity, ONLY: viscon
-      USE gas_solid_viscosity, ONLY: mug, kapg
+      USE turbulence, ONLY: sgsg, sgss
+      USE gas_solid_viscosity, ONLY: viscon, mug, kapg
       USE gas_components, ONLY: ygas
       USE heat_capacity, ONLY: ck, cp
       USE environment, ONLY: cpclock, timing
@@ -37,7 +36,7 @@
       REAL*8 :: tdump1, tpri
       REAL*8 :: s0, s1, s2, s3, s4, s5, s6, s7, s8, s9
       REAL*8 :: timbdry, timout, timrestart, timtilde, timiter, &
-                timygas, timtem, timtot, dt0, tsgsgdyn
+                timygas, timtem, timtot, dt0, tsgsg
 !
              IF( timing ) s0 = cpclock()
 !
@@ -50,7 +49,7 @@
       timtem= 0.0d0
       timtot= 0.0d0
 
-      tsgsgdyn = 0.0D0
+      tsgsg = 0.0D0
 
       tdump1=time+tdump
       tpri=time+tpr
@@ -156,15 +155,10 @@
        IF (time + 0.1D0*dt .GE. tstop)     EXIT time_sweep
 !------------------------------------------------------------ 
 !
-! ... Compute Turbulent viscosity for Smagorinsky LES model
+! ... Compute Turbulent viscosity from Smagorinsky LES model
 !
-         IF (iturb .GE. 1) THEN
-           CALL sgsgdyn
-         ELSE
-           mugt = mug 
-           kapgt = kapg
-         END IF
-         IF (iss .EQ. 1)  CALL sgss
+         IF (iturb .GE. 1)  CALL sgsg
+         IF (iss .EQ. 1)    CALL sgss
               IF( timing ) s5 = cpclock()
 ! 
 ! ... store gas and particle momentum densities at time n*dt
@@ -215,7 +209,7 @@
               timbdry = timbdry + (s2 - s1)
               timout = timout + (s3 - s2)
               timrestart = timrestart + (s4 - s3)
-              tsgsgdyn = tsgsgdyn + (s5 - s4)
+              tsgsg = tsgsg + (s5 - s4)
               timtilde = timtilde + (s6 - s5)
               timiter = timiter + (s7 - s6)
               timygas = timygas + (s8 - s7)
@@ -232,13 +226,13 @@
                 timbdry = timbdry / 1000.0d0
                 timout = timout / 1000.0d0
                 timrestart = timrestart / 1000.0d0
-                tsgsgdyn = tsgsgdyn /1000.0D0
+                tsgsg = tsgsg /1000.0D0
                 timtilde = timtilde / 1000.0d0
                 timiter = timiter / 1000.0d0
                 timygas = timygas / 1000.0d0
                 timtem = timtem / 1000.0d0
                 WRITE(7,900)
-                WRITE(7,999) timbdry, timout, timrestart, tsgsgdyn, timtilde, &
+                WRITE(7,999) timbdry, timout, timrestart, tsgsg, timtilde, &
                              timiter, timygas, timtem, timtot
 900      FORMAT('  Bdry      Out       Restart   Dyn       Tilde     ',       &
                          'Iter      Ygas      Tem       Total')

@@ -59,7 +59,6 @@
 
       USE atmosphere, ONLY: v0, u0, p0, temp0, uk0, vk0, ep0, epsmx0, gravx, gravz
       USE gas_constants, ONLY: phij, ckg, mmug, mmugs, mmugek, gmw
-      USE gas_solid_viscosity, ONLY: icoh
       USE grid, ONLY: dz, dr, itc
       USE grid, ONLY: nso, iob
       USE iterative_solver, ONLY: inmax, maxout, omega
@@ -82,7 +81,7 @@
       INTEGER, INTENT(IN) :: iunit
 
       NAMELIST / control / run_name, restart_mode, time, tstop, dt, lpr, tpr, &
-        tdump, nfil, icoh, irex, iss, iturb, modturbo, cmut, rlim, gravx, gravz, &
+        tdump, nfil, irex, iss, iturb, modturbo, cmut, rlim, gravx, gravz, &
         ngas
 !
       NAMELIST / mesh / nr, nz, itc, iuni, dr0, dz0
@@ -109,7 +108,6 @@
       tpr = 1.0d0
       tdump = 20.0d0
       nfil = 0
-      icoh = 0
       irex = 1
       iss  = 0
       iturb = 1
@@ -164,7 +162,6 @@
       CALL bcast_real(tpr,1,root)
       CALL bcast_real(tdump,1,root)
       CALL bcast_integer(nfil,1,root)
-      CALL bcast_integer(icoh,1,root)
       CALL bcast_integer(irex,1,root)
       CALL bcast_integer(iss,1,root)
       CALL bcast_integer(iturb,1,root)

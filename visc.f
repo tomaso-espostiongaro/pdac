@@ -3,16 +3,16 @@
 !----------------------------------------------------------------------
       IMPLICIT NONE
 !
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: particle_viscosity
       REAL*8, DIMENSION(:),  ALLOCATABLE :: gas_viscosity
       REAL*8, DIMENSION(:),  ALLOCATABLE :: gas_thermal_conductivity
 !
-      REAL*8, DIMENSION(:),   ALLOCATABLE :: mug   !molecular viscosity (gas)
-      REAL*8, DIMENSION(:),   ALLOCATABLE :: kapg  !thermal conductivity (gas)
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: mus   ! particle viscosity
+      REAL*8, DIMENSION(:),   ALLOCATABLE :: mug   ! gas molecular viscosity
+      REAL*8, DIMENSION(:),   ALLOCATABLE :: kapg  ! gas thermal conductivity
 !
-      REAL*8, DIMENSION(:),   ALLOCATABLE :: gvisx, gvisz  !viscous stress (gas)
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: pvisx, pvisz  !viscous stress (part.)
-!
-      INTEGER :: icoh
+      REAL*8, DIMENSION(:),   ALLOCATABLE :: gvisx, gvisz  ! gas viscous stresses 
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: pvisx, pvisz  ! solid viscous stresses 
 !
       SAVE
 !----------------------------------------------------------------------
@@ -22,8 +22,10 @@
       USE dimensions
       IMPLICIT NONE
 !
+      ALLOCATE(particle_viscosity(nsolid,nr*nz))
       ALLOCATE(gas_viscosity(nr*nz))
       ALLOCATE(gas_thermal_conductivity(nr*nz))
+      particle_viscosity = 0.0d0
       gas_viscosity = 0.0d0
       gas_thermal_conductivity = 0.0d0
       RETURN
@@ -34,9 +36,11 @@
       USE grid, ONLY : nijx_l
       IMPLICIT NONE
 !
+      ALLOCATE(mus(nsolid, nijx_l))
       ALLOCATE(mug(nijx_l))
       ALLOCATE(kapg(nijx_l))
 
+      mus = 0.d0
       mug = 0.0d0
       kapg = 0.0d0
 
@@ -130,128 +134,111 @@
 !
       RETURN
       END SUBROUTINE
-
 !----------------------------------------------------------------------
       SUBROUTINE viscg
 !----------------------------------------------------------------------
-! ... This routine computes the components of the viscous stress tensor
-! ... of the gas phase, and its spatial derivatives
+! ... This routine computes the components of the viscous diffusion terms
+! ... in gas momentum transport equations
 !
-      USE grid, ONLY: fl_l
-      USE dimensions
       USE gas_solid_velocity, ONLY: ug, vg
-      USE grid, ONLY: itc, dz, dr, r, rb, indz, indr, inr, inrb
-      USE grid, ONLY: nij_l, myij
+      USE grid, ONLY: data_exchange
       USE pressure_epsilon, ONLY: ep
-      USE set_indexes
       USE turbulence, ONLY: mugt
       IMPLICIT NONE
 !
-      INTEGER :: imesh, i, j
-      INTEGER :: ij
-      REAL*8 :: ugm1, vgm2, vgm1, ugm2, d1c, gmum, t0, vmu12 
-      REAL*8 :: vmu1, vdu, vmu11, vmu21, vmu22, vmu2
-      REAL*8 :: txx2, tyy1, txy2, txy1, tyy2, txx1 
-      REAL*8 :: tyx2, tyx1
-      REAL*8 :: drm, drp, dzm, dzp, indrm, indrp, indzm, indzp
+      CALL data_exchange(mug)
+      CALL data_exchange(mugt)
 !
-      mugt = mugt + mug
-      
-      DO ij = 1, nij_l
-        imesh = myij(0, 0, ij)
-        IF(fl_l(ij).EQ.1) THEN
-         CALL subscl(ij) 
-         j = ( imesh - 1 ) / nr + 1
-         i = MOD( ( imesh - 1 ), nr) + 1
+      mugt = mug + mugt
 !
-         drp=(dr(i)+dr(i+1))
-         drm=(dr(i)+dr(i-1))
-         dzp=(dz(j)+dz(j+1))
-         dzm=(dz(j)+dz(j-1))
+! ... Newtonian stress tensor
 !
-         indrp=1.D0/drp
-         indrm=1.D0/drm
-         indzp=1.D0/dzp
-         indzm=1.D0/dzm
-!         
-         txx2=2.D0*mugt(ijr)*(ug(ipj)-ug(ij))*indr(i+1)
-         txx1=2.D0*mugt(ij)*(ug(ij)-ug(imj))*indr(i)
-         tyx2=(ug(ijp)-ug(ij))*indzp*2.D0+(vg(ipj)-vg(ij))*indrp*2.D0
-         tyx1=(ug(ij)-ug(ijm))*indzm*2.D0+(vg(ipjm)-vg(ijm))*indrp*2.D0
-         tyy2=2.D0*mugt(ijt)*(vg(ijp)-vg(ij))*indz(j+1)
-         tyy1=2.D0*mugt(ij)*(vg(ij)-vg(ijm))*indz(j)
-         txy2=tyx2
-         txy1=(ug(imjp)-ug(imj))*indzp*2.D0+(vg(ij)-vg(imj))*indrm*2.D0
-         txx2=txx2-2.D0/3.D0*mug(ijr)*                          &
-     &       ((rb(i+1)*ug(ipj)-rb(i)*ug(ij))*inr(i+1)*indr(i+1) &
-     &       +(vg(ipj)-vg(ipjm))*indz(j))
-         d1c=2.D0/3.D0*mug(ij)*((rb(i)*ug(ij)-rb(i-1)*          &
-     &        ug(imj))*inr(i)*indr(i) + (vg(ij)-vg(ijm))*indz(j))
-         txx1=txx1-d1c
-! 
-         IF(itc.EQ.1) THEN
-           gmum=mugt(ij)+(mugt(ijr)-mugt(ij))*dr(i)*indrp
-           t0=2.D0*gmum*ug(ij)*inrb(i)
-           ugm2=0.5D0*(rb(i+1)*ug(ipj)+rb(i)*ug(ij))
-           ugm1=0.5D0*(rb(i)*ug(ij)+rb(i-1)*ug(imj))
-           vgm2=(dr(i)*vg(ipj)+dr(i+1)*vg(ij))*indrp
-           vgm1=(dr(i)*vg(ipjm)+dr(i+1)*vg(ijm))*indrp
-           gmum=mug(ij)+(mug(ijr)-mug(ij))*dr(i)*indrp
-           t0=t0-2.D0/3.D0*gmum*((ugm2-ugm1)*indrp*2.D0*inrb(i)+(vgm2-vgm1)*indz(j))
-         ENDIF
-!
-         tyy2=tyy2-2.D0/3.D0*mug(ijt)*                          &
-     &       ((rb(i)*ug(ijp)-rb(i-1)*ug(imjp))*inr(i)*indr(i)+  &
-     &        (vg(ijp)-vg(ij))*indz(j+1))
-         tyy1=tyy1-d1c
-         vmu21=(dz(j)*ep(ijt)*mugt(ijt)+dz(j+1)*ep(ij)*mugt(ij))*indzp
-         vmu22=(dz(j)*ep(ijtr)*mugt(ijtr)+dz(j+1)*ep(ijr)*mugt(ijr))*indzp
-         vmu2=(dr(i+1)*vmu21+dr(i)*vmu22)*indrp
-         vmu11=(dz(j-1)*ep(ij)*mugt(ij)+dz(j)*ep(ijb)*mugt(ijb))*indzm
-         vmu12=(dz(j-1)*ep(ijr)*mugt(ijr)+dz(j)*ep(ijbr)*mugt(ijbr))*indzm
-         vmu1=(dr(i+1)*vmu11+dr(i)*vmu12)*indrp
-         vdu=(dr(i)*ep(ijr)+dr(i+1)*ep(ij))*indrp
-!
-! gvisx and gvisz already have the gas porosity in
-!
-         gvisx(ij)=(txx2*ep(ijr)*r(i+1)-txx1*ep(ij)*r(i))       &
-     &             *indrp*2.D0*inrb(i)+(vmu2*tyx2-vmu1*tyx1)*indz(j)-t0*vdu*inrb(i)
-         vmu11=(dz(j)*ep(ijtl)*mugt(ijtl)+dz(j+1)*ep(ijl)*mugt(ijl))*indzp
-         vmu1=(dr(i)*vmu11+dr(i-1)*vmu21)*indrm
-         gvisz(ij)=(rb(i)*vmu2*txy2-rb(i-1)*vmu1*txy1)*inr(i)*indr(i)  &
-     &             +(ep(ijt)*tyy2-ep(ij)*tyy1)*indzp*2.D0
-        END IF
-      END DO
+      CALL stress(gvisx, gvisz, mugt, mug, ep, ug, vg)
 !
       RETURN
       END SUBROUTINE
-!
 !----------------------------------------------------------------------
       SUBROUTINE viscs(k)
 !----------------------------------------------------------------------
-! ... This routine computes the components of the viscous stress tensor
-! ... of the solid phases, and their spatial derivatives
+! ... This routine computes the components of the viscous diffusion terms
+! ... in particle momentum transport equations
 !
-      USE grid, ONLY: fl_l
       USE dimensions
+      USE grid, ONLY: fl_l, nij_l, data_exchange
+      USE grid, ONLY: dz, dr
       USE gas_solid_density, ONLY: rlk
       USE gas_solid_velocity, ONLY:  uk, vk
-      USE grid, ONLY: itc, dz, dr, r, rb, indz, indr, inr, inrb
-      USE grid, ONLY: nij_l, myij
       USE particles_constants, ONLY: rl, inrl
       USE set_indexes
-      USE turbulence, ONLY: mus
+      USE turbulence, ONLY: must
       IMPLICIT NONE
 !
       INTEGER, INTENT(IN) :: k 
 !
-      INTEGER :: j, i, imesh
-      INTEGER :: ij
-      REAL*8 :: ukm1, vkm2, vkm1, ukm2, d1c, gmum, t0 
-      REAL*8 :: tauc1, vmu11, vmu12, vmu1, vmu2, tauc2, vmu21, vmu22 
-      REAL*8 :: txx2, tyy1, txy2, txy1, tyy2 
-      REAL*8 :: txx1, tyx2, tyx1 
-      REAL*8 :: drp, dzm, drm, dzp, indrp, indzm, indrm, indzp 
+      REAL*8 :: drp, dzp, indrp, indzp
+      REAL*8 :: epsx, epsz, gepx, gepz
+      INTEGER :: imesh, i, j, ij
+!
+      drp=(dr(i)+dr(i+1))
+      dzp=(dz(j)+dz(j+1))
+!
+      indrp=1.D0/drp
+      indzp=1.D0/dzp
+!
+      CALL data_exchange(mus)
+!
+! ... Newtonian stress tensor
+!
+      CALL stress(pvisx(k,:), pvisz(k,:), mus(k,:), mus(k,:), rlk(k,:)*inrl(k), &
+                         uk(k,:), vk(k,:))
+!
+! ... Repulsive model
+!
+        DO ij = 1, nij_l
+         imesh = myij(0, 0, ij)
+         IF(fl_l(ij).EQ.1) THEN
+           CALL subscl(ij)
+           j = ( imesh - 1 ) / nr + 1
+           i = MOD( ( imesh - 1 ), nr) + 1
+!
+! ... Coulombic x-gradient
+!
+           epsx=(dr(i+1)*rlk(k,ij) + dr(i)*rlk(k,ijr)) * indrp * inrl(k)
+           gepx=10.D0**(8.76D0*epsx-0.27D0)
+           pvisx(k,ij) = pvisx(k,ij) -  & 
+                         gepx*indrp*2.D0*(rlk(k,ijr)-rlk(k,ij))*inrl(k)
+!
+! ... Coulombic z-gradient
+!
+           epsz=(dz(j+1)*rlk(k,ij) + dz(j)*rlk(k,ijt)) * indzp * inrl(k)
+           gepz=10.D0**(8.76D0*epsz-0.207D0)
+           pvisz(k,ij) = pvisz(k,ij) -  & 
+                         gepz*indzp*2.D0*(rlk(k,ijt)-rlk(k,ij))*inrl(k)
+         END IF
+        END DO
+!
+      RETURN
+      END SUBROUTINE
+!----------------------------------------------------------------------
+      SUBROUTINE stress(visx, visz, mu, lambda, eps, u, v)
+! ... This routine computes the components of the viscous stress tensor
+!
+      USE dimensions
+      USE grid, ONLY: itc, dz, dr, r, rb, indz, indr, inr, inrb
+      USE grid, ONLY: fl_l, nij_l
+      USE set_indexes
+      IMPLICIT NONE
+!
+      REAL*8, INTENT(OUT) :: visx(:), visz(:)
+      REAL*8, INTENT(IN)  :: mu(:), lambda(:), eps(:), u(:), v(:)
+      REAL*8 :: t0, mu0, lambda0, eps0
+      REAL*8 :: txx2, txx1, tyy2, tyy1
+      REAL*8 :: tyx2, tyx1, txy2, txy1
+      REAL*8 :: vm1, vm2, dv, du
+      REAL*8 :: divc, divr, divt, dive
+      REAL*8 :: epsmu2, epsmu11, epsmu22, epsmu1, epsmu12, epsmu21
+      REAL*8 :: drm, drp, dzm, dzp, indrm, indrp, indzm, indzp
+      INTEGER :: imesh, i, j, ij
 !
       DO ij = 1, nij_l
         imesh = myij(0, 0, ij)
@@ -269,70 +256,84 @@
          indrm=1.D0/drm
          indzp=1.D0/dzp
          indzm=1.D0/dzm
+!
+! ... divergence of the velocity field at right, centered, top cells
+!
+         divr = ((rb(i+1)*u(ipj)-rb(i)*u(ij))*inr(i+1)*indr(i+1)        &
+              + (v(ipj)-v(ipjm))*indz(j))
+         divc = ((rb(i)*u(ij)-rb(i-1)*u(imj))*inr(i)*indr(i)            &
+              + (v(ij)-v(ijm))*indz(j))
+         divt = ((rb(i)*u(ijp)-rb(i-1)*u(imjp))*inr(i)*indr(i)          &
+              + (v(ijp)-v(ij))*indz(j+1))
 !         
-         txx2=2.D0*mus(k,ijr)*indr(i+1)*(uk(k,ipj)-uk(k,ij))
-         txx1=2.D0*mus(k,ij)*indr(i)*(uk(k,ij)-uk(k,imj))
-         tyx2=(uk(k,ijp)-uk(k,ij))*indzp*2.D0+(vk(k,ipj)-vk(k,ij))*indrp*2.D0 
-         tyx1=(uk(k,ij)-uk(k,ijm))*indzm*2.D0+(vk(k,ipjm)-vk(k,ijm))*indrp*2.D0
-         tyy2=2.D0*mus(k,ijt)*(vk(k,ijp)-vk(k,ij))*indz(j+1)
-         tyy1=2.D0*mus(k,ij)*(vk(k,ij)-vk(k,ijm))*indz(j)
-         txy2=tyx2
-         txy1=(uk(k,imjp)-uk(k,imj))*indzp*2.D0+(vk(k,ij)-vk(k,imj))*indrm*2.D0
-         txx2 = txx2 -  2.D0/3.D0*mus(k,ijr) *                         &
-     &         ((rb(i+1)*uk(k,ipj)-rb(i)*uk(k,ij))*inr(i+1)*indr(i+1)  &
-     &        + (vk(k,ipj)-vk(k,ipjm))*indz(j))
-         d1c = 2.D0/3.D0*mus(k,ij) *                                   &
-     &         ((rb(i)*uk(k,ij)-rb(i-1)*uk(k,imj))*inr(i)*indr(i)      &
-     &     +(vk(k,ij)-vk(k,ijm))*indz(j))
-         txx1=txx1-d1c
+! ... diagonal components of the strain tensor ...
+!
+         txx2 = 2.D0*(u(ipj)-u(ij))*indr(i+1)  
+         txx1 = 2.D0*(u(ij)-u(imj))*indr(i)   
+         tyy2 = 2.D0*(v(ijp)-v(ij))*indz(j+1) 
+         tyy1 = 2.D0*(v(ij)-v(ijm))*indz(j)   
+!
+! ... traceless 
+!
+         txx2 = mu(ijr) * txx2 - 2.D0/3.D0 * lambda(ijr) * divr
+         txx1 = mu(ij)  * txx1 - 2.D0/3.D0 * lambda(ij)  * divc
+         tyy2 = mu(ijt) * tyy2 - 2.D0/3.D0 * lambda(ijt) * divt
+         tyy1 = mu(ij)  * tyy1 - 2.D0/3.D0 * lambda(ij)  * divc
+!
+! ... non-diagonal component of the stress tensor
+!
+         tyx2 = (u(ijp)-u(ij))*indzp*2.D0 + (v(ipj)-v(ij))*indrp*2.D0
+         tyx1 = (u(ij)-u(ijm))*indzm*2.D0 + (v(ipjm)-v(ijm))*indrp*2.D0
+         txy2 = tyx2
+         txy1 = (u(imjp)-u(imj))*indzp*2.D0+(v(ij)-v(imj))*indrm*2.D0
+! 
+! ... Correction for cylindrical coordinates
 !
          IF(itc.EQ.1) THEN
-           gmum=(dr(i)*mus(k,ijr)*rlk(k,ijr)+dr(i+1)*mus(k,ij)*rlk(k,ij))*indrp*inrl(k)
-           t0=gmum*uk(k,ij)*inrb(i)
-           ukm2=0.5D0*(rb(i+1)*uk(k,ipj)+rb(i)*uk(k,ij))
-           ukm1=0.5D0*(rb(i)*uk(k,ij)+rb(i-1)*uk(k,imj))
-           vkm2=(dr(i)*vk(k,ipj)+dr(i+1)*vk(k,ij))*indrp
-           vkm1=(dr(i)*vk(k,ipjm)+dr(i+1)*vk(k,ijm))*indrp
-           t0=t0-2.D0/3.D0*gmum*((ukm2-ukm1)*2.D0*indrp*inrb(i)+(vkm2-vkm1)*indz(j))
+           eps0=(eps(ij)*dr(i+1)+eps(ijr)*dr(i))*indrp
+           mu0=(mu(ij)*dr(i+1)+mu(ijr)*dr(i))*indrp
+           lambda0=(lambda(ij)*dr(i+1)+lambda(ijr)*dr(i))*indrp
+           t0 = u(ij) * inrb(i)
+!
+! ... divergence of the velocity field at cell boundary
+!
+           du = (rb(i+1)*u(ipj)-rb(i-1)*u(imj))
+           vm2=(dr(i)*v(ipj)+dr(i+1)*v(ij))*indrp
+           vm1=(dr(i)*v(ipjm)+dr(i+1)*v(ijm))*indrp
+           dv = vm2 - vm1
+           dive =  (inrb(i) * du * indrp + dv * indz(j))
+!
+! ... traceless
+!
+           t0 = mu0 * t0 - 2.D0/3.D0*lambda0 * dive
+         ELSE
+           t0 = 0.D0
          ENDIF
 !
-         tyy2=tyy2-2.D0/3.D0*mus(k,ijt)                                &
-     &      *((rb(i)*uk(k,ijp)-rb(i-1)*uk(k,imjp))*inr(i)*indr(i)      &
-     &      +(vk(k,ijp)-vk(k,ij))*indz(j+1))
-         tyy1=tyy1-d1c
+         epsmu21=(dz(j)*eps(ijt)*mu(ijt)+dz(j+1)*eps(ij)*mu(ij))*indzp
+         epsmu22=(dz(j)*eps(ijtr)*mu(ijtr)+dz(j+1)*eps(ijr)*mu(ijr))*indzp
+         epsmu2=(dr(i+1)*epsmu21+dr(i)*epsmu22)*indrp
+         epsmu11=(dz(j-1)*eps(ij)*mu(ij)+dz(j)*eps(ijb)*mu(ijb))*indzm
+         epsmu12=(dz(j-1)*eps(ijr)*mu(ijr)+dz(j)*eps(ijbr)*mu(ijbr))*indzm
+         epsmu1=(dr(i+1)*epsmu11+dr(i)*epsmu12)*indrp
 !
-         IF(icoh.EQ.1.AND.rl(k).LE.4.D-3) THEN
-           tauc1=10.D0**(10.D0*rlk(k,ij)*inrl(k)-4.5D0)
-           tauc2=10.D0**(10.D0*rlk(k,ijr)*inrl(k)-4.5D0)
-           txx2=txx2+tauc2
-           txx1=txx1+tauc1
-           tauc2=10.D0**(10.D0*rlk(k,ijt)*inrl(k)-4.5D0)
-           tyy2=tyy2+tauc2
-           tyy1=tyy1+tauc1
-         ENDIF
+! ... x-gradient of the stress tensor
 !
-         vmu21=(dz(j)*mus(k,ijt)*rlk(k,ijt)+dz(j+1)*mus(k,ij)*rlk(k,ij))*indzp
-         vmu22=(dz(j)*mus(k,ijtr)*rlk(k,ijtr)+dz(j+1)*mus(k,ijr)*rlk(k,ijr))*indzp
-         vmu2=(dr(i+1)*vmu21+dr(i)*vmu22)*indrp*inrl(k)
-         vmu11=(dz(j-1)*mus(k,ij)*rlk(k,ij)+dz(j)*mus(k,ijb)*rlk(k,ijb))*indzm
-         vmu12=(dz(j-1)*mus(k,ijr)*rlk(k,ijr)+dz(j)*mus(k,ijbr)*rlk(k,ijbr))*indzm
-         vmu1=(dr(i+1)*vmu11+dr(i)*vmu12)*indrp*inrl(k)
+         visx(ij) = (eps(ijr)*txx2*r(i+1) - eps(ij)*txx1*r(i))*indrp*2.D0*inrb(i) + &
+                   (epsmu2*tyx2-epsmu1*tyx1)*indz(j) - eps0 * t0 * inrb(i)
 !
-         pvisx(k,ij) = (rlk(k,ijr)*txx2*r(i+1)                            &
-     &                 -rlk(k,ij)*txx1*r(i))*indrp*2.D0*inrb(i)*inrl(k)+  &
-     &                 (vmu2*tyx2-vmu1*tyx1)*indz(j)-t0*inrb(i)
-         vmu11=(dz(j)*mus(k,ijtl)*rlk(k,ijtl)+                            &
-     &        dz(j+1)*mus(k,ijl)*rlk(k,ijl))*indzp
-         vmu1=(dr(i)*vmu11+dr(i-1)*vmu21)*indrm*inrl(k)
+         epsmu11=(dz(j)*eps(ijtl)*mu(ijtl)+dz(j+1)*eps(ijl)*mu(ijl))*indzp
+         epsmu1=(dr(i)*epsmu11+dr(i-1)*epsmu21)*indrm
 !
-         pvisz(k,ij) = (rb(i)*vmu2*txy2-rb(i-1)*vmu1*txy1)*inr(i)*indr(i) &
-     &                 +(rlk(k,ijt)*tyy2-rlk(k,ij)*tyy1)*indzp*2.D0*inrl(k)
+! ... z-gradient of the stress tensor
+!
+         visz(ij) = (eps(ijt)*tyy2 - eps(ij)*tyy1) * indzp*2.D0   +  &
+                     (rb(i)*epsmu2*txy2-rb(i-1)*epsmu1*txy1)*inr(i)*indr(i) 
         END IF
       END DO
 !
       RETURN
       END SUBROUTINE
-!
 !----------------------------------------------------------------------
       END MODULE gas_solid_viscosity
 !----------------------------------------------------------------------

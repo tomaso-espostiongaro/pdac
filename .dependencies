@@ -41,8 +41,7 @@ htilde.o : dens.o dimensions.o fluxes.o grid.o hotc.o particles.o press.o  \
 hvs.o : dimensions.o particles.o 
 
 input.o : atmosphere.o dimensions.o gas.o grid.o iter.o matrix.o outp.o  \
-    parallel.o particles.o reactions.o roughness.o setup.o time.o turbo.o  \
-    visc.o 
+    parallel.o particles.o reactions.o roughness.o setup.o time.o turbo.o 
 
 io.o : dens.o dimensions.o eosg.o hcapgs.o parallel.o press.o temp.o time.o  \
     velocity.o 

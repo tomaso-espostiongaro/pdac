@@ -7,16 +7,16 @@
       USE environment, ONLY: timing, cpclock
       IMPLICIT NONE
 !
-      REAL*8, DIMENSION(:),   ALLOCATABLE :: mugt   !turbulent viscosity (gas)
-      REAL*8, DIMENSION(:,:),   ALLOCATABLE :: mus   !turbulent viscosity (p.)
-      REAL*8, DIMENSION(:),   ALLOCATABLE :: kapgt  !turb. conductivity (gas)
+      REAL*8, DIMENSION(:),   ALLOCATABLE :: mugt   ! gas turbulent viscosity
+      REAL*8, DIMENSION(:),   ALLOCATABLE :: kapgt  ! gas turbulent conductivity
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: must   ! solid turbulent viscosity
 
-      REAL*8, DIMENSION(:,:),   ALLOCATABLE :: solid_viscosity
-      REAL*8, DIMENSION(:), ALLOCATABLE :: zbt, smag_coeff, smag_length
-      REAL*8, DIMENSION(:), ALLOCATABLE :: smagl, scoeff
-      REAL*8, DIMENSION(:), ALLOCATABLE :: cdy_n 
-      REAL*8, DIMENSION(:), ALLOCATABLE :: delta 
+
+      REAL*8, DIMENSION(:), ALLOCATABLE :: smag_factor, smag_coeff
+      REAL*8, DIMENSION(:), ALLOCATABLE :: smag, scoeff
+!
       INTEGER, DIMENSION(:), ALLOCATABLE :: jt, it
+      REAL*8,  DIMENSION(:), ALLOCATABLE :: zbt
 !
       INTEGER :: iturb, iss, modturbo
       REAL*8 :: cmut                       ! Smagorinsky constant
@@ -30,12 +30,9 @@
       USE dimensions
       IMPLICIT NONE
 !
-      ALLOCATE(smag_length(nr*nz))
-      ALLOCATE(solid_viscosity(nsolid,nr*nz))
-      ALLOCATE(jt(nr), it(nr), zbt(nr))
+      ALLOCATE(smag_factor(nr*nz))
       ALLOCATE(smag_coeff(nr*nz))
-      solid_viscosity = 0.0D0
-      smag_length = 0.0D0
+      smag_factor = 0.0D0
       smag_coeff = 0.0D0
       RETURN
       END SUBROUTINE
@@ -44,19 +41,16 @@
       USE dimensions
       IMPLICIT NONE
 !
-      ALLOCATE(smagl(nij_l))
+      ALLOCATE(smag(nij_l))
       ALLOCATE(scoeff(nij_l))
-      ALLOCATE(delta(nij_l))
       ALLOCATE(mugt(nijx_l))
-      ALLOCATE(mus(nsolid, nijx_l))
+      ALLOCATE(must(nsolid, nijx_l))
       ALLOCATE(kapgt(nijx_l))
-      ALLOCATE(cdy_n(nijx_l))
-      smagl = 0.0D0
+      smag = 0.0D0
       kapgt = 0.0D0
       mugt  = 0.0D0
-      mus  = 0.0D0
+      must  = 0.0D0
       scoeff = 0.0D0
-      cdy_n = 0.0D0
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
@@ -71,34 +65,40 @@
         TYPE (roughness), INTENT(IN) :: zrough
 
         INTEGER :: i, j, i1, i2, j2, n, ij
-        REAL*8  :: sgsl0, zsgsl, zrou, sgslb, delt
-        DO i = 2, (nr-1)
-           it(i)=0
-           DO n=1,no
-             IF(nso(n).EQ.3.OR.nso(n).EQ.5) THEN
-               i1=iob(1,n)
-               i2=iob(2,n)
-               j2=iob(4,n)
-               IF(i.GE.i1.AND.i.LE.i2) THEN
-                 IF(nso(n).EQ.3) it(i)=1
-                 jt(i)=j2
-                 zbt(i)=zb(j2)
-               ENDIF
-             ENDIF
-           END DO
-         END DO
+        REAL*8  :: sl, sgsl0, zsgsl, zrou, sgslb
+        REAL*8 :: delt
 !
-         DO j=2, (nz-1)
+        IF (iturb .EQ. 2) THEN
+! ... zbt(i) is the function of the elevations
+!
+        ALLOCATE(jt(nr), it(nr), zbt(nr))
+        it = 0; jt = 0
+        zbt = 0.D0
+!
+         DO n=1,no
+          IF(nso(n).EQ.3) THEN
+            i1=iob(1,n)
+            i2=iob(2,n)
+            j2=iob(4,n)
+            it(i1:i2) = 1
+            jt(i)=j2
+            zbt(i)=zb(j2)
+          ENDIF
+         END DO
+        ENDIF
+!
+        DO j=2, (nz-1)
          DO i=2, (nr-1) 
            ij=i+(j-1)*nr
-           IF(j.LE.jt(i)) THEN
-             smag_length(ij)=0.D0
-           ELSE
-             delt=DSQRT(dz(j)*dr(i))
-             IF(iturb.EQ.1) THEN
-               smag_length(ij)=cmut*delt
-             ELSE IF (iturb .EQ. 2) THEN
-               sgsl0=cmut*delt
+           delt=DSQRT(dz(j)*dr(i))
+           IF (iturb .EQ. 1) THEN
+             sl = cmut * delt
+           ELSE IF (iturb .EQ. 2) THEN
+!
+             IF(j.LE.jt(i)) THEN
+               sl = 0.D0
+             ELSE
+               sgsl0 = cmut * delt
                IF(it(i).EQ.1) THEN
                  zsgsl=zb(j)-zbt(i)-dz(j)*0.5D0
                  IF( zrough%ir .EQ. 1 ) THEN
@@ -113,19 +113,23 @@
                  sgslb=0.4D0*(zsgsl+zrou)
 !
 ! ... use the smallest between the smag length and the roughness length
-                 smag_length(ij)=dmin1(sgsl0,sgslb)
-!
+                 sl = dmin1(sgsl0,sgslb)
+
                ELSE
-                 smag_length(ij)=sgsl0
+                 sl = sgsl0
                ENDIF
              ENDIF
            ENDIF
+!
+! ... Squared turbulence length scale is used into Smagorinsky model
+           smag_factor(ij) = sl**2
+!
          END DO
-         END DO
+        END DO
 
        END  SUBROUTINE 
 !----------------------------------------------------------------------
-      SUBROUTINE sgsgdyn 
+      SUBROUTINE sgsg
 
 !...compute dynamic C , dynamic turbulent viscosity and 
 !...turbulent conductivity in the center of the cell.
@@ -143,34 +147,23 @@
       REAL*8 :: fsr1, fsr2, fsr12, fmodsr
       REAL*8 :: fp1, fp2, fp12
       REAL*8 :: l1, l2, l12, m1, m2, m12, l1d, l2d
-      REAL*8 :: cdy 
+      REAL*8 :: cdyn 
       REAL*8 :: num, den
+      REAL*8 :: delt
       INTEGER  :: i, j, ij, imesh  
 !
-      ALLOCATE(modsr(nijx_l))
-      ALLOCATE(sr1(nijx_l))
-      ALLOCATE(sr2(nijx_l))
-      ALLOCATE(sr12(nijx_l))
-      ALLOCATE(p1(nijx_l))
-      ALLOCATE(p2(nijx_l))
-      ALLOCATE(p12(nijx_l))
-      ALLOCATE(fug(nijx_l))
-      ALLOCATE(fvg(nijx_l))
-      ALLOCATE(fu2g(nijx_l))
-      ALLOCATE(fv2g(nijx_l))
-      ALLOCATE(fuvg(nijx_l))
-      modsr = 0.0D0
-      sr1 = 0.0D0
-      sr2 = 0.0D0
-      sr12 = 0.0D0
-      p1 = 0.0D0
-      p2 = 0.0D0
-      p12 = 0.0D0
-      fug = 0.0D0
-      fvg = 0.0D0
-      fu2g = 0.0D0
-      fv2g = 0.0D0
-      fuvg = 0.0D0
+      ALLOCATE(modsr(nijx_l));     modsr = 0.0D0
+      ALLOCATE(sr1(nijx_l))  ;     sr1 = 0.0D0
+      ALLOCATE(sr2(nijx_l))  ;     sr2 = 0.0D0
+      ALLOCATE(sr12(nijx_l)) ;     sr12 = 0.0D0
+      ALLOCATE(p1(nijx_l))   ;     p1 = 0.0D0
+      ALLOCATE(p2(nijx_l))   ;     p2 = 0.0D0
+      ALLOCATE(p12(nijx_l))  ;     p12 = 0.0D0
+      ALLOCATE(fug(nijx_l))  ;     fug = 0.0D0
+      ALLOCATE(fvg(nijx_l))  ;     fvg = 0.0D0
+      ALLOCATE(fu2g(nijx_l)) ;     fu2g = 0.0D0
+      ALLOCATE(fv2g(nijx_l)) ;     fv2g = 0.0D0
+      ALLOCATE(fuvg(nijx_l)) ;     fuvg = 0.0D0
 !
       CALL data_exchange(ug)
       CALL data_exchange(vg)
@@ -179,28 +172,26 @@
 !
       CALL vel_hat(fug, fvg, fu2g, fv2g, fuvg)        
 !
-       CALL data_exchange(p1)
-       CALL data_exchange(p2)
-       CALL data_exchange(p12)
-       CALL data_exchange(fug)
-       CALL data_exchange(fvg)
-       CALL data_exchange(fu2g)
-       CALL data_exchange(fv2g)
-       CALL data_exchange(fuvg)
+      CALL data_exchange(p1)
+      CALL data_exchange(p2)
+      CALL data_exchange(p12)
+      CALL data_exchange(fug)
+      CALL data_exchange(fvg)
+      CALL data_exchange(fu2g)
+      CALL data_exchange(fv2g)
+      CALL data_exchange(fuvg)
 !
        DO ij = 1, nij_l
-        imesh = myij(0,0,ij)
         IF(fl_l(ij).EQ.1) THEN
-        CALL subscl(ij)
+         CALL subscl(ij)
+         imesh = myij(0,0,ij)
          j = ( imesh - 1 ) / nr + 1
          i = MOD( ( imesh - 1 ), nr) + 1
-         delta(ij) = DSQRT(dz(j)*dr(i))
 !
-!...here it is possible to choose between the classic or dynamic Smagorinsky...
+! ... Dynamic computation of the Smagorinsky length scale
 !
-         IF(modturbo.EQ.1) THEN
-          cdy_n(ij)=cmut**2
-         ELSE
+         IF(modturbo.EQ.2) THEN
+             delt = DSQRT(dz(j)*dr(i))
              CALL strain_hat(fsr1, fsr2, fsr12, fmodsr, fug, fvg, ij)
 !
              fp1  = filter(p1,ij)
@@ -219,22 +210,26 @@
              m12 = (4*fmodsr*fsr12 - fp12)
 !              
              num = l1*m1 + l2*m2 + 2*l12*m12
-             den = delta(ij)**2*( m1**2 + m2**2 + 2*m12**2)
+             den = delt**2*( m1**2 + m2**2 + 2*m12**2)
+!
              IF(den.EQ.0.0D0) THEN
-              cdy_n(ij) = 0.0D0
+              cdyn = 0.0D0
               ELSE 
-              cdy = 0.5D0*num/den 
-              cdy_n(ij) = cdy
-!   
+              cdyn = 0.5D0*num/den 
              END IF
+             smag(ij) = cdyn * (delt**2)
           END IF
-          smagl(ij) =cdy_n(ij)* (delta(ij))**2
-          mugt(ij)  = rog(ij)*smagl(ij)*modsr(ij)
-            IF(mugt(ij).LT.0.0D0) mugt(ij) = 0.0D0
-            scoeff(ij) = cdy_n(ij)
+!
+! ... Smagorinsky turbulent viscosity
+!
+          WRITE(*,*) 'smag(',ij,') = ', smag(ij)
+          mugt(ij) = rog(ij) * smag(ij) * modsr(ij)
+          IF(mugt(ij).LT.0.0D0) mugt(ij) = 0.0D0
+!
+          scoeff(ij) = cdyn
 !-turb-heat*********************
-            pranumt=0.5
-            kapgt(ij)=mugt(ij)*cg(ij)/pranumt
+          pranumt=0.5
+          kapgt(ij)=mugt(ij)*cg(ij)/pranumt
 !-turb-heat**********************
 
          END IF
@@ -254,7 +249,7 @@
       DEALLOCATE(fuvg)
 
       RETURN 
-      END SUBROUTINE sgsgdyn
+      END SUBROUTINE sgsg
 !----------------------------------------------------------------------
       SUBROUTINE strain(modsr, sr1, sr2, sr12, p1, p2, p12 )
 !
@@ -534,7 +529,7 @@
            vm2=v2+(v3-v2)*dr(i)*indrp
            vm1=v1+(v2-v1)*dr(i-1)*indrm
            d12=(um2-um1)*indz(j)+(vm2-vm1)*indr(i)
-           mus(k,ij) = cmus(k)*0.7071D0*rl(k)*dk(k)**2 *            &
+           must(k,ij) = cmus(k)*0.7071D0*rl(k)*dk(k)**2 *            &
      &                 10.D0**(3.98D0*rlk(k,ij)*inrl(k)-1.69D0) *   &
      &                 DSQRT(d11*d11+d22*d22+d33*d33+2.0D0*d12*d12)
          END DO

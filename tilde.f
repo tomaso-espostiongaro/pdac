@@ -101,7 +101,7 @@
       USE particles_constants, ONLY: phi, epsl, dkf, epsu, dk, rl, inrl, philim
       USE pressure_epsilon, ONLY: ep
       USE time_parameters, ONLY: dt
-      USE turbulence, ONLY: iss, iturb, mus
+      USE turbulence, ONLY: iss, iturb
       USE gas_solid_viscosity, ONLY: viscg, viscs
       USE gas_solid_viscosity, ONLY: mug
       USE gas_solid_viscosity, ONLY: gvisx, gvisz, pvisx, pvisz
@@ -114,7 +114,7 @@
 !
       INTEGER :: i, j, k, imesh
       INTEGER :: ij
-      REAL*8 :: drp, dzp, indrp, indzp, epsz, epsx, gepz, gepx
+      REAL*8 :: drp, dzp, indrp, indzp
       REAL*8 :: ugfx, ugfy, vgfx, vgfy
       REAL*8 :: ulfx, ulfy, vlfx, vlfy
 !
@@ -125,15 +125,13 @@
         CALL data_exchange(ug)
         CALL data_exchange(vg)
       END IF
-      IF (iss .NE. 1) THEN
+      IF (iss .LT. 1) THEN
         CALL data_exchange(uk)
         CALL data_exchange(vk)
       END IF
       CALL data_exchange(ep)
       CALL data_exchange(rgp)
       CALL data_exchange(rlk)
-      CALL data_exchange(mug)
-      CALL data_exchange(mus)
 !
 ! ... Calculate gvisx gvisz (gas viscous stress tensor).
 !
@@ -174,8 +172,6 @@
 
       ruk  = 0.0D0
       rvk  = 0.0D0
-      gepx   = 0.0D0
-      gepz   = 0.0D0
       ulfr = 0.0D0
       ulft = 0.0D0
       ulfl = 0.0D0
@@ -289,36 +285,24 @@
             CALL fv_lb(vlfl(k,ij), vlfb(k,ij), nb(rlk(k,:),ij),      &
      &           rnb(uk(k,:),ij), rnb(vk(k,:),ij), ij)
 !
+! ... compute explicit (tilde) terms in the momentum equation (particles)
+! 
               ulfx = ulfr(k,ij) - ulfl(k,ij)
               ulfy = ulft(k,ij) - ulfb(k,ij)
 
-              IF (iss .GE. 2) THEN
-                epsx=(dr(i+1)*rlk(k,ij) + dr(i)*rlk(k,ijr)) * indrp * inrl(k) 
-                gepx=10.D0**(8.76D0*epsx-0.27D0)
-              END IF
-!
-! ... compute explicit (tilde) terms in the momentum equation (particles)
-! 
               ruk(k,ij) = rukn(k,ij)                                 &
      &         + dt*(rlk(k,ij)*dr(i+1)+rlk(k,ijr)*dr(i))*indrp*gravx &
      &         - dt*inrb(i)*indrp*2.D0*ulfx                          &
      &         - dt*indz(j)*ulfy                                     &
-     &         - dt*gepx*indrp*2.D0*(rlk(k,ijr)-rlk(k,ij))*inrl(k)   &
      &         + dt*pvisx(k,ij)
 
               vlfx = vlfr(k,ij) - vlfl(k,ij)
               vlfy = vlft(k,ij) - vlfb(k,ij)
 
-              IF (iss .GE. 2) THEN
-                epsz=(dz(j+1)*rlk(k,ij) + dz(j)*rlk(k,ijt)) * indzp * inrl(k)
-                gepz=10.D0**(8.76D0*epsz-0.27D0)
-              END IF
-!
               rvk(k,ij) = rvkn(k,ij)                                 &
      &         + dt*(rlk(k,ij)*dz(j+1)+rlk(k,ijt)*dz(j))*indzp*gravz &
      &         - dt*inr(i)*indr(i)* vlfx                             &
      &         - dt*indzp*2.D0* vlfy                                 &
-     &         - dt*gepz*indzp*2.D0*(rlk(k,ijt)-rlk(k,ij))*inrl(k)   &
      &         + dt*pvisz(k,ij)    
 
           END DO 
