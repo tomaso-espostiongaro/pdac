@@ -1689,12 +1689,20 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
           ALLOCATE( rcvbuf( MAX(rcv_map(isour)%nrcv,1) ) )
           ALLOCATE( sndbuf( MAX(snd_map(idest)%nsnd,1) ) )
           DO ib = 1, snd_map(idest)%nsnd
-            sndbuf(ib) = array( snd_map(idest)%iloc(ib) )
+            IF( array( snd_map(idest)%iloc(ib) ) ) THEN
+              sndbuf(ib) = 1
+            ELSE
+              sndbuf(ib) = 0
+            END IF
           END DO
           CALL sendrecv_logical(sndbuf, snd_map(idest)%nsnd, idest,      &
                                 rcvbuf, rcv_map(isour)%nrcv, isour, ip)
           DO ib = 1, rcv_map(isour)%nrcv
-            array( rcv_map(isour)%iloc(ib) ) = rcvbuf(ib)
+            IF( rcvbuf(ib) == 1 ) THEN
+              array( rcv_map(isour)%iloc(ib) ) = .TRUE.
+            ELSE
+              array( rcv_map(isour)%iloc(ib) ) = .FALSE.
+            END IF
           END DO
           DEALLOCATE( rcvbuf )
           DEALLOCATE( sndbuf )

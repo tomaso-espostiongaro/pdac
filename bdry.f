@@ -991,7 +991,7 @@
         END DO
       ELSE IF (ucn < 0.D0) THEN
         tg(n2) = trif
-        ts(n2) = trif
+        ts(n2,:) = trif
       ELSE
       END IF
 
