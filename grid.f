@@ -237,7 +237,8 @@
 !
       CALL flic
 !      
-      OPEN( tempunit, FILE='mesh.dat')
+      IF( prog == 'PDAC' ) THEN
+        OPEN( tempunit, FILE='mesh.dat')
             WRITE(tempunit,*) 'Georeferenced x-y mesh'
             WRITE(tempunit,*) 'x'
             WRITE(tempunit,17) x
@@ -251,7 +252,8 @@
             WRITE(tempunit,17) z 
             WRITE(tempunit,*) 'zb' 
             WRITE(tempunit,17) zb
-      CLOSE( tempunit )
+        CLOSE( tempunit )
+      END IF
 
  17   FORMAT(5(F20.6))
 

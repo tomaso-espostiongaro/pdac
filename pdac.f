@@ -43,6 +43,7 @@
                                     export_topography
       USE environment, ONLY: cpclock, timing, elapsed_seconds
       USE io_files
+      USE control_flags, ONLY: prog
 !
       IMPLICIT NONE
       CHARACTER(LEN=3) :: procnum
@@ -58,6 +59,8 @@
       LOGICAL :: topen
 !
 ! ... initialize parallel environment
+
+      prog = 'PDAC'
 
       CALL parallel_startup  
 !
@@ -75,7 +78,6 @@
 
       testnb = testfile//procnum(mpime)
       IF(mpime == root) THEN
-        OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN')
         IF(.NOT.debug ) OPEN(UNIT=logunit,FILE=logfile,STATUS='UNKNOWN')
         OPEN(UNIT=testunit,  FILE=testfile,  STATUS='UNKNOWN')
         OPEN(UNIT=errorunit, FILE=errorfile, STATUS='UNKNOWN')
@@ -99,7 +101,14 @@
 !
 ! ... Read Input file
 !
+      IF(mpime == root) THEN
+        OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN')
+      END IF
+
       CALL input( inputunit )
+
+      INQUIRE(UNIT=inputunit,OPENED=topen)
+      IF(topen) CLOSE(inputunit)
 !
 ! ... set dimensions ...
 !
@@ -263,8 +272,6 @@
 110   FORMAT( ' This run ended at ', I2, ':', I2, ':', I2, 3X, 'day ', I2, &
               ' month ', I2, ' year ', I4 )
 !
-      INQUIRE(UNIT=inputunit,OPENED=topen)
-      IF(topen) CLOSE(inputunit)
       IF( .NOT. debug ) THEN
         INQUIRE(UNIT=logunit,OPENED=topen)
         IF(topen) CLOSE(logunit)

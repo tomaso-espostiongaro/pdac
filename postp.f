@@ -20,6 +20,7 @@
       USE process_outp, ONLY: process
       USE time_parameters, ONLY: itd
       USE volcano_topography, ONLY: itp
+      USE control_flags, ONLY: prog
 !
       IMPLICIT NONE
       CHARACTER(LEN=8) :: postfile, logfile, testfile, ppfile
@@ -27,6 +28,9 @@
 ! ... Define the parallel environment
 ! ... (needed to use routines written for PDAC)
 !
+
+      prog = 'POSP'
+
       CALL parallel_startup
 !
 ! ... I/O files
