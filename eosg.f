@@ -152,6 +152,7 @@
 ! ... (the gas thermal capacity depends on the temperature cg=cg(T) )
 !
       USE dimensions
+      USE domain_decomposition, ONLY: meshinds
       USE grid, ONLY: flag
       USE gas_constants, ONLY: gmw, c_joule, rgas, tzero, hzerog, gammaair
       USE gas_constants, ONLY: gas_type
@@ -170,7 +171,7 @@
       REAL*8 :: tgnn, mg, hc, ratmin
       REAL*8 :: tg0, sieg0, cgas0
       INTEGER :: ii, nlmax
-      INTEGER :: ig
+      INTEGER :: ig, i, j, k, imesh
       PARAMETER( nlmax = 1000) 
       PARAMETER( ratmin = 1.D-8) 
 
@@ -178,8 +179,9 @@
           sieg0 = sieg
 
           IF( sieg <= 0.0d0 ) THEN
+            CALL meshinds(ijk,imesh,i,j,k)
             WRITE(6,*) 'WARNING (caloric_eosg) zero or negative enthalpy'
-            WRITE(6,*) ' sieg = ', ijk, sieg
+            WRITE(6,*) 'coord: ', i,j,k,' sieg= ', sieg
           END IF
 
           tgnn = tg
@@ -219,8 +221,9 @@
 !**********************************************************************
 
           IF( tg <= 0.0d0 ) THEN
+            CALL meshinds(ijk,imesh,i,j,k)
             WRITE(6,*) 'WARNING (caloric_eosg) zero or negative temperature'
-            WRITE(6,*) ' tg( ',ijk,' ) = ', tg
+            WRITE(6,*) 'coord: ',i,j,k,' tg= ', tg
           END IF
 
       RETURN
