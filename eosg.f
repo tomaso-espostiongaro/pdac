@@ -2,7 +2,7 @@
       MODULE eos_gas
 !----------------------------------------------------------------------
 
-      USE io_files, ONLY: errorunit
+      USE io_files, ONLY: testunit
 
       IMPLICIT NONE
 !
@@ -56,7 +56,6 @@
       END DO
       !  Carlo consistency check
       IF( ABS( mol ) <= 1.d-10 ) THEN
-        WRITE(errorunit,*) 'WARNING! (mole) zero or negative mol ', mol
         molinv = 0.0d0
       ELSE
         molinv = 1.0d0 / mol
@@ -177,9 +176,9 @@
 
           IF( sieg <= 0.0d0 ) THEN
             CALL meshinds(ijk,imesh,i,j,k)
-            WRITE(errorunit,*) 'WARNING! from proc: ', mpime
-            WRITE(errorunit,*) 'Zero or negative enthalpy in caloric_eosg'
-            WRITE(errorunit,*) 'coord: ', i,j,k,' sieg= ', sieg
+            WRITE(testunit,*) 'WARNING! from proc: ', mpime
+            WRITE(testunit,*) 'Zero or negative enthalpy in caloric_eosg'
+            WRITE(testunit,*) 'coord: ', i,j,k,' sieg= ', sieg
           END IF
 
           info = 1
@@ -201,21 +200,21 @@
 !**********************************************************************
             !  Error report
             CALL meshinds(ijk,imesh,i,j,k)
-            WRITE(errorunit,*) 'max number of iteration reached in eosg'
-            WRITE(errorunit,*) 'PROC:', mpime
-            WRITE(errorunit,*) 'time:', time
-            WRITE(errorunit,*) 'local cell:', ijk , i, j, k
-            WRITE(errorunit,*) 'temperature:', tg0, tg
-            WRITE(errorunit,*) 'enthalpy:', sieg0
-            WRITE(errorunit,*) 'concentrations:', yg(:)
+            WRITE(testunit,*) 'max number of iteration reached in eosg'
+            WRITE(testunit,*) 'PROC:', mpime
+            WRITE(testunit,*) 'time:', time
+            WRITE(testunit,*) 'local cell:', ijk , i, j, k
+            WRITE(testunit,*) 'temperature:', tg0, tg
+            WRITE(testunit,*) 'enthalpy:', sieg0
+            WRITE(testunit,*) 'concentrations:', yg(:)
 !**********************************************************************
           END IF
 
           IF( tg <= 0.0d0 ) THEN
             CALL meshinds(ijk,imesh,i,j,k)
-            WRITE(errorunit,*) 'WARNING from proc: ', mpime
-            WRITE(errorunit,*) 'zero or negative temperature in caloric_eosg'
-            WRITE(errorunit,*) 'coord: ',i,j,k,' tg= ', tg
+            WRITE(testunit,*) 'WARNING from proc: ', mpime
+            WRITE(testunit,*) 'zero or negative temperature in caloric_eosg'
+            WRITE(testunit,*) 'coord: ',i,j,k,' tg= ', tg
           END IF
 
       RETURN

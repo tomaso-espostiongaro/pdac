@@ -2,7 +2,7 @@
       MODULE dome_conditions
 !-----------------------------------------------------------------------
       USE dimensions, ONLY: max_nsolid, max_ngas, nsolid, ngas
-      USE io_files, ONLY: errorunit, logunit
+      USE io_files, ONLY: logunit
       IMPLICIT NONE
 
       ! ... flags

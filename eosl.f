@@ -1,7 +1,7 @@
 !----------------------------------------------------------------------
       MODULE eos_solid
 !----------------------------------------------------------------------
-      USE io_files, ONLY: errorunit
+      USE io_files, ONLY: testunit
       IMPLICIT NONE
       SAVE
 !----------------------------------------------------------------------
@@ -26,9 +26,9 @@
 
       IF( tk < 0.0d0 ) THEN
          CALL meshinds(ijk,imesh,i,j,k)
-         WRITE(errorunit,*) 'WARNING from proc: ', mpime
-         WRITE(errorunit,*) 'negative temperature in eosl'
-         WRITE(errorunit,*) 'local cell: ', ijk, i, j, k
+         WRITE(testunit,*) 'WARNING from proc: ', mpime
+         WRITE(testunit,*) 'negative temperature in eosl'
+         WRITE(testunit,*) 'local cell: ', ijk, i, j, k
       END IF
 
       RETURN

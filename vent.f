@@ -103,7 +103,7 @@
         !
         IF( base_radius < 2.0D0*vent_radius ) THEN
                 base_radius = 2.0D0*vent_radius
-                WRITE(errorunit,*) 'WARNING! control the crater base!'
+                IF (mpime == root) WRITE(errorunit,*) 'WARNING! control the crater base!'
         END IF
 
         ! ... Reset the vent quota
