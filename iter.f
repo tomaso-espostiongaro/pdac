@@ -150,7 +150,7 @@
         ALLOCATE( amats( 6, 6, ncint ) )
       END IF
 !
-! ... compute the fraction of partially filled vent cells
+! ... compute the fraction of partially filled boundary cells
       CALL fill_cells
 !
 ! ... Compute the gas mass fluxes using the guessed velocities 
@@ -159,6 +159,7 @@
         IF ( flag( ijk ) == 1 ) THEN
           CALL first_subscr( ijk )
           CALL calc_gas_mass_flux( ijk )
+
           ! ... compute the derivative of the gas mass residual
           ! ... with respect to gas pressure
           CALL betas( conv( ijk ), abeta( ijk ), ijk )
@@ -484,13 +485,14 @@
         CALL thermal_eosg(rog(ijk),tg(ijk),p(ijk),xgc(:,ijk))
 !
         rgp(ijk) = ep(ijk) * rog(ijk)
-!
+
         ! ... Update gas and particles velocities using the 
         ! ... corrected pressure at current location. 
         ! ... Pressure at neighbour cells could still be wrong.
 
         CALL assemble_all_matrix(ijk)
         CALL solve_all_velocities(ijk)
+!
 !
         ! ... update particle and gas densities and the 
         ! ... gas mass residual 'dg'
@@ -756,11 +758,11 @@
       REAL*8 :: rlkx, rlky, rlkz, rls, rlk_tmp
       INTEGER, INTENT(IN) :: i, j, k, ijk
       INTEGER :: is
-      REAL*8 :: vf, ivf
+      REAL*8 :: vf, vf0, ivf
       INTEGER :: fx, fy, fz
       LOGICAL :: forced = .FALSE.
 
-      vf = b_e(ijk) + b_w(ijk) + b_t(ijk) + b_b(ijk)
+      vf0 = b_e(ijk) + b_w(ijk) + b_t(ijk) + b_b(ijk)
 
       rls = 0.D0
       DO is = 1, nsolid
@@ -770,19 +772,19 @@
 
         IF (job_type == '2D') THEN
           rlky = 0.D0
-          vf = 0.25D0 * vf
+          vf = 0.25D0 * vf0
         ELSE IF (job_type == '3D') THEN
-          vf = vf + b_n(ijk) + b_s(ijk)
           rlky = (b_n(ijk)*rsfn(ijk,is) - b_s(ijk)*rsfn(ijmk,is)) * indy(j)
-          vf = vf / 6.D0
+          vf = vf0 + b_n(ijk) + b_s(ijk)
+          vf = vf0 / 6.D0
         END IF
 
         IF (vf > 0.D0) THEN
           ivf = 1.D0 / vf
         ELSE
           ivf = 0.D0
-
         END IF
+
         rlk_tmp = rlkn( ijk, is ) - dt * ivf * ( rlkx + rlky + rlkz )
               !- dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
         rlk_tmp = MAX( 0.0d0, rlk_tmp )
