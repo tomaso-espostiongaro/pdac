@@ -352,52 +352,52 @@ The following XML tags have been defined:
 
 \begin{itemize}
 
-\item \FIL{<dataset></dataset>} \\
+\item \FIL{\tt <dataset></dataset>} \\
       the highest level tag specifying the complete output of a post-processor run,
       all other tags should be contained in this one. Attribute:\\
       {\it name} the name of the dataset (ex. \FIL{<dataset name="Vesuvius">})
 
-\item \FIL{<grid></grid>} \\
+\item \FIL{\tt <grid></grid>} \\
       identify the section containing information on the computational grid and
       fields defined on it
 
-\item \FIL{<structure></structure>} \\
+\item \FIL{\tt <structure></structure>} \\
       defined in the grid section, identify the section containing grid sizes
 
-\item \FIL{<x></x>} \\
+\item \FIL{\tt <x></x>} \\
       identify a section containig sub-tags referring to x cartesian axis
 
-\item \FIL{<y></y>} \\
+\item \FIL{\tt <y></y>} \\
       identify a section containig sub-tags referring to y cartesian axis
 
-\item \FIL{<z></z>} \\
+\item \FIL{\tt <z></z>} \\
       identify a section containig sub-tags referring to z cartesian axis
 
-\item \FIL{<dim> $N$ </dim>} \\
+\item \FIL{\tt <dim> $N$ </dim>} \\
       specify a dimension. Attributes:\\
-      {\it type} the type of the dimension (ex. \FIL{<dim type="integer">})
-      {\it size} the size of the dimension (ex. \FIL{<dim size="1">})
+      {\it type} the type of the dimension (ex. \FIL{\tt <dim type="integer">})
+      {\it size} the size of the dimension (ex. \FIL{\tt <dim size="1">})
 
-\item \FIL{<cfile> filename </cfile>} \\
+\item \FIL{\tt <cfile> filename </cfile>} \\
 
-\item \FIL{<file> filename </file>} \\
+\item \FIL{\tt <file> filename </file>} \\
 
-\item \FIL{<attributes> </attributes>} \\
+\item \FIL{\tt <attributes> </attributes>} \\
       identify a section the attributes of the discretized grid
 
-\item \FIL{<profile> </profile>} \\
+\item \FIL{\tt <profile> </profile>} \\
       identify a section containig information abount profile
 
-\item \FIL{<scalar> </scalar>} \\
+\item \FIL{\tt <scalar> </scalar>} \\
       identify a section containig scalar field data
 
-\item \FIL{<staggered> </staggered>} \\
+\item \FIL{\tt <staggered> </staggered>} \\
       identify a section containig staggered vector field data
 
-\item \FIL{<frames> </frames>} \\
+\item \FIL{\tt <frames> </frames>} \\
       identify a section containig information abount time frame
 
-\item \FIL{<timestep> </timestep>} \\
+\item \FIL{\tt <timestep> </timestep>} \\
       specify a time frame
        
 
