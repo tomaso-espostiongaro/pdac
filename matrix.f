@@ -14,14 +14,14 @@
       IMPLICIT NONE
 !
       ALLOCATE(bu1(nphase), bv1(nphase), bu(nphase), bv(nphase))
-      ALLOCATE(au1(nphase,nphase), av1(nphase,nphase), 
-     &         au(nphase,nphase),av(nphase,nphase))
+      ALLOCATE(au1(nphase,nphase), av1(nphase,nphase),           &
+                au(nphase,nphase),  av(nphase,nphase))
       RETURN
       END SUBROUTINE
 
 !--------------------------------------------------------------------
-      SUBROUTINE mats(ij, ep, epr, ept, epl, epb, p, pr, pt, pl, pb,
-     &  rlk, rlkr, rlkt, rlkl, rlkb, rgp, rgpr, rgpt, rgpl, rgpb)
+      SUBROUTINE mats(ij, ep, epr, ept, epl, epb, p, pr, pt, pl, pb,  &
+        rlk, rlkr, rlkt, rlkl, rlkb, rgp, rgpr, rgpt, rgpl, rgpb)
 !
 ! ... Computes matrix elements to solve momentum-balance 
 ! ... linear system of coupled equations, in current cell and in
@@ -78,14 +78,10 @@
           bu1(1) = rug(imj)+ dt * indrm *2.D0* ep_w * (pl-p)
           bv1(1) = rvg(ijm)+ dt * indzm *2.D0* ep_s * (pb-p)
         ELSE
-          epk_w = (dr(i)*rlkl(k-1) + dr(i-1)*rlk(k-1)) * indrm 
-     &              * inrl(k-1)
-          epk_s = (dz(j)*rlkb(k-1) + dz(j-1)*rlk(k-1)) * indzm 
-     &              * inrl(k-1)
-          bu1(k) = ruk(k-1,imj) 
-     &             + dt * indrm *2.D0* epk_w * (pl-p)
-          bv1(k) = rvk(k-1,ijm) 
-     &             + dt * indzm *2.D0* epk_s * (pb-p)
+          epk_w = (dr(i)*rlkl(k-1) + dr(i-1)*rlk(k-1)) * indrm * inrl(k-1)
+          epk_s = (dz(j)*rlkb(k-1) + dz(j-1)*rlk(k-1)) * indzm * inrl(k-1)
+          bu1(k) = ruk(k-1,imj) + dt * indrm *2.D0* epk_w * (pl-p)
+          bv1(k) = rvk(k-1,ijm) + dt * indzm *2.D0* epk_s * (pb-p)
         ENDIF
 !
 ! ... Implicit terms in the linear system
@@ -93,11 +89,9 @@
         ks1=k*(k-1)/2
         DO kk=1,k
           ks=ks1+kk
-          au1(k,kk)=(dr(i)*appu(ks,ijl)+appu(ks,ij)*dr(i-1))
-     &             *indrm
+          au1(k,kk)=(dr(i)*appu(ks,ijl)+appu(ks,ij)*dr(i-1))*indrm
           au1(kk,k)=au1(k,kk)
-          av1(k,kk)=(dz(j)*appv(ks,ijb)+dz(j-1)*appv(ks,ij))
-     &             *indzm
+          av1(k,kk)=(dz(j)*appv(ks,ijb)+dz(j-1)*appv(ks,ij))*indzm
           av1(kk,k)=av1(k,kk)
         END DO
         IF(k.EQ.1) THEN
@@ -127,14 +121,10 @@
           bu(1)  = rug(ij)+ dt * indrp *2.D0* ep_e * (p-pr)
           bv(1)  = rvg(ij)+ dt * indzp *2.D0* ep_n * (p-pt)
         ELSE
-          epk_e = (dr(i)*rlkr(k-1) + dr(i+1)*rlk(k-1)) * indrp
-     &                * inrl(k-1)
-          epk_n = (dz(j)*rlkt(k-1) + dz(j+1)*rlk(k-1)) * indzp
-     &                * inrl(k-1)
-          bu(k)  = ruk(k-1,ij)
-     &             + dt * indrp *2.D0* epk_e * (p-pr)
-          bv(k)  = rvk(k-1,ij)
-     &             + dt * indzp *2.D0* epk_n * (p-pt)
+          epk_e = (dr(i)*rlkr(k-1) + dr(i+1)*rlk(k-1)) * indrp * inrl(k-1)
+          epk_n = (dz(j)*rlkt(k-1) + dz(j+1)*rlk(k-1)) * indzp * inrl(k-1)
+          bu(k)  = ruk(k-1,ij) + dt * indrp *2.D0* epk_e * (p-pr)
+          bv(k)  = rvk(k-1,ij) + dt * indzp *2.D0* epk_n * (p-pt)
         ENDIF
 !
 ! ... Implicit terms in the linear system
@@ -142,11 +132,9 @@
         ks1=k*(k-1)/2
         DO kk=1,k
           ks=ks1+kk
-          au(k,kk)=(dr(i)*appu(ks,ijr)+appu(ks,ij)*dr(i+1))
-     &            *indrp
+          au(k,kk)=(dr(i)*appu(ks,ijr)+appu(ks,ij)*dr(i+1))*indrp
           au(kk,k)=au(k,kk)
-          av(k,kk)=(dz(j)*appv(ks,ijt)+dz(j+1)*appv(ks,ij))
-     &            *indzp
+          av(k,kk)=(dz(j)*appv(ks,ijt)+dz(j+1)*appv(ks,ij))*indzp
           av(kk,k)=av(k,kk)
         END DO
         IF(k.EQ.1) THEN
@@ -162,8 +150,7 @@
       END SUBROUTINE
 !
 !----------------------------------------------------------------------
-      SUBROUTINE matsa(ij, ep, epr, ept, p, pr, pt, rlk, rlkr, rlkt, 
-     &  rgp, rgpr, rgpt)
+      SUBROUTINE matsa(ij, ep, epr, ept, p, pr, pt, rlk, rlkr, rlkt, rgp, rgpr, rgpt)
 !
       USE dimensions
       USE grid, ONLY: dz, dr
@@ -211,14 +198,10 @@
           bu(1)  = rug(ij)+ dt * indrp *2.D0* ep_e * (p-pr)
           bv(1)  = rvg(ij)+ dt * indzp *2.D0* ep_n * (p-pt)
         ELSE
-          epk_e = (dr(i)*rlkr(k-1) + dr(i+1)*rlk(k-1)) * indrp 
-     &                * inrl(k-1)
-          epk_n = (dz(j)*rlkt(k-1) + dz(j+1)*rlk(k-1)) * indzp 
-     &                * inrl(k-1)
-          bu(k)  = ruk(k-1,ij) 
-     &             + dt * indrp *2.D0* epk_e * (p-pr)
-          bv(k)  = rvk(k-1,ij) 
-     &             + dt * indzp *2.D0* epk_n * (p-pt)
+          epk_e = (dr(i)*rlkr(k-1) + dr(i+1)*rlk(k-1)) * indrp * inrl(k-1)
+          epk_n = (dz(j)*rlkt(k-1) + dz(j+1)*rlk(k-1)) * indzp * inrl(k-1)
+          bu(k)  = ruk(k-1,ij) + dt * indrp *2.D0* epk_e * (p-pr)
+          bv(k)  = rvk(k-1,ij) + dt * indzp *2.D0* epk_n * (p-pt)
         ENDIF
 !
 ! ... Implicit terms in the linear system
@@ -226,11 +209,9 @@
         ks1=k*(k-1)/2
         DO kk=1,k
           ks=ks1+kk
-          au(k,kk)=(dr(i)*appu(ks,ijr)+appu(ks,ij)*dr(i+1))
-     &            *indrp
+          au(k,kk)=(dr(i)*appu(ks,ijr)+appu(ks,ij)*dr(i+1))*indrp
           au(kk,k)=au(k,kk)
-          av(k,kk)=(dz(j)*appv(ks,ijt)+dz(j+1)*appv(ks,ij))
-     &            *indzp
+          av(k,kk)=(dz(j)*appv(ks,ijt)+dz(j+1)*appv(ks,ij))*indzp
           av(kk,k)=av(k,kk)
         END DO
         IF(k.EQ.1) THEN

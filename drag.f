@@ -6,8 +6,7 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE kdrags(kpgv,ug,ugm,vg,vgm,uk,ukm,vk,vkm,ep,
-     &                  rog,rgp,rlk,mug)
+      SUBROUTINE kdrags(kpgv,ug,ugm,vg,vgm,uk,ukm,vk,vkm,ep,rog,rgp,rlk,mug)
 !----------------------------------------------------------------------
 ! ... This routine computes the gas-particles drag coefficient 
 !
@@ -52,8 +51,7 @@
 ! ... This routine computes particle-particle drag coefficient
 !
       USE dimensions
-      USE particles_constants, ONLY: phi, epsl, dkf, epsu, dk, 
-     &    rl, inrl, philim
+      USE particles_constants, ONLY: phi, epsl, dkf, epsu, dk, rl, inrl, philim
       USE time_parameters, ONLY: dt
       IMPLICIT NONE
 !
@@ -92,10 +90,8 @@
               appu(ks)=0.D0
               appv(ks)=0.D0
             ELSE
-              dv=DABS(vk(k-1)-vk(kk-1)
-     $           +vkm(k-1)-vkm(kk-1))*0.5D0
-              du=DABS(uk(k-1)-uk(kk-1)
-     $           +ukm(k-1)-ukm(kk-1))*0.5D0
+              dv=DABS(vk(k-1)-vk(kk-1) + vkm(k-1)-vkm(kk-1))*0.5D0
+              du=DABS(uk(k-1)-uk(kk-1) + ukm(k-1)-ukm(kk-1))*0.5D0
               IF(dk(k-1).GE.dk(kk-1)) THEN
                 k1=k-1
                 k2=kk-1
@@ -116,11 +112,10 @@
 !
 ! for Nakamura & Capes correlation effe=1.5
 !                effe=1.5D0
-                effe=(3.D0*epkl**(1.D0/3.D0)+epsum**(1.D0/3.D0))/
-     $               (2.D0*(epkl**(1.D0/3.D0)-epsum**(1.D0/3.D0)))
+                effe=(3.D0*epkl**(1.D0/3.D0)+epsum**(1.D0/3.D0))/    &
+                     (2.D0*(epkl**(1.D0/3.D0)-epsum**(1.D0/3.D0)))
 !
-                con=fac*(1.D0+restc)*rlk(k-1)*rlk(kk-1)*
-     $              dkf(k-1,kk-1)*dt*effe
+                con=fac*(1.D0+restc)*rlk(k-1)*rlk(kk-1)*dkf(k-1,kk-1)*dt*effe
               ELSE
                 con=0.D0
               ENDIF
@@ -196,8 +191,7 @@
 !
       denom2 = ep * dk(k) * phis(k)
       denom1 = denom2*denom2
-      drag = 150.D0 * rlk(k) * inrl(k) * mug / denom1
-     $     + 1.75D0 * rog * dv / denom2
+      drag = 150.D0 * rlk(k) * inrl(k) * mug/denom1 + 1.75D0 * rog * dv/denom2
       drag = drag * rlk(k) * ep * inrl(k)
       CONTINUE
 !

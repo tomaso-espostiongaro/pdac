@@ -16,8 +16,7 @@
       IMPLICIT NONE
 !
       ALLOCATE(sieg_g(ndi*ndj), siegn_g(ndi*ndj), tg_g(ndi*ndj))
-      ALLOCATE(siek_g(ncl,ndi*ndj), siekn_g(ncl,ndi*ndj),
-     &                   tk_g(ncl,ndi*ndj))
+      ALLOCATE(siek_g(ncl,ndi*ndj), siekn_g(ncl,ndi*ndj), tk_g(ncl,ndi*ndj))
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------

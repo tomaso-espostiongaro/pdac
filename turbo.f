@@ -196,8 +196,7 @@
          IF(modturbo.EQ.1) THEN
           cdy_n(ij)=cmut**2
          ELSE
-             CALL strain_hat(fsr1, fsr2, fsr12, fmodsr,
-     &                        fug, fvg, ij)
+             CALL strain_hat(fsr1, fsr2, fsr12, fmodsr, fug, fvg, ij)
 !
              fp1  = filter(p1,ij)
              fp2  = filter(p2,ij)
@@ -346,12 +345,10 @@
           CALL subscl(ij)
           fug(ij) = filter(ug,ij)
           fvg(ij) = filter(vg,ij)
-          fu2g(ij)= 0.125 *(ug(imj)*ug(imj) + ug(ipj)*ug(ipj) + 
-     &              ug(ijm)*ug(ijm) + ug(ijp)*ug(ijp)) + 
-     &              0.5D0*ug(ij)*ug(ij)
-          fv2g(ij)= 0.125 *(vg(imj)*vg(imj) + vg(ipj)*vg(ipj) + 
-     &              vg(ijm)*vg(ijm) + vg(ijp)*vg(ijp)) + 
-     &              0.5D0*vg(ij)*vg(ij)
+          fu2g(ij)= 0.125 *(ug(imj)**2 + ug(ipj)**2 + ug(ijm)**2 + ug(ijp)**2) &
+                  + 0.5D0*ug(ij)*ug(ij)
+          fv2g(ij)= 0.125 *(vg(imj)**2+vg(ipj)**2 + vg(ijm)**2 + vg(ijp)**2)   &
+                  + 0.5D0*vg(ij)*vg(ij)
           fuvg(ij)= filter(uvg,ij)     
 
          END IF 
@@ -532,9 +529,9 @@
            vm2=v2+(v3-v2)*dr(i)*indrp
            vm1=v1+(v2-v1)*dr(i-1)*indrm
            d12=(um2-um1)*indz(j)+(vm2-vm1)*indr(i)
-           mus(k,ij) = cmus(k)*0.7071D0*rl(k)*dk(k)**2*10.D0
-     &                     **(3.98D0*rlk(k,ij)*inrl(k)-1.69D0)*
-     &                     DSQRT(d11*d11+d22*d22+d33*d33+2.0D0*d12*d12)
+           mus(k,ij) = cmus(k)*0.7071D0*rl(k)*dk(k)**2 *            &
+     &                 10.D0**(3.98D0*rlk(k,ij)*inrl(k)-1.69D0) *   &
+     &                 DSQRT(d11*d11+d22*d22+d33*d33+2.0D0*d12*d12)
          END DO
         END IF
       END DO

@@ -3,10 +3,9 @@
 !----------------------------------------------------------------------
 !
       USE dimensions
-      USE gas_constants, ONLY: gmw, mmugs, mmugek,
+      USE gas_constants, ONLY: gmw, mmugs, mmugek,     &
      &    gammaair, gamn, c_joule, c_erg, tzero, hzerog, hzeros, rgas
-      USE particles_constants, ONLY: particles_constants_set, nsolid,
-     &                               cmus
+      USE particles_constants, ONLY: particles_constants_set, nsolid, cmus
       USE reactions, ONLY: h1, h2, h3, h4, h5
       USE roughness, ONLY: roucha, zrough, ir
       USE turbulence, ONLY: turbulence_setup, mus_g

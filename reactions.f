@@ -19,8 +19,7 @@
       REAL*8 :: hrexg, hrexs
       INTEGER, INTENT(IN) :: ij
 !
-      hrexs = dt * 
-     $  ( r1(ij)*h1 + r2(ij)*h2 + r3(ij)*h3 + r4(ij)*h4)
+      hrexs = dt * ( r1(ij)*h1 + r2(ij)*h2 + r3(ij)*h3 + r4(ij)*h4)
       hrexg = dt * (r5(ij)*h5)
 !
       RETURN
@@ -37,8 +36,7 @@
       INTEGER :: ij
       INTEGER :: ij_g
 !
-      ALLOCATE(r1(nijx_l), r2(nijx_l), r3(nijx_l), r4(nijx_l),
-     &         r5(nijx_l))
+      ALLOCATE(r1(nijx_l), r2(nijx_l), r3(nijx_l), r4(nijx_l), r5(nijx_l))
 !
       DO ij = 1, nij_l
           ij_g = myij(0, 0, ij)

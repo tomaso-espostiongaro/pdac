@@ -12,10 +12,8 @@
       USE gas_solid_velocity, ONLY: ug, vg, uk, vk
       USE gas_solid_density, ONLY: rgp_g, rgpn_g, rlk_g, rlkn_g, rog_g
       USE gas_solid_density, ONLY: rgp, rgpn, rlk, rlkn, rog
-      USE gas_solid_temperature, ONLY: siegn_g, siekn_g,sieg_g,
-     &                                 siek_g, tg_g, tk_g
-      USE gas_solid_temperature, ONLY: siegn, siekn, sieg, 
-     &                                  siek, tg, tk
+      USE gas_solid_temperature, ONLY: siegn_g, siekn_g, sieg_g, siek_g, tg_g, tk_g
+      USE gas_solid_temperature, ONLY: siegn, siekn, sieg, siek, tg, tk
       USE grid, ONLY: nij_l, myij, data_exchange
       USE pressure_epsilon, ONLY: p_g, pn_g, ep_g
       USE pressure_epsilon, ONLY: p, pn, ep

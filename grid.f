@@ -66,8 +66,7 @@
         INTEGER :: countfl(5)
 
         INTERFACE data_exchange
-          MODULE PROCEDURE data_exchange_i, data_exchange_r,
-     &      data_exchange_rm
+          MODULE PROCEDURE data_exchange_i, data_exchange_r, data_exchange_rm
         END INTERFACE
 
 !----------------------------------------------------------------------
@@ -249,8 +248,7 @@
         WRITE(7,*) '  '
       DO ipe = 0, nproc - 1
         WRITE(7,*) ' # nij( ',ipe, ' )', nij(ipe)
-        WRITE(7,*) ' # nij1( ',ipe, ' )', nij1(ipe),' -',
-     &              n1(ipe),' =', diff(ipe)
+        WRITE(7,*) ' # nij1( ',ipe, ' )', nij1(ipe),' -', n1(ipe),' =', diff(ipe)
       END DO
         WRITE(7,*) '  '
 !
@@ -258,8 +256,8 @@
             red(ij) = (cell_owner(ij)+1)
             green(ij) = nproc - (cell_owner(ij)+1)
             blue(ij) = (nproc - ABS(2*(cell_owner(ij)-nproc/2))) 
-          IF ((fl(ij).EQ.3 .AND. (fl(ij+1).EQ.1 .OR. fl(ij-1).EQ.1)) 
-     &   .OR. fl(ij).EQ.5 .OR. fl(ij).EQ.2 .OR. fl(ij).EQ.4) THEN
+          IF ((fl(ij).EQ.3 .AND. (fl(ij+1).EQ.1 .OR. fl(ij-1).EQ.1))   &
+               .OR. fl(ij).EQ.5 .OR. fl(ij).EQ.2 .OR. fl(ij).EQ.4)    THEN
             red(ij) = 0
             green(ij) = 0
             blue(ij) = 0
@@ -267,8 +265,7 @@
         END DO
 !
         IF (mpime .EQ. root) THEN
-          OPEN(UNIT=9,FILE='procs_map.ppm', FORM='FORMATTED',
-     &                STATUS='UNKNOWN')
+          OPEN(UNIT=9,FILE='procs_map.ppm', FORM='FORMATTED', STATUS='UNKNOWN')
            WRITE(9,'(A2)') 'P3'
            WRITE(9,'(I3,A1,I3)') ndi,' ',ndj
            WRITE(9,'(I3)') nproc
@@ -323,8 +320,7 @@
 
           nij(ipe) = nij(ipe) + 1
 
-          IF ( icnt_ipe .EQ. nij1(ipe) .AND.
-     &         i .NE. (ndi-1) ) THEN
+          IF ( icnt_ipe .EQ. nij1(ipe) .AND. i .NE. (ndi-1) ) THEN
             icnt_ipe = 0
             IF( icnt .LT. countfl(1) ) THEN
               lay_map(ipe,2) = ij
@@ -520,8 +516,7 @@
             IF (fl(ij) .EQ. 1) nij1(ipe) = nij1(ipe) + 1
           END DO
           END DO
-          WRITE(7,*) 'block_map(',ipe,'):', block_map(ipe)%left(:),
-     &                              block_map(ipe)%right(:)
+          WRITE(7,*)'block_map(',ipe,'):',block_map(ipe)%left(:),block_map(ipe)%right(:)
         END DO
       END DO
 
@@ -612,8 +607,7 @@
       IF (part .EQ. 1 .OR. nproc .LE. 2) THEN
         DO ij = lay_map(mpime,1), lay_map(mpime,2)
           IF ( fl(ij) .EQ. 1 ) THEN
-          icnt = icnt + cell_neighbours(ij, mpime, nset,
-     &      rcv_cell_set, myij)
+          icnt = icnt + cell_neighbours(ij, mpime, nset, rcv_cell_set, myij)
           END IF
         END DO
       ELSE
@@ -625,8 +619,7 @@
         DO i = i1, i2
           ij = i + ndi*(j-1)
           IF (fl(ij).EQ.1) THEN
-          icnt = icnt + cell_neighbours(ij, mpime, nset,
-     &      rcv_cell_set, myij)
+          icnt = icnt + cell_neighbours(ij, mpime, nset, rcv_cell_set, myij)
           END IF
         END DO
        END DO
@@ -709,8 +702,7 @@
           ijrcv = 0
           DO jpe = 0, nproc - 1
             IF( rcv_map(jpe)%nrcv .GT. 0 ) THEN
-              ijrcv(1:rcv_map(jpe)%nrcv, jpe ) = 
-     &          rcv_map(jpe)%ijrcv(1:rcv_map(jpe)%nrcv) 
+              ijrcv(1:rcv_map(jpe)%nrcv, jpe ) = rcv_map(jpe)%ijrcv(1:rcv_map(jpe)%nrcv) 
             END IF
           END DO 
         END IF 
@@ -719,8 +711,7 @@
         IF( ipe .NE. mpime) THEN
           ALLOCATE(snd_map(ipe)%ijsnd(snd_map(ipe)%nsnd))
           ALLOCATE(snd_map(ipe)%ijl(snd_map(ipe)%nsnd))
-          snd_map(ipe)%ijsnd(1:snd_map(ipe)%nsnd) =
-     &      ijsnd(1:snd_map(ipe)%nsnd)
+          snd_map(ipe)%ijsnd(1:snd_map(ipe)%nsnd) = ijsnd(1:snd_map(ipe)%nsnd)
           DO ij = 1, snd_map(ipe)%nsnd
             snd_map(ipe)%ijl( ij ) = cell_g2l( ijsnd( ij ), mpime )
           END DO
@@ -787,15 +778,13 @@
           
         DO ipe = 0, nproc - 1
           IF (part .EQ. 1 .OR. nproc .LE. 2) THEN
-            IF( ij .GE. lay_map(ipe,1) .AND.
-     &          ij .LE. lay_map(ipe,2) ) THEN
+            IF( ij .GE. lay_map(ipe,1) .AND. ij .LE. lay_map(ipe,2) ) THEN
               cell_owner = ipe
             END IF
           ELSE
-            IF (j .GE. block_map(ipe)%left(2) .AND. 
-     &          j .LE. block_map(ipe)%right(2)) THEN
-              IF (i .GE. block_map(ipe)%left(1) .AND.
-     &            i .LE. block_map(ipe)%right(1)) cell_owner = ipe
+            IF (j .GE. block_map(ipe)%left(2) .AND. j .LE. block_map(ipe)%right(2)) THEN
+              IF (i .GE. block_map(ipe)%left(1) .AND.  &
+                  i .LE. block_map(ipe)%right(1)) cell_owner = ipe
             END IF
           END IF
         END DO
@@ -842,8 +831,7 @@
       RETURN
       END FUNCTION     
 !----------------------------------------------------------------------
-      INTEGER FUNCTION cell_neighbours(ij, mpime, nset, 
-     &  rcv_cell_set, myij)
+      INTEGER FUNCTION cell_neighbours(ij, mpime, nset, rcv_cell_set, myij)
         USE dimensions
         USE basic_types, ONLY: imatrix
         INTEGER, INTENT(IN) :: ij, mpime
@@ -994,8 +982,7 @@
               icurr = ic 
  3000         IF(indx(icurr) .NE. ic) THEN
                 icell(:) = rcv_cell_set(ipe)%i(:,icurr) 
-                rcv_cell_set(ipe)%i(:,icurr) = 
-     &            rcv_cell_set(ipe)%i(:,indx(icurr))
+                rcv_cell_set(ipe)%i(:,icurr) = rcv_cell_set(ipe)%i(:,indx(icurr))
                 rcv_cell_set(ipe)%i(:,indx(icurr)) = icell(:)
                 it = icurr; icurr = indx(icurr); indx(it) = it
                 IF(indx(icurr).EQ.ic) THEN
@@ -1037,10 +1024,8 @@
         DO ipe = 0, nproc - 1
 
           rcv_map(ipe)%nrcv = nrcv(ipe)
-          IF( ASSOCIATED(rcv_map(ipe)%ijrcv) )
-     &      DEALLOCATE( rcv_map(ipe)%ijrcv )
-          IF( ASSOCIATED(rcv_map(ipe)%ijl) )
-     &      DEALLOCATE( rcv_map(ipe)%ijl )
+          IF( ASSOCIATED(rcv_map(ipe)%ijrcv) ) DEALLOCATE( rcv_map(ipe)%ijrcv )
+          IF( ASSOCIATED(rcv_map(ipe)%ijl) ) DEALLOCATE( rcv_map(ipe)%ijl )
 
           IF( nrcv(ipe) .GT. 0 ) THEN
             ALLOCATE( rcv_map(ipe)%ijrcv(nrcv(ipe)) )
@@ -1097,10 +1082,8 @@
         INTEGER :: myinds(:,:)
         INTEGER :: myij(-2:,-2:,:)
 !
-        INTEGER :: ijl, ijr, ijb, ijt, ijbr, ijtr, ijbl, ijtl,
-     &             ijrr, ijtt, ijll, ijbb
-        INTEGER :: imj, ipj, ijm, ijp, ipjm, ipjp, imjm, imjp,
-     &             ippj, ijpp, immj, ijmm
+        INTEGER :: ijl, ijr, ijb, ijt, ijbr, ijtr, ijbl, ijtl, ijrr, ijtt, ijll, ijbb
+        INTEGER :: imj, ipj, ijm, ijp, ipjm, ipjp, imjm, imjp, ippj, ijpp, immj, ijmm
 
         INTEGER :: nflr, nflt, nfll, nflb
         INTEGER :: nfltr, nfltl, nflbr, nflbl
@@ -1111,8 +1094,8 @@
           ij_g = myij(0, 0, ij)
           j  = ( ij_g - 1 ) / ndi + 1
           i  = MOD( ( ij_g - 1 ), ndi) + 1
-          IF( (i .GE. 2) .AND. (i .LE. (ndi-1)) .AND.
-     &        (j .GE. 2) .AND. (j .LE. (ndj-1))      ) THEN
+          IF( (i .GE. 2) .AND. (i .LE. (ndi-1)) .AND.   &
+              (j .GE. 2) .AND. (j .LE. (ndj-1))      ) THEN
 !
             ijm = myij( 0,-1, ij)
             imj = myij(-1, 0, ij)
@@ -1178,8 +1161,7 @@
             END IF
 !
 ! ... Free In-Out Flow on the corner
-            IF( (i.EQ.(ndi-1)) .AND. (j.EQ.(ndj-1)) .and.
-     &          (nfltr.EQ.4) ) THEN
+            IF( (i.EQ.(ndi-1)) .AND. (j.EQ.(ndj-1)) .AND. (nfltr.EQ.4) ) THEN
               ijtr = ij
             END IF
 !
@@ -1239,8 +1221,8 @@
           DO ib = 1, snd_map(idest)%nsnd
             sndbuf(ib) = array( snd_map(idest)%ijl(ib) )
           END DO 
-          CALL sendrecv_real(sndbuf(1), snd_map(idest)%nsnd, idest,
-     &      rcvbuf, rcv_map(isour)%nrcv, isour, ip)
+          CALL sendrecv_real(sndbuf(1), snd_map(idest)%nsnd, idest,  &
+            rcvbuf, rcv_map(isour)%nrcv, isour, ip)
           DO ib = 1, rcv_map(isour)%nrcv
             array( rcv_map(isour)%ijl(ib) ) = rcvbuf(ib)
           END DO 
@@ -1267,16 +1249,14 @@
 !          sndbuf = 0.0
           DO ib = 1, snd_map(idest)%nsnd
             DO ik = 1, SIZE(array,1)
-              sndbuf(ik + SIZE(array,1)*(ib-1)) = 
-     &          array( ik, snd_map(idest)%ijl(ib) )
+              sndbuf(ik + SIZE(array,1)*(ib-1)) = array( ik, snd_map(idest)%ijl(ib) )
             END DO
           END DO 
-          CALL sendrecv_real(sndbuf(1), SIZE(sndbuf), idest,
-     &      rcvbuf(1), SIZE(rcvbuf), isour, ip)
+          CALL sendrecv_real(sndbuf(1), SIZE(sndbuf), idest,     &      
+                             rcvbuf(1), SIZE(rcvbuf), isour, ip)
           DO ib = 1, rcv_map(isour)%nrcv
             DO ik = 1, SIZE(array,1)
-              array( ik, rcv_map(isour)%ijl(ib) ) = 
-     &          rcvbuf( ik + SIZE(array,1)*(ib-1))
+              array( ik, rcv_map(isour)%ijl(ib) ) = rcvbuf( ik + SIZE(array,1)*(ib-1))
             END DO
           END DO 
           DEALLOCATE( rcvbuf )
@@ -1299,8 +1279,8 @@
           DO ib = 1, snd_map(idest)%nsnd
             sndbuf(ib) = array( snd_map(idest)%ijl(ib) )
           END DO
-          CALL sendrecv_integer(sndbuf, snd_map(idest)%nsnd, idest,
-     &      rcvbuf, rcv_map(isour)%nrcv, isour, ip)
+          CALL sendrecv_integer(sndbuf, snd_map(idest)%nsnd, idest,      &
+                                rcvbuf, rcv_map(isour)%nrcv, isour, ip)
           DO ib = 1, rcv_map(isour)%nrcv
             array( rcv_map(isour)%ijl(ib) ) = rcvbuf(ib)
           END DO

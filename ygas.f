@@ -55,14 +55,12 @@
           cs0=cs0-dt*inr(i)*indr(i)*rb(i)*ug(ij)
         ELSE
           DO kg=1,ngas
-            cs(kg)=cs(kg)-dt*inr(i)*indr(i)*rb(i)*ug(ij)
-     &             *rgpgc(kg,ijr)
+            cs(kg)=cs(kg)-dt*inr(i)*indr(i)*rb(i)*ug(ij)*rgpgc(kg,ijr)
           END DO
         ENDIF
         IF(ug(imj).GT.0.D0)THEN
           DO kg=1,ngas
-            cs(kg)=cs(kg)+
-     &      dt * inr(i)*indr(i)*rb(i-1)*ug(imj)*rgpgc(kg,ijl)
+            cs(kg)=cs(kg) + dt * inr(i)*indr(i)*rb(i-1)*ug(imj)*rgpgc(kg,ijl)
           END DO
         ELSE
           cs0=cs0+dt*inr(i)*indr(i)*rb(i-1)*ug(imj)

@@ -78,19 +78,19 @@
         ij_g = myij(0, 0, ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscl(ij)
-          CALL fsc_rt(egfr(ij), egft(ij), nb(sieg,ij),
-     &         nb(rgp,ij), rnb(ug,ij), rnb(vg,ij), ij)
-          CALL hotcg(hfgr(ij), hfgt(ij), hfgl(ij), hfgb(ij),
-     &         nb(ep,ij), nb(tg,ij), nb(kapgt,ij), ij)
+          CALL fsc_rt(egfr(ij), egft(ij), nb(sieg,ij),        &
+               nb(rgp,ij), rnb(ug,ij), rnb(vg,ij), ij)
+          CALL hotcg(hfgr(ij), hfgt(ij), hfgl(ij), hfgb(ij),  &
+               nb(ep,ij), nb(tg,ij), nb(kapgt,ij), ij)
 !
           egfr(ij) = egfr(ij) - hfgr(ij)
           egft(ij) = egft(ij) - hfgt(ij)
 !
           DO k=1, ncl
-            CALL fsc_rt(elfr(k, ij), elft(k, ij), nb(siek(k,:),ij),
-     &         nb(rlk(k,:),ij), rnb(uk(k,:),ij), rnb(vk(k,:),ij),ij)
-            CALL hotck(hflr(k,ij), hflt(k,ij), hfll(k,ij), hflb(k,ij),
-     &           nb(rlk(k,:),ij), nb(tk(k,:),ij), ij, k)
+            CALL fsc_rt(elfr(k, ij), elft(k, ij), nb(siek(k,:),ij),     &
+               nb(rlk(k,:),ij), rnb(uk(k,:),ij), rnb(vk(k,:),ij),ij)
+            CALL hotck(hflr(k,ij), hflt(k,ij), hfll(k,ij), hflb(k,ij),  &
+                 nb(rlk(k,:),ij), nb(tk(k,:),ij), ij, k)
 !
           elfr(k, ij) = elfr(k, ij) - hflr(k, ij)
           elft(k, ij) = elft(k, ij) - hflt(k, ij)
@@ -117,10 +117,10 @@
 ! 
           egfl(ij) = egfr(imj)
           egfb(ij) = egft(ijm)
-          CALL fsc_lb(egfl(ij), egfb(ij), nb(sieg,ij),
-     &         nb(rgp,ij), rnb(ug,ij), rnb(vg,ij), ij)
-          CALL hotcg(hfgr(ij), hfgt(ij), hfgl(ij), hfgb(ij),
-     &         nb(ep,ij), nb(tg,ij), nb(kapgt,ij), ij)
+          CALL fsc_lb(egfl(ij), egfb(ij), nb(sieg,ij),          &
+               nb(rgp,ij), rnb(ug,ij), rnb(vg,ij), ij)
+          CALL hotcg(hfgr(ij), hfgt(ij), hfgl(ij), hfgb(ij),    &
+               nb(ep,ij), nb(tg,ij), nb(kapgt,ij), ij)
 !
             egfl(ij) = egfl(ij) - hfgl(ij)
             egfb(ij) = egfb(ij) - hfgb(ij)
@@ -136,35 +136,32 @@
            ELSE
             elfb(k, ij) = elft(k, ijm)
            END IF
-            CALL fsc_lb(elfl(k, ij), elfb(k, ij), nb(siek(k,:),ij),
-     &         nb(rlk(k,:),ij), rnb(uk(k,:),ij), rnb(vk(k,:),ij),ij)
-            CALL hotck(hflr(k,ij), hflt(k,ij), hfll(k,ij), hflb(k,ij),
-     &           nb(rlk(k,:),ij), nb(tk(k,:),ij), ij, k)
+            CALL fsc_lb(elfl(k, ij), elfb(k, ij), nb(siek(k,:),ij),      &
+               nb(rlk(k,:),ij), rnb(uk(k,:),ij), rnb(vk(k,:),ij),ij)
+            CALL hotck(hflr(k,ij), hflt(k,ij), hfll(k,ij), hflb(k,ij),   &
+                 nb(rlk(k,:),ij), nb(tk(k,:),ij), ij, k)
 !
           elfl(k, ij) = elfl(k, ij) - hfll(k, ij)
           elfb(k, ij) = elfb(k, ij) - hflb(k, ij)
 !
           END DO
 !
-          c1 = dt * inr(i)*indr(i) * (egfr(ij)-egfl(ij))
-     &       + dt * indz(j)        * (egft(ij)-egfb(ij))
+          c1 = dt * inr(i)*indr(i) * (egfr(ij)-egfl(ij))     &
+             + dt * indz(j)        * (egft(ij)-egfb(ij))
 !
           drc = dr(i)+(dr(i+1)+dr(i-1))/2.D0 
           dzc = dz(j)+(dz(j+1)+dz(j-1))/2.D0
           ugb = (ug(ij)+ug(imj))/2.D0
           vgb = (vg(ij)+vg(ijm))/2.D0
-          upxy= dt/drc * ugb * (p(ijr)-p(ijl))
-     &        + dt/dzc * vgb * (p(ijt)-p(ijb))
+          upxy= dt/drc * ugb * (p(ijr)-p(ijl)) + dt/dzc * vgb * (p(ijt)-p(ijb))
 !
           c2 = ep(ij) * (p(ij)-pn(ij)+upxy)
 !
           rhg(ij) = - c1 + c2
 !
-! CALL gas dissipation call vdisg(disg)
-!
           DO k=1,nsolid
-            c3 = dt * inr(i)*indr(i) * (elfr(k,ij) - elfl(k,ij))
-     &         + dt * indz(j)        * (elft(k,ij) - elfb(k,ij))
+            c3 = dt * inr(i)*indr(i) * (elfr(k,ij) - elfl(k,ij))    &
+               + dt * indz(j)        * (elft(k,ij) - elfb(k,ij))
 !
             rhk(k, ij) = - c3
           END DO

@@ -24,11 +24,9 @@
       SUBROUTINE bounds_part_constants
       USE dimensions
 !
-      ALLOCATE(dk(ncl), dkm1(ncl), rl(ncl), rlm1(ncl), phis(ncl),
-     &         phism1(ncl), cmus(ncl), cps(ncl), phi(ncl),
-     &         kap(ncl), inrl(ncl))
-      ALLOCATE(dkf(ncl,ncl), philim(ncl,ncl), epsl(ncl,ncl),
-     &         epsu(ncl,ncl))
+      ALLOCATE(dk(ncl), dkm1(ncl), rl(ncl), rlm1(ncl), phis(ncl), phism1(ncl), &
+               cmus(ncl), cps(ncl), phi(ncl), kap(ncl), inrl(ncl))
+      ALLOCATE(dkf(ncl,ncl), philim(ncl,ncl), epsl(ncl,ncl), epsu(ncl,ncl))
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
@@ -60,16 +58,15 @@
         ENDIF
         dratx=DSQRT(dk(k2)/dk(k1))
         philim(k,kk)=phi(k1)/(phi(k1)+(1.D0-phi(k1))*phi(k2))
-        epsl(k,kk)=(phi(k1)-phi(k2)+(1.D0-dratx)*(1.D0-phi(k1))*phi(k2))
-     $             *(phi(k1)+(1.D0-phi(k2))*phi(k1))
+        epsl(k,kk)=(phi(k1)-phi(k2)+(1.D0-dratx)*(1.D0-phi(k1))*phi(k2))  &
+                   *(phi(k1)+(1.D0-phi(k2))*phi(k1))
         epsu(k,kk)=(1.D0-dratx)*(phi(k1)+(1.D0-phi(k1))*phi(k2))
       END DO
       END DO
 !
       DO k=1,nsolid
         DO kk=1,k
-          dkf(k,kk)=(dk(k)+dk(kk))**2
-     $           /(rl(k)*dk(k)**3+rl(kk)*dk(kk)**3)
+          dkf(k,kk)=(dk(k)+dk(kk))**2/(rl(k)*dk(k)**3+rl(kk)*dk(kk)**3)
           dkf(kk,k)=dkf(k,kk)
         END DO
       END DO

@@ -1,16 +1,15 @@
 !----------------------------------------------------------------------
       MODULE io_restart
 !----------------------------------------------------------------------
-        USE eos_gas, ONLY: rgpgc_g, rgpgcn_g, xgc_g, ygc_g, cg_g
-        USE gas_solid_density, ONLY: rog_g, rgp_g, rgpn_g, rlk_g, rlkn_g
-        USE gas_solid_velocity, ONLY: ug_g, vg_g, uk_g, vk_g
-        USE gas_solid_temperature, ONLY: sieg_g, siegn_g, tg_g,
-     &       siek_g, siekn_g, tk_g
-        USE parallel, ONLY: mpime, root
-        USE pressure_epsilon, ONLY: p_g, pn_g, ep_g
-        USE th_capacity, ONLY: cp_g, ck_g
-        USE time_parameters, ONLY: time
-        USE gas_solid_viscosity, ONLY: mug_g, kapg_g
+      USE eos_gas, ONLY: rgpgc_g, rgpgcn_g, xgc_g, ygc_g, cg_g
+      USE gas_solid_density, ONLY: rog_g, rgp_g, rgpn_g, rlk_g, rlkn_g
+      USE gas_solid_velocity, ONLY: ug_g, vg_g, uk_g, vk_g
+      USE gas_solid_temperature, ONLY: sieg_g, siegn_g, tg_g, siek_g, siekn_g, tk_g
+      USE parallel, ONLY: mpime, root
+      USE pressure_epsilon, ONLY: p_g, pn_g, ep_g
+      USE th_capacity, ONLY: cp_g, ck_g
+      USE time_parameters, ONLY: time
+      USE gas_solid_viscosity, ONLY: mug_g, kapg_g
 
         IMPLICIT NONE
         PRIVATE
@@ -56,10 +55,9 @@
         WRITE(9) (ug_g(ij),vg_g(ij),ij=1,ndindj)
         WRITE(9) ((uk_g(k,ij),vk_g(k,ij),k=1,ncl),ij=1,ndindj)
         WRITE(9) (sieg_g(ij),siegn_g(ij),tg_g(ij),ij=1,ndindj)
-        WRITE(9) ((siek_g(k,ij),siekn_g(k,ij),tk_g(k,ij),k=1,ncl),
-     &             ij=1,ndindj)
+        WRITE(9) ((siek_g(k,ij),siekn_g(k,ij),tk_g(k,ij),k=1,ncl),ij=1,ndindj)
         WRITE(9) ((ygc_g(kg,ij),xgc_g(kg,ij),kg=1,ngas),ij=1,ndindj)
-       WRITE(9) ((rgpgc_g(kg,ij),rgpgcn_g(kg,ij),kg=1,ngas),ij=1,ndindj)
+        WRITE(9) ((rgpgc_g(kg,ij),rgpgcn_g(kg,ij),kg=1,ngas),ij=1,ndindj)
 !
 ! ... store the final values of the constitutive parameters to be set up
 !
@@ -116,8 +114,7 @@
         READ(9) (ug_g(ij),vg_g(ij),ij=1,ndindj)
         READ(9) ((uk_g(k,ij),vk_g(k,ij),k=1,ncl),ij=1,ndindj)
         READ(9) (sieg_g(ij),siegn_g(ij),tg_g(ij),ij=1,ndindj)
-        READ(9) ((siek_g(k,ij),siekn_g(k,ij),tk_g(k,ij),k=1,ncl),
-     &            ij=1,ndindj)
+        READ(9) ((siek_g(k,ij),siekn_g(k,ij),tk_g(k,ij),k=1,ncl),ij=1,ndindj)
         READ(9) ((ygc_g(kg,ij),xgc_g(kg,ij),kg=1,ngas),ij=1,ndindj)
         READ(9) ((rgpgc_g(kg,ij),rgpgcn_g(kg,ij),kg=1,ngas),ij=1,ndindj)
 !

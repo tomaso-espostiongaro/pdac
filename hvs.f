@@ -6,8 +6,8 @@
 !----------------------------------------------------------------------
       CONTAINS
 !--------------------------------------------------------------------
-      SUBROUTINE hvs(hv, rlk, rog, ep, ug, ugm, uk, ukm,
-     &               vg, vgm, vk, vkm, mug, kapg, cg, k)
+      SUBROUTINE hvs(hv, rlk, rog, ep, ug, ugm, uk, ukm,       &
+                     vg, vgm, vk, vkm, mug, kapg, cg, k)
 !
       USE dimensions
       USE particles_constants, ONLY: rl, inrl, dk 
@@ -39,19 +39,18 @@
 ! generalized gunn's correlation for n particles
 !
       eps = rlk * inrl(k)
-      hv = ((2.D0 + 5.D0 * eps**2.D0)*
-     $       (1.D0 + 0.7D0 * reynum**0.2D0 * pranum**(1.D0/3.D0)) +
-     $       (0.13D0 + 1.2D0 * eps**2.D0) * reynum**0.7D0 *
-     &        pranum**(1.D0/3.D0)) 
-     &        * kapg * asurf/dk(k)
+      hv = ((2.D0 + 5.D0 * eps**2.D0)*                                &
+             (1.D0 + 0.7D0 * reynum**0.2D0 * pranum**(1.D0/3.D0)) +   &
+             (0.13D0 + 1.2D0 * eps**2.D0) * reynum**0.7D0 *           &
+              pranum**(1.D0/3.D0)) * kapg * asurf/dk(k)
 !
 ! gunn's correlation
 !
-!      hv = ((7.D0 - 10.D0 * ep + 5.D0 * ep**2.D0) *
-!     $     (1.D0 + 0.7D0 * reynum**0.2 * pranum**(1.D0/3.D0)) +
-!     $     (1.33D0 - 2.4D0 * ep + 1.2 * ep**2) *
-!     $     reynum**0.7D0 * pranum**(1.D0/3.D0)) * kapg *
-!     $     asurf/dk(k)
+!      hv = ((7.D0 - 10.D0 * ep + 5.D0 * ep**2.D0) *                  &
+!           (1.D0 + 0.7D0 * reynum**0.2 * pranum**(1.D0/3.D0)) +      &
+!           (1.33D0 - 2.4D0 * ep + 1.2 * ep**2) *                     &
+!           reynum**0.7D0 * pranum**(1.D0/3.D0)) * kapg *             &
+!           asurf/dk(k)
 !
 ! zabrodsky's correlations
 !

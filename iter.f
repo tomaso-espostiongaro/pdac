@@ -91,12 +91,11 @@
         ij_g = myij(0, 0, ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscl(ij)
-          CALL matsa(ij, ep(ij), ep(ijr), ep(ijt), 
-     &      p(ij), p(ijr), p(ijt), rlk(:,ij), 
-     &      rlk(:,ijr), rlk(:,ijt), rgp(ij), 
-     &      rgp(ijr), rgp(ijt) )
-          CALL velsk2(ug(ij), vg(ij), uk(:,ij), 
-     &      vk(:,ij), ij)
+          CALL matsa(ij, ep(ij), ep(ijr), ep(ijt),            &
+                     p(ij), p(ijr), p(ijt), rlk(:,ij),        &
+                     rlk(:,ijr), rlk(:,ijt),                  &
+                     rgp(ij),rgp(ijr), rgp(ijt) )   
+          CALL velsk2(ug(ij), vg(ij), uk(:,ij), vk(:,ij), ij)
         END IF
       END DO
 ! 
@@ -113,8 +112,8 @@
           CALL subscl(ij)
           ij_g = myij(0, 0, ij)
           i = MOD( ( ij_g - 1 ), ndi) + 1
-          CALL masfg(rgfr(imj), rgft(ijm), rgfr(ij),rgft(ij),
-     &                rnb(ug,ij),rnb(vg,ij),nb(rgp,ij),i)
+          CALL masfg(rgfr(imj), rgft(ijm), rgfr(ij),rgft(ij), &
+                      rnb(ug,ij),rnb(vg,ij),nb(rgp,ij),i)
         END IF
       END DO
 !
@@ -156,9 +155,8 @@
 !
               dgx = (rgfr(ij) - rgfr(imj)) * inr(i) * indr(i)
               dgz = (rgft(ij) - rgft(ijm)) * indz(j)
-              dg  = rgp(ij) - rgpn(ij) + 
-     &              dt * (dgx+dgz)
-!     &            - dt * (r1(ij)+r2(ij)+r3(ij)+r4(ij)+r5(ij))
+              dg  = rgp(ij) - rgpn(ij) + dt * (dgx+dgz)
+!                  - dt * (r1(ij)+r2(ij)+r3(ij)+r4(ij)+r5(ij))
               dgorig = dg
 !
 ! ... If the residual is lower than the prescribed limit
@@ -172,9 +170,8 @@
                 DO k = 1, nsolid
                   rlkx = (rlfr(k,ij) - rlfr(k,imj)) * inr(i) * indr(i)
                   rlkz = (rlft(k,ij) - rlft(k,ijm)) * indz(j)
-                  rlk(k, ij) = rlkn(k, ij) - 
-     &              dt * (rlkx + rlkz)
-!     &            - dt * (r1(ij)+r2(ij)+r3(ij)+r4(ij)+r5(ij))
+                  rlk(k, ij) = rlkn(k, ij) - dt * (rlkx + rlkz)
+!                  - dt * (r1(ij)+r2(ij)+r3(ij)+r4(ij)+r5(ij))
                   IF( rlk(k,ij) .LT. 0.D0 ) rlk(k,ij) = 0.D0
                   rlx = rlx + rlk(k, ij) * inrl(k)
                 END DO
@@ -207,17 +204,16 @@
 ! ... and particle volumetric fractions ...
 !
                 IF( .NOT. ( first .AND. (nit.EQ.1) ) ) THEN
-                  CALL padjust(p(ij), kros, d3, p3, omega, 
-     &                         abeta(ij))
+                  CALL padjust(p(ij), kros, d3, p3, omega, abeta(ij))
                 END IF
                 first = .FALSE.
 !
 ! ... Use equation of state to calculate gas density 
 ! ... from new pressure and old temperature.
 !
-                CALL eosg(rags,rog(ij),cp(:,ij),cg(ij),
-     &            tg(ij),ygc(:,ij), xgc(:,ij),
-     &            sieg(ij), p(ij), 0, 1, 0, ij_g)
+                CALL eosg(rags,rog(ij),cp(:,ij),cg(ij),      &    
+                          tg(ij),ygc(:,ij), xgc(:,ij),       &
+                          sieg(ij), p(ij), 0, 1, 0, ij_g)
 
                 rgp(ij) = ep(ij) * rog(ij)
 
@@ -227,25 +223,25 @@
 ! ... at current location. Pressure at neighbour locations
 ! ... could still be wrong.
 !
-                CALL mats(ij, ep(ij), ep(ijr), ep(ijt), 
-     &            ep(ijl), ep(ijb), p(ij), p(ijr), 
-     &            p(ijt), p(ijl), p(ijb), rlk(:,ij), 
-     &            rlk(:,ijr), rlk(:,ijt), rlk(:,ijl), 
-     &            rlk(:,ijb), rgp(ij), rgp(ijr), 
-     &            rgp(ijt), rgp(ijl), rgp(ijb) )
+                CALL mats(ij, ep(ij), ep(ijr), ep(ijt),               &
+                          ep(ijl), ep(ijb), p(ij), p(ijr),            &
+                          p(ijt), p(ijl), p(ijb), rlk(:,ij),          &
+                          rlk(:,ijr), rlk(:,ijt), rlk(:,ijl),         &
+                          rlk(:,ijb), rgp(ij), rgp(ijr),              &
+                          rgp(ijt), rgp(ijl), rgp(ijb) )
 
                 !call f_hpmstop( 3 )
 
-                CALL velsk(ug(ij), vg(ij), uk(:,ij), 
-     &            vk(:,ij), ug(imj), vg(ijm),
-     &            uk(:,imj), vk(:,ijm), ij)
+                CALL velsk(ug(ij), vg(ij), uk(:,ij),                  & 
+                           vk(:,ij), ug(imj), vg(ijm),                &
+                           uk(:,imj), vk(:,ijm), ij) 
 !
 ! ... Put the new biassed velocities into the Particle Mass Balance
 ! ... equation
 !
                 DO k=1, nsolid
-          CALL masfk(rlfr(k,imj), rlft(k,ijm), rlfr(k,ij),rlft(k,ij),
-     &             rnb(uk(k,:),ij),rnb(vk(k,:),ij),nb(rlk(k,:),ij),i)
+                CALL masfk(rlfr(k,imj), rlft(k,ijm), rlfr(k,ij),rlft(k,ij), &
+                           rnb(uk(k,:),ij),rnb(vk(k,:),ij),nb(rlk(k,:),ij),i)
                 END DO
 !
 ! ... and compute the corrected particle densities.
@@ -254,9 +250,8 @@
                 DO k=1,nsolid
                   rlkx = (rlfr(k,ij)-rlfr(k,imj)) * inr(i) * indr(i)
                   rlkz = (rlft(k,ij)-rlft(k,ijm)) * indz(j)
-                  rlk(k,ij) = rlkn(k,ij) - 
-     &              dt * (rlkx + rlkz)
-!     &            - dt * (r1(ij)+r2(ij)+r3(ij)+r4(ij)+r5(ij))
+                  rlk(k,ij) = rlkn(k,ij) - dt * (rlkx + rlkz)
+!                             - dt * (r1(ij)+r2(ij)+r3(ij)+r4(ij)+r5(ij))
                   IF(rlk(k,ij).LT.0.D0) rlk(k,ij)=0.D0
                   rlx=rlx+rlk(k,ij)*inrl(k)
                 END DO
@@ -275,26 +270,23 @@
 ! ... (at least one internal iteration must be done).
 !
                 IF(DABS(dg) .GT. conv(ij)) THEN
-          CALL masfg(rgfr(imj), rgft(ijm), rgfr(ij),rgft(ij),
-     &                rnb(ug,ij),rnb(vg,ij),nb(rgp,ij),i)
+          CALL masfg(rgfr(imj), rgft(ijm), rgfr(ij),rgft(ij),   &
+                     rnb(ug,ij),rnb(vg,ij),nb(rgp,ij),i)
                    dgx = (rgfr(ij)-rgfr(imj))*inr(i)*indr(i)
                    dgz = (rgft(ij)-rgft(ijm))*indz(j)
-                   dg = rgp(ij) - rgpn(ij) + 
-     &                 dt * (dgx+dgz)
-!     &               - dt * (r1(ij)+r2(ij)+r3(ij)+r4(ij)+r5(ij))
+                   dg = rgp(ij) - rgpn(ij) + dt * (dgx+dgz)
+!                     - dt * (r1(ij)+r2(ij)+r3(ij)+r4(ij)+r5(ij))
 !
 ! ... If the new residual is still greater then the prescribed value
 ! ... continue the internal sweep until the maximum number (inmax) 
 ! ... of inner iteration is reached.
 !
-                   IF (  (DABS(dg).GT.conv(ij)
-     $              .OR.  DABS(dg).GE.DABS(dgorig))  ) THEN
+                   IF ((DABS(dg).GT.conv(ij) .OR. DABS(dg).GE.DABS(dgorig))) THEN
                      IF(nit.EQ.1.AND.loop.EQ.0) dgorig=dg
                      d3=dg
                      loop=loop+1
 ! ... steepen the Newton's slope (accelerate)
-                     IF(kros.LT.2.AND.loop.EQ.inmax) 
-     $                 abeta(ij)=0.5D0*DBLE(inmax)*abeta(ij)
+                     IF(kros.LT.2.AND.loop.EQ.inmax) abeta(ij)=0.5D0*DBLE(inmax)*abeta(ij)
 ! ... new inner iteration
                      IF(loop .LT. inmax) THEN
                        avloop(ij) = avloop(ij) + 1
@@ -525,29 +517,25 @@
           IF( (nflr .NE. 1) .AND. (nflr .ne. 4) ) THEN
             rbright = 0.D0
           ELSE
-            rbright = ( dr(i+1)*ep(ij)+dr(i)*ep(ijr))
-     &                 *indrp*indrp*2.D0
+            rbright = ( dr(i+1)*ep(ij)+dr(i)*ep(ijr))*indrp*indrp*2.D0
           END IF
 
           IF( (nfll .NE. 1) .AND. (nfll .ne. 4) ) THEN
             rbleft = 0.D0
           ELSE
-            rbleft = ( dr(i-1)*ep(ij)+dr(i)*ep(ijl) )
-     &                 *indrm*indrm*2.D0 
+            rbleft = ( dr(i-1)*ep(ij)+dr(i)*ep(ijl) )*indrm*indrm*2.D0 
           END IF
 
           IF( (nflt .NE. 1) .AND. (nflt .ne. 4) ) THEN 
             rbtop = 0.0D0
           ELSE
-            rbtop = ( dz(j+1)*ep(ij)+dz(j)*ep(ijt) )
-     &                *indzp*indzp*2.D0 
+            rbtop = ( dz(j+1)*ep(ij)+dz(j)*ep(ijt) )*indzp*indzp*2.D0 
           END IF
 
           IF( (nflb .NE. 1) .AND. (nflb .ne. 4) ) THEN
             rbbot=0.D0
           ELSE
-            rbbot = ( dz(j-1)*ep(ij)+dz(j)*ep(ijb) ) 
-     &                *indzm*indzm*2.D0
+            rbbot = ( dz(j-1)*ep(ij)+dz(j)*ep(ijb) )*indzm*indzm*2.D0
           END IF
 
           dt2z = dt * dt * indz(j)
@@ -561,9 +549,8 @@
 !
 ! ... rbeta = dD_g/dP
 !
-          rbeta = ep(ij) * rags + 
-     $      dt2z * (  rbtop + rbbot ) +
-     $      dt2r * (  rb(i) * rbright + rb(i-1) * rbleft )
+          rbeta = ep(ij) * rags + dt2z * (  rbtop + rbbot ) +    &
+                  dt2r * (  rb(i) * rbright + rb(i-1) * rbleft )
 !
            abt = csound
 !          abt = 1.D0 / rbeta

@@ -61,16 +61,15 @@
 ! ....
           at(1,1) = rgp(ij)
           bt(1)   = siegn(ij) * rgpn(ij) + rhg(ij) - hrexg
-!    &             + dt * disg
 !
           DO k=1, ncl
             k1=k+1
 !
-            CALL hvs(hv(k,ij), rlk(k,ij), rog(ij),
-     &           ep(ij), ug(ij), ug(imj), uk(k,ij),
-     &           uk(k,imj), vg(ij), vg(ijm), 
-     &           vk(k,ij), vk(k,ijm), mug(ij),
-     &           kapg(ij), cg(ij), k)
+            CALL hvs(hv(k,ij), rlk(k,ij), rog(ij),       &
+                 ep(ij), ug(ij), ug(imj), uk(k,ij),      &
+                 uk(k,imj), vg(ij), vg(ijm),             &
+                 vk(k,ij), vk(k,ijm), mug(ij),           &
+                 kapg(ij), cg(ij), k)
 !
             at(1,1)   = at(1,1)       + dt * hv(k,ij) / cg(ij)
             at(1,k1)  =               - dt * hv(k,ij) / ck(k,ij)

@@ -19,8 +19,8 @@
       IMPLICIT NONE
 !
        ALLOCATE(cg_g(ndi*ndj))
-       ALLOCATE(ygc_g(ngas,ndi*ndj),xgc_g(ngas,ndi*ndj),
-     &          rgpgc_g(ngas,ndi*ndj), rgpgcn_g(ngas,ndi*ndj))
+       ALLOCATE(ygc_g(ngas,ndi*ndj),xgc_g(ngas,ndi*ndj),      &
+                rgpgc_g(ngas,ndi*ndj), rgpgcn_g(ngas,ndi*ndj))
 
        cg_g     = 0.0d0
        ygc_g    = 0.0d0
@@ -37,8 +37,8 @@
       IMPLICIT NONE
 !
        ALLOCATE(cg(nij_l))
-       ALLOCATE(ygc(ngas,nij_l),xgc(ngas,nij_l),
-     &          rgpgc(ngas,nijx_l), rgpgcn(ngas,nij_l))
+       ALLOCATE(ygc(ngas,nij_l),xgc(ngas,nij_l),             &
+                rgpgc(ngas,nijx_l), rgpgcn(ngas,nij_l))
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
@@ -65,8 +65,7 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE eosg(rags, rog, cp, cg, tg, ygc, xgc, sieg, p, 
-     &  nt, nr, nc, ij)
+      SUBROUTINE eosg(rags, rog, cp, cg, tg, ygc, xgc, sieg, p, nt, nr, nc, ij)
 !
 ! ... updates gas density with new pressure
 !

@@ -7,9 +7,8 @@
         IMPLICIT NONE
         SAVE
 !
-         REAL*8, DIMENSION(:), ALLOCATABLE :: ckg, mmug, mmugs,
-     &            mmugek, gmw
-         REAL*8, DIMENSION(:,:), ALLOCATABLE :: phij
+        REAL*8, DIMENSION(:), ALLOCATABLE :: ckg, mmug, mmugs, mmugek, gmw
+        REAL*8, DIMENSION(:,:), ALLOCATABLE :: phij
 !
         REAL*8 :: gammaair, gamn, c_joule, c_erg, rgas
         REAL*8 :: tzero, hzerog, hzeros
@@ -21,8 +20,7 @@
         IMPLICIT NONE
 !
       ALLOCATE(phij(ngas,ngas))
-      ALLOCATE(ckg(ngas), mmug(ngas),
-     &          mmugs(ngas), mmugek(ngas), gmw(ngas))
+      ALLOCATE(ckg(ngas), mmug(ngas), mmugs(ngas), mmugek(ngas), gmw(ngas))
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------

@@ -8,8 +8,7 @@
       USE eos_solid, ONLY: eosl
       USE enthalpy_matrix, ONLY: ftem
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
-      USE gas_solid_temperature, ONLY: sieg, siegn, siek, 
-     &    siekn, tk, tg
+      USE gas_solid_temperature, ONLY: sieg, siegn, siek, siekn, tk, tg
       USE grid, ONLY: nij_l, myij
       USE io_restart, ONLY: tapewr
       USE iterative_solver, ONLY: iter
@@ -37,8 +36,8 @@
       INTEGER :: kg, rk
       REAL*8 :: tdump1, tpri
       REAL*8 :: s0, s1, s2, s3, s4, s5, s6, s7, s8, s9
-      REAL*8 :: timbdry, timout, timrestart, timtilde,
-     &    timiter, timygas, timtem, timtot, dt0, tsgsgdyn
+      REAL*8 :: timbdry, timout, timrestart, timtilde, timiter, &
+                timygas, timtem, timtot, dt0, tsgsgdyn
 !
              IF( timing ) s0 = cpclock()
 !
@@ -85,9 +84,9 @@
 !
 ! ... Compute gas density from Equation of State
 !
-           CALL eosg(rags, rog(ij), cp(:,ij), cg(ij),
-     &       tg(ij), ygc(:,ij), xgc(:,ij),
-     &       sieg(ij), p(ij), 1, 1, 0, ij_g)
+           CALL eosg(rags, rog(ij), cp(:,ij), cg(ij),   &
+                     tg(ij), ygc(:,ij), xgc(:,ij),      &
+                     sieg(ij), p(ij), 1, 1, 0, ij_g)
            rgp(ij)=rog(ij)*ep(ij)
 ! 
 ! ... Store explicit quantities at time n*dt
@@ -103,8 +102,7 @@
 ! 
            IF(irex.GE.0) THEN
              siegn(ij)=sieg(ij)
-             CALL viscon(mug(ij), kapg(ij), xgc(:,ij),
-     &                   tg(ij))
+             CALL viscon(mug(ij), kapg(ij), xgc(:,ij), tg(ij))
            ENDIF
 ! 
 ! ... Compute Thermodnamic variables for particles
@@ -135,9 +133,7 @@
 !
 ! ... Write restart file
 !
-       IF ( (time+0.1D0*dt .GT. tdump1) 
-!     & .OR. (time+0.1D0*dt .GT. tstop )
-     &  ) THEN  
+       IF ((time+0.1D0*dt.GT.tdump1) .OR. (time+0.1D0*dt.GT.tstop)) THEN  
          CALL collect
          CALL tapewr
          tdump1=tdump1+tdump
@@ -231,11 +227,10 @@
                 timygas = timygas / 1000.0d0
                 timtem = timtem / 1000.0d0
                 WRITE(7,900)
-                WRITE(7,999) timbdry, timout, timrestart, 
-     &            tsgsgdyn, timtilde,
-     &            timiter, timygas, timtem, timtot
-900      FORMAT('  Bdry      Out       Restart   Dyn       Tilde     ',
-     &                   'Iter      Ygas      Tem       Total')
+                WRITE(7,999) timbdry, timout, timrestart, tsgsgdyn, timtilde, &
+                             timiter, timygas, timtem, timtot
+900      FORMAT('  Bdry      Out       Restart   Dyn       Tilde     ',       &
+                         'Iter      Ygas      Tem       Total')
 999      FORMAT(8(1X,F9.3))
 
               END IF

@@ -22,14 +22,14 @@
 !
       IMPLICIT NONE
 !
-      REAL*8 :: prif, pnn2, p1nn,
-     & zrif, trif, rhorif, cost, costc,
-     & rm1n, rmcn, rmcnn, rmc1n, rm0n, 
-     & rm1nn, rm1knn, rm2n, 
-     & v2n, vg2, vcnn, vcn, v1n, vc1n, 
-     & ucn, u1n, uc1n, ug2, u2n, ucnn,
-     & epk, epc, epcn, ep1nn,
-     & t1nn, tc1n, tcn 
+      REAL*8 :: prif, pnn2, p1nn,             &
+       zrif, trif, rhorif, cost, costc,       &
+       rm1n, rmcn, rmcnn, rmc1n, rm0n,        &
+       rm1nn, rm1knn, rm2n,                   &
+       v2n, vg2, vcnn, vcn, v1n, vc1n,        &
+       ucn, u1n, uc1n, ug2, u2n, ucnn,        &
+       epk, epc, epcn, ep1nn,                 &
+       t1nn, tc1n, tcn                        
       REAL*8 :: dz1, dzc, dr1, drc, indrc
 
       INTEGER :: i, j, ij_g, k, kg
@@ -61,7 +61,7 @@
             n2 = ipj
             IF (ipj .GT. nij_l .AND. time .EQ. dt) THEN
              WRITE(8,*) 'right bdry'
-       WRITE(8,*) 'warning: boundary cell not belonging to proc', mpime
+             WRITE(8,*) 'warning: boundary cell not belonging to proc', mpime
              WRITE(8,*) 'ij, i, j, ij_g', ij, i, j, ij_g
             END IF
             SELECT CASE (nflr) 
@@ -108,9 +108,9 @@
 ! ... from the mass balance equation of solids in cell (ij)
                 epc=0.D0
                 DO k=1,nsolid
-                 epk=rlk(k,ij)*inrl(k)-dt*inrl(k)*inr(i)/dr1*
-     $           (rb(i)*uk(k,ij)*rlk(k,ij)-rb(i-1)*uk(k,imj)*rlk(k,imj))
-                 epc=epc+epk
+                  epk = rlk(k,ij)*inrl(k) - dt*inrl(k)*inr(i)/dr1*          &
+                  (rb(i)*uk(k,ij)*rlk(k,ij) - rb(i-1)*uk(k,imj)*rlk(k,imj))
+                  epc=epc+epk
                 END DO
                 ep1nn=1.D0-epc
 !
@@ -136,23 +136,20 @@
                 END DO
                 rm2n=rm2n+p(n2)*ep(n2)*gmw(6)/(rgas*tg(n2))
                 rm1n=rm1n+p(ij)*ep(ij)*gmw(6)/(rgas*tg(ij))
-                rm0n=rm0n+p(imj)*ep(imj)*gmw(6)/
-     &               (rgas*tg(imj))
+                rm0n=rm0n+p(imj)*ep(imj)*gmw(6)/(rgas*tg(imj))
                 rmcn=(rm2n+rm1n)*0.5D0
                 rmc1n=(rm1n+rm0n)*0.5D0
 !
-                rmcnn=rmcn-dt*indrc*inrb(i)*(r(i+1)*u2n*rmcn-
-     $            r(i)*u1n*rmc1n)
+                rmcnn = rmcn-dt*indrc*inrb(i)*(r(i+1)*u2n*rmcn-r(i)*u1n*rmc1n)
 !
-                p1nn=(1.D0/rm1nn)*(-rm1knn+rm1n-dt/dr1*inr(i)*
-     $            (rb(i)*rm1n*ucn-rb(i-1)*rm0n*uc1n))
+                p1nn = (1.D0/rm1nn) *                                                  &
+                       (-rm1knn+rm1n-dt/dr1*inr(i)*(rb(i)*rm1n*ucn-rb(i-1)*rm0n*uc1n))
 !
 ! ... Calculation of the advanced-time fluid pressure from Momentum balance
 ! ... equation of the mixture
-                p(n2)=-rmcnn*ucnn+
-     $            rmcn*ucn-dt*indrc*inrb(i)*(r(i+1)*u2n*ucn*rmcn-
-     $            r(i)*u1n*uc1n*rmc1n)+
-     $            dt*p1nn*indrc
+                p(n2) = -rmcnn*ucnn + rmcn*ucn                                         &
+                        - dt*indrc*inrb(i)*(r(i+1)*u2n*ucn*rmcn-r(i)*u1n*uc1n*rmc1n) + &
+                          dt*p1nn*indrc
                 p(n2)=p(n2)/(dt*indrc)
 !
 ! ... Correct non-physical pressure
@@ -268,9 +265,8 @@
 ! ... from the mass balance equation of solids, in cell (ij)
                 epc=0.D0
                 DO k=1,nsolid
-                  epk=rlk(k,ij)*inrl(k)-dt*inrl(k)/dz1*
-     $            (vk(k,ij)*rlk(k,ij)-vk(k,ijm)*
-     &            rlk(k,ijm))
+                  epk=rlk(k,ij)*inrl(k) - dt*inrl(k)/dz1*(vk(k,ij)*rlk(k,ij) -  &
+                      vk(k,ijm)*rlk(k,ijm))
                   epc=epc+epk
                 END DO 
                 ep1nn=1.D0-epc
@@ -302,21 +298,18 @@
                 END DO 
                 rm2n=rm2n+p(n2)*ep(n2)*gmw(6)/(rgas*tg(n2))
                 rm1n=rm1n+p(ij)*ep(ij)*gmw(6)/(rgas*tg(ij))
-                rm0n=rm0n+p(ijm)*ep(ijm)*gmw(6)/
-     &                   (rgas*tg(ijm))
+                rm0n=rm0n+p(ijm)*ep(ijm)*gmw(6)/(rgas*tg(ijm))
                 rmcn=(rm2n+rm1n)*0.5D0
                 rmc1n=(rm1n+rm0n)*0.5D0
 !
                 rmcnn=rmcn-dt/dzc*(v2n*rmcn-v1n*rmc1n)
 !
-                p1nn=(1.D0/rm1nn)*
-     &            (-rm1knn+rm1n-dt/dz1*(rm1n*vcn-rm0n*vc1n))
+                p1nn=(1.D0/rm1nn)*(-rm1knn+rm1n-dt/dz1*(rm1n*vcn-rm0n*vc1n))
 !
 ! ... Calculation of the advanced-time fluid pressure from Momentum balance
 ! ... equation of the mixture
-                p(n2)=-rmcnn*vcnn+
-     $            rmcn*vcn-dt/dzc*(v2n*vcn*rmcn-v1n*vc1n*rmc1n)+
-     $            dt*p1nn/dzc+gravz*dt*rmcn
+                p(n2)=-rmcnn*vcnn + rmcn*vcn-dt/dzc*(v2n*vcn*rmcn-v1n*vc1n*rmc1n) + &
+                       dt*p1nn/dzc+gravz*dt*rmcn
                 p(n2)=p(n2)/(dt/dzc)
 !
 ! ... (Correct non-physical pressure)
@@ -340,8 +333,7 @@
                 vg2=vg(ij)
                 ep(n2)=1.D0
                 tg(n2)=trif
-                p(n2)=(prif**gamn-(vg2**2/2.D0)/costc)
-     $            **(1.D0/gamn)
+                p(n2)=(prif**gamn-(vg2**2/2.D0)/costc)**(1.D0/gamn)
 !
 ! ... (Correct non-physical pressure)
                 IF(p(n2).LE.0.D0) THEN
@@ -442,8 +434,7 @@
                 END DO
                 rm2n=rm2n+p(n2)*ep(n2)*gmw(6)/(rgas*tg(n2))
                 rm1n=rm1n+p(ij)*ep(ij)*gmw(6)/(rgas*tg(ij))
-                rm0n=rm0n+p(ipj)*ep(ipj)*gmw(6)/
-     &               (rgas*tg(ipj))
+                rm0n=rm0n+p(ipj)*ep(ipj)*gmw(6)/(rgas*tg(ipj))
                 rmcn=(rm2n+rm1n)*0.5D0
 !
 ! ... Particle densities
@@ -461,9 +452,9 @@
 ! ... from the mass balance equation of solids in cell (ij)
                 epc=0.D0
                 DO k=1,nsolid
-                 epk=rlk(k,ij)*inrl(k)-dt*inrl(k)*inr(i)/dr1*
-     &           (rb(i)*uk(k,ij)*rlk(k,ipj) - 
-     &            rb(i-1)*uk(k,imj)*rlk(k,ij))
+                 epk=rlk(k,ij)*inrl(k) -                                 &
+                     dt*inrl(k)*inr(i)/dr1*(rb(i)*uk(k,ij)*rlk(k,ipj) -  &
+                     rb(i-1)*uk(k,imj)*rlk(k,ij))
                  epc=epc+epk
                 END DO
                 ep1nn=1.D0-epc
@@ -476,13 +467,12 @@
 ! ... Use gas velocity for mixture.
 !
 ! ... Mixture Density at time (n+1)dt
-                rmcnn=rmcn-dt*indrc*inrb(i-1)*(r(i)*u1n*rmc1n-
-     &            r(i-1)*u2n*rmcn)
+                rmcnn=rmcn-dt*indrc*inrb(i-1)*(r(i)*u1n*rmc1n-r(i-1)*u2n*rmcn)
 !
 ! ... Pressure at time (n+1)dt
                 rm1nn=ep1nn*gmw(6)/(rgas*t1nn)
-                p1nn=(1.D0/rm1nn)*(-rm1knn+rm1n-dt/dr1*inr(i)*
-     &            (rb(i)*uc1n*rm0n-rb(i-1)*rm1n*ucn))
+                p1nn=(1.D0/rm1nn) * &
+                     (-rm1knn+rm1n-dt/dr1*inr(i)*(rb(i)*uc1n*rm0n-rb(i-1)*rm1n*ucn))
 !
 ! ... An arbitrary choice
                 p(n2)=p1nn
@@ -512,10 +502,8 @@
                   uk(k,n2)=uk(k,ij)
                 END DO
               ENDIF
-                ucnn=
-     &             rmcn*ucn - dt*indrc*
-     &            inrb(i-1)*(r(i)*u1n*uc1n*rmc1n -
-     &            r(i-1)*u2n*ucn*rmcn)
+                ucnn = rmcn*ucn - &
+                       dt*indrc*inrb(i-1)*(r(i)*u1n*uc1n*rmc1n-r(i-1)*u2n*ucn*rmcn)
                 ug(n2) = ucnn / rmcnn
 !
               rgp(n2)=p(n2)*ep(n2)*gmw(6)/(rgas*tg(n2))
@@ -539,7 +527,7 @@
             n2 = ijm
             IF (ijm .GT. nij_l .AND. time .EQ. dt) THEN
              WRITE(8,*) 'bottom bdry'
-       WRITE(8,*) 'warning: boundary cell not belonging to proc', mpime
+             WRITE(8,*) 'warning: boundary cell not belonging to proc', mpime
              WRITE(8,*) 'ij, i, j, ij_g', ij, i, j, ij_g
             END IF
             SELECT CASE (nflb)

@@ -99,8 +99,7 @@
       USE grid, ONLY: dz, dr
       USE grid, ONLY: inr, inrb, indr, indz
       USE momentum_transfer, ONLY: kdrags, inter
-      USE particles_constants, ONLY: phi, epsl, dkf, epsu, dk, 
-     &    rl, inrl, philim, nsolid
+      USE particles_constants, ONLY: phi, epsl, dkf, epsu, dk, rl, inrl, philim, nsolid
       USE pressure_epsilon, ONLY: ep
       USE time_parameters, ONLY: dt
       USE turbulence, ONLY: iss, iturb, mus
@@ -190,8 +189,8 @@
 ! ... Allocate and initialize interphase terms.
 !
       ALLOCATE(kpgv(ncl,nij_l))
-      ALLOCATE(appu(((ncl+1)**2+(ncl+1))/2, nijx_l),
-     &         appv(((ncl+1)**2+(ncl+1))/2, nijx_l))
+      ALLOCATE(appu(((ncl+1)**2+(ncl+1))/2, nijx_l),   &
+               appv(((ncl+1)**2+(ncl+1))/2, nijx_l))
 
       kpgv = 0.0D0
       appu = 0.0D0
@@ -204,16 +203,16 @@
         ij_g = myij(0,0,ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscl(ij)
-          CALL fu_rt(ugfr(ij), ugft(ij), nb(rgp,ij), 
-     &                   rnb(ug,ij), rnb(vg,ij), ij)
-          CALL fv_rt(vgfr(ij), vgft(ij), nb(rgp,ij), 
-     &         rnb(ug,ij), rnb(vg,ij), ij)
+          CALL fu_rt(ugfr(ij), ugft(ij), nb(rgp,ij),             &
+                     rnb(ug,ij), rnb(vg,ij), ij)
+          CALL fv_rt(vgfr(ij), vgft(ij), nb(rgp,ij),             &
+                     rnb(ug,ij), rnb(vg,ij), ij)
 !
           DO k = 1, nsolid
-            CALL fu_rt(ulfr(k,ij), ulft(k,ij), nb(rlk(k,:),ij),
-     &           rnb(uk(k,:),ij), rnb(vk(k,:),ij), ij)
-            CALL fv_rt(vlfr(k,ij), vlft(k,ij), nb(rlk(k,:),ij),
-     &           rnb(uk(k,:),ij), rnb(vk(k,:),ij), ij)
+            CALL fu_rt(ulfr(k,ij), ulft(k,ij), nb(rlk(k,:),ij),  &
+                       rnb(uk(k,:),ij), rnb(vk(k,:),ij), ij)
+            CALL fv_rt(vlfr(k,ij), vlft(k,ij), nb(rlk(k,:),ij),  &
+                       rnb(uk(k,:),ij), rnb(vk(k,:),ij), ij)
           END DO
         END IF         
       END DO
@@ -250,10 +249,8 @@
           vgfl(ij) = vgfr(imj) 
           vgfb(ij) = vgft(ijm)
 !
-          CALL fu_lb(ugfl(ij), ugfb(ij), nb(rgp,ij),
-     &         rnb(ug,ij), rnb(vg,ij), ij)
-          CALL fv_lb(vgfl(ij), vgfb(ij), nb(rgp,ij),
-     &         rnb(ug,ij), rnb(vg,ij), ij)
+          CALL fu_lb(ugfl(ij), ugfb(ij), nb(rgp,ij), rnb(ug,ij), rnb(vg,ij), ij)
+          CALL fv_lb(vgfl(ij), vgfb(ij), nb(rgp,ij), rnb(ug,ij), rnb(vg,ij), ij)
 !
 ! ... compute the flux balance in the radial (x)
 ! ... and vertical (y) directions, for the gas phase
@@ -265,16 +262,16 @@
 !
 ! ... compute explicit (tilde) terms in the momentum equation (gas)
 ! 
-          rug(ij) = rugn(ij)
-     &      + dt * (dr(i+1)*rgp(ij)+dr(i)*rgp(ijr))*indrp*gravx
-     &      - dt * inrb(i) * indrp * 2.D0 * ugfx
-     &      - dt * indz(j) * ugfy
-     &      + dt * gvisx(ij)
+          rug(ij) = rugn(ij)                                         &
+     &      + dt * (dr(i+1)*rgp(ij)+dr(i)*rgp(ijr))*indrp*gravx      &
+     &      - dt * inrb(i) * indrp * 2.D0 * ugfx                     &
+     &      - dt * indz(j) * ugfy                                    &
+     &      + dt * gvisx(ij)                  
 
-          rvg(ij) = rvgn(ij)
-     &      + dt * (dz(j+1)*rgp(ij)+dz(j)*rgp(ijt))*indzp * gravz
-     &      - dt * inr(i) * indr(i) * vgfx
-     &      - dt * indzp * 2.D0 * vgfy
+          rvg(ij) = rvgn(ij)                                         &
+     &      + dt * (dz(j+1)*rgp(ij)+dz(j)*rgp(ijt))*indzp * gravz    &
+     &      - dt * inr(i) * indr(i) * vgfx                           &
+     &      - dt * indzp * 2.D0 * vgfy                               &
      &      + dt * gvisz(ij)
 !
 ! ... same procedure carried out for particulate phases
@@ -288,56 +285,53 @@
             vlfl(k,ij) = vlfr(k,imj)
             vlfb(k,ij) = vlft(k,ijm)
 !
-            CALL fu_lb(ulfl(k,ij), ulfb(k,ij), nb(rlk(k,:),ij),
+            CALL fu_lb(ulfl(k,ij), ulfb(k,ij), nb(rlk(k,:),ij),      &
      &           rnb(uk(k,:),ij), rnb(vk(k,:),ij), ij)
-            CALL fv_lb(vlfl(k,ij), vlfb(k,ij), nb(rlk(k,:),ij),
+            CALL fv_lb(vlfl(k,ij), vlfb(k,ij), nb(rlk(k,:),ij),      &
      &           rnb(uk(k,:),ij), rnb(vk(k,:),ij), ij)
 !
               ulfx = ulfr(k,ij) - ulfl(k,ij)
               ulfy = ulft(k,ij) - ulfb(k,ij)
 
               IF (iss .GE. 2) THEN
-                epsx=(dr(i+1)*rlk(k,ij) + dr(i)*rlk(k,ijr))
-     &                * indrp * inrl(k) 
+                epsx=(dr(i+1)*rlk(k,ij) + dr(i)*rlk(k,ijr)) * indrp * inrl(k) 
                 gepx=10.D0**(8.76D0*epsx-0.27D0)
               END IF
 !
 ! ... compute explicit (tilde) terms in the momentum equation (particles)
 ! 
-              ruk(k,ij) = rukn(k,ij)
-     &         + dt*(rlk(k,ij)*dr(i+1)+rlk(k,ijr)*dr(i))*indrp*gravx
-     &         - dt*inrb(i)*indrp*2.D0*ulfx
-     &         - dt*indz(j)*ulfy
-     &         - dt*gepx*indrp*2.D0*(rlk(k,ijr)-rlk(k,ij))*inrl(k)
+              ruk(k,ij) = rukn(k,ij)                                 &
+     &         + dt*(rlk(k,ij)*dr(i+1)+rlk(k,ijr)*dr(i))*indrp*gravx &
+     &         - dt*inrb(i)*indrp*2.D0*ulfx                          &
+     &         - dt*indz(j)*ulfy                                     &
+     &         - dt*gepx*indrp*2.D0*(rlk(k,ijr)-rlk(k,ij))*inrl(k)   &
      &         + dt*pvisx(k,ij)
 
               vlfx = vlfr(k,ij) - vlfl(k,ij)
               vlfy = vlft(k,ij) - vlfb(k,ij)
 
               IF (iss .GE. 2) THEN
-                epsz=(dz(j+1)*rlk(k,ij) + dz(j)*rlk(k,ijt))
-     &               * indzp * inrl(k)
+                epsz=(dz(j+1)*rlk(k,ij) + dz(j)*rlk(k,ijt)) * indzp * inrl(k)
                 gepz=10.D0**(8.76D0*epsz-0.27D0)
               END IF
 !
-              rvk(k,ij) = rvkn(k,ij)
-     &         + dt*(rlk(k,ij)*dz(j+1)+rlk(k,ijt)*dz(j))*indzp*gravz
-     &         - dt*inr(i)*indr(i)* vlfx
-     &         - dt*indzp*2.D0* vlfy
-     &         - dt*gepz*indzp*2.D0*(rlk(k,ijt)-rlk(k,ij))*inrl(k) 
-     &         + dt*pvisz(k,ij)
+              rvk(k,ij) = rvkn(k,ij)                                 &
+     &         + dt*(rlk(k,ij)*dz(j+1)+rlk(k,ijt)*dz(j))*indzp*gravz &
+     &         - dt*inr(i)*indr(i)* vlfx                             &
+     &         - dt*indzp*2.D0* vlfy                                 &
+     &         - dt*gepz*indzp*2.D0*(rlk(k,ijt)-rlk(k,ij))*inrl(k)   &
+     &         + dt*pvisz(k,ij)    
 
           END DO 
 !
 ! ... Compute interphase coefficients
 !
-          CALL kdrags(kpgv(:,ij), ug(ij), ug(imj),
-     &         vg(ij), vg(ijm), uk(:,ij), uk(:,imj),
-     &         vk(:,ij), vk(:,ijm), ep(ij),
-     &         rog(ij), rgp(ij), rlk(:,ij), mug(ij))
-          CALL inter(appu(:,ij), appv(:,ij), kpgv(:,ij), 
-     &         uk(:,ij),uk(:,imj),vk(:,ij),vk(:,ijm),
-     &         rlk(:,ij))
+          CALL kdrags(kpgv(:,ij), ug(ij), ug(imj),                          &
+     &                vg(ij), vg(ijm), uk(:,ij), uk(:,imj),                 &
+     &                vk(:,ij), vk(:,ijm), ep(ij),                          &
+     &                rog(ij), rgp(ij), rlk(:,ij), mug(ij))                  
+          CALL inter(appu(:,ij), appv(:,ij), kpgv(:,ij),                    &
+     &               uk(:,ij), uk(:,imj), vk(:,ij), vk(:,ijm), rlk(:,ij))
 !
         END IF
       END DO

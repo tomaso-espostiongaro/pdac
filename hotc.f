@@ -100,8 +100,7 @@
         indrm2 = 1.D0/drm2
         rlkml = dr(i-1) * rlk%c + dr(i) * rlk%w
 !
-        hfll = rb(i-1) * kap(k) * rlkml * inrl(k)
-     &       * (tk%c-tk%w) * indrm2 * 2.D0
+        hfll = rb(i-1) * kap(k) * rlkml * inrl(k) * (tk%c-tk%w) * indrm2 * 2.D0
       END IF
 !
       ijm = myij( 0,-1, ij)
@@ -110,16 +109,14 @@
         indzm2 = 1.D0/dzm2 
         rlkmb = dz(j-1) * rlk%c + dz(j) * rlk%s
 !
-        hflb = kap(k) * rlkmb * inrl(k) 
-     &       * (tk%c-tk%s) * indzm2 * 2.D0
+        hflb = kap(k) * rlkmb * inrl(k) * (tk%c-tk%s) * indzm2 * 2.D0
       END IF
 !
       drp2 = (dr(i)+dr(i+1))**2
       indrp2 = 1.D0/drp2
       rlkmr = dr(i+1) * rlk%c + dr(i) * rlk%e
 !
-      hflr = rb(i) * kap(k) * rlkmr * inrl(k)
-     $     * (tk%e-tk%c) * indrp2 * 2.D0
+      hflr = rb(i) * kap(k) * rlkmr * inrl(k) * (tk%e-tk%c) * indrp2 * 2.D0
       ipj = myij(+1, 0, ij)
       IF (fl_l(ipj) .EQ. 3) hflr = 0.D0
 !
@@ -127,8 +124,7 @@
       indzp2 = 1.D0/dzp2
       rlkmt = dz(j+1) * rlk%c + dz(j) * rlk%n
 !
-      hflt = kap(k) * rlkmt * inrl(k)
-     $     * (tk%n-tk%c) * indzp2 * 2.D0
+      hflt = kap(k) * rlkmt * inrl(k) * (tk%n-tk%c) * indzp2 * 2.D0
       ijp = myij( 0,+1, ij)
       IF (fl_l(ijp) .EQ. 3) hflt = 0.D0
 !
