@@ -132,7 +132,7 @@
       ny = 1
       itc = 0
       mesh_partition = 1
-      iuni = 0
+      iuni = 1
       dr0  = 1000.0d0
       dz0  = 1000.0d0
       dx0  = 1000.0d0
@@ -200,7 +200,7 @@
           job_type = '2D'
         CASE ('3D', '3d' )
           job_type = '3D'
-          CALL error(' input ',' job_type = 3D not yet implemented ', 1 )
+!          CALL error(' input ',' job_type = 3D not yet implemented ', 1 )
         CASE DEFAULT
           CALL error(' input ',' unknown job_type '//TRIM(job_type), 1 )
       END SELECT
@@ -311,8 +311,6 @@
       CALL bcast_real(delta_y,ny,root)
       CALL bcast_real(delta_z,nz,root)
 
-
-! ... MODIFICARE_X3D
       tend = .FALSE.
       IF(mpime .EQ. root) THEN
         fixed_flows_search: DO
@@ -323,14 +321,31 @@
         END DO fixed_flows_search
 
         READ(5,*) number_of_block
-        DO n = 1, number_of_block
-          READ(5,*) block_type(n),block_bounds(1,n), block_bounds(2,n), block_bounds(5,n), block_bounds(6,n)
-          IF( block_type(n) == 1 .OR. block_type(n) == 5) THEN
-            READ(5,*) fixed_vgas_r(n), fixed_vgas_z(n), fixed_pressure(n), fixed_gaseps(n), fixed_gastemp(n)
-            READ(5,*) ( fixed_vpart_r(k,n), fixed_vpart_z(k,n), fixed_parteps(k,n), fixed_parttemp(k,n), k=1, nsolid)
-            READ(5,*) ( fixed_gasconc(ig,n), ig=1, ngas )
-          ENDIF
-        END DO
+        IF (job_type == '2D') THEN
+          DO n = 1, number_of_block
+            READ(5,*) block_type(n),block_bounds(1,n), block_bounds(2,n), block_bounds(5,n), block_bounds(6,n)
+            IF( block_type(n) == 1 .OR. block_type(n) == 5) THEN
+              READ(5,*) fixed_vgas_r(n), fixed_vgas_z(n), fixed_pressure(n), fixed_gaseps(n), fixed_gastemp(n)
+              READ(5,*) ( fixed_vpart_r(k,n), fixed_vpart_z(k,n), fixed_parteps(k,n), fixed_parttemp(k,n), k=1, nsolid)
+              READ(5,*) ( fixed_gasconc(ig,n), ig=1, ngas )
+            ENDIF
+          END DO
+        ELSE IF (job_type == '3D') THEN
+          DO n = 1, number_of_block
+            READ(5,*) block_type(n), block_bounds(1,n), block_bounds(2,n), &
+                                     block_bounds(3,n), block_bounds(4,n), &
+                                     block_bounds(5,n), block_bounds(6,n)
+            IF( block_type(n) == 1 .OR. block_type(n) == 5) THEN
+              READ(5,*) fixed_vgas_x(n), fixed_vgas_y(n), fixed_vgas_z(n), &
+                        fixed_pressure(n), fixed_gaseps(n), fixed_gastemp(n)
+              READ(5,*) ( fixed_vpart_x(k,n), fixed_vpart_y(k,n), fixed_vpart_z(k,n), &
+                          fixed_parteps(k,n), fixed_parttemp(k,n), k=1, nsolid)
+              READ(5,*) ( fixed_gasconc(ig,n), ig=1, ngas )
+            ENDIF
+          END DO
+        ELSE
+          CALL error( ' input # FIXED FLOW ', ' unknown job_type', 1 )
+        END IF
 
         GOTO 310
  300    tend = .TRUE.
@@ -339,17 +354,21 @@
 !
       CALL bcast_logical(tend, 1, root)
       IF( tend ) THEN
-        CALL error( ' input ', ' MESH card not found ', 1 )
+        CALL error( ' input ', ' FIXED FLOWS card not found ', 1 )
       END IF
       CALL bcast_integer(number_of_block, 1, root)
       CALL bcast_integer(block_type, SIZE(block_type), root)
       CALL bcast_integer(block_bounds, SIZE(block_bounds), root)
       CALL bcast_real(fixed_vgas_r, SIZE(fixed_vgas_r), root)
+      CALL bcast_real(fixed_vgas_x, SIZE(fixed_vgas_x), root)
+      CALL bcast_real(fixed_vgas_y, SIZE(fixed_vgas_y), root)
       CALL bcast_real(fixed_vgas_z, SIZE(fixed_vgas_z), root)
       CALL bcast_real(fixed_pressure, SIZE(fixed_pressure), root)
       CALL bcast_real(fixed_gaseps, SIZE(fixed_gaseps), root)
       CALL bcast_real(fixed_gastemp, SIZE(fixed_gastemp), root)
       CALL bcast_real(fixed_vpart_r, SIZE(fixed_vpart_r), root)
+      CALL bcast_real(fixed_vpart_x, SIZE(fixed_vpart_x), root)
+      CALL bcast_real(fixed_vpart_y, SIZE(fixed_vpart_y), root)
       CALL bcast_real(fixed_vpart_z, SIZE(fixed_vpart_z), root)
       CALL bcast_real(fixed_parteps, SIZE(fixed_parteps), root)
       CALL bcast_real(fixed_parttemp, SIZE(fixed_parttemp), root)
@@ -365,14 +384,14 @@
           END IF
         END DO initial_conditions_search
 
-        IF( job_type == '3D' ) THEN
-          READ(5,*) initial_vgas_x, initial_vgas_y, initial_vgas_z, initial_pressure, initial_void_fraction, &
-            max_packing, initial_temperature
-          READ(5,*) initial_vpart_x, initial_vpart_y, initial_vpart_z
-        ELSE IF( job_type == '2D' ) THEN
+        IF( job_type == '2D' ) THEN
           READ(5,*) initial_vgas_r, initial_vgas_z, initial_pressure, initial_void_fraction, max_packing, &
             initial_temperature
           READ(5,*) initial_vpart_r, initial_vpart_z
+        ELSE IF( job_type == '3D' ) THEN
+          READ(5,*) initial_vgas_x, initial_vgas_y, initial_vgas_z, initial_pressure, initial_void_fraction, &
+            max_packing, initial_temperature
+          READ(5,*) initial_vpart_x, initial_vpart_y, initial_vpart_z
         ENDIF
         READ(5,*) (initial_gasconc(ig), ig=1, ngas)
 
@@ -383,7 +402,7 @@
 !
       CALL bcast_logical(tend, 1, root)
       IF( tend ) THEN
-        CALL error( ' input ', ' MESH card not found ', 1 )
+        CALL error( ' input ', ' INITIAL CONDITIONS card not found ', 1 )
       END IF
       CALL bcast_real(initial_vgas_r,1,root)
       CALL bcast_real(initial_vgas_x,1,root)

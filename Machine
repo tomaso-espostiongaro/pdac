@@ -1,8 +1,8 @@
 #----------------------------------------
 # AIX
 #----------------------------------------
-#MACROS= -DMPI
-MACROS= -DSCALAR
+MACROS= -DMPI
+#MACROS= -DSCALAR
 #----------------------------------------
 #OMPITRACE_HOME= /cineca/prod/OMPItrace
 #OMPILIB= -L $(OMPITRACE_HOME)/lib -lompitrace
@@ -13,7 +13,7 @@ MACROS= -DSCALAR
 #FFLAGS= -O3 -qstrict -qarch=pwr4 -qtune=pwr4 $(IPAFLG) -qalias=noaryovrlp -Q -bstatic -bmaxdata:0x70000000 
 #FFLAGS=  -O3 -qstrict -qarch=pwr4 -qtune=pwr4 -bmaxdata:0x70000000 
 FFLAGS= -O3 -qstrict -qarch=pwr4 -qtune=pwr4 
-FFLAGS=  -g
+FFLAGS=
 CPPFLAGS= -WF,$(MACROS)
 #PREPROCESSING = -qsuffix=cpp=f -I $(HPMHOME)/include/
 PREPROCESSING =
@@ -26,15 +26,15 @@ LINKFLAGS=
 LIBS=
 #----------------------------------------
 # scalar compiler
-FC=xlf
-#FC=mpxlf_r
+#FC=xlf
+FC=mpxlf_r
 # parallel compiler
 MPFC=mpxlf_r
 #----------------------------------------
 # ... parallel linker
-#LINKER= mpxlf_r
+LINKER= mpxlf_r
 # ... scalar linker
-LINKER=xlf
+#LINKER=xlf
 #
 #----------------------------------------
 # for non AIX systems

@@ -3,8 +3,10 @@
 !----------------------------------------------------------------------
       IMPLICIT NONE
       SAVE
-      REAL*8, DIMENSION(:), ALLOCATABLE   :: ugob, wgob, epob,  tgob, pob, ygc0
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: upob, wpob, epsob, tpob, ygcob
+      REAL*8, DIMENSION(:), ALLOCATABLE   :: ugob, vgob, wgob, epob, &
+                                             tgob, pob, ygc0
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: upob, vpob, wpob, epsob, &
+                                             tpob, ygcob
 
       INTEGER :: lpr
       REAL*8 :: zzero
@@ -15,8 +17,8 @@
       USE dimensions
       IMPLICIT NONE
 !
-       ALLOCATE(ugob(no), wgob(no), pob(no), epob(no), tgob(no))
-       ALLOCATE(upob(nsolid,no), wpob(nsolid,no), epsob(nsolid,no), tpob(nsolid,no))
+       ALLOCATE(ugob(no), vgob(no), wgob(no), pob(no), epob(no), tgob(no))
+       ALLOCATE(upob(nsolid,no), vpob(nsolid,no), wpob(nsolid,no), epsob(nsolid,no), tpob(nsolid,no))
        ALLOCATE(ygc0(ngas))
        ALLOCATE(ygcob(ngas,no))
       RETURN

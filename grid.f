@@ -254,18 +254,6 @@
 !
         fl = 1
 !
-        IF( job_type == '2D' ) THEN
-
-          IF ( fl((nr-1)+(nz-1)*nr) == 4 .AND. fl(nr+(nz-2)*nr) == 4) THEN
-            fl(nr+(nz-1)*nr) = 4
-          END IF
-
-        ELSE IF( job_type == '3D' ) THEN
-
-          CALL error( ' flic ',' set the upper-right corner for X3D ', 1)
-
-        END IF
-!
         IF( no <= 0 ) RETURN
 !
 ! ...   no is the number of cell blocks (blunt body)
@@ -299,7 +287,7 @@
           DO n = 1, no
             DO k = iob(n)%zlo, iob(n)%zhi
               DO j = iob(n)%ylo, iob(n)%yhi
-                DO i = iob(n)%rlo, iob(n)%rhi
+                DO i = iob(n)%xlo, iob(n)%xhi
                   ijk = i + ( (j-1) + (k-1)*ny ) * nx
                   SELECT CASE ( iob(n)%typ )
                     CASE (2)
@@ -322,6 +310,16 @@
 
         END IF
 
+! ... MX3D CHECK THE CORNERS
+!
+        IF( job_type == '2D' ) THEN
+
+          IF ( fl(nz*nr - 1) == 4 .AND. fl((nz-1)*nr) == 4) THEN
+            fl(nz*nr) = 4
+          END IF
+
+        END IF
+!
         RETURN
       END SUBROUTINE
 !
@@ -401,8 +399,8 @@
       DO ipe = 0, nproc - 1
         WRITE(7,*) ' # nctot( ',ipe, ' )', nctot(ipe)
         WRITE(7,*) ' # ncfl1( ',ipe, ' )', ncfl1(ipe),' -', ncell(ipe),' =', ncdif(ipe)
+        WRITE(7,*) 'proc(', ipe,')_map:', proc_map(ipe)%lay(1), proc_map(ipe)%lay(2)
       END DO
-      WRITE(7,*) '  '
 !
       RETURN
       END SUBROUTINE 
@@ -487,14 +485,16 @@
 
               nctot(ipe) = nctot(ipe) + 1
 
-              IF ( ( icnt_ipe == ncfl1(ipe) ) .AND. &
-                   ( i /= (nx-1) ) .AND. ( j /= (ny-1) ) ) THEN
-                icnt_ipe = 0
-                IF( icnt < countfl(1) ) THEN
-                  lay_map(ipe,2) = ijk
-                  ipe = ipe + 1
-                  lay_map(ipe,1) = ijk+1
-                END IF
+              IF ( icnt_ipe >= ncfl1(ipe) ) THEN
+                IF ( (i == nx-1) .OR.  (j == ny-1) .OR. & 
+                     ( (j == ny) .AND. (i /= nx) ) ) GOTO 114
+                  icnt_ipe = 0
+                  IF( icnt < countfl(1) ) THEN
+                    lay_map(ipe,2) = ijk
+                    ipe = ipe + 1
+                    lay_map(ipe,1) = ijk+1
+                  END IF
+ 114            CONTINUE
               END IF
 
             END DO
@@ -1235,7 +1235,7 @@
 ! ...     loop over the first neighbouring cells
           DO im = -2, 2
             DO jm = -2, 2
-              IF( ( ABS( im ) + ABS( jm ) ) < 2 ) THEN
+              IF( ( ABS( im ) + ABS( jm ) ) <= 2 ) THEN
                 IF( (im /= 0) .OR. (jm /= 0) ) THEN
                   ii = im
                   jj = jm 
@@ -1275,11 +1275,11 @@
           j = MOD( ijk - 1, nx*ny ) / nx + 1
           k = ( ijk - 1 ) / ( nx*ny ) + 1
 
-! ...     loop over the first neighbouring cells
+! ...     loop over the neighbouring cells
           DO km = -2, 2
             DO jm = -2, 2
               DO im = -2, 2
-                IF( ( ABS( im ) + ABS( jm ) + ABS( km ) ) < 2 ) THEN
+                IF( ( ABS( im ) + ABS( jm ) + ABS( km ) ) <= 2 ) THEN
                   IF( (im /= 0) .OR. (jm /= 0) .OR. (km /= 0) ) THEN
                     ii = im
                     jj = jm

@@ -39,8 +39,8 @@
      &                            local_bounds_press_eps
       USE reactions, ONLY: irex
       USE roughness_module, ONLY: zrough, deallocate_roughness
-      USE initial_conditions, ONLY: setup, epsob, wpob, tpob, ygc0, &
-     &    ygcob, upob, wgob, ugob, pob, tgob, epob, lpr, zzero, &
+      USE initial_conditions, ONLY: setup, epsob, tpob, ygc0, &
+     &    ygcob, ugob, vgob, wgob, upob, vpob, wpob, pob, tgob, epob, lpr, zzero, &
      &    bounds_setup
       USE heat_capacity, ONLY: bounds_hcapgs, local_bounds_hcapgs
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
@@ -52,8 +52,8 @@
       USE control_flags, ONLY: job_type
 !
       IMPLICIT NONE
-      CHARACTER(LEN=13) :: errnb
-      CHARACTER(LEN=14) :: testnb
+      CHARACTER(LEN=11) :: errnb, testnb
+      CHARACTER(LEN=8) :: inputfile, logfile, errorfile, testfile
       CHARACTER(LEN=3) :: procnum
 !
       INTEGER :: n, m, i, j, k
@@ -73,13 +73,17 @@
 !
 ! ... I/O files
 !
-      errnb = 'pdac2d.err'//procnum(mpime)
-      testnb = 'pdac2d.test'//procnum(mpime)
+      inputfile = 'pdac.dat'
+      logfile = 'pdac.log'
+      testfile = 'pdac.tst'
+      errorfile = 'pdac.err'
+      errnb = errorfile//procnum(mpime)
+      testnb = testfile//procnum(mpime)
       IF(mpime .EQ. root) THEN
-        OPEN(UNIT=5, FILE='pdac2d.dat', STATUS='UNKNOWN')
-        OPEN(UNIT=6, FILE='pdac2d.log', STATUS='UNKNOWN')
-        OPEN(UNIT=7, FILE='pdac2d.test', STATUS='UNKNOWN')
-        OPEN(UNIT=8, FILE='pdac2d.err', STATUS='UNKNOWN')
+        OPEN(UNIT=5, FILE=inputfile, STATUS='UNKNOWN')
+        OPEN(UNIT=6, FILE=logfile, STATUS='UNKNOWN')
+        OPEN(UNIT=7, FILE=testfile, STATUS='UNKNOWN')
+        OPEN(UNIT=8, FILE=errorfile, STATUS='UNKNOWN')
       ELSE
         OPEN(UNIT=7,FILE=testnb,STATUS='UNKNOWN')
         OPEN(UNIT=8,FILE=errnb,STATUS='UNKNOWN')
@@ -134,12 +138,22 @@
       iob(1:no)%zlo = block_bounds(5,1:no)
       iob(1:no)%zhi = block_bounds(6,1:no)
 
-      ugob(1:no)  = fixed_vgas_r(1:no)
+      IF( job_type == '2D' ) THEN
+        ugob(1:no)  = fixed_vgas_r(1:no)
+      ELSE
+        ugob(1:no)  = fixed_vgas_x(1:no)
+        vgob(1:no)  = fixed_vgas_y(1:no)
+      END IF
       wgob(1:no)  = fixed_vgas_z(1:no)
       pob(1:no)  = fixed_pressure(1:no)
       epob(1:no)  = fixed_gaseps(1:no)
       tgob(1:no)  = fixed_gastemp(1:no)
-      upob(1:nsolid,1:no) = fixed_vpart_r(1:nsolid,1:no)
+      IF( job_type == '2D' ) THEN
+        upob(1:nsolid,1:no) = fixed_vpart_r(1:nsolid,1:no)
+      ELSE
+        upob(1:nsolid,1:no) = fixed_vpart_x(1:nsolid,1:no)
+        vpob(1:nsolid,1:no) = fixed_vpart_y(1:nsolid,1:no)
+      END IF
       wpob(1:nsolid,1:no) = fixed_vpart_z(1:nsolid,1:no)
       epsob(1:nsolid,1:no) = fixed_parteps(1:nsolid,1:no)
       tpob(1:nsolid,1:no) = fixed_parttemp(1:nsolid,1:no)
@@ -191,13 +205,17 @@
 !
 ! ... Domain decomposition for parallelization 
 !
+      
       CALL partition
       IF(timing) s2 = cpclock()
 !
 ! ... Setting ghost cells
 !
       CALL ghost
+      CALL parallel_hangup
+      STOP
       IF(timing) s3 = cpclock()
+      IF (job_type == '3D') CALL error('main','3D routines not yet implemented',1)
 !
       CALL local_bounds_velocity
       CALL local_bounds_density
@@ -254,8 +272,8 @@
 !            IF(nso(n).EQ.5) THEN 
               IF( iob(n)%typ == 1 .OR. iob(n)%typ == 5) THEN 
 !pe------------------------------
-                WRITE(6,253) n,ugob(n),wgob(n),pob(n),epob(n)
-                WRITE(6,255) (k,upob(k,n),wpob(k,n), epsob(k,n),tpob(k,n),k=1,nsolid)
+                WRITE(6,253) n,ugob(n),vgob,wgob(n),pob(n),epob(n)
+                WRITE(6,255) (k,upob(k,n),vpob(k,n),wpob(k,n), epsob(k,n),tpob(k,n),k=1,nsolid)
                 WRITE(6,256) (ig,ygcob(ig,n),ig=1,ngas)
               ENDIF
             END DO
