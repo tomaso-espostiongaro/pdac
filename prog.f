@@ -9,7 +9,7 @@
       USE domain_decomposition, ONLY: ncint, myijk
       USE enthalpy_matrix, ONLY: ftem
       USE environment, ONLY: cpclock, timing, elapsed_seconds
-      USE eos_gas, ONLY: thermal_eosg
+      USE eos_gas, ONLY: thermal_eosg, update_eosg
       USE eos_gas, ONLY: ygc, rgpgc, xgc
       USE gas_components, ONLY: ygas
       USE gas_solid_density, ONLY: rog, rgp, rlk
@@ -133,11 +133,13 @@
 !
 ! ... If needed, update gas density (check algorithm)
 !
-        DO ijk=1, ncint
-          CALL thermal_eosg(rog(ijk),tg(ijk),p(ijk),xgc(:,ijk))
-          rgp(ijk) = rog(ijk) * ep(ijk)
-          rgpgc(ijk,:) = ygc(:,ijk) * rgp(ijk)
-        END DO
+        IF (update_eosg) THEN
+          DO ijk=1, ncint
+            CALL thermal_eosg(rog(ijk),tg(ijk),p(ijk),xgc(:,ijk))
+            rgp(ijk) = rog(ijk) * ep(ijk)
+            rgpgc(ijk,:) = ygc(:,ijk) * rgp(ijk)
+          END DO
+        END IF
 !
         IF( timing ) then
           s2 = cpclock()

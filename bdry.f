@@ -1345,7 +1345,7 @@
 
       CASE (-10)
 
-        h = cx(k) - nsx
+        h = cx(i) - nsx
         grad = vel(ipjk) / (cx(i+1)-cx(i)+h)
         velext = grad * h
 

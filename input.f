@@ -92,6 +92,7 @@
       USE control_flags, ONLY: nfil, job_type, lpr, immb, itp
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
       USE domain_decomposition, ONLY: mesh_partition
+      USE eos_gas, ONLY: update_eosg
       USE flux_limiters, ONLY: beta, muscl, lim_type
       USE gas_solid_viscosity, ONLY: gas_viscosity, part_viscosity
       USE gas_solid_viscosity, ONLY: repulsive_model
@@ -141,7 +142,8 @@
         viscosity, specific_heat, thermal_conductivity
 
       NAMELIST / numeric / rungekut, beta, muscl, lim_type, &
-        inmax, maxout, omega, implicit_fluxes, implicit_enthalpy
+        inmax, maxout, omega, implicit_fluxes, implicit_enthalpy, &
+        update_eosg
 
       INTEGER :: i, j, k, n, m, ig, ierr
       REAL*8, ALLOCATABLE :: grx(:), gry(:), grz(:)
@@ -235,6 +237,7 @@
       omega = 1.0       !  relaxation parameter  ( 0.5 under - 2.0 over)
       implicit_fluxes   = .FALSE. ! fluxes are computed implicitly
       implicit_enthalpy = .FALSE. ! enthalpy solved implicitly
+      update_eosg       = .TRUE.  ! update density after temperature
 
 !
 ! :::::::::::::::::::::::  R E A D   N A M E L I S T S ::::::::::::::::
@@ -484,6 +487,8 @@
                                           & implicit_fluxes )
             CALL iotk_write_dat( iuni_nml, "implicit_enthalpy", &
                                           & implicit_enthalpy )
+            CALL iotk_write_dat( iuni_nml, "update_eosg", &
+                                          & update_eosg )
           CALL iotk_write_end( iuni_nml, "numeric" )
         END IF
       END IF
@@ -497,6 +502,7 @@
       CALL bcast_real(omega,1,root)
       CALL bcast_logical(implicit_fluxes,1,root)
       CALL bcast_logical(implicit_enthalpy,1,root)
+      CALL bcast_logical(update_eosg,1,root)
 !
 ! ... PP Namelist .....................................................
 !

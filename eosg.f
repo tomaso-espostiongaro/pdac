@@ -15,6 +15,8 @@
 
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: rgpgc, rgpgcn
 !
+      LOGICAL :: update_eosg
+!
       SAVE
 !----------------------------------------------------------------------
       CONTAINS

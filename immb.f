@@ -42,6 +42,7 @@
       INTEGER, ALLOCATABLE :: ord(:)   ! z-coord of grid locations laying
                                        ! below the profile
       REAL*8, ALLOCATABLE  :: dist(:)  ! vertical distance above topography
+      LOGICAL, ALLOCATABLE :: tmp(:)   ! a temporary array
 
       REAL*8, ALLOCATABLE :: xtop(:),ztop(:) ! input topography points
       INTEGER :: noditop
@@ -67,7 +68,6 @@
       IMPLICIT NONE
       INTEGER :: p, nfpx, nfpz
       INTEGER :: i,j,k,ijk
-      LOGICAL, ALLOCATABLE :: temp(:)
 !
       IF (job_type == '3D') RETURN
 !
@@ -80,13 +80,13 @@
       ALLOCATE(topo_c(nx))
       ALLOCATE(topo_x(nx))
       ALLOCATE(dist(ntot))
-      ALLOCATE(temp(ntot))
+      ALLOCATE(tmp(ntot))
 !
 ! ... interpolate topography on cell centers and write the
 ! ... implicit profile
 !
       CALL grid_locations(0,0,0)
-      CALL intertop(topo_c,temp)
+      CALL intertop(topo_c,tmp)
       
       IF (mpime == root) THEN
         OPEN(UNIT=14,FILE='improfile.dat',STATUS='UNKNOWN')
@@ -106,20 +106,24 @@
 ! ... If immersed boundary technique is used, locate forcing points
 ! ... and set interpolation parameters
 !
-! ... Forcing along x
-!
+        !
+        ! ... interpolate the topography on x-staggered mesh
         CALL grid_locations(1,0,0)
         CALL intertop(topo_x,forcex)
         nfpx = COUNT(forcex)
         ALLOCATE(fptx(nfpx))
+        !
+        ! ... Forcing along x
         CALL forcing(fptx,topo_x)
 ! 
-! ... Forcing along z
-!
+        !
+        ! ... interpolate the topography on z-staggered mesh
         CALL grid_locations(0,0,1)
         CALL intertop(topo_c,forcez)
         nfpz = COUNT(forcez)
         ALLOCATE(fptz(nfpz))
+        !
+        ! ... Forcing along z
         CALL forcing(fptz,topo_c)
 !
 ! ... Merge forcing points subsets
@@ -127,9 +131,16 @@
         nfp = COUNT( forcex .OR. forcez )
         ALLOCATE (forx (nfp) )
         ALLOCATE (forz (nfp) )
+
+        CALL grid_locations(1,0,0)
+        CALL intertop(topo_x,tmp)
         forx(1:nfpx) = fptx(1:nfpx)
+        CALL extrafx(forx, nfpx)
+
+        CALL grid_locations(0,0,1)
+        CALL intertop(topo_c,tmp)
         forz(1:nfpz) = fptz(1:nfpz)
-        CALL extraf(forx, forz, nfpx, nfpz, topo_x, topo_c)
+        CALL extrafz(forz, nfpz)
 
         IF (mpime == root) THEN
           OPEN(UNIT=15,FILE='forx.dat',STATUS='UNKNOWN')
@@ -150,7 +161,7 @@
 
       DEALLOCATE (xtop, ztop)
       DEALLOCATE (cx, cy, cz)
-      DEALLOCATE (next, ord, dist, temp)
+      DEALLOCATE (next, ord, dist, tmp)
 ! 
 ! ... Set flags to identify the topography (where transport equations
 ! ... are not solved )
@@ -643,61 +654,85 @@
 !----------------------------------------------------------------------
       END SUBROUTINE forcing
 !----------------------------------------------------------------------
-      SUBROUTINE extraf(fx, fz, nfpx, nfpz, topx, topc)
+      SUBROUTINE extrafx(fx, nfpx)
 !
-      USE grid, ONLY: x, xb, z, zb, dx, dz
-
       IMPLICIT NONE
-      REAL*8, DIMENSION(:), INTENT(IN) :: topx, topc
-      INTEGER, INTENT(IN) :: nfpx, nfpz
-      TYPE(forcing_point), DIMENSION(:), INTENT(INOUT) :: fx, fz
+      INTEGER, INTENT(IN) :: nfpx
+      TYPE(forcing_point), DIMENSION(:), INTENT(INOUT) :: fx
       INTEGER :: ijk, i, j, k
-      INTEGER :: npx, npz
-      REAL*8 :: gradtop, deltop
+      INTEGER :: npx, n
+      REAL*8 :: grad
         
       npx = nfpx
+
+      DO ijk = 1, ntot
+        k = ( ijk - 1 ) / nx + 1
+        i = MOD( ( ijk - 1 ), nx) + 1
+        IF (forcez(ijk).AND.(.NOT.forcex(ijk))) THEN
+          npx = npx + 1
+          fx(npx)%i = i
+          fx(npx)%k = k
+          !
+          ! ... find the no-slip point on the profile
+          DO n=next(i),next(i+1)
+            IF ((ztop(n-1) >= cz(k)).AND.(ztop(n) <= cz(k))) THEN
+              grad = (xtop(n)-xtop(n-1))/(ztop(n)-ztop(n-1))
+  	      fx(npx)%nsl%x = xtop(n-1) + (cz(k)-ztop(n-1)) * grad
+  	      fx(npx)%nsl%z = cz(k)
+  	    ENDIF
+          ENDDO
+
+          IF (cz(k) >= topo_x(i)) THEN
+            fx(npx)%int = -10
+          ELSE
+            fx(npx)%int = -100
+            fx(npx)%nsl%x = 0.D0
+            fx(npx)%nsl%z = 0.D0
+          END IF
+        END IF
+      END DO
+!
+      IF (npx/=nfp) CALL error('extrafx','check nfp',1)
+!
+      RETURN
+      END SUBROUTINE extrafx
+!----------------------------------------------------------------------
+      SUBROUTINE extrafz(fz, nfpz)
+!
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: nfpz
+      TYPE(forcing_point), DIMENSION(:), INTENT(INOUT) :: fz
+      INTEGER :: ijk, i, j, k
+      INTEGER :: npz
+        
       npz = nfpz
 
       DO ijk = 1, ntot
-        ! k = ( ijk - 1 ) / ( nx*ny ) + 1
-        ! j = MOD( ijk - 1, nx*ny) / nx + 1
-        ! i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
         k = ( ijk - 1 ) / nx + 1
         i = MOD( ( ijk - 1 ), nx) + 1
         IF (forcex(ijk).AND.(.NOT.forcez(ijk))) THEN
           npz = npz + 1
           fz(npz)%i = i
           fz(npz)%k = k
-          IF (zb(k) >= topc(i)) THEN
+          IF (cz(k) >= topo_c(i)) THEN
             fz(npz)%int = 10
-            fz(npz)%nsl%x = x(i)
-            fz(npz)%nsl%z = topc(i)
+            fz(npz)%nsl%x = cx(i)
+            fz(npz)%nsl%z = topo_c(i)
           ELSE
             fz(npz)%int = 100
           END IF
-        ELSE IF (forcez(ijk).AND.(.NOT.forcex(ijk))) THEN
-          npx = npx + 1
-          fx(npx)%i = i
-          fx(npx)%k = k
-          gradtop = ( topx(i) - topc(i) ) / ( 0.5D0 * dx(i) ) 
-          deltop  = ( topx(i) - z(k) )
-          IF (z(k) >= topx(i)) THEN
-            fx(npx)%int = -10
-            fx(npx)%nsl%x = xb(i) - deltop / gradtop
-            fx(npx)%nsl%z = z(k)
-          ELSE
-            fx(npx)%int = -100
-          END IF
         END IF
       END DO
-      IF (npx/=nfp.OR.npz/=nfp) CALL error('extraf','check nfp',1)
+!
+      IF (npz/=nfp) CALL error('extrafz','check nfp',1)
 
       RETURN
-      END SUBROUTINE extraf
+      END SUBROUTINE extrafz
 !----------------------------------------------------------------------
       SUBROUTINE grid_locations(sx,sy,sz)
+      USE grid, ONLY: x, xb, y, yb, z, zb
+      USE grid, ONLY: x, xb, y, yb, z, zb
       USE dimensions, ONLY: nx, ny, nz
-      USE grid, ONLY: x, y, z, xb, yb, zb
 
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: sx, sy, sz
