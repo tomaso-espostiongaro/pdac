@@ -42,10 +42,12 @@
 !
 ! ... Control that atmospheric stratification is consistent
 ! ... Set the pressure and temperature profile
+!
       CALL control_atmosphere
       CALL set_atmosphere
 !
 ! ... Check gas species
+!
       CALL gas_check
       
       RETURN
@@ -137,9 +139,7 @@
               ws(ijk,:) = wg(ijk)
               IF ( job_type == '3D' ) THEN
                 vg(ijk) = wind_y
-                DO is = 1, nsolid
-                  vs(ijk,is) = vg(ijk)
-                END DO
+                vs(ijk,:) = vg(ijk)
               END IF
             END IF
           END IF
@@ -184,9 +184,10 @@
       RETURN
       END SUBROUTINE setup
 !----------------------------------------------------------------------
-      SUBROUTINE resetup
+      SUBROUTINE cnvert
 !
-! ... Compute thermodynamic quantities from initial conditions
+! ... Compute derived thermodynamic quantities from initial conditions
+! ... in the whole computational domain (--> including boundaries <--)
 ! ... (2D/3D_Compliant)
 !
       USE control_flags, ONLY: job_type
@@ -290,7 +291,9 @@
               rgpgc(ijk,ig) = ygc(ig,ijk) * rgp(ijk)
             END DO
 
-            ! ... An error is introduced in temperature
+            ! ... WARNING!: an error is introduced in gas temperature ...
+            ! ... In the iterative inversion of the enthalpy equation 
+            ! ... the initial value of temperature is different
             !
             CALL caloric_eosg(cp(:,ijk), cg(ijk), tg(ijk), ygc(:,ijk), &
                             sieg(ijk), ijk, info)
@@ -322,7 +325,7 @@
       END IF
 
       RETURN
-      END SUBROUTINE resetup
+      END SUBROUTINE cnvert
 !----------------------------------------------------------------------
       SUBROUTINE specified_flow(n)
 
@@ -463,6 +466,7 @@
       INTEGER :: ig, igg
       
       present_gas = .FALSE.
+
       IF (itd == 1) THEN
 
         ig = 0

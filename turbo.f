@@ -578,7 +578,7 @@
       RETURN
       END SUBROUTINE strain3d
 !-----------------------------------------------------------------------
-      SUBROUTINE strain2d(u, w, modsr, ij)
+      SUBROUTINE strain2d(u, w, modsr, ijk)
 !
 ! ... here computes the components of the strain rate tensor and its module.
 
@@ -588,7 +588,7 @@
       USE set_indexes, ONLY: imjk, ijkm, ijkp, imjkp, imjkm, ipjk, ipjkm 
       IMPLICIT NONE
 
-      INTEGER, INTENT(IN)  :: ij
+      INTEGER, INTENT(IN)  :: ijk
       REAL*8, INTENT(IN), DIMENSION(:) :: u, w
       REAL*8, INTENT(OUT) :: modsr
 !
@@ -596,16 +596,16 @@
       REAL*8 :: dxp, dzm, dxm, dzp, indxp, indzm, indxm, indzp
       REAL*8 :: sr1, sr2, sr12
       REAL*8 :: d33
-      INTEGER :: i, j, imesh 
+      INTEGER :: i, k, imesh 
 !
-        imesh = myijk( ip0_jp0_kp0_, ij)
-        j = ( imesh - 1 ) / nx + 1
+        imesh = myijk( ip0_jp0_kp0_, ijk)
+        k = ( imesh - 1 ) / nx + 1
         i = MOD( ( imesh - 1 ), nx) + 1
 
         dxp=dx(i)+dx(i+1)
         dxm=dx(i)+dx(i-1)
-        dzp=dz(j)+dz(j+1)
-        dzm=dz(j)+dz(j-1)
+        dzp=dz(k)+dz(k+1)
+        dzm=dz(k)+dz(k-1)
         indxp=1.D0/dxp
         indxm=1.D0/dxm
         indzp=1.D0/dzp
@@ -615,29 +615,29 @@
 ! ... Cross terms (non-diagonal) in the strain tensor are obtained
 ! ... by interpolating the values found on the staggered grids.
 !
-        sr1 = (u(ij)-u(imjk))*indx(i)
-        sr2 = (w(ij)-w(ijkm))*indz(j)
+        sr1 = (u(ijk)-u(imjk))*indx(i)
+        sr2 = (w(ijk)-w(ijkm))*indz(k)
         
 ! ... extra-term for cylindrical coordinates
 !
         IF(itc == 1) THEN
-          d33 = 0.5D0*(u(ij)+u(imjk))*inr(i)
+          d33 = 0.5D0*(u(ijk)+u(imjk))*inr(i)
         ELSE
           d33 = 0.D0
         END IF
 !
         u3=0.5D0*(u(ijkp)+u(imjkp))
-        u2=0.5D0*(u(ij)+u(imjk))
+        u2=0.5D0*(u(ijk)+u(imjk))
         u1=0.5D0*(u(ijkm)+u(imjkm))
         w3=0.5D0*(w(ipjk)+w(ipjkm))
-        w2=0.5D0*(w(ij)+w(ijkm))
+        w2=0.5D0*(w(ijk)+w(ijkm))
         w1=0.5D0*(w(imjk)+w(imjkm))
-        um2=u2+(u3-u2)*dz(j)*indzp
-        um1=u1+(u2-u1)*dz(j-1)*indzm
+        um2=u2+(u3-u2)*dz(k)*indzp
+        um1=u1+(u2-u1)*dz(k-1)*indzm
         wm2=w2+(w3-w2)*dx(i)*indxp
         wm1=w1+(w2-w1)*dx(i-1)*indxm
 
-        sr12 =((um2-um1)*indz(j)+(wm2-wm1)*indx(i))*0.5D0
+        sr12 =((um2-um1)*indz(k)+(wm2-wm1)*indx(i))*0.5D0
 !        
         modsr = DSQRT(2.D0 * (sr1**2 + sr2**2 + 2.D0 * sr12**2 +   &
                               d33**2) )

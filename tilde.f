@@ -171,7 +171,9 @@
 !
       DO ijk = 1, ncint
 
-!       IF(flag(ijk) == 1) THEN
+       ! ... WARNING: in the old code was done only in fluid cells
+       !
+       !IF(flag(ijk) == 1) THEN
 
           CALL meshinds(ijk,imesh,i,j,k)
           CALL first_subscr(ijk)
@@ -237,16 +239,15 @@
             siesn(ijk,is) = sies(ijk,is)
           END DO
 
-!        END IF
-
-      END DO
+        !END IF
+        ! ...
 !
 ! ... Compute the temperature-dependent gas viscosity and th. conductivity
 ! ... For inviscid simulation (gas_viscosity = FALSE) mug is used only
 ! ... to compute the gas-particle drag coefficient
 !
-      DO ijk = 1, ncint
          CALL viscon( mug(ijk), kapg(ijk), xgc(:,ijk), tg(ijk) )
+
       END DO
 !
       RETURN

@@ -27,7 +27,7 @@
       USE gas_solid_viscosity, ONLY: allocate_viscosity
       USE grid, ONLY: grid_setup, allocate_blbody, allocate_grid
       USE immersed_boundaries, ONLY: import_topo
-      USE initial_conditions, ONLY: setpar, setup, resetup, allocate_setup, npr
+      USE initial_conditions, ONLY: setpar, setup, cnvert, allocate_setup, npr
       USE input_module, ONLY: input, initc, number_of_block
       USE io_restart, ONLY: taperd, tapewr
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
@@ -213,10 +213,10 @@
         CALL error('setup','Output recovering not implemented',1)         
       END IF
 !
-! ... Re-compute initial conditions depending on restart mode
-! ... (i.e. when itd > 2 )
+! ... Compute initial conditions depending on restart mode
+! ... Compute derived thermodynamic quantities.
 !
-      CALL resetup
+      CALL cnvert
 
       IF (timing) then
           s5 = cpclock()
