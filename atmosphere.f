@@ -199,9 +199,10 @@
 
         za = zb(k) + 0.5D0*(dz(1)-dz(k))
 
-        IF ( ( za < 0.D0 ) .AND. ( mpime == root ) ) & 
+        IF ( ( za < 0.D0 ) .AND. ( mpime == root ) ) THEN
           WRITE(8,*) 'WARNING! from atmospheric profile:'
           WRITE(8,*) ' Row ',k, ' lays below the sea level; z = ', za
+        END IF
         IF (za <= 0.D0 .OR. .NOT.stratification) THEN
           ta = t_ground
           pa = p_ground
