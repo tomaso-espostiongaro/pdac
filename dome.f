@@ -215,7 +215,7 @@
                       ELSE
                             dcell(n)%angle = 0.D0
                       END IF
-                      dcell(n)%p_hydro  = rlks * gravz * dh(distance, dcell(n)%angle)
+                      dcell(n)%p_hydro  = rlks * DABS(gravz) * dh(distance, dcell(n)%angle)
               END IF
             END DO
           END DO
