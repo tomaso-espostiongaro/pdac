@@ -30,7 +30,7 @@
       INTEGER :: ijk
       INTEGER :: ig
 !
-      ALLOCATE(yfe(ngas,ncdom), yfn(ngas,ncdom), yft(ngas,ncdom))
+      ALLOCATE(yfe(ncdom,ngas), yfn(ncdom,ngas), yft(ncdom,ngas))
       yfe = 0.D0; yfn = 0.D0; yft = 0.D0
 !
       CALL data_exchange(rgpgc)
@@ -50,8 +50,8 @@
 	   CALL rnb(v,vg,ijk)
 	   CALL rnb(w,wg,ijk)
 
-	   CALL fsc(yfe(ig,ijk), yfn(ig,ijk), yft(ig,ijk),      &
-                    yfe(ig,imjk), yfn(ig,ijmk), yft(ig,ijkm),   &
+	   CALL fsc(yfe(ijk,ig), yfn(ijk,ig), yft(ijk,ig),      &
+                    yfe(imjk,ig), yfn(ijmk,ig), yft(ijkm,ig),   &
                     one, field, u, v, w, ijk)
          END DO
          
@@ -73,13 +73,13 @@
 	   
          DO ig=1,ngas
 	   
-	   yfw = yfe(ig,imjk)
-	   yfs = yfn(ig,ijmk)
-	   yfb = yft(ig,ijkm)
+	   yfw = yfe(imjk,ig)
+	   yfs = yfn(ijmk,ig)
+	   yfb = yft(ijkm,ig)
 
-           yfx = yfe(ig,ijk) - yfw
-	   yfy = yfn(ig,ijk) - yfs
-	   yfz = yft(ig,ijk) - yfb
+           yfx = yfe(ijk,ig) - yfw
+	   yfy = yfn(ijk,ig) - yfs
+	   yfz = yft(ijk,ig) - yfb
 
 	   rgpgc(ijk,ig) = rgpgcn(ijk,ig)                  &
 	                 - dt * indx(i) * yfx              &

@@ -46,13 +46,13 @@
       TYPE(stencil) :: eps, temp, kappa
 !
       ALLOCATE(rhg(ncint))
-      ALLOCATE(rhs(nsolid,ncint))
+      ALLOCATE(rhs(ncint,nsolid))
 !
       ALLOCATE(egfe(ncdom), egfn(ncdom), egft(ncdom))
-      ALLOCATE(esfe(nsolid,ncdom), esfn(nsolid,ncdom), esft(nsolid,ncdom))
+      ALLOCATE(esfe(ncdom,nsolid), esfn(ncdom,nsolid), esft(ncdom,nsolid))
 !
       ALLOCATE(hgfe(ncdom), hgfn(ncdom), hgft(ncdom))
-      ALLOCATE(hsfe(nsolid,ncdom), hsfn(nsolid,ncdom), hsft(nsolid,ncdom))
+      ALLOCATE(hsfe(ncdom,nsolid), hsfn(ncdom,nsolid), hsft(ncdom,nsolid))
 !
       egfe = 0.0D0;  hgfe = 0.0D0
       egfn = 0.0D0;  hgfn = 0.0D0
@@ -120,8 +120,8 @@
             CALL rnb(v, vs(:,is),ijk)
             CALL rnb(w, ws(:,is),ijk)
             
-            CALL fsc(esfe(is, ijk), esfn(is, ijk), esft(is, ijk),  &
-                     esfe(is, imjk), esfn(is, ijmk), esft(is, ijkm),  &
+            CALL fsc(esfe(ijk, is), esfn(ijk, is), esft(ijk, is),  &
+                     esfe(imjk, is), esfn(ijmk, is), esft(ijkm, is),  &
                      enth, dens, u, v, w, ijk)
 !
 ! ... diffusive fluxes (particles)
@@ -129,17 +129,17 @@
             eps   = inrl(is) * dens
             CALL nb(temp,ts(:,is),ijk)
             kappa = cte(kap(is))
-            CALL hotc(hsfe(is,ijk), hsfn(is, ijk), hsft(is,ijk),    &
-                      hsfe(is,imjk), hsfn(is, ijmk), hsft(is,ijkm),    &
+            CALL hotc(hsfe(ijk,is), hsfn(ijk, is), hsft(ijk, is),    &
+                      hsfe(imjk,is), hsfn(ijmk, is), hsft(ijkm, is),    &
                       eps, temp, kappa, ijk)
 !
-            esfe(is, ijk) = esfe(is, ijk) - hsfe(is, ijk)
-            esfn(is, ijk) = esfn(is, ijk) - hsfn(is, ijk)
-            esft(is, ijk) = esft(is, ijk) - hsft(is, ijk)
+            esfe(ijk, is) = esfe(ijk, is) - hsfe(ijk,is)
+            esfn(ijk, is) = esfn(ijk, is) - hsfn(ijk, is)
+            esft(ijk, is) = esft(ijk, is) - hsft(ijk, is)
 !
-            IF (fl_l(imjk) /= 1) esfe(is,imjk) = esfe(is,imjk) - hsfe(is,imjk)
-            IF (fl_l(ijmk) /= 1) esfn(is,ijmk) = esfn(is,ijmk) - hsfn(is,ijmk)
-            IF (fl_l(ijkm) /= 1) esft(is,ijkm) = esft(is,ijkm) - hsft(is,ijkm)
+            IF (fl_l(imjk) /= 1) esfe(imjk,is) = esfe(imjk,is) - hsfe(imjk,is)
+            IF (fl_l(ijmk) /= 1) esfn(ijmk,is) = esfn(ijmk,is) - hsfn(ijmk,is)
+            IF (fl_l(ijkm) /= 1) esft(ijkm,is) = esft(ijkm,is) - hsft(ijkm,is)
 !
           END DO
         END IF
@@ -191,24 +191,24 @@
            IF (rlk(imjk,is) * inrl(is) <= 1.D-9) THEN
             esfw = 0.0D0
            ELSE
-            esfw = esfe(is, imjk)
+            esfw = esfe(imjk, is)
            END IF
            IF (rlk(ijmk,is) * inrl(is) <= 1.D-9) THEN
             esfs = 0.0D0
            ELSE
-            esfs = esfn(is, ijmk)
+            esfs = esfn(ijmk, is)
            END IF
            IF (rlk(ijkm,is) * inrl(is) <= 1.D-9) THEN
             esfb = 0.0D0
            ELSE
-            esfb = esft(is, ijkm)
+            esfb = esft(ijkm, is)
            END IF
 !
-            flx = dt * indx(i) * (esfe(is,ijk) - esfw)  +  &
-                  dt * indy(j) * (esfn(is,ijk) - esfs)  +  &
-                  dt * indz(k) * (esft(is,ijk) - esfb)
+            flx = dt * indx(i) * (esfe(ijk, is) - esfw)  +  &
+                  dt * indy(j) * (esfn(ijk, is) - esfs)  +  &
+                  dt * indz(k) * (esft(ijk, is) - esfb)
 !
-            rhs(is, ijk) = - flx
+            rhs(ijk,is) = - flx
           END DO
 !
         END IF

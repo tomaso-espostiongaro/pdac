@@ -290,7 +290,6 @@
 !
       USE dimensions, ONLY: nr, nz, nsolid
       USE tilde_momentum, ONLY: rug, rwg, rus, rws
-      USE tilde_energy, ONLY: rhg, rhs
       USE parallel, ONLY: nproc, mpime, root, group
       USE particles_constants, ONLY: rl, inrl
       USE time_parameters, ONLY: time
@@ -330,13 +329,13 @@
         DO j=1,nz
           ij1=1+(nz-j)*nr
           ij2=nr+(nz-j)*nr
-          WRITE(3,550)(rus(is,ijl)*inrl(is),ijl=ij1,ij2)
+          WRITE(3,550)(rus(ijl,is)*inrl(is),ijl=ij1,ij2)
         END DO
         WRITE(3,103)is 
         DO j=1,nz
           ij1=1+(nz-j)*nr
           ij2=nr+(nz-j)*nr
-          WRITE(3,550)(rws(is,ijl)*inrl(is),ijl=ij1,ij2)
+          WRITE(3,550)(rws(ijl,is)*inrl(is),ijl=ij1,ij2)
         END DO
       END DO
 !

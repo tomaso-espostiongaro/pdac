@@ -46,7 +46,7 @@
 ! Initialize particle's viscosity
 ! 
       DO is = 1, nsolid
-        particle_viscosity(is,:) = cmus(is)
+        particle_viscosity(:,is) = cmus(is)
       END DO
 !
 ! set useful constants 

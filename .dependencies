@@ -60,13 +60,13 @@ kb07ad.o :
 letter.o : 
 
 matrix.o : dens.o dimensions.o grid.o indijk.o particles.o press.o subscr.o  \
-    tilde.o time.o 
+    tilde.o time.o velocity.o 
 
 nondim.o : atmosphere.o dimensions.o gas.o grid.o indijk.o particles.o  \
     time.o 
 
-outp.o : control.o dens.o dimensions.o eosg.o gas.o htilde.o parallel.o  \
-    particles.o press.o temp.o tilde.o time.o turbo.o velocity.o 
+outp.o : control.o dens.o dimensions.o eosg.o gas.o parallel.o particles.o  \
+    press.o temp.o tilde.o time.o turbo.o velocity.o 
 
 parallel.o : 
 

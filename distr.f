@@ -102,7 +102,7 @@
         cp(:,ijk) = gc_heat_capacity(:,imesh)
         cg(ijk) = gas_heat_capacity(imesh)
         smag(ijk) = smag_factor(imesh)
-        mus(:,ijk) = particle_viscosity(:,imesh)
+        mus(ijk,:) = particle_viscosity(imesh,:)
       END DO
 !-----------------------------------------------------------------------
       END SUBROUTINE

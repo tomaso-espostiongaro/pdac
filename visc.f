@@ -22,7 +22,7 @@
       USE dimensions
       IMPLICIT NONE
 !
-      ALLOCATE(particle_viscosity(nsolid,ntot))
+      ALLOCATE(particle_viscosity(ntot,nsolid))
       ALLOCATE(gas_viscosity(ntot))
       ALLOCATE(gas_thermal_conductivity(ntot))
       particle_viscosity = 0.0d0
@@ -36,7 +36,7 @@
       USE grid, ONLY : ncdom
       IMPLICIT NONE
 !
-      ALLOCATE(mus(nsolid, ncdom))
+      ALLOCATE(mus(ncdom,nsolid))
       ALLOCATE(mug(ncdom))
       ALLOCATE(kapg(ncdom))
 
@@ -182,8 +182,8 @@
 ! ... Newtonian stress tensor
 !
       DO is = 1, nsolid
-        CALL stress3D(pvisx(is,:), pvisy(is,:), pvisz(is,:),    &
-	            mus(is,:), mus(is,:), rlk(:,is)*inrl(is), &
+        CALL stress3D(pvisx(:,is), pvisy(:,is), pvisz(:,is),    &
+	            mus(:,is), mus(:,is), rlk(:,is)*inrl(is), &
 		    us(:,is), vs(:,is), ws(:,is))
       END DO
 !
@@ -213,21 +213,21 @@
 !
              epsx=(dx(i+1)*rlk(ijk,is) + dx(i)*rlk(ijke,is)) * indxp * inrl(is)
              gepx=10.D0**(8.76D0*epsx-0.27D0)
-             pvisx(is,ijk) = pvisx(is,ijk) -  & 
+             pvisx(ijk,is) = pvisx(ijk,is) -  & 
                          gepx*indxp*2.D0*(rlk(ijke,is)-rlk(ijk,is))*inrl(is)
 !
 ! ... Coulombic y-gradient
 !
              epsy=(dy(j+1)*rlk(ijk,is) + dy(j)*rlk(ijkn,is)) * indyp * inrl(is)
              gepy=10.D0**(8.76D0*epsy-0.207D0)
-             pvisy(is,ijk) = pvisy(is,ijk) -  & 
+             pvisy(ijk,is) = pvisy(ijk,is) -  & 
                          gepy*indyp*2.D0*(rlk(ijkn,is)-rlk(ijk,is))*inrl(is)
 !
 ! ... Coulombic z-gradient
 !
              epsz=(dz(k+1)*rlk(ijk,is) + dz(k)*rlk(ijkt,is)) * indzp * inrl(is)
              gepz=10.D0**(8.76D0*epsz-0.207D0)
-             pvisz(is,ijk) = pvisz(is,ijk) -  & 
+             pvisz(ijk,is) = pvisz(ijk,is) -  & 
                          gepz*indzp*2.D0*(rlk(ijkt,is)-rlk(ijk,is))*inrl(is)
            END DO
 

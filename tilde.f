@@ -54,7 +54,7 @@
       IF (ALLOCATED(rvsn)) DEALLOCATE(rvsn)
       IF (ALLOCATED(rwsn)) DEALLOCATE(rwsn)
       ALLOCATE( rugn(ncint),  rvgn(ncint), rwgn(ncint))
-      ALLOCATE( rusn(nsolid,ncint), rvsn(nsolid,ncint), rwsn(nsolid,ncint))
+      ALLOCATE( rusn(ncint,nsolid), rvsn(ncint,nsolid), rwsn(ncint,nsolid))
       rugn = 0.D0; rvgn = 0.D0; rwgn = 0.D0
       rusn = 0.D0; rvsn = 0.D0; rwsn = 0.D0
 !
@@ -96,9 +96,9 @@
           rlk_n = (rlk(ijk,is)*dy(j+1)+rlk(ijkn,is)*dy(j))*indyp
           rlk_t = (rlk(ijk,is)*dz(k+1)+rlk(ijkt,is)*dz(k))*indzp
 !
-          rusn(is,ijk)  = rlk_e * us(ijk,is)
-          rvsn(is,ijk)  = rlk_n * vs(ijk,is)
-          rwsn(is,ijk)  = rlk_t * ws(ijk,is)
+          rusn(ijk,is)  = rlk_e * us(ijk,is)
+          rvsn(ijk,is)  = rlk_n * vs(ijk,is)
+          rwsn(ijk,is)  = rlk_t * ws(ijk,is)
 !
           rlkn(ijk,is)  = rlk(ijk,is)
           siesn(ijk,is) = sies(ijk,is)
@@ -149,7 +149,7 @@
       TYPE(stencil) :: u, v, w, dens
 !
       ALLOCATE(gvisx(ncint), gvisy(ncint), gvisz(ncint))
-      ALLOCATE(pvisx(nsolid, ncint), pvisy(nsolid,ncint), pvisz(nsolid, ncint))
+      ALLOCATE(pvisx(ncint,nsolid), pvisy(ncint,nsolid), pvisz(ncint,nsolid))
       gvisx = 0.D0; gvisy = 0.D0; gvisz = 0.D0
       pvisx = 0.D0; pvisy = 0.D0; pvisz = 0.D0
 
@@ -192,10 +192,10 @@
 !
 ! ... Allocate and initialize local arrays (particles).
 !
-      ALLOCATE(rus(nsolid,ncdom),  rvs(nsolid,ncdom),  rws(nsolid,ncdom))
-      ALLOCATE(usfe(nsolid,ncdom), usfn(nsolid,ncdom), usft(nsolid,ncdom))
-      ALLOCATE(vsfe(nsolid,ncdom), vsfn(nsolid,ncdom), vsft(nsolid,ncdom))
-      ALLOCATE(wsfe(nsolid,ncdom), wsfn(nsolid,ncdom), wsft(nsolid,ncdom))
+      ALLOCATE(rus(ncdom,nsolid),  rvs(ncdom,nsolid),  rws(ncdom,nsolid))
+      ALLOCATE(usfe(ncdom,nsolid), usfn(ncdom,nsolid), usft(ncdom,nsolid))
+      ALLOCATE(vsfe(ncdom,nsolid), vsfn(ncdom,nsolid), vsft(ncdom,nsolid))
+      ALLOCATE(wsfe(ncdom,nsolid), wsfn(ncdom,nsolid), wsft(ncdom,nsolid))
 
       rus = 0.0D0
       rvs = 0.0D0
@@ -210,9 +210,9 @@
 ! ... Allocate and initialize interphase terms.
 !
       ALLOCATE(kpgv(nsolid))
-      ALLOCATE(appu(((nsolid+1)**2+(nsolid+1))/2, ncdom),   &
-               appv(((nsolid+1)**2+(nsolid+1))/2, ncdom),   &
-               appw(((nsolid+1)**2+(nsolid+1))/2, ncdom))
+      ALLOCATE(appu(ncdom, ((nsolid+1)**2+(nsolid+1))/2),   &
+               appv(ncdom, ((nsolid+1)**2+(nsolid+1))/2),   &
+               appw(ncdom, ((nsolid+1)**2+(nsolid+1))/2))
 
       kpgv = 0.0D0
       appu = 0.0D0
@@ -244,14 +244,14 @@
             CALL rnb(v,vs(:,is),ijk)
             CALL rnb(w,ws(:,is),ijk)
 !
-            CALL flu(usfe(is,ijk), usfn(is,ijk), usft(is,ijk),           &
-                    usfe(is,imjk), usfn(is,ijmk), usft(is,ijkm),        &
+            CALL flu(usfe(ijk,is), usfn(ijk,is), usft(ijk,is),           &
+                    usfe(imjk,is), usfn(ijmk,is), usft(ijkm,is),        &
                     dens, u, v, w, ijk)
-            CALL flv(vsfe(is,ijk), vsfn(is,ijk), vsft(is,ijk),           &
-                    vsfe(is,imjk), vsfn(is,ijmk), vsft(is,ijkm),        &
+            CALL flv(vsfe(ijk,is), vsfn(ijk,is), vsft(ijk,is),           &
+                    vsfe(imjk,is), vsfn(ijmk,is), vsft(ijkm,is),        &
                     dens, u, v, w, ijk)
-            CALL flw(wsfe(is,ijk), wsfn(is,ijk), wsft(is,ijk),           &
-                    wsfe(is,imjk), wsfn(is,ijmk), wsft(is,ijkm),        &
+            CALL flw(wsfe(ijk,is), wsfn(ijk,is), wsft(ijk,is),           &
+                    wsfe(imjk,is), wsfn(ijmk,is), wsft(ijkm,is),        &
                     dens, u, v, w, ijk)
 !
           END DO
@@ -344,41 +344,41 @@
 !
 ! ... West, South and Bottom fluxes (particles)
 ! 
-            usfw = usfe(is,imjk)
-            usfs = usfn(is,ijmk)
-            usfb = usft(is,ijkm)
-            vsfw = vsfe(is,imjk)
-            vsfs = vsfn(is,ijmk)
-            vsfb = vsft(is,ijkm)
-            wsfw = wsfe(is,imjk)
-            wsfs = wsfn(is,ijmk)
-            wsfb = wsft(is,ijkm)
+            usfw = usfe(imjk,is)
+            usfs = usfn(ijmk,is)
+            usfb = usft(ijkm,is)
+            vsfw = vsfe(imjk,is)
+            vsfs = vsfn(ijmk,is)
+            vsfb = vsft(ijkm,is)
+            wsfw = wsfe(imjk,is)
+            wsfs = wsfn(ijmk,is)
+            wsfb = wsft(ijkm,is)
 !
 ! ... compute explicit (tilde) terms in the momentum equation (particles)
 ! 
-              usfx = usfe(is,ijk) - usfw
-              usfy = usfn(is,ijk) - usfs
-              usfz = usft(is,ijk) - usfb
+              usfx = usfe(ijk,is) - usfw
+              usfy = usfn(ijk,is) - usfs
+              usfz = usft(ijk,is) - usfb
 !
-              rus(is,ijk) = rusn(is,ijk) + dt*pvisx(is,ijk)              &
+              rus(ijk,is) = rusn(ijk,is) + dt*pvisx(ijk,is)              &
      &         - dt*indxp*2.D0* usfx                                      &
      &         - dt*indy(j)* usfy                                         &
      &         - dt*indz(k)* usfz                           
 !
-              vsfx = vsfe(is,ijk) - vsfw
-              vsfy = vsfn(is,ijk) - vsfs
-              vsfz = vsft(is,ijk) - vsfb
+              vsfx = vsfe(ijk,is) - vsfw
+              vsfy = vsfn(ijk,is) - vsfs
+              vsfz = vsft(ijk,is) - vsfb
 !
-              rvs(is,ijk) = rvsn(is,ijk) + dt*pvisy(is,ijk)              &
+              rvs(ijk,is) = rvsn(ijk,is) + dt*pvisy(ijk,is)              &
      &         - dt*indx(i)* vsfx                                        &
      &         - dt*indyp*2.D0* vsfy                                     &
      &         - dt*indz(k)* vsfz                             
 !
-              wsfx = wsfe(is,ijk) - wsfw
-              wsfy = wsfn(is,ijk) - wsfs
-              wsfz = wsft(is,ijk) - wsfb
+              wsfx = wsfe(ijk,is) - wsfw
+              wsfy = wsfn(ijk,is) - wsfs
+              wsfz = wsft(ijk,is) - wsfb
 !
-              rws(is,ijk) = rwsn(is,ijk) + dt*pvisz(is,ijk)              &
+              rws(ijk,is) = rwsn(ijk,is) + dt*pvisz(ijk,is)              &
      &         + dt*(rlk(ijk,is)*dz(k+1)+rlk(ijkt,is)*dz(k))*indzp*gravz &
      &         - dt*indx(i)* wsfx                                        &
      &         - dt*indy(j)* wsfy                                        &
@@ -397,14 +397,11 @@
 !
 ! ... Compute the particle-particle coefficients and the interphase matrix
 !
-          CALL inter(appu(:,ijk), appv(:,ijk), appw(:,ijk), kpgv(:),    &
+          CALL inter(appu(ijk,:), appv(ijk,:), appw(ijk,:), kpgv(:),    &
      &               us, vs, ws, rlk, ijk)
 !
         END IF
       END DO
-!      appu = 0.D0
-!      appv = 0.D0
-!      appw = 0.D0
 !
       DEALLOCATE(ugfe, ugfn, ugft)
       DEALLOCATE(vgfe, vgfn, vgft)

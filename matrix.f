@@ -96,9 +96,9 @@
       bv1(1) = rvg(ijmk)+ dt * indym *2.D0* ep_s * (p(ijks)-pijk)
       bw1(1) = rwg(ijkm)+ dt * indzm *2.D0* ep_b * (p(ijkb)-pijk)
 !
-      au1(1,1)=(dxi*appu(1,ijkw)+dxim1*appu(1,ijk))*indxm
-      av1(l,1)=(dyj*appv(1,ijks)+dyjm1*appv(1,ijk))*indym
-      aw1(1,1)=(dzk*appw(1,ijkb)+dzkm1*appw(1,ijk))*indzm
+      au1(1,1)=(dxi*appu(ijkw,1)+dxim1*appu(ijk,1))*indxm
+      av1(l,1)=(dyj*appv(ijks,1)+dyjm1*appv(ijk,1))*indym
+      aw1(1,1)=(dzk*appw(ijkb,1)+dzkm1*appw(ijk,1))*indzm
       au1(1,1)=au1(1,1)+(dxi*rgp(ijkw)+dxim1*rgp(ijk))*indxm
       av1(1,1)=av1(1,1)+(dyj*rgp(ijks)+dyjm1*rgp(ijk))*indym
       aw1(1,1)=aw1(1,1)+(dzk*rgp(ijkb)+dzkm1*rgp(ijk))*indzm
@@ -110,9 +110,9 @@
           eps_w = (dxi*rlk(ijkw,l-1) + dxim1*rlk(ijk,l-1)) * indxm * inrl(l-1)
           eps_s = (dyj*rlk(ijks,l-1) + dyjm1*rlk(ijk,l-1)) * indym * inrl(l-1)
           eps_b = (dzk*rlk(ijkb,l-1) + dzkm1*rlk(ijk,l-1)) * indzm * inrl(l-1)
-          bu1(l) = rus(l-1,imjk) + dt * indxm *2.D0* eps_w * (p(ijkw)-pijk)
-          bv1(l) = rws(l-1,ijmk) + dt * indym *2.D0* eps_s * (p(ijks)-pijk)
-          bw1(l) = rws(l-1,ijkm) + dt * indzm *2.D0* eps_b * (p(ijkb)-pijk)
+          bu1(l) = rus(imjk,l-1) + dt * indxm *2.D0* eps_w * (p(ijkw)-pijk)
+          bv1(l) = rvs(ijmk,l-1) + dt * indym *2.D0* eps_s * (p(ijks)-pijk)
+          bw1(l) = rws(ijkm,l-1) + dt * indzm *2.D0* eps_b * (p(ijkb)-pijk)
 !
 ! ... Implicit terms in the linear system
 !
@@ -123,11 +123,11 @@
 ! ... Off-diagonal elements
         DO ll=1,l
           ls=ls1+ll
-          au1(l,ll)=(dxi*appu(ls,ijkw)+dxim1*appu(ls,ijk))*indxm
+          au1(l,ll)=(dxi*appu(ijkw, ls)+dxim1*appu(ijk, ls))*indxm
           au1(ll,l)=au1(l,ll)
-          av1(l,ll)=(dyj*appv(ls,ijks)+dyjm1*appv(ls,ijk))*indym
+          av1(l,ll)=(dyj*appv(ijks, ls)+dyjm1*appv(ijk, ls))*indym
           av1(ll,l)=av1(l,ll)
-          aw1(l,ll)=(dzk*appw(ls,ijkb)+dzkm1*appw(ls,ijk))*indzm
+          aw1(l,ll)=(dzk*appw(ijkb, ls)+dzkm1*appw(ijk, ls))*indzm
           aw1(ll,l)=aw1(l,ll)
         END DO
 !
@@ -156,9 +156,9 @@
       bv(1)  = rvg(ijk)+ dt * indyp *2.D0* ep_n * (pijk-p(ijkn))
       bw(1)  = rwg(ijk)+ dt * indzp *2.D0* ep_t * (pijk-p(ijkt))
 !
-      au(1,1)=(dxi*appu(1,ijke)+dxip1*appu(1,ijk))*indxp
-      av(1,1)=(dyj*appv(1,ijkn)+dyjp1*appv(1,ijk))*indyp
-      aw(1,1)=(dzk*appw(1,ijkt)+dzkp1*appw(1,ijk))*indzp
+      au(1,1)=(dxi*appu(ijke,1)+dxip1*appu(ijk,1))*indxp
+      av(1,1)=(dyj*appv(ijkn,1)+dyjp1*appv(ijk,1))*indyp
+      aw(1,1)=(dzk*appw(ijkt,1)+dzkp1*appw(ijk,1))*indzp
       au(1,1)=au(1,1)+(dxi*rgp(ijke)+dxip1*rgp(ijk))*indxp
       av(1,1)=av(1,1)+(dyj*rgp(ijkn)+dyjp1*rgp(ijk))*indyp
       aw(1,1)=aw(1,1)+(dzk*rgp(ijkt)+dzkp1*rgp(ijk))*indzp
@@ -170,9 +170,9 @@
         eps_e = (dxi*rlk(ijke,l-1) + dxip1*rlk(ijk,l-1)) * indxp * inrl(l-1)
         eps_n = (dyj*rlk(ijkn,l-1) + dyjp1*rlk(ijk,l-1)) * indyp * inrl(l-1)
         eps_t = (dzk*rlk(ijkt,l-1) + dzkp1*rlk(ijk,l-1)) * indzp * inrl(l-1)
-        bu(l)  = rus(l-1,ijk) + dt * indxp *2.D0* eps_e * (pijk-p(ijke))
-        bv(l)  = rvs(l-1,ijk) + dt * indyp *2.D0* eps_n * (pijk-p(ijkn))
-        bw(l)  = rws(l-1,ijk) + dt * indzp *2.D0* eps_t * (pijk-p(ijkt))
+        bu(l)  = rus(ijk,l-1) + dt * indxp *2.D0* eps_e * (pijk-p(ijke))
+        bv(l)  = rvs(ijk,l-1) + dt * indyp *2.D0* eps_n * (pijk-p(ijkn))
+        bw(l)  = rws(ijk,l-1) + dt * indzp *2.D0* eps_t * (pijk-p(ijkt))
 !
 ! ... Implicit terms in the linear system
 !
@@ -183,11 +183,11 @@
 ! ... Off-Diagonal elements
         DO ll=1,l
           ls=ls1+ll
-          au(l,ll)=(dxi*appu(ls,ijke)+dxip1*appu(ls,ijk))*indxp
+          au(l,ll)=(dxi*appu(ijke,ls)+dxip1*appu(ijk,ls))*indxp
           au(ll,l)=au(l,ll)
-          av(l,ll)=(dyj*appv(ls,ijkn)+dyjp1*appv(ls,ijk))*indyp
+          av(l,ll)=(dyj*appv(ijkn,ls)+dyjp1*appv(ijk,ls))*indyp
           av(ll,l)=av(l,ll)
-          aw(l,ll)=(dzk*appw(ls,ijkt)+dzkp1*appw(ls,ijk))*indzp
+          aw(l,ll)=(dzk*appw(ijkt,ls)+dzkp1*appw(ijk,ls))*indzp
           aw(ll,l)=aw(l,ll)
         END DO
 !
@@ -261,9 +261,9 @@
       bv(1)  = rvg(ijk)+ dt * indyp *2.D0* ep_n * (pijk-p(ijkn))
       bw(1)  = rwg(ijk)+ dt * indzp *2.D0* ep_t * (pijk-p(ijkt))
 !
-      au(1,1)=(dxi*appu(1,ijke)+dxip1*appu(1,ijk))*indxp
-      av(1,1)=(dyj*appv(1,ijkn)+dyjp1*appv(1,ijk))*indyp
-      aw(1,1)=(dzk*appw(1,ijkt)+dzkp1*appw(1,ijk))*indzp
+      au(1,1)=(dxi*appu(ijke,1)+dxip1*appu(ijk,1))*indxp
+      av(1,1)=(dyj*appv(ijkn,1)+dyjp1*appv(ijk,1))*indyp
+      aw(1,1)=(dzk*appw(ijkt,1)+dzkp1*appw(ijk,1))*indzp
       au(1,1)=au(1,1)+(dxi*rgp(ijke)+dxip1*rgp(ijk))*indxp
       av(1,1)=av(1,1)+(dyj*rgp(ijkn)+dyjp1*rgp(ijk))*indyp
       aw(1,1)=aw(1,1)+(dzk*rgp(ijkt)+dzkp1*rgp(ijk))*indzp
@@ -275,9 +275,9 @@
         eps_e = (dxi*rlk(ijke,l-1) + dxip1*rlk(ijk,l-1)) * indxp * inrl(l-1)
         eps_n = (dyj*rlk(ijkn,l-1) + dyjp1*rlk(ijk,l-1)) * indyp * inrl(l-1)
         eps_t = (dzk*rlk(ijkt,l-1) + dzkp1*rlk(ijk,l-1)) * indzp * inrl(l-1)
-        bu(l)  = rus(l-1,ijk) + dt * indxp *2.D0* eps_e * (pijk-p(ijke))
-        bv(l)  = rvs(l-1,ijk) + dt * indyp *2.D0* eps_n * (pijk-p(ijkn))
-        bw(l)  = rws(l-1,ijk) + dt * indzp *2.D0* eps_t * (pijk-p(ijkt))
+        bu(l)  = rus(ijk,l-1) + dt * indxp *2.D0* eps_e * (pijk-p(ijke))
+        bv(l)  = rvs(ijk,l-1) + dt * indyp *2.D0* eps_n * (pijk-p(ijkn))
+        bw(l)  = rws(ijk,l-1) + dt * indzp *2.D0* eps_t * (pijk-p(ijkt))
 !
 ! ... Implicit terms in the linear system
 !
@@ -288,11 +288,11 @@
 ! ... Off-Diagonal elements
         DO ll=1,l
           ls=ls1+ll
-          au(l,ll)=(dxi*appu(ls,ijke)+dxip1*appu(ls,ijk))*indxp
+          au(l,ll)=(dxi*appu(ijke,ls)+dxip1*appu(ijk,ls))*indxp
           au(ll,l)=au(l,ll)
-          av(l,ll)=(dyj*appv(ls,ijkn)+dyjp1*appv(ls,ijk))*indyp
+          av(l,ll)=(dyj*appv(ijkn,ls)+dyjp1*appv(ijk,ls))*indyp
           av(ll,l)=av(l,ll)
-          aw(l,ll)=(dzk*appw(ls,ijkt)+dzkp1*appw(ls,ijk))*indzp
+          aw(l,ll)=(dzk*appw(ijkt,ls)+dzkp1*appw(ijk,ls))*indzp
           aw(ll,l)=aw(l,ll)
         END DO
 !

@@ -42,7 +42,7 @@
       ALLOCATE(smag(ncint))
       ALLOCATE(scoeff(ncint))
       ALLOCATE(mugt(ncdom))
-      ALLOCATE(must(nsolid, ncdom))
+      ALLOCATE(must(ncdom,nsolid))
       ALLOCATE(kapgt(ncdom))
       smag = 0.0D0
       kapgt = 0.0D0
@@ -215,7 +215,8 @@
 !
 ! ... compute the modulus and components of the strain rate tensor
 !
-            CALL straing(ijk, ug, vg, wg, modsr(ijk), sr11,sr12,sr22,sr13,sr23,sr33)
+            CALL strain3d(ug, vg, wg, modsr(ijk),  &
+                          sr11,sr12,sr22,sr13,sr23,sr33, ijk)
 !	  
             p11(ijk) = modsr(ijk) * sr11
   	    p12(ijk) = modsr(ijk) * sr22
@@ -260,17 +261,18 @@
           IF(modturbo == 1) THEN
 	  
 	     IF (job_type == '2D') THEN
-               CALL strain2d(ug, wg, ijk, modsr(ijk))
+               CALL strain2d(ug, wg, modsr(ijk), ijk)
 	     ELSE IF (job_type == '3D') THEN
-               CALL straing(ijk, ug, vg, wg, modsr(ijk), sr11,sr12,sr22,sr13,sr23,sr33)
+               CALL strain3d(ug, vg, wg, modsr(ijk),   &
+                             sr11,sr12,sr22,sr13,sr23,sr33, ijk)
 	     END IF
 
           ELSE IF(modturbo == 2) THEN
 !
 ! ... Dynamic computation of the Smagorinsky length scale (Germano et al., 1991)
 !
-             CALL straing(ijk, fug, fvg, fwg, fmodsr, fsr11, fsr12, fsr22, &
-	                 fsr13, fsr23, fsr33)
+             CALL strain3d(fug, fvg, fwg, fmodsr, fsr11, fsr12, fsr22, &
+	                 fsr13, fsr23, fsr33, ijk)
 !
              CALL rnb(sp11,p11,ijk)
              fp11 = filter_3d(sp11)
@@ -480,12 +482,13 @@
 !
          DO is=1,nsolid
            IF (job_type == '2D') THEN
-             CALL strains2d(us, ws, ijk, is, modsr)
+             CALL strain2d(us(:,is), ws(:,is), modsr, ijk)
            ELSE IF (job_type == '3D') THEN
-             CALL strains(ijk, is, us, vs, ws, modsr, sr11,sr12,sr22,sr13,sr23,sr33)
+             CALL strain3d(us(:,is), vs(:,is), ws(:,is),                &
+                           modsr,sr11,sr12,sr22,sr13,sr23,sr33, ijk)
            END IF
 !
-           must(is,ijk) = 0.5*DSQRT(2.D0) * cmus(is) * rl(is) * dk(is)**2 *   &
+           must(ijk,is) = 0.5*DSQRT(2.D0) * cmus(is) * rl(is) * dk(is)**2 *   &
      &                 10.D0**(3.98D0*rlk(ijk,is)*inrl(is)-1.69D0) * modsr
          END DO
         END IF
@@ -494,7 +497,7 @@
       RETURN
       END SUBROUTINE
 !-----------------------------------------------------------------------
-      SUBROUTINE straing(ijk, u, v, w, modsr, sr11, sr12, sr22, sr13, sr23, sr33)
+      SUBROUTINE strain3d(u, v, w, modsr,sr11,sr12,sr22,sr13,sr23,sr33, ijk)
 !
 ! ... here computes the components of the gas strain rate tensor and its module.
 
@@ -555,72 +558,9 @@
 	                   2.D0*sr12**2.D0 + 2.D0*sr13**2.D0 + 2.D0*sr23**2.D0) )
 !
       RETURN
-      END SUBROUTINE straing
+      END SUBROUTINE strain3d
 !-----------------------------------------------------------------------
-      SUBROUTINE strains(ijk, is, u, v, w, modsr, sr11, sr12, sr22, sr13, sr23, sr33)
-!
-! ... here computes the components of the particle strain rate tensor and its module.
-
-      USE dimensions, ONLY: nx, ny, nz   
-      USE grid, ONLY: dx, dy, dz, indx, indy, indz
-      USE set_indexes
-      IMPLICIT NONE
-
-      INTEGER,INTENT(IN)  :: ijk, is
-      REAL*8, INTENT(IN), DIMENSION(:,:) :: u, v, w
-      REAL*8, INTENT(OUT) :: modsr
-      REAL*8, INTENT(OUT) :: sr11, sr12, sr22, sr13, sr23, sr33
-!
-      REAL*8 :: w1, w2, w3, u1, u2, u3, v1, v2, v3
-      REAL*8 :: um1, um2, vm1, vm2, wm1, wm2 
-      REAL*8 :: dxp, dyp, dzp, dxm, dym, dzm
-      REAL*8 :: uzp, uzm, uyp, uym, vxp, vxm, vzp, vzm, wxp, wxm, wyp, wym 
-      INTEGER :: i, j, k, imesh 
-!
-        imesh = myijk( ip0_jp0_kp0_, ijk)
-        i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
-        j = MOD( ijk - 1, nx*ny ) / nx + 1
-        k = ( ijk - 1 ) / ( nx*ny ) + 1
-
-        dxp=dx(i)+dx(i+1)
-        dxm=dx(i)+dx(i-1)
-        dyp=dy(j)+dy(j+1)
-        dym=dy(j)+dy(j-1)
-        dzp=dz(k)+dz(k+1)
-        dzm=dz(k)+dz(k-1)
-!
-! ... Compute velocity gradients in the cell centers.
-! ... Cross terms (non-diagonal) in the strain tensor are obtained
-! ... by interpolating the values found on the staggered grid.
-!
-        sr11 = (u(is,ijk)-u(is,imjk))*indx(i)
-        sr22 = (v(is,ijk)-v(is,ijmk))*indy(j)
-        sr33 = (w(is,ijk)-w(is,ijkm))*indz(k)
-!
-        uzp=0.5D0*(u(is,ijkp)+u(is,imjkp))
-        uzm=0.5D0*(u(is,ijkm)+u(is,imjkm))
-        uyp=0.5D0*(u(is,ijpk)+u(is,imjpk))
-       	uym=0.5D0*(u(is,ijmk)+u(is,imjmk))
-  	vxp=0.5D0*(v(is,ipjk)+v(is,ipjmk))
-  	vxm=0.5D0*(v(is,imjk)+v(is,imjmk))
-  	vzp=0.5D0*(v(is,ijkp)+v(is,ijmkp))
-	vzm=0.5D0*(v(is,ijkm)+v(is,ijmkm))
-	wxp=0.5D0*(w(is,ipjk)+w(is,ipjkm))
-	wxm=0.5D0*(w(is,imjk)+w(is,imjkm))
-	wyp=0.5D0*(w(is,ijpk)+w(is,ijpkm))
-	wym=0.5D0*(w(is,ijmk)+w(is,ijmkm))
-	
-        sr12 = (uyp - uym) / (dyp+dym) + (vxp - vxm) / (dxp+dxm)
-        sr13 = (uzp - uzm) / (dzp+dzm) + (wxp - wxm) / (dxp+dxm)
-        sr23 = (vzp + vzm) / (dzp+dzm) + (wyp - wym) / (dyp+dym)
-!        
-        modsr = DSQRT(2.D0 * (sr11**2.D0 + sr22**2.D0 + sr33**2.D0 +             &
-	                   2.D0*sr12**2.D0 + 2.D0*sr13**2.D0 + 2.D0*sr23**2.D0) )
-!
-      RETURN
-      END SUBROUTINE strains
-!---------------------------------------------------------------------
-      SUBROUTINE strain2d(u, w, ij, modsr)
+      SUBROUTINE strain2d(u, w, modsr, ij)
 !
 ! ... here computes the components of the strain rate tensor and its module.
 
@@ -684,73 +624,7 @@
         modsr = DSQRT(2 * (sr1**2 + sr2**2 + 2*sr12**2 + d33**2) )
 !
       RETURN
-      END SUBROUTINE
-!---------------------------------------------------------------------
-      SUBROUTINE strains2d(u, w, ij, is, modsr)
-!
-! ... here computes the components of the strain rate tensor and its module.
-
-      USE dimensions, ONLY: nr    
-      USE grid, ONLY:dr, dz, indr, indz,itc,inr 
-      USE set_indexes
-      IMPLICIT NONE
-
-      INTEGER, INTENT(IN)  :: ij, is
-      REAL*8, INTENT(IN), DIMENSION(:,:) :: u, w
-      REAL*8, INTENT(OUT) :: modsr
-!
-      REAL*8 :: w1, w2, w3, u1, u2, u3, um1, um2, wm1, wm2 
-      REAL*8 :: drp, dzm, drm, dzp, indrp, indzm, indrm, indzp
-      REAL*8 :: sr1, sr2, sr12
-      REAL*8 :: d33
-      INTEGER :: i, j, imesh 
-!
-        imesh = myijk( ip0_jp0_kp0_, ij)
-        j = ( imesh - 1 ) / nr + 1
-        i = MOD( ( imesh - 1 ), nr) + 1
-
-        drp=dr(i)+dr(i+1)
-        drm=dr(i)+dr(i-1)
-        dzp=dz(j)+dz(j+1)
-        dzm=dz(j)+dz(j-1)
-        indrp=1.D0/drp
-        indrm=1.D0/drm
-        indzp=1.D0/dzp
-        indzm=1.D0/dzm
-!
-! ... Compute velocity gradients in the center of the cell.
-! ... Cross terms (non-diagonal) in the strain tensor are obtained
-! ... by interpolating the values found on the staggered grids.
-!
-        sr1 = (u(is,ij)-u(is,imj))*indr(i)
-        sr2 = (w(is,ij)-w(is,ijm))*indz(j)
-!
-        
-! ... extra-term for cylindrical coordinates
-!
-        IF(itc.EQ.1) THEN
-          d33 = (u(is,ij)+u(is,imj))*inr(i)
-        ELSE
-          d33 = 0.D0
-        END IF
-!
-        u3=0.5D0*(u(is,ijp)+u(is,imjp))
-        u2=0.5D0*(u(is,ij)+u(is,imj))
-        u1=0.5D0*(u(is,ijm)+u(is,imjm))
-        w3=0.5D0*(w(is,ipj)+w(is,ipjm))
-        w2=0.5D0*(w(is,ij)+w(is,ijm))
-        w1=0.5D0*(w(is,imj)+w(is,imjm))
-        um2=u2+(u3-u2)*dz(j)*indzp
-        um1=u1+(u2-u1)*dz(j-1)*indzm
-        wm2=w2+(w3-w2)*dr(i)*indrp
-        wm1=w1+(w2-w1)*dr(i-1)*indrm
-
-        sr12 =((um2-um1)*indz(j)+(wm2-wm1)*indr(i))*0.5D0
-!        
-        modsr = DSQRT(2 * (sr1**2 + sr2**2 + 2*sr12**2 + d33**2) )
-!
-      RETURN
-      END SUBROUTINE
+      END SUBROUTINE strain2d
 !---------------------------------------------------------------------
        END MODULE turbulence
 !---------------------------------------------------------------------

@@ -78,7 +78,7 @@
             at(is1,1)   =             - dt * hv / cg(ijk)
             at(is1,is1) = rlk(ijk,is) + dt * hv / ck(is,ijk)
 !
-            bt(is1) = rlkn(ijk,is) * siesn(ijk,is) + rhs(is, ijk)
+            bt(is1) = rlkn(ijk,is) * siesn(ijk,is) + rhs(ijk, is)
           END DO
 !
 ! ... Solve the interphase enthalpy matrix by using Gauss inversion
