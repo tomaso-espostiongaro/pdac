@@ -16,6 +16,20 @@
         RETURN
       END SUBROUTINE BCAST_REAL 
 
+      SUBROUTINE BCAST_SREAL(ARRAY,N,root)
+        IMPLICIT NONE
+        REAL*4 array(*)
+        INTEGER n, root
+#if defined MPI
+        INCLUDE 'mpif.h'
+        INTEGER ierr
+        CALL MPI_BCAST(array,n,MPI_REAL,root,
+     &    MPI_COMM_WORLD,ierr)
+#endif
+        RETURN
+      END SUBROUTINE BCAST_SREAL
+
+
 !------------------------------------------------------------------------------!
 !
       SUBROUTINE BCAST_INTEGER(ARRAY,N,root)

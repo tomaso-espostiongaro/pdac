@@ -351,49 +351,28 @@
       LOGICAL, INTENT(IN) :: lform
       REAL*8 :: array(:)
 
-      INTEGER :: ijk, ib, imstart, imend
-      INTEGER :: nbuf   !   number of data block to be written for each global array
-      INTEGER :: rbuf   !   number of data outside the last block (reminder)
+      INTEGER :: ijk, ierr
       REAL*8, ALLOCATABLE :: io_buf(:)
 
-      IF( io_bufsiz < 1 ) &
-        CALL error(' write_array ', ' io_bufsiz too small ', io_bufsiz )
-
-      nbuf = ntot / io_bufsiz
-      rbuf = MOD( ntot, io_bufsiz )
+      IF( ntot < 1 ) &
+        CALL error(' write_array ', ' ntot too small ', ntot )
 
       IF( prec /= sgl .AND. prec /= dbl ) &
         CALL error(' write_array ', ' unknown precision ', prec )
 
-      ALLOCATE( io_buf( io_bufsiz ) )
+      ALLOCATE( io_buf( ntot ), STAT=ierr )
+      IF( ierr /= 0 ) &
+        CALL error(' write_array ', ' cannot allocate io_buf ', ntot )
 
-      imstart = 1
-      DO ib = 1, nbuf
-        imend = imstart + io_bufsiz - 1
-        CALL data_collect( io_buf, array, imstart, imend )
-        IF( mpime == root ) THEN
-           IF( lform ) THEN
-             WRITE(iunit,10) ( io_buf(ijk), ijk = 1, io_bufsiz )
-           ELSE
-             IF( prec == sgl ) THEN
-               WRITE(iunit) REAL( io_buf( 1 : io_bufsiz ), sgl )
-             ELSE 
-               WRITE(iunit) ( io_buf(ijk), ijk = 1, io_bufsiz )
-             END IF
-           END IF
-        END IF
-        imstart = imend + 1
-      END DO
-      imend = imstart + rbuf - 1
-      CALL data_collect( io_buf, array, imstart, imend )
+      CALL data_collect( io_buf, array, 1, ntot )
       IF( mpime == root ) THEN
          IF( lform ) THEN
-           WRITE(iunit,10) ( io_buf(ijk), ijk = 1, rbuf )
+           WRITE(iunit,10) ( io_buf(ijk), ijk = 1, ntot )
          ELSE
            IF( prec == sgl ) THEN
-             WRITE(iunit) REAL( io_buf( 1 : rbuf ), sgl )
+             WRITE(iunit) REAL( io_buf( 1 : ntot ), sgl )
            ELSE 
-             WRITE(iunit) ( io_buf(ijk), ijk = 1, rbuf )
+             WRITE(iunit) ( io_buf(ijk), ijk = 1, ntot )
            END IF
          END IF
       END IF
@@ -410,58 +389,52 @@
       LOGICAL, INTENT(IN) :: lform
       REAL*8 :: array(:)
 
-      INTEGER :: ijk, ib, imstart, imend
-      INTEGER :: nbuf   !   number of data block to be written for each global array
-      INTEGER :: rbuf   !   number of data outside the last block (reminder)
+      INTEGER :: ijk, ierr
       REAL*8, ALLOCATABLE :: io_buf(:)
       REAL(sgl), ALLOCATABLE :: io_bufs(:)
 
-      IF( io_bufsiz < 1 ) &
-        CALL error(' read_array ', ' io_bufsiz too small ', io_bufsiz )
-
-      nbuf = ntot / io_bufsiz
-      rbuf = MOD( ntot, io_bufsiz )
+      IF( ntot < 1 ) &
+        CALL error(' read_array ', ' ntot too small ', ntot )
 
       IF( prec /= sgl .AND. prec /= dbl ) &
         CALL error(' read_array ', ' unknown precision ', prec )
 
-      ALLOCATE( io_buf( io_bufsiz ) )
-      IF( prec == sgl ) ALLOCATE( io_bufs( io_bufsiz ) )
+      IF( prec /= sgl .AND. lform ) &
+        CALL error(' read_array ', ' single precision with formatted file ', prec )
 
-      imstart = 1
-      DO ib = 1, nbuf
-        imend = imstart + io_bufsiz - 1
-        IF( mpime == root ) THEN
-           IF( lform ) THEN
-             READ(iunit,*) ( io_buf(ijk), ijk = 1, io_bufsiz )
-           ELSE
-             IF( prec == sgl ) THEN
-               READ(iunit) ( io_bufs(ijk), ijk = 1, io_bufsiz )
-               io_buf = io_bufs
-             ELSE
-               READ(iunit) ( io_buf(ijk), ijk = 1, io_bufsiz )
-             END IF
-           END IF
-        END IF
-        CALL data_distribute( io_buf, array, imstart, imend )
-        imstart = imend + 1
-      END DO
-      imend = imstart + rbuf - 1
+      IF( prec == sgl ) THEN
+        ALLOCATE( io_bufs( ntot ), STAT=ierr )
+      ELSE
+        ALLOCATE( io_buf( ntot ), STAT=ierr )
+      END IF
+
+      IF( ierr /= 0 ) &
+        CALL error(' read_array ', ' cannot allocate io_buf ', ntot )
+
       IF( mpime == root ) THEN
          IF( lform ) THEN
-           READ(iunit,*) ( io_buf(ijk), ijk = 1, rbuf )
+           READ(iunit,*) ( io_buf(ijk), ijk = 1, ntot )
          ELSE
            IF( prec == sgl ) THEN
-             READ(iunit) ( io_bufs(ijk), ijk = 1, rbuf )
-             io_buf = io_bufs
+             READ(iunit) ( io_bufs(ijk), ijk = 1, ntot )
            ELSE
-             READ(iunit) ( io_buf(ijk), ijk = 1, rbuf )
+             READ(iunit) ( io_buf(ijk), ijk = 1, ntot )
            END IF
          END IF
       END IF
-      CALL data_distribute( io_buf, array, imstart, imend )
-      DEALLOCATE( io_buf )
-      IF( prec == sgl ) DEALLOCATE( io_bufs )
+
+      IF( prec == sgl ) THEN
+        CALL data_distribute( io_bufs, array, 1, ntot )
+      ELSE
+        CALL data_distribute( io_buf, array, 1, ntot )
+      END IF
+
+      IF( prec == sgl ) THEN
+        DEALLOCATE( io_bufs )
+      ELSE
+        DEALLOCATE( io_buf )
+      END IF
+
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
