@@ -78,7 +78,7 @@
 !
       USE control_flags, ONLY: lpr
       USE dimensions, ONLY: nz
-      USE grid, ONLY: dz, zzero
+      USE grid, ONLY: dz
       USE parallel, only: mpime, root
 !
       IMPLICIT NONE
@@ -213,7 +213,7 @@
           pbot = layer(l-1)%ptop
           tbot = layer(l-1)%ttop
         ELSE
-          zbot = zzero
+          zbot = 0.D0
           pbot = p_ground
           tbot = t_ground
         END IF
@@ -230,7 +230,7 @@
 !
         t_atm(k) = ta
         p_atm(k) = pa
-
+        
       END DO
 !
       RETURN

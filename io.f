@@ -404,7 +404,7 @@
            ! ... This format is consistent with the old PDAC2D
            ! ... OUTPUT format
            DO k = 1, nz
-             first = (nz-1) * ntr + 1
+             first = (k-1) * ntr + 1
              WRITE(iunit,10) ( io_buf(ij), ij = first, first + ntr - 1 )
            END DO
          ELSE

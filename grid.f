@@ -162,7 +162,7 @@
       WRITE(17,*) yb
       WRITE(17,*) zb
 
-      CLOSE(17)
+      !CLOSE(17)
 
 ! ... inverse of the cell sizes
 
@@ -318,6 +318,8 @@
           fl(nz*nx) = 4
         END IF
       END IF
+      
+      WRITE(17,*) fl
       
       RETURN
       END SUBROUTINE flic
