@@ -1450,7 +1450,7 @@
       IF (lpr >= 1) THEN
         DO ipe = 0, nproc - 1
           WRITE(7,300) nset(ipe), ipe
-          IF ( nset(ipe) > 0 ) THEN
+          IF ( nset(ipe) > 0 .AND. lpr > 2 ) THEN
             WRITE(7,310) rcv_cell_set(ipe)%i(1,:)
           END IF
  300      FORMAT(' # neighbours set SIZE ',i5,' from ',i3)
@@ -1558,7 +1558,7 @@
       IF (lpr >= 1) THEN
         DO ipe = 0, nproc - 1
           WRITE(7,100) rcv_map(ipe)%nrcv, ipe
-          IF(rcv_map(ipe)%nrcv > 0 ) THEN
+          IF( rcv_map(ipe)%nrcv > 0 .AND. lpr > 2 ) THEN
             WRITE(7,110) rcv_map(ipe)%ircv(:)
             WRITE(7,*) ' ---- '
             WRITE(7,110) rcv_map(ipe)%iloc(:)
@@ -1571,7 +1571,7 @@
       IF (lpr >= 1) THEN
         DO ipe = 0, nproc - 1
           WRITE(7,200) snd_map(ipe)%nsnd, ipe
-          IF (snd_map(ipe)%nsnd > 0 ) THEN
+          IF ( snd_map(ipe)%nsnd > 0 .AND. lpr > 2 ) THEN
             WRITE(7,210) snd_map(ipe)%isnd(:)
             WRITE(7,*) ' ---- '
             WRITE(7,210) snd_map(ipe)%iloc(:)
@@ -2977,7 +2977,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               vf(ijk) = vf(ijk) / 6.D0
             END IF
 
-            IF (bd(ijk) /= filled) THEN
+            IF (bd(ijk) /= filled  .AND. lpr > 2 ) THEN
               WRITE( 7, fmt = "( I8,3I4,2X,B8 )" ) ijk, i, j, k, bd(ijk)
             END IF
 
