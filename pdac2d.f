@@ -212,8 +212,6 @@
 ! ... Setting ghost cells
 !
       CALL ghost
-      CALL parallel_hangup
-      STOP
       IF(timing) s3 = cpclock()
       IF (job_type == '3D') CALL error('main','3D routines not yet implemented',1)
 !
