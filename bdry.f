@@ -41,7 +41,7 @@
       IMPLICIT NONE
 !
       INTEGER :: ijk, i, j, k, imesh, ig, is
-      INTEGER :: fp, p
+      INTEGER :: fp, np
       REAL*8 :: d1, d2 
       REAL*8 :: vel
       INTEGER :: fx, fy, fz
@@ -78,54 +78,55 @@
             IF (job_type == '2D') THEN
 
               IF( fx/=0 ) THEN
-
                 vel = velint(fptx(fx), ug, ijk, xb, y, z)  
                 fptx(fx)%vel = vel
+                fptx(fx)%p = p(ijk)
 
                 ! ... Initialize x-velocity in the forced points
                 ug(ijk) = vel
                 us(ijk,:) = vel
+              END IF
 
-              ELSE IF( fz/=0 ) THEN
-
+              IF( fz/=0 ) THEN
                 vel = velint(fptz(fz), wg, ijk, x, y, zb)  
                 fptz(fz)%vel = vel
+                fptz(fz)%p = p(ijk)
 
                 ! ... Initialize z-velocity in the forced points
                 wg(ijk) = vel
                 ws(ijk,:) = vel
-
               END IF
 
             ELSE IF (job_type == '3D') THEN
 
               IF( fx/=0 ) THEN
-
                 vel = velint3d(fptx(fx), ug, ijk, xb, y, z)  
                 fptx(fx)%vel = vel
+                fptx(fx)%p = p(ijk)
 
                 ! ... Initialize x-velocity in the forced points
                 ug(ijk) = vel
                 us(ijk,:) = vel
-
-              ELSE IF( fy/=0 ) THEN
-
+              END IF
+              
+              IF( fy/=0 ) THEN
                 vel = velint3d(fpty(fy), vg, ijk, x, yb, z)  
                 fpty(fy)%vel = vel
+                fpty(fy)%p = p(ijk)
 
                 ! ... Initialize y-velocity in the forced points
                 vg(ijk) = vel
                 vs(ijk,:) = vel
-
-              ELSE IF( fz/=0 ) THEN
-
+              END IF
+              
+              IF( fz/=0 ) THEN
                 vel = velint3d(fptz(fz), wg, ijk, x, y, zb)  
                 fptz(fz)%vel = vel
+                fptz(fz)%p = p(ijk)
 
                 ! ... Initialize z-velocity in the forced points
                 wg(ijk) = vel
                 ws(ijk,:) = vel
-
               END IF
           
             ELSE
@@ -641,26 +642,28 @@
           IF (job_type == '3D') &
             OPEN(UNIT=16,FILE='fpty.dat',STATUS='UNKNOWN')
           OPEN(UNIT=17,FILE='fptz.dat',STATUS='UNKNOWN')
-          DO p = 1, SIZE(fptx)
-            WRITE(15,33) p, fptx(p)
+          DO np = 1, SIZE(fptx)
+            WRITE(15,33) np, fptx(np)
           END DO
           CLOSE(15)
           IF (job_type == '3D') THEN
-            DO p = 1, SIZE(fpty)
-              WRITE(16,33) p, fpty(p)
+            DO np = 1, SIZE(fpty)
+              WRITE(16,33) np, fpty(np)
             END DO
             CLOSE(16)
           END IF
-          DO p = 1, SIZE(fptz)
-            WRITE(17,33) p, fptz(p)
+          DO np = 1, SIZE(fptz)
+            WRITE(17,33) np, fptz(np)
           END DO
           CLOSE(17)
         END IF
- 33   FORMAT(5(I6),4(F18.3))
+ 33   FORMAT(5(I6),5(F18.3))
       END IF
 !
       RETURN
       END SUBROUTINE boundary
+!----------------------------------------------------------------------
+!     I N - O U T   F L O W   P R O C E D U R E S 
 !----------------------------------------------------------------------
       SUBROUTINE inout_flow(umn, ucn, upn, usmn, uscn, uspn, d1, d2, grav, k)
 !
@@ -1280,6 +1283,8 @@
 !
       RETURN
       END SUBROUTINE free_outin
+!-----------------------------------------------------------------------
+!     I N T E R P O L A T I O N     P R O C E D U R E S 
 !-----------------------------------------------------------------------
       REAL*8 FUNCTION velint(fpt, vel, ijk, cx, cy, cz)
 !

@@ -1093,6 +1093,7 @@
       USE immersed_boundaries, ONLY: immb
       USE immersed_boundaries, ONLY: topo_c, topo_x
       USE immersed_boundaries, ONLY: topo2d_c, topo2d_x, topo2d_y
+      USE time_parameters, ONLY: sweep
       IMPLICIT NONE
 
       INTEGER :: i,j,k,ijk,imesh
@@ -1127,6 +1128,14 @@
               IF (zb(k) < topo2d_c(i,j))    b_t(ijk) = 0 ! Top
               IF (zb(k-1) < topo2d_c(i,j))  b_b(ijk) = 0 ! Bottom
             END IF
+
+!            IF (sweep == 1) THEN
+!              IF (b_e(ijk)==0 .OR. &
+!                  b_w(ijk)==0 .OR. &
+!                  b_t(ijk)==0 .OR. &
+!                  b_b(ijk)==0 )    &
+!              WRITE(6,('I8,7(I4)')) ijk, i, j, k, b_e(ijk), b_w(ijk), b_t(ijk), b_b(ijk)
+!            END IF
           END IF
 
         END DO

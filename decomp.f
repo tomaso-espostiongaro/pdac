@@ -1141,12 +1141,14 @@ set_numx: IF (i/=0 .AND. k/=0) THEN
               ijk = i + (j-1) * nx + (k-1) * nx * ny
             END IF
             IF( cell_owner(ijk) == mpime ) THEN
+
               ijkl = cell_g2l(ijk,mpime)
+              numx(ijkl) = n 
+
               IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
                   j==1 .OR. j==ny) THEN
                 WRITE(8,*) 'x-forcing on boundaries', i, j, k
               END IF
-              numx(ijkl) = n 
             END IF
           ELSE
             CALL error('decomp','control numx',1)
@@ -1168,12 +1170,14 @@ set_numy:   IF (i/=0 .AND. k/=0) THEN
                 ijk = i + (j-1) * nx + (k-1) * nx * ny
               END IF
               IF( cell_owner(ijk)== mpime ) THEN
+
                 ijkl = cell_g2l(ijk,mpime)
+                numy(ijkl) = n 
+
                 IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
                     j==1 .OR. j==ny) THEN
                   WRITE(8,*) 'y-forcing on boundaries', i, j, k
                 END IF
-                numy(ijkl) = n 
               END IF
             ELSE
               CALL error('decomp','control numy',1)
@@ -1195,12 +1199,14 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               ijk = i + (j-1) * nx + (k-1) * nx * ny
             END IF
             IF( cell_owner(ijk)== mpime ) THEN
+
               ijkl = cell_g2l(ijk,mpime)
+              numz(ijkl) = n 
+
               IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
                   j==1 .OR. j==ny) THEN
                 WRITE(8,*) 'z-forcing on boundaries', i, j, k
               END IF
-              numz(ijkl) = n 
             END IF
           ELSE
             CALL error('decomp','control numz',1)

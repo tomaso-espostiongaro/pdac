@@ -30,6 +30,7 @@
         INTEGER :: int
         TYPE(point) :: nsl
         REAL*8  :: vel
+        REAL*8  :: p
       END TYPE forcing_point
 !
       TYPE(forcing_point), ALLOCATABLE :: fptx(:), fpty(:), fptz(:)
@@ -73,7 +74,7 @@
 ! ... and set interpolation parameters
 !
       !
-      ! ... Allocate the logical arrays that are used to 
+      ! ... Allocate the logical array that is used to 
       ! ... identify the forcing points
       !
       ALLOCATE(force(ntot)); force = .FALSE.
@@ -85,6 +86,7 @@
 
         !
         ! ... interpolate the topography on x-staggered mesh
+        ! ... and count the forcing points along x
         !
         CALL interpolate_2d(xb, z, topo_x, force)
         nfpx = COUNT(force)
@@ -103,6 +105,7 @@
 
         !
         ! ... interpolate the topography on z-staggered mesh
+        ! ... and count the forcing points along z
         !
         CALL interpolate_2d(x, zb, topo_c, force)
         nfpz = COUNT(force)
@@ -126,6 +129,7 @@
         ALLOCATE(topo2d_y(nx,ny))
         !
         ! ... interpolate the topography on x-staggered mesh
+        ! ... and count the forcing points along x
         !
         CALL interpolate_dem(xb, y, z, topo2d_x, force)
         nfpx = COUNT(force)
@@ -145,6 +149,7 @@
         
         !
         ! ... interpolate the topography on y-staggered mesh
+        ! ... and count the forcing points along y
         !
         CALL interpolate_dem(x, yb, z, topo2d_y, force)
         nfpy = COUNT(force)
@@ -164,6 +169,7 @@
         
         !
         ! ... interpolate the topography on z-staggered mesh
+        ! ... and count the forcing points along z
         !
         CALL interpolate_dem(x, y, zb, topo2d_c, force)
         nfpz = COUNT(force)
@@ -185,30 +191,6 @@
 !
       DEALLOCATE (force)
 !
-      IF (lpr > 2) THEN
-        IF (mpime == root) THEN
-          OPEN(UNIT=15,FILE='fptx.dat',STATUS='UNKNOWN')
-          IF (job_type == '3D') &
-            OPEN(UNIT=16,FILE='fpty.dat',STATUS='UNKNOWN')
-          OPEN(UNIT=17,FILE='fptz.dat',STATUS='UNKNOWN')
-          DO p = 1, SIZE(fptx)
-            WRITE(15,33) p, fptx(p)
-          END DO
-          CLOSE(15)
-          IF (job_type == '3D') THEN
-            DO p = 1, SIZE(fpty)
-              WRITE(16,33) p, fpty(p)
-            END DO
-            CLOSE(16)
-          END IF
-          DO p = 1, SIZE(fptz)
-            WRITE(17,33) p, fptz(p)
-          END DO
-          CLOSE(17)
-        END IF
- 33   FORMAT(5(I6),4(F18.3))
-      END IF
-
       RETURN
       END SUBROUTINE set_forcing
 !----------------------------------------------------------------------
