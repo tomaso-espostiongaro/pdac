@@ -889,7 +889,6 @@
       INTEGER :: nprocxy, nprocz
 !
       INTEGER :: localdim
-      EXTERNAL :: localdim
 !
       INTEGER, ALLOCATABLE :: lay_map(:,:)  ! layer map used as first domain partition
       INTEGER, ALLOCATABLE :: nctot_lay(:)  ! total number of cell per layer

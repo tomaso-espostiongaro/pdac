@@ -164,7 +164,7 @@
           IF (wrat > 1.D0) THEN
             beta = 1.D0 / (wrat - 1.D0)
             ra = DSQRT((x(i)-xvent)**2 + (y(j)-yvent)**2)
-            ra = ra / radius
+            ra = MIN(ra / radius, 1.D0)
             fact_r = wrat * (1.D0 - ra ** beta)
           ELSE IF (wrat <= 1.D0) THEN
             fact_r = 1.D0
