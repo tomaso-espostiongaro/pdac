@@ -182,9 +182,11 @@
         !
         CALL read_output ( tn )
 
+
         ! ... Derived fields are computed as a function of
         ! ... primary fields and other derived fields
         !
+
         rm = rhom(eps,p,tg,xgc)
         rg = rhog(p,tg,xgc)
         bd = rgp(eps,p,tg,xgc)
@@ -196,6 +198,7 @@
         c  = cm(bd,rg,rm,m,tg)
         mc = mach(mvm,c)
         pd = pdyn(rm,mvm)
+
         epstot = epst(eps)
         lepstot = leps(epstot)
 

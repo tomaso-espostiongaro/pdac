@@ -38,19 +38,17 @@
 !
 ! ... flags for the domain boundary condition
       INTEGER :: west, east, south, north, bottom, top
-      INTEGER :: fluid, slip_wall, noslip_wall, inlet_cell, free_io, nrfree_io, &
-                 vent_cell, dome_cell, int_immb, ext_immb
 !
-      PARAMETER fluid          = 2**0          ! OLD flag = 1
-      PARAMETER slip_wall      = 2**1          ! OLD flag = 2
-      PARAMETER noslip_wall    = 2**2          ! OLD flag = 3
-      PARAMETER free_io        = 2**3          ! OLD flag = 4
-      PARAMETER inlet_cell     = 2**4          ! OLD flag = 5
-      PARAMETER nrfree_io      = 2**5          ! OLD flag = 6
-      PARAMETER vent_cell      = 2**6          ! OLD flag = 7
-      PARAMETER dome_cell      = 2**7 + fluid  ! OLD flag = 8
-      PARAMETER int_immb       = 2**8 + fluid  !
-      PARAMETER ext_immb       = 2**9          !
+      INTEGER, PARAMETER :: fluid          = 2**0          ! OLD flag = 1
+      INTEGER, PARAMETER :: slip_wall      = 2**1          ! OLD flag = 2
+      INTEGER, PARAMETER :: noslip_wall    = 2**2          ! OLD flag = 3
+      INTEGER, PARAMETER :: free_io        = 2**3          ! OLD flag = 4
+      INTEGER, PARAMETER :: inlet_cell     = 2**4          ! OLD flag = 5
+      INTEGER, PARAMETER :: nrfree_io      = 2**5          ! OLD flag = 6
+      INTEGER, PARAMETER :: vent_cell      = 2**6          ! OLD flag = 7
+      INTEGER, PARAMETER :: dome_cell      = 2**7 + fluid  ! OLD flag = 8
+      INTEGER, PARAMETER :: int_immb       = 2**8 + fluid  !
+      INTEGER, PARAMETER :: ext_immb       = 2**9          !
 !
 ! ... origin of atmospheric stratification
       REAL*8 :: zzero
