@@ -87,13 +87,6 @@
       ELSE
         ft = w%c * dens%t
       ENDIF
-
-      upc_e = 0.0d0
-      upc_n = 0.0d0 
-      upc_t = 0.0d0
-      upc_w = 0.0d0
-      upc_s = 0.0d0
-      upc_b = 0.0d0
 !
       RETURN
       END SUBROUTINE masf_3d
@@ -321,7 +314,7 @@
 	incr = 0.5D0 * dx(i)
       ENDIF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0)) THEN
+      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (i /= 2)) THEN
         CALL limiters(lim,erre)
       END IF
 !
@@ -385,7 +378,7 @@
 	incr = 0.5D0 * dy(j)
       ENDIF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0)) THEN
+      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (j /= 2)) THEN
         CALL limiters(lim,erre)
       END IF
 !
@@ -449,7 +442,7 @@
 	incr = 0.5D0 * dz(k)
       ENDIF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0)) THEN
+      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (k /= 2)) THEN
         CALL limiters(lim,erre)
       END IF
 !
@@ -623,7 +616,7 @@
 	incr = 0.5D0 * dx(i)
       ENDIF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0)) THEN
+      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (i /= 2)) THEN
         CALL limiters(lim,erre)
       END IF
 !
@@ -687,7 +680,7 @@
 	incr = 0.5D0 * dz(k)
       ENDIF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0)) THEN
+      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (k /= 2)) THEN
         CALL limiters(lim,erre)
       END IF
 !
