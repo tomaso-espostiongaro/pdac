@@ -166,57 +166,56 @@
       RETURN
       END SUBROUTINE eosg
 !----------------------------------------------------------------------
-      SUBROUTINE cnvertg(imesh)
+
+      SUBROUTINE cnvertg_local( ijk )
 !
 ! ... computes thermodynamic mean quantities
 !
       USE dimensions
-      USE gas_constants, ONLY: gmw, c_joule,rgas,tzero,hzerog
-      USE gas_solid_density, ONLY: gas_density, gas_bulk_density
-      USE gas_solid_temperature, ONLY: gas_enthalpy, gas_temperature
-      USE pressure_epsilon, ONLY: gas_pressure, void_fraction
-      USE specific_heat_module, ONLY: gc_specific_heat, solid_specific_heat, hcapg
+      USE gas_constants, ONLY: gmw, c_joule, rgas, tzero, hzerog
+      USE gas_solid_density, ONLY: rog, rgp
+      USE gas_solid_temperature, ONLY: sieg, tg
+      USE pressure_epsilon, ONLY: p, ep
+      USE specific_heat_module, ONLY: cp, hcapg
 !
       IMPLICIT NONE
 !
-      INTEGER, INTENT(IN) :: imesh
+      INTEGER, INTENT(IN) :: ijk
       INTEGER :: ig
 !
       REAL*8 :: mg, hc
 !
       mg = 0.D0
       DO ig = 1, ngas
-        mg = mg + gc_molar_fraction(ig,imesh) * gmw(ig)
+        mg = mg + xgc( ig, ijk ) * gmw(ig)
       END DO
 
+!
 ! ... gas density (from equation of state)
 !
-      gas_density(imesh)      = &
-          gas_pressure(imesh) / (rgas*gas_temperature(imesh)) * mg
+      rog(ijk)   = p(ijk) / ( rgas * tg(ijk) ) * mg
 
-      gas_bulk_density(imesh) = &
-          gas_density(imesh) * void_fraction(imesh)
+      rgp(ijk)   = rog(ijk) * ep(ijk)
 
       DO ig = 1, ngas
-        gc_bulk_density(imesh,ig) = &
-            gc_mass_fraction(ig,imesh) * gas_bulk_density(imesh)
+        rgpgc(ijk,ig) = ygc(ig,ijk) * rgp(ijk)
       END DO
 
 !
 ! compute heat capacity (constant volume) for gas mixture
 !
-      CALL hcapg(gc_specific_heat(:,imesh), gas_temperature(imesh))
+      CALL hcapg( cp(:,ijk), tg(ijk))
 
       hc = 0.D0
       DO ig = 1, ngas
-        hc = hc + gc_specific_heat(ig,imesh)*gc_mass_fraction(ig,imesh)
+        hc = hc + cp(ig,ijk) * ygc(ig,ijk)
       END DO 
-      gas_specific_heat(imesh) = hc
+      cg(ijk) = hc
 
-      gas_enthalpy(imesh) = (gas_temperature(imesh)-tzero) * gas_specific_heat(imesh) + hzerog
+      sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
 !
       RETURN
-      END SUBROUTINE cnvertg
+      END SUBROUTINE cnvertg_local
 !----------------------------------------------------------------------
       END MODULE eos_gas
 !----------------------------------------------------------------------

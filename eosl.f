@@ -26,30 +26,30 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE cnverts(imesh)
+      SUBROUTINE cnverts_local(ijk)
 !
       USE dimensions
-      USE gas_solid_temperature, ONLY: solid_enthalpy, solid_temperature
+      USE gas_solid_temperature, ONLY: sies, ts
       USE gas_constants, ONLY: tzero, hzeros
       USE particles_constants, ONLY: cps
-      USE specific_heat_module, ONLY: solid_specific_heat, hcaps
+      USE specific_heat_module, ONLY: ck, hcaps
 !
       IMPLICIT NONE
 !
-      INTEGER, INTENT(IN) :: imesh
+      INTEGER, INTENT(IN) :: ijk
       INTEGER :: is
 !
 ! compute heat capacity (constant volume) for particles
 !
       DO is = 1, nsolid
-        CALL hcaps(solid_specific_heat(is,imesh), cps(is), &
-                   solid_temperature(imesh,is))
-        solid_enthalpy(imesh,is) = ( solid_temperature(imesh,is) - tzero ) * &
-                                    solid_specific_heat(is,imesh) + hzeros
+        CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
+        sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
       END DO
 !
       RETURN
-      END SUBROUTINE cnverts
+      END SUBROUTINE cnverts_local
+
+
 !----------------------------------------------------------------------
       END MODULE eos_solid
 !----------------------------------------------------------------------

@@ -30,30 +30,28 @@
       USE atmosphere, ONLY: atm, controlatm
       USE control_flags, ONLY: job_type
       USE dimensions
-      USE eos_gas, ONLY: mas, mole, cnvertg, gc_molar_fraction, gc_mass_fraction
-      USE eos_solid, ONLY: cnverts
+      USE eos_gas, ONLY: mas, mole, cnvertg_local, xgc, ygc
+      USE eos_solid, ONLY: cnverts_local
       USE gas_constants, ONLY: default_gas, present_gas
-      USE gas_solid_density, ONLY: gas_bulk_density, solid_bulk_density
-      USE gas_solid_temperature, ONLY: gas_temperature, solid_temperature
-      USE gas_solid_temperature, ONLY: gas_enthalpy
-      USE gas_solid_velocity, ONLY: gas_velocity_r, gas_velocity_z, &
-          gas_velocity_x, gas_velocity_y
-      USE gas_solid_velocity, ONLY: solid_velocity_r, solid_velocity_z, &
-          solid_velocity_x, solid_velocity_y
-      USE gas_solid_viscosity, ONLY: gas_viscosity, gas_thermal_conductivity
-      USE grid, ONLY: grid_setup, zb, dx, dy, dz, dr
-      USE grid, ONLY: fl, iob
+      USE gas_solid_density, ONLY: rgp, rlk
+      USE gas_solid_temperature, ONLY: tg, ts
+      USE gas_solid_temperature, ONLY: sieg
+      USE gas_solid_velocity, ONLY: ug, wg, vg
+      USE gas_solid_velocity, ONLY: us, vs, ws
+      USE grid, ONLY: grid_setup, zb, dx, dy, dz, dr, myijk
+      USE grid, ONLY: fl_l, iob, ncint
       USE particles_constants, ONLY: rl, inrl
-      USE pressure_epsilon, ONLY: gas_pressure, void_fraction
+      USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: itd
+      USE indijk_module, ONLY: ip0_jp0_kp0_
 
       IMPLICIT NONE
 !
-      INTEGER :: i, j, k, ijk, j1, j2, i1, i2, ikpr, kpr, ij, n
-      INTEGER :: ig, is, imesh
+      INTEGER :: i, j, k, ijk, ikpr, kpr, ij, n, imesh
+      INTEGER :: ig, is
       REAL*8 :: zrif, prif, trif
 !
-      CALL grid_setup(zzero)
+      CALL grid_setup( zzero )
       CALL setc
 !
       IF (itd <= 1) THEN
@@ -64,144 +62,157 @@
 !
         IF( job_type == '2D' ) THEN
 
-          DO  j=1,nz
+          CALL controlatm
+
+          DO ij = 1, ncint
+
+            imesh = myijk( ip0_jp0_kp0_ , ij )
+            j = ( imesh - 1 ) / nr + 1
+            i = MOD( ( imesh - 1 ), nr) + 1
+
             zrif=zb(j)+0.5D0*(dz(1)-dz(j))
-            DO i=1,nr
-              ij=i+(j-1)*nr
-              CALL controlatm
-              CALL atm(zrif,gas_pressure(ij),gas_temperature(ij))
+            CALL controlatm
+            CALL atm( zrif, p(ij), tg(ij) )
 !
 ! ... Set initial gas composition and particles concentration
 !
-              void_fraction(ij)=ep0
-              DO ig=1,ngas
-                gc_mass_fraction(ig,ij)=ygc0(ig)
-              END DO
-              DO is=1,nsolid
-                solid_bulk_density(ij,is)=rl(is)*(1.D0-ep0)/DBLE(nsolid)
-                solid_temperature(ij,is)=gas_temperature(ij)
-              END DO
+            ep(ij)=ep0
+            DO ig=1,ngas
+              ygc(ig,ij)=ygc0(ig)
+            END DO
+            DO is=1,nsolid
+              rlk(ij,is)=rl(is)*(1.D0-ep0)/DBLE(nsolid)
+              ts(ij,is)=tg(ij)
+            END DO
 !
 ! ... Set velocity profiles
 !
-              IF(fl(ij) == 1 .OR. fl(ij) == 4 .OR. fl(ij) == 6) THEN
-               gas_velocity_r(ij)=u0
-               gas_velocity_z(ij)=w0
-               DO is=1,nsolid
-                 solid_velocity_r(ij,is)=us0
-                 solid_velocity_z(ij,is)=ws0
-               END DO
-              END IF
+            IF(fl_l(ij) == 1 .OR. fl_l(ij) == 4 .OR. fl_l(ij) == 6) THEN
+             ug(ij)=u0
+             wg(ij)=w0
+             DO is=1,nsolid
+               us(ij,is)=us0
+               ws(ij,is)=ws0
+             END DO
+            END IF
 !
-            END DO
           END DO
 
         ELSE IF ( job_type == '3D' ) THEN
 
-          DO k = 1, nz
+          CALL controlatm
+
+          DO ijk = 1, ncint
+
+            imesh = myijk( ip0_jp0_kp0_ , ijk )
+            i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
+            j = MOD( imesh - 1, nx*ny ) / nx + 1
+            k = ( imesh - 1 ) / ( nx*ny ) + 1
 
             zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )
-
-            CALL controlatm
             CALL atm( zrif, prif, trif )
 
-            DO j = 1, ny
+            p( ijk ) = prif   !   gas_pressure
+            tg( ijk ) = trif  !   gas_temperature
+            ep( ijk ) = ep0   !   void_fraction
 
-              DO i = 1, nx
-
-                ijk = i + (j-1)*nx + (k-1)*nx*ny
-                gas_pressure( ijk ) = prif
-                gas_temperature( ijk ) = trif
+            DO ig=1,ngas
+              ygc(ig,ijk)=ygc0(ig)  ! gc_mass_fraction
+            END DO
 !
 ! ... Set initial gas composition and particles concentration
 !
-                void_fraction(ijk)=ep0
-                DO ig=1,ngas
-                  gc_mass_fraction(ig,ijk)=ygc0(ig)
-                END DO
-                DO is=1,nsolid
-                  solid_bulk_density(ijk,is)=rl(is)*(1.D0-ep0)/DBLE(nsolid)
-                  solid_temperature(ijk,is)=gas_temperature(ijk)
-                END DO
+            DO is=1,nsolid
+              rlk(ijk,is)=rl(is)*(1.D0-ep0)/DBLE(nsolid)  ! solid_bulk_density
+              ts(ijk,is)=tg(ijk) ! solid_temperature
+            END DO
 !
 ! ... Set velocity profiles
 !
-                IF( fl(ijk) == 1 .OR. fl(ijk) == 4 .OR. fl(ijk) == 6 ) THEN
-                  gas_velocity_x(ijk)=u0
-                  gas_velocity_y(ijk)=v0
-                  gas_velocity_z(ijk)=w0
-                  DO is = 1, nsolid
-                    solid_velocity_x(ijk,is) = us0
-                    solid_velocity_y(ijk,is) = vs0
-                    solid_velocity_z(ijk,is) = ws0
-                  END DO
-                END IF
-
+            IF( fl_l(ijk) == 1 .OR. fl_l(ijk) == 4 .OR. fl_l(ijk) == 6 ) THEN
+              ug(ijk)=u0  ! gas_velocity_x
+              vg(ijk)=v0
+              wg(ijk)=w0
+              DO is = 1, nsolid
+                us(ijk,is) = us0  ! solid_velocity_x
+                vs(ijk,is) = vs0
+                ws(ijk,is) = ws0
               END DO
-            END DO
+            END IF
+
           END DO
 
         END IF
 ! 
 ! ... Set initial conditions in Boundary cells with imposed fluid flow
 !
-        DO n=1,no
+        DO n = 1, no
 
           IF( job_type == '2D' ) THEN
 
-            DO j = iob(n)%zlo, iob(n)%zhi 
-            DO i = iob(n)%rlo, iob(n)%rhi
-              ij=i+(j-1)*nr
+            DO ij = 1, ncint
+
+              imesh = myijk( ip0_jp0_kp0_ , ij )
+              j = ( imesh - 1 ) / nr + 1
+              i = MOD( ( imesh - 1 ), nr) + 1
+
+              IF( j >= iob(n)%zlo .AND. j <= iob(n)%zhi  ) THEN
+              IF( i >= iob(n)%rlo .AND. i <= iob(n)%rhi  ) THEN
               IF( iob(n)%typ == 1 .OR. iob(n)%typ == 5 ) THEN
-                gas_velocity_r(ij)=ugob(n)
-                gas_velocity_z(ij)=wgob(n)
-                gas_temperature(ij)=tgob(n)
-                gas_pressure(ij)=pob(n)
-                void_fraction(ij)=epob(n)
+                ug(ij)=ugob(n)
+                wg(ij)=wgob(n)
+                tg(ij)=tgob(n)
+                p(ij)=pob(n)
+                ep(ij)=epob(n)
                 DO ig=1,ngas
-                  gc_mass_fraction(ig,ij)=ygcob(ig,n)
+                  ygc(ig,ij)=ygcob(ig,n)
                 END DO
                 DO is=1,nsolid
-                  solid_temperature(ij,is)=tpob(is,n)
-                  solid_velocity_r(ij,is)=upob(is,n)
-                  solid_velocity_z(ij,is)=wpob(is,n)
-                  solid_bulk_density(ij,is)=epsob(is,n)*rl(is)
+                  ts(ij,is)=tpob(is,n)
+                  us(ij,is)=upob(is,n)
+                  ws(ij,is)=wpob(is,n)
+                  rlk(ij,is)=epsob(is,n)*rl(is)
                 END DO
-              ENDIF
-            END DO
+              END IF
+              END IF
+              END IF
             END DO
 
           ELSE IF( job_type == '3D' ) THEN
 
-            DO k = iob(n)%zlo, iob(n)%zhi
+            DO ijk = 1, ncint
 
-              DO j = iob(n)%ylo, iob(n)%yhi
+              imesh = myijk( ip0_jp0_kp0_ , ijk )
+              i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
+              j = MOD( imesh - 1, nx*ny ) / nx + 1
+              k = ( imesh - 1 ) / ( nx*ny ) + 1
 
-                DO i = iob(n)%xlo, iob(n)%xhi
+              IF(  k >= iob(n)%zlo .AND. k <= iob(n)%zhi ) THEN
+                IF( j >= iob(n)%ylo .AND. j <= iob(n)%yhi ) THEN
+                  IF( i >= iob(n)%xlo .AND. i <= iob(n)%xhi ) THEN
+          
+                    IF( iob(n)%typ == 1 .OR. iob(n)%typ == 5 ) THEN
+                      ug(ijk)=ugob(n)  ! 
+                      vg(ijk)=vgob(n)
+                      wg(ijk)=wgob(n)
+                      tg(ijk)=tgob(n)
+                      p(ijk)=pob(n)
+                      ep(ijk)=epob(n)
+                      DO ig=1,ngas
+                        ygc(ig,ijk)=ygcob(ig,n)
+                      END DO
+                      DO is=1,nsolid
+                        ts(ijk,is)=tpob(is,n)
+                        us(ijk,is)=upob(is,n)
+                        vs(ijk,is)=vpob(is,n)
+                        ws(ijk,is)=wpob(is,n)
+                        rlk(ijk,is)=epsob(is,n)*rl(is)
+                      END DO
+                    ENDIF
 
-                  ijk = i + (j-1)*nx + (k-1)*nx*ny
-
-                  IF( iob(n)%typ == 1 .OR. iob(n)%typ == 5 ) THEN
-                    gas_velocity_x(ijk)=ugob(n)
-                    gas_velocity_y(ijk)=vgob(n)
-                    gas_velocity_z(ijk)=wgob(n)
-                    gas_temperature(ijk)=tgob(n)
-                    gas_pressure(ijk)=pob(n)
-                    void_fraction(ijk)=epob(n)
-                    DO ig=1,ngas
-                      gc_mass_fraction(ig,ijk)=ygcob(ig,n)
-                    END DO
-                    DO is=1,nsolid
-                      solid_temperature(ijk,is)=tpob(is,n)
-                      solid_velocity_x(ijk,is)=upob(is,n)
-                      solid_velocity_y(ijk,is)=vpob(is,n)
-                      solid_velocity_z(ijk,is)=wpob(is,n)
-                      solid_bulk_density(ijk,is)=epsob(is,n)*rl(is)
-                    END DO
-                  ENDIF
-
-                END DO
-              END DO
+                  END IF
+                END IF
+              END IF
             END DO
 
           END IF
@@ -210,10 +221,10 @@
 !
 ! ... Compute thermodynamic quantities
 !
-        DO  imesh = 1, ntot
-          CALL mole(gc_molar_fraction(:,imesh), gc_mass_fraction(:,imesh))
-          CALL cnvertg(imesh)
-          CALL cnverts(imesh)
+        DO  ijk = 1, ncint
+          CALL mole( xgc(:,ijk), ygc(:,ijk) )
+          CALL cnvertg_local( ijk )
+          CALL cnverts_local( ijk )
         END DO
 !
       ELSE IF (itd == 2) THEN 
@@ -222,24 +233,22 @@
 !
       ELSE IF (itd >= 3) THEN 
 
-        DO imesh = 1, ntot
+        DO ijk = 1, ncint
 
-          void_fraction(imesh) = 1.D0
-          gc_molar_fraction(default_gas,imesh) = 1.D0 
+          ep(ijk) = 1.D0
+          xgc(default_gas,ijk) = 1.D0 
           DO ig = 1, ngas
             IF (ig /= default_gas) THEN
-              gc_molar_fraction(default_gas,imesh) = &
-              gc_molar_fraction(default_gas,imesh) - gc_molar_fraction(ig,imesh)
+              xgc(default_gas,ijk) = xgc(default_gas,ijk) - xgc(ig,ijk)
             END IF
           END DO
           DO is=1,nsolid
-            void_fraction(imesh) = &
-            void_fraction(imesh) - solid_bulk_density(imesh,is)*inrl(is)
+            ep(ijk) = ep(ijk) - rlk(ijk,is)*inrl(is)
           END DO
 
-          CALL mas(gc_mass_fraction(:,imesh), gc_molar_fraction(:,imesh)) 
-          CALL cnvertg(imesh)
-          CALL cnverts(imesh)
+          CALL mas( ygc(:,ijk), xgc(:,ijk)) 
+          CALL cnvertg_local(ijk)
+          CALL cnverts_local(ijk)
 
         END DO
 !
@@ -247,7 +256,9 @@
 !
       RETURN
       END SUBROUTINE setup
+
 !----------------------------------------------------------------------
+
       SUBROUTINE setc
 !
       USE dimensions
@@ -256,7 +267,7 @@
       USE particles_constants, ONLY: particles_constants_set, cmus
       USE reactions, ONLY: h1, h2, h3, h4, h5
       USE turbulence_model, ONLY: turbulence_setup, iturb
-      USE gas_solid_viscosity, ONLY: particle_viscosity
+      USE gas_solid_viscosity, ONLY: mus
       IMPLICIT NONE
 
       INTEGER :: is 
@@ -301,7 +312,7 @@
 ! Initialize particle's viscosity
 ! 
       DO is = 1, nsolid
-        particle_viscosity(:,is) = cmus(is)
+        mus(:,is) = cmus(is)
       END DO
 !
 ! set useful constants 

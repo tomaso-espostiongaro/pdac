@@ -4,6 +4,8 @@ atmosphere.o : dimensions.o gas.o
 bdry.o : atmosphere.o dens.o dimensions.o eosg.o gas.o grid.o indijk.o  \
     parallel.o particles.o press.o subscr.o temp.o time.o velocity.o 
 
+bubba.o : 
+
 control.o : 
 
 dens.o : dimensions.o grid.o 
@@ -45,14 +47,16 @@ input.o : atmosphere.o control.o dimensions.o fluxes.o gas.o grid.o iter.o  \
     matrix.o outp.o parallel.o particles.o reactions.o roughness.o setup.o  \
     subscr.o time.o turbo.o 
 
-io.o : control.o dens.o dimensions.o eosg.o hcapgs.o parallel.o press.o  \
-    temp.o time.o velocity.o 
+io.o : control.o dens.o dimensions.o eosg.o grid.o hcapgs.o kind.o parallel.o  \
+    press.o temp.o time.o velocity.o 
 
 iter.o : control.o dens.o dimensions.o eosg.o fluxes.o gas.o grid.o hcapgs.o  \
     indijk.o matrix.o parallel.o particles.o press.o subscr.o temp.o tilde.o  \
     time.o velocity.o 
 
 kb07ad.o : 
+
+kind.o : 
 
 letter.o : 
 
@@ -62,8 +66,8 @@ matrix.o : dens.o dimensions.o grid.o indijk.o particles.o press.o subscr.o  \
 nondim.o : atmosphere.o dimensions.o gas.o grid.o indijk.o particles.o  \
     time.o 
 
-outp.o : control.o dens.o dimensions.o eosg.o gas.o parallel.o particles.o  \
-    press.o temp.o time.o turbo.o velocity.o 
+outp.o : control.o dens.o dimensions.o eosg.o gas.o grid.o io.o kind.o  \
+    parallel.o particles.o press.o temp.o time.o turbo.o velocity.o 
 
 parallel.o : 
 

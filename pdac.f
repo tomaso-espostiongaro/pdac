@@ -99,7 +99,6 @@
 
 ! ... allocation of arrays ...(dependence on nr, nx,ny,nz)
       CALL bounds_grid
-      CALL bounds_press_eps
 !
       dr(1:nr) = delta_r(1:nr)
       dx(1:nx) = delta_x(1:nx)
@@ -113,17 +112,10 @@
 
 ! ... allocation of arrays ...(dependence on no, ngas, nsolid, nr, nz)
       CALL bounds_blbody
-      CALL bounds_density
-      CALL bounds_eosg
       CALL bounds_gas_constants
-      CALL bounds_hcapgs
       CALL bounds_matrix
       CALL bounds_part_constants
       CALL bounds_setup
-      CALL bounds_temperature
-      CALL bounds_turbo
-      CALL bounds_velocity
-      CALL bounds_viscosity
 
       iob(1:no)%typ = block_type(1:no)
 
@@ -238,10 +230,6 @@
 ! ... Set initial conditions
 !
       CALL setup
-!
-! ... Distribute inital data among processes
-!
-      CALL distribute( itd )
 !
 ! ... Time advancement loop
 !

@@ -58,12 +58,13 @@
 ! ... and the roughness length
 !
         USE dimensions, ONLY: nr, nz, no, nx, ny
-        USE grid, ONLY: iob
+        USE grid, ONLY: iob, myijk
         USE grid, ONLY: dz, dr, zb, rb, dx, dy
         USE roughness_module, ONLY: zrough
         USE control_flags, ONLY: job_type
+        USE indijk_module, ONLY: ip0_jp0_kp0_
 !
-        INTEGER :: i, j, k, i1, i2, j2, n, ijk
+        INTEGER :: i, j, k, i1, i2, j2, n, ijk, imesh
         REAL*8  :: sl, sgsl0, zsgsl, zrou, sgslb
         REAL*8 :: delt
 
@@ -130,22 +131,23 @@
 
         ELSE IF( job_type == '3D' ) THEN
 
-          DO k = 1, nz
-            DO j = 1, ny
-              DO i = 1, nx
-                ijk = i + (j-1)*nx + (k-1)*nx*ny
-                delt = ( dz(k)*dy(j)*dx(i) )**(1.0d0/3.0d0)
-                IF ( iturb == 1 ) THEN
-                  sl = cmut * delt
-                ELSE IF ( iturb == 2 ) THEN
-                  CALL error( ' turbo_setup ' , ' undefined 3D roughness ', 1 )
-                END IF
-! ... Squared turbulence length scale is used into Smagorinsky model
+          DO ijk = 1, ncint
+            imesh =  myijk( ip0_jp0_kp0_ , ijk )
+            i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
+            j = MOD( imesh - 1, nx*ny ) / nx + 1
+            k = ( imesh - 1 ) / ( nx*ny ) + 1
 
-                smag_factor(ijk) = sl**2
+            delt = ( dz(k)*dy(j)*dx(i) )**(1.0d0/3.0d0)
+            IF ( iturb == 1 ) THEN
+               sl = cmut * delt
+            ELSE IF ( iturb == 2 ) THEN
+               CALL error( ' turbo_setup ' , ' undefined 3D roughness ', 1 )
+            END IF
 
-              END DO
-            END DO
+            ! ... Squared turbulence length scale is used into Smagorinsky model
+
+            smag( ijk ) = sl**2
+
           END DO
 
         END IF
