@@ -40,7 +40,7 @@
 !
       USE dimensions
       USE gas_constants, ONLY: ckg, phij, mmugs, mmugek, mmug, gmw
-      USE gas_constants, ONLY: present_gas
+      USE gas_constants, ONLY: gas_type
       IMPLICIT NONE
 !
       REAL*8, INTENT(INOUT) :: xgc(:), tg
@@ -52,24 +52,16 @@
       REAL*8 :: m
       REAL*8 :: suminv
 
-      INTEGER :: ig, jg
+      INTEGER :: ig, jg, igg, jgg
 !
 ! ... Compute Temperature Dependent Viscosity of each gas specie (Reid)
 !
-
-      ! Carlo Consistency check
-      IF ( tg <= 0.0d0 ) THEN
-         WRITE(6,*)'WARNING: negative temperature!'
-         tg = 1.0D0
-      END IF
-
       DO ig = 1, ngas
-
-        IF ( present_gas(ig) ) THEN
+        igg = gas_type(ig)
 !
 ! ... non-dimensional temperature 
            
-          tst = tg / mmugek(ig)
+          tst = tg / mmugek(igg)
 !
 ! ... collision integral (omega) 
           om = 1.16145D0 * tst ** ( -0.14874D0 ) +  &
@@ -77,16 +69,16 @@
                2.16178D0 * DEXP( -2.43787D0 * tst )
 !
 ! ... molecular weight (m) expressed in grams per mole
-          m = 1.D3 * gmw(ig)
+          m = 1.D3 * gmw(igg)
 !
 ! ... semi-empirical consitutive equation for
 ! ... viscosity is expressed in microPoise (cgs unit system)
-          mmug(ig) = 26.69D0 * SQRT( m * tg ) / ( mmugs(ig)**2 * om )
+          mmug(igg) = 26.69D0 * SQRT( m * tg ) /    &
+                              ( mmugs(igg)**2 * om )
 !
 ! ... conversion to (Pa-s) (mks unit system)
-          mmug(ig) = mmug(ig) * 1.D-7 
+          mmug(igg) = mmug(igg) * 1.D-7 
 !
-        END IF
       END DO
 !
 ! ... Temperature Dependent Conductivity (mks unit system)
@@ -119,37 +111,35 @@
 ! ... and Mixture Conductivity (Mason and Saxema)
 !
       DO ig=1,ngas
-        IF (present_gas(ig)) THEN
-          DO jg=1,ngas
-            IF (present_gas(jg)) THEN
-              aa = gmw(ig) / gmw(jg)
-              bb = mmug(ig) / mmug(jg)
-              cc = 1.D0 + DSQRT(bb) * aa**(-0.25D0)
-              phij(ig,jg) = cc**2 / DSQRT(8.D0 * (1.D0 + aa))
-            END IF
-          END DO
-        END IF
+        igg = gas_type(ig)
+        DO jg=1,ngas
+          jgg = gas_type(jg)
+
+          aa = gmw(igg) / gmw(jgg)
+          bb = mmug(igg) / mmug(jgg)
+          cc = 1.D0 + DSQRT(bb) * aa**(-0.25D0)
+          phij(igg,jgg) = cc**2 / DSQRT(8.D0 * (1.D0 + aa))
+
+        END DO
       END DO
 !
       mu=0.D0
       kap=0.D0
       DO ig=1,ngas
-        IF (present_gas(ig)) THEN
-          sum=0.D0
-          DO jg=1,ngas
-            sum=sum+xgc(jg)*phij(ig,jg)
-          END DO
-          suminv = 1.0D0 / sum
-          mu = mu + xgc(ig) * mmug(ig) * suminv   
-          kap = kap + xgc(ig) * ckg(ig) * suminv       
-        END IF
+        igg = gas_type(ig)
+        sum=0.D0
+        DO jg=1,ngas
+          jgg = gas_type(jg)
+          sum=sum+xgc(jg)*phij(igg,jgg)
+        END DO
+        suminv = 1.0D0 / sum
+        mu = mu + xgc(ig) * mmug(gas_type(ig)) * suminv   
+        kap = kap + xgc(ig) * ckg(gas_type(ig)) * suminv       
       END DO
 !
       RETURN
       END SUBROUTINE viscon
-
 !----------------------------------------------------------------------
-
       SUBROUTINE viscg
 ! ... This routine computes the components of the viscous diffusion terms
 ! ... in gas momentum transport equations

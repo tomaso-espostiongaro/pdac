@@ -10,9 +10,6 @@
       LOGICAL :: formatted_output
 
       LOGICAL :: interpolate = .TRUE.
-
-      
-
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
@@ -20,7 +17,7 @@
 !
       USE dimensions, ONLY: nsolid
       USE eos_gas, ONLY: xgc
-      USE gas_constants, ONLY: present_gas, default_gas
+      USE gas_constants, ONLY: gas_type, default_gas
       USE gas_solid_density, ONLY: rlk, rog
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE gas_solid_velocity, ONLY: us, vs, ws
@@ -85,7 +82,7 @@
 !
       USE dimensions, ONLY: nx, nz, nsolid
       USE domain_decomposition, ONLY: fl_l, ncint
-      USE gas_constants, ONLY: present_gas, default_gas, gammaair
+      USE gas_constants, ONLY: gas_type, default_gas, gammaair
       USE gas_solid_density, ONLY: rog
       USE gas_solid_velocity, ONLY: ug, wg
       USE gas_solid_temperature, ONLY: sieg
@@ -128,12 +125,11 @@
 !
       END SUBROUTINE shock_tube_out
 !----------------------------------------------------------------------
-
       SUBROUTINE outp
 !
       USE dimensions, ONLY: nsolid, ngas
       USE eos_gas, ONLY: xgc
-      USE gas_constants, ONLY: present_gas, default_gas
+      USE gas_constants, ONLY: gas_type, default_gas
       USE gas_solid_density, ONLY: rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE gas_solid_velocity, ONLY: us, vs, ws
@@ -191,7 +187,7 @@
 !
       ALLOCATE( otmp( SIZE( xgc, 2 ) ) )
       DO ig=1,ngas
-        IF( present_gas(ig) .AND. (ig /= default_gas) ) THEN
+        IF( gas_type(ig) /= default_gas ) THEN
           otmp = xgc(ig,:)
           CALL write_array( 12, otmp, sgl, lform )  ! gc_molar_fraction
         END IF
@@ -231,7 +227,7 @@
       USE parallel, ONLY: nproc, mpime, root, group
       USE control_flags, ONLY: job_type
       USE domain_decomposition, ONLY: ncint, meshinds
-      USE gas_constants, ONLY: present_gas, default_gas, gammaair
+      USE gas_constants, ONLY: gas_type, default_gas, gammaair
       USE grid, ONLY: dx, dy, dz
 !
       IMPLICIT NONE
@@ -311,7 +307,7 @@
       WRITE(6,fmt="('  filtering molarfraction ')")
 !
       DO ig=1,ngas
-        IF( present_gas(ig) .AND. (ig /= default_gas) ) THEN
+        IF( gas_type(ig) /= default_gas ) THEN
           ! otmp = xgc(ig,:)
           var = 'xg'//lettera2( ig )
           CALL read_array( 12, array, lform )  ! gc_molar_fraction

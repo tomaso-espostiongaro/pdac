@@ -6,8 +6,6 @@
 !----------------------------------------------------------------------
       MODULE iterative_solver
 !----------------------------------------------------------------------
-
-
       USE grid, ONLY: dx, dy, dz, indx, indy, indz, inx
       USE set_indexes, ONLY: stencil
 
@@ -264,7 +262,7 @@
          !   *** TIMING (Convergence in the ijk cell) ***
 !
          IF( timing ) THEN
-            st0 = cclock_wall()
+            !st0 = cclock_wall()
             !CALL f_hpmstart( 1, ' sor ' )
             ! call system_clock (st0,ratc)
          END IF  
@@ -452,7 +450,7 @@
          END DO mesh_loop
 
          IF( timing ) THEN
-             st1 = cclock_wall()
+             !st1 = cclock_wall()
              ! call system_clock(st1,ratc)
              !CALL f_hpmstop( 1 )
          END IF
@@ -1102,7 +1100,7 @@
         USE control_flags, ONLY: job_type
         USE time_parameters, ONLY: dt
         USE convective_mass_fluxes, ONLY: fmas, masf
-        USE gas_constants, ONLY: gmw, rgas
+        USE gas_constants, ONLY: gmw, rgas, gas_type
         USE particles_constants, ONLY: inrl
 
         IMPLICIT NONE
@@ -1155,7 +1153,7 @@
 !
         mg = 0.D0
         DO ig = 1, ngas
-          mg = mg + xgc( ig, ijk ) * gmw( ig )
+          mg = mg + xgc( ig, ijk ) * gmw( gas_type(ig) )
         END DO
 
         DO loop = 1, inmax
@@ -1510,7 +1508,7 @@
         USE time_parameters, ONLY: dt
         USE flux_limiters, ONLY: muscl
         USE convective_mass_fluxes, ONLY: fmas, masf
-        USE gas_constants, ONLY: gmw, rgas
+        USE gas_constants, ONLY: gmw, rgas, gas_type
         USE particles_constants, ONLY: inrl
 
         IMPLICIT NONE
@@ -1577,7 +1575,7 @@
 !
           mg = 0.D0
           DO ig = 1, ngas
-            mg = mg + xgc(ig,ijk) * gmw(ig)
+            mg = mg + xgc(ig,ijk) * gmw(gas_type(ig))
           END DO
           rog(ijk) = p(ijk) / ( rgas * tg(ijk) ) * mg
 !

@@ -115,8 +115,6 @@
         DEALLOCATE(rhs)
         
       END SUBROUTINE deallocate_fluxes
-
-
 !-----------------------------------------------------
 
       SUBROUTINE fieldn

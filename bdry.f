@@ -409,6 +409,7 @@
 
       USE atmosphere, ONLY: atm
       USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
+      USE gas_constants, ONLY: gas_type
 
       REAL*8, INTENT(IN) :: umn, ucn
       REAL*8, INTENT(INOUT) :: upn
@@ -504,7 +505,7 @@
 !
         mg=0.D0
         DO ig=1,ngas
-          mg = mg + xgc(ig,n1) * gmw(ig)
+          mg = mg + xgc(ig,n1) * gmw(gas_type(ig))
         END DO
         !rm1nn=ep1nn*mg/(rgas*t1nn)         
         !p1nn = (1.D0/rm1nn) * (- rm1knn + rm1n - dt*d1inv*(rm1n*ucn - rm0n*umn))
@@ -644,6 +645,7 @@
 
       USE atmosphere, ONLY: atm
       USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
+      USE gas_constants, ONLY: gas_type
 
       REAL*8, INTENT(IN) :: upn
       REAL*8, INTENT(INOUT) :: ucn
@@ -734,7 +736,7 @@
 !
         mg=0.D0
         DO ig=1,ngas
-          mg = mg + xgc(ig,n1) * gmw(ig)
+          mg = mg + xgc(ig,n1) * gmw(gas_type(ig))
         END DO
         !rm1nn = ep1nn*mg/(rgas*t1nn)
         !p1nn = (1.D0/rm1nn) * &

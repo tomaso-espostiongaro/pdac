@@ -135,25 +135,7 @@
  
             ! ... Compute molar fractions of gas species (xgc)
  
-!            IF (SUM(ygc(:,ijk))/= 1.D0) THEN
-!              ygc(default_gas,ijk) = 1.D0
-!              DO ig=1,ngas
-!                IF (ig /= default_gas) THEN
-!                  ygc(default_gas,ijk) = ygc(default_gas,ijk) - ygc(ig,ijk)
-!                END IF
-!              END DO
-!            END IF
-
             CALL mole( xgc(:,ijk), ygc(:,ijk) )
-
-!            IF (SUM(xgc(:,ijk))/= 1.D0) THEN
-!              xgc(default_gas,ijk) = 1.D0
-!              DO ig=1,ngas
-!                IF (ig /= default_gas) THEN
-!                  xgc(default_gas,ijk) = xgc(default_gas,ijk) - xgc(ig,ijk)
-!                END IF
-!              END DO
-!            END IF
 
             ! ... Compute gas density (rog) from thermal Equation of State
 

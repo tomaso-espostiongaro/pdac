@@ -88,8 +88,8 @@ parallel.o :
 particles.o : dimensions.o 
 
 pdac.o : decomp.o dens.o dimensions.o environment.o eosg.o gas.o grid.o  \
-    hcapgs.o input.o io.o matrix.o parallel.o particles.o press.o roughness.o  \
-    setup.o temp.o tilde.o time.o turbo.o velocity.o visc.o 
+    hcapgs.o input.o io.o matrix.o parallel.o particles.o press.o setup.o  \
+    temp.o tilde.o time.o turbo.o velocity.o visc.o 
 
 pp.o : decomp.o dens.o dimensions.o environment.o eosg.o gas.o grid.o  \
     hcapgs.o input.o io.o matrix.o parallel.o particles.o press.o roughness.o  \
@@ -98,7 +98,7 @@ pp.o : decomp.o dens.o dimensions.o environment.o eosg.o gas.o grid.o  \
 press.o : decomp.o dimensions.o 
 
 prog.o : bdry.o control.o decomp.o dens.o dimensions.o environment.o eosg.o  \
-    eosl.o ftem.o grid.o hcapgs.o htilde.o indijk.o io.o iter.o outp.o  \
+    eosl.o ftem.o gas.o grid.o hcapgs.o htilde.o indijk.o io.o iter.o outp.o  \
     particles.o press.o reactions.o temp.o tilde.o time.o turbo.o ygas.o 
 
 reactions.o : decomp.o dimensions.o grid.o indijk.o time.o 

@@ -19,7 +19,7 @@
       USE domain_decomposition, ONLY: ncint, ncdom, myijk, &
           data_exchange, meshinds
       USE eos_gas, ONLY: rgpgc, rgpgcn, ygc
-      USE gas_constants, ONLY: default_gas
+      USE gas_constants, ONLY: default_gas, gas_type
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE grid, ONLY: dx, dy, dz, indx, indy, indz, inx
       USE grid, ONLY: fl_l
@@ -32,10 +32,11 @@
 !
       TYPE(stencil) :: one, field, u, v, w
       REAL*8 :: yfw, yfs, yfb, yfx, yfy, yfz
+      REAL*8 :: ygcdfg
       REAL*8 :: rgp, rgpinv
       INTEGER :: i, j, k, imesh
       INTEGER :: ijk
-      INTEGER :: ig
+      INTEGER :: ig, dfg
 !
       ALLOCATE(yfe(ncdom,ngas), yft(ncdom,ngas))
       yfe = 0.D0; yft = 0.D0
@@ -70,7 +71,6 @@
                       one, field, u, w, ijk)
 
            ELSE IF (job_type == '3D') THEN
-
             
 	     !CALL rnb(v,vg,ijk)
              v%s = vg ( ijmk )
@@ -128,14 +128,17 @@
          END DO
 
          rgpinv = 1.0D0/rgp 
-         ygc(default_gas, ijk) = 1.D0
 
+         ygcdfg = 1.D0
          DO ig=1,ngas
-           IF (ig /= default_gas) THEN
+           IF (gas_type(ig) /= default_gas) THEN
              ygc(ig,ijk) = rgpgc(ijk,ig) * rgpinv
-             ygc(default_gas, ijk) = ygc(default_gas, ijk) - ygc(ig,ijk)
+             ygcdfg = ygcdfg - ygc(ig,ijk)
+           ELSE 
+             dfg = ig
            END IF
          END DO
+         ygc(dfg,ijk) = ygcdfg
 
        END IF
       END DO
@@ -145,8 +148,6 @@
 !
       RETURN
       END SUBROUTINE ygas
-
-
 !----------------------------------------------------------------------
       SUBROUTINE ygas_3d
 !
@@ -156,7 +157,7 @@
           data_exchange, meshinds, im1_jp0_kp0_ , ip0_jp0_km1_ , ip0_jm1_kp0_
       USE eos_gas, ONLY: rgpgc, rgpgcn, ygc
       USE flux_limiters, ONLY: muscl
-      USE gas_constants, ONLY: default_gas
+      USE gas_constants, ONLY: default_gas, gas_type
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE grid, ONLY: dx, dy, dz, indx, indy, indz, inx
       USE grid, ONLY: fl_l
@@ -170,11 +171,12 @@
 !
       TYPE(stencil) :: one, field, u, v, w
       REAL*8 :: yfw, yfs, yfb, yfx, yfy, yfz
+      REAL*8 :: ygcdfg
       REAL*8 :: rgp,rgpinv
       REAL*8 :: rgpgc_tmp
       INTEGER :: i, j, k, imesh
       INTEGER :: ijk
-      INTEGER :: ig, info
+      INTEGER :: ig, dfg, info
       INTEGER :: float_chk
 !
       ALLOCATE(yfe(ncdom,ngas), yft(ncdom,ngas))
@@ -318,8 +320,6 @@
 
          END DO
 
-         ygc(default_gas, ijk) = 1.D0
-
          ! Carlo Consistency Check 
          IF( rgp >= 1.d-12 ) THEN
            rgpinv = 1.0D0 / rgp
@@ -329,12 +329,16 @@
 
          IF( float_chk( rgpinv ) /= 0 ) WRITE(6,*) 'ygas, wrong rgpinv: ',ijk,ig,rgpinv,rgp
          
-         DO ig = 1, ngas
-           IF ( ig /= default_gas ) THEN
+         ygcdfg = 1.D0
+         DO ig=1,ngas
+           IF (gas_type(ig) /= default_gas) THEN
              ygc(ig,ijk) = rgpgc(ijk,ig) * rgpinv
-             ygc(default_gas, ijk) = ygc(default_gas, ijk) - ygc(ig,ijk)
+             ygcdfg = ygcdfg - ygc(ig,ijk)
+           ELSE 
+             dfg = ig
            END IF
          END DO
+         ygc(dfg,ijk) = ygcdfg
 
        END IF
 

@@ -25,16 +25,16 @@
        ALLOCATE(ugob(no), vgob(no), wgob(no), pob(no), epob(no), tgob(no))
        ALLOCATE(upob(nsolid,no), vpob(nsolid,no), wpob(nsolid,no),        &
                 epsob(nsolid,no), tpob(nsolid,no))
-       ALLOCATE(ygc0(ngas))
-       ALLOCATE(ygcob(ngas,no))
+       ALLOCATE(ygc0(max_ngas))
+       ALLOCATE(ygcob(max_ngas,no))
 !
 ! ... Specified profile
 !
        IF (npr > 0) THEN
          ALLOCATE(ugpr(npr), wgpr(npr), ppr(npr), eppr(npr), tgpr(npr))
-         ALLOCATE(ygcpr(ngas,npr))
          ALLOCATE(uppr(nsolid,npr), wppr(nsolid,npr))
          ALLOCATE(epspr(nsolid,npr), tppr(nsolid,npr))
+         ALLOCATE(ygcpr(max_ngas,npr))
        END IF
 
       RETURN
@@ -42,7 +42,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE setup
 ! ... Set initial conditions
-! ... (2D/3D_Compliant)
+! ... (2D/3D_Compliant and fully parallel)
 !
       USE atmosphere, ONLY: u0, v0, w0, p0, temp0, us0, vs0, ws0, ep0
       USE atmosphere, ONLY: atm, controlatm
@@ -52,7 +52,7 @@
       USE eos_gas, ONLY: mas, mole, cnvertg, xgc, ygc
       USE eos_solid, ONLY: cnverts
       USE gas_constants, ONLY: gmw, rgas, gammaair
-      USE gas_constants, ONLY: default_gas
+      USE gas_constants, ONLY: default_gas, gas_type
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_temperature, ONLY: sieg
@@ -79,6 +79,9 @@
 ! ... Control that atmospheric stratification is consistent
       CALL controlatm
 !
+! ... Check gas species
+      CALL gas_check
+!
 ! ... set initial conditions from prescribed input data
 !
       IF (itd <= 1) THEN
@@ -101,7 +104,7 @@
 !
           ep(ijk) = ep0
           DO ig = 1, ngas
-            ygc(ig,ijk) = ygc0(ig)
+            ygc(ig,ijk) = ygc0(gas_type(ig))
           END DO
           DO is = 1, nsolid
             rlk(ijk,is) = rl(is)*(1.D0-ep0) / nsolid
@@ -160,32 +163,12 @@
                                      ! temperature                !
         DO  ijk = 1, ncint
 !
-! ... Check closure conditions for gas species
-!
-          IF (SUM(ygc(:,ijk))/= 1.D0) THEN
-            ygc(default_gas,ijk) = 1.D0
-            DO ig=1,ngas
-              IF (ig /= default_gas) THEN
-                ygc(default_gas,ijk) = ygc(default_gas,ijk) - ygc(ig,ijk)
-              END IF  
-            END DO
-          END IF
-
           CALL mole( xgc(:,ijk), ygc(:,ijk) )
-
-          IF (SUM(xgc(:,ijk))/= 1.D0) THEN
-            xgc(default_gas,ijk) = 1.D0
-            DO ig=1,ngas
-              IF (ig /= default_gas) THEN
-                xgc(default_gas,ijk) = xgc(default_gas,ijk) - xgc(ig,ijk)
-              END IF
-            END DO
-          END IF
 
           IF (density_specified) THEN
             mass = 0.D0
             DO ig=1,ngas
-              mass = mass + xgc(ig,ijk)*gmw(ig)
+              mass = mass + xgc(ig,ijk)*gmw(gas_type(ig))
             END DO
             tem  = p(ijk) * mass / rgas / tg(ijk)
             tg(ijk) = tem
@@ -208,10 +191,9 @@
         DO ijk = 1, ncint
 
           ep(ijk) = 1.D0
-          xgc(default_gas,ijk) = 1.D0 
           DO ig = 1, ngas
-            IF (ig /= default_gas) THEN
-              xgc(default_gas,ijk) = xgc(default_gas,ijk) - xgc(ig,ijk)
+            IF (gas_type(ig) == default_gas) THEN
+              xgc(ig,ijk) = 1.D0 - SUM(xgc(:,ijk))
             END IF
           END DO
           DO is=1,nsolid
@@ -236,7 +218,8 @@
       USE dimensions
       USE domain_decomposition, ONLY: ncint, meshinds, myijk
       USE eos_gas, ONLY: ygc
-      USE gas_constants, ONLY: gmw, rgas, gammaair
+      USE gas_constants, ONLY: gmw, rgas, gammaair, gas_type,&
+      default_gas
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, wg, vg
@@ -245,35 +228,32 @@
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
       USE indijk_module, ONLY: ip0_jp0_kp0_
+      IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: n
-      REAL*8 :: ymd, csnd, dist
+      REAL*8 :: ygcsum, ygcdfg
       INTEGER :: ijk,i,j,k,imesh
-      INTEGER :: ig, is
+      INTEGER :: ig, is, dfg
 
-        csnd = DSQRT(gammaair*rgas/gmw(6)*tgob(n))
+        !csnd = DSQRT(gammaair*rgas/gmw(6)*tgob(n))
 
         DO ijk = 1, ncint
           imesh = myijk( ip0_jp0_kp0_ , ijk )
           CALL meshinds(ijk,imesh,i,j,k)
-
-!          dist = SQRT( (i-52)**2.0 + (k-52)**2.0 )
 
           IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi  ) THEN
             IF ( j >= iob(n)%ylo .AND. j <= iob(n)%yhi    &
                                     .OR. job_type == '2D') THEN
               IF ( i >= iob(n)%xlo .AND. i <= iob(n)%xhi  ) THEN
 
-!               IF (dist <= 20.0) THEN 
-
                 ug(ijk) = ugob(n)
                 IF (job_type == '3D') vg(ijk) = vgob(n)
                 wg(ijk) = wgob(n)
                 tg(ijk) = tgob(n)
                 p(ijk)  = pob(n)
-                ep(ijk) = epob(n)
+                ep(ijk) = 1.D0 - SUM(epsob(:,n))
                 DO ig = 1, ngas
-                  ygc(ig,ijk) = ygcob(ig,n)
+                  ygc(ig,ijk) = ygcob(gas_type(ig),n)
                 END DO
                 DO is = 1,nsolid
                   ts(ijk,is)  = tpob(is,n)
@@ -282,9 +262,22 @@
                   ws(ijk,is)  = wpob(is,n)
                   rlk(ijk,is) = epsob(is,n)*rl(is)
                 END DO
-
-!              END IF
-
+!
+! ... check gas components closure relation
+!
+                ygcsum = SUM(ygc(:,ijk))
+                ygcdfg = 1.D0
+                IF ( ygcsum /= 1.D0 ) THEN
+                  DO ig = 1, ngas
+                    IF (gas_type(ig) /= default_gas) THEN
+                      ygcdfg = ygcdfg - ygc(ig,ijk) 
+                    ELSE
+                      dfg = ig
+                    END IF
+                  END DO
+                  ygc(dfg,ijk) = ygcdfg
+                END IF
+!
               END IF
             END IF
           END IF
@@ -299,7 +292,7 @@
       USE eos_gas, ONLY: ygc, xgc, mole, cnvertg
       USE eos_solid, ONLY: cnverts
       USE gas_constants, ONLY: rgas, gammaair
-      USE gas_constants, ONLY: default_gas, present_gas
+      USE gas_constants, ONLY: default_gas, present_gas, gas_type
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, wg, vg
@@ -308,12 +301,13 @@
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
       USE indijk_module, ONLY: ip0_jp0_kp0_
+      IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: n
 
-      REAL*8 :: ymd
+      REAL*8 :: ygcsum, ygcdfg
       INTEGER :: ijk,i,j,k,imesh
-      INTEGER :: ig, is, np
+      INTEGER :: ig, is, np, dfg
 
         DO ijk = 1, ncint
           imesh = myijk( ip0_jp0_kp0_ , ijk )
@@ -336,24 +330,31 @@
                 rlk(ijk,is)=epspr(is,np)*rl(is)
               END DO
 
-              ymd = 0.D0
               DO ig=1,ngas
-                IF (ig /= default_gas) ymd = ymd + ygcpr(ig,np)
-                ygc(ig,ijk) = ygcpr(ig,np)
-                IF ( ygcpr(ig,np) /= 0.0 ) present_gas(ig) = .TRUE.
+                ygc(ig,ijk) = ygcpr(gas_type(ig),np)
               END DO
-              IF (.NOT.present_gas(default_gas))                      &
-                WRITE(*,*) 'default gas is not present'
-              ygc(default_gas,ijk) = 1.D0 - ymd
-
-              CALL mole( xgc(:,ijk), ygc(:,ijk) )
-              CALL cnvertg(ijk)
-              CALL cnverts(ijk)
+!
+! ... check gas components closure relation
+!
+              ygcsum = SUM(ygc(:,ijk))
+              ygcdfg = 1.D0
+              IF ( ygcsum /= 1.D0 ) THEN
+                DO ig = 1, ngas
+                  IF (gas_type(ig) /= default_gas) THEN
+                    ygcdfg = ygcdfg - ygc(ig,ijk) 
+                  ELSE
+                    dfg = ig
+                  END IF
+                END DO
+                ygc(dfg,ijk) = ygcdfg
+              END IF
+!
               IF (i == 1) THEN
                 fl_l(ijk) = 5
               ELSE
                 fl_l(ijk) = 1
               END IF
+!
             END IF
           END IF
         END DO
@@ -438,6 +439,32 @@
 !
       RETURN
       END SUBROUTINE setc
+!----------------------------------------------------------------------
+      SUBROUTINE gas_check
+      USE dimensions
+      USE gas_constants, ONLY: gas_type, present_gas
+      IMPLICIT NONE
+      INTEGER :: ig, igg
+      
+      ig = 0
+      DO igg = 1, max_ngas
+        IF ((ygc0(igg) /= 0.0) .OR. ANY(ygcob(igg,:) /= 0.0) ) THEN
+          ig = ig + 1
+          gas_type(ig) = igg
+          present_gas(igg) = .TRUE.
+        END IF
+        IF (npr > 0) THEN
+          IF( ANY(ygcpr(igg,:) /= 0.0) ) THEN
+            ig = ig + 1
+            gas_type(ig) = igg
+            present_gas(igg) = .TRUE.
+          END IF
+        END IF
+      END DO
+      IF (ig /= ngas) CALL error('setup','wrong number of gas species',ig)
+
+      RETURN
+      END SUBROUTINE gas_check
 !----------------------------------------------------------------------
       END MODULE initial_conditions
 !----------------------------------------------------------------------

@@ -139,7 +139,7 @@
         CALL write_array( 9, ck(is,:), dbl, lform )
       END DO
 
-      DO ig = 1, ngas
+      DO ig = 1, max_ngas
         CALL write_array( 9, cp(ig,:), dbl, lform )
       END DO
 !
@@ -148,8 +148,7 @@
       END IF
 
       RETURN
-      END SUBROUTINE
-
+      END SUBROUTINE tapewr
 !----------------------------------------------------------------------
 
       SUBROUTINE taperd
@@ -303,7 +302,7 @@
       END DO
 
       cp = 0.0d0
-      DO ig = 1, ngas
+      DO ig = 1, max_ngas
         CALL read_array( 9, cp(ig,:), dbl, lform )
       END DO
 

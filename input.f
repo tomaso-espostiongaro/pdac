@@ -161,7 +161,7 @@
       rlim = 1.0D-8     ! limit for off-diagonal contribution in matrix inversion
       gravx = 0.0D0     ! gravity along x
       gravz = -9.81D0   ! gravity along z
-      ngas = 7          ! max number of gas components
+      ngas = 2          ! max number of gas components
       default_gas = 6   ! atmospheric air
       formatted_output = .TRUE.
       old_restart = .FALSE.
@@ -466,7 +466,7 @@
                         fixed_gaseps(n), fixed_gastemp(n)
               READ(5,*) (fixed_vpart_x(k,n), fixed_vpart_z(k,n), &
                          fixed_parteps(k,n), fixed_parttemp(k,n), k=1, nsolid)
-              READ(5,*) ( fixed_gasconc(ig,n), ig=1, ngas )
+              READ(5,*) ( fixed_gasconc(ig,n), ig=1, max_ngas )
             ELSE IF( block_type(n) == 7) THEN
               CALL read_profile(n)
             ENDIF
@@ -481,7 +481,7 @@
                         fixed_pressure(n), fixed_gaseps(n), fixed_gastemp(n)
               READ(5,*) (fixed_vpart_x(k,n),fixed_vpart_y(k,n),fixed_vpart_z(k,n), &
                           fixed_parteps(k,n), fixed_parttemp(k,n), k=1, nsolid)
-              READ(5,*) (fixed_gasconc(ig,n), ig=1, ngas )
+              READ(5,*) (fixed_gasconc(ig,n), ig=1, max_ngas )
             ENDIF
           END DO
         ELSE
@@ -538,17 +538,16 @@
         END DO initial_conditions_search
 
         IF( job_type == '2D' ) THEN
-          READ(5,*) initial_vgas_x, initial_vgas_z, initial_pressure, initial_void_fraction, max_packing, &
-            initial_temperature
-          READ(5,*) initial_vpart_x, initial_vpart_z
+          READ(5,*) initial_vgas_x, initial_vgas_z, initial_pressure, initial_void_fraction, max_packing, initial_temperature
+          READ(5,*) initial_vpart_x, initial_vpart_z 
+          READ(5,*) (initial_gasconc(ig), ig=1, max_ngas)
         ELSE IF( job_type == '3D' ) THEN
-          READ(5,*) initial_vgas_x, initial_vgas_y, initial_vgas_z, initial_pressure, initial_void_fraction, &
-            max_packing, initial_temperature
+          READ(5,*) initial_vgas_x, initial_vgas_y, initial_vgas_z, initial_pressure, initial_void_fraction, max_packing, initial_temperature
           READ(5,*) initial_vpart_x, initial_vpart_y, initial_vpart_z
+          READ(5,*) (initial_gasconc(ig), ig=1, max_ngas)
         ELSE 
           CALL error('input # INITIAL_CONDITIONS', 'unknown job_type',1) 
         ENDIF
-        READ(5,*) (initial_gasconc(ig), ig=1, ngas)
 
         GOTO 410
  400    tend = .TRUE.
@@ -588,7 +587,6 @@
       USE atmosphere, ONLY: v0, u0, w0, p0, temp0, us0, vs0, ws0, &
      &                      ep0, epsmx0, gravx, gravy, gravz
       USE dimensions
-      USE gas_constants, ONLY: present_gas
       USE grid, ONLY: dx, dy, dz, itc
       USE grid, ONLY: iob
       USE initial_conditions, ONLY: epsob, tpob, ygc0, ygcob,   &
@@ -637,7 +635,7 @@
       wpob(1:nsolid,1:no) = fixed_vpart_z(1:nsolid,1:no)
       epsob(1:nsolid,1:no) = fixed_parteps(1:nsolid,1:no)
       tpob(1:nsolid,1:no) = fixed_parttemp(1:nsolid,1:no)
-      ygcob(1:ngas,1:no) = fixed_gasconc(1:ngas,1:no)
+      ygcob(1:max_ngas,1:no) = fixed_gasconc(1:max_ngas,1:no)
 
       ugpr(1:npr)  = prof_vgas_x(1:npr)
       wgpr(1:npr)  = prof_vgas_z(1:npr)
@@ -648,7 +646,7 @@
       wppr(1:nsolid,1:npr) = prof_vpart_z(1:nsolid,1:npr)
       epspr(1:nsolid,1:npr) = prof_parteps(1:nsolid,1:npr)
       tppr(1:nsolid,1:npr) = prof_parttemp(1:nsolid,1:npr)
-      ygcpr(1:ngas,1:npr) = prof_gasconc(1:ngas,1:npr)
+      ygcpr(1:max_ngas,1:npr) = prof_gasconc(1:max_ngas,1:npr)
 
       u0 = initial_vgas_x
       IF( job_type == '3D' ) THEN
@@ -667,11 +665,7 @@
       END IF
       ws0 = initial_vpart_z
 
-      ygc0(1:ngas) = initial_gasconc(1:ngas)
-
-      DO ig = 1, ngas
-        present_gas(ig) = (ygc0(ig) /= 0.D0 .OR. ANY(ygcob(ig,:) /= 0.D0 ) )
-      END DO
+      ygc0(1:max_ngas) = initial_gasconc(1:max_ngas)
 !
       dk(1:nsolid) = diameter(1:nsolid) * 1.D-6 ! input diameter in microns !
       rl(1:nsolid) = density(1:nsolid)
@@ -686,7 +680,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE read_profile(n)
 
-      USE dimensions, ONLY: ngas, nsolid
+      USE dimensions, ONLY: max_ngas, nsolid
       USE initial_conditions, ONLY: npr
       USE parallel, ONLY: mpime, root
 
@@ -710,7 +704,7 @@
                    prof_gaseps(k),prof_gastemp(k),                  &
                   (prof_vpart_x(is,k),prof_vpart_z(is,k),           &
                    prof_parteps(is,k),prof_parttemp(is,k), is=1,nsolid), &
-                  (prof_gasconc(ig,k), ig = 1,ngas)
+                  (prof_gasconc(ig,k), ig = 1,max_ngas)
       END DO
       CLOSE(17)
 

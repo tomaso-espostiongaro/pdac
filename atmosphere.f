@@ -16,7 +16,7 @@
       SUBROUTINE controlatm
 
       stratification = .TRUE.
-      IF (gravz == 0.D0) THEN
+      IF (ABS(gravz) < 0.01) THEN
          stratification = .FALSE.
       ELSE IF (gravz /= -9.81D0) THEN
          WRITE(*,*) 'WARNING!! control atmospheric stratification'

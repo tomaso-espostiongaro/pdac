@@ -2,12 +2,13 @@
 #MACROS= -DMPI
 MACROS= -DSCALAR
 #----------------------------------------
-CPPFLAGS= $(MACROS)
+CPPFLAGS= -WF,$(MACROS)
 LINKFLAGS= 
 LIBS=
 FREEFORM= -Mfree
 #----------------------------------------
-FFLAGS= -O2 -tp athlonxp
+FFLAGS= -O2 -fastsse -tp athlonxp $(CPPFLAGS)
+CC=gcc
 FC=pgf90
 MPFC=pgf90
 LINKER=pgf90

@@ -18,17 +18,14 @@
       USE dimensions
       USE domain_decomposition, ONLY: ncint
 !
-      ALLOCATE(cp(ngas,ncint))
+      ALLOCATE(cp(max_ngas,ncint))
       ALLOCATE(ck(nsolid,ncint))
 !
       RETURN
       END SUBROUTINE allocate_hcapgs
-
-
 !----------------------------------------------------------------------
       SUBROUTINE hcapg(cpc, tg)
 !----------------------------------------------------------------------
-
 ! ... This routine computes the Temperature-dependent specific heat
 ! ... at constant pressure per kilograms of each gas phase 
 !
