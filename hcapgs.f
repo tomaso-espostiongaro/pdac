@@ -6,8 +6,14 @@
 !
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: gc_specific_heat  
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: solid_specific_heat
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: cp ! heat capacity of gas comp.
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: ck ! heat capacity of particles
+!
+! ... Specific heat of gas components
+!
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: cp 
+!
+! ... Specific heat of particles
+!
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: ck 
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------

@@ -4,10 +4,11 @@
       USE grid, ONLY: dx, dy, dz, indx, indy, indz, inx
       IMPLICIT NONE
 !
+! ... convective mass fluxes
+!
       REAL*8, DIMENSION(:),   ALLOCATABLE :: rgfe, rgfn, rgft
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: rsfe, rsfn, rsft
 !
-      REAL*8, DIMENSION(:), ALLOCATABLE :: conv, abeta
       REAL*8  :: omega, dg
       INTEGER :: inmax, maxout
 !
@@ -21,7 +22,8 @@
 ! ... (2D-3D-Compliant)
 !
       USE dimensions
-      USE domain_decomposition, ONLY: myijk, ncint, ncdom, data_exchange, meshinds
+      USE domain_decomposition, ONLY: ncint, ncdom, data_exchange
+      USE domain_decomposition, ONLY: myijk, meshinds
       USE eos_gas, ONLY: eosg, ygc, xgc, rags, cg
       USE gas_solid_temperature, ONLY: sieg, tg
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
@@ -44,6 +46,9 @@
       USE control_flags, ONLY: job_type
 !
       IMPLICIT NONE
+!
+      REAL*8, DIMENSION(:), ALLOCATABLE :: conv
+      REAL*8, DIMENSION(:), ALLOCATABLE :: abeta
 !
 ! ... HW performance monitor include file
 
@@ -436,7 +441,7 @@
         IF (job_type == '2D') THEN
         
           CALL fmas(rgfe(ijk),  rgft(ijk),    &
-                    rgfe(imjk), rgft(ijmk),   &
+                    rgfe(imjk), rgft(ijkm),   &
                     dens, u, w, ijk)
 
         ELSE IF (job_type == '3D') THEN
@@ -678,7 +683,7 @@
 	  IF (job_type == '2D') THEN
             iepy = 0.D0
 	  ELSE IF (job_type == '3D') THEN
-            iepy = indy(i) * (  iep_n + iep_s )
+            iepy = (  iep_n + iep_s ) * indy(i)
           END IF
 
 !
@@ -689,7 +694,7 @@
           csound = DSQRT(1.0D0 /rags)
 !
 ! ... rbeta = dD_g/dP
-!
+
           rbeta = ep(ijk) * rags + dt**2.D0 * (iepx+iepy+iepz)
 !
           abt = 1.D0 / rbeta

@@ -150,7 +150,7 @@
       END SUBROUTINE eosg
 !----------------------------------------------------------------------
 
-      SUBROUTINE cnvertg_local( ijk )
+      SUBROUTINE cnvertg( ijk )
 !
 ! ... computes thermodynamic mean quantities
 !
@@ -198,7 +198,7 @@
       sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
 !
       RETURN
-      END SUBROUTINE cnvertg_local
+      END SUBROUTINE cnvertg
 !----------------------------------------------------------------------
       END MODULE eos_gas
 !----------------------------------------------------------------------

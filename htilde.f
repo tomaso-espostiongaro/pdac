@@ -3,11 +3,17 @@
 !-----------------------------------------------------------------------
       IMPLICIT NONE
 !
+! ... tilde enthalpy terms
+!
       REAL*8, DIMENSION(:),   ALLOCATABLE :: rhg
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: rhs
 !
+! ... convective enthalpy fluxes
+!
       REAL*8, ALLOCATABLE :: egfe(:), egfn(:), egft(:)
       REAL*8, ALLOCATABLE :: esfe(:,:), esfn(:,:), esft(:,:)
+!
+! ... diffusive enthalpy fluxes
 !
       REAL*8, ALLOCATABLE :: hgfe(:), hgfn(:), hgft(:)
       REAL*8, ALLOCATABLE :: hsfe(:,:), hsfn(:,:), hsft(:,:)
@@ -38,12 +44,11 @@
       USE turbulence_model, ONLY: kapgt, iturb
       IMPLICIT NONE
 !
-      REAL*8 :: egfw, egfs, egfb, esfw, esfs, esfb
       REAL*8 :: egfx, egfy, egfz
       REAL*8 :: esfx, esfy, esfz
       REAL*8 :: hrexs, hrexg
       REAL*8 :: zero
-      REAL*8 :: flx, prs, upxyz
+      REAL*8 :: flx, deltap, dpxyz
       REAL*8 :: indxc, indyc, indzc, ugc, vgc, wgc
       INTEGER :: is, m, l, is1
       INTEGER :: i, j, k, ijk, imesh
@@ -91,7 +96,6 @@
       CALL data_exchange(kapgt)
 !
       DO ijk = 1, ncint
-        imesh = myijk( ip0_jp0_kp0_, ijk)
         IF(fl_l(ijk) == 1) THEN
           CALL subscr(ijk)
 !
@@ -214,14 +218,11 @@
           CALL meshinds(ijk,imesh,i,j,k)
           CALL subscr(ijk)
 ! 
-          egfw = egfe(imjk)
-          egfx = egfe(ijk) - egfw
-          egfb = egft(ijkm)
-          egfz = egft(ijk) - egfb
+          egfx = egfe(ijk) - egfe(imjk)
+          egfz = egft(ijk) - egft(ijkm)
 !
           IF (job_type == '3D') THEN
-            egfs = egfn(ijmk)
-            egfy = egfn(ijk) - egfs
+            egfy = egfn(ijk) - egfn(ijmk)
           END IF
 
           flx = dt * indx(i) * egfx * inx(i) +   &
@@ -238,38 +239,35 @@
             vgc = (vg(ijk)+vg(ijmk))/2.D0
           END IF
 !
-          upxyz= dt * indxc * ugc * (p(ijke)-p(ijkw)) +   &
+          dpxyz= dt * indxc * ugc * (p(ijke)-p(ijkw)) +   &
                  dt * indyc * vgc * (p(ijkn)-p(ijks)) +   &
                  dt * indzc * wgc * (p(ijkt)-p(ijkb))
 !
-          prs = ep(ijk) * (p(ijk) - pn(ijk) + upxyz)
+          deltap = ep(ijk) * (p(ijk) - pn(ijk) + dpxyz)
 !
-          rhg(ijk) = - flx + prs
+          rhg(ijk) = - flx + deltap
 !
 ! ... Same procedure carried out for solids
 !
           DO is=1, nsolid
            IF (rlk(imjk,is) * inrl(is) <= 1.D-9) THEN
-            esfw = 0.0D0
+             esfx = esfe(ijk, is)
            ELSE
-            esfw = esfe(imjk, is)
+             esfx = esfe(ijk, is) - esfe(imjk, is)
            END IF
-           esfx = esfe(ijk, is) - esfw
 
            IF (rlk(ijkm,is) * inrl(is) <= 1.D-9) THEN
-            esfb = 0.0D0
+             esfz = esft(ijk, is)
            ELSE
-            esfb = esft(ijkm, is)
+             esfz = esft(ijk, is) - esft(ijkm, is)
            END IF
-           esfz = esft(ijk, is) - esfb
 
            IF (job_type == '3D') THEN
              IF (rlk(ijmk,is) * inrl(is) <= 1.D-9) THEN
-              esfs = 0.0D0
+               esfy = esfn(ijk, is)
              ELSE
-              esfs = esfn(ijmk, is)
+               esfy = esfn(ijk, is) - esfn(ijmk, is)
              END IF
-             esfy = esfn(ijk, is) - esfs
            END IF
 !
             flx = dt * indx(i) * esfx * inx(i) +  &
@@ -281,7 +279,8 @@
 !
         END IF
       END DO
-
+!
+      CALL test_fluxes
 !
       DEALLOCATE(egfe, egft)
       DEALLOCATE(esfe, esft)
@@ -298,6 +297,78 @@
 !
       RETURN
       END SUBROUTINE htilde
+!----------------------------------------------------------------------
+
+      SUBROUTINE test_fluxes
+!
+      USE control_flags, ONLY: job_type
+      USE dimensions, ONLY: nsolid
+      USE io_restart, ONLY: write_array
+      USE kinds
+      USE parallel, ONLY: nproc, mpime, root, group
+      USE time_parameters, ONLY: time
+!
+      IMPLICIT NONE
+!
+      CHARACTER :: filnam*11
+!
+      INTEGER :: ig,is
+      LOGICAL :: lform = .TRUE.
+!
+      filnam='output.test'
+
+      IF( mpime == root ) THEN
+
+        IF (lform) THEN
+          OPEN(UNIT=12,FILE=filnam)
+          WRITE(12,*) time
+        ELSE 
+          OPEN(UNIT=12,FORM='UNFORMATTED',FILE=filnam)
+          WRITE(12) REAL(time,4)
+        END IF
+ 
+      END IF
+!
+      IF (job_type == '2D') THEN
+        CALL write_array( 12, rhg, sgl, lform )
+        CALL write_array( 12, egfe, sgl, lform )
+        CALL write_array( 12, egft, sgl, lform )
+        CALL write_array( 12, hgfe, sgl, lform )
+        CALL write_array( 12, hgft, sgl, lform )
+      ELSE IF (job_type == '3D') THEN
+        CALL write_array( 12, rhg, sgl, lform )
+        CALL write_array( 12, egfe, sgl, lform )
+        CALL write_array( 12, egfn, sgl, lform )
+        CALL write_array( 12, egft, sgl, lform )
+        CALL write_array( 12, hgfe, sgl, lform )
+        CALL write_array( 12, hgfn, sgl, lform )
+        CALL write_array( 12, hgft, sgl, lform )
+      END IF
+!
+      DO is = 1, nsolid
+        IF (job_type == '2D') THEN
+          CALL write_array( 12, rhs(:,is), sgl, lform )
+          CALL write_array( 12, esfe(:,is), sgl, lform )
+          CALL write_array( 12, esft(:,is), sgl, lform )
+          CALL write_array( 12, hsfe(:,is), sgl, lform )
+          CALL write_array( 12, hsft(:,is), sgl, lform )
+        ELSE IF (job_type == '3D') THEN
+          CALL write_array( 12, rhs(:,is), sgl, lform )
+          CALL write_array( 12, esfe(:,is), sgl, lform )
+          CALL write_array( 12, esfn(:,is), sgl, lform )
+          CALL write_array( 12, esft(:,is), sgl, lform )
+          CALL write_array( 12, hsfe(:,is), sgl, lform )
+          CALL write_array( 12, hsfn(:,is), sgl, lform )
+          CALL write_array( 12, hsft(:,is), sgl, lform )
+        END IF
+      END DO
+
+      IF( mpime == root ) THEN
+        CLOSE (12)
+      END IF
+!
+      RETURN
+      END SUBROUTINE test_fluxes
 !-----------------------------------------------------------
       END MODULE tilde_energy
 !-----------------------------------------------------------

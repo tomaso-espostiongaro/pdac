@@ -33,8 +33,8 @@
       USE control_flags, ONLY: job_type
       USE dimensions
       USE domain_decomposition, ONLY: ncint, meshinds, myijk
-      USE eos_gas, ONLY: mas, mole, cnvertg_local, xgc, ygc
-      USE eos_solid, ONLY: cnverts_local
+      USE eos_gas, ONLY: mas, mole, cnvertg, xgc, ygc
+      USE eos_solid, ONLY: cnverts
       USE gas_constants, ONLY: default_gas, present_gas
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: tg, ts
@@ -174,8 +174,8 @@
 !
         DO  ijk = 1, ncint
           CALL mole( xgc(:,ijk), ygc(:,ijk) )
-          CALL cnvertg_local( ijk )
-          CALL cnverts_local( ijk )
+          CALL cnvertg( ijk )
+          CALL cnverts( ijk )
         END DO
 !
 ! ... initial conditions already set from restart file
@@ -202,8 +202,8 @@
           END DO
 
           CALL mas( ygc(:,ijk), xgc(:,ijk)) 
-          CALL cnvertg_local(ijk)
-          CALL cnverts_local(ijk)
+          CALL cnvertg(ijk)
+          CALL cnverts(ijk)
 
         END DO
 !

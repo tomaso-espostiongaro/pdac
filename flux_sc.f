@@ -260,7 +260,7 @@
         fw = upwnd * cs * xb(i-1)
       END IF
 !
-! ... on South volume boundary
+! ... on Bottom volume boundary
 !
       IF ((fl_l(ijkm) /= 1)) THEN
         cs = w%b

@@ -123,22 +123,14 @@
 !
 ! ... inverse of the cell sizes
 !
-            DO i=1,(nx-1)
-              indx(i)=1.D0/dx(i)
-            END DO 
-!
-            DO k=1,(nz-1)
-              indz(k)=1.D0/dz(k)
-            END DO  
-!
+            indx = 1.D0 / dx
+
+            indz = 1.D0 / dz
+
             IF (job_type == '3D') THEN
-              DO j=1,(ny-1)
-                indy(j)=1.D0/dy(j)
-              END DO
+              indy = 1.D0 / dy
             ELSE IF (job_type == '2D') THEN
-              DO j=1,(ny-1)
-                indy(j)=0.D0
-              END DO
+              indy = 0.D0
             END IF
 !
           RETURN 

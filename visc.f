@@ -168,11 +168,12 @@
       USE control_flags, ONLY: job_type
       USE dimensions
       USE domain_decomposition, ONLY: ncint, ncdom, data_exchange
+      USE domain_decomposition, ONLY: myijk, meshinds
       USE grid, ONLY: dx, dy, dz, fl_l
       USE gas_solid_density, ONLY: rlk
       USE gas_solid_velocity, ONLY:  us, vs, ws
       USE particles_constants, ONLY: rl, inrl
-      USE set_indexes
+      USE set_indexes, ONLY: subscr, ijke, ijkn, ijkt
       USE turbulence_model, ONLY: must
       USE indijk_module, ONLY: ip0_jp0_kp0_
 
@@ -182,7 +183,7 @@
 !
       REAL*8 :: dxp, dyp, dzp, indxp, indyp, indzp
       REAL*8 :: epsx, epsy, epsz, gepx, gepy, gepz
-      INTEGER :: imesh, i, j, k, ij, ijk
+      INTEGER :: imesh, i, j, k, ijk
       LOGICAL :: repulsive_model
 !
       CALL data_exchange(mus)
@@ -206,54 +207,40 @@
       repulsive_model = .TRUE.
       IF ( repulsive_model ) THEN
 
-        IF (job_type == '2D') THEN
+        DO ijk = 1, ncint
+          IF(fl_l(ijk) == 1) THEN
+            CALL meshinds(ijk,imesh,i,j,k)
+            CALL subscr(ijk)
 
-          DO ij = 1, ncint
-            imesh = myijk(ip0_jp0_kp0_, ij)
-            IF(fl_l(ij) == 1) THEN
-              CALL subscr(ij)
-              j = ( imesh - 1 ) / nx + 1
-              i = MOD( ( imesh - 1 ), nx) + 1
-!
-              dxp=(dx(i)+dx(i+1))
-              dzp=(dz(j)+dz(j+1))
-!
-              indxp=1.D0/dxp
-              indzp=1.D0/dzp
+            dxp=(dx(i)+dx(i+1))
+            dyp=(dy(j)+dy(j+1))
+            dzp=(dz(k)+dz(k+1))
+! 
+            indxp=1.D0/dxp
+            indyp=1.D0/dyp
+            indzp=1.D0/dzp
+
+            IF (job_type == '2D') THEN
+
+              DO is = 1, nsolid
 !
 ! ... Coulombic x-gradient
 !
-              epsx=(dx(i+1)*rlk(ij,is) + dx(i)*rlk(ijke,is)) * indxp * inrl(is)
+              epsx=(dx(i+1)*rlk(ijk,is) + dx(i)*rlk(ijke,is)) * indxp * inrl(is)
               gepx=10.D0**(8.76D0*epsx-0.27D0)
-              pvisx(ij,is) = pvisx(ij,is) -  & 
-                            gepx*indxp*2.D0*(rlk(ijke,is)-rlk(ij,is))*inrl(is)
+              pvisx(ijk,is) = pvisx(ijk,is) -  & 
+                            gepx*indxp*2.D0*(rlk(ijke,is)-rlk(ijk,is))*inrl(is)
 !
 ! ... Coulombic z-gradient
 !
-              epsz=(dz(j+1)*rlk(ij,is) + dz(j)*rlk(ijkt,is)) * indzp * inrl(is)
+              epsz=(dz(j+1)*rlk(ijk,is) + dz(j)*rlk(ijkt,is)) * indzp * inrl(is)
               gepz=10.D0**(8.76D0*epsz-0.207D0)
-              pvisz(ij,is) = pvisz(ij,is) -  & 
-                            gepz*indzp*2.D0*(rlk(ijkt,is)-rlk(ij,is))*inrl(is)
-            END IF
-          END DO
-
-        ELSE IF (job_type == '3D') THEN
-
-          DO ijk = 1, ncint
-            imesh = myijk(ip0_jp0_kp0_, ijk)
-            IF(fl_l(ijk) == 1) THEN
-              CALL subscr(ijk)
-              i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
-   	      j = MOD( imesh - 1, nx*ny ) / nx + 1
-   	      k = ( imesh - 1 ) / ( nx*ny ) + 1
+              pvisz(ijk,is) = pvisz(ijk,is) -  & 
+                            gepz*indzp*2.D0*(rlk(ijkt,is)-rlk(ijk,is))*inrl(is)
+              END DO
+              
+            ELSE IF (job_type == '3D') THEN
 ! 
-              dxp=(dx(i)+dx(i+1))
-              dyp=(dy(j)+dy(j+1))
-              dzp=(dz(k)+dz(k+1))
-! 
-              indxp=1.D0/dxp
-              indyp=1.D0/dyp
-              indzp=1.D0/dzp
  
               DO is = 1, nsolid
 !
@@ -277,12 +264,12 @@
                 gepz=10.D0**(8.76D0*epsz-0.207D0)
                 pvisz(ijk,is) = pvisz(ijk,is) -  & 
                             gepz*indzp*2.D0*(rlk(ijkt,is)-rlk(ijk,is))*inrl(is)
-             END DO
+              END DO
 
             END IF
-          END DO
+          END IF
 
-        END IF
+        END DO
       END IF
 !
       RETURN

@@ -1267,15 +1267,12 @@
                     ijkst, ijkb, ijkeb, ijkwb, ijknb, ijksb, ijktt, ijkbb
 !
         DO ijk = 1, ncint 
-
-          imesh = myijk( ip0_jp0_kp0_, ijk)
+          CALL meshinds(ijk,imesh,i,j,k)
 
           IF( job_type == '2D' ) THEN
 
-            k  = ( imesh - 1 ) / nx + 1
-            i  = MOD( ( imesh - 1 ), nx) + 1
-            IF( (i .GE. 2) .AND. (i .LE. (nx-1)) .AND.   &
-                (k .GE. 2) .AND. (k .LE. (nz-1))      ) THEN
+            IF( (i >= 2) .AND. (i <= (nx-1)) .AND.   &
+                (k >= 2) .AND. (k <= (nz-1))      ) THEN
 !
               ijkm  = myijk( ip0_jp0_km1_, ijk)
               imjk  = myijk( im1_jp0_kp0_, ijk)
@@ -1335,15 +1332,15 @@
               IF( (fl_l(ippjk) == 2) .OR. (fl_l(ippjk) == 3) ) ijkee = ipjk
 
               ijktt = ijkpp
-              IF(j == (nz-1)) ijktt = ijkt
+              IF(k == (nz-1)) ijktt = ijkt
               IF( (fl_l(ijkpp) == 2) .OR. (fl_l(ijkpp) == 3) ) ijktt = ijkp
   
               ijkww = immjk
-              IF(i == (2)) ijkww = ijkw
+              IF(i == 2) ijkww = ijkw
               IF( (fl_l(immjk) == 2) .OR. (fl_l(immjk) == 3) ) ijkww = imjk
 
               ijkbb = ijkmm
-              IF(j == (2)) ijkbb = ijkb
+              IF(k == 2) ijkbb = ijkb
               IF( (fl_l(ijkmm) == 2) .OR. (fl_l(ijkmm) == 3) ) ijkbb = ijkm
 !
               myinds(ip0_jp0_km2_, ijk) = ijkbb
@@ -1362,10 +1359,6 @@
             END IF
 
           ELSE IF( job_type == '3D' ) THEN
-
-            i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
-            j = MOD( imesh - 1, nx*ny ) / nx + 1
-            k = ( imesh - 1 ) / ( nx*ny ) + 1
 
             IF( (i >= 2) .AND. (i <= (nx-1)) .AND.   &
                 (j >= 2) .AND. (j <= (ny-1)) .AND.   &

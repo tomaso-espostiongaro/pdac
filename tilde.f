@@ -4,10 +4,14 @@
       IMPLICIT NONE
       SAVE
 !
+! ... tilde momentum density
+!
       REAL*8, DIMENSION(:),   ALLOCATABLE :: rug, rvg, rwg
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: rus, rvs, rws
       REAL*8, DIMENSION(:),   ALLOCATABLE :: rugn, rvgn, rwgn
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: rusn, rvsn, rwsn
+!
+! ... convective momentum fluxes
 !
       REAL*8, ALLOCATABLE :: ugfe(:), ugfn(:), ugft(:)
       REAL*8, ALLOCATABLE :: vgfe(:), vgfn(:), vgft(:)
@@ -17,7 +21,11 @@
       REAL*8, ALLOCATABLE :: vsfe(:,:), vsfn(:,:), vsft(:,:)
       REAL*8, ALLOCATABLE :: wsfe(:,:), wsfn(:,:), wsft(:,:)
 !
+! ... gas-particle drag coefficient
+!
       REAL*8, DIMENSION(:), ALLOCATABLE  :: kpgv
+!
+! ... momentum exchange coefficients
       REAL*8, DIMENSION(:,:), ALLOCATABLE  :: appu, appv, appw
 !
 !----------------------------------------------------------------------

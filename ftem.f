@@ -2,6 +2,9 @@
       MODULE enthalpy_matrix
 !----------------------------------------------------------------------
       IMPLICIT NONE
+
+! ... Interphase enthalpy matrix elements
+!
       REAL*8, DIMENSION(:),   ALLOCATABLE :: bt
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: at
 !

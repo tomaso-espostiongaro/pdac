@@ -4,7 +4,9 @@
 
       IMPLICIT NONE
       SAVE
-
+!
+! ... Interphase momentum matrix elements
+!
       REAL*8, PRIVATE, DIMENSION(:),   ALLOCATABLE ::  bu, bv, bw
       REAL*8, PRIVATE, DIMENSION(:,:), ALLOCATABLE ::  au, av, aw
       REAL*8, PRIVATE, DIMENSION(:),   ALLOCATABLE ::  bu1, bv1, bw1

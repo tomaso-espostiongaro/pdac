@@ -12,7 +12,7 @@
       SUBROUTINE hotc(hgfe, hgfn, hgft, hgfw, hgfs, hgfb, ep, tg, kapgt, ijk)
 !
       USE dimensions
-      USE domain_decomposition, ONLY: myijk
+      USE domain_decomposition, ONLY: myijk, meshinds
       USE grid, ONLY: fl_l
       USE grid, ONLY: dx, dy, dz, xb
       USE set_indexes, ONLY: imjk, ijmk, ijkm
@@ -28,10 +28,7 @@
       REAL*8 :: epme, epmn, epmt, epmw, epms, epmb
       INTEGER :: i,j,k,imesh
 !
-      imesh = myijk( ip0_jp0_kp0_, ijk)
-      i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
-      j = MOD( imesh - 1, nx*ny ) / nx + 1
-      k = ( imesh - 1 ) / ( nx*ny ) + 1
+      CALL meshinds(ijk,imesh,i,j,k)     
 !
       IF (fl_l(imjk) /= 1) THEN
         dxm = (dx(i)+dx(i-1))

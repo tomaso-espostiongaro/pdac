@@ -26,7 +26,7 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE cnverts_local(ijk)
+      SUBROUTINE cnverts(ijk)
 !
       USE dimensions
       USE gas_solid_temperature, ONLY: sies, ts
@@ -47,7 +47,7 @@
       END DO
 !
       RETURN
-      END SUBROUTINE cnverts_local
+      END SUBROUTINE cnverts
 
 
 !----------------------------------------------------------------------
