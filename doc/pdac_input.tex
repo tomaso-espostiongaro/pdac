@@ -5,10 +5,12 @@
 \label{section:namelists}
 
 \subsubsection{{\tt control} namelist}
+The {\tt control} namelist contains the parameters that control the program
+flow, such as the start mode, the initial and final time, the output printing.
 
 \begin{itemize}
 \item
-\PDACCONF{run\_name}{identification}{any string}
+\PDACCONFWDEF{run\_name}{run identificative}{any string}{{\tt pdac\_run\_2d}}
 {This string identifies the simulation. Its length must not exceed 80 characters. It must be enclosed by quotes.}
 
 \item
@@ -25,15 +27,15 @@ dumped (in double precision) into the restart file {\tt pdac.res} (see above).
 Otherwise, initial conditions are set up from input data in {\tt pdac.dat}} 
 
 \item
-\PDACCONF{time}{initial time}{double real}
+\PDACCONFWDEF{time}{initial time}{double real}{0.0}
 {Inital simulation time (in seconds)}
 
 \item
-\PDACCONF{tstop}{end time}{double real}
+\PDACCONFWDEF{tstop}{end time}{double real}{100.0}
 {Time (in seconds) at wich the simulation stops}
 
 \item
-\PDACCONF{dt}{time step}{double real}
+\PDACCONFWDEF{dt}{time step}{double real}{0.01}
 {Time advancement step (in seconds). 
 {\tt dt} is constrained by the CFL condition
 $dt < C_{max}\frac{\Delta x}{V_{max}}$, where $\Delta x$ is
@@ -42,16 +44,16 @@ velocity. The maximum CFL number $C_{max}\approx 0.2$ has been
 found empirically.}
 
 \item
-\PDACCONF{lpr}{level of verbosity}{1,2}
+\PDACCONFWDEF{lpr}{level of verbosity}{1,2,3}{2}
 {increases the level of verbosity in warning and error messages 
 in {\tt pdac.log}, {\tt pdac.err}, {\tt pdac.tst} files}
 
 \item
-\PDACCONF{tpr}{time interval for OUTPUT file}{}
+\PDACCONFWDEF{tpr}{time interval for OUTPUT file}{$>$ dt}{1.0}
 {OUTPUT files are printed every {\tt tpr} seconds of simulated time}
 
 \item
-\PDACCONF{tdump}{time interval for restart file}{}
+\PDACCONFWDEF{tdump}{time interval for restart file}{$>$ dt}{20.0}
 {restart file is overwritten every {\tt tdump} seconds of simulated time}
 
 \item
@@ -70,13 +72,17 @@ The output time can be recovered as $({\tt XXXX - nfil})* {\tt tpr}$ }
 {}
 
 \item
-\PDACCONF{formatted\_output}{flag for OUTPUT format}{{\tt T/F}}
+\PDACCONFWDEF{formatted\_output}{flag for OUTPUT format}{{\tt .TRUE./.FALSE.}}{{\tt T}}
 {Determine the format of output files: T - formatted ascii, 
 F - binary 4-bytes }
 
 \end{itemize}
 
 \subsubsection{{\tt model} namelist}
+The {\tt model} namelist is intended for all switches that can be selected
+by the user to modify the model equations, either by neglecting some terms
+in the transport equations or by using different constitutive equations,
+or submodels.
 
 \begin{itemize}
 
@@ -163,20 +169,24 @@ be present.}
 \end{itemize}
 
 \subsubsection{{\tt mesh} namelist}
+Here all parameters concerning the spatial discretization must be
+selected. Remember that in \PDAC\ you are constrained to discretization 
+on a rectilinear (non-)uniform mesh. Cylindrical coordinates can be
+selected only in 2D.
 
 \begin{itemize}
 \item
-\PDACCONF{nx}{Number of cells in x(r)-direction}{up to 512}
+\PDACCONFWDEF{nx}{Number of cells in x(r)-direction}{up to 512}{100}
 {When cylindrical coordinates are selected in 2D, ``x'' is used instead 
  of ``r''. Includes the boundary ghost cells. The maximum number can be 
  increased by modifying the max\_size parameter in the ``dimensions'' module}
 
 \item
-\PDACCONF{ny}{Number of cells in y-direction}{up to 512}
+\PDACCONFWDEF{ny}{Number of cells in y-direction}{up to 512}{1}
 {Not used in 2D. Includes the boundary ghost cells. Idem.}
 
 \item
-\PDACCONF{nz}{Number of cells in z-direction}{up to 512}
+\PDACCONFWDEF{nz}{Number of cells in z-direction}{up to 512}{100}
 {z is the second space coordinate in 2D. Includes the boundary ghost cells.
 Idem. }
 
@@ -191,27 +201,27 @@ by modifying the discretized equations.}
 cells size in the three coordinate directions.}
 
 \item
-\PDACCONF{dx0}{cell sizes in x(r)-direction}{any real}
+\PDACCONFWDEF{dx0}{cell sizes in x(r)-direction}{any real}{10.D0}
 {}
 
 \item
-\PDACCONF{dy0}{cell sizes in y-direction}{any real}
+\PDACCONFWDEF{dy0}{cell sizes in y-direction}{any real}{10.D0}
 {}
 
 \item
-\PDACCONF{dz0}{cell sizes in z-direction}{any real}
+\PDACCONFWDEF{dz0}{cell sizes in z-direction}{any real}{10.D0}
 {}
 
 \item
-\PDACCONF{origin\_x}{origin of the cartesian space}{any real}
+\PDACCONFWDEF{origin\_x}{origin of the cartesian space}{any real}{0.0}
 {}
 
 \item
-\PDACCONF{origin\_y}{origin of the cartesian space}{any real}
+\PDACCONFWDEF{origin\_y}{origin of the cartesian space}{any real}{0.0}
 {}
 
 \item
-\PDACCONF{origin\_z}{origin of the cartesian space}{any real}
+\PDACCONFWDEF{origin\_z}{origin of the cartesian space}{any real}{0.0}
 {}
 
 \item
@@ -221,41 +231,48 @@ cells size in the three coordinate directions.}
 \end{itemize}
 
 \subsubsection{{\tt particles} namelist}
+The number of solid phases and the physical properties of particles 
+composing each phase are specified. Note that the order in which 
+particle classes are specified will be the order of solid-phases array 
+storage, so that it must be consistent with initial conditions assignment.
 
 \begin{itemize}
 
 \item
-\PDACCONF{nsolid}{number of solid phases}{up to 10}
+\PDACCONFWDEF{nsolid}{number of solid phases}{up to 10}
 {Maximum number can be increased by modifying the max\_nsolid parameter
-in the ``dimensions'' module.}
+in the ``dimensions'' module.}{2}
 
 \item
-\PDACCONF{diameter}{effective diameter particles (in microns)}{real}
-{The model works well for particle diameters smaller than few millimeters}
+\PDACCONFWDEF{diameter}{effective diameter particles (in microns)}{real}
+{The model works well for particle diameters smaller than few millimeters}{100 microns}
 
 \item
-\PDACCONF{density}{microscopic particle density}{real}
-{Depends on materials and porosity}
+\PDACCONFWDEF{density}{microscopic particle density}{real}
+{Depends on materials and porosity}{2700. Kg / m$^3$}
 
 \item
-\PDACCONF{sphericity}{particle sphericity}{0.5 to 1.0}
-{Partially accounts for particle shapes}
+\PDACCONFWDEF{sphericity}{particle sphericity}{0.5 to 1.0}
+{Partially accounts for particle shapes}{1.0}
 
 \item
-\PDACCONF{viscosity}{Empirical viscosity coefficient}{0.5 to 2.0}
-{Largest values apply to coarse particles}
+\PDACCONFWDEF{viscosity}{Empirical viscosity coefficient}{0.5 to 2.0}
+{Largest values apply to coarse particles}{0.5 [Pa s]}
 
 \item
-\PDACCONF{specific\_heat}{solid specific heat}{ral}
-{Depends on materials}
+\PDACCONFWDEF{specific\_heat}{solid specific heat}{ral}
+{Depends on materials}{1.2D3 [ Joule / ( Kelvin * Kg ) ]}
 
 \item
-\PDACCONF{thermal\_conductivity}{solid thermal conductivity for Fourier law}{real}
+\PDACCONFWDEF{thermal\_conductivity}{solid thermal conductivity for Fourier law}{real}{2.D0}
 {Depends on materials}
 
 \end{itemize}
 
 \subsubsection{{\tt numeric} namelist}
+By modifying these parameters, you can modify the way \PDAC\ solves the 
+model equations. We recommend the non-expert user to avoid modifying the
+default values.
 
 \begin{itemize}
 
@@ -295,13 +312,28 @@ the simulation down. Optimal value is set by default.}
 
 \item
 \PDACCONFWDEF{maxout}{maximum number of Gauss-Siedel iterations for convergence}{integer (large)}{5000}
-{Convergence is usually reached within less than 100 iterations. If maxout is reached the code CRASHES}
+{Convergence is usually reached within less than 100 iterations. If maxout is reached the code CRASH!es}
 
 \item
 \PDACCONFWDEF{omega}{over/under-relaxation parameter}{0.0 to 2.0}{1.0}
 {Values between 0.0 and 1.0 underrelax the iterative procedure, whereas
 values above 1.0 overrelax.}
 
+\item
+\PDACCONFWDEF{implicit\_fluxes}{flag for implicit computation of fluxes}{{\tt T/F}}{F}
+{By selecting T, convective fluxes are computed (at the first or second order, 
+depending on flag {\tt muscl}) within the iterative solver. This modification
+in principle could relax the CFL constraint on the time step but significantly
+slows down the computation.}
+
+\item
+\PDACCONFWDEF{implicit\_enthalpy}{flag for implicit computation of enthalpies}
+{{\tt T/F}}{F}
+{Selecting the implicit solution of enthalpies enchance the level of coupling
+between the momentum and enthalpy equations. The convective part of the 
+enthalpy equations can be nevertheless left out from the iterative solver
+by opportunely selecting the flag implicit\_fluxes. The performance loss
+in any case is significant.}
 \end{itemize}
 
 \subsection{\PDAC\ input cards}

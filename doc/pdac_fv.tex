@@ -22,6 +22,7 @@ unified notation for gas and solids, as follows:\\
 {\bf Continuity Equations}\\
 %
 \begin{eqnarray}
+\htmlimage{}
 (\epsilon_k \rho_k)_{i,j}^{n+1} = (\epsilon_k \rho_k)_{i,j}^{n} -
 \frac{\delta t}{R_i \delta r_i} \langle R(\epsilon_k \rho_k) u_k \rangle_{i,j}^{n+1}-
 \frac{\delta t}{\delta z_j} \langle (\epsilon_k \rho_k) v_k \rangle_{i,j}^{n+1}
@@ -32,6 +33,7 @@ unified notation for gas and solids, as follows:\\
 {\bf Momentum Equations}\\
 %
 \begin{eqnarray}
+\htmlimage{}
 (\epsilon_k \rho_k u_k)_{i+\frac{1}{2},j}^{n+1} =
 (\widetilde{\epsilon_k \rho_k u_k})_{i+\frac{1}{2},j}^{n} -
 \frac{\delta t}{R_{i+\frac{1}{2}}\delta r_{i+\frac{1}{2}}} 
@@ -44,6 +46,7 @@ unified notation for gas and solids, as follows:\\
 \end{eqnarray}
 %
 \begin{eqnarray}
+\htmlimage{}
 (\epsilon_k \rho_k v_k)_{i,j+\frac{1}{2}}^{n+1} =
 (\widetilde{\epsilon_k \rho_k v_k})_{i,j+\frac{1}{2}}^{n} -
 \frac{\delta t}{\delta z_{j+\frac{1}{2}}} (\epsilon_k)_{i,j+\frac{1}{2}}^{n+1}
@@ -88,6 +91,7 @@ The implicit treatment of these terms is computationally expensive.\\
 {\bf Radial momentum}\\
 %
 \begin{eqnarray}
+\htmlimage{}
 (\widetilde{\epsilon_k \rho_k u_k})_{i+\frac{1}{2},j}^{n} =
 (\epsilon_k \rho_k u_k)_{i+\frac{1}{2},j}^{n} - 
 \frac{\delta t}{R_{i+\frac{1}{2}} \delta r_{i+\frac{1}{2}}} 
@@ -110,6 +114,7 @@ The implicit treatment of these terms is computationally expensive.\\
 {\bf Vertical momentum}\\
 %
 \begin{eqnarray}
+\htmlimage{}
 (\widetilde{\epsilon_k \rho_k v_k})_{i,j+\frac{1}{2}}^{n} =
 (\epsilon_k \rho_k v_k)_{i,j+\frac{1}{2}}^{n} -
 \frac{\delta t}{R_{i} \delta r_{i}} 
@@ -130,6 +135,7 @@ The implicit treatment of these terms is computationally expensive.\\
 {\bf Gas enthalpy}\\
 %
 \begin{eqnarray}
+\htmlimage{}
 (\widetilde{\epsilon_g \rho_g h_g})^n_{i,j} = 
 (\epsilon_k \rho_k h_g)_{i,j}^{n} -
 \frac {\delta t}{R_i \delta r_{i}} 
@@ -157,6 +163,7 @@ R_{i-\frac{1}{2}} (p_g)_{i-\frac{1}{2},j} \big)
 {\bf Particles enthalpy}\\
 %
 \begin{eqnarray}
+\htmlimage{}
 (\widetilde{\epsilon_k \rho_k h_k})^n_{i,j} = 
 (\epsilon_k \rho_k h_k)_{i,j}^{n} -
 \frac {\delta t}{R_i \delta r_{i}}
@@ -186,6 +193,7 @@ require some interpolations to define centered fields on staggered locations.\\
 {\bf First Order Upwind (Donor-cell)}
 %
 \begin{eqnarray}
+\htmlimage{}
 %
 \langle R \Phi u_k \rangle_{m,p} & = & R_{m+\frac{1}{2}} (u_k)_{m+\frac{1}{2},p} 
 \left[ \begin{array}{cc}
@@ -221,6 +229,7 @@ The stress tensor for both gas and solid phases is assumed to model a Newtonian 
 so that it is proportional to the strain tensor. In two dimensions this writes:\\
 
 \begin{eqnarray}
+\htmlimage{}
 (\tau_{k,rr})_{i,j} = 2 (\mu_k)_{i,j} 
 \Big( \frac{(u_k)_{i+\frac{1}{2},j} - (u_k)_{i-\frac{1}{2},j}}
 {\delta r_{i}} \Big ) - \frac{2}{3} (\mu_k)_{i,j} 
@@ -229,6 +238,7 @@ so that it is proportional to the strain tensor. In two dimensions this writes:\
 \end{eqnarray}
 %
 \begin{eqnarray}
+\htmlimage{}
 (\tau_{k,zz})_{i,j} = 2 (\mu_k)_{i,j} 
 \Big( \frac{(v_k)_{i,j+\frac{1}{2}} -(v_k)_{i,j-\frac{1}{2}}}
 {\delta z_{j}} \Big ) - \frac{2}{3} (\mu_k)_{i,j} 
@@ -237,6 +247,7 @@ so that it is proportional to the strain tensor. In two dimensions this writes:\
 \end{eqnarray}
 %
 \begin{eqnarray}
+\htmlimage{}
 (\tau_{k,rz})_{i,j} = (\mu_k)_{i,j} \Big( \frac{(u_k)_{i,j+1} -(u_k)_{i,j-1}}
 {\delta z_{j-\frac{1}{2}}+\delta z_{j+\frac{1}{2}}} +
 \frac{(v_k)_{i+1,j} -(v_k)_{i-1,j-1}}
@@ -245,6 +256,7 @@ so that it is proportional to the strain tensor. In two dimensions this writes:\
 \end{eqnarray}
 %
 \begin{eqnarray}
+\htmlimage{}
 (\tau_{k,rz})_{i+\frac{1}{2},j+\frac{1}{2}} = (\mu_k)_{i+\frac{1}{2},j+\frac{1}{2}} 
 \Big( \frac{(u_k)_{i+\frac{1}{2},j+1} -(u_k)_{i+\frac{1}{2},j}}
 {\delta z_{j+\frac{1}{2}}} +
@@ -254,6 +266,7 @@ so that it is proportional to the strain tensor. In two dimensions this writes:\
 \end{eqnarray}
 %
 \begin{eqnarray}
+\htmlimage{}
 (\tau_{k,o})_{i+\frac{1}{2},j} = 2 (\mu_k)_{i+\frac{1}{2},j} 
 \frac{(u_k)_{i+\frac{1}{2},j}}
 {R_{i+\frac{1}{2}}} -
@@ -268,6 +281,7 @@ R_{i-\frac{1}{2}} (u_k)_{i-\frac{1}{2},j}^{n}}
 \end{eqnarray}
 %
 \begin{eqnarray}
+\htmlimage{}
 (\tau_{k,o})_{i,j} = 2 (\mu_k)_{i,j} \frac{(u_k)_{i,j}}
 {R_{i}} - \frac{2}{3} (\mu_k)_{i,j} (\mbox{\boldmath $\nabla$} 
 \cdot {\bf v}_k)_{i,j}
@@ -277,6 +291,7 @@ R_{i-\frac{1}{2}} (u_k)_{i-\frac{1}{2},j}^{n}}
 and:
 %
 \begin{eqnarray}
+\htmlimage{}
 (\mbox{\boldmath $\nabla$} \cdot {\bf v}_{k})_{i,j} = 
 \bigg( \frac{R_{i+\frac{1}{2}} (u_k)_{i+\frac{1}{2},j} - 
 R_{i-\frac{1}{2}} (u_k)_{i-\frac{1}{2},j}} {R_{i} \delta r_{i}} + 
@@ -295,12 +310,14 @@ form and then solving  the final system by a Gauss-Jordan inversion algorithm. \
 The momentum equations in $r$ direction can be collected in the following form:
 
 \begin{eqnarray}
+\htmlimage{}
 ({\bf A_U})_{i+\frac{1}{2},j} ({\bf U})_{i+\frac{1}{2},j}^{n+1} = 
 ({\bf B_{U^{\rm n}}})_{i+\frac{1}{2},j}
 \nonumber
 \end{eqnarray}
 %
 \begin{eqnarray}
+\htmlimage{}
 ({\bf A_U}) = \left ( \begin{array}{ccccc}
 A_{gg} & A_{g1} & A_{g2} & \cdots & A_{gN} \\
 A_{1g} & A_{11} & A_{12} & \cdots & A_{1N} \\
@@ -312,18 +329,21 @@ A_{Ng} & A_{N1} & A_{N2} & \cdots & A_{NN}  \end{array} \right )
 where:
 %
 \begin{eqnarray}
+\htmlimage{}
 (A)_{kk} = (\epsilon_k \rho_k)^{n+1} + \delta t \sum_{l=g,1}^{N} (D_{lk})^{n},
 \qquad  k = g,1,2,....,N
 \nonumber
 \end{eqnarray}
 %
 \begin{eqnarray}
+\htmlimage{}
 (A)_{kl} = (A)_{lk} = - \delta t (D_{lk})^{n},
 \qquad  k,l  = g,1,2,....,N; \quad k \not= l
 \nonumber
 \end{eqnarray}
 %
 \begin{eqnarray}
+\htmlimage{}
 ({\bf U})^{n+1} =
 \left( \begin{array}{c}
 u_g \\
@@ -350,12 +370,14 @@ u_N \end{array} \right )^{(n+1)}; &
 and, similarly, the momentum equation in $z$ direction can be written as:
 %
 \begin{eqnarray}
+\htmlimage{}
 ({\bf A_V})_{i,j+\frac{1}{2}} ({\bf V})_{i,j+\frac{1}{2}}^{n+1} = 
 ({\bf B_{V^{\rm n}}})_{i,j+\frac{1}{2}}
 \nonumber
 \end{eqnarray}
 %
 \begin{eqnarray}
+\htmlimage{}
 ({\bf A_V})_{i,j+\frac{1}{2}} \cdot \left( \begin{array}{c}
 v_g \\
 v_1 \\
@@ -384,11 +406,10 @@ Similarly to the procedure followed for the momentum equations, the energy equat
 are recasted in matrix form as:
 %
 \begin{eqnarray}
+\htmlimage{}
 ({\bf A_H})_{i,j} ({\bf H})_{i,j}^{n+1} = ({\bf B_{H^{\rm n}}})_{i,j}
 \nonumber
 \end{eqnarray}
-%
-where:
 %
 \begin{eqnarray}
 ({\bf A_H})_{i,j} = \left ( \begin{array}{ccccc}
@@ -402,6 +423,7 @@ where:
 \end{eqnarray}
 %
 \begin{eqnarray}
+\htmlimage{}
 ({\bf H})^{n+1} =  \left( \begin{array}{c}
 h_g \\
 h_1 \\
@@ -414,6 +436,7 @@ h_N \end{array} \right )^{n+1}
 and:
 %
 \begin{eqnarray}
+\htmlimage{}
 ({\bf B_{H^{\rm n}}})_{i,j}=  \left ( \begin{array}{c}
 (\epsilon_g \rho_g) h_g + (\widetilde{\epsilon_g \rho_g h_g})^n_{i,j} \\
 (\epsilon_1 \rho_1) h_1 + (\widetilde{\epsilon_1 \rho_1 h_1})^n_{i,j} \\
@@ -433,6 +456,7 @@ These terms enter the following described conservation equations.
 For cartesian coordinates, we set:
 %
 \begin{eqnarray}
+\htmlimage{}
 R_{i} =  R_{i+\frac{1}{2}} = 1
 \nonumber
 \end{eqnarray}
@@ -440,6 +464,7 @@ R_{i} =  R_{i+\frac{1}{2}} = 1
 and for cylindrical coordinates:
 %
 \begin{eqnarray}
+\htmlimage{}
 R_{1} =  -\frac{1}{2} \delta r_{i} = 1;
 \qquad R_{i} =  R_{1}+\frac{1}{2} \sum_{m=1}^{i-1}
 \delta r_{m+\frac{1}{2}};\qquad i=2,3,...,i_{max}
@@ -447,6 +472,7 @@ R_{1} =  -\frac{1}{2} \delta r_{i} = 1;
 \end{eqnarray}
 %
 \begin{eqnarray}
+\htmlimage{}
 R_{\frac{3}{2}} =  0; \qquad R_{i+\frac{1}{2}} =  R_{\frac{3}{2}} \sum_{m=2}^{i}
 \delta r_{m}; \qquad i = 2,3,...,i_{max}
 \nonumber
@@ -455,11 +481,13 @@ R_{\frac{3}{2}} =  0; \qquad R_{i+\frac{1}{2}} =  R_{\frac{3}{2}} \sum_{m=2}^{i}
 and:
 %
 \begin{eqnarray}
+\htmlimage{}
 \bigg(\frac{\delta R}{\delta r}\bigg)_m  =  0, \qquad \mbox{\rm (for cartesian)}
 \nonumber
 \end{eqnarray}
 %
 \begin{eqnarray}
+\htmlimage{}
 \bigg(\frac{\delta R}{\delta r}\bigg)_m  =  1, \qquad \mbox{\rm (for cylindrical)}
 \nonumber
 \end{eqnarray}

@@ -1,6 +1,7 @@
 %
 % generally useful macros
 %
+\newcommand{\htmlimage}[1] {}
 \newcommand{\REFAND} {\&}
 \newcommand{\ETALNP}{\mbox{\it et al}}
 \newcommand{\ETAL}{\mbox{\ETALNP{\it.}}}
@@ -8,12 +9,17 @@
 \newcommand{\mycite}[2] {\cite{#2}}
 
 \newcommand{\PDAC} {PDAC}
+\newcommand{\PDACNAME} {Pyroclastic Dispersal Analysis Code}
 \newcommand{\PDACDATE} {\today}
 \newcommand{\PDACAUTHORS} {
  A.~Neri, G.~Macedonio, D.~Gidaspow, T.~Esposti Ongaro, C.~Cavazzoni }
 \newcommand{\PDACVERSION} {2.0}
 \newcommand{\PDACADDRESS} {\underline{pdac@pi.ingv.it}}
 \newcommand{\PDACURL} {\underline{http://www.pi.ingv.it/PDAC}}
+% title of PDAC paper
+\newcommand{\PDACPAPER} {PDAC: A transient, multiphase flow code
+for the 3D simulation of pyroclastic dispersal dynamics}
+
 
 %
 % macros for style conventions when describing the program.
@@ -42,30 +48,11 @@
 % other generally useful macros
 %
 
-% Other program names, formatted nicely
-\newcommand{\FEP} {FEP}
-\newcommand{\VMD} {VMD}
-\newcommand{\MDCOMM} {MDComm}
-\newcommand{\MDSCOPE} {MDScope}
-\newcommand{\CESB} {MDScope}
-\newcommand{\ALLNAMES} {MDScope}
-\newcommand{\SMALLMDSCOPE} {mdscope}
-\newcommand{\SMALLCESB} {mdscope}
-\newcommand{\SMALLALLNAMES} {mdscope}
-
-% full name for MDScope, i.e., what it stands for
-\newcommand{\MDSCOPENAME} {Molecular Dynamics computational environment}
-
-% title of MDScope paper
-\newcommand{\MDSCOPEPAPER} {MDScope: A Visual Computing Environment for
-Structural Biology}
-
-
 \newcommand{\UGTITLE} {User's Guide}
 \newcommand{\RMTITLE} {Reference Manual}
 \newcommand{\UGDESC} {
 The \PDAC\ {\em\UGTITLE\/} describes how to run and use the 
-various features of the Piroclastic Density Analysis Code \PDAC.  
+various features of the \PDACNAME\ \PDAC.  
 This guide includes the capabilities of the program, how 
 to use these capabilities, the necessary input files and 
 formats, and how to run the program both on uniprocessor 
@@ -73,8 +60,8 @@ machines and in parallel.}
 
 \newcommand{\RMDESC} {
 The \PDAC\ {\em\RMTITLE\/} is intended for the user who wants
-to modify the features of \PDAC or to the programmers who want to 
-cooperate to the \PDAC development. It describes how the model equations
+to modify the features of \PDAC\ or to the programmers who want to 
+cooperate to the \PDAC\ development. It describes how the model equations
 are discretized and solved, it provides the explicative list of variables 
 used in the numerical code and gives a short description of the 
 parallelization strategy, so that the advanced user can optimize the
