@@ -1,0 +1,116 @@
+%
+% generally useful macros
+%
+\newcommand{\REFAND} {\&}
+\newcommand{\ETALNP}{\mbox{\it et al}}
+\newcommand{\ETAL}{\mbox{\ETALNP{\it.}}}
+\newcommand{\eqnref}[1] {\mbox{eq (\ref{#1})}}
+\newcommand{\mycite}[2] {\cite{#2}}
+
+\newcommand{\PDAC} {PDAC}
+\newcommand{\PDACDATE} {\today}
+\newcommand{\PDACAUTHORS} {
+ A.~Neri, G.~Macedonio, D.~Gidaspow, T.~Esposti Ongaro, C.~Cavazzoni }
+\newcommand{\PDACVERSION} {1.0}
+
+%
+% macros for style conventions when describing the program.
+%
+
+% name of class or object in program
+\newcommand{\OBJ}[1] {{\bf\tt#1}}
+
+% function arguments
+\newcommand{\FA}[2] {{\rm{\bf#1}\ {\it#2}}}
+
+% global function name
+\newcommand{\FN}[3] {{\rm\bf#1}\ {\tt #2(}#3{\tt)}}
+
+% class member function name
+\newcommand{\FNO}[4] {{\rm\bf#2}\ \OBJ{#1::}{\tt#3(}#4{\tt)}}
+
+% list item, for optional components, parameters, etc.
+\newcommand{\TTLISTITEM}[1] {\item {\tt #1} \\}
+\newcommand{\RMLISTITEM}[1] {\item {\rm #1} \\}
+\newcommand{\BOLDLISTITEM}[1] {\item {\bf #1} \\}
+\newcommand{\EMLISTITEM}[1] {\item {\em #1} \\}
+\newcommand{\LISTITEM}[1] {\RMLISTITEM{#1}}
+
+%
+% other generally useful macros
+%
+
+% Other program names, formatted nicely
+\newcommand{\FEP} {FEP}
+\newcommand{\VMD} {VMD}
+\newcommand{\MDCOMM} {MDComm}
+\newcommand{\MDSCOPE} {MDScope}
+\newcommand{\CESB} {MDScope}
+\newcommand{\ALLNAMES} {MDScope}
+\newcommand{\SMALLMDSCOPE} {mdscope}
+\newcommand{\SMALLCESB} {mdscope}
+\newcommand{\SMALLALLNAMES} {mdscope}
+
+% full name for MDScope, i.e., what it stands for
+\newcommand{\MDSCOPENAME} {Molecular Dynamics computational environment}
+
+% title of MDScope paper
+\newcommand{\MDSCOPEPAPER} {MDScope: A Visual Computing Environment for
+Structural Biology}
+
+
+\newcommand{\DOCTITLE} {User's Guide}
+\newcommand{\DOCDESC} {
+The \PDAC\ {\em\DOCTITLE\/} describes how to run and use the 
+various features of the Piroclastic Density Analysis Code \PDAC.  
+This guide includes the capabilities of the program, how 
+to use these capabilities, the necessary input files and 
+formats, and how to run the program both on uniprocessor 
+machines and in parallel.}
+
+\newcommand{\PG}{\PDAC\ {\it Programmer's Guide\/}}
+\newcommand{\UG}{\PDAC\ {\it User's Guide\/}}
+\newcommand{\prettypar}{
+
+\smallskip
+
+}
+
+\newcommand{\eg}{{\it e.g.\/}}
+\newcommand{\ie}{{\it i.e.\/}}
+
+\newcommand{\KEY}[1]{{\tt #1}}
+\newcommand{\IKEY}[1]{{\tt #1\index{#1 psfgen command}}}
+\newcommand{\OKEY}[1]{$[${\tt #1}$]$}
+\newcommand{\ARG}[1]{$<${\em #1}$>$}
+\newcommand{\OARG}[1]{$[${\em #1}$]$}
+\newcommand{\ARGDEF}[2]{$<${\em #1}$>$: #2}
+\newcommand{\KEYDEF}[2]{{\tt #1}: #2}
+\newcommand{\COMMAND}[4]{%
+  #1 \\ {\bf Purpose:} #2 \\ {\bf Arguments:} #3 \\ {\bf Context:} #4 }
+
+\newcommand{\icommand}[1]{#1\index{#1 command}}
+
+\newcommand{\NAMDCONF}[4]{%
+%  \addcontentsline{toc}{subparagraph}{#1}%
+  {\bf \tt #1 } $<$ #2 $>$ \\%
+  \index{#1 parameter}
+  {\bf Acceptable Values: } #3 \\%
+  {\bf Description: } #4%
+}
+
+\newcommand{\NAMDCONFWDEF}[5]{%
+%  \addcontentsline{toc}{subparagraph}{#1}%
+  {\bf \tt #1 } $<$ #2 $>$ \\%
+  \index{#1 parameter}
+  {\bf Acceptable Values: } #3 \\%
+  {\bf Default Value: } #4 \\%
+  {\bf Description: } #5%
+}
+
+\newcommand{\XNCOMP}[3]{%
+  {\bf \NAMD\ Parameter: \tt #1 } \\%
+  {\bf X-PLOR Parameter: \tt #2 } \\%
+  #3%
+}
+

@@ -1,0 +1,84 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                          %
+%              (C) Copyright 2003  INGV and CINECA                         %
+%                      All Rights Reserved                                 %
+%								  	   %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[11pt]{article}
+\usepackage{graphicx}
+\usepackage{makeidx}
+
+\makeindex
+
+% define margins, etc
+\topmargin	0.1in
+\oddsidemargin	0in
+\evensidemargin	0in
+\textheight	8.80in
+\textwidth	6.50in
+\marginparsep	0.25cm
+\headheight	0in
+\headsep	0in
+%\footskip	0.5in
+%\footheight	0in%
+
+% define macros
+\input{pdac_macros}
+
+\setcounter{secnumdepth}{3}
+%% \setcounter{tocdepth}{5} %% very detailed table of contents
+\setcounter{tocdepth}{4}
+
+%
+% the document itself
+%
+
+\begin{document}
+
+% initial pages for the guide - title, TOC, etc.
+\input{pdac_begindoc}
+
+% Introduction
+%\input{ug_intro}
+
+% Getting started
+\newpage
+%\input{ug_start}
+
+% Input and output files
+\newpage
+%\input{ug_io}
+
+% Basic simulation parameters
+\newpage
+%\input{ug_basic}
+
+% Additional simulation parameters
+\newpage
+%\input{ug_add}
+
+% Sample configuration files
+\newpage
+%\input{ug_sample}
+
+% Description of how to run namd
+\newpage
+%\input{ug_runit}
+
+% How to get and install namd
+\newpage
+%\input{ug_avail}
+
+\newpage
+\addtocontents{toc}{\contentsline {section}{References}{\thepage}}
+\bibliographystyle{abbrv}
+%\bibliography{group,tbpub,ug}
+\bibliography{ug}
+
+\newpage
+\addtocontents{toc}{\contentsline {section}{Index}{\thepage}}
+\printindex
+
+% that's all, folks
+\end{document}
