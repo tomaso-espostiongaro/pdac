@@ -3053,9 +3053,11 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
       USE immersed_boundaries, ONLY: immb, bd, vf
       USE immersed_boundaries, ONLY: topo_c, topo_x
       USE immersed_boundaries, ONLY: topo2d_c, topo2d_x, topo2d_y
+      USE indijk_module
       IMPLICIT NONE
 
       INTEGER :: i,j,k,ijk,imesh
+      INTEGER :: ipjk, imjk, ijpk, ijmk, ijkm
       INTEGER :: filled
 !
 ! ... Allocate and initialize coefficients
@@ -3079,19 +3081,26 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
       END IF
 !
         DO ijk=1, ncint
+
+          imjk  = myijk( im1_jp0_kp0_, ijk )
+          ipjk  = myijk( ip1_jp0_kp0_, ijk )
+          ijmk  = myijk( ip0_jm1_kp0_, ijk )
+          ijpk  = myijk( ip0_jp1_kp0_, ijk )
+          ijkm  = myijk( ip0_jp0_km1_, ijk )
+
           IF( flag(ijk) == 1 ) THEN
             CALL meshinds(ijk,imesh,i,j,k)
   
             IF (job_type == '2D') THEN
               ! 
               ! East
-              IF (z(k) > topo_x(i)) THEN
+              IF (z(k) > topo_x(i) .AND. flag(ipjk) /= 17) THEN
                 bd(ijk) = bd(ijk) + 1
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
               !
               ! West
-              IF (z(k) > topo_x(i-1)) THEN
+              IF (z(k) > topo_x(i-1) .AND. flag(imjk) /= 17) THEN
                 bd(ijk) = bd(ijk) + 2
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
@@ -3103,7 +3112,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               END IF
               !
               ! Bottom
-              IF (zb(k-1) >= topo_c(i)) THEN
+              IF (zb(k-1) >= topo_c(i) .AND. flag(ijkm) /= 17) THEN
                 bd(ijk) = bd(ijk) + 8 
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
@@ -3111,13 +3120,13 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
             ELSE IF (job_type == '3D') THEN
               ! 
               ! East
-              IF (z(k) > topo2d_x(i,j)) THEN
+              IF (z(k) > topo2d_x(i,j) .AND. flag(ipjk) /= 17) THEN
                 bd(ijk) = bd(ijk) + 1
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
               !
               ! West
-              IF (z(k) > topo2d_x(i-1,j)) THEN
+              IF (z(k) > topo2d_x(i-1,j) .AND. flag(imjk) /= 17) THEN
                 bd(ijk) = bd(ijk) + 2
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
@@ -3129,19 +3138,19 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               END IF
               !
               ! Bottom
-              IF (zb(k-1) >= topo2d_c(i,j)) THEN
+              IF (zb(k-1) >= topo2d_c(i,j) .AND. flag(ijkm) /= 17) THEN
                 bd(ijk) = bd(ijk) + 8
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
               !
               ! North
-              IF (z(k) > topo2d_y(i,j)) THEN
+              IF (z(k) > topo2d_y(i,j) .AND. flag(ijpk) /= 17) THEN
                 bd(ijk) = bd(ijk) + 16
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
               !
               ! South
-              IF (z(k) > topo2d_y(i,j-1)) THEN
+              IF (z(k) > topo2d_y(i,j-1) .AND. flag(ijmk) /= 17) THEN
                 bd(ijk) = bd(ijk) + 32
                 vf(ijk) = vf(ijk) + 1.D0
               END IF

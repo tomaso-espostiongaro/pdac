@@ -165,7 +165,7 @@
       formatted_output = .TRUE.
       max_seconds = 20000.0
       run = .TRUE.
-      tau = 1.D0
+      tau = 0.D0
 
 ! ... Model
 

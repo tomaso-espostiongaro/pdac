@@ -327,10 +327,6 @@
       p(ijk) = p_gas * alpha * ep0 / ep(ijk) + &
                rrhoatm / mg * tg(ijk) * (1.D0-alpha) / ep(ijk)
 
-      WRITE(*,*) ijk
-      WRITE(*,*) xgc(ijk,:)
-      WRITE(*,*) gmw(gas_type(:))
-
       RETURN
       END SUBROUTINE correct_vent_density
 !-----------------------------------------------------------------------
@@ -370,14 +366,20 @@
       INTEGER, INTENT(IN) :: ijk, imesh, sweep
       INTEGER :: is, n
       REAL*8 :: switch, growth_factor
-
+      
+      IF (iali == 1 .OR. wrat > 1.D0) RETURN
+      
       ! ... Determine whether the inlet cell is on/off
       ! 
-      DO n = 1, nvt
-        IF (vcell(n)%imesh == imesh) THEN
-          switch = vcell(n)%fact
-        END IF
-      END DO
+      IF (irand == 1) THEN
+        DO n = 1, nvt
+          IF (vcell(n)%imesh == imesh) THEN
+            switch = vcell(n)%fact
+          END IF
+        END DO
+      ELSE
+        switch = 1.D0
+      END IF
 
       growth_factor = ft(sweep)
       
@@ -425,12 +427,13 @@
       REAL*8 :: t, tr
 
       t = n * dt
+      tr = 0.D0
 !
 ! ... The function 'ft' grows smoothly from 0 to 1 in a time 'tau'
 !
-      tr = t / tau
+      IF (tau > 0.D0) tr = t / tau
 
-      IF (tr <= 1.D0) THEN
+      IF (tr > 0.D0 .AND. tr <= 1.D0) THEN
         ft = 3.D0 * (tr)**2 - 2.D0 * (tr)**3     
       ELSE
         ft = 1.D0
