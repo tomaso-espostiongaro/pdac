@@ -8,28 +8,46 @@
       USE input_module, ONLY: input, initc, number_of_block
       USE particles_constants, ONLY: allocate_part_constants
       USE postp_input, ONLY: postin
-      USE postp_output, ONLY: write_avs_files
+      USE postp_output, ONLY: write_avs_files, write_xml_files
       USE process_outp, ONLY: filter, process
+      USE parallel, ONLY: parallel_startup, parallel_hangup, &
+     &    mpime, root, nproc
+
 !
       IMPLICIT NONE
       CHARACTER(LEN=8) :: inputfile, postfile
 !
       INTEGER :: inputunit, postunit
       INTEGER :: ig
+
+!
+! ... Initialize parallel environment
+!
+
+      CALL parallel_startup
+
 !
 ! ... I/O files
 !
+
       inputunit = 5
       postunit  = 7
       inputfile = 'pdac.dat'
       postfile = 'pp.dat'
 
-      OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN')
-      OPEN(UNIT=postunit,  FILE=postfile,  STATUS='UNKNOWN')
+      IF( mpime == 0 ) THEN
 
+        OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN')
+        OPEN(UNIT=postunit,  FILE=postfile,  STATUS='UNKNOWN')
+
+      END IF
+
+!
 ! ... Read Input files
 !
+
       CALL input( inputunit )
+
 !
 ! ... set dimensions ...
 !
@@ -55,6 +73,7 @@
       CALL setpar
 
       CALL write_avs_files
+      CALL write_xml_files
 
 ! ... Read Input files
 !
@@ -62,8 +81,12 @@
       !CALL filter
       CALL process
 !
-      CLOSE(inputunit)
-      CLOSE(postunit)
+      IF( mpime == 0 ) THEN
+        CLOSE(inputunit)
+        CLOSE(postunit)
+      END IF
+
+      CALL parallel_hangup
 !
       STOP
 !

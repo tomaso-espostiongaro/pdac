@@ -163,7 +163,7 @@
       tdump = 20.0D0    ! write restart every tdump seconds of simulated time
       nfil = 0          ! output file index
       formatted_output = .TRUE.
-      max_seconds = 20000.0
+      max_seconds = 40000.0
       run = .TRUE.
       tau = 0.D0
 
@@ -507,6 +507,7 @@
       CALL bcast_logical(implicit_fluxes,1,root)
       CALL bcast_logical(implicit_enthalpy,1,root)
       CALL bcast_logical(update_eosg,1,root)
+
 !
 ! :::::::::::::::::::::::  R E A D   C A R D S ::::::::::::::::::::::::
 !
@@ -517,12 +518,12 @@
       tend = .FALSE.
       IF(mpime == root) THEN
         rough_search: DO 
-          READ(5,*,END=100) card
+          READ(iunit,*,END=100) card
           IF( TRIM(card) == 'ROUGHNESS' ) THEN
             EXIT rough_search
           END IF
         END DO rough_search
-        READ(5,*) zrough%ir, (zrough%r(i),i=1,zrough%ir), zrough%roucha
+        READ(iunit,*) zrough%ir, (zrough%r(i),i=1,zrough%ir), zrough%roucha
         GOTO 110
  100    tend = .TRUE.
  110    continue
@@ -543,7 +544,7 @@
       tend = .FALSE.
       IF(mpime == root) THEN
         mesh_search: DO
-          READ(5,*,END=200) card
+          READ(iunit,*,END=200) card
           IF( TRIM(card) == 'MESH' ) THEN
             EXIT mesh_search
           END IF
@@ -551,11 +552,11 @@
 
         IF (iuni == 0) THEN
           IF (grigen == 0) THEN
-            READ(5,*) (delta_x(i),i=1,nx)
+            READ(iunit,*) (delta_x(i),i=1,nx)
             IF( job_type == '3D' ) THEN
-              READ(5,*) (delta_y(j),j=1,ny)
+              READ(iunit,*) (delta_y(j),j=1,ny)
             END IF
-            READ(5,*) (delta_z(k),k=1,nz)
+            READ(iunit,*) (delta_z(k),k=1,nz)
           END IF
         ELSE IF (iuni == 1) THEN
           delta_x = dx0
@@ -583,41 +584,41 @@
       IF(mpime == root) THEN
 
         fixed_flows_search: DO
-          READ( 5, *, END = 300 ) card
+          READ( iunit, *, END = 300 ) card
           IF( TRIM(card) == 'FIXED_FLOWS' ) THEN
             EXIT fixed_flows_search
           END IF
         END DO fixed_flows_search
 
-        READ(5,*) number_of_block
-        IF (ibl >= 1) READ(5,*) nblu(1:number_of_block)
+        READ(iunit,*) number_of_block
+        IF (ibl >= 1) READ(iunit,*) nblu(1:number_of_block)
 
         IF (job_type == '2D') THEN
 
           DO n = 1, number_of_block
-            READ(5,*) block_type(n), block_bounds(1,n),  block_bounds(2,n),  &
+            READ(iunit,*) block_type(n), block_bounds(1,n),  block_bounds(2,n),  &
                       block_bounds(5,n), block_bounds(6,n)
             IF( block_type(n) == 1 .OR. block_type(n) == 5) THEN
-              READ(5,*) fixed_vgas_x(n), fixed_vgas_z(n), fixed_pressure(n), &
+              READ(iunit,*) fixed_vgas_x(n), fixed_vgas_z(n), fixed_pressure(n), &
                         fixed_gaseps(n), fixed_gastemp(n)
-              READ(5,*) (fixed_vpart_x(k,n), fixed_vpart_z(k,n), &
+              READ(iunit,*) (fixed_vpart_x(k,n), fixed_vpart_z(k,n), &
                          fixed_parteps(k,n), fixed_parttemp(k,n), k=1, nsolid)
-              READ(5,*) ( fixed_gasconc(ig,n), ig=1, max_ngas )
+              READ(iunit,*) ( fixed_gasconc(ig,n), ig=1, max_ngas )
             ENDIF
           END DO
 
         ELSE IF (job_type == '3D') THEN
 
           DO n = 1, number_of_block
-            READ(5,*) block_type(n), block_bounds(1,n), block_bounds(2,n), &
+            READ(iunit,*) block_type(n), block_bounds(1,n), block_bounds(2,n), &
                                      block_bounds(3,n), block_bounds(4,n), &
                                      block_bounds(5,n), block_bounds(6,n)
             IF( block_type(n) == 1 .OR. block_type(n) == 5) THEN
-              READ(5,*) fixed_vgas_x(n), fixed_vgas_y(n), fixed_vgas_z(n), &
+              READ(iunit,*) fixed_vgas_x(n), fixed_vgas_y(n), fixed_vgas_z(n), &
                         fixed_pressure(n), fixed_gaseps(n), fixed_gastemp(n)
-              READ(5,*) (fixed_vpart_x(k,n),fixed_vpart_y(k,n),fixed_vpart_z(k,n), &
+              READ(iunit,*) (fixed_vpart_x(k,n),fixed_vpart_y(k,n),fixed_vpart_z(k,n), &
                           fixed_parteps(k,n), fixed_parttemp(k,n), k=1, nsolid)
-              READ(5,*) (fixed_gasconc(ig,n), ig=1, max_ngas )
+              READ(iunit,*) (fixed_gasconc(ig,n), ig=1, max_ngas )
             ENDIF
           END DO
 

@@ -39,9 +39,9 @@
 ! ... Control
       
   act        = 2        ! 1: mount time sequence, 2: time-space sampling        
-  first_out  = 1     
-  last_out   = 10   
-  incr_out   = 1    
+  first_out  = 1        ! index of the first frame to be postprocessed
+  last_out   = 10       ! index of the last frame to be postprocessed
+  incr_out   = 1        ! increment between frame index
   downsize_x = 1    
   downsize_y = 1    
   downsize_z = 1    

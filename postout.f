@@ -312,6 +312,342 @@
 
       RETURN
       END SUBROUTINE write_AVS_files
+
+!=----------------------------------------------------------------------------=!
+!
+!
+!
+!
+!=----------------------------------------------------------------------------=!
+
+    SUBROUTINE write_XML_files
+      !
+      USE control_flags, ONLY: job_type
+      USE dimensions
+      USE iotk_module
+      USE grid
+      USE output_dump, ONLY: formatted_output
+      USE input_module, ONLY: run_name
+
+      IMPLICIT NONE
+ 
+      CHARACTER(LEN=15) :: filetype
+      INTEGER :: skip_m(3)
+      INTEGER :: skip, skip_time, skip_phase, skip_block
+      INTEGER :: lbl, ig, is
+      INTEGER :: nfields, ndim, veclen, nlx, nly, nlz
+      CHARACTER(LEN=80) :: attr
+      CHARACTER(LEN=80) :: fldn
+
+!
+! ... I/O units
+!
+      INTEGER :: iunxml = 21
+!
+      OPEN( UNIT=iunxml, FILE='output.xml', STATUS='UNKNOWN')
+!
+! ... control parameters
+!
+      IF (job_type == '3D') THEN
+        ndim = 3
+      ELSE IF(job_type == '2D') THEN
+        ndim = 2
+      ELSE
+        WRITE(*,*) 'Unknown job_type'
+        STOP
+      END IF
+!
+      IF (formatted_output) THEN
+        filetype = 'ascii'
+      ELSE
+        filetype = 'unformatted'
+      END IF
+
+! ... Total number of scalar fields
+!
+      nfields = nphase*2 + ngas
+!
+      IF (formatted_output) THEN 
+        ! ... number of lines for each block
+        lbl = nz * (INT(nx*ny / 10) + MIN(1,MOD(nx*ny,10))) + 4
+      ELSE
+        ! ... number of bytes for each block
+        lbl = ntot * 4 + 8
+      END IF 
+
+! ... Number of lines in mesh file
+!
+        nlx = ( nx/5 + MIN(1,MOD(nx,5)) + 1 )
+        nly = ( ny/5 + MIN(1,MOD(ny,5)) + 1 )
+        nlz = ( nz/5 + MIN(1,MOD(nz,5)) + 1 )
+
+      IF (formatted_output) THEN
+        skip_time = 4 + 4
+        skip_phase = (lbl * (ndim+2))
+        skip_block = lbl
+      ELSE
+        skip_time = 12
+        skip_phase = (lbl * (ndim+2))
+        skip_block = lbl
+      END IF
+
+!***** S C A L A R S **************************************************
+! ... Common Header
+!
+      WRITE( iunxml, fmt="(A50)" ) '<?xml version="1.0" encoding="UTF-8"?>'
+
+      attr = ' '
+      CALL iotk_write_attr( attr, "name", run_name )
+      CALL iotk_write_begin( iunxml, "dataset", attr )
+
+        CALL iotk_write_begin( iunxml, "grid" )
+          !
+          CALL iotk_write_begin( iunxml, "structure" )
+            !
+            !  Grid dimensions
+            ! 
+            CALL iotk_write_begin( iunxml, "x" )
+              CALL iotk_write_dat( iunxml, "dim", nx )
+              skip = 2
+              attr = ' '
+              CALL iotk_write_attr( attr, "type", "ascii" )
+              CALL iotk_write_attr( attr, "linetoskip", skip )
+              CALL iotk_write_begin( iunxml, "cfile", attr )
+                WRITE( iunxml, * ) "mesh.dat"
+              CALL iotk_write_end( iunxml, "cfile" )
+              skip = skip + nlx 
+              attr = ' '
+              CALL iotk_write_attr( attr, "type", "ascii" )
+              CALL iotk_write_attr( attr, "linetoskip", skip )
+              CALL iotk_write_begin( iunxml, "file", attr )
+                WRITE( iunxml, * ) "mesh.dat"
+              CALL iotk_write_end( iunxml, "file" )
+            CALL iotk_write_end( iunxml, "x" )
+            !
+            IF( ndim == 3 ) THEN
+              CALL iotk_write_begin( iunxml, "y" )
+                CALL iotk_write_dat( iunxml, "dim", ny )
+                skip = skip + nlx 
+                attr = ' '
+                CALL iotk_write_attr( attr, "type", "ascii" )
+                CALL iotk_write_attr( attr, "linetoskip", skip )
+                CALL iotk_write_begin( iunxml, "cfile", attr )
+                  WRITE( iunxml, * ) "mesh.dat"
+                CALL iotk_write_end( iunxml, "cfile" )
+                skip = skip + nly
+                attr = ' '
+                CALL iotk_write_attr( attr, "type", "ascii" )
+                CALL iotk_write_attr( attr, "linetoskip", skip )
+                CALL iotk_write_begin( iunxml, "file", attr )
+                  WRITE( iunxml, * ) "mesh.dat"
+                CALL iotk_write_end( iunxml, "file" )
+              CALL iotk_write_end( iunxml, "y" )
+            ELSE
+              skip = skip + nlx
+              skip = skip + nly
+            END IF
+            !
+            CALL iotk_write_begin( iunxml, "z" )
+              CALL iotk_write_dat( iunxml, "dim", nz )
+              skip = skip + nly
+              attr = ' '
+              CALL iotk_write_attr( attr, "type", "ascii" )
+              CALL iotk_write_attr( attr, "linetoskip", skip )
+              CALL iotk_write_begin( iunxml, "cfile", attr )
+                WRITE( iunxml, * ) "mesh.dat"
+              CALL iotk_write_end( iunxml, "cfile" )
+              skip = skip + nlz
+              attr = ' '
+              CALL iotk_write_attr( attr, "type", "ascii" )
+              CALL iotk_write_attr( attr, "linetoskip", skip )
+              CALL iotk_write_begin( iunxml, "file", attr )
+                WRITE( iunxml, * ) "mesh.dat"
+              CALL iotk_write_end( iunxml, "file" )
+            CALL iotk_write_end( iunxml, "z" )
+            ! 
+          CALL iotk_write_end( iunxml, "structure" )
+          !
+          CALL iotk_write_begin( iunxml, "attributes" )
+            !
+            attr = ' '
+            CALL iotk_write_attr( attr, "name", "profile" )
+            CALL iotk_write_begin( iunxml, "profile", attr )
+              !
+              attr = ' '
+              CALL iotk_write_attr( attr, "type", "ascii" )
+              CALL iotk_write_begin( iunxml, "file", attr )
+                WRITE( iunxml, * ) "improfile.dat"
+              CALL iotk_write_end( iunxml, "file" )
+              !
+            CALL iotk_write_end( iunxml, "profile" )
+            !
+            ! Gas pressure
+            !
+            skip = skip_time
+            attr = ' '
+            CALL iotk_write_attr( attr, "name", "P" )
+            CALL iotk_write_begin( iunxml, "scalar", attr )
+              attr = ' '
+              CALL iotk_write_attr( attr, "type", filetype )
+              CALL iotk_write_attr( attr, "linetoskip", skip )
+              CALL iotk_write_begin( iunxml, "file", attr )
+                WRITE( iunxml, * ) "output"
+              CALL iotk_write_end( iunxml, "file" )
+            CALL iotk_write_end( iunxml, "scalar" )
+            !
+            ! Gas velocities
+            !
+            attr = ' '
+            CALL iotk_write_attr( attr, "name", "VG" )
+            CALL iotk_write_begin( iunxml, "staggered", attr )
+              skip = skip + skip_block
+              CALL iotk_write_begin( iunxml, "x")
+                attr = ' '
+                CALL iotk_write_attr( attr, "type", filetype )
+                CALL iotk_write_attr( attr, "linetoskip", skip )
+                CALL iotk_write_begin( iunxml, "file", attr )
+                  WRITE( iunxml, * ) "output"
+                CALL iotk_write_end( iunxml, "file" )
+              CALL iotk_write_end( iunxml, "x")
+              IF( ndim == 3 ) THEN
+                skip = skip + skip_block
+                CALL iotk_write_begin( iunxml, "y")
+                  attr = ' '
+                  CALL iotk_write_attr( attr, "type", filetype )
+                  CALL iotk_write_attr( attr, "linetoskip", skip )
+                  CALL iotk_write_begin( iunxml, "file", attr )
+                    WRITE( iunxml, * ) "output"
+                  CALL iotk_write_end( iunxml, "file" )
+                CALL iotk_write_end( iunxml, "y")
+              END IF
+              skip = skip + skip_block
+              CALL iotk_write_begin( iunxml, "z")
+                attr = ' '
+                CALL iotk_write_attr( attr, "type", filetype )
+                CALL iotk_write_attr( attr, "linetoskip", skip )
+                CALL iotk_write_begin( iunxml, "file", attr )
+                  WRITE( iunxml, * ) "output"
+                CALL iotk_write_end( iunxml, "file" )
+              CALL iotk_write_end( iunxml, "z")
+            CALL iotk_write_end( iunxml, "staggered" )
+            !
+            ! Gas Temperature
+            !
+            skip = skip + skip_block
+            attr = ' '
+            CALL iotk_write_attr( attr, "name", "TG" )
+            CALL iotk_write_begin( iunxml, "scalar", attr )
+              attr = ' '
+              CALL iotk_write_attr( attr, "type", filetype )
+              CALL iotk_write_attr( attr, "linetoskip", skip )
+              CALL iotk_write_begin( iunxml, "file", attr )
+                WRITE( iunxml, * ) "output"
+              CALL iotk_write_end( iunxml, "file" )
+            CALL iotk_write_end( iunxml, "scalar" )
+            !
+            ! Gas Components
+            !
+            DO ig = 1, ngas
+              skip = skip + skip_block
+              attr = ' '
+              WRITE( fldn, fmt = "(A3,I1)" ) "XGC", ig
+              CALL iotk_write_attr( attr, "name", TRIM( fldn ) )
+              CALL iotk_write_begin( iunxml, "scalar", attr )
+                attr = ' '
+                CALL iotk_write_attr( attr, "type", filetype )
+                CALL iotk_write_attr( attr, "linetoskip", skip )
+                CALL iotk_write_begin( iunxml, "file", attr )
+                  WRITE( iunxml, * ) "output"
+                CALL iotk_write_end( iunxml, "file" )
+              CALL iotk_write_end( iunxml, "scalar" )
+            END DO
+            !
+            ! Solid Phases
+            !
+            DO is = 1, nsolid
+              !
+              ! Solid Density
+              !
+              skip = skip + skip_block
+              attr = ' '
+              WRITE( fldn, fmt = "(A3,I1)" ) "EPS", is
+              CALL iotk_write_attr( attr, "name", TRIM( fldn ) )
+              CALL iotk_write_begin( iunxml, "scalar", attr )
+                attr = ' '
+                CALL iotk_write_attr( attr, "type", filetype )
+                CALL iotk_write_attr( attr, "linetoskip", skip )
+                CALL iotk_write_begin( iunxml, "file", attr )
+                  WRITE( iunxml, * ) "output"
+                CALL iotk_write_end( iunxml, "file" )
+              CALL iotk_write_end( iunxml, "scalar" )
+              !
+              ! Solid Velocities
+              !
+              attr = ' '
+              WRITE( fldn, fmt = "(A3,I1)" ) "VS", is
+              CALL iotk_write_attr( attr, "name", TRIM( fldn ) )
+              CALL iotk_write_begin( iunxml, "staggered", attr )
+                skip = skip + skip_block
+                CALL iotk_write_begin( iunxml, "x")
+                  attr = ' '
+                  CALL iotk_write_attr( attr, "type", filetype )
+                  CALL iotk_write_attr( attr, "linetoskip", skip )
+                  CALL iotk_write_begin( iunxml, "file", attr )
+                    WRITE( iunxml, * ) "output"
+                  CALL iotk_write_end( iunxml, "file" )
+                CALL iotk_write_end( iunxml, "x")
+                IF( ndim == 3 ) THEN
+                  skip = skip + skip_block
+                  CALL iotk_write_begin( iunxml, "y")
+                    attr = ' '
+                    CALL iotk_write_attr( attr, "type", filetype )
+                    CALL iotk_write_attr( attr, "linetoskip", skip )
+                    CALL iotk_write_begin( iunxml, "file", attr )
+                      WRITE( iunxml, * ) "output"
+                    CALL iotk_write_end( iunxml, "file" )
+                  CALL iotk_write_end( iunxml, "y")
+                END IF
+                skip = skip + skip_block
+                CALL iotk_write_begin( iunxml, "z")
+                  attr = ' '
+                  CALL iotk_write_attr( attr, "type", filetype )
+                  CALL iotk_write_attr( attr, "linetoskip", skip )
+                  CALL iotk_write_begin( iunxml, "file", attr )
+                    WRITE( iunxml, * ) "output"
+                  CALL iotk_write_end( iunxml, "file" )
+                CALL iotk_write_end( iunxml, "z")
+              CALL iotk_write_end( iunxml, "staggered" )
+              !
+              ! Solid Temperature
+              !
+              skip = skip + skip_block
+              attr = ' '
+              WRITE( fldn, fmt = "(A2,I1)" ) "TS", is
+              CALL iotk_write_attr( attr, "name", TRIM( fldn ) )
+              CALL iotk_write_begin( iunxml, "scalar", attr )
+                attr = ' '
+                CALL iotk_write_attr( attr, "type", filetype )
+                CALL iotk_write_attr( attr, "linetoskip", skip )
+                CALL iotk_write_begin( iunxml, "file", attr )
+                  WRITE( iunxml, * ) "output"
+                CALL iotk_write_end( iunxml, "file" )
+              CALL iotk_write_end( iunxml, "scalar" )
+              !
+            END DO
+            !
+          CALL iotk_write_end( iunxml, "attributes" )
+          !
+        CALL iotk_write_end( iunxml, "grid" )
+        !
+      CALL iotk_write_end( iunxml, "dataset" )
+
+      CLOSE( UNIT=iunxml )
+!
+      RETURN
+      END SUBROUTINE write_XML_files
+
+
+
 !-----------------------------------------------------------------------
       END MODULE postp_output
 !----------------------------------------------------------------------

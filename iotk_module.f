@@ -1300,10 +1300,11 @@ subroutine iotk_write_attr_char(attr,name,val)
   character(*), intent(inout) :: attr
   character(*), intent(in)    :: name
   character(*), intent(in)    :: val
-  integer :: pos
-  pos = len_trim(attr)+2
-  if(pos==2) pos=1
-  attr(pos:) = name//'="'//val//'"'
+  IF( TRIM( attr ) == ' ' ) THEN
+    attr = TRIM(name) // '="' // TRIM(val) // '"'
+  ELSE
+    attr = TRIM(attr) // ' ' // TRIM(name) // '="' // TRIM(val) // '"'
+  END IF
 end subroutine iotk_write_attr_char
 
 subroutine iotk_scan_attr_char(attr,name,val,found,ierr)
