@@ -630,40 +630,52 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE masf(fem, fnm, ftm, fe, fn, ft, u, v, w, dens)
+      SUBROUTINE masf(fw, fs, fb, fe, fn, ft, u, v, w, dens)
+!
+! ... This routine computes convective mass fluxes by using
+! ... Donor Cell technique for first order upwind
+!
       USE set_indexes, ONLY: stencil
 !
       IMPLICIT NONE
 !
-      REAL*8, INTENT(OUT) :: fe, fn, ft, fem, fnm, ftm
+      REAL*8, INTENT(OUT) :: fe, fn, ft, fw, fs, fb
       TYPE(stencil), INTENT(IN) :: u, v, w, dens
 !
+! ... West, South and Bottom fluxes
+!
       IF (u%w >= 0.D0) THEN
-        fem = u%w * dens%w
+        fw = u%w * dens%w
       ELSE
-        fem = u%w * dens%c
+        fw = u%w * dens%c
       ENDIF
+
       IF (v%s >= 0.D0) THEN
-        fnm = v%s * dens%s
+        fs = v%s * dens%s
       ELSE
-        fnm = v%s * dens%c
+        fs = v%s * dens%c
       ENDIF
+
       IF (w%b >= 0.D0) THEN
-        ftm = w%b * dens%b
+        fb = w%b * dens%b
       ELSE
-        ftm = w%b * dens%c
+        fb = w%b * dens%c
       ENDIF
+!
+! ... East, North and Top fluxes
 !
       IF (u%c >= 0.D0) THEN
         fe = u%c * dens%c
       ELSE
         fe = u%c * dens%e
       ENDIF
+
       IF (v%c >= 0.D0) THEN
         fn = v%c * dens%c
       ELSE
         fn = v%c * dens%n
       ENDIF
+
       IF (w%c >= 0.D0) THEN
         ft = w%c * dens%c
       ELSE

@@ -232,18 +232,16 @@
 ! ... could still be wrong.
 !
                 CALL mats(ijk)
-
-                !call f_hpmstop( 3 )
-
                 CALL velsk(ug(ijk), vg(ijk), wg(ijk),               &
 		           us(:,ijk), vs(:,ijk), ws(:,ijk),         &
 			   ug(imjk), vg(ijmk), wg(ijkm),            &
 			   us(:,imjk), vs(:,imjk), ws(:,ijkm), ijk) 
+
+                !call f_hpmstop( 3 )
+
 !
 ! ... Put the new biassed velocities into the Particle Mass Balance
 ! ... equation ...
-!
-! ... and compute the corrected particle densities.
 !
                 rls=0.D0
                 DO is=1,nsolid
@@ -254,6 +252,8 @@
                   CALL masf(rsfe(is,imjk), rsfn(is,ijmk), rsft(is,ijkm),   &
 	                     rsfe(is,ijk),  rsfn(is,ijk),  rsft(is,ijk),    &
                              u, v, w, dens)
+!
+! ... and compute the corrected particle densities.
 !
                   rlkx = (rsfe(is,ijk)-rsfe(is,imjk)) * indx(i)
                   rlky = (rsfn(is,ijk)-rsfn(is,ijmk)) * indy(j)

@@ -219,7 +219,7 @@
       appv = 0.0D0
       appw = 0.0D0
 !
-! ... Compute fluxes on east, north and top sides of a cell
+! ... Compute fluxes on East, North and Top sides of a cell
 ! ... in the whole computational domain.
 !
       DO ijk = 1, ncint
@@ -278,8 +278,8 @@
       CALL data_exchange(wsfn)
       CALL data_exchange(wsft)
 !
-! ... fluxes on west, south and bottom sides keep values 
-! ... of east, north and top fluxes from neighbouring cells.
+! ... fluxes on West, South and Bottom sides keep values 
+! ... of East, North and Top fluxes from neighbouring cells.
 !
       DO ijk = 1, ncint
         imesh = myijk( ip0_jp0_kp0_, ijk)
@@ -296,7 +296,7 @@
           indyp=1.D0/dyp
           indzp=1.D0/dzp
 !
-! ... west, south and bottom fluxes (gas)
+! ... West, South and Bottom fluxes (gas)
 !
           ugfw = ugfe(imjk)
           ugfs = ugfn(ijmk)
@@ -342,7 +342,7 @@
 !
           DO is = 1, nsolid
 !
-! ... left and bottom fluxes (particles)
+! ... West, South and Bottom fluxes (particles)
 ! 
             usfw = usfe(is,imjk)
             usfs = usfn(is,ijmk)

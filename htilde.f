@@ -135,9 +135,9 @@
             esfn(is, ijk) = esfn(is, ijk) - hsfn(is, ijk)
             esft(is, ijk) = esft(is, ijk) - hsft(is, ijk)
 !
-            IF (fl_l(imjk) /= 1) esfe(is, imjk) = esfe(is, imjk) - hsfe(is, imjk)
-            IF (fl_l(ijmk) /= 1) esfn(is, ijmk) = esfn(is, ijmk) - hsfn(is, ijmk)
-            IF (fl_l(ijkm) /= 1) esft(is, ijkm) = esft(is, ijkm) - hsft(is, ijkm)
+            IF (fl_l(imjk) /= 1) esfe(is,imjk) = esfe(is,imjk) - hsfe(is,imjk)
+            IF (fl_l(ijmk) /= 1) esfn(is,ijmk) = esfn(is,ijmk) - hsfn(is,ijmk)
+            IF (fl_l(ijkm) /= 1) esft(is,ijkm) = esft(is,ijkm) - hsft(is,ijkm)
 !
           END DO
         END IF
