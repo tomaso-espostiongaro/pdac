@@ -255,7 +255,15 @@ are too big to be processed directly by a visualization tool.
 with the possibility of downsize, interpolate, and crop the data
 and stores them in separate files that can be easily plotted with
 various graphical application. Moreover it can process the flow fields to
-compute derived quantities of physical interest.
+compute derived quantities of physical interest. 
+Another important feature of the post-processor \FIL{postp.x} is that
+together with the output filds it write a XML file containing the
+full descripion of the grid and of the output filds files, so that
+any analysis or graphic program with an XML importer/reader can
+read the code ouputs. XML meta-language is infact presently 
+considered as one of the most portable and flexible way of 
+exchanging data between applications, and it has the largely
+appreciated characteristic of being human readable.
 
 \subsubsection{Post-processing input files}
 
@@ -280,8 +288,8 @@ A list of all files produced by the post-processing is the following:
 \begin{itemize}
 
 \item \FIL{pdac.xml}  \\
-      this file contains all the information contained in \FIL{pdac.dat}
-      written using an XML compliant format
+      this file contains a detailed description of the grid, fields 
+      and of the other filds files, it is written using an XML compliant format
 
 \item \FIL{filter.pgas.nnnn} \\
       these files contain the gas pressure field 
@@ -332,6 +340,63 @@ for the gas phase
 Note that when running the post-processing all 
 \FIL{OUTPUT.nnnn} files in the selected range should 
 be present in the running directory of \FIL{pp.x}
+
+\subsubsection{XML tags}
+
+all what is required to be able to correctly interpret the XML file
+is the meaning of the XML tags used to structure the file itself.
+Once a meaning has been associated to each tag, then any code
+that can read XML could also import the ouput fields files 
+produced by the psot-processor \FIL{pp.x} .
+The following XML tags have been defined:
+
+\begin{itemize}
+
+\item \FIL{<dataset></dataset>} \\
+      the highest level tag specifying the complete output of a post-processor run,
+      all other tags should be contained in this one. Attribute:\\
+      {\it name} the name of the dataset (ex. \FIL{<dataset name="Vesuvius">})
+
+\item \FIL{<grid></grid>} \\
+      identify the section containing information on the computational grid and
+      fields defined on it
+
+\item \FIL{<structure></structure>} \\
+      defined in the grid section, identify the section containing grid sizes
+
+\item \FIL{<x></x>} \\
+      identify a section containig sub-tags referring to x cartesian axis
+
+\item \FIL{<y></y>} \\
+      identify a section containig sub-tags referring to y cartesian axis
+
+\item \FIL{<z></z>} \\
+      identify a section containig sub-tags referring to z cartesian axis
+
+\item \FIL{<dim> $N$ </dim>} \\
+      specify a dimension. Attributes:\\
+      {\it type} the type of the dimension (ex. \FIL{<dim type="integer">})
+      {\it size} the size of the dimension (ex. \FIL{<dim size="1">})
+
+\item \FIL{<cfile> filename </cfile>} \\
+
+\item \FIL{<file> filename </file>} \\
+
+\item \FIL{<attributes> </attributes>} \\
+
+\item \FIL{<profile> </profile>} \\
+
+\item \FIL{<scalar> </scalar>} \\
+
+\item \FIL{<staggered> </staggered>} \\
+
+\item \FIL{<frames> </frames>} \\
+
+\item \FIL{<timestep> </timestep>} \\
+       
+
+\end{itemize}
+
 
 %\subsection{General remark}
 %
