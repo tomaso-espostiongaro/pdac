@@ -189,6 +189,7 @@
       CALL bcast_integer(ngas,1,root)
       CALL bcast_integer(default_gas,1,root)
       CALL bcast_logical(formatted_output,1,root)
+      CALL bcast_real(max_seconds,1,root)
 
       SELECT CASE ( TRIM(restart_mode) )
         CASE ('from_scratch', 'default')
