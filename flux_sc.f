@@ -204,27 +204,27 @@
       RETURN
       END SUBROUTINE fsc_3d
 !----------------------------------------------------------------------
-      SUBROUTINE fsc_2d(fe, fn, fw, fs, dens, field, u, w, ij)
+      SUBROUTINE fsc_2d(fe, ft, fw, fb, dens, field, u, w, ij)
 !
       USE dimensions
       USE grid, ONLY: myijk, fl_l
       USE grid, ONLY: dz
       USE grid, ONLY: dr, rb
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE set_indexes, ONLY: imj, ijm
+      USE set_indexes, ONLY: imjk, ijkm
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt
 
       IMPLICIT NONE
 !
-      REAL*8, INTENT(OUT) :: fe, fn, fw, fs
+      REAL*8, INTENT(OUT) :: fe, ft, fw, fb
       TYPE(stencil), INTENT(IN) :: dens, field, u, w
       INTEGER, INTENT(IN) :: ij
 !
       INTEGER :: i,j,imesh
       REAL*8 :: drm, drp, drpp, indrpp, indrp, indrm
       REAL*8 :: dzp, indzp, dzm, indzm, dzpp, indzpp
-      REAL*8 :: gradc, grade, gradw, gradn, grads, gradt, gradb
+      REAL*8 :: gradc, grade, gradw, gradt, gradb
 !
       imesh = myijk( ip0_jp0_kp0_, ij)
       j = ( imesh - 1 ) / nr + 1
@@ -248,7 +248,7 @@
 !
 ! ... on West volume boundary
 !
-      IF ((fl_l(imj) /= 1)) THEN
+      IF ((fl_l(imjk) /= 1)) THEN
         cs = u%w
         IF (cs >= 0.D0) THEN
           upwnd = dens%w * field%w
@@ -260,14 +260,14 @@
 !
 ! ... on South volume boundary
 !
-      IF ((fl_l(ijm) /= 1)) THEN
-        cs = w%s
+      IF ((fl_l(ijkm) /= 1)) THEN
+        cs = w%b
         IF (cs >= 0.D0) THEN
-          upwnd = dens%s * field%s
+          upwnd = dens%b * field%b
         ELSE IF (cs < 0.D0) THEN
           upwnd = dens%c * field%c
         ENDIF
-        fs = upwnd * cs
+        fb = upwnd * cs
       END IF
 !
 ! ... MUSCL reconstruction of fields
@@ -301,11 +301,11 @@
 !
       fe = upwnd * cs * rb(i)
 !
-! ... on North volume boundary
+! ... on Top volume boundary
 !
-      gradc = 2.D0 * indzp * (dens%n*field%n - dens%c*field%c)
-      grads = 2.D0 * indzm * (dens%c*field%c - dens%s*field%s)
-      gradn = 2.D0 * indzpp * (dens%nn*field%nn - dens%n*field%n)
+      gradc = 2.D0 * indzp * (dens%t*field%t - dens%c*field%c)
+      gradb = 2.D0 * indzm * (dens%c*field%c - dens%b*field%b)
+      gradt = 2.D0 * indzpp * (dens%tt*field%tt - dens%t*field%t)
 !
       lim = 0.D0
       erre = 0.D0
@@ -313,12 +313,12 @@
       cs = w%c
       cn = cs * dt * 2.0 * indzp
       IF (cs >= 0.D0) THEN
-	erre = grads / gradc
+	erre = gradb / gradc
         fou  = dens%c*field%c 
 	incr = 0.5D0 * dz(j)
       ELSE IF (cs < 0.D0) THEN
-	erre = gradn / gradc
-        fou  = dens%n*field%n 
+	erre = gradt / gradc
+        fou  = dens%t*field%t 
 	incr = 0.5D0 * dz(j+1)
       ENDIF
 !
@@ -328,7 +328,7 @@
 !
       upwnd = fou + lim * gradc * incr
 !
-      fn = upwnd * cs
+      ft = upwnd * cs
 !
       RETURN
       END SUBROUTINE fsc_2d

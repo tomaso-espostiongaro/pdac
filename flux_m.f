@@ -59,7 +59,7 @@
       IF (v%s >= 0.D0) THEN
         fs = v%s * dens%s
       ELSE
-        fs = v%s * dens%c
+        fb = v%s * dens%c
       ENDIF
 
       IF (w%b >= 0.D0) THEN
@@ -97,7 +97,6 @@
       USE grid, ONLY: myijk, fl_l
       USE grid, ONLY: dx, dy, dz
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt
       IMPLICIT NONE
@@ -340,7 +339,7 @@
       RETURN
       END SUBROUTINE fmas_3d
 !-----------------------------------------------------------------------
-      SUBROUTINE masf_2d(fe, fn, fw, fs, dens, u, w, ij)
+      SUBROUTINE masf_2d(fe, ft, fw, fb, dens, u, w, ij)
 !
 ! ... This routine computes convective mass fluxes by using
 ! ... Donor Cell technique for first order upwind
@@ -353,7 +352,7 @@
 !
       IMPLICIT NONE
 !
-      REAL*8, INTENT(OUT) :: fe, fn, fw, fs
+      REAL*8, INTENT(OUT) :: fe, ft, fw, fb
       TYPE(stencil), INTENT(IN) :: u, w, dens
       INTEGER, INTENT(IN) :: ij
       INTEGER :: i,j,imesh
@@ -363,7 +362,7 @@
       i = MOD( ( imesh - 1 ), nr) + 1
 !
 !
-! ... West, South fluxes
+! ... West, Bottom fluxes
 !
       IF (u%w >= 0.D0) THEN
         fw = u%w * dens%w * rb(i-1)
@@ -371,13 +370,13 @@
         fw = u%w * dens%c * rb(i-1)
       ENDIF
 
-      IF (w%s >= 0.D0) THEN
-        fs = w%s * dens%s
+      IF (w%b >= 0.D0) THEN
+        fb = w%b * dens%b
       ELSE
-        fs = w%s * dens%c
+        fb = w%b * dens%c
       ENDIF
 !
-! ... East, North fluxes
+! ... East, Top fluxes
 !
       IF (u%c >= 0.D0) THEN
         fe = u%c * dens%c * rb(i)
@@ -386,33 +385,32 @@
       ENDIF
 
       IF (w%c >= 0.D0) THEN
-        fn = w%c * dens%c
+        ft = w%c * dens%c
       ELSE
-        fn = w%c * dens%n
+        ft = w%c * dens%t
       ENDIF
 !
       RETURN
       END SUBROUTINE masf_2d
 !----------------------------------------------------------------------
-      SUBROUTINE fmas_2d(fe, fn, fw, fs, dens, u, w, ij)
+      SUBROUTINE fmas_2d(fe, ft, fw, fb, dens, u, w, ij)
 !
       USE dimensions
       USE grid, ONLY: myijk, fl_l
       USE grid, ONLY: dr, rb, dz
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE set_indexes, ONLY: imj, ijm
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt
       IMPLICIT NONE
 !
-      REAL*8, INTENT(OUT) :: fe, fn, fw, fs
+      REAL*8, INTENT(OUT) :: fe, ft, fw, fb
       TYPE(stencil), INTENT(IN) :: dens, u, w
       INTEGER, INTENT(IN) :: ij
 !
       INTEGER :: i,j,imesh
       REAL*8 :: drmm, drm, drp, drpp, indrpp, indrp, indrm, indrmm
       REAL*8 :: dzmm, dzm, dzp, dzpp, indzpp, indzp, indzm, indzmm
-      REAL*8 :: gradc, grade, gradw, gradn, grads
+      REAL*8 :: gradc, grade, gradw, gradt, gradb
 !
       imesh = myijk( ip0_jp0_kp0_, ij)
       j = ( imesh - 1 ) / nr + 1
@@ -502,23 +500,23 @@
 !
       fe = upwnd * cs * rb(i)
 !
-! ... on South volume boundary
+! ... on Bottom volume boundary
 !
-      gradc = 2.D0 * indzm * (dens%c - dens%s)
-      grads = 2.D0 * indzmm * (dens%s - dens%ss)
-      gradn = 2.D0 * indzp * (dens%n - dens%c)
+      gradc = 2.D0 * indzm * (dens%c - dens%b)
+      gradb = 2.D0 * indzmm * (dens%b - dens%bb)
+      gradt = 2.D0 * indzp * (dens%t - dens%c)
 !
       lim = 0.D0
       erre = 0.D0
 !
-      cs = w%s
+      cs = w%b
       cn = cs * dt * 2.D0 * indzm
       IF (cs >= 0.D0) THEN
-	erre = grads / gradc
-        fou  = dens%s 
+	erre = gradb / gradc
+        fou  = dens%b 
 	incr = 0.5D0 * dz(j-1)
       ELSE IF (cs < 0.D0) THEN
-	erre = gradn / gradc
+	erre = gradt / gradc
         fou  = dens%c 
 	incr = 0.5D0 * dz(j)
       ENDIF
@@ -529,16 +527,16 @@
 !
       upwnd = fou + lim * gradc * incr
 !
-      centrd = (dz(j)*dens%s+dz(j-1)*dens%c)*indzm
+      centrd = (dz(j)*dens%b+dz(j-1)*dens%c)*indzm
       upc_s = upwnd / centrd
 !
-      fs = upwnd * cs
+      fb = upwnd * cs
 !
-! ... on North volume boundary
+! ... on Top volume boundary
 !
-      grads = gradc
-      gradc = gradn
-      gradn = 2.D0 * indzpp * (dens%nn - dens%n)
+      gradt = gradc
+      gradc = gradt
+      gradt = 2.D0 * indzpp * (dens%tt - dens%t)
 !
       lim = 0.D0
       erre = 0.D0
@@ -546,12 +544,12 @@
       cs = w%c
       cn = cs * dt * 2.D0 * indzp
       IF (cs >= 0.D0) THEN
-	erre = grads / gradc
+	erre = gradb / gradc
         fou  = dens%c 
 	incr = 0.5D0 * dz(j)
       ELSE IF (cs < 0.D0) THEN
-	erre = gradn / gradc
-        fou  = dens%n 
+	erre = gradt / gradc
+        fou  = dens%t 
 	incr = 0.5D0 * dz(j+1)
       ENDIF
 !
@@ -561,10 +559,10 @@
 !
       upwnd = fou + lim * gradc * incr
 !
-      centrd = (dz(j)*dens%n+dz(j+1)*dens%c)*indzp
+      centrd = (dz(j)*dens%t+dz(j+1)*dens%c)*indzp
       upc_n = upwnd / centrd
 !
-      fn = upwnd * cs
+      ft = upwnd * cs
 !
       RETURN
       END SUBROUTINE fmas_2d

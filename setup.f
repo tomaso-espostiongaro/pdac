@@ -41,7 +41,7 @@
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE grid, ONLY: grid_setup, zb, dx, dy, dz, dr, myijk
-      USE grid, ONLY: fl_l, iob, ncint
+      USE grid, ONLY: fl_l, iob, ncint, meshinds
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: itd
@@ -68,16 +68,8 @@
 !
         DO ijk = 1, ncint
           imesh = myijk( ip0_jp0_kp0_ , ijk )
-
-          IF( job_type == '2D' ) THEN
-            k = ( imesh - 1 ) / nr + 1
-            i = MOD( ( imesh - 1 ), nr) + 1
-          ELSE IF( job_type == '3D' ) THEN
-            i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
-            j = MOD( imesh - 1, nx*ny ) / nx + 1
-            k = ( imesh - 1 ) / ( nx*ny ) + 1
-          END IF
-
+          CALL meshinds(ijk,imesh,i,j,k)
+          
           zrif=zb(k)+0.5D0*(dz(1)-dz(k))
             
           CALL atm( zrif, prif, trif )
@@ -123,10 +115,9 @@
 
             DO ijk = 1, ncint
               imesh = myijk( ip0_jp0_kp0_ , ijk )
+              CALL meshinds(ijk,imesh,i,j,k)
  
               IF ( job_type == '2D' ) THEN
-                k = ( imesh - 1 ) / nr + 1
-                i = MOD( ( imesh - 1 ), nr) + 1
 
                 IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi  ) THEN
                   IF ( i >= iob(n)%rlo .AND. i <= iob(n)%rhi  ) THEN
@@ -148,9 +139,6 @@
                 END IF
 
               ELSE IF ( job_type == '3D' ) THEN
-                i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
-                j = MOD( imesh - 1, nx*ny ) / nx + 1
-                k = ( imesh - 1 ) / ( nx*ny ) + 1
 
                 IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi ) THEN
                   IF ( j >= iob(n)%ylo .AND. j <= iob(n)%yhi ) THEN

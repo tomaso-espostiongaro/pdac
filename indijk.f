@@ -34,18 +34,6 @@
 
       INTEGER :: indijk(-2:2,-2:2,-2:2)
 
-      INTEGER, PARAMETER :: bb_ = 1
-      INTEGER, PARAMETER :: bl_ = 2
-      INTEGER, PARAMETER :: b_  = 3
-      INTEGER, PARAMETER :: br_ = 4
-      INTEGER, PARAMETER :: ll_ = 5
-      INTEGER, PARAMETER :: l_  = 6
-      INTEGER, PARAMETER :: r_  = 7
-      INTEGER, PARAMETER :: rr_ = 8
-      INTEGER, PARAMETER :: tl_ = 9
-      INTEGER, PARAMETER :: t_  = 10
-      INTEGER, PARAMETER :: tr_ = 11
-      INTEGER, PARAMETER :: tt_ = 12
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------

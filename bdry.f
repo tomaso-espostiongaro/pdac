@@ -29,7 +29,7 @@
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE parallel, ONLY: mpime
       USE set_indexes, ONLY: subscr
-      USE set_indexes, ONLY: ipj, ipjp, imj, imjp, ijp, ijm, ipjm, imjm
+      USE set_indexes, ONLY: ipjk, ipjkp, imjk, imjkp, ijkp, ijkm, ipjkm, imjkm
 !
       IMPLICIT NONE
 !
@@ -48,11 +48,11 @@
 !
 ! ***** Right boundary conditions
 !
-         n2 = ipj
+         n2 = ipjk
          n1 = ij
-         n0 = imj
+         n0 = imjk
 
-         IF ( (fl_l( ipj ) /= 1) .AND. (fl_l( ipjp ) /= 1) ) THEN 
+         IF ( (fl_l( ipjk ) /= 1) .AND. (fl_l( ipjkp ) /= 1) ) THEN 
           SELECT CASE (fl_l( n2 )) 
 
           CASE (2) 
@@ -82,11 +82,11 @@
 
 ! ... Compute tangential components of velocities
 
-            IF(j == 2) ug(ipjm)=-ug(n2)
-            IF( fl_l (ipjp) == 3 ) ug(ipjp) = -ug(n2)
-            IF( fl_l (ipjp) == 4 ) wg(n2) = wg(ij)
+            IF(j == 2) ug(ipjkm)=-ug(n2)
+            IF( fl_l (ipjkp) == 3 ) ug(ipjkp) = -ug(n2)
+            IF( fl_l (ipjkp) == 4 ) wg(n2) = wg(ij)
             DO is=1,nsolid
-              IF( fl_l (ipjp) == 4 ) ws(n2,is)=ws(ij,is)
+              IF( fl_l (ipjkp) == 4 ) ws(n2,is)=ws(ij,is)
             END DO
 !
           CASE DEFAULT
@@ -96,11 +96,11 @@
 !
 ! ****** Left boundary conditions
 !
-         n2 = imj
+         n2 = imjk
          n1 = ij
-         n0 = ipj
+         n0 = ipjk
 
-         IF ( (fl_l( imj ) /= 1) .AND. (fl_l( imjp ) /= 1) ) THEN
+         IF ( (fl_l( imjk ) /= 1) .AND. (fl_l( imjkp ) /= 1) ) THEN
           SELECT CASE ( fl_l( n2 ) )
           CASE (2)
             wg(n2)=wg(ij)
@@ -125,7 +125,7 @@
 ! ... Compute tangential components of velocities
 !              
 ! ... IF(nfllt.EQ.4) wg(n2)=wg(n1)
-! ... IF(nfllt.EQ.3) ug(ipjp) = -ug(n2)
+! ... IF(nfllt.EQ.3) ug(ipjkp) = -ug(n2)
 ! ... IF(nfllt.EQ.4) ws(n2,is)=ws(n1,is)
 
 !
@@ -136,11 +136,11 @@
 !
 ! ****** Top boundary conditions
 !
-         n2 = ijp
+         n2 = ijkp
          n1 = ij
-         n0 = ijm
+         n0 = ijkm
 
-         IF ( (fl_l( ijp ) /= 1) .AND. (fl_l( ipjp ) /= 1) ) THEN
+         IF ( (fl_l( ijkp ) /= 1) .AND. (fl_l( ipjkp ) /= 1) ) THEN
           SELECT CASE ( fl_l( n2 ) )
 
           CASE (2)
@@ -152,9 +152,9 @@
 
             IF (j .EQ. (nz-1)) THEN
               IF(i .EQ. (nr-1)) THEN
-                ug(ipjp) = ug(ipj)
+                ug(ipjkp) = ug(ipjk)
               ELSE IF(i .EQ. 2) THEN
-                ug(imjp) = ug(imj)
+                ug(imjkp) = ug(imjk)
               ENDIF
             END IF
 
@@ -179,19 +179,19 @@
 !
             IF (j .EQ. (nz-1)) THEN
               IF(i .EQ. (nr-1)) THEN
-                wg(ipjp) = wg(n2)
-                ug(ipjp) = ug(n2)
+                wg(ipjkp) = wg(n2)
+                ug(ipjkp) = ug(n2)
               ELSE IF(i .EQ. 2) THEN
-                wg(imjp) = wg(n2)
-                ug(imjp) = ug(n2)
+                wg(imjkp) = wg(n2)
+                ug(imjkp) = ug(n2)
               ENDIF
             END IF
 !
 ! ... Compute tangential components of velocities
 !
-            IF( fl_l( ipjp ) == 4 ) ug(n2) = ug(ij)
+            IF( fl_l( ipjkp ) == 4 ) ug(n2) = ug(ij)
             DO is=1,nsolid
-              IF( fl_l( ipjp ) == 4 ) us(n2,is)=us(ij,is)
+              IF( fl_l( ipjkp ) == 4 ) us(n2,is)=us(ij,is)
             END DO
 
           CASE DEFAULT
@@ -201,9 +201,9 @@
 !
 ! ***** Bottom boundary conditions
 !
-         n2 = ijm
+         n2 = ijkm
 
-         IF ( (fl_l( ijm ) /= 1) .AND. (fl_l( ipjm ) /= 1) ) THEN
+         IF ( (fl_l( ijkm ) /= 1) .AND. (fl_l( ipjkm ) /= 1) ) THEN
           SELECT CASE ( fl_l( n2 ) )
 
           CASE (2)
@@ -214,9 +214,9 @@
             END DO 
             IF (j .EQ. (2)) THEN
               IF(i .EQ. (nr-1)) THEN
-                ug(ipjm) = ug(ipj)
+                ug(ipjkm) = ug(ipjk)
               ELSE IF(i .EQ. 2) THEN
-                ug(imjm) = ug(imj)
+                ug(imjkm) = ug(imjk)
               ENDIF
             END IF
 

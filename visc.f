@@ -225,17 +225,17 @@
 !
 ! ... Coulombic x-gradient
 !
-              epsx=(dr(i+1)*rlk(ij,is) + dr(i)*rlk(ijr,is)) * indrp * inrl(is)
+              epsx=(dr(i+1)*rlk(ij,is) + dr(i)*rlk(ijke,is)) * indrp * inrl(is)
               gepx=10.D0**(8.76D0*epsx-0.27D0)
               pvisx(ij,is) = pvisx(ij,is) -  & 
-                            gepx*indrp*2.D0*(rlk(ijr,is)-rlk(ij,is))*inrl(is)
+                            gepx*indrp*2.D0*(rlk(ijke,is)-rlk(ij,is))*inrl(is)
 !
 ! ... Coulombic z-gradient
 !
-              epsz=(dz(j+1)*rlk(ij,is) + dz(j)*rlk(ijt,is)) * indzp * inrl(is)
+              epsz=(dz(j+1)*rlk(ij,is) + dz(j)*rlk(ijkt,is)) * indzp * inrl(is)
               gepz=10.D0**(8.76D0*epsz-0.207D0)
               pvisz(ij,is) = pvisz(ij,is) -  & 
-                            gepz*indzp*2.D0*(rlk(ijt,is)-rlk(ij,is))*inrl(is)
+                            gepz*indzp*2.D0*(rlk(ijkt,is)-rlk(ij,is))*inrl(is)
             END IF
           END DO
 
@@ -513,47 +513,47 @@
 !
 ! ... divergence of the velocity field at right, centered, top cells
 !
-         divr = ((rb(i+1)*u(ipj)-rb(i)*u(ij))*inr(i+1)*indr(i+1)        &
-              + (w(ipj)-w(ipjm))*indz(j))
-         divc = ((rb(i)*u(ij)-rb(i-1)*u(imj))*inr(i)*indr(i)            &
-              + (w(ij)-w(ijm))*indz(j))
-         divt = ((rb(i)*u(ijp)-rb(i-1)*u(imjp))*inr(i)*indr(i)          &
-              + (w(ijp)-w(ij))*indz(j+1))
+         divr = ((rb(i+1)*u(ipjk)-rb(i)*u(ij))*inr(i+1)*indr(i+1)        &
+              + (w(ipjk)-w(ipjkm))*indz(j))
+         divc = ((rb(i)*u(ij)-rb(i-1)*u(imjk))*inr(i)*indr(i)            &
+              + (w(ij)-w(ijkm))*indz(j))
+         divt = ((rb(i)*u(ijkp)-rb(i-1)*u(imjkp))*inr(i)*indr(i)          &
+              + (w(ijkp)-w(ij))*indz(j+1))
 !         
 ! ... diagonal components of the strain tensor ...
 !
-         txx2 = 2.D0*(u(ipj)-u(ij))*indr(i+1)  
-         txx1 = 2.D0*(u(ij)-u(imj))*indr(i)   
-         tyy2 = 2.D0*(w(ijp)-w(ij))*indz(j+1) 
-         tyy1 = 2.D0*(w(ij)-w(ijm))*indz(j)   
+         txx2 = 2.D0*(u(ipjk)-u(ij))*indr(i+1)  
+         txx1 = 2.D0*(u(ij)-u(imjk))*indr(i)   
+         tyy2 = 2.D0*(w(ijkp)-w(ij))*indz(j+1) 
+         tyy1 = 2.D0*(w(ij)-w(ijkm))*indz(j)   
 !
 ! ... (isotropy)
 !
-         txx2 = mu(ijr) * txx2 - 2.D0/3.D0 * lambda(ijr) * divr
+         txx2 = mu(ijke) * txx2 - 2.D0/3.D0 * lambda(ijke) * divr
          txx1 = mu(ij)  * txx1 - 2.D0/3.D0 * lambda(ij)  * divc
-         tyy2 = mu(ijt) * tyy2 - 2.D0/3.D0 * lambda(ijt) * divt
+         tyy2 = mu(ijkt) * tyy2 - 2.D0/3.D0 * lambda(ijkt) * divt
          tyy1 = mu(ij)  * tyy1 - 2.D0/3.D0 * lambda(ij)  * divc
 !
 ! ... non-diagonal component of the stress tensor
 !
-         tyx2 = (u(ijp)-u(ij))*indzp*2.D0 + (w(ipj)-w(ij))*indrp*2.D0
-         tyx1 = (u(ij)-u(ijm))*indzm*2.D0 + (w(ipjm)-w(ijm))*indrp*2.D0
+         tyx2 = (u(ijkp)-u(ij))*indzp*2.D0 + (w(ipjk)-w(ij))*indrp*2.D0
+         tyx1 = (u(ij)-u(ijkm))*indzm*2.D0 + (w(ipjkm)-w(ijkm))*indrp*2.D0
          txy2 = tyx2
-         txy1 = (u(imjp)-u(imj))*indzp*2.D0+(w(ij)-w(imj))*indrm*2.D0
+         txy1 = (u(imjkp)-u(imjk))*indzp*2.D0+(w(ij)-w(imjk))*indrm*2.D0
 ! 
 ! ... Correction for cylindrical coordinates
 !
          IF(itc == 1) THEN
-           eps0=(eps(ij)*dr(i+1)+eps(ijr)*dr(i))*indrp
-           mu0=(mu(ij)*dr(i+1)+mu(ijr)*dr(i))*indrp
-           lambda0=(lambda(ij)*dr(i+1)+lambda(ijr)*dr(i))*indrp
+           eps0=(eps(ij)*dr(i+1)+eps(ijke)*dr(i))*indrp
+           mu0=(mu(ij)*dr(i+1)+mu(ijke)*dr(i))*indrp
+           lambda0=(lambda(ij)*dr(i+1)+lambda(ijke)*dr(i))*indrp
            t0 = 2.D0 * u(ij) * inrb(i)
 !
 ! ... divergence of the velocity field at cell boundary
 !
-           du = (rb(i+1)*u(ipj)-rb(i-1)*u(imj))
-           wm2=(dr(i)*w(ipj)+dr(i+1)*w(ij))*indrp
-           wm1=(dr(i)*w(ipjm)+dr(i+1)*w(ijm))*indrp
+           du = (rb(i+1)*u(ipjk)-rb(i-1)*u(imjk))
+           wm2=(dr(i)*w(ipjk)+dr(i+1)*w(ij))*indrp
+           wm1=(dr(i)*w(ipjkm)+dr(i+1)*w(ijkm))*indrp
            dw = wm2 - wm1
            dive =  (inrb(i) * du * indrp + dw * indz(j))
 !
@@ -564,24 +564,24 @@
            t0 = 0.D0
          ENDIF
 !
-         epsmu21=(dz(j)*eps(ijt)*mu(ijt)+dz(j+1)*eps(ij)*mu(ij))*indzp
-         epsmu22=(dz(j)*eps(ijtr)*mu(ijtr)+dz(j+1)*eps(ijr)*mu(ijr))*indzp
+         epsmu21=(dz(j)*eps(ijkt)*mu(ijkt)+dz(j+1)*eps(ij)*mu(ij))*indzp
+         epsmu22=(dz(j)*eps(ijket)*mu(ijket)+dz(j+1)*eps(ijke)*mu(ijke))*indzp
          epsmu2=(dr(i+1)*epsmu21+dr(i)*epsmu22)*indrp
-         epsmu11=(dz(j-1)*eps(ij)*mu(ij)+dz(j)*eps(ijb)*mu(ijb))*indzm
-         epsmu12=(dz(j-1)*eps(ijr)*mu(ijr)+dz(j)*eps(ijbr)*mu(ijbr))*indzm
+         epsmu11=(dz(j-1)*eps(ij)*mu(ij)+dz(j)*eps(ijkb)*mu(ijkb))*indzm
+         epsmu12=(dz(j-1)*eps(ijke)*mu(ijke)+dz(j)*eps(ijkeb)*mu(ijkeb))*indzm
          epsmu1=(dr(i+1)*epsmu11+dr(i)*epsmu12)*indrp
 !
 ! ... x-gradient of the stress tensor
 !
-         visx(ij) = (eps(ijr)*txx2*r(i+1) - eps(ij)*txx1*r(i))*indrp*2.D0*inrb(i) + &
+         visx(ij) = (eps(ijke)*txx2*r(i+1) - eps(ij)*txx1*r(i))*indrp*2.D0*inrb(i) + &
                    (epsmu2*tyx2-epsmu1*tyx1)*indz(j) - eps0 * t0 * inrb(i)
 !
-         epsmu11=(dz(j)*eps(ijtl)*mu(ijtl)+dz(j+1)*eps(ijl)*mu(ijl))*indzp
+         epsmu11=(dz(j)*eps(ijkwt)*mu(ijkwt)+dz(j+1)*eps(ijkw)*mu(ijkw))*indzp
          epsmu1=(dr(i)*epsmu11+dr(i-1)*epsmu21)*indrm
 !
 ! ... z-gradient of the stress tensor
 !
-         visz(ij) = (eps(ijt)*tyy2 - eps(ij)*tyy1) * indzp*2.D0   +  &
+         visz(ij) = (eps(ijkt)*tyy2 - eps(ij)*tyy1) * indzp*2.D0   +  &
                      (rb(i)*epsmu2*txy2-rb(i-1)*epsmu1*txy1)*inr(i)*indr(i) 
         END IF
       END DO

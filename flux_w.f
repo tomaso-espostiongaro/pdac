@@ -212,32 +212,32 @@
       RETURN
       END SUBROUTINE flw_3d
 !------------------------------------------------------
-      SUBROUTINE flw_2d(fe, fn, fw, fs, dens, u, w, ij)
+      SUBROUTINE flw_2d(fe, ft, fw, fb, dens, u, w, ij)
 !
-! ... Compute the convective fluxes on East, North, sides of the cell
+! ... Compute the convective fluxes on East, Top, sides of the cell
 ! ... for the momentum density along z.
 !
       USE dimensions
       USE grid, ONLY: myijk, fl_l
       USE grid, ONLY: dr, rb, dz, indz
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE set_indexes, ONLY: imj, ijm
+      USE set_indexes, ONLY: imjk, ijkm
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt
 
       IMPLICIT NONE
 !
-      REAL*8, INTENT(OUT) :: fe, fn, fw, fs
+      REAL*8, INTENT(OUT) :: fe, ft, fw, fb
       TYPE(stencil), INTENT(IN) :: dens, u, w
       INTEGER, INTENT(IN) :: ij
       INTEGER :: i,j,imesh
 !
-      REAL*8 :: dens_c, dens_e, dens_n
-      REAL*8 :: dens_w, dens_s
-      REAL*8 :: dens_ee, dens_nn
+      REAL*8 :: dens_c, dens_e, dens_t
+      REAL*8 :: dens_w, dens_b
+      REAL*8 :: dens_ee, dens_tt
       REAL*8 :: drm, drp, drpp, indrpp, indrp, indrm
       REAL*8 :: dzp, indzp, dzm, indzm, dzpp, indzpp
-      REAL*8 :: gradc, grade, gradw, gradn, grads, gradt, gradb
+      REAL*8 :: gradc, grade, gradw, gradt, gradb
 !
       imesh = myijk( ip0_jp0_kp0_, ij)
       j = ( imesh - 1 ) / nr + 1
@@ -259,33 +259,33 @@
 !       
 ! ... Compute linearly interpolated values of density on the staggered grid
 !
-      dens_c = (dz(j+1) * dens%c + dz(j) * dens%n) * indzp
-      dens_n = (dz(j+2) * dens%n + dz(j+1) * dens%nn) * indzpp
+      dens_c = (dz(j+1) * dens%c + dz(j) * dens%t) * indzp
+      dens_t = (dz(j+2) * dens%t + dz(j+1) * dens%tt) * indzpp
       dens_e = (dz(j+1) * dens%e + dz(j) * dens%en) * indzp
-      dens_s = (dz(j)   * dens%s + dz(j-1) * dens%c) * indzm
+      dens_b = (dz(j)   * dens%b + dz(j-1) * dens%c) * indzm
       dens_w = (dz(j+1) * dens%w + dz(j) * dens%wn) * indzp
 !
 ! ... an arbitrary choice !
 !
       dens_ee = dens_e
-      dens_nn = dens_n
+      dens_tt = dens_t
 !
 ! ... On boundary mantain first order accuracy (1st order Upwind).
 !
 ! ... on West volume bondary
 !
-      IF( fl_l(imj) /= 1 ) THEN
+      IF( fl_l(imjk) /= 1 ) THEN
         cs = (u%wn * dz(j) + u%w * dz(j+1)) * indzp
         IF ( cs >= 0.D0 ) fw = dens_w * w%w * cs * rb(i-1)
         IF ( cs <  0.D0 ) fw = dens_c * w%c * cs * rb(i-1)
       END IF
 !
-! ... on South volume bondary
+! ... on Bottom volume bondary
 !
-      IF( fl_l(ijm) /= 1 ) THEN
-        cs = 0.5D0 * ( w%c + w%s ) 
-        IF ( cs >= 0.D0 ) fs = dens_s * w%s * cs
-        IF ( cs <  0.D0 ) fs = dens_c * w%c * cs
+      IF( fl_l(ijkm) /= 1 ) THEN
+        cs = 0.5D0 * ( w%c + w%b ) 
+        IF ( cs >= 0.D0 ) fb = dens_b * w%b * cs
+        IF ( cs <  0.D0 ) fb = dens_c * w%c * cs
       END IF
 !
 ! ... MUSCL reconstruction of momentum
@@ -299,7 +299,7 @@
       lim = 0.D0
       erre = 0.D0
 !
-      cs = indzp * (u%c * dz(j+1) + u%n * dz(j))
+      cs = indzp * (u%c * dz(j+1) + u%t * dz(j))
       cn = cs * dt * 2.D0 * indzp
       IF ( cs >= 0.D0 ) THEN
 	erre = gradw / gradc
@@ -319,24 +319,24 @@
 !
       fe = upwnd * cs * rb(i)
 !
-! ... on North volume boundary
+! ... on Top volume boundary
 !
-      gradc = (dens_n * w%n   - dens_c * w%c) * indz(j+1)
-      grads = (dens_c * w%c   - dens_s * w%s) * indz(j)
-      gradn = (dens_nn * w%nn - dens_n * w%n) * indz(j+2)
+      gradc = (dens_t * w%t   - dens_c * w%c) * indz(j+1)
+      gradb = (dens_c * w%c   - dens_b * w%b) * indz(j)
+      gradt = (dens_tt * w%tt - dens_t * w%t) * indz(j+2)
 !
       lim = 0.D0
       erre = 0.D0
 !
-      cs = 0.5D0 * ( w%n + w%c )
+      cs = 0.5D0 * ( w%t + w%c )
       cn = cs * dt * indz(j+1)
       IF (cs >= 0.D0) THEN
-	erre = grads / gradc
+	erre = gradb / gradc
         fou  = dens_c * w%c
 	incr = 0.5D0 * dz(j+1)
       ELSE IF (cs < 0.D0) THEN
-	erre = gradn / gradc
-        fou  = dens_n * w%n
+	erre = gradt / gradc
+        fou  = dens_t * w%t
 	incr = 0.5D0 * dz(j+1)
       END IF 
 !
@@ -346,7 +346,7 @@
 !
       upwnd = fou + lim * gradc * incr
 !
-      fn = upwnd * cs
+      ft = upwnd * cs
 !
       RETURN
       END SUBROUTINE flw_2d

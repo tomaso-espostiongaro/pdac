@@ -215,9 +215,9 @@
       RETURN
       END SUBROUTINE flu_3d
 !----------------------------------------------------------------------
-      SUBROUTINE flu_2d(fe, fn, fw, fs, dens, u, w, ij)
+      SUBROUTINE flu_2d(fe, ft, fw, fb, dens, u, w, ij)
 !
-! ... Compute the convective fluxes on East, North sides of the cell
+! ... Compute the convective fluxes on East, Top sides of the cell
 ! ... for the momentum density along r.
 !
       USE dimensions
@@ -225,23 +225,23 @@
       USE grid, ONLY: dz
       USE grid, ONLY: dr, indr, r
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE set_indexes, ONLY: imj, ijm
+      USE set_indexes, ONLY: imjk, ijkm
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt
 
       IMPLICIT NONE
 !
-      REAL*8, INTENT(OUT) :: fe, fn, fw, fs
+      REAL*8, INTENT(OUT) :: fe, ft, fw, fb
       TYPE(stencil), INTENT(IN) :: dens, u, w
       INTEGER, INTENT(IN) :: ij
       INTEGER :: i,j,imesh
 !
-      REAL*8 :: dens_c, dens_e, dens_n
-      REAL*8 :: dens_w, dens_s
-      REAL*8 :: dens_ee, dens_nn
+      REAL*8 :: dens_c, dens_e, dens_t
+      REAL*8 :: dens_w, dens_b
+      REAL*8 :: dens_ee, dens_tt
       REAL*8 :: drm, drp, drpp, indrpp, indrp, indrm
       REAL*8 :: dzp, indzp, dzm, indzm, dzpp, indzpp
-      REAL*8 :: gradc, grade, gradw, grads, gradn
+      REAL*8 :: gradc, grade, gradw, gradb, gradt
 !
       imesh = myijk( ip0_jp0_kp0_, ij)
       j = ( imesh - 1 ) / nr + 1
@@ -265,31 +265,31 @@
 !
       dens_c = (dr(i+1) * dens%c + dr(i) * dens%e) * indrp
       dens_e = (dr(i+2) * dens%e + dr(i+1) * dens%ee) * indrpp
-      dens_n = (dr(i+1) * dens%n + dr(i) * dens%en) * indrp
+      dens_t = (dr(i+1) * dens%t + dr(i) * dens%et) * indrp
       dens_w = (dr(i)   * dens%w + dr(i-1) * dens%c) * indrm
-      dens_s = (dr(i+1) * dens%s + dr(i) * dens%es) * indrp
+      dens_b = (dr(i+1) * dens%b + dr(i) * dens%eb) * indrp
 !
 ! ... an arbitrary choice !
 !
       dens_ee = dens_e
-      dens_nn = dens_n
+      dens_tt = dens_t
 !
 ! ... On boundary mantain first order accuracy (1st order Upwind).
 !
 ! ... on West volume bondary
 !
-      IF( fl_l(imj) /= 1 ) THEN
+      IF( fl_l(imjk) /= 1 ) THEN
         cs = 0.5D0*(u%c + u%w)
         IF ( cs >= 0.D0 ) fw = dens_w * u%w * cs * r(i)
         IF ( cs <  0.D0 ) fw = dens_c * u%c * cs * r(i)
       END IF
 !
-! ... on South volume bondary
+! ... on Bottom volume bondary
 !
-      IF( fl_l(ijm) /= 1 ) THEN
-        cs = (dr(i+1) * w%s + dr(i) * w%es) * indrp
-        IF ( cs >= 0.D0 ) fs = dens_s * u%s * cs
-        IF ( cs <  0.D0 ) fs = dens_c * u%c * cs
+      IF( fl_l(ijkm) /= 1 ) THEN
+        cs = (dr(i+1) * w%b + dr(i) * w%eb) * indrp
+        IF ( cs >= 0.D0 ) fb = dens_b * u%b * cs
+        IF ( cs <  0.D0 ) fb = dens_c * u%c * cs
       END IF
 !
 ! ... MUSCL reconstruction of momentum
@@ -323,11 +323,11 @@
 !
       fe = upwnd * cs * r(i+1)
 !
-! ... on North volume boundary
+! ... on Top volume boundary
 !
-      gradc = (dens_n * u%n   - dens_c * u%c) * 2.D0 * indzp
-      grads = (dens_c * u%c   - dens_s * u%s) * 2.D0 * indzm
-      gradn = (dens_nn * u%nn - dens_n * u%n) * 2.D0 * indzpp
+      gradc = (dens_t * u%t   - dens_c * u%c) * 2.D0 * indzp
+      gradb = (dens_c * u%c   - dens_b * u%b) * 2.D0 * indzm
+      gradt = (dens_tt * u%tt - dens_t * u%t) * 2.D0 * indzpp
 !
       lim = 0.D0
       erre = 0.D0
@@ -335,12 +335,12 @@
       cs = (dr(i+1) * w%c + dr(i) * w%e) * indrp
       cn = cs * dt * 2.0 * indzp
       IF (cs >= 0.D0) THEN
-        erre = grads / gradc 
+        erre = gradb / gradc 
         fou  = dens_c * u%c
 	incr = 0.5D0 * dz(j)
       ELSE IF (cs < 0.D0) THEN
-        erre = gradn / gradc 
-        fou  = dens_n * u%n
+        erre = gradt / gradc 
+        fou  = dens_t * u%t
 	incr = 0.5D0 * dz(j+1)
       END IF 
 !
@@ -350,7 +350,7 @@
 !
       upwnd = fou + lim * gradc * incr
 !
-      fn = upwnd * cs
+      ft = upwnd * cs
 !
       RETURN
       END SUBROUTINE flu_2d

@@ -39,6 +39,7 @@
       USE grid, ONLY: dr, dz, dy, dx, fl_l
       USE grid, ONLY: indx, indy, indz
       USE grid, ONLY: ncint, myijk, ncdom, data_exchange
+      USE grid, ONLY: meshinds
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE pressure_epsilon, ONLY: p, pn
       USE set_indexes
@@ -49,7 +50,7 @@
       REAL*8 :: dxp, dyp, dzp, indxp, indyp, indzp
       REAL*8 :: drp, indrp
       REAL*8 :: rgp_e, rgp_n, rgp_t, rlk_e, rlk_n, rlk_t
-      INTEGER :: i, j, k, ij, ijk, imesh, is, ig
+      INTEGER :: i, j, k, ijk, imesh, is, ig
 !
       IF (ALLOCATED(rugn)) DEALLOCATE(rugn)
       IF (ALLOCATED(rvgn)) DEALLOCATE(rvgn)
@@ -57,104 +58,85 @@
       IF (ALLOCATED(rusn)) DEALLOCATE(rusn)
       IF (ALLOCATED(rvsn)) DEALLOCATE(rvsn)
       IF (ALLOCATED(rwsn)) DEALLOCATE(rwsn)
-      ALLOCATE( rugn(ncint),  rvgn(ncint), rwgn(ncint))
-      ALLOCATE( rusn(ncint,nsolid), rvsn(ncint,nsolid), rwsn(ncint,nsolid))
-      rugn = 0.D0; rvgn = 0.D0; rwgn = 0.D0
-      rusn = 0.D0; rvsn = 0.D0; rwsn = 0.D0
+      ALLOCATE( rugn(ncint), rwgn(ncint))
+      ALLOCATE( rusn(ncint,nsolid), rwsn(ncint,nsolid))
+      rugn = 0.D0; rwgn = 0.D0
+      rusn = 0.D0; rwsn = 0.D0
+      IF (job_type == '3D') THEN
+        ALLOCATE( rvgn(ncint) )
+        ALLOCATE( rvsn(ncint,nsolid) )
+        rvgn = 0.D0
+        rvsn = 0.D0
+      END IF
 !
       CALL data_exchange(rgp)
       CALL data_exchange(rlk)
 !
-      IF (job_type == '3D') THEN
-
-        DO ijk = 1, ncint
-         imesh = myijk( ip0_jp0_kp0_,ijk)
-!         IF(fl_l(ijk) == 1) THEN
-           CALL subscr(ijk)
-           i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
-           j = MOD( imesh - 1, nx*ny ) / nx + 1
-           k = ( imesh - 1 ) / ( nx*ny ) + 1
+      DO ijk = 1, ncint
+!       IF(fl_l(ij) == 1) THEN
+         CALL meshinds(ijk,imesh,i,j,k)
+         CALL subscr(ijk)
 !
+         IF (job_type == '2D') THEN
+
+           drp=dr(i)+dr(i+1)
+           dzp=dz(k)+dz(k+1)
+           indrp=1.D0/drp
+           indzp=1.D0/dzp
+
+           rgp_e = (dr(i+1)*rgp(ijk)+dr(i)*rgp(ijke))*indrp
+           rgp_t = (dz(k+1)*rgp(ijk)+dz(k)*rgp(ijkt))*indzp
+           rugn(ijk)  = rgp_e * ug(ijk)
+           rwgn(ijk)  = rgp_t * wg(ijk)
+           
+           DO is = 1, nsolid
+             rlk_e = (rlk(ijk,is)*dr(i+1)+rlk(ijke,is)*dr(i))*indrp
+             rlk_t = (rlk(ijk,is)*dz(k+1)+rlk(ijkt,is)*dz(k))*indzp
+             rusn(ijk,is)  = rlk_e * us(ijk,is)
+             rwsn(ijk,is)  = rlk_t * ws(ijk,is)
+           END DO
+
+         ELSE IF (job_type == '3D') THEN
+
            dxp=dx(i)+dx(i+1)
            dyp=dy(j)+dy(j+1)
            dzp=dz(k)+dz(k+1)
            indxp=1.D0/dxp
            indyp=1.D0/dyp
            indzp=1.D0/dzp
-!
+
            rgp_e = (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke))*indxp
            rgp_n = (dy(j+1)*rgp(ijk)+dy(j)*rgp(ijkn))*indyp
            rgp_t = (dz(k+1)*rgp(ijk)+dz(k)*rgp(ijkt))*indzp
-!
            rugn(ijk)  = rgp_e * ug(ijk)
            rvgn(ijk)  = rgp_n * vg(ijk)
            rwgn(ijk)  = rgp_t * wg(ijk)
 !
-           pn(ijk)    = p(ijk)
-           rgpn(ijk)  = rgp(ijk)
-           siegn(ijk) = sieg(ijk)
-           DO ig=1,ngas
-             rgpgcn(ijk,ig) = rgpgc(ijk,ig)
-           END DO
-!
            DO is = 1, nsolid
-            rlk_e = (rlk(ijk,is)*dx(i+1)+rlk(ijke,is)*dx(i))*indxp
-            rlk_n = (rlk(ijk,is)*dy(j+1)+rlk(ijkn,is)*dy(j))*indyp
-            rlk_t = (rlk(ijk,is)*dz(k+1)+rlk(ijkt,is)*dz(k))*indzp
-!
-            rusn(ijk,is)  = rlk_e * us(ijk,is)
-            rvsn(ijk,is)  = rlk_n * vs(ijk,is)
-            rwsn(ijk,is)  = rlk_t * ws(ijk,is)
-!
-            rlkn(ijk,is)  = rlk(ijk,is)
-            siesn(ijk,is) = sies(ijk,is)
+             rlk_e = (rlk(ijk,is)*dx(i+1)+rlk(ijke,is)*dx(i))*indxp
+             rlk_n = (rlk(ijk,is)*dy(j+1)+rlk(ijkn,is)*dy(j))*indyp
+             rlk_t = (rlk(ijk,is)*dz(k+1)+rlk(ijkt,is)*dz(k))*indzp
+             rusn(ijk,is)  = rlk_e * us(ijk,is)
+             rvsn(ijk,is)  = rlk_n * vs(ijk,is)
+             rwsn(ijk,is)  = rlk_t * ws(ijk,is)
            END DO
+         
+         END IF 
+!
+         pn(ijk)    = p(ijk)
+         rgpn(ijk)  = rgp(ijk)
+         siegn(ijk) = sieg(ijk)
+         DO ig=1,ngas
+           rgpgcn(ijk,ig) = rgpgc(ijk,ig)
+         END DO
+!
+         DO is = 1, nsolid
+          rlkn(ijk,is)  = rlk(ijk,is)
+          siesn(ijk,is) = sies(ijk,is)
+         END DO
 
-!         END IF
-        END DO
-
-      ELSE IF (job_type == '2D') THEN
-
-        DO ij = 1, ncint
-         imesh = myijk( ip0_jp0_kp0_,ij)
-!         IF(fl_l(ij) == 1) THEN
-           CALL subscr(ij)
-           j = ( ij - 1 ) / nr + 1
-           i = MOD( ( ij - 1 ), nr) + 1
-!
-           drp=dr(i)+dr(i+1)
-           dzp=dz(j)+dz(j+1)
-           indrp=1.D0/drp
-           indzp=1.D0/dzp
-!
-           rgp_e = (dr(i+1)*rgp(ij)+dr(i)*rgp(ijr))*indrp
-           rgp_t = (dz(j+1)*rgp(ij)+dz(j)*rgp(ijt))*indzp
-!
-           rugn(ij)  = rgp_e * ug(ij)
-           rwgn(ij)  = rgp_t * wg(ij)
-!
-           pn(ij)    = p(ij)
-           rgpn(ij)  = rgp(ij)
-           siegn(ij) = sieg(ij)
-           DO ig=1,ngas
-             rgpgcn(ij,ig) = rgpgc(ij,ig)
-           END DO
-!
-           DO is = 1, nsolid
-            rlk_e = (rlk(ij,is)*dr(i+1)+rlk(ijr,is)*dr(i))*indrp
-            rlk_t = (rlk(ij,is)*dz(j+1)+rlk(ijt,is)*dz(j))*indzp
-!
-            rusn(ij,is)  = rlk_e * us(ij,is)
-            rwsn(ij,is)  = rlk_t * ws(ij,is)
-!
-            rlkn(ij,is)  = rlk(ij,is)
-            siesn(ij,is) = sies(ij,is)
-           END DO
-
-!         END IF
-        END DO
-
-      END IF 
+!       END IF
+      END DO
 !
 ! ... Compute the temperature-dependent gas viscosity and th. conductivity
 !
@@ -500,7 +482,7 @@
       USE gas_solid_viscosity, ONLY: gvisx, gvisz, pvisx, pvisz
       USE grid, ONLY: ncint, myijk, ncdom, data_exchange
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE set_indexes, ONLY: subscr, imj, ijm, ijt
+      USE set_indexes, ONLY: subscr, imjk, ijkm, ijkt
       USE set_indexes, ONLY: stencil, nb, rnb
 !
       IMPLICIT NONE
@@ -590,9 +572,9 @@
           CALL rnb(w,wg,ij)
 !
           CALL flu(ugfe(ij), ugfn(ij),                  &
-                   ugfe(imj), ugfn(ijm), dens, u, w, ij)
+                   ugfe(imjk), ugfn(ijkm), dens, u, w, ij)
           CALL flw(wgfe(ij), wgfn(ij),                   &
-                   wgfe(imj), wgfn(ijm), dens, u, w, ij)
+                   wgfe(imjk), wgfn(ijkm), dens, u, w, ij)
 !
           DO is = 1, nsolid
             CALL nb(dens,rlk(:,is),ij)
@@ -600,9 +582,9 @@
             CALL rnb(w,ws(:,is),ij)
 !
             CALL flu(usfe(ij,is), usfn(ij,is),                     &
-                     usfe(imj,is), usfn(ijm,is), dens, u, w, ij)
+                     usfe(imjk,is), usfn(ijkm,is), dens, u, w, ij)
             CALL flw(wsfe(ij,is), wsfn(ij,is),                     &
-                     wsfe(imj,is), wsfn(ijm,is), dens, u, w, ij)
+                     wsfe(imjk,is), wsfn(ijkm,is), dens, u, w, ij)
 !
           END DO
         END IF         
@@ -635,10 +617,10 @@
 !
 ! ... West, South fluxes (gas)
 !
-          ugfw = ugfe(imj)
-          ugfs = ugfn(ijm)
-          wgfw = wgfe(imj)
-          wgfs = wgfn(ijm)
+          ugfw = ugfe(imjk)
+          ugfs = ugfn(ijkm)
+          wgfw = wgfe(imjk)
+          wgfs = wgfn(ijkm)
 !
 ! ... compute explicit (tilde) terms in the momentum equation (gas)
 ! 
@@ -653,7 +635,7 @@
           wgfz = wgfn(ij) - wgfs
 !
           rwg(ij) = rwgn(ij) + dt * gvisz(ij)                         &
-     &      + dt * (dz(j+1)*rgp(ij)+dz(j)*rgp(ijt)) * indzp * gravz   &
+     &      + dt * (dz(j+1)*rgp(ij)+dz(j)*rgp(ijkt)) * indzp * gravz   &
      &      - dt * indr(i) * inr(i) * wgfx                            &
      &      - dt * indzp * 2.D0 * wgfz
 !
@@ -663,10 +645,10 @@
 !
 ! ... West, South fluxes (particles)
 ! 
-            usfw = usfe(imj,is)
-            usfs = usfn(ijm,is)
-            wsfw = wsfe(imj,is)
-            wsfs = wsfn(ijm,is)
+            usfw = usfe(imjk,is)
+            usfs = usfn(ijkm,is)
+            wsfw = wsfe(imjk,is)
+            wsfs = wsfn(ijkm,is)
 !
 ! ... compute explicit (tilde) terms in the momentum equation (particles)
 ! 
@@ -681,14 +663,14 @@
               wsfz = wsfn(ij,is) - wsfs
 !
               rws(ij,is) = rwsn(ij,is) + dt * pvisz(ij,is)                    &
-     &         + dt * (rlk(ij,is)*dz(j+1)+rlk(ijt,is)*dz(j)) * indzp * gravz  &
+     &         + dt * (rlk(ij,is)*dz(j+1)+rlk(ijkt,is)*dz(j)) * indzp * gravz  &
      &         - dt * indr(i) * inr(i) * wsfx                                 &
      &         - dt * indzp * 2.D0 * wsfz                          
 !
 ! ... Compute the gas-particle drag coefficients
 !
-            dugs = ( (ug(ij)-us(ij,is)) + (ug(imj)-us(imj,is)) )*0.5D0
-            dwgs = ( (wg(ij)-ws(ij,is)) + (wg(ijm)-ws(ijm,is)) )*0.5D0
+            dugs = ( (ug(ij)-us(ij,is)) + (ug(imjk)-us(imjk,is)) )*0.5D0
+            dwgs = ( (wg(ij)-ws(ij,is)) + (wg(ijkm)-ws(ijkm,is)) )*0.5D0
             zero = 0.D0
 
             CALL kdrags(kpgv(is), dugs, zero, dwgs, ep(ij),         &

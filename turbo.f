@@ -48,7 +48,7 @@
 ! ... (2D/3D-Compliant, except roughness model)
 !
         USE dimensions, ONLY: nr, nz, no, nx, ny
-        USE grid, ONLY: iob, myijk
+        USE grid, ONLY: iob, myijk, meshinds
         USE grid, ONLY: dz, dr, zb, rb, dx, dy
         USE roughness_module, ONLY: zrough
         USE control_flags, ONLY: job_type
@@ -125,10 +125,7 @@
         ELSE IF( job_type == '3D' ) THEN
 
           DO ijk = 1, ncint
-            imesh =  myijk( ip0_jp0_kp0_ , ijk )
-            i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
-            j = MOD( imesh - 1, nx*ny ) / nx + 1
-            k = ( imesh - 1 ) / ( nx*ny ) + 1
+            CALL meshinds(ijk,imesh,i,j,k)
 
             delt = ( dz(k)*dy(j)*dx(i) )**(1.0d0/3.0d0)
             IF ( iturb == 1 ) THEN
@@ -160,7 +157,7 @@
       USE gas_solid_density, ONLY: rog
       USE gas_solid_velocity, ONLY: ug,vg,wg 
       USE set_indexes, ONLY: subscr, stencil, rnb
-      USE grid, ONLY: dx, dy, dz 
+      USE grid, ONLY: dx, dy, dz, meshinds
       IMPLICIT NONE
 !
       REAL*8, DIMENSION(:), ALLOCATABLE :: modsr, p11, p12, p22, p13, p23, p33  
@@ -246,6 +243,7 @@
 !
       DO ijk = 1, ncint
         IF(fl_l(ijk) == 1) THEN
+          CALL meshinds(ijk,imesh,i,j,k)
           CALL subscr(ijk)
 !
           IF(modturbo == 1) THEN
@@ -259,10 +257,6 @@
 
           ELSE IF(modturbo == 2) THEN
 
-            imesh = myijk( ip0_jp0_kp0_, ijk)
-            i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
-            j = MOD( ijk - 1, nx*ny ) / nx + 1
-            k = ( ijk - 1 ) / ( nx*ny ) + 1
 !
 ! ... Dynamic computation of the Smagorinsky length scale (Germano et al., 1990)
 !
@@ -567,7 +561,7 @@
 
       USE dimensions, ONLY: nr    
       USE grid, ONLY:dr, dz, indr, indz,itc,inr 
-      USE set_indexes
+      USE set_indexes, ONLY: imjk, ijkm, ijkp, imjkp, imjkm, ipjk, ipjkm 
       IMPLICIT NONE
 
       INTEGER, INTENT(IN)  :: ij
@@ -597,23 +591,23 @@
 ! ... Cross terms (non-diagonal) in the strain tensor are obtained
 ! ... by interpolating the values found on the staggered grids.
 !
-        sr1 = (u(ij)-u(imj))*indr(i)
-        sr2 = (w(ij)-w(ijm))*indz(j)
+        sr1 = (u(ij)-u(imjk))*indr(i)
+        sr2 = (w(ij)-w(ijkm))*indz(j)
         
 ! ... extra-term for cylindrical coordinates
 !
         IF(itc == 1) THEN
-          d33 = (u(ij)+u(imj))*inr(i)
+          d33 = (u(ij)+u(imjk))*inr(i)
         ELSE
           d33 = 0.D0
         END IF
 !
-        u3=0.5D0*(u(ijp)+u(imjp))
-        u2=0.5D0*(u(ij)+u(imj))
-        u1=0.5D0*(u(ijm)+u(imjm))
-        w3=0.5D0*(w(ipj)+w(ipjm))
-        w2=0.5D0*(w(ij)+w(ijm))
-        w1=0.5D0*(w(imj)+w(imjm))
+        u3=0.5D0*(u(ijkp)+u(imjkp))
+        u2=0.5D0*(u(ij)+u(imjk))
+        u1=0.5D0*(u(ijkm)+u(imjkm))
+        w3=0.5D0*(w(ipjk)+w(ipjkm))
+        w2=0.5D0*(w(ij)+w(ijkm))
+        w1=0.5D0*(w(imjk)+w(imjkm))
         um2=u2+(u3-u2)*dz(j)*indzp
         um1=u1+(u2-u1)*dz(j-1)*indzm
         wm2=w2+(w3-w2)*dr(i)*indrp

@@ -3,19 +3,12 @@
 !-----------------------------------------------------------------------
 
       USE grid, ONLY: myinds, myijk
-      USE grid, ONLY: r_, t_, l_, b_, tr_, tl_, br_, bl_
-      USE grid, ONLY: rr_, tt_, ll_, bb_
       USE indijk_module
 
       IMPLICIT NONE
 !
-      INTEGER :: ijr, ijt, ijl, ijb
-      INTEGER :: ijtr, ijtl, ijbr, ijbl
-      INTEGER :: ijtt, ijrr, ijbb, ijll
-      INTEGER :: imj, ijm, ipj, ijp
-      INTEGER :: ipjm, ipjp, imjm, imjp 
-      INTEGER :: ijpp, ippj, ijmm, immj 
-
+! ... 2D/3D-indexes
+!
       INTEGER :: ipjk, imjk, ippjk, immjk, ijpk, ipjpk, imjpk, ijmk,  &
                  ipjmk, imjmk, ijppk, ijmmk, ijkp, ipjkp, imjkp, ijpkp, &
                  ijmkp, ijkm, ipjkm, imjkm, ijpkm, ijmkm, ijkpp, ijkmm
@@ -24,11 +17,11 @@
                   ijkws, ijknn, ijkss, ijkt, ijket, ijkwt, ijknt, ijkst, ijkb, &
                   ijkeb, ijkwb, ijknb, ijksb, ijktt, ijkbb
 
-
       INTEGER, PRIVATE :: job_type_flag
 !
 ! ... Define the computational stencil for Finite Volume schemes.
-! ... The standard compass notation (n,w,s,e,t,b,...) is adopted 
+! ... The standard compass notation (east,west,north,south,top,bottom,etc.) 
+! ... is adopted 
 !
       TYPE stencil
         REAL*8 :: c
@@ -98,31 +91,31 @@
 !
       IF( job_type_flag == 2 ) THEN
 
-        ijm  = myijk( ip0_jm1_kp0_, ijk )
-        imj  = myijk( im1_jp0_kp0_, ijk )
-        ipj  = myijk( ip1_jp0_kp0_, ijk )
-        ijp  = myijk( ip0_jp1_kp0_, ijk )
-        ipjm = myijk( ip1_jm1_kp0_, ijk )
-        ipjp = myijk( ip1_jp1_kp0_, ijk )
-        imjm = myijk( im1_jm1_kp0_, ijk )
-        imjp = myijk( im1_jp1_kp0_, ijk )
-        ijpp = myijk( ip0_jp2_kp0_, ijk )
-        ippj = myijk( ip2_jp0_kp0_, ijk )
-        immj = myijk( im2_jp0_kp0_, ijk )
-        ijmm = myijk( ip0_jm2_kp0_, ijk )
+        ijkm  = myijk( ip0_jp0_km1_, ijk )
+        imjk  = myijk( im1_jp0_kp0_, ijk )
+        ipjk  = myijk( ip1_jp0_kp0_, ijk )
+        ijkp  = myijk( ip0_jp0_kp1_, ijk )
+        ipjkm = myijk( ip1_jp0_km1_, ijk )
+        ipjkp = myijk( ip1_jp0_kp1_, ijk )
+        imjkm = myijk( im1_jp0_km1_, ijk )
+        imjkp = myijk( im1_jp0_kp1_, ijk )
+        ijkpp = myijk( ip0_jp0_kp2_, ijk )
+        ippjk = myijk( ip2_jp0_kp0_, ijk )
+        immjk = myijk( im2_jp0_kp0_, ijk )
+        ijkmm = myijk( ip0_jp0_km2_, ijk )
 
-        ijr  = myinds(ip1_jp0_kp0_, ijk )
-        ijt  = myinds(ip0_jp1_kp0_, ijk )
-        ijl  = myinds(im1_jp0_kp0_, ijk )
-        ijb  = myinds(ip0_jm1_kp0_, ijk )
-        ijtr = myinds(ip1_jp1_kp0_, ijk )
-        ijtl = myinds(im1_jp1_kp0_, ijk )
-        ijbl = myinds(im1_jm1_kp0_, ijk )
-        ijbr = myinds(ip1_jm1_kp0_, ijk )
-        ijrr = myinds(ip2_jp0_kp0_, ijk )
-        ijtt = myinds(ip0_jp2_kp0_, ijk )
-        ijll = myinds(im2_jp0_kp0_, ijk )
-        ijbb = myinds(ip0_jm2_kp0_, ijk )
+        ijke  = myinds(ip1_jp0_kp0_, ijk )
+        ijkt  = myinds(ip0_jp0_kp1_, ijk )
+        ijkw  = myinds(im1_jp0_kp0_, ijk )
+        ijkb  = myinds(ip0_jp0_km1_, ijk )
+        ijket = myinds(ip1_jp0_kp1_, ijk )
+        ijkwt = myinds(im1_jp0_kp1_, ijk )
+        ijkeb = myinds(ip1_jp0_km1_, ijk )
+        ijkwb = myinds(im1_jp0_km1_, ijk )
+        ijkee = myinds(ip2_jp0_kp0_, ijk )
+        ijktt = myinds(ip0_jp0_kp2_, ijk )
+        ijkww = myinds(im2_jp0_kp0_, ijk )
+        ijkbb = myinds(ip0_jp0_km2_, ijk )
 
       ELSE IF( job_type_flag == 3 ) THEN
 
@@ -392,18 +385,19 @@
       IF( job_type_flag == 2 ) THEN
 
         stncl%c  = array(ijk)
-        stncl%e  = array(ijr)
-        stncl%n  = array(ijt)
-        stncl%w  = array(ijl)
-        stncl%s  = array(ijb)
-        stncl%en  = array(ijtr)
-        stncl%wn  = array(ijtl)
-        stncl%es  = array(ijbr)
-        stncl%ws  = array(ijbl)
-        stncl%ee  = array(ijrr)
-        stncl%nn  = array(ijtt)
-        stncl%ww  = array(ijll)
-        stncl%ss  = array(ijbb)
+
+        stncl%e  = array(ijke)
+        stncl%t  = array(ijkt)
+        stncl%w  = array(ijkw)
+        stncl%b  = array(ijkb)
+        stncl%et  = array(ijket)
+        stncl%wt  = array(ijkwt)
+        stncl%eb  = array(ijkeb)
+        stncl%wb  = array(ijkwb)
+        stncl%ee  = array(ijkee)
+        stncl%tt  = array(ijktt)
+        stncl%ww  = array(ijkww)
+        stncl%bb  = array(ijkbb)
 
       ELSE IF( job_type_flag == 3 ) THEN
 
@@ -452,18 +446,18 @@
       IF( job_type_flag == 2 ) THEN
 
         stncl%c  = array(ijk)
-        stncl%e  = array(ipj)
-        stncl%n  = array(ijp)
-        stncl%w  = array(imj)
-        stncl%s  = array(ijm)
-        stncl%en  = array(ipjp)
-        stncl%wn  = array(imjp)
-        stncl%es  = array(ipjm)
-        stncl%ws  = array(imjm)
-        stncl%ee  = array(ippj)
-        stncl%nn  = array(ijpp)
-        stncl%ww  = array(immj)
-        stncl%ss  = array(ijmm)
+        stncl%e  = array(ipjk)
+        stncl%t  = array(ijkp)
+        stncl%w  = array(imjk)
+        stncl%b  = array(ijkm)
+        stncl%et  = array(ipjkp)
+        stncl%wt  = array(imjkp)
+        stncl%eb  = array(ipjkm)
+        stncl%wb  = array(imjkm)
+        stncl%ee  = array(ippjk)
+        stncl%tt  = array(ijkpp)
+        stncl%ww  = array(immjk)
+        stncl%bb  = array(ijkmm)
 
       ELSE IF( job_type_flag == 3 ) THEN
 
@@ -510,10 +504,10 @@
       IF( job_type_flag == 2 ) THEN
 
         stncl%c  = array(ijk)
-        stncl%e  = array(ijr)
-        stncl%n  = array(ijt)
-        stncl%w  = array(ijl)
-        stncl%s  = array(ijb)
+        stncl%e  = array(ijke)
+        stncl%t  = array(ijkt)
+        stncl%w  = array(ijkw)
+        stncl%b  = array(ijkb)
 
       ELSE IF( job_type_flag == 3 ) THEN
 
@@ -542,20 +536,20 @@
       IF( job_type_flag == 2 ) THEN
 
         stncl%c  = array(ijk)
-        stncl%e  = array(ipj)
-        stncl%n  = array(ijp)
-        stncl%w  = array(imj)
-        stncl%s  = array(ijm)
+        stncl%e  = array(ipjk)
+        stncl%t  = array(ijkp)
+        stncl%w  = array(imjk)
+        stncl%b  = array(ijkm)
 
       ELSE IF( job_type_flag == 3 ) THEN
 
-         stncl%c = array( ijk )
-         stncl%e = array( ipjk )
-         stncl%w = array( imjk )
-         stncl%n = array( ijpk )
-         stncl%s = array( ijmk )
-         stncl%t = array( ijkp )
-         stncl%b = array( ijkm )
+        stncl%c = array( ijk )
+        stncl%e = array( ipjk )
+        stncl%w = array( imjk )
+        stncl%n = array( ijpk )
+        stncl%s = array( ijmk )
+        stncl%t = array( ijkp )
+        stncl%b = array( ijkm )
 
       END IF
 
