@@ -93,6 +93,9 @@
 ! ... Modify the topography at the base of the crater to
 ! ... flatten the profile around the vent
 !
+      ! ... The crater base radius must include, at least, 
+      ! ... the rectancle containing the vent
+      !
       IF( base_radius < 2.0D0*radius ) THEN
               base_radius = 2.0D0*radius
               WRITE(8,*) 'WARNING! control the crater base!'

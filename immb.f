@@ -268,7 +268,7 @@
 
               IF (forcez(ijk) .AND. forcez(ijkm) .AND. &
                   forcex(ijk) .AND. forcex(imjk) .AND. &
-                  forcey(imjk) .AND.                   &
+                  forcey(ijmk) .AND.                   &
                   (z(k) > topo2d_y(i,j)) ) THEN
                     extfy(ijk) = .TRUE.
                     IF( fl(ijk) /=5 .AND. fl(ijk) /=8 ) fl(ijk) = 17
