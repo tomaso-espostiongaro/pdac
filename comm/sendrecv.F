@@ -9,7 +9,7 @@
         REAL*8  :: sndbuf(*), rcvbuf(*)
         INTEGER :: snd_size, rcv_size, idest, isour, ip
 ! ... 
-#if defined MPI
+#if defined __MPI
         INCLUDE 'mpif.h'
         INTEGER ISTATUS(MPI_STATUS_SIZE), ierr
         CALL MPI_SENDRECV(sndbuf, snd_size, MPI_DOUBLE_PRECISION, 
@@ -33,7 +33,7 @@
         INTEGER  :: sndbuf(*), rcvbuf(*)
         INTEGER :: snd_size, rcv_size, idest, isour, ip
 ! ...
-#if defined MPI
+#if defined __MPI
         INCLUDE 'mpif.h'
         INTEGER ISTATUS(MPI_STATUS_SIZE), ierr
         CALL MPI_SENDRECV(sndbuf, snd_size, MPI_INTEGER,

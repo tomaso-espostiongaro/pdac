@@ -6,7 +6,7 @@
 
       IMPLICIT NONE
 
-#if defined MPI
+#if defined __MPI
       include 'mpif.h'
 #endif
 
@@ -21,7 +21,7 @@
 !  end of declarations
 !  ----------------------------------------------
 
-#if defined MPI
+#if defined __MPI
       CALL mpi_comm_size(mpi_comm_world,nproc,ierr)
       CALL mpi_comm_rank(mpi_comm_world,mpime,ierr)
 #else
@@ -41,7 +41,7 @@
         CLOSE(UNIT=15)
       END IF
 
-#if defined MPI
+#if defined __MPI
       CALL mpi_finalize( ierr )
       IF ( ierr /= 0 ) THEN
         WRITE (8,*) ' *** MPI_FINALIZE failed, .... aborting ***'

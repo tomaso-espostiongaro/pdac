@@ -6,7 +6,7 @@
         IMPLICIT NONE
         INTEGER N, ERR, I
         REAL*8 ARRAY(N)
-#if defined MPI 
+#if defined __MPI 
         INCLUDE 'mpif.h'
         REAL*8 ARRAY_TMP(N)
         CALL MPI_ALLREDUCE(ARRAY,ARRAY_TMP,N,MPI_DOUBLE_PRECISION, 
@@ -22,7 +22,7 @@
         IMPLICIT NONE
         INTEGER N, ERR, I
         REAL*4 ARRAY(N)
-#if defined MPI
+#if defined __MPI
         INCLUDE 'mpif.h'
         REAL*8 ARRAY_TMP(N)
         CALL MPI_ALLREDUCE(ARRAY,ARRAY_TMP,N,MPI_REAL,
@@ -38,7 +38,7 @@
         IMPLICIT NONE
         INTEGER N, ERR, I
         COMPLEX*16 ARRAY(N)
-#if defined MPI 
+#if defined __MPI 
         INCLUDE 'mpif.h'
         COMPLEX*16 ARRAY_TMP(N)
         CALL MPI_ALLREDUCE(ARRAY,ARRAY_TMP,N,MPI_DOUBLE_PRECISION, 
@@ -54,7 +54,7 @@
         IMPLICIT NONE
         INTEGER N, ERR, I
         INTEGER ARRAY(N)
-#if defined MPI 
+#if defined __MPI 
         INCLUDE 'mpif.h'
         INTEGER ARRAY_TMP(N)
         CALL MPI_ALLREDUCE(ARRAY,ARRAY_TMP,N,MPI_INTEGER, 
@@ -71,7 +71,7 @@
         INTEGER N,ERR
         REAL*8 ARRAY_IN(N)
         REAL*8 ARRAY_OUT(N)
-#if defined MPI 
+#if defined __MPI 
         INCLUDE 'mpif.h'
         CALL MPI_ALLREDUCE(ARRAY_IN,ARRAY_OUT,N,MPI_DOUBLE_PRECISION, 
      &       MPI_SUM,MPI_COMM_WORLD,ERR)
@@ -85,7 +85,7 @@
         IMPLICIT NONE
         INTEGER N, I, IERR
         INTEGER ARRAY(N)
-#if defined MPI 
+#if defined __MPI 
         INCLUDE 'mpif.h'
         INTEGER IWORK(N)
         CALL MPI_ALLREDUCE(ARRAY,IWORK,N,MPI_INTEGER, 
@@ -100,7 +100,7 @@
         IMPLICIT NONE
         INTEGER N, I, IERR
         INTEGER ARRAY(N)
-#if defined MPI 
+#if defined __MPI 
         INCLUDE 'mpif.h'
         INTEGER IWORK(N)
         CALL MPI_ALLREDUCE(ARRAY,IWORK,N,MPI_INTEGER,
@@ -116,7 +116,7 @@
         IMPLICIT NONE
         INTEGER N, IERR
         REAL*8  ARRAY(N)
-#if defined MPI 
+#if defined __MPI 
         INCLUDE 'mpif.h'
         REAL*8  RWORK(N)
         CALL MPI_ALLREDUCE(ARRAY,RWORK,N,MPI_DOUBLE_PRECISION, 

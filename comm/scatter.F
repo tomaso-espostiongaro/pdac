@@ -2,7 +2,7 @@
       IMPLICIT NONE
       INTEGER SIZE, ROOT
       REAL*8 SEND(SIZE), RECV(SIZE)
-#if defined MPI
+#if defined __MPI
       include 'mpif.h'
       INTEGER IERR
       CALL MPI_SCATTER(send,size,MPI_DOUBLE_PRECISION,
@@ -17,7 +17,7 @@
       IMPLICIT NONE
       INTEGER SIZE, ROOT
       INTEGER SEND(SIZE), RECV(SIZE)
-#if defined MPI
+#if defined __MPI
       include 'mpif.h'
       INTEGER IERR
       CALL MPI_SCATTER(send,size,MPI_INTEGER,

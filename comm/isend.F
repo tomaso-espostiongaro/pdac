@@ -4,7 +4,7 @@
         IMPLICIT NONE
         REAL*8 array(*)
         INTEGER n, idest, itag, ihand
-#if defined MPI
+#if defined __MPI
         INCLUDE 'mpif.h'
         INTEGER :: ierr 
         CALL MPI_ISEND( array, n, MPI_DOUBLE_PRECISION, idest,

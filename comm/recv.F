@@ -4,7 +4,7 @@
         IMPLICIT NONE
         REAL*8 array(*)
         INTEGER n, isour, itag
-#if defined MPI
+#if defined __MPI
         INCLUDE 'mpif.h'
         INTEGER :: ierr 
         INTEGER :: istatus( MPI_STATUS_SIZE )

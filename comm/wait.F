@@ -3,7 +3,7 @@
       SUBROUTINE MP_WAIT( ihand )
         IMPLICIT NONE
         INTEGER ihand
-#if defined MPI
+#if defined __MPI
         INCLUDE 'mpif.h'
         INTEGER :: ierr 
         INTEGER :: istatus( MPI_STATUS_SIZE )

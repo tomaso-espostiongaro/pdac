@@ -1,13 +1,10 @@
-! on T3e substitute MPI_DOUBLE_PRECISION with MPI_REAL
-! on other architecture substitute MPI_REAL with MPI_DOUBLE_PRECISION
-
 !------------------------------------------------------------------------------!
 
       SUBROUTINE BCAST_REAL(ARRAY,N,root)
         IMPLICIT NONE
         REAL*8 array(*)
         INTEGER n, root
-#if defined MPI
+#if defined __MPI
         INCLUDE 'mpif.h'
         INTEGER ierr 
         CALL MPI_BCAST(array,n,MPI_DOUBLE_PRECISION,root,
@@ -20,7 +17,7 @@
         IMPLICIT NONE
         REAL*4 array(*)
         INTEGER n, root
-#if defined MPI
+#if defined __MPI
         INCLUDE 'mpif.h'
         INTEGER ierr
         CALL MPI_BCAST(array,n,MPI_REAL,root,
@@ -36,7 +33,7 @@
         IMPLICIT NONE
         INTEGER ARRAY(*), N
         INTEGER root
-#if defined MPI
+#if defined __MPI
         INCLUDE 'mpif.h'
         INTEGER IERR
         CALL MPI_BCAST(ARRAY,N,MPI_INTEGER,root,MPI_COMM_WORLD,IERR)
@@ -52,7 +49,7 @@
         IMPLICIT NONE
         CHARACTER*(*) ARRAY
         INTEGER N, root
-#if defined MPI
+#if defined __MPI
         INCLUDE 'mpif.h'
         INTEGER I, IERR, NTMP
         CHARACTER*256 TMP
@@ -89,7 +86,7 @@
         LOGICAL ARRAY(*)
         INTEGER N
         INTEGER root
-#if defined MPI
+#if defined __MPI
         INTEGER IERR,I
         INCLUDE 'mpif.h'
         INTEGER IARRAY(N)

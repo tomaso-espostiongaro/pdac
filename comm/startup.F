@@ -2,7 +2,7 @@
 
        IMPLICIT NONE
 
-#if defined MPI
+#if defined __MPI
        INCLUDE 'mpif.h'
 #endif
 
@@ -12,7 +12,7 @@
 !      INITIALIZE MPI ENVIRONEMENT 
 !      ---------------------------
        
-#if defined MPI
+#if defined __MPI
 
        CALL MPI_INIT(ERR)  
        CALL MPI_COMM_SIZE(MPI_COMM_WORLD,NPROC,ERR)

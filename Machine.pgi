@@ -1,0 +1,37 @@
+#----------------------------------------
+# LINUX PGI
+#----------------------------------------
+MACROS= -DMPI -D__PGI
+FFLAGS= -fast
+MPFFLAGS= -fast -Mnofreeform
+CPPFLAGS= -P -traditional ${MACROS}
+CPP=/lib/cpp
+CFLAGS= -O2 ${MACROS}
+PREPROCESSING =
+FREEFORM= -Mfreeform
+MODULES= -I ./
+LINKFLAGS= 
+LIBS=
+#----------------------------------------
+# scalar compiler
+FC=pgf90
+# parallel compiler
+MPFC=mpif90
+#----------------------------------------
+# ... parallel linker
+LINKER= mpif90
+#----------------------------------------
+
+.SUFFIXES :
+.SUFFIXES : .o .c .f .F
+
+.F.o:
+	$(CPP) $(CPPFLAGS) $*.F $*.F90
+	$(MPFC) -c $(MPFFLAGS) $(MODULES) $*.F90 -o $*.o
+	touch $*.o
+
+.f.o:
+	$(FC) -c $(FREEFORM) $(FFLAGS) $(MODULES) $<
+
+.c.o:
+	$(CC) $(CFLAGS) -c $<

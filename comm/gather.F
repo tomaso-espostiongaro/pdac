@@ -4,7 +4,7 @@
       INTEGER SIZE, root
       COMPLEX*16 SEND(SIZE)
       COMPLEX*16 RECV(SIZE)
-#if defined MPI
+#if defined __MPI
       INCLUDE 'mpif.h'
       INTEGER IERR
       CALL MPI_GATHER(send,size,MPI_DOUBLE_COMPLEX,
@@ -20,7 +20,7 @@
       INTEGER SIZE, root
       REAL*8 SEND(SIZE)
       REAL*8 RECV(SIZE)
-#if defined MPI
+#if defined __MPI
       INCLUDE 'mpif.h'
       INTEGER IERR
       CALL MPI_GATHER(send,size,MPI_DOUBLE_PRECISION,
@@ -36,7 +36,7 @@
       INTEGER SIZE, root
       INTEGER SEND(SIZE)
       INTEGER RECV(SIZE)
-#if defined MPI
+#if defined __MPI
       INCLUDE 'mpif.h'
       INTEGER IERR
       CALL MPI_GATHER(send,size,MPI_INTEGER,
