@@ -103,9 +103,13 @@
       END IF
 !
       nvt = (ieast-iwest+1)*(jnorth-jsouth+1)
+!
+! ... allocate and initialize the cells enclosing the vent
+!
       ALLOCATE(vcell(nvt))
-
-
+      vcell(:)%frac = 1.D0
+      vcell(:)%fact = 1.D0
+!
       nv = 0
       DO j = jsouth, jnorth
         DO i = iwest, ieast

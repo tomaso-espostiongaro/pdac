@@ -62,6 +62,7 @@
         REAL*8,  DIMENSION(:), ALLOCATABLE :: zbt
 !
 ! ... define topographic profile function zbt
+!
         IF( iturb == 2 ) THEN
           IF( job_type == '2D' ) THEN
             ALLOCATE( kt(nx), it(nx), zbt(nx) )
@@ -137,6 +138,10 @@
 ! ... Squared turbulence length scale is used into Smagorinsky model
             smag( ijk ) = sl**2
 
+! ... Correction for anisotropic grids
+!
+            smag(ijk) = smag(ijk) * anis(i,j,k)
+
           END DO
 
         END IF
@@ -181,14 +186,15 @@
 
       IF (modturbo == 2 .AND. job_type == '2D') THEN
 
-        IF( mpime == root ) WRITE(6,*) 'WARNING!: Dynamic Smagorinsky model cannot be applied to 2D'
+        IF( mpime == root ) WRITE(6,*) 'WARNING!: Dynamic Smagorinsky &
+                                      & model cannot be applied to 2D'
         modturbo = 1
 
       ELSE IF (modturbo == 2 .AND. job_type == '3D' ) THEN
 
         ! ... Allocate and initialize the filtered velocities for the
         ! ... dynamic computation of the Smagorinsky length scale 
-        ! ... (Germano et al., 1990)
+        ! ... (Germano et al., 1991)
         !
         ALLOCATE(p11(ncdom))  ;     p11 = 0.0D0
         ALLOCATE(p12(ncdom))  ;     p12 = 0.0D0
@@ -646,5 +652,38 @@
       RETURN
       END SUBROUTINE strain2d
 !---------------------------------------------------------------------
-       END MODULE turbulence_model
+! ... Correction of Smagorinsky length scale for anisotropic grids 
+! ... [Scotti, Meneveau and Lilly, Phys. Fluids A 5(9), 1993]
+!
+      REAL*8 FUNCTION anis(i,j,k)
+      USE grid, ONLY: dx, dy, dz
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: i,j,k
+      REAL*8 :: a1, a2, a3
+      REAL*8 :: la1, la2, la3, fla
+      REAL*8 :: deltamax, delta1, delta2, delta3
+      
+      delta1 = dx(i)
+      delta2 = dy(j)
+      delta3 = dz(k)
+      deltamax = MAX(delta1, delta2, delta3)
+
+      a1 = delta1 / deltamax
+      a2 = delta2 / deltamax
+      a3 = delta3 / deltamax
+
+      la1 = log(a1)
+      la2 = log(a2)
+      la3 = log(a3)
+
+      fla = la1**2 + la2**2 + la3**2 - la1*la2 +la1*la3 - la2*la3
+      fla = 4.D0 / 27.D0 * fla
+      fla = DSQRT( fla )
+
+      anis = COSH( fla )
+
+      RETURN
+      END FUNCTION anis
+!---------------------------------------------------------------------
+      END MODULE turbulence_model
 !---------------------------------------------------------------------
