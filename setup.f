@@ -216,24 +216,18 @@
       USE indijk_module, ONLY: ip0_jp0_kp0_
 
       INTEGER, INTENT(IN) :: n
-      REAL*8 :: ymd, csnd, dist
+      REAL*8 :: ymd
       INTEGER :: ijk,i,j,k,imesh
       INTEGER :: ig, is
-
-        csnd = DSQRT(gammaair*rgas/gmw(6)*tgob(n))
 
         DO ijk = 1, ncint
           imesh = myijk( ip0_jp0_kp0_ , ijk )
           CALL meshinds(ijk,imesh,i,j,k)
 
-!          dist = SQRT( (i-52)**2.0 + (k-52)**2.0 )
-
           IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi  ) THEN
             IF ( j >= iob(n)%ylo .AND. j <= iob(n)%yhi    &
                                     .OR. job_type == '2D') THEN
               IF ( i >= iob(n)%xlo .AND. i <= iob(n)%xhi  ) THEN
-
-!               IF (dist <= 20.0) THEN 
 
                 ug(ijk) = ugob(n)
                 IF (job_type == '3D') vg(ijk) = vgob(n)
@@ -251,8 +245,6 @@
                   ws(ijk,is)  = wpob(is,n)
                   rlk(ijk,is) = epsob(is,n)*rl(is)
                 END DO
-
-!              END IF
 
               END IF
             END IF
