@@ -178,12 +178,206 @@ to continue the simulation.
 
 \subsubsection{OUTPUT.nnnn file}
 
+All scalar and vector fields related to the evolution of the simulated
+system are saved into the OUTPUT.nnnn files at regular interval of
+simulated time. The user can choose the interval of time through
+the control parameter "tpr" (see \ref{section:input_parameters} ).
+Fields saved at different simulated time are written in different
+files, with different extension "nnnn". The esxtension "nnnn" is
+a number ranging from 0000 to 9999, \PDAC\ automatically increment 
+the OUTPUT file extension "nnnn" every time the fields are written. 
+The OUTPUT.nnnn files are associated to the fortran unit 12, 
+the format of these file could be selected by the user using
+the control parameter "formatted\_output", if it is set to ".TRUE."
+the OUTPUT files will be written in formatted textual format,
+otherwise the files will be in binary format.
+In general the OUTPUT files are meant for postprocessing analisys,
+it is therefore useful to know their layout.
+In formatted form the layout is as follow:
+
+\begin{verbatim}
+time
+p
+ug
+vg
+wg
+tg
+xgc(1)
+..
+xgc(ngas)
+rlk(1)*inrl(1)
+us(1)
+vs(1)
+ws(1)
+ts(1)
+..
+..
+..
+..
+..
+rlk(nsolid)*inrl(nsolid)
+us(nsolid)
+vs(nsolid)
+ws(nsolid)
+ts(nsolid)
+\end{verbatim}
+
+where the first line is a scalar real value representing the 
+simulated time at which the fields are written, the oter lines
+represent the fields (of dimension nx*ny*nz) that are written 
+using the fortran format specifier "FORMAT( 5(G14.6E3,1X) )".
+The components of the gas and solid velocities in the y dimension
+(vg and vs(.)) are present in the OUTPUT file only if the simulation
+type is 3D.
+
+When the file is written in the binary unformatted format,
+the sequence of variables is the same as above, but the time
+parameter and the fields are writtent in separate records.
+In particular "time" is written in a record of lenght "1"
+while all other fields in records of lenght "nx*ny*nz".
+The real variables in the binary OUTPUT file are saved 
+in single precision (i.e. using 4 byte for each real value).
+
 \subsection{Post processing files}
 \label{section:file_postprocessing}
 
+The post processing program (pp.x) of \PDAC\ package has
+been developed mainly to help the user to manage the
+OUTPUT.nnnn files, pp.x extract from a series of 
+OUTPUT.nnnn files the single fileds and store them 
+in separate files that can be easily plotted with
+varius graphical application.
+
 \subsubsection{Post processing input files}
 
+As input file the post processing (pp.x) code 
+takes the file "pdac.dat", the same input of \PDAC\ main code
+with an additional namelist with the parameters that control
+the post processing. The name of the additional namelist is \&pp , and
+should be typed in between the namelist \&numeric and the first card
+'ROUGHNESS' . The layout of the pdac.dat file for the post processing
+is then:
+
+\begin{verbatim}
+...
+...
+
+&numeric
+  numeric_parameters1 = numeric_value1, 
+  numeric_parameters2 = numeric_value2,
+  ...
+/
+
+&pp
+  pp_parameter1 = pp_value1,
+  pp_parameter2 = pp_value2,
+  ...
+/
+
+'ROUGHNESS'
+roughness_parameters
+
+...
+...
+\end{verbatim}
+
+for a detailed description of post processing parameters 
+description see \ref{section:pp_parameters}.
+The parameters are optional (if not specified they take their 
+defauld values) and commend can be inserted as already specified in
+sections \ref{section:pdac_dat}.
+Note that you could leave the \&pp namelist in the pdac.dat file
+for the main program too, it will be simply ignored.
+
 \subsubsection{Post processing output files}
+
+The post processing produces  several output files, 
+containing all the fields and other data useful when
+the user want to plot the fields themself.
+In particular post processing (pp.x) read in a sequence
+of OUTPUT.nnnn file ( from "nnnn=first\_out" to "nnnn=last\_out"
+in step of "incr\_out", where "first\_out", "last\_out" and "incr\_out"
+are parameters of the \&pp namelist ) and write out
+a sequence of file for each filed contained in OUTPUT.nnnn.
+The name of these files are of the form filter.FIELDNAME.nnnn .
+These file have the same format of OUTPUT files (i.e.
+if OUTPUT files are formated they are formatted too)
+The layout of the field within its own file is the same
+as within the OUTPUT file.
+List of all file produced by the post processing:
+
+\begin{itemize}
+
+\item pdac.xml  \\
+      this file contains all the information contained in pdac.dat
+      written using an XML compliant format
+
+\item pdac.grx \\
+      contains the list of cell centers (excluding border cells) 
+      in x direction
+
+\item pdac.gry \\
+      contains the list of cell centers (excluding border cells) 
+      in y direction
+
+\item pdac.grz \\
+      contains the list of cell centers (excluding border cells) 
+      in z direction
+
+\item filter.epGG.nnnn \\
+      these files contain the gas ... field for all the gas 
+      phases ( GG run from 01 to ngas ) 
+
+\item filter.xgGG.nnnn \\
+      these files contain the gas ... field for all the gas 
+      phases ( GG run from 01 to ngas ) 
+
+\item filter.pgas.nnnn \\
+      these files contain the gas pressure field 
+
+\item filter.tgas.nnnn \\
+      these files contain the gas temperature field 
+
+\item filter.ugGG.nnnn \\
+      these files contain the gas velocity field in x direction
+      for all gas phases ( GG run from 01 to ngas )
+
+\item filter.vgGG.nnnn \\
+      these files contain the gas velocity field in y direction
+      for all gas phases ( GG run from 01 to ngas ).
+      These files are not present when job\_type = 2D
+
+\item filter.wgGG.nnnn \\
+      these files contain the gas velocity field in z direction
+      for all gas phases ( GG run from 01 to ngas )
+
+\item filter.tsSS.nnnn \\
+      these files contain the particles temperature field 
+      for all solid phases ( SS run from 01 to nsolid )
+
+\item filter.usSS.nnnn \\
+      these files contain the particles velocity field in x direction
+      for all solid phases ( SS run from 01 to nsolid )
+
+\item filter.vsSS.nnnn \\
+      these files contain the particles velocity field in y direction
+      for all solid phases ( SS run from 01 to nsolid )
+      These files are not present when job\_type = 2D
+
+\item filter.wsSS.nnnn \\
+      these files contain the particles velocity field in z direction
+      for all solid phases ( SS run from 01 to nsolid )
+
+
+\end{itemize}
+
+In all the files listed above the suffix "nnnn" run from
+"first\_out" to "last\_out" in step of "incr\_out".
+Note that when running the post processing all 
+OUTPUT.nnnn files in the selected range should 
+be present in the running directory of "pp.x"
+
+
 
 \subsection{General remark}
 
