@@ -216,6 +216,7 @@
 !
                   ! ... update gas and particle densities and the 
                   ! ... gas mass residual
+
                   CALL update_eps
                   rgp(ijk) = ep(ijk) * rog(ijk)
                   CALL update_res(dg)
