@@ -13,12 +13,13 @@
       USE convective_fluxes_sc, ONLY: fsc
       USE control_flags, ONLY: job_type
       USE dimensions
+      USE domain_decomposition, ONLY: ncint, ncdom, myijk, &
+          data_exchange, meshinds
       USE eos_gas, ONLY: rgpgc, rgpgcn, ygc
       USE gas_constants, ONLY: default_gas
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE grid, ONLY: dx, dy, dz, indx, indy, indz, inx
-      USE grid, ONLY: ncint, ncdom, myijk, data_exchange
-      USE grid, ONLY: fl_l, meshinds
+      USE grid, ONLY: fl_l
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: stencil, nb, rnb, cte
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm

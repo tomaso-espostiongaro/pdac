@@ -2,7 +2,7 @@
       MODULE nondim_numbers
 !------------------------------------------------------------------------
       USE dimensions
-      USE grid, ONLY: ncint
+      USE domain_decomposition, ONLY: ncint
       IMPLICIT NONE
       SAVE
 !
@@ -72,10 +72,11 @@
       SUBROUTINE richardson(p,rgp,rhog,rlk,ug,wg,uk,wk,ijk,ijpk)
 !
         USE atmosphere, ONLY : gravz, atm
+        USE domain_decomposition, ONLY: myijk
         USE gas_constants, ONLY: gmw, rgas, gammaair, gamn
-        USE particles_constants, ONLY: inrl
-        USE grid, ONLY: myijk, zb, dz
+        USE grid, ONLY: zb, dz
         USE indijk_module, ONLY: ip0_jp0_kp0_
+        USE particles_constants, ONLY: inrl
         IMPLICIT NONE
 !
         REAL*8,  INTENT(IN) :: p(:)

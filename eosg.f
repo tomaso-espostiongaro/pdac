@@ -17,7 +17,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE allocate_eosg
       USE dimensions
-      USE grid, ONLY: ncdom, ncint
+      USE domain_decomposition, ONLY: ncdom, ncint
       IMPLICIT NONE
 !
        ALLOCATE(cg(ncint))

@@ -31,7 +31,8 @@
       SUBROUTINE fsc_3d(fe, fn, ft, fw, fs, fb, dens, field, u, v, w, ijk)
 !
       USE dimensions
-      USE grid, ONLY: myijk, fl_l
+      USE domain_decomposition, ONLY: myijk
+      USE grid, ONLY: fl_l
       USE grid, ONLY: dx, dy, dz
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: imjk, ijmk, ijkm
@@ -207,7 +208,8 @@
       SUBROUTINE fsc_2d(fe, ft, fw, fb, dens, field, u, w, ij)
 !
       USE dimensions
-      USE grid, ONLY: myijk, fl_l
+      USE domain_decomposition, ONLY: myijk
+      USE grid, ONLY: fl_l
       USE grid, ONLY: dz
       USE grid, ONLY: dx, xb
       USE indijk_module, ONLY: ip0_jp0_kp0_

@@ -31,9 +31,9 @@
 !----------------------------------------------------------------------
       SUBROUTINE rexion
 !
-      USE grid, ONLY: fl_l
-      USE grid, ONLY: ncint, myijk, ncdom
       USE dimensions
+      USE domain_decomposition, ONLY: ncint, myijk, ncdom
+      USE grid, ONLY: fl_l
       USE indijk_module, ONLY: ip0_jp0_kp0_
       IMPLICIT NONE
 !

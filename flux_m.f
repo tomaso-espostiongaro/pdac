@@ -94,8 +94,8 @@
       SUBROUTINE fmas_3d(fe, fn, ft, fw, fs, fb, dens, u, v, w, ijk)
 !
       USE dimensions
-      USE grid, ONLY: myijk, fl_l
-      USE grid, ONLY: dx, dy, dz
+      USE domain_decomposition, ONLY: myijk
+      USE grid, ONLY: dx, dy, dz, fl_l
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt
@@ -345,7 +345,7 @@
 ! ... Donor Cell technique for first order upwind
 !
       USE dimensions
-      USE grid, ONLY: myijk
+      USE domain_decomposition, ONLY: myijk
       USE grid, ONLY: xb
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: stencil
@@ -396,8 +396,8 @@
       SUBROUTINE fmas_2d(fe, ft, fw, fb, dens, u, w, ij)
 !
       USE dimensions
-      USE grid, ONLY: myijk, fl_l
-      USE grid, ONLY: dx, xb, dz
+      USE domain_decomposition, ONLY: myijk
+      USE grid, ONLY: dx, xb, dz, fl_l
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt

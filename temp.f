@@ -13,7 +13,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE allocate_temperature
       USE dimensions
-      USE grid, ONLY: ncdom, ncint
+      USE domain_decomposition, ONLY: ncdom, ncint
       IMPLICIT NONE
 !
       ALLOCATE(sieg(ncdom), siegn(ncint), tg(ncdom))

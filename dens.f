@@ -14,7 +14,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE allocate_density
       USE dimensions
-      USE grid, ONLY: ncint, ncdom
+      USE domain_decomposition, ONLY: ncint, ncdom
 !
       ALLOCATE(rgp(ncdom), rgpn(ncint), rog(ncint))
       ALLOCATE(rlk(ncdom,nsolid), rlkn(ncint,nsolid))

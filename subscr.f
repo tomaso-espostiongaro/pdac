@@ -2,7 +2,7 @@
       MODULE set_indexes
 !-----------------------------------------------------------------------
 
-      USE grid, ONLY: myinds, myijk
+      USE domain_decomposition, ONLY: myinds, myijk
       USE indijk_module
 
       IMPLICIT NONE

@@ -13,7 +13,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE allocate_hcapgs
       USE dimensions
-      USE grid, ONLY: ncint
+      USE domain_decomposition, ONLY: ncint
 !
       ALLOCATE(cp(ngas,ncint))
       ALLOCATE(ck(nsolid,ncint))

@@ -2,7 +2,7 @@
       MODULE turbulence_model
 !----------------------------------------------------------------------
 !
-      USE grid, ONLY: fl_l, myijk,  ncint, ncdom, data_exchange
+      USE domain_decomposition, ONLY: ncint, ncdom, data_exchange
       USE environment, ONLY: timing, cpclock
       USE indijk_module, ONLY: ip0_jp0_kp0_
 
@@ -48,7 +48,8 @@
 ! ... (2D/3D-Compliant, except roughness model)
 !
         USE dimensions, ONLY: nz, no, nx, ny
-        USE grid, ONLY: iob, myijk, meshinds
+        USE domain_decomposition, ONLY: myijk, meshinds
+        USE grid, ONLY: iob
         USE grid, ONLY: dz, zb, xb, dx, dy
         USE roughness_module, ONLY: zrough
         USE control_flags, ONLY: job_type
@@ -153,11 +154,12 @@
 
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nx, ny, nz
+      USE domain_decomposition, ONLY: meshinds
+      USE grid, ONLY: dx, dy, dz, fl_l
       USE eos_gas, ONLY: cg
       USE gas_solid_density, ONLY: rog
       USE gas_solid_velocity, ONLY: ug,vg,wg 
       USE set_indexes, ONLY: subscr, stencil, rnb
-      USE grid, ONLY: dx, dy, dz, meshinds
       IMPLICIT NONE
 !
       REAL*8, DIMENSION(:), ALLOCATABLE :: modsr, p11, p12, p22, p13, p23, p33  
@@ -458,7 +460,7 @@
       USE dimensions
       USE gas_solid_density, ONLY: rlk
       USE gas_solid_velocity, ONLY: us, vs, ws
-      USE grid, ONLY: itc
+      USE grid, ONLY: itc, fl_l
       USE particles_constants, ONLY: rl, inrl, dk, cmus
       USE set_indexes
       USE control_flags, ONLY: job_type
@@ -497,6 +499,7 @@
 ! ... here computes the components of the gas strain rate tensor and its module.
 
       USE dimensions, ONLY: nx, ny, nz   
+      USE domain_decomposition, ONLY: myijk
       USE grid, ONLY: dx, dy, dz, indx, indy, indz
       USE set_indexes
       IMPLICIT NONE
@@ -513,9 +516,9 @@
       INTEGER :: i, j, k, imesh 
 !
       imesh = myijk( ip0_jp0_kp0_, ijk)
-      i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
-      j = MOD( ijk - 1, nx*ny ) / nx + 1
-      k = ( ijk - 1 ) / ( nx*ny ) + 1
+      i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
+      j = MOD( imesh - 1, nx*ny ) / nx + 1
+      k = ( imesh - 1 ) / ( nx*ny ) + 1
 !
       dxp=dx(i)+dx(i+1)
       dxm=dx(i)+dx(i-1)
@@ -560,6 +563,7 @@
 ! ... here computes the components of the strain rate tensor and its module.
 
       USE dimensions, ONLY: nx    
+      USE domain_decomposition, ONLY: myijk
       USE grid, ONLY:dx, dz, indx, indz,itc,inx 
       USE set_indexes, ONLY: imjk, ijkm, ijkp, imjkp, imjkm, ipjk, ipjkm 
       IMPLICIT NONE

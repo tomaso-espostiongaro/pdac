@@ -23,13 +23,13 @@
       USE control_flags, ONLY: job_type
       USE diffusive_fluxes, ONLY: hotc
       USE dimensions
+      USE domain_decomposition, ONLY: ncint, ncdom, myijk, data_exchange, meshinds
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: sieg, sies, tg, ts
       USE gas_solid_viscosity, ONLY: kapg
       USE grid, ONLY: dx, dy, dz, indx, indy, indz, inx
-      USE grid, ONLY: fl_l, meshinds
-      USE grid, ONLY: ncint, ncdom, myijk, data_exchange
+      USE grid, ONLY: fl_l
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE particles_constants, ONLY: inrl, kap
       USE pressure_epsilon, ONLY: p, pn, ep

@@ -16,13 +16,13 @@
 !
       USE control_flags, ONLY: job_type
       USE dimensions
+      USE domain_decomposition, ONLY: ncint, data_exchange
       USE eos_gas, ONLY: cg
       USE gas_solid_density, ONLY: rgp, rgpn, rlk, rlkn, rog
       USE gas_solid_temperature, ONLY: sieg, siegn, sies, siesn
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_viscosity, ONLY: mug, kapg
       USE grid, ONLY: fl_l
-      USE grid, ONLY: ncint, data_exchange
       USE specific_heat_module, ONLY: ck
       USE heat_transfer, ONLY: hvs
       USE pressure_epsilon, ONLY: ep

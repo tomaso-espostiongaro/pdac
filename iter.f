@@ -21,13 +21,13 @@
 ! ... (2D-3D-Compliant)
 !
       USE dimensions
+      USE domain_decomposition, ONLY: myijk, ncint, ncdom, data_exchange, meshinds
       USE eos_gas, ONLY: eosg, ygc, xgc, rags, cg
       USE gas_solid_temperature, ONLY: sieg, tg
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE convective_mass_fluxes, ONLY: fmas, masf
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
-      USE grid, ONLY: fl_l, meshinds
-      USE grid, ONLY: myijk, ncint, ncdom, data_exchange
+      USE grid, ONLY: fl_l
       USE specific_heat_module, ONLY: cp
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE tilde_momentum, ONLY: appu, appv, appw
@@ -574,15 +574,14 @@
       SUBROUTINE betas(cnv, abt, ijk)
 ! 
       USE dimensions
+      USE domain_decomposition, ONLY: ncint, myijk, meshinds
       USE convective_mass_fluxes, ONLY: upc_e, upc_n, upc_t
       USE convective_mass_fluxes, ONLY: upc_w, upc_s, upc_b
       USE control_flags, ONLY: job_type
       USE eos_gas, ONLY: rags
       USE gas_constants, ONLY: gammaair
       USE gas_solid_density, ONLY: rog, rgp
-      USE grid, ONLY: fl_l, meshinds
-      USE grid, ONLY: dx, dy, dz
-      USE grid, ONLY: ncint, myijk
+      USE grid, ONLY: dx, dy, dz, fl_l
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes

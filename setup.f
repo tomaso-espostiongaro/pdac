@@ -32,6 +32,7 @@
       USE atmosphere, ONLY: atm, controlatm
       USE control_flags, ONLY: job_type
       USE dimensions
+      USE domain_decomposition, ONLY: ncint, meshinds, myijk
       USE eos_gas, ONLY: mas, mole, cnvertg_local, xgc, ygc
       USE eos_solid, ONLY: cnverts_local
       USE gas_constants, ONLY: default_gas, present_gas
@@ -40,8 +41,8 @@
       USE gas_solid_temperature, ONLY: sieg
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
-      USE grid, ONLY: grid_setup, zb, dz, myijk
-      USE grid, ONLY: fl_l, iob, ncint, meshinds
+      USE grid, ONLY: grid_setup, zb, dz
+      USE grid, ONLY: fl_l, iob
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: itd

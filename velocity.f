@@ -17,7 +17,7 @@
       SUBROUTINE allocate_velocity
       USE dimensions
       USE control_flags, ONLY: job_type
-      USE grid, ONLY: ncdom
+      USE domain_decomposition, ONLY: ncdom
       IMPLICIT NONE
 !
       ALLOCATE(ug(ncdom), wg(ncdom))

@@ -4,6 +4,7 @@
       USE boundary_conditions, ONLY: boundary2d, boundary3d
       USE control_flags, ONLY: job_type
       USE dimensions
+      USE domain_decomposition, ONLY: ncint, myijk
       USE enthalpy_matrix, ONLY: ftem
       USE environment, ONLY: cpclock, timing
       USE eos_gas, ONLY: mole, eosg, rags
@@ -12,7 +13,7 @@
       USE gas_components, ONLY: ygas
       USE gas_solid_density, ONLY: rog, rgp, rlk
       USE gas_solid_temperature, ONLY: sieg, sies, ts, tg
-      USE grid, ONLY: ncint, myijk, fl_l
+      USE grid, ONLY: fl_l
       USE specific_heat_module, ONLY: cp, ck
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE io_restart, ONLY: tapewr

@@ -56,9 +56,10 @@
       SUBROUTINE input( iunit )
 
       USE atmosphere, ONLY: w0, u0, p0, temp0, us0, ws0, ep0, epsmx0, gravx, gravz
+      USE domain_decomposition, ONLY: mesh_partition
       USE flux_limiters, ONLY: beta, muscl
       USE gas_constants, ONLY: default_gas
-      USE grid, ONLY: dx, dy, dz, itc, mesh_partition
+      USE grid, ONLY: dx, dy, dz, itc
       USE iterative_solver, ONLY: inmax, maxout, omega
       USE output_dump, ONLY: nfil
       USE parallel, ONLY: mpime, root

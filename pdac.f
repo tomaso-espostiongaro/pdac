@@ -15,6 +15,7 @@
       USE atmosphere, ONLY: v0, u0, w0, p0, temp0, us0, vs0, ws0, &
      &                      ep0, epsmx0, gravx, gravz
       USE dimensions
+      USE domain_decomposition, ONLY: partition, ghost
       USE eos_gas, ONLY: allocate_eosg
       USE gas_constants, ONLY: allocate_gas_constants, present_gas
       USE gas_solid_density, ONLY: allocate_density
@@ -22,8 +23,7 @@
       USE gas_solid_temperature, ONLY: allocate_temperature
       USE gas_solid_viscosity, ONLY: allocate_viscosity
       USE grid, ONLY: dx, dy, dz, itc
-      USE grid, ONLY: iob, flic, partition, ghost, &
-     &    allocate_blbody, allocate_grid
+      USE grid, ONLY: iob, flic, allocate_blbody, allocate_grid
       USE io_restart, ONLY: taperd, tapewr
       USE iterative_solver, ONLY: inmax, maxout, omega
       USE output_dump, ONLY: nfil, recover_2d

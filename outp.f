@@ -24,7 +24,7 @@
       USE time_parameters, ONLY: time
       USE turbulence_model, ONLY: smag_coeff, modturbo
       USE control_flags, ONLY: job_type
-      USE grid, ONLY: data_collect, data_distribute
+      USE domain_decomposition, ONLY: data_collect, data_distribute
       USE dimensions
 
 !

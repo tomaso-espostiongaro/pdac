@@ -31,6 +31,8 @@
 !
       USE control_flags, ONLY: job_type
       USE dimensions
+      USE domain_decomposition, ONLY: ncint, myijk, ncdom, data_exchange
+      USE domain_decomposition, ONLY: meshinds
       USE eos_gas, ONLY: rgpgc, rgpgcn, xgc
       USE gas_solid_density, ONLY: rgp, rgpn, rlk, rlkn
       USE gas_solid_temperature, ONLY: sieg, siegn, sies, siesn, tg
@@ -38,8 +40,6 @@
       USE gas_solid_viscosity, ONLY: viscon, mug, kapg
       USE grid, ONLY: dz, dy, dx, fl_l
       USE grid, ONLY: indx, indy, indz
-      USE grid, ONLY: ncint, myijk, ncdom, data_exchange
-      USE grid, ONLY: meshinds
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE pressure_epsilon, ONLY: p, pn
       USE set_indexes
@@ -150,15 +150,16 @@
 !
       USE atmosphere, ONLY: gravz
       USE dimensions
+      USE domain_decomposition, ONLY: meshinds
+      USE domain_decomposition, ONLY: ncint, myijk, ncdom, data_exchange
       USE convective_fluxes_u, ONLY: flu
       USE convective_fluxes_v, ONLY: flv
       USE convective_fluxes_w, ONLY: flw
       USE control_flags, ONLY: job_type
       USE gas_solid_density, ONLY: rog, rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      USE grid, ONLY: dx, dy, dz
+      USE grid, ONLY: dx, dy, dz, fl_l
       USE grid, ONLY: indx, indy, indz, inx, inxb
-      USE grid, ONLY: fl_l, meshinds
       USE momentum_transfer, ONLY: kdrags, inter
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: dt
@@ -166,7 +167,6 @@
       USE gas_solid_viscosity, ONLY: viscg, viscs
       USE gas_solid_viscosity, ONLY: mug
       USE gas_solid_viscosity, ONLY: gvisx, gvisy, gvisz, pvisx, pvisy, pvisz
-      USE grid, ONLY: ncint, myijk, ncdom, data_exchange
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm, ijkt
       USE set_indexes, ONLY: stencil, nb, rnb

@@ -20,7 +20,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE allocate_viscosity
       USE dimensions
-      USE grid, ONLY : ncdom
+      USE domain_decomposition, ONLY : ncdom
       IMPLICIT NONE
 !
       ALLOCATE(mus(ncdom,nsolid))
@@ -135,7 +135,7 @@
 !
       USE control_flags, ONLY: job_type
       USE gas_solid_velocity, ONLY: ug, vg, wg
-      USE grid, ONLY: data_exchange
+      USE domain_decomposition, ONLY: data_exchange
       USE pressure_epsilon, ONLY: ep
       USE turbulence_model, ONLY: mugt, iturb
       IMPLICIT NONE
@@ -167,8 +167,8 @@
 !
       USE control_flags, ONLY: job_type
       USE dimensions
-      USE grid, ONLY: fl_l, ncint, ncdom, data_exchange
-      USE grid, ONLY: dx, dy, dz
+      USE domain_decomposition, ONLY: ncint, ncdom, data_exchange
+      USE grid, ONLY: dx, dy, dz, fl_l
       USE gas_solid_density, ONLY: rlk
       USE gas_solid_velocity, ONLY:  us, vs, ws
       USE particles_constants, ONLY: rl, inrl
@@ -296,8 +296,9 @@
 ! ... In general, they can be different.
 !
       USE dimensions
-      USE grid, ONLY: itc, dx, dy, dz, indx, indy, indz
-      USE grid, ONLY: fl_l, ncint
+      USE domain_decomposition, ONLY: ncint
+      USE grid, ONLY: itc, fl_l 
+      USE grid, ONLY: dx, dy, dz, indx, indy, indz
       USE set_indexes
       USE indijk_module, ONLY: ip0_jp0_kp0_
 
@@ -471,8 +472,9 @@
 ! ... In general, they can be different.
 !
       USE dimensions
+      USE domain_decomposition, ONLY: ncint
       USE grid, ONLY: itc, dz, dx, x, xb, indz, indx, inx, inxb
-      USE grid, ONLY: fl_l, ncint
+      USE grid, ONLY: fl_l
       USE set_indexes
       USE indijk_module, ONLY: ip0_jp0_kp0_
 

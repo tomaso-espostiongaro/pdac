@@ -39,9 +39,9 @@
 !
       USE control_flags, ONLY: job_type
       USE dimensions
+      USE domain_decomposition, ONLY: myijk, meshinds
       USE gas_solid_density, ONLY: rgp, rlk
       USE grid, ONLY: dx, dy, dz
-      USE grid, ONLY: myijk, meshinds
       USE indijk_module
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p, ep
@@ -162,9 +162,9 @@
 !
       USE control_flags, ONLY: job_type
       USE dimensions
+      USE domain_decomposition, ONLY: myijk, meshinds
       USE gas_solid_density, ONLY: rgp, rlk
       USE grid, ONLY: dx, dy, dz
-      USE grid, ONLY: myijk, meshinds
       USE indijk_module
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p, ep
@@ -558,9 +558,9 @@
 ! ... OPTIMIZED ROUTINE FOR THREE-DIMENSIONAL THREE PHASE SIMULATIONS
 !
       USE dimensions
+      USE domain_decomposition, ONLY: myijk
       USE gas_solid_density, ONLY: rgp, rlk
       USE grid, ONLY: dx, dy, dz
-      USE grid, ONLY: myijk
       USE indijk_module
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p, ep

@@ -22,9 +22,9 @@
 ! ... This routine computes boundary conditions for cylindrical
 ! ... (r,z) coordinates
 !
+      USE domain_decomposition, ONLY: ncint, myijk
       USE gas_solid_velocity, ONLY: ug, wg, us, ws
       USE grid, ONLY: dx
-      USE grid, ONLY: ncint, myijk
       USE grid, ONLY: fl_l
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE parallel, ONLY: mpime
@@ -245,9 +245,9 @@
 !
 ! ... This routine computes (x,y,z) boundary conditions 
 !
+      USE domain_decomposition, ONLY: ncint, myijk
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: dx, dy
-      USE grid, ONLY: ncint, myijk
       USE grid, ONLY: fl_l
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE parallel, ONLY: mpime

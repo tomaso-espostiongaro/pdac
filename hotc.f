@@ -11,10 +11,10 @@
 !----------------------------------------------------------------------
       SUBROUTINE hotc(hgfe, hgfn, hgft, hgfw, hgfs, hgfb, ep, tg, kapgt, ijk)
 !
-      USE grid, ONLY: fl_l
-      USE grid, ONLY: myijk
-      USE grid, ONLY: dx, dy, dz, xb
       USE dimensions
+      USE domain_decomposition, ONLY: myijk
+      USE grid, ONLY: fl_l
+      USE grid, ONLY: dx, dy, dz, xb
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       IMPLICIT NONE
 !

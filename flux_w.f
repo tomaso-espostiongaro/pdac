@@ -34,8 +34,8 @@
 ! ... for the momentum density along z.
 !
       USE dimensions
-      USE grid, ONLY: myijk, fl_l
-      USE grid, ONLY: dx, dy, dz, indz
+      USE domain_decomposition, ONLY: myijk
+      USE grid, ONLY: dx, dy, dz, indz, fl_l
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE set_indexes, ONLY: stencil
@@ -218,8 +218,8 @@
 ! ... for the momentum density along z.
 !
       USE dimensions
-      USE grid, ONLY: myijk, fl_l
-      USE grid, ONLY: dx, xb, dz, indz
+      USE domain_decomposition, ONLY: myijk
+      USE grid, ONLY: dx, xb, dz, indz, fl_l
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: imjk, ijkm
       USE set_indexes, ONLY: stencil
