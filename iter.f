@@ -30,7 +30,8 @@
       USE tilde_momentum, ONLY: appu, appv, appw
       USE parallel, ONLY: mpime
       USE particles_constants, ONLY: rl, inrl
-      USE phases_matrix, ONLY: mats, mats_3phase, mats2, velsk, velsk2
+      USE phases_matrix, ONLY: mats, mats2, velsk, velsk2
+      USE phases_matrix, ONLY: mats_3phase
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes
       USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
@@ -358,7 +359,7 @@
         IF(mustit == 0) THEN
           omega = omega0
 !*******************************************************************
-          WRITE(6,277) time, nit
+          WRITE(6,277) time+dt, nit
  277      FORMAT('time = ', F8.3, '  nit = ', I4)
 !*******************************************************************
           EXIT sor_loop

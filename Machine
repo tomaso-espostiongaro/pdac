@@ -1,37 +1,15 @@
 #----------------------------------------
-# AIX
-#----------------------------------------
 #MACROS= -DMPI
 MACROS= -DSCALAR
 #----------------------------------------
-#OMPITRACE_HOME= /cineca/prod/OMPItrace
-#OMPILIB= -L $(OMPITRACE_HOME)/lib -lompitrace
-#OMPILIB= -L $(OMPITRACE_HOME)/lib -lompi2prv
-#OMPIINC= $(OMPITRACE_HOME)/include
-#HPMHOME= /cineca/prod/ACTC_pmtoolkit_beta/HPM_V2.2/
-#IPAFLG= -qipa -qipa=inline -qipa=list
-FFLAGS= -O3 -qstrict -qarch=pwr4 -qtune=pwr4 $(IPAFLG) -qalias=noaryovrlp -Q -bstatic -bmaxdata:0x70000000 
-CPPFLAGS= -WF,$(MACROS)
-#PREPROCESSING = -qsuffix=cpp=f -I $(HPMHOME)/include/
-PREPROCESSING =
-FREEFORM= -qfree=f90
-#HPMLIB= -L $(HPMHOME)/lib/ -lhpm -lpmapi
-HPMLIB=
-#LINKFLAGS= -bmaxdata:0x70000000 $(IPAFLG) 
+CPPFLAGS= $(MACROS)
 LINKFLAGS= 
-#LIBS= $(OMPILIB) $(HPMLIB)
 LIBS=
+FREEFORM= -Mfree
 #----------------------------------------
-# scalar compiler
-FC=xlf
-#FC=mpxlf_r
-# parallel compiler
-MPFC=mpxlf_r
-#----------------------------------------
-# ... parallel linker
-#LINKER= mpxlf_r
-# ... scalar linker
-LINKER=xlf
-#----------------------------------------
+FFLAGS= -O2 -tp athlonxp
+FC=pgf90
+MPFC=pgf90
+LINKER=pgf90
 
 .SUFFIXES:.F

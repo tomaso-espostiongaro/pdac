@@ -72,9 +72,9 @@
       nxy = nx * ny
       im1 = imesh - 1
       mdk = im1/nxy
-      mj  = im1 - nxy * mdk    ! MOD( im1, nxy )  ! MOD( imesh - 1, nx*ny ) 
+      mj  = im1 - nxy * mdk
       mdj = mj/nx
-      mi  = mj  -  nx * mdj    ! MOD( mj , nx  )  ! MOD( MOD( imesh - 1, nx*ny ), nx )
+      mi  = mj  -  nx * mdj
       
       i   = mi  + 1      ! i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
       j   = mdj + 1      ! j = MOD( imesh - 1, nx*ny ) / nx + 1
@@ -111,14 +111,12 @@
 !
       au1(1,1)=(dxi*appu(ijkw,1)+dxim1*appu(ijk,1))*indxm
       au1(1,1)=au1(1,1)+(dxi*rgp(ijkw)+dxim1*rgpijk)*indxm
-      av1(l,1)=(dyj*appv(ijks,1)+dyjm1*appv(ijk,1))*indym
+      av1(1,1)=(dyj*appv(ijks,1)+dyjm1*appv(ijk,1))*indym
       av1(1,1)=av1(1,1)+(dyj*rgp(ijks)+dyjm1*rgpijk)*indym
       aw1(1,1)=(dzk*appw(ijkb,1)+dzkm1*appw(ijk,1))*indzm
       aw1(1,1)=aw1(1,1)+(dzk*rgp(ijkb)+dzkm1*rgpijk)*indzm
 
-
         DO l = 2, nphase
-
 !
 ! ... Explicit terms in the linear system
 !
@@ -176,10 +174,11 @@
       bw(1)  = rwg(ijk)+ dt * indzp *2.D0* ep_t * (pijk-p(ijkt))
 !
       au(1,1)=(dxi*appu(ijke,1)+dxip1*appu(ijk,1))*indxp
-      au(1,1)=au(1,1)+(dxi*rgp(ijke)+dxip1*rgpijk)*indxp
       av(1,1)=(dyj*appv(ijkn,1)+dyjp1*appv(ijk,1))*indyp
-      av(1,1)=av(1,1)+(dyj*rgp(ijkn)+dyjp1*rgpijk)*indyp
       aw(1,1)=(dzk*appw(ijkt,1)+dzkp1*appw(ijk,1))*indzp
+
+      au(1,1)=au(1,1)+(dxi*rgp(ijke)+dxip1*rgpijk)*indxp
+      av(1,1)=av(1,1)+(dyj*rgp(ijkn)+dyjp1*rgpijk)*indyp
       aw(1,1)=aw(1,1)+(dzk*rgp(ijkt)+dzkp1*rgpijk)*indzp
 
 
@@ -369,7 +368,7 @@
       au1(3,3)=(dxi*appu(ijkw, 6)+dxim1*appu(ijk, 6))*indxm
       au(3,3)=(dxi*appu(ijke,6)+dxip1*appu(ijk,6))*indxp
 
-      av1(l,1)=(dyj*appv(ijks,1)+dyjm1*appv(ijk,1))*indym
+      av1(1,1)=(dyj*appv(ijks,1)+dyjm1*appv(ijk,1))*indym
       av(1,1)=(dyj*appv(ijkn,1)+dyjp1*appv(ijk,1))*indyp
       av1(1,2)=(dyj*appv(ijks, 2)+dyjm1*appv(ijk, 2))*indym
       av(2,1)=(dyj*appv(ijkn,2)+dyjp1*appv(ijk,2))*indyp
@@ -501,6 +500,7 @@
       au(1,1)=(dxi*appu(ijke,1)+dxip1*appu(ijk,1))*indxp
       av(1,1)=(dyj*appv(ijkn,1)+dyjp1*appv(ijk,1))*indyp
       aw(1,1)=(dzk*appw(ijkt,1)+dzkp1*appw(ijk,1))*indzp
+
       au(1,1)=au(1,1)+(dxi*rgp(ijke)+dxip1*rgp(ijk))*indxp
       av(1,1)=av(1,1)+(dyj*rgp(ijkn)+dyjp1*rgp(ijk))*indyp
       aw(1,1)=aw(1,1)+(dzk*rgp(ijkt)+dzkp1*rgp(ijk))*indzp

@@ -530,10 +530,7 @@
       TYPE(stencil) :: stncl
       REAL*8, INTENT(IN) :: array(:)
       INTEGER, INTENT(IN) :: ijk
-      INTEGER :: i,j,k,imesh
 !
-      imesh = myijk( ip0_jp0_kp0_, ijk)
-
       IF( job_type_flag == 2 ) THEN
 
         stncl%c  = array(ijk)
