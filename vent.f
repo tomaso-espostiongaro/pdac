@@ -47,7 +47,6 @@
       USE dimensions, ONLY: nx, ny, nz
       USE grid, ONLY: x, y, z, fl, xb, yb, zb, dz
       USE grid, ONLY: bottom, iv, jv, kv, grigen
-      USE grid, ONLY: center_x, center_y
       USE volcano_topography, ONLY: itp, iavv, ord2d
       USE volcano_topography, ONLY: nocrater, flatten_dem
       USE volcano_topography, ONLY: rim_quota
@@ -434,11 +433,6 @@
 !
       RETURN
       END SUBROUTINE read_radial_profile
-!-----------------------------------------------------------------------
-      SUBROUTINE write_radial_profile
-      IMPLICIT NONE
-      RETURN
-      END SUBROUTINE write_radial_profile
 !-----------------------------------------------------------------------
       SUBROUTINE correct_vent_density(ijk,k,alpha)
 !

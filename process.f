@@ -78,91 +78,61 @@
         READ (outpunit) stime
       END IF
 
-      IF( lform ) THEN
-        DO i=1,4; READ(outpunit,*); END DO
-      END IF
+      IF( lform ) READ(outpunit,'(///)')
       CALL read_array( outpunit, p, lform )  ! gas_pressure
 
       IF (job_type == '2D') THEN
 
-        IF( lform ) THEN
-          DO i=1,4; READ(outpunit,*); END DO
-        END IF
+        IF( lform ) READ(outpunit,'(///)')
         CALL read_array( outpunit, ug, lform ) ! gas_velocity_r
-        IF( lform ) THEN
-          DO i=1,4; READ(outpunit,*); END DO
-        END IF
+        IF( lform ) READ(outpunit,'(///)')
         CALL read_array( outpunit, wg, lform ) ! gas_velocity_z
 
       ELSE IF (job_type == '3D') THEN
 
-        IF( lform ) THEN
-          DO i=1,4; READ(outpunit,*); END DO
-        END IF
+        IF( lform ) READ(outpunit,'(///)')
         CALL read_array( outpunit, ug, lform ) ! gas_velocity_x
-        IF( lform ) THEN
-          DO i=1,4; READ(outpunit,*); END DO
-        END IF
+        IF( lform ) READ(outpunit,'(///)')
         CALL read_array( outpunit, vg, lform ) ! gas_velocity_y
-        IF( lform ) THEN
-          DO i=1,4; READ(outpunit,*); END DO
-        END IF
+        IF( lform ) READ(outpunit,'(///)')
         CALL read_array( outpunit, wg, lform ) ! gas_velocity_z
 
       ELSE
         CALL error('outp_','Unknown job type',1)
       END IF
 
-      IF( lform ) THEN
-        DO i=1,4; READ(outpunit,*); END DO
-      END IF
+      IF( lform ) READ(outpunit,'(///)')
       CALL read_array( outpunit, tg, lform )  ! gas_temperature
 
       DO ig=1,ngas
-        IF( lform ) THEN
-          DO i=1,4; READ(outpunit,*); END DO
-        END IF
+        IF( lform ) READ(outpunit,'(///)')
         CALL read_array( outpunit, xgc(:,ig), lform )  ! gc_molar_fraction
       END DO
 
       DO is = 1, nsolid
 
-        IF( lform ) THEN
-          DO i=1,4; READ(outpunit,*); END DO
-        END IF
+        IF( lform ) READ(outpunit,'(///)')
         CALL read_array( outpunit, eps(:,is), lform )  ! solid_bulk_density
 
         IF (job_type == '2D') THEN
 
-          IF( lform ) THEN
-            DO i=1,4; READ(outpunit,*); END DO
-          END IF
+        IF( lform ) READ(outpunit,'(///)')
           CALL read_array( outpunit, us(:,is), lform )  ! solid_velocity_r
-          IF( lform ) THEN
-            DO i=1,4; READ(outpunit,*); END DO
-          END IF
+        IF( lform ) READ(outpunit,'(///)')
           CALL read_array( outpunit, ws(:,is), lform )  ! solid_velocity_z
 
         ELSE IF (job_type == '3D') THEN
 
-          IF( lform ) THEN
-            DO i=1,4; READ(outpunit,*); END DO
-          END IF
+        IF( lform ) READ(outpunit,'(///)')
           CALL read_array( outpunit, us(:,is), lform )  ! solid_velocity_x
-          IF( lform ) THEN
-            DO i=1,4; READ(outpunit,*); END DO
-          END IF
+        IF( lform ) READ(outpunit,'(///)')
           CALL read_array( outpunit, vs(:,is), lform )  ! solid_velocity_y
-          IF( lform ) THEN
-            DO i=1,4; READ(outpunit,*); END DO
-          END IF
+        IF( lform ) READ(outpunit,'(///)')
           CALL read_array( outpunit, ws(:,is), lform )  ! solid_velocity_z
 
         END IF
 
-        IF( lform ) THEN
-          DO i=1,4; READ(outpunit,*); END DO
-        END IF
+        IF( lform ) READ(outpunit,'(///)')
         CALL read_array( outpunit, ts(:,is), lform )  ! solid_temperature
 
       END DO
@@ -221,11 +191,11 @@
 
         CALL write_array( checkunit, lepstot, lform )
 
-        i = 201
-        DO k = 1, 120
-          ijk = i + (k-1) * 600
-          WRITE(17,*) z(k), um(ijk), rm(ijk), tg(ijk)
-        END DO
+!        i = 40
+!        DO k = 1, 40
+!          ijk = i + (k-1) * 200
+!          WRITE(17,*) z(k), um(ijk), rm(ijk), tg(ijk)
+!        END DO
 
       END DO
 !

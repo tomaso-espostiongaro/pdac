@@ -19,7 +19,6 @@
       INTEGER :: optimization
 
       INTEGER :: b_e, b_w, b_t, b_b, b_n, b_s
-      !REAL*8  :: b_e, b_w, b_t, b_b, b_n, b_s
       REAL*8 :: ivf
 
       TYPE(stencil) :: u, v, w, dens         

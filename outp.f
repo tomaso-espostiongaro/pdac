@@ -205,6 +205,8 @@
       INTEGER :: n, is, ig, kq, k, nq
 
       DO k = 1, nz
+! ... Check
+        WRITE(*,*) zb(k), p(102 + (k-1)*nx)
         IF (zb(k) <= rim_quota) kq = k
       END DO
       
@@ -227,14 +229,14 @@
       CLOSE(tempunit)
 
       OPEN(tempunit,FILE='radial_profile_gas.dat')
-      DO n = 1, nx
+      DO n = 2, nx-1
         nq = n + (kq-1)*nx
         WRITE(tempunit,188) r(n), ug(nq), wg(nq), tg(nq), p(nq), (ygc(nq,ig), ig=1, ngas)
       END DO
       CLOSE(tempunit)
 
       OPEN(tempunit,FILE='radial_profile_part.dat')
-      DO n = 1, nx
+      DO n = 2, nx-1
         nq = n + (kq-1)*nx
         WRITE(tempunit,199) r(n), (us(nq,is), ws(nq,is), ts(nq,is), rlk(nq,is)*inrl(is), is=1,nsolid)
       END DO

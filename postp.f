@@ -16,7 +16,7 @@
 
 !
       IMPLICIT NONE
-      CHARACTER(LEN=8) :: inputfile, postfile, logfile, testfile, ppfile
+      CHARACTER(LEN=8) :: postfile, logfile, testfile, ppfile
 !
       INTEGER :: ig
 

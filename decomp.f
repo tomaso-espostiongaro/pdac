@@ -1259,9 +1259,6 @@
 
         DEALLOCATE( lay_map, nctot_lay, ncfl1_lay, nbl_lay )
 
-        ! CALL hangup()  ! debug
-        ! STOP           ! debug
-
       RETURN
       END SUBROUTINE blocks3d
 ! ---------------------------------------------------------------------

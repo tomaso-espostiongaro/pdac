@@ -47,6 +47,22 @@
       REAL*8 :: atm_Air
       REAL*8 :: atm_SO2
 !
+      REAL*8 :: troposphere_z
+      REAL*8 :: tropopause_z
+      REAL*8 :: lower_stratosphere_z
+      REAL*8 :: upper_stratosphere_z
+      REAL*8 :: ozone_layer_z
+      REAL*8 :: lower_mesosphere_z
+      REAL*8 :: upper_mesosphere_z
+!
+      REAL*8 :: troposphere_grad
+      REAL*8 :: tropopause_grad
+      REAL*8 :: lower_stratosphere_grad
+      REAL*8 :: upper_stratosphere_grad
+      REAL*8 :: ozone_layer_grad
+      REAL*8 :: lower_mesosphere_grad
+      REAL*8 :: upper_mesosphere_grad
+!
       REAL*8 :: vent_O2
       REAL*8 :: vent_N2
       REAL*8 :: vent_CO2
@@ -140,7 +156,11 @@
 
       NAMELIST / atmosphere / wind_x, wind_y, wind_z, p_ground, t_ground, &
         void_fraction, max_packing, atm_O2, atm_N2, atm_CO2, atm_H2, atm_H2O, &
-        atm_Air, atm_SO2
+        atm_Air, atm_SO2, troposphere_grad, tropopause_grad, &
+        lower_stratosphere_grad, upper_stratosphere_grad, ozone_layer_grad, &
+        lower_mesosphere_grad, upper_mesosphere_grad, troposphere_z, &
+        tropopause_z lower_stratosphere_z, upper_stratosphere_z, &
+        ozone_layer_z, lower_mesosphere_z, upper_mesosphere_z
 
       NAMELIST / particles / nsolid, diameter, density, sphericity, &
         viscosity, specific_heat, thermal_conductivity
@@ -228,12 +248,12 @@
 
 ! ... Boundaries
 
-      west = 6                !
-      east = 6                !
+      west = 2                !
+      east = 2                !
       bottom = 3              ! boundary types
-      top = 6                 !
-      south = 6               !
-      north = 6               !
+      top = 4                 !
+      south = 2               !
+      north = 2               !
       immb  = 0               ! 1: use immersed boundaries
       deltaz = 20.D0             ! distance from the ground to plot maps
       ibl  = 0                ! 1: compute drag and lift on blocks
@@ -296,6 +316,20 @@
       atm_H2O = 0.D0
       atm_Air = 1.D0
       atm_SO2 = 0.D0
+      troposphere_z = 1.1D4    ! top level of atmospheric layers
+      tropopause_z = 2.0D4 
+      lower_stratosphere_z = 3.2D4
+      upper_stratosphere_z = 4.7D4
+      ozone_layer_z = 5.1D4
+      lower_mesosphere_z = 7.1D4
+      upper_mesosphere_z = 8.0D4
+      troposphere_grad = -6.5D-3  ! temperature gradients in atmosph. layers
+      tropopause_grad = 0.D0
+      lower_stratosphere_grad = 1.D-3
+      upper_stratosphere_grad = 2.8D-3
+      ozone_layer_grad = 0.D0
+      lower_mesosphere_grad = -2.8D-3 
+      upper_mesosphere_grad = -2.0D-3 
 
 ! ... Particles
  
@@ -505,6 +539,20 @@
       CALL bcast_real(atm_H2O,1,root)
       CALL bcast_real(atm_Air,1,root)
       CALL bcast_real(atm_SO2,1,root)
+      CALL bcast_real(troposphere_z,1,root)
+      CALL bcast_real(tropopause_z,1,root)
+      CALL bcast_real(lower_stratosphere_z,1,root)
+      CALL bcast_real(upper_stratosphere_z,1,root)
+      CALL bcast_real(ozone_layer_z,1,root)
+      CALL bcast_real(lower_mesosphere_z,1,root)
+      CALL bcast_real(upper_mesosphere_z,1,root)
+      CALL bcast_real(troposphere_grad,1,root)
+      CALL bcast_real(tropopause_grad,1,root)
+      CALL bcast_real(lower_stratosphere_grad,1,root)
+      CALL bcast_real(upper_stratosphere_grad,1,root)
+      CALL bcast_real(ozone_layer_grad,1,root)
+      CALL bcast_real(lower_mesosphere_grad,1,root)
+      CALL bcast_real(upper_mesosphere_grad,1,root)
 !
 ! ... Particles Namelist ..............................................
 !
@@ -865,6 +913,20 @@
             CALL iotk_write_dat( iuni_nml, "atm_H2O", atm_H2O )
             CALL iotk_write_dat( iuni_nml, "atm_Air", atm_Air )
             CALL iotk_write_dat( iuni_nml, "atm_SO2", atm_SO2 )
+            CALL iotk_write_dat( iuni_nml, "troposphere_z",troposphere_z)
+            CALL iotk_write_dat( iuni_nml, "tropopause_z",tropopause_z)
+            CALL iotk_write_dat( iuni_nml, "lower_stratosphere_z",lower_stratosphere_z)
+            CALL iotk_write_dat( iuni_nml, "upper_stratosphere_z",upper_stratosphere_z)
+            CALL iotk_write_dat( iuni_nml, "ozone_layer_z",ozone_layer_z)
+            CALL iotk_write_dat( iuni_nml, "lower_mesosphere_z",lower_mesosphere_z)
+            CALL iotk_write_dat( iuni_nml, "upper_mesosphere_z",upper_mesosphere_z)
+            CALL iotk_write_dat( iuni_nml, "troposphere_grad",troposphere_grad)
+            CALL iotk_write_dat( iuni_nml, "tropopause_grad",tropopause_grad)
+            CALL iotk_write_dat( iuni_nml, "lower_stratosphere_grad",lower_stratosphere_grad)
+            CALL iotk_write_dat( iuni_nml, "upper_stratosphere_grad",upper_stratosphere_grad)
+            CALL iotk_write_dat( iuni_nml, "ozone_layer_grad",ozone_layer_grad)
+            CALL iotk_write_dat( iuni_nml, "lower_mesosphere_grad",lower_mesosphere_grad)
+            CALL iotk_write_dat( iuni_nml, "upper_mesosphere_grad",upper_mesosphere_grad)
           CALL iotk_write_end( iuni_nml, "atmosphere" )
 
           CALL iotk_write_begin( iuni_nml, "particles" )
@@ -947,7 +1009,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE initc
 
-      USE atmospheric_conditions, ONLY: atm_ygc
+      USE atmospheric_conditions, ONLY: atm_ygc, layer
       USE control_flags, ONLY: job_type
       USE dimensions
       USE flux_limiters, ONLY: lv, lm
@@ -1022,7 +1084,7 @@
         ygcob(1:max_ngas,1:no) = fixed_gasconc(1:max_ngas,1:no)
       END IF
 !
-! ... Atmospheric composition
+! ... Atmospheric composition 
 !
       atm_ygc(1) = atm_O2
       atm_ygc(2) = atm_N2
@@ -1031,6 +1093,36 @@
       atm_ygc(5) = atm_H2O
       atm_ygc(6) = atm_Air
       atm_ygc(7) = atm_SO2
+!
+! ... Initialize atmospheric layers
+!
+      layer(1)%name = 'Troposphere'   
+      layer(2)%name = 'Tropopause'    
+      layer(3)%name = 'Lower_Stratosphere' 
+      layer(4)%name = 'Upper_Stratosphere' 
+      layer(5)%name = 'Ozone_layer'   
+      layer(6)%name = 'Lower_Mesosphere'   
+      layer(7)%name = 'Upper_Mesosphere'   
+!
+! ... Top of the layer (height a.s.l.)
+!
+      layer(1)%ztop = troposphere_z
+      layer(2)%ztop = tropopause_z
+      layer(3)%ztop = lower_stratosphere_z
+      layer(4)%ztop = upper_stratosphere_z
+      layer(5)%ztop = ozone_layer_z
+      layer(6)%ztop = lower_mesosphere_z
+      layer(7)%ztop = upper_mesosphere_z
+!
+! ... Temperature gradient (T is assumed to vary linearly)
+!
+      layer(1)%gradt = troposphere_grad
+      layer(2)%gradt = tropopause_grad
+      layer(3)%gradt = lower_stratosphere_grad
+      layer(4)%gradt = upper_stratosphere_grad
+      layer(5)%gradt = ozone_layer_grad
+      layer(6)%gradt = lower_mesosphere_grad
+      layer(7)%gradt = upper_mesosphere_grad
 !
 ! ... Gas components at vent
 !

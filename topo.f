@@ -536,11 +536,11 @@
       USE grid, ONLY: x, xb, y, yb, z, zb, iv, jv, kv
 
       IMPLICIT NONE
+      REAL*8 :: transl_z = 0.D0
       INTEGER :: i,j,k,ijk
       LOGICAL, ALLOCATABLE :: dummy(:)
       REAL*8, ALLOCATABLE  :: topo(:)
       REAL*8, ALLOCATABLE  :: topo2d(:,:)
-      REAL*8 :: transl_z = 0.D0
 !
       ALLOCATE (dummy(ntot))
 !
@@ -564,7 +564,8 @@
         ! ... Translate vertically the mesh to minimize the
         ! ... number of topographic cells
         !
-        transl_z = MINVAL(topo) 
+        transl_z = MINVAL(topo) - zb(1)
+
         IF( mpime == root ) THEN
           WRITE(logunit,*) 'Translating mesh vertically'
           WRITE(logunit,*) 'Minimum topographic quota: ', transl_z
@@ -601,7 +602,8 @@
         ! ... Translate vertically the numerical mesh to minimize the
         ! ... number of topographic cells
         !
-        transl_z = MINVAL(topo2d)
+        transl_z = MINVAL(topo2d) - zb(1)
+
         IF( mpime == root ) THEN
           WRITE(logunit,*) 'Translating mesh vertically'
           WRITE(logunit,*) 'Minimum topographic quota: ', transl_z

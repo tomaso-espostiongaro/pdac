@@ -42,7 +42,7 @@
       INTEGER :: nprint, ndump
       INTEGER :: info
       INTEGER :: is
-      INTEGER :: ijk
+      INTEGER :: ijk,i
       INTEGER :: ig, rk, n
       INTEGER :: myrank
       REAL*8 :: dt0
@@ -308,6 +308,7 @@
           IF (imap > 0 .AND. itp >= 1) CALL outp_map(array)
           CALL outp
         ENDIF
+        CALL write_radial_profile_2d
 !
         IF( timing ) then
           s11 = cpclock()

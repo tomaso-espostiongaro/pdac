@@ -444,11 +444,173 @@ occupied by the topography.}
 
 \item
 \PDACCONFWDEF{base\_radius}{The radius of the base of the crater}{any real > 0.0}{200}
+{This value must be equal, at least, to the double of the vent radius.}
+
+\item
+\PDACCONFWDEF{crater\_radius}{The external radius of the crater}{any real}{500}
+{This value is approximative, and it is used to flatten the crater, if prescribed.}
+
+\item
+\PDACCONFWDEF{u\_gas}{Inlet gas velocity x}{any real}{0.0}
 {}
 
 \item
-\PDACCONFWDEF{}{}{}{}{}
+\PDACCONFWDEF{v\_gas}{Inlet gas velocity y}{any real}{0.0}
+{}
 
+\item
+\PDACCONFWDEF{w\_gas}{Inlet (averaged) gas velocity z}{any real}{0.0}
+{}
+
+\item
+\PDACCONFWDEF{wrat}{Ratio between the maximum and the averaged vertical gas veloctiy}{any real > 1.0}{1.0}
+{If this value is > 1.0, the velocity has a maximum on the axis and falls to zero at the vent rim. The average is constant.}
+
+\item
+\PDACCONFWDEF{p\_gas}{Pressure at the vent}{any real}{101325.0}
+{}
+
+\item
+\PDACCONFWDEF{t\_gas}{Temperature at the vent}{any real > 0.0}{288.15}{}
+
+\item
+\PDACCONFWDEF{u\_solid}{Inlet particle velocity x}{any real}{0.0}
+{The values for different particle classes must be separated by commas.}
+
+\item
+\PDACCONFWDEF{v\_solid}{Inlet particle velocity y}{any real}{0.0}
+{The values for different particle classes must be separated by commas.}
+
+\item
+\PDACCONFWDEF{w\_solid}{Inlet particle velocity z}{any real}{0.0}
+{The values for different particle classes must be separated by commas.}
+
+\item
+\PDACCONFWDEF{ep\_solid}{Averaged particle fraction}{any real > 0.0}{0.0}
+{The values for different particle classes must be separated by commas.}
+
+\item
+\PDACCONFWDEF{t\_solid}{Particle temperature}{any real > 0.0}{288.15}
+{The values for different particle classes must be separated by commas.}
+
+\item
+\PDACCONFWDEF{vent\_O2}{Averaged concentration of O2 at the vent}{any real [0.0:1.0]}{}{}
+
+\item
+\PDACCONFWDEF{vent\_N2}{Averaged concentration of N2 at the vent}{any real [0.0:1.0]}{0.0}{}
+
+\item
+\PDACCONFWDEF{vent\_CO2}{Averaged concentration of CO2 at the vent}{any real [0.0:1.0]}{0.0}{}
+
+\item
+\PDACCONFWDEF{vent\_H2}{Averaged concentration of H2 at the vent}{any real [0.0:1.0]}{0.0}{}
+
+\item
+\PDACCONFWDEF{vent\_H2O}{Averaged concentration of H2O at the vent}{any real [0.0:1.0]}{1.0}{}
+
+\item
+\PDACCONFWDEF{vent\_Air}{Averaged concentration of Air at the vent}{any real [0.0:1.0]}{0.0}{}
+
+\item
+\PDACCONFWDEF{vent\_SO2}{Averaged concentration of SO2 at the vent}{any real [0.0:1.0]}{0.0}{}
+\end{itemize}
+
+\subsubsection{\OBJ{Atmosphere} namelist}
+This namelist contains the parameters to build a stratified atmosphere from
+the ground pressure and temperature. For seven atmospheric layers (troposphere,
+tropopause, lower\_stratosphere, upper\_stratosphere, ozone\_layer, lower\_mesosphere and upper\_mesosphere) the distance of the top level from the ground and the temperature gradient must be given. Gas concentrations are constant. A constant wind velocity can also be specified.
+
+\begin{itemize}
+\item
+\PDACCONFWDEF{wind\_x}{Component x of wind velocity}{any real}{0.0}
+{}
+
+\item
+\PDACCONFWDEF{wind\_y}{Component y of wind velocity}{any real}{0.0}
+{}
+\item
+\PDACCONFWDEF{wind\_z}{Component z of wind velocity}{any real}{0.0}
+{}
+\item
+\PDACCONFWDEF{p\_ground}{Pressure at sea level}{any real}{101325.0}
+{If stratification is switched off (gravity equals zero), this corresponds to the ambient pressure}
+
+\item
+\PDACCONFWDEF{t\_ground}{Temperature at sea level}{any real > 0.0}{288.15}
+{If stratification is switched off (gravity equals zero), this corresponds to the ambient temperature}
+
+\item
+\PDACCONFWDEF{void\_fraction}{Gas volume fraction in the atmosphere}{any real [0.0:1.0]}{1.0}{}
+
+\item
+\PDACCONFWDEF{max\_packing}{Maximum packing particle fraction}{any real [0.0:1.0]}{0.6413}{}
+
+\item
+\PDACCONFWDEF{atm\_O2}{Concentration of oxigen in the atmosphere}{any real [0.0:1.0]}{0.0}{}
+
+\item
+\PDACCONFWDEF{atm\_N2}{Concentration of nitrogen in the atmosphere}{any real [0.0:1.0]}{0.0}{}
+
+\item
+\PDACCONFWDEF{atm\_CO2}{Concentration of carbon dioxide in the atmosphere}{any real [0.0:1.0]}{0.0}{}
+
+\item
+\PDACCONFWDEF{atm\_H2}{Concentration of hydrogen in the atmosphere}{any real [0.0:1.0]}{0.0}{}
+
+\item
+\PDACCONFWDEF{atm\_H2O}{Concentration of water vapour in the atmosphere}{any real [0.0:1.0]}{0.0}{}
+
+\item
+\PDACCONFWDEF{atm\_Air}{Concentration of air in the atmosphere}{any real [0.0:1.0]}{1.0}
+{The mass fraction (concentration) of each of the seven gas species must be
+specified. The closure relation for the total mass fraction must be satisfied.
+If this constrain is not satisfied, the Air mass fraction is
+automatically corrected.}
+
+\item
+\PDACCONFWDEF{atm\_SO2}{Concentration of sulphur dioxide in the atmosphere}{any real [0.0:1.0]}{0.0}{}
+
+\item
+\PDACCONFWDEF{troposphere\_z}{Upper limit of the troposphere}{}{11000 m}{}
+
+\item
+\PDACCONFWDEF{troposphere\_grad}{Temperature gradient in the troposphere}{}{-6.5D-3}{}
+
+\item
+\PDACCONFWDEF{tropopause\_z}{Upper limit of the tropopause}{}{20000 m}{}
+
+\item
+\PDACCONFWDEF{tropopause\_grad}{Temperature gradient in the tropopause}{}{0.0}{}
+
+\item
+\PDACCONFWDEF{lower\_stratosphere\_z}{Upper limit of the lower stratosphere}{}{32000 m}{}
+
+\item
+\PDACCONFWDEF{lower\_stratosphere\_grad}{Temperature gradient in the loser stratosphere}{}{1.D-3}{}
+
+\item
+\PDACCONFWDEF{upper\_stratosphere\_z}{Upper limit of the upper stratosphere}{}{47000 m}{}
+
+\item
+\PDACCONFWDEF{upper\_stratosphere\_grad}{Temperature gradient in the upper stratosphere}{}{1.0D-3}{}
+
+\item
+\PDACCONFWDEF{ozone\_layer\_z}{Upper limit of the ozone layer}{}{51000 m}{}
+
+\item
+\PDACCONFWDEF{ozone\_layer\_grad}{Temperature gradient in the ozone layer}{}{0.0}{}
+
+\item
+\PDACCONFWDEF{lower\_mesosphere\_z}{Upper limit of the lower mesosphere}{}{71000 m}{}
+
+\item
+\PDACCONFWDEF{lower\_mesosphere\_grad}{Temperature gradient in the lower mesosphere}{}{-2.8D-3}{}
+
+\item
+\PDACCONFWDEF{upper\_mesosphere\_z}{Upper limit of the upper mesosphere}{}{80000 m}{}
+
+\item
+\PDACCONFWDEF{upper\_mesosphere\_grad}{Temperature gradient in the upper mesosphere}{}{-2.0D-3}{}
 \end{itemize}
 
 \subsubsection{\OBJ{particles} namelist}
@@ -522,11 +684,16 @@ scheme to high-orders by reconstructing the flux profile more accurately.
 0 - uses first-order upwind; 1 - uses MUSCL technique.}
 
 \item
-\PDACCONFWDEF{lim\_type}{limiter type}{0,1,2,3,4}{0}
+\PDACCONFWDEF{mass\_limiter}{limiter type for mass equations}{0,1,2,3,4}{0}
 {Select the type of MUSCL reconstruction and the limiter:\\
 0 - beta scheme unlimited; 1 - Van Leer limiter; 2 - Minmod limiter;
 3 - Superbee limiter; 4 - beta limited.}
 
+\item
+\PDACCONFWDEF{vel\_limiter}{limiter type for momentum equations}{0,1,2,3,4}{0}
+{Select the type of MUSCL reconstruction and the limiter:\\
+0 - beta scheme unlimited; 1 - Van Leer limiter; 2 - Minmod limiter;
+3 - Superbee limiter; 4 - beta limited.}
 \item
 \PDACCONFWDEF{inmax}{maximum number of inner iterations}{integer (small)}{8}
 {The exact value does not affect strongly the convergence but can slow down
@@ -540,6 +707,10 @@ the simulation. Optimal value is set by default.}
 \PDACCONFWDEF{omega}{over/under-relaxation parameter}{0.0 to 2.0}{1.0}
 {Values between 0.0 and 1.0 under-relax the iterative procedure, whereas
 values above 1.0 overrelax.}
+
+\item
+\PDACCONFWDEF{optimization}{optimization degree}{1/2/3}{1}
+{Level 1: not optimized. Level 2: Optimized memory access. Level 3: Optimized for 3D and 2 particle classes.}
 
 \item
 \PDACCONFWDEF{implicit\_fluxes}{flag for implicit computation of fluxes}{{\tt T/F}}{F}
@@ -556,6 +727,11 @@ between the momentum and enthalpy equations. Nevertheless the convective part
 of the enthalpy equations can be left out from the iterative solver
 by opportunely selecting the flag \OBJ{implicit\_fluxes}. The performance loss
 in any case is significant.}
+
+\item
+\PDACCONFWDEF{update\_eosg}{Update the equation of state}{{\tt T/F}}{T}
+{Updating the equation of state after convergence is consistent with the old
+version of PDAC but gives wrong solutions in test case (e.g. 1D and 2D shock waves)}
 \end{itemize}
 
 \subsection{\PDAC\ input cards}
@@ -715,77 +891,3 @@ automatically corrected.}
 
 \end{itemize}
 
-\subsubsection{\OBJ{'INITIAL\_CONDITIONS'} card}
-
-The \OBJ{'INITIAL\_CONDITIONS'} card specifies the ambient conditions at 
-the beginning of the simulation in all the computational cells of
-type 1 (fluid cells).
-
-First line:
-
-\begin{itemize}
-\item
-\PDACCONF{initial\_vgas\_x}{gas velocity component along x}{real}
-{Initial gas velocity along x(r)-direction. Can be used for cross-winds. 
-Please note that the CFL condition (see above for \OBJ{dt}) 
-must be satisfied for every component.}
-
-\item
-\PDACCONF{initial\_vgas\_y}{gas velocity component along y}{real}
-{Inlet gas velocity along y-direction (not present in 2D!).}
-
-\item
-\PDACCONF{initial\_vgas\_z}{gas velocity component along z}{real}
-{Inlet gas velocity along z-direction.}
-
-\item
-\PDACCONF{initial\_pressure}{pressure at inlet}{real}
-{This corresponds to the thermodynamic ambient pressure (if gravity is switched off) 
-or the pressure at the ground (if atmosphere is stratified, values different from 1 atmosphere
-lead to a WARNING message).}
-
-\item
-\PDACCONF{initial\_void\_fraction}{atmospheric gas volumetric fraction}
-{ $\le 1.0$}
-{Solid phases volumetric fractions are computed to satisfy the closure relation}
-
-\item
-\PDACCONF{initial\_temperature}{inlet gas temperature}{ a positive real }
-{This corresponds to the ambient temperature (if gravity is switched off) 
-or the temperature at the ground (if atmosphere is stratified, values different from 288.15K
-lead to a WARNING message).
-No constraint is imposed on gas temperature, but the range of validity
-of the equation of state must be check. Particles are supposed to be in thermal
-equilibrium with gas.}
-\end{itemize}
-
-Further {\tt nsolid} lines:
-\begin{itemize}
-\item
-\PDACCONF{initial\_vpart\_x}{particle velocity along x}{real}
-{Initial particle velocity along x(r)-direction.
-Note that CFL condition (see above for \OBJ{dt}) 
-must be satisfied for every component.}
-
-\item
-\PDACCONF{initial\_vpart\_y}{particle velocity along y}{real}
-{Initial particle velocity along y-direction (not present in 2D!).}
-
-\item
-\PDACCONF{initial\_vpart\_z}{particle velocity along z}{real}
-{Initial particle velocity along z-direction.}
-
-\end{itemize}
-
-Last line:
-
-\begin{itemize}
-
-\item
-\PDACCONF{initial\_gasconc(1:7)}{concentration of each gas species in atmosphere}{$\le 1.0$}
-{The mass fraction (concentration) of each of the seven gas species must be
-specified. The closure relation for the total mass fraction must be satisfied.
-If this constrain is not satisfied, the {\tt default\_gas} mass fraction is
-automatically corrected.}
-
-\end{itemize}

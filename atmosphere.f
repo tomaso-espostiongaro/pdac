@@ -61,15 +61,6 @@
         WRITE(logunit,*) 'Gravity: ', gravz
       END IF
 !
-      IF (stratification) THEN
-        IF( mpime == root ) THEN
-          IF (t_ground /= 288.15D0) WRITE(errorunit,*) 'WARNING! control atmospheric &
-                                          & temperature profile'
-          IF (p_ground /= 1.01325D5) WRITE(errorunit,*)'WARNING! control atmospheric &
-                                          & pressure profile'
-        END IF
-      END IF	
-!
       END SUBROUTINE control_atmosphere
 !------------------------------------------------------------------------
       SUBROUTINE set_atmosphere
@@ -77,7 +68,7 @@
 ! ... This routine computes atmospheric stratification accordingly with
 ! ... the description of a standard, quiet atmosphere
 ! ... For each atmospheric region, the upper limit (in metres) and the
-! ... Temperature gradient must be set.
+! ... Temperature gradient is set from input.
 !
       USE control_flags, ONLY: lpr
       USE dimensions, ONLY: nz
@@ -91,36 +82,6 @@
       REAL*8 :: gradt
 
       INTEGER :: l
-!
-! ... Initialize atmospheric layers
-!
-      layer(1)%name = 'Troposphere'   
-      layer(2)%name = 'Tropopause'    
-      layer(3)%name = 'Lower_Stratosphere' 
-      layer(4)%name = 'Upper_Stratosphere' 
-      layer(5)%name = 'Ozone_layer'   
-      layer(6)%name = 'Lower_Mesosphere'   
-      layer(7)%name = 'Upper_Mesosphere'   
-!
-! ... Top of the layer (height a.s.l.)
-!
-      layer(1)%ztop = 1.1D4
-      layer(2)%ztop = 2.0D4
-      layer(3)%ztop = 3.2D4
-      layer(4)%ztop = 4.7D4
-      layer(5)%ztop = 5.1D4
-      layer(6)%ztop = 7.1D4
-      layer(7)%ztop = 8.0D4
-!
-! ... Temperature gradient (T is assumed to vary linearly)
-!
-      layer(1)%gradt = -6.5D-3
-      layer(2)%gradt = 0.D0
-      layer(3)%gradt = 1.D-3
-      layer(4)%gradt = 2.8D-3
-      layer(5)%gradt = 0.D0
-      layer(6)%gradt = -2.8D-3
-      layer(7)%gradt = -2.0D-3
 !
       ALLOCATE(p_atm(nz), t_atm(nz))
 !
@@ -236,7 +197,7 @@
 !
         t_atm(k) = ta
         p_atm(k) = pa
-        
+
       END DO
 !
       RETURN

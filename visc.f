@@ -230,10 +230,6 @@
         END IF 
       END DO
       DEALLOCATE( rlkinrl )
-
-!      CALL hangup
-!      STOP 'qui'
-
 !
 ! ... Repulsive model (Gidaspow and Ettehadieh, 1983)
 !

@@ -86,13 +86,18 @@
 
       ! ... 'x2' is a uniform subsample of 'x1'
       ! ... 'f2' is an average of 'f1' at 'x2' locations 
+      ! ... dcx(1/2) and dcy(1/2) are the extrema of the interval 
+      ! ... taken for the average
+      ! ... dmx and dmy are dummies!
+      !
       ALLOCATE( x2(nsmx), y2(nsmy), f2(nsmx,nsmy) )
-      ALLOCATE( dmx(counterx), dmy(countery)  )
-      ALLOCATE( dcx(counterx,2), dcy(countery,2)  )
+      ALLOCATE( dmx(counterx), dmy(counterx)  )
+      ALLOCATE( dcx(nsmx,2), dcy(nsmy,2)  )
 
       x2 = 0.D0; y2 = 0.D0; f2 = 0.D0
       dcx(:,1) = counterx; dcy(:,1) = countery 
       dcx(:,2) = 0; dcy(:,2) = 0
+
       ! ... Uniformly Subsample and smooth the x-y function 
       ! ... of the quota
       !
@@ -191,24 +196,17 @@
 ! ... locate the grid points near the topographic points
 ! ... and interpolate linearly the profile  
 !
+      t = 1
       DO n = 1, n1x
-          IF (x1(n) >= x2) THEN
+          IF (x1(n) <= x2) t = n
+      END DO
 
-            ! ... t indicates the progressive number of the
-            ! ... topographic point laying on the right of a grid center 'i'
-            ! ... 'l' counts the grid points
-            !
-            t = n
- 
-            IF (n == 1) THEN
-              f2 = f1(1)
-            ELSE
-              grad = (f1(n)-f1(n-1))/(x1(n)-x1(n-1))
-              f2 = f1(n-1) + (x2-x1(n-1)) * grad
-            END IF
-
-          ENDIF
-      ENDDO
+      IF (t==1 .OR. t==n1x) THEN
+        f2 = f1(t)
+      ELSE
+        grad = (f1(t+1)-f1(t))/(x1(t+1)-x1(t))
+        f2 = f1(t) + (x2-x1(t)) * grad
+      END IF
 !
       RETURN
       END SUBROUTINE interp_1d_scalar
