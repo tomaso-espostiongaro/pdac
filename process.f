@@ -171,10 +171,11 @@
 !-----------------------------------------------------------------------
       SUBROUTINE process
       USE derived_fields
+      USE grid, ONLY: z
 
       IMPLICIT NONE
 !
-      INTEGER :: tn, ijk
+      INTEGER :: tn, ijk, i, k
       LOGICAL :: lform
       REAL, ALLOCATABLE, DIMENSION(:) :: rm, rg, bd, m, um, wm, mvm, c, mc 
       REAL, ALLOCATABLE, DIMENSION(:) :: epstot, lepstot
@@ -215,6 +216,12 @@
         mc = mach(mvm,c)
 
         CALL write_array( 13, lepstot, lform )
+
+        i = 201
+        DO k = 1, 120
+          ijk = i + (k-1) * 600
+          WRITE(17,*) z(k), um(ijk), rm(ijk), tg(ijk)
+        END DO
 
       END DO
 !

@@ -34,6 +34,7 @@
 ! ... cell flags onto the neighbours of the inlet
 !
       SUBROUTINE locate_vent
+
       USE control_flags, ONLY: job_type, lpr
       USE dimensions, ONLY: nx, ny, nz
       USE grid, ONLY: x, y, z, fl, xb, yb, zb, dz
@@ -103,17 +104,28 @@
 !      
       DO j = 1, vdem%ny
         DO i = 1, vdem%nx
-          IF( (xtop(i)-xvent)**2 + (ytop(j)-yvent)**2 <= base_radius**2 ) THEN
+          IF( (xtop(i)-xvent)**2 + (ytop(j)-yvent)**2 < base_radius**2 ) THEN
             ztop2d(i,j) = zb(quota)
           END IF
         END DO
       END DO
 !
+! ... Write out the new DEM file
+!      OPEN(17,FILE='newdem.dat')
+!      WRITE(17,*) vdem%nx
+!      WRITE(17,*) vdem%ny
+!      WRITE(17,*) vdem%xcorner
+!      WRITE(17,*) vdem%ycorner
+!      WRITE(17,*) vdem%cellsize
+!      WRITE(17,*) vdem%nodata_value
+!      WRITE(17,*) NINT(ztop2d*100.D0)
+!      CLOSE(17)
+!
 ! ... Re-set the cell flags at the base of the crater and the 'dist' array
 !
       DO j = 1, ny
         DO i = 1, nx
-          IF ( (x(i)-xvent)**2 + (y(j)-yvent)**2 <= base_radius**2 ) THEN
+          IF ( (x(i)-xvent)**2 + (y(j)-yvent)**2 < base_radius**2 ) THEN
             !
             DO k=1, quota
               ijk = (k-1) * nx * ny + (j-1) * nx + i

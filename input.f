@@ -102,7 +102,7 @@
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut, tau
       USE turbulence_model, ONLY: iturb, cmut, iss, modturbo
-      USE volcano_topography, ONLY: itp, iavv
+      USE volcano_topography, ONLY: itp, iavv, cellsize
 !
       IMPLICIT NONE
  
@@ -124,7 +124,7 @@
         domain_x, domain_y, domain_z, maxbeta, grigen, mesh_partition
 
       NAMELIST / boundaries / west, east, south, north, bottom, top, &
-        itp, iavv,  topography, immb, ibl, deltaz, imap
+        itp, iavv, cellsize, topography, immb, ibl, deltaz, imap
       
       NAMELIST / inlet / ivent, iali, irand, wrat, &
         xvent, yvent, radius, base_radius, u_gas, v_gas, w_gas,  &
@@ -229,6 +229,7 @@
       north = 6               !
       itp   = 0               ! itp = 1 => read topography from file
       iavv   = 0              ! iavv = 1 => average volcano topography
+      cellsize  = 10          ! resolution of the resized dem
       topography = 'topo.dat' ! file containing the topographic profile
       immb  = 0               ! 1: use immersed boundaries
       imap  = 0               ! 1: map output
@@ -426,6 +427,7 @@
       CALL bcast_integer(immb,1,root)
       CALL bcast_integer(imap,1,root)
       CALL bcast_real(deltaz,1,root)
+      CALL bcast_real(cellsize,1,root)
       CALL bcast_integer(ibl,1,root)
 !
 ! ... Inlet Namelist ................................................
@@ -772,6 +774,7 @@
             CALL iotk_write_dat( iuni_nml, "bottom", bottom )
             CALL iotk_write_dat( iuni_nml, "itp", itp )
             CALL iotk_write_dat( iuni_nml, "iavv", iavv )
+            CALL iotk_write_dat( iuni_nml, "cellsize", cellsize )
             CALL iotk_write_begin( iuni_nml, "topography" )
               WRITE( iuni_nml, * ) topography
             CALL iotk_write_end( iuni_nml, "topography" )

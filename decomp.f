@@ -1625,7 +1625,7 @@
         END DO
       END IF  
 
-      IF (lpr > 2) CALL test_comm
+      IF (lpr > 2 .AND. job_type == '2D') CALL test_comm
 !
 ! ... local flags, local arrays for forcing
 !
@@ -2863,10 +2863,8 @@
 
         CALL data_exchange(itest)
          
-        IF (lpr > 1) THEN
-          WRITE(7,*)   ' index received ' 
-          WRITE(7,310) itest( ncint + 1 : ncdom ) 
-        END IF
+        WRITE(7,*)   ' index received ' 
+        WRITE(7,310) itest( ncint + 1 : ncdom ) 
 
  310    FORMAT(10i8)
         
@@ -3036,7 +3034,6 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
         CALL data_exchange(numz)
 
         CALL fill_cells_int
-        !CALL fill_cells_real
 
       RETURN
       END SUBROUTINE local_forcing

@@ -4,7 +4,7 @@
       USE dimensions, ONLY: nx, ny, nz, ntot, ntr
       USE grid, ONLY: fl
       USE parallel, ONLY: mpime, root
-      USE volcano_topography, ONLY: xtop, ytop, ztop, ztop2d
+      USE volcano_topography, ONLY: xtop, ytop, ztop
 
       IMPLICIT NONE
 !
@@ -66,9 +66,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE set_forcing
       USE control_flags, ONLY: job_type, lpr
-      USE volcano_topography, ONLY: interpolate_2d, interpolate_dem
-      USE volcano_topography, ONLY: ord, next
-      USE volcano_topography, ONLY: ord2d, nextx, nexty
+      USE volcano_topography, ONLY: interpolate_profile, interpolate_dem
       USE grid, ONLY: x, xb, y, yb, z, zb
       USE parallel, ONLY: mpime, root
 
@@ -112,8 +110,8 @@
 
         ! ... interpolate the topography on z/x-staggered mesh
         !
-        CALL interpolate_2d(xb, z, topo_x, forcex)
-        CALL interpolate_2d(x, zb, topo_c, forcez)
+        CALL interpolate_profile(xb, z, topo_x, forcex)
+        CALL interpolate_profile(x, zb, topo_c, forcez)
 
         ! ... When all velocity components on the cell faces are
         ! ... forced except one, that component is forced externally
@@ -155,7 +153,7 @@
 
         ! ... Interpolate the topography on x-staggered mesh
         !
-        CALL interpolate_2d(xb, z, topo_x, forcex)
+        CALL interpolate_profile(xb, z, topo_x, forcex)
 
         ! ... External Forcing along x 
         !
@@ -184,7 +182,7 @@
 
         ! ... Interpolate the topography on z-staggered mesh
         !
-        CALL interpolate_2d(x, zb, topo_c, forcez)
+        CALL interpolate_profile(x, zb, topo_c, forcez)
 
         ! ... External Forcing along z
         !
@@ -627,13 +625,13 @@
         dxs = xtop(n) - cx(i)
         dzs = ztop(n) - cz(ord(i))
 
-	s = sol2( norm(1), dxt, norm(2), dzt, dxs, dzs, err )
+        s = sol2( norm(1), dxt, norm(2), dzt, dxs, dzs, err )
         IF (err > 0) THEN
           WRITE(8,*) 'WARNING! from proc: ', mpime
           WRITE(8,*) 'Error in fp: ', fp
         END IF
 
-        IF ((s >= 0).AND.(s <= 1))	THEN
+        IF ((s >= 0).AND.(s <= 1)) THEN
           fpt(fp)%nsl%x = s*xtop(n-1) + (1-s)*xtop(n)
           fpt(fp)%nsl%z = s*ztop(n-1) + (1-s)*ztop(n)
         ENDIF
@@ -655,10 +653,10 @@
         DO n=next(i),next(i+1)
           IF ((ztop(n-1) >= cz(k)).AND.(ztop(n) <= cz(k))) THEN
             grad = (xtop(n)-xtop(n-1))/(ztop(n)-ztop(n-1))
-	    fpt(fp)%nsl%x = xtop(n-1) + (cz(k)-ztop(n-1)) * grad
-	    fpt(fp)%nsl%z = cz(k)
-	  ENDIF
-	ENDDO
+            fpt(fp)%nsl%x = xtop(n-1) + (cz(k)-ztop(n-1)) * grad
+            fpt(fp)%nsl%z = cz(k)
+          ENDIF
+        ENDDO
 
       ENDDO
 !
@@ -768,7 +766,7 @@
       END SUBROUTINE ext_forcing3d
 !----------------------------------------------------------------------
       SUBROUTINE forcing3d(cx, cy, cz, topo2d, fpt)
-      USE volcano_topography, ONLY: ord2d, next
+      USE volcano_topography, ONLY: ord2d
 !
 ! ... locate the forcing points and the type of interpolation
 ! ... locate the points where no-slip condition is applied

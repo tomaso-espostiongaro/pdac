@@ -49,10 +49,15 @@
 ! ... input topography points
 !
       REAL*8, ALLOCATABLE :: xtop(:), ytop(:), ztop(:), ztop2d(:,:)
-      INTEGER :: noditop, noditopx, noditopy
+      REAL*8, ALLOCATABLE :: xdem(:), ydem(:), zdem(:,:)
+      INTEGER :: icenter, jcenter
 !
+      ! ... Input parameters
       INTEGER :: itp, iavv
+      REAL*8 :: cellsize
 !
+      PUBLIC
+      PRIVATE :: icenter,jcenter,xdem,ydem,zdem
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
@@ -80,7 +85,8 @@
         CALL read_2Dprofile
       ELSE IF (job_type == '3D') THEN
         CALL read_dem_ascii
-        IF (iavv >= 1) CALL averaged_volcano
+        CALL resize_dem
+        IF (iavv >= 1) CALL average_dem
         CALL compute_UTM_coords
       END IF
 !
@@ -103,8 +109,7 @@
       USE parallel, ONLY: mpime, root
       IMPLICIT NONE
 
-      INTEGER :: n
-
+      INTEGER :: n, noditop
       CHARACTER(LEN=80) :: topo_file
 !
 ! ... Processor 'root' reads the topography defined on a 
@@ -142,8 +147,10 @@
       IMPLICIT NONE
 
       CHARACTER(LEN=80) :: topo_file
-      REAL    :: xll, yll
-      REAL    :: dd
+      INTEGER :: nodidemx, nodidemy
+      ! ... Coordinates of the upper-left (ul) corner
+      REAL*8  :: xul, yul
+      REAL*8  :: dd
       INTEGER :: noval
       INTEGER :: elevation
       INTEGER :: p
@@ -156,39 +163,40 @@
         topo_file = TRIM(topography)
         OPEN(UNIT=3, FILE=topo_file, STATUS='OLD')
         WRITE(6,*) 'Reading topography file: ', topo_file
-        READ(3,*) noditopx
-        READ(3,*) noditopy
-        READ(3,*) xll
-        READ(3,*) yll
+        READ(3,*) nodidemx
+        READ(3,*) nodidemy
+        READ(3,*) xul
+        READ(3,*) yul
         READ(3,*) dd
         READ(3,*) noval
       END IF
 !
-      CALL bcast_integer(noditopx,1,root)
-      CALL bcast_integer(noditopy,1,root)
-      CALL bcast_real(xll,1,root)
-      CALL bcast_real(yll,1,root)
+      CALL bcast_integer(nodidemx,1,root)
+      CALL bcast_integer(nodidemy,1,root)
+      CALL bcast_real(xul,1,root)
+      CALL bcast_real(yul,1,root)
       CALL bcast_real(dd,1,root)
       CALL bcast_integer(noval,1,root)
 !
-      vdem%nx           = noditopx
-      vdem%ny           = noditopy
-      vdem%xcorner      = xll
-      vdem%ycorner      = yll
+      vdem%nx           = nodidemx
+      vdem%ny           = nodidemy
+      vdem%xcorner      = xul
+      vdem%ycorner      = yul
       vdem%cellsize     = dd
       vdem%nodata_value = noval
 !
-      ALLOCATE(ztop2d(vdem%nx,vdem%ny))
-      ALLOCATE(xtop(vdem%nx))
-      ALLOCATE(ytop(vdem%ny))
+      ALLOCATE(zdem(vdem%nx,vdem%ny))
+      ALLOCATE(xdem(vdem%nx))
+      ALLOCATE(ydem(vdem%ny))
 !
 ! ... Compute the UTM coordinates of each element of the topography
+! ... from the upper-left corner.
 !
       DO i = 1, vdem%nx
-        xtop(i) = vdem%xcorner + (i-1) * vdem%cellsize
+        xdem(i) = vdem%xcorner + (i-1) * vdem%cellsize
       END DO
       DO j = vdem%ny, 1, -1
-        ytop(j) = vdem%ycorner - (vdem%ny - j) * vdem%cellsize
+        ydem(j) = vdem%ycorner - (vdem%ny - j) * vdem%cellsize
       END DO
 !
 ! ... Processor 'root' reads the matrix of the elevation
@@ -198,50 +206,136 @@
         DO j = vdem%ny, 1, -1
           DO i = 1, vdem%nx
             READ(3,*) elevation
-            ztop2d(i,j) = DBLE(elevation) / 100.D0
+            zdem(i,j) = DBLE(elevation) / 100.D0
           END DO
         END DO
       END IF
 !
-      CALL bcast_real(ztop2d,noditopx*noditopy,root)
+      CALL bcast_real(zdem,nodidemx*nodidemy,root)
 !
       RETURN
       END SUBROUTINE read_dem_ascii
 !----------------------------------------------------------------------
-      SUBROUTINE averaged_volcano
-      USE grid, ONLY: center_x, center_y
+! ... Interpolates or downsizes the DEM with a prescribed uniform 
+! ... resolution ('cellsize' is read in input)
+!
+      SUBROUTINE resize_dem
+!
+      USE grid, ONLY: domain_x, domain_y, dxmax, dymax, dxmin, dymin
+      USE grid, ONLY: center_x, center_y, alpha_x, alpha_y
       IMPLICIT NONE
-      INTEGER :: i, j, icenter, jcenter, distance, m
+      INTEGER :: noditopx, noditopy
+      INTEGER :: nodidemx, nodidemy
+      REAL*8 :: newsizex, newsizey
+      REAL*8 :: xll, yll, xur, yur, xul, yul
+      INTEGER, ALLOCATABLE :: ntx(:), nty(:)
+      INTEGER :: i,j
+!
+      ! ... Crop the topography and compute the number of 
+      ! ... DEM elements. Allocate elevation arrays.
+      !
+      newsizex = domain_x + 2.D0 * dxmax
+      newsizey = domain_y + 2.D0 * dymax
+      noditopx = INT(newsizex / cellsize) + 1
+      noditopy = INT(newsizey / cellsize) + 1
+!      
+      ALLOCATE( xtop(noditopx) )
+      ALLOCATE( ytop(noditopy) )
+      ALLOCATE( ztop2d(noditopx,noditopy) )
+      ALLOCATE( ntx(noditopx) )
+      ALLOCATE( nty(noditopy) )
+!
+      ! ... Compute the UTM coordinates of the lower-left ('x/y-ll'), 
+      ! ... the upper-right ('x/y-ur') and the upper-left ('x/y-ul') corners. 
+      ! ... Check that the new domain is contained in the input topographic DEM.
+      !
+      xll = center_x - alpha_x * domain_x - dxmax
+      yll = center_y - alpha_y * domain_y - dymax
+      xtop(1) = MAX(xdem(1),xll)
+      ytop(1) = MAX(ydem(1),yll)
+      xur = xll + cellsize * (noditopx - 1)
+      yur = yll + cellsize * (noditopy - 1)
+      xul = xll
+      yul = yur
+      nodidemx = vdem%nx
+      nodidemy = vdem%ny
+      IF (xur > xdem(nodidemx)) &
+        noditopx = INT( (xdem(nodidemx) - xtop(1)) / cellsize) 
+      IF (yur > ydem(nodidemy)) &
+        noditopy = INT( (ydem(nodidemy) - ytop(1)) / cellsize) 
+!     
+      ! ... Reset the resized DEM parameters as default
+      !
+      WRITE(6,*) 'DEM is resized'
+      WRITE(6,*) 'Old resolution: ', vdem%cellsize, ' [m]'
+      vdem%nx           = noditopx
+      vdem%ny           = noditopy
+      vdem%xcorner      = xul
+      vdem%ycorner      = yul
+      vdem%cellsize     = cellsize
+      WRITE(6,*) 'New resolution: ', vdem%cellsize, ' [m]'
+!
+      ! ... Compute the new UTM coordinates of each element.
+      !
+      DO i = 2, noditopx
+        xtop(i) = xtop(i-1) + cellsize
+      END DO
+      DO j = 2, noditopy
+        ytop(j) = ytop(j-1) + cellsize
+      END DO
+!
+      ! ... Interpolate the DEM over the new mesh.
+      !
+      CALL interp_2d(xdem, ydem, zdem, xtop, ytop, ztop2d, ntx, nty)
+!
+      ! ... Find the closest topographic element
+      ! ... to the prescribed vent center.
+      !
+      DO i = 1, noditopx
+        IF (xtop(i) <= center_x) icenter = i
+      END DO
+      DO j = 1, noditopy
+        IF (ytop(j) <= center_y) jcenter = j
+      END DO
+!      
+      ! ... The vent center must coincide with the
+      ! ... topographic element.
+      !
+      center_x = xtop(icenter)
+      center_y = ytop(jcenter)
+!
+      DEALLOCATE(ntx)
+      DEALLOCATE(nty)
+      DEALLOCATE(xdem, ydem, zdem)
+
+      RETURN
+      END SUBROUTINE resize_dem
+!----------------------------------------------------------------------
+! ... This routine builds an axisymmetric volcano topography by averaging
+! ... the digital elevation model (dem) around the specified x/y-center
+!
+      SUBROUTINE average_dem
+!
+      IMPLICIT NONE
+      INTEGER :: i, j, distance, m
       INTEGER :: dms
       REAL*8, ALLOCATABLE :: av_quota(:)
       INTEGER, ALLOCATABLE :: nk(:)
+      INTEGER :: noditopx, noditopy
 !
-      dms = vdem%nx**2 + vdem%ny**2
+      noditopx = vdem%nx
+      noditopy = vdem%ny
+!
+      dms = noditopx**2 + noditopy**2
       ALLOCATE( av_quota( 0:dms ) )
       ALLOCATE( nk( 0:dms ) )
       av_quota = 0.D0
       nk       = 0
 !
-      ! ... Find the topographic element much closer
-      ! ... to the vent center
-      !
-      DO i = 1, vdem%nx
-        IF (xtop(i) <= center_x) icenter = i
-      END DO
-      DO j = 1, vdem%ny
-        IF (ytop(j) <= center_y) jcenter = j
-      END DO
-!      
-      ! ... The vent center must coincide with the
-      ! ... topographic element
-      !
-      center_x = xtop(icenter)
-      center_y = ytop(jcenter)
-!
       ! ... Average the topography over axisymmetrix layers
       !
-      DO j = 1, vdem%ny
-        DO i = 1, vdem%nx
+      DO j = 1, noditopy
+        DO i = 1, noditopx
           distance = (i - icenter)**2 + (j - jcenter)**2
           av_quota(distance) = av_quota(distance) + ztop2d(i,j)
           nk(distance) = nk(distance) + 1
@@ -255,8 +349,8 @@
       ! ... Assign the new averaged values to the
       ! ... topographic arrays
       !
-      DO j = 1, vdem%ny
-        DO i = 1, vdem%nx
+      DO j = 1, noditopy
+        DO i = 1, noditopx
           distance = (i - icenter)**2 + (j - jcenter)**2
           ztop2d(i,j) = av_quota(distance)
         END DO
@@ -266,8 +360,11 @@
       DEALLOCATE(nk)
 !
       RETURN
-      END SUBROUTINE averaged_volcano
+      END SUBROUTINE average_dem
 !----------------------------------------------------------------------
+! ... Translates the computational mesh accordingly to the
+! ... specified UTM coordinates of the DEM
+!
       SUBROUTINE compute_UTM_coords
 
       USE grid, ONLY: center_x, center_y
@@ -280,7 +377,7 @@
       transl_x = center_x - x(iv)
       transl_y = center_y - y(jv)
 !
-! ... Translate all mesh horizontally
+! ... Translate all mesh arrays horizontally
 !
       x  = x  + transl_x
       xb = xb + transl_x
@@ -318,7 +415,7 @@
         ! ... Interpolate the topography on the cell top 
         ! ... (centered horizontally)
         !
-        CALL interpolate_2d(x, zb, topo, dummy)
+        CALL interpolate_profile(x, zb, topo, dummy)
         
         ! ... Translate vertically the mesh to minimize the
         ! ... number of topographic cells
@@ -393,7 +490,7 @@
       RETURN
       END SUBROUTINE set_profile
 !----------------------------------------------------------------------
-      SUBROUTINE interpolate_2d(cx, cz, topo, ff)
+      SUBROUTINE interpolate_profile(cx, cz, topo, ff)
 !
 ! ... interpolate the topographic profile on a given
 ! ... computational mesh (either centered or staggered)
@@ -405,7 +502,7 @@
       LOGICAL, INTENT(OUT), DIMENSION(:) :: ff
       REAL*8, INTENT(OUT), DIMENSION(:) :: topo
 
-      INTEGER :: i, k, ijk, l, n
+      INTEGER :: i, k, ijk, n
       INTEGER :: itopo
       REAL*8 :: grad
 !
@@ -416,34 +513,14 @@
 !
 ! ... interpolate the topography on the mesh
 !
-      l=1
-      DO n = 1, noditop
-        DO i = l, nx
+      CALL interp_1d(xtop,ztop,cx,topo,next)
 
-          IF (xtop(n) >= cx(i)) THEN
-
-            ! ... next(i) indicates the progressive number of the
-            ! ... topographic point laying on the right of a grid center 'i'
-            ! ... 'l' counts the grid points
-            !
-            next(i) = n
- 
-            IF (n == 1) THEN
-              topo(i) = ztop(1)
-            ELSE
-              grad = (ztop(n)-ztop(n-1))/(xtop(n)-xtop(n-1))
-              topo(i) = ztop(n-1) + (cx(i)-xtop(n-1)) * grad
-            END IF
-
-            ! ... Topography is expressed in centimeters
-            !
-            topo(i) = topo(i) * 1.D2
-            itopo = NINT(topo(i))
-            topo(i) = itopo * 1.D-2
-
-            l=l+1
-          ENDIF
-        ENDDO
+      DO i = 1, nx
+        ! ... Topography is expressed in centimeters
+        !
+        topo(i) = topo(i) * 1.D2
+        itopo = NINT(topo(i))
+        topo(i) = itopo * 1.D-2
       ENDDO
 !
 ! ... ord is the last mesh point laying below the topography
@@ -476,7 +553,7 @@
       END DO
 !
       RETURN
-      END SUBROUTINE interpolate_2d
+      END SUBROUTINE interpolate_profile
 !----------------------------------------------------------------------
       SUBROUTINE interpolate_dem(cx, cy, cz, topo2d, ff)
       USE dimensions, ONLY: nx, ny, nz
@@ -486,115 +563,34 @@
       REAL*8, INTENT(OUT), DIMENSION(:,:) :: topo2d
       LOGICAL, INTENT(OUT), DIMENSION(:) :: ff
 
-      REAL*8 xmin,xmax,ymin,ymax,zmin,zmax !range dei valori della top.
-      REAL*8 ratio
-
-      REAL*8 dist1y,dist2y,dist1x,dist2x,alpha,beta
-      INTEGER i,j,k,h,l,ii,jj
-      INTEGER ijk, tp1, tp2
+      INTEGER i,j,k,ijk
       INTEGER itopo
 
       ff = .FALSE.
-        
-!C============================================
-!C===    trova le posizioni dei nodi      ====
-!C===    della nuova griglia rispetto     ====
-!C===    alla griglia iniziale            ====
-!C============================================
 
-      l=1
-      DO i = 1, noditopx
-        DO ii = l, nx
-      
-!============================================
-!===    cerca i nodi della griglia che    ===
-!===    che stanno a sx. di xtop(i)       ===
-!============================================
-    
-          IF (xtop(i) >= cx(ii)) THEN
-            nextx(ii)=i
-            l=l+1
-          ENDIF
-        ENDDO
-      ENDDO
-	
-      l=1
-      DO j = 1, noditopy
-        DO jj = l, ny
-
-!C============================================
-!C===    cerca i nodi della griglia che    ===
-!C===    che stanno a sotto  ytop(i)       ===
-!C============================================
-
-          IF (ytop(j) >= cy(jj)) THEN
-            nexty(jj)=j
-            l=l+1
-          ENDIF
-        ENDDO
-      ENDDO
-
-
-! il nodo della nuova griglia di indici (i,j) sara' allora
-! contenuto nel rettangolo con i vertici con indici:
-! P1=nextx(i),nexty(j)
-! P2=nextx(i-1),nexty(j)
-! P3=nextx(i-1),nexty(j-1)
-! P4=nextx(i),nexty(j-1)
-	
-
-! sulla nuova griglia interpoliamo le quote di input ztop per 
-! ottenere la quota coorZ nel punto di indici (i,j)
+      CALL interp_2d(xtop, ytop, ztop2d, cx, cy, topo2d, nextx, nexty)
  
-
-! interpolazione bilineare sui nodi interni (1<i<nodiGRIDx, 1<j<nodigGRIDy)
-! utilizzando le quote nei punti P1,..,P4 definiti sopra
-
-	DO i=1,nx
-
-	   dist1x = cx(i) - xtop(nextx(i)-1)
-	   dist2x = xtop(nextx(i)) - cx(i)
-	   alpha  = dist1x/(dist1x+dist2x)
-
-	   DO j=1,ny
-           
-	      dist1y = cy(j) - ytop(nexty(j)-1)
-	      dist2y = ytop(nexty(j)) - cy(j)
-	      beta   = dist1y/(dist1y+dist2y)
-
-              tp1    = alpha * ztop2d(nextx(i),nexty(j))   + &
-                       (1.D0 - alpha) * ztop2d(nextx(i)-1,nexty(j))
-
-              tp2    = alpha * ztop2d(nextx(i),nexty(j)-1) + &
-                       (1.D0 - alpha) * ztop2d(nextx(i)-1,nexty(j)-1)
-
-              topo2d(i,j) = beta * tp1 + (1.D0 - beta) * tp2
- 
-              ! ... Topography is expressed in centimeters
-              !
-              topo2d(i,j) = topo2d(i,j) * 1.D2
-              itopo = NINT(topo2d(i,j))
-              topo2d(i,j) = itopo * 1.D-2
-
-	   ENDDO
-
-	ENDDO
+      ! ... Topography is expressed in centimeters
+      !
+      DO j=1,ny
+        DO i=1,nx
+          topo2d(i,j) = topo2d(i,j) * 1.D2
+          itopo = NINT(topo2d(i,j))
+          topo2d(i,j) = itopo * 1.D-2
+        END DO
+      END DO
 
 ! ... Locate cells laying below the topography 'ord2d(i,j)'
 
-	DO j=1,ny
-	   DO i=1,nx
-
-	      DO k=1,nz
-
-		IF (cz(k) <= topo2d(i,j)) THEN
-		   ord2d(i,j) = k  
-		ENDIF
-
-	      ENDDO
-
-	   ENDDO
-	ENDDO
+      DO j=1,ny
+         DO i=1,nx
+            DO k=1,nz
+              IF (cz(k) <= topo2d(i,j)) THEN
+                 ord2d(i,j) = k  
+              ENDIF
+            ENDDO
+         ENDDO
+      ENDDO
 !
 ! ... Identify forcing points
 ! ... (skip boundaries)
@@ -622,6 +618,144 @@
 !      
       RETURN
       END SUBROUTINE interpolate_dem
+!----------------------------------------------------------------------
+      SUBROUTINE interp_1d(x1, f1, x2, f2, t)
+      IMPLICIT NONE
+
+      REAL*8, INTENT(IN), DIMENSION(:) :: x1, x2, f1
+      REAL*8, INTENT(OUT), DIMENSION(:) :: f2
+      INTEGER, INTENT(OUT), DIMENSION(:) :: t
+      INTEGER :: i, k, l, n, n1x, n2x
+      REAL*8 :: grad
+
+      n1x = SIZE(x1)
+      n2x = SIZE(x2)
+!
+! ... locate the grid points near the topographic points
+! ... and interpolate linearly the profile  
+!
+      l = 1
+      DO n = 1, n1x
+        DO i = l, n2x
+
+          IF (x1(n) >= x2(i)) THEN
+
+            ! ... t(i) indicates the progressive number of the
+            ! ... topographic point laying on the right of a grid center 'i'
+            ! ... 'l' counts the grid points
+            !
+            t(i) = n
+ 
+            IF (n == 1) THEN
+              f2(i) = f1(1)
+            ELSE
+              grad = (f1(n)-f1(n-1))/(x1(n)-x1(n-1))
+              f2(i) = f1(n-1) + (x2(i)-x1(n-1)) * grad
+            END IF
+
+            l=l+1
+          ENDIF
+
+        ENDDO
+      ENDDO
+!
+      RETURN
+      END SUBROUTINE interp_1d
+!----------------------------------------------------------------------
+      SUBROUTINE interp_2d(x1, y1, f1, x2, y2, f2, tx, ty)
+      IMPLICIT NONE
+
+      REAL*8, INTENT(IN), DIMENSION(:) :: x1, y1, x2, y2
+      REAL*8, INTENT(IN), DIMENSION(:,:) :: f1
+      REAL*8, INTENT(OUT), DIMENSION(:,:) :: f2
+      INTEGER, INTENT(OUT), DIMENSION(:) :: tx, ty
+
+      REAL*8 :: dist1y,dist2y,dist1x,dist2x,alpha,beta
+      INTEGER :: i,j,k,h,l,ii,jj
+      INTEGER :: n1x, n2x, n1y, n2y
+      INTEGER :: tp1, tp2
+
+      n1x = SIZE(x1)
+      n1y = SIZE(y1)
+      n2x = SIZE(x2)
+      n2y = SIZE(y2)
+        
+!C============================================
+!C===    trova le posizioni dei nodi      ====
+!C===    della nuova griglia rispetto     ====
+!C===    alla griglia iniziale            ====
+!C============================================
+
+      l=1
+      DO i = 1, n1x
+        DO ii = l, n2x
+      
+!============================================
+!===    cerca i nodi della griglia che    ===
+!===    che stanno a sx. di xtop(i)       ===
+!============================================
+    
+          IF (x1(i) >= x2(ii)) THEN
+            tx(ii)=i
+            l=l+1
+          ENDIF
+        ENDDO
+      ENDDO
+
+      l=1
+      DO j = 1, n1y
+        DO jj = l, n2y
+
+!C============================================
+!C===    cerca i nodi della griglia che    ===
+!C===    che stanno a sotto  ytop(i)       ===
+!C============================================
+
+          IF (y1(j) >= y2(jj)) THEN
+            ty(jj)=j
+            l=l+1
+          ENDIF
+        ENDDO
+      ENDDO
+
+
+! il nodo della nuova griglia di indici (i,j) sara' allora
+! contenuto nel rettangolo con i vertici con indici:
+! P1=tx(i),ty(j)
+! P2=tx(i-1),ty(j)
+! P3=tx(i-1),ty(j-1)
+! P4=tx(i),ty(j-1)
+
+! sulla nuova griglia interpoliamo le quote di input ztop per 
+! ottenere la quota coorZ nel punto di indici (i,j)
+ 
+
+! interpolazione bilineare sui nodi interni (1<i<nodiGRIDx, 1<j<nodigGRIDy)
+! utilizzando le quote nei punti P1,..,P4 definiti sopra
+
+        DO i=1,n2x
+
+           dist1x = x2(i) - x1(tx(i)-1)
+           dist2x = x1(tx(i)) - x2(i)
+           alpha  = dist1x/(dist1x+dist2x)
+
+           DO j=1,n2y
+           
+              dist1y = y2(j) - y1(ty(j)-1)
+              dist2y = y1(ty(j)) - y2(j)
+              beta   = dist1y/(dist1y+dist2y)
+
+              tp1    = alpha * f1(tx(i),ty(j))   + &
+                       (1.D0 - alpha) * f1(tx(i)-1,ty(j))
+              tp2    = alpha * f1(tx(i),ty(j)-1) + &
+                       (1.D0 - alpha) * f1(tx(i)-1,ty(j)-1)
+              f2(i,j) = beta * tp1 + (1.D0 - beta) * tp2
+ 
+           ENDDO
+        ENDDO
+!      
+      RETURN
+      END SUBROUTINE interp_2d
 !----------------------------------------------------------------------
       SUBROUTINE write_profile
 

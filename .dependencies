@@ -87,8 +87,6 @@ limiters.o :
 matrix.o : control.o decomp.o dens.o dimensions.o grid.o indijk.o  \
     particles.o press.o subscr.o tilde.o time.o velocity.o 
 
-matsvels_solve.o : 
-
 nondim.o : atmosphere.o decomp.o dimensions.o gas.o grid.o indijk.o  \
     particles.o time.o 
 
@@ -100,15 +98,15 @@ parallel.o :
 
 particles.o : dimensions.o 
 
-pdac.o : blunt.o decomp.o dens.o dimensions.o environment.o eosg.o gas.o  \
-    grid.o hcapgs.o immb.o input.o io.o matrix.o outp.o parallel.o particles.o  \
-    press.o setup.o temp.o tilde.o time.o topo.o turbo.o velocity.o vent.o  \
-    visc.o 
+pdac.o : blunt.o control.o decomp.o dens.o dimensions.o environment.o eosg.o  \
+    gas.o grid.o hcapgs.o immb.o input.o io.o matrix.o outp.o parallel.o  \
+    particles.o press.o setup.o temp.o tilde.o time.o topo.o turbo.o  \
+    velocity.o vent.o visc.o 
 
 postin.o : process.o 
 
-postout.o : control.o dimensions.o grid.o input.o iotk_module.o outp.o  \
-    process.o time.o 
+postout.o : control.o dimensions.o grid.o input.o iotk_module.o kinds.o  \
+    outp.o process.o time.o 
 
 postp.o : dimensions.o gas.o grid.o input.o parallel.o particles.o postin.o  \
     postout.o process.o setup.o 
@@ -153,8 +151,6 @@ tilde.o : atmosphere.o control.o decomp.o dens.o dimensions.o drag.o eosg.o  \
 time.o : 
 
 topo.o : control.o dimensions.o grid.o parallel.o 
-
-transto.o : 
 
 turbo.o : control.o decomp.o dens.o dimensions.o environment.o eosg.o grid.o  \
     indijk.o parallel.o particles.o roughness.o subscr.o velocity.o 
