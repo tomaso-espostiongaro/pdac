@@ -202,12 +202,12 @@
         ! ... Write out fields of interest
         !
         filnam = 'log10epst.'//lettera(tn)
-        OPEN(tempunit,FILE=filnam, STATUS='NEW', FORM='UNFORMATTED')
+        OPEN(tempunit,FILE=filnam, STATUS='NEW')
         CALL write_array( tempunit, lepstot, lform )
         CLOSE(tempunit)
         !
         filnam = 'tg.'//lettera(tn)
-        OPEN(tempunit,FILE=filnam, STATUS='NEW', FORM='UNFORMATTED')
+        OPEN(tempunit,FILE=filnam, STATUS='NEW')
         CALL write_array( tempunit, tg, lform )
         CLOSE(tempunit)
 
