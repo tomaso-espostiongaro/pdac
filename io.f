@@ -350,6 +350,7 @@
 
       INTEGER :: ijk, ij, k, ierr, first
       REAL*8, ALLOCATABLE :: io_buf(:)
+      REAL, ALLOCATABLE :: io_buf_sgl(:)
 
       IF( ntot < 1 ) &
         CALL error(' write_array ', ' ntot too small ', ntot )
@@ -358,6 +359,7 @@
         CALL error(' write_array ', ' unknown precision ', prec )
 
       ALLOCATE( io_buf( ntot ), STAT=ierr )
+      ALLOCATE( io_buf_sgl( ntot ), STAT=ierr )
       IF( ierr /= 0 ) &
         CALL error(' write_array ', ' cannot allocate io_buf ', ntot )
 
@@ -375,7 +377,8 @@
            END DO
          ELSE
            IF( prec == sgl ) THEN
-             WRITE(iunit) REAL( io_buf( 1 : ntot ), sgl )
+             io_buf_sgl(:) = REAL( io_buf(:), sgl)
+             WRITE(iunit) ( io_buf_sgl(ijk), ijk = 1, ntot )
            ELSE 
              WRITE(iunit) ( io_buf(ijk), ijk = 1, ntot )
            END IF

@@ -2764,8 +2764,6 @@
         RETURN
       END SUBROUTINE data_collect_sr
 
-
-
       SUBROUTINE data_distribute_r( garray, larray, imstart, imend )
 
         ! this subroutine distribute a global array "garray"  across processors
