@@ -37,7 +37,7 @@
         END TYPE
 
 !*******MX3D da rivedere
-        INTEGER :: nbx,nby             ! number of blocks in x and y directions
+        INTEGER :: nbx, nby            ! number of blocks in x and y directions
 !
         TYPE (rcv_map_type), ALLOCATABLE :: rcv_map(:)
         TYPE (snd_map_type), ALLOCATABLE :: snd_map(:)
@@ -97,6 +97,7 @@
         LOGICAL, PRIVATE :: outppm = .FALSE.
 
 !*******MX3D fl da eliminare in un secondo tempo
+!
         INTEGER, DIMENSION(:), ALLOCATABLE :: fl
 
         INTEGER, DIMENSION(:), ALLOCATABLE :: fl_l
@@ -339,16 +340,13 @@
       IMPLICIT NONE
       SAVE
 !
-      INTEGER :: i, j, ij, n, m, q, rr, k
+      INTEGER :: i, j, k, ijk, n, m, q, rr
       INTEGER :: nfl, ipe, dim
       INTEGER :: layer
-      INTEGER, ALLOCATABLE :: red(:), green(:), blue(:)
       INTEGER :: localdim
 !
 ! ... Subroutine Body
 !
-      ALLOCATE( red(nr*nz), green(nr*nz), blue(nr*nz) )
-
       IF (ALLOCATED(nctot)) DEALLOCATE(nctot)
       IF (ALLOCATED(ncell)) DEALLOCATE(ncell)
       IF (ALLOCATED(ncfl1)) DEALLOCATE(ncfl1)
@@ -363,13 +361,13 @@
       ncfl1 = 0
       ncell = 0
       ncdif = 0
-
 !
 ! ... here count the flags
 !
       DO i = 1, SIZE(countfl)
         countfl(i) = COUNT( (fl == i) )
       END DO
+!
       WRITE(7,'(a13,5i7)') ' # countfl ', countfl
 !
 ! ... domain decomposition (build maps)
@@ -406,39 +404,6 @@
       END DO
       WRITE(7,*) '  '
 !
-
-      IF( outppm ) THEN
-
-        DO ij=1,nr*nz
-            red(ij) = (cell_owner(ij)+1)
-            green(ij) = nproc - (cell_owner(ij)+1)
-            blue(ij) = (nproc - ABS(2*(cell_owner(ij)-nproc/2))) 
-          IF ((fl(ij).EQ.3 .AND. (fl(ij+1).EQ.1 .OR. fl(ij-1).EQ.1))   &
-               .OR. fl(ij).EQ.5 .OR. fl(ij).EQ.2 .OR. fl(ij).EQ.4)    THEN
-            red(ij) = 0
-            green(ij) = 0
-            blue(ij) = 0
-          END IF
-        END DO
-
-        IF (mpime .EQ. root) THEN
-          OPEN(UNIT=9,FILE='procs_map.ppm', FORM='FORMATTED', STATUS='UNKNOWN')
-           WRITE(9,'(A2)') 'P3'
-           WRITE(9,'(I3,A1,I3)') nr,' ',nz
-           WRITE(9,'(I3)') nproc
-           DO j = nz-1, 0, -1
-            DO i=1,nr
-              WRITE(9,100) red(i+nr*j), green(i+nr*j), blue(i+nr*j)
-            END DO
-           END DO
- 100      FORMAT(3(I4))
-          CLOSE(9)
-        END IF
-
-      END IF
-
-      DEALLOCATE(red,green,blue)
-
       RETURN
       END SUBROUTINE 
 !
@@ -456,10 +421,10 @@
       IMPLICIT NONE
       SAVE
 !
-      INTEGER :: ncfl1(:)
-      INTEGER :: nctot(:)
+      INTEGER :: ncfl1(0:)
+      INTEGER :: nctot(0:)
 !
-      INTEGER :: i, j, ij, ijk, k
+      INTEGER :: i, j, k, ijk
       INTEGER :: icnt, icnt_ipe, ipe
       INTEGER :: localdim
       INTEGER, ALLOCATABLE :: lay_map(:,:)
@@ -482,9 +447,9 @@
         DO j = 1, nz
           DO i = 1, nr
 
-            ij = i + (j-1)*nr
+            ijk = i + (j-1)*nr
   
-            IF ( fl(ij) == 1 ) THEN
+            IF ( fl(ijk) == 1 ) THEN
               icnt_ipe = icnt_ipe + 1
               icnt     = icnt     + 1
             END IF
@@ -494,9 +459,9 @@
             IF ( ( icnt_ipe == ncfl1(ipe) ) .AND. ( i /= (nr-1) ) ) THEN
               icnt_ipe = 0
               IF( icnt < countfl(1) ) THEN
-                lay_map(ipe,2) = ij
+                lay_map(ipe,2) = ijk
                 ipe = ipe + 1
-                lay_map(ipe,1) = ij+1
+                lay_map(ipe,1) = ijk+1
               END IF
             END IF
 
@@ -565,8 +530,8 @@
       IMPLICIT NONE
       SAVE
 !
-      INTEGER :: ncfl1(:)
-      INTEGER :: nctot(:)
+      INTEGER :: ncfl1(0:)
+      INTEGER :: nctot(0:)
 !
       INTEGER :: i, j, ij
       INTEGER :: i1, i2, j1, j2, ij1, ij2
@@ -760,18 +725,19 @@
       USE dimensions
       USE parallel, ONLY: nproc, mpime
       USE basic_types, ONLY: imatrix
+      USE control_flags, ONLY: job_type
 !
       IMPLICIT NONE
 !
       INTEGER :: icnt, ipe, icnt_ipe
-      INTEGER :: i, j, ij, n, ijl, k
+      INTEGER :: i, j, n, ijkl, k, ijk
       INTEGER :: nrcv(0:nproc-1), nrcvx, jpe
       INTEGER :: nset(0:nproc-1)
-      INTEGER, ALLOCATABLE :: ijrcv(:,:)
-      INTEGER, ALLOCATABLE :: ijsnd(:)
+      INTEGER, ALLOCATABLE :: ijkrcv(:,:)
+      INTEGER, ALLOCATABLE :: ijksnd(:)
       TYPE (imatrix) :: rcv_cell_set(0:nproc-1)
       INTEGER :: localdim
-      INTEGER :: layer,j2,j1,i2,i1
+      INTEGER :: layer, j2, j1, i2, i1, nkt
       INTEGER :: me
 !
       IF(ALLOCATED(rcv_map)) DEALLOCATE(rcv_map)
@@ -779,7 +745,6 @@
       ALLOCATE(rcv_map( 0:(nproc-1) ) )
       ALLOCATE(snd_map( 0:(nproc-1) ) )
       
-
       rcv_map(:)%nrcv = 0
       snd_map(:)%nsnd = 0
       icnt     = 0
@@ -791,14 +756,13 @@
 ! ... summed over each local cell.
 !
 !
-!*****MX3D: il loop sulle celle interne va fatto con le nuove maps
-!
-      nset   = 0
+      nset  = 0
       ncext = 0
+
       IF ( proc_map(mpime)%type == LAYER_MAP ) THEN
-        DO ij = proc_map(mpime)%lay(1), proc_map(mpime)%lay(2)
-          IF ( fl(ij) .EQ. 1 ) THEN
-            ncext = ncext + cell_neighbours(ij, mpime, nset)
+        DO ijk = proc_map(mpime)%lay(1), proc_map(mpime)%lay(2)
+          IF ( fl( ijk ) == 1 ) THEN
+            ncext = ncext + cell_neighbours( ijk, mpime, nset)
           END IF
         END DO
       ELSE IF ( proc_map(mpime)%type == BLOCK2D_MAP ) THEN
@@ -806,32 +770,46 @@
         i2 = proc_map(mpime)%colne(1)
         j1 = proc_map(mpime)%colsw(2)
         j2 = proc_map(mpime)%colne(2)
-        DO j = j1, j2
-         DO i = i1, i2
-          ij = i + nr*(j-1)
-          IF (fl(ij).EQ.1) THEN
-            ncext = ncext + cell_neighbours(ij, mpime, nset)
-          END IF
-         END DO
-        END DO
+        IF( job_type == '2D' ) THEN
+          DO j = j1, j2
+            DO i = i1, i2
+              ijk = i + nr*(j-1)
+              IF ( fl(ijk) == 1 ) THEN
+                ncext = ncext + cell_neighbours(ijk, mpime, nset)
+              END IF
+            END DO
+          END DO
+        ELSE IF( job_type == '3D' ) THEN
+          DO k = 1, nz
+            DO j = j1, j2
+              DO i = i1, i2
+                ijk = i + (j-1)*nx + (k-1)*nx*ny 
+                IF ( fl(ijk) == 1 ) THEN
+                  ncext = ncext + cell_neighbours(ijk, mpime, nset)
+                END IF
+              END DO
+            END DO
+          END DO
+        ELSE 
+          CALL error( ' ghost ', ' wrong job_type '//job_type, 1)
+        END IF
       ELSE
         CALL error(' ghost ', ' partition type not yet implemented ', proc_map(mpime)%type )
       END IF
 !
 ! ... ALLOCATE memory for the set of neighbouring cell on other proc.
 !
-!*****MX3D : cambia la prima dimensione di rcv_cell_set (4 -> 5) 
-!
       DO ipe = 0, nproc - 1
-        IF(nset(ipe) .GT. 0 ) THEN
-          ALLOCATE( rcv_cell_set(ipe)%i(4, nset(ipe)) )
+        IF( nset(ipe) > 0 ) THEN
+          ALLOCATE( rcv_cell_set(ipe)%i(5, nset(ipe)) )
         ELSE
           NULLIFY( rcv_cell_set(ipe)%i )
         END IF
       END DO
 
 ! ... number of local cells
-      ncint = nctot(mpime)
+!
+      ncint = nctot( mpime )
 !
 ! ... allocate stencil array indexes
 !
@@ -845,16 +823,15 @@
       CALL indijk_setup()
 
 ! ... now fill in the receiving map and the indexes matrix
+!
       nset  = 0
       icnt  = 0
       nrcv  = 0
+
       IF ( proc_map(mpime)%type == LAYER_MAP ) THEN
-!
-!*****MX3D : cambia il loop sulle celle interne (v.sopra)
-!
-        DO ij = proc_map(mpime)%lay(1), proc_map(mpime)%lay(2)
-          IF ( fl(ij) .EQ. 1 ) THEN
-          icnt = icnt + cell_neighbours(ij, mpime, nset, rcv_cell_set, myijk)
+        DO ijk = proc_map(mpime)%lay(1), proc_map(mpime)%lay(2)
+          IF ( fl(ijk) == 1 ) THEN
+            icnt = icnt + cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
           END IF
         END DO
       ELSE IF ( proc_map(mpime)%type == BLOCK2D_MAP ) THEN
@@ -862,26 +839,38 @@
         i2 = proc_map(mpime)%colne(1)
         j1 = proc_map(mpime)%colsw(2)
         j2 = proc_map(mpime)%colne(2)
-       DO j = j1, j2
-        DO i = i1, i2
-          ij = i + nr*(j-1)
-          IF (fl(ij).EQ.1) THEN
-          icnt = icnt + cell_neighbours(ij, mpime, nset, rcv_cell_set, myijk)
-          END IF
-        END DO
-       END DO
+        IF( job_type == '2D' ) THEN
+          DO j = j1, j2
+            DO i = i1, i2
+              ijk = i + nr*(j-1)
+              IF ( fl(ijk) == 1 ) THEN
+                icnt = icnt + cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
+              END IF
+            END DO
+          END DO
+        ELSE IF( job_type == '3D' ) THEN
+          DO k = 1, nz
+            DO j = j1, j2
+              DO i = i1, i2
+                ijk = i + (j-1)*nx + (k-1)*nx*ny
+                IF ( fl(ijk) == 1 ) THEN
+                  icnt = icnt + cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
+                END IF
+              END DO
+            END DO
+          END DO
+        ELSE
+          CALL error( ' ghost ', ' wrong job_type '//job_type, 1)
+        END IF
       ELSE
         CALL error(' ghost ', ' partition type not yet implemented ', proc_map(mpime)%type )
       END IF
 !
+! ... store the global cell index ijk, of the the local cell ijk
 !
-      DO ijl = 1, ncint
-! ...     store the global cell index ij, of the the local cell ijl
-          myijk( ip0_jp0_kp0_, ijl) = cell_l2g(ijl, mpime)
+      DO ijk = 1, ncint
+        myijk( ip0_jp0_kp0_, ijk) = cell_l2g(ijk, mpime)
       END DO
-
-!
-!*****MX3D : ok
 !
       CALL cell_set_sort(rcv_cell_set, nset, nrcv)
 
@@ -900,43 +889,38 @@
 
 ! ... number cells required to update the physical quantities:
 ! ... sum of the local and their neighbouring cells
+!
       ncext = SUM( nrcv ) 
       ncdom = ncint + ncext
       WRITE(7,* ) ' # ncext ', ncext
       WRITE(7,* ) ' # ncdom ', ncdom
-
-!
-!*****MX3D : ok
 !
 ! ... prepare the receive map 
+!
       DO ipe = 0, nproc - 1
         rcv_map(ipe)%nrcv = nrcv(ipe)
         NULLIFY( rcv_map(ipe)%ircv )
         NULLIFY( rcv_map(ipe)%iloc )
       END DO
-
-!
-!*****MX3D : ok
 !
 ! ... prepare the send map 
+!
       DO ipe = 0, nproc - 1
         NULLIFY( snd_map(ipe)%isnd ) 
         NULLIFY( snd_map(ipe)%iloc ) 
       END DO
-
-!
-!*****MX3D : piccole modifiche a set_rcv_map
 !
 ! ... ALLOCATE and set the receiving map
+!
       CALL set_rcv_map(rcv_map, myijk, rcv_cell_set, nset, nrcv)
 
 ! ... print out basic information on the map
+!
       DO ipe = 0, nproc - 1
         WRITE(7,*) ' # nrcv ', nrcv(ipe), ' from ', ipe
       END DO
-! ... using the receive maps fill in the sending maps
 !
-!*****MX3D : ok
+! ... using the receive maps fill in the sending maps
 !
       DO ipe = 0, nproc - 1
 !
@@ -951,13 +935,13 @@
 
 ! ...   proc ipe send to other processor the number of elements 
 ! ...   he should receive from each of the other proc. (rcv_map(:)%nrcv)
+!
         IF( ipe .EQ. mpime ) THEN
           nrcv(:) = rcv_map(:)%nrcv
           nrcvx = MAXVAL(nrcv)
         END IF
-! ...   each proc store the number of element he should send to ipe
 !
-!*****MX3D : ok (rivedere)
+! ...   each proc store the number of element he should send to ipe
 !
         CALL scatter_integer(nrcv, snd_map(ipe)%nsnd, 1, ipe)
         CALL bcast_integer(nrcvx, 1, ipe)
@@ -965,31 +949,33 @@
 ! ...   proc ipe send to other processors the array with the indexes of 
 ! ...   the elements he should receive ( rcv_map(jpe)%ircv )
 !
-        ALLOCATE(ijrcv(nrcvx,0:nproc-1))
-        ALLOCATE(ijsnd(nrcvx))
-        IF( ipe .EQ. mpime) THEN
-          ijrcv = 0
+        ALLOCATE( ijkrcv(nrcvx,0:nproc-1) )
+        ALLOCATE( ijksnd(nrcvx) )
+!
+        IF( ipe == mpime ) THEN
+          ijkrcv = 0
           DO jpe = 0, nproc - 1
-            IF( rcv_map(jpe)%nrcv .GT. 0 ) THEN
-              ijrcv(1:rcv_map(jpe)%nrcv, jpe ) = rcv_map(jpe)%ircv(1:rcv_map(jpe)%nrcv) 
+            IF( rcv_map(jpe)%nrcv > 0 ) THEN
+              ijkrcv( 1:rcv_map(jpe)%nrcv, jpe ) = rcv_map(jpe)%ircv( 1:rcv_map(jpe)%nrcv )
             END IF
           END DO 
         END IF 
 !
 ! ...   each proc store the index of the elements he should send to ipe
 !
-        CALL scatter_integer(ijrcv, ijsnd, nrcvx, ipe)
-        IF( ipe .NE. mpime) THEN
-          ALLOCATE(snd_map(ipe)%isnd(snd_map(ipe)%nsnd))
-          ALLOCATE(snd_map(ipe)%iloc(snd_map(ipe)%nsnd))
-          snd_map(ipe)%isnd(1:snd_map(ipe)%nsnd) = ijsnd(1:snd_map(ipe)%nsnd)
-          DO ij = 1, snd_map(ipe)%nsnd
-            snd_map(ipe)%iloc( ij ) = cell_g2l( ijsnd( ij ), mpime )
+        CALL scatter_integer(ijkrcv, ijksnd, nrcvx, ipe)
+!
+        IF( ipe /= mpime ) THEN
+          ALLOCATE( snd_map(ipe)%isnd( snd_map(ipe)%nsnd ) )
+          ALLOCATE( snd_map(ipe)%iloc( snd_map(ipe)%nsnd ) )
+          snd_map(ipe)%isnd( 1:snd_map(ipe)%nsnd ) = ijksnd( 1:snd_map(ipe)%nsnd )
+          DO ijk = 1, snd_map(ipe)%nsnd
+            snd_map(ipe)%iloc( ijk ) = cell_g2l( ijksnd( ijk ), mpime )
           END DO
         END IF 
 !
-          DEALLOCATE(ijrcv)
-          DEALLOCATE(ijsnd)
+          DEALLOCATE(ijkrcv)
+          DEALLOCATE(ijksnd)
 
       END DO
 !
@@ -997,7 +983,7 @@
 !
       DO ipe = 0, nproc - 1
         WRITE(7,100) rcv_map(ipe)%nrcv, ipe
-        IF(rcv_map(ipe)%nrcv .GT. 0 ) THEN
+        IF(rcv_map(ipe)%nrcv > 0 ) THEN
           WRITE(7,110) rcv_map(ipe)%ircv(:)
           WRITE(7,*) ' ---- '
           WRITE(7,110) rcv_map(ipe)%iloc(:)
@@ -1008,7 +994,7 @@
 
       DO ipe = 0, nproc - 1
         WRITE(7,200) snd_map(ipe)%nsnd, ipe
-        IF (snd_map(ipe)%nsnd .GT. 0 ) THEN
+        IF (snd_map(ipe)%nsnd > 0 ) THEN
           WRITE(7,210) snd_map(ipe)%isnd(:)
           WRITE(7,*) ' ---- '
           WRITE(7,210) snd_map(ipe)%iloc(:)
@@ -1017,18 +1003,16 @@
  210    FORMAT(10i8)
       END DO
 
-
       CALL test_comm
       
 ! ... fill in the array myinds using myijk
 !
-!*****MX3D : ok
-!
-      ALLOCATE(fl_l(ncdom))
-      DO ijl = 1, ncint
-        ij = myijk( ip0_jp0_kp0_, ijl)
-        fl_l(ijl) = fl(ij)
+      ALLOCATE( fl_l(ncdom) )
+      DO ijkl = 1, ncint
+        ijk = myijk( ip0_jp0_kp0_, ijkl)
+        fl_l(ijkl) = fl(ijk)
       END DO
+!
       CALL data_exchange(fl_l)
       CALL set_myinds(myinds, myijk)
 !
@@ -1041,24 +1025,43 @@
 !      END DO
 !
       RETURN
+
       END SUBROUTINE
+
 !----------------------------------------------------------------------
 !
-!*****MX3D : cambiare secondo le nuove maps
-!
-      INTEGER FUNCTION cell_owner(ij)
-! ... gives the owner of a cells from its global index (ij)
+      INTEGER FUNCTION cell_owner( ijk )
+
+! ... gives the owner of a cells from its global index (ijk)
+
         USE dimensions
         USE parallel, ONLY: nproc
-        INTEGER, INTENT(IN) :: ij
+        USE control_flags, ONLY: job_type
+
+        INTEGER, INTENT(IN) :: ijk
         INTEGER :: ipe, layer, cell_layer
-        INTEGER :: i,j
-        j = ( ij - 1 ) / nr + 1
-        i = MOD( ( ij - 1 ), nr) + 1
+        INTEGER :: i, j, k
+
+        IF( job_type == '2D' ) THEN
+
+          j = ( ijk - 1 ) / nr + 1
+          i = MOD( ( ijk - 1 ), nr) + 1
+
+        ELSE IF( job_type == '3D' ) THEN
+
+          i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
+          j = MOD( ijk - 1, nx*ny ) / nx + 1
+          k = ( ijk - 1 ) / ( nx*ny ) + 1
+
+        ELSE
+
+          CALL error(' cell_owner ', ' unknown job_type ', 1 )
+
+        END IF
           
         DO ipe = 0, nproc - 1
           IF ( proc_map(ipe)%type == LAYER_MAP ) THEN 
-            IF( ij .GE. proc_map(ipe)%lay(1) .AND. ij .LE. proc_map(ipe)%lay(2) ) THEN
+            IF( ijk .GE. proc_map(ipe)%lay(1) .AND. ijk .LE. proc_map(ipe)%lay(2) ) THEN
               cell_owner = ipe
             END IF
           ELSE IF ( proc_map(ipe)%type == BLOCK2D_MAP ) THEN
@@ -1070,211 +1073,280 @@
             CALL error(' cell_owner ', ' partition type not yet implemented ', proc_map(ipe)%type )
           END IF
         END DO
+
       RETURN
       END FUNCTION     
+
 !----------------------------------------------------------------------
 !
-!*****MX3D : cambiare secondo le nuove maps
 !
-      INTEGER FUNCTION cell_l2g(ijl, mpime)
-      USE dimensions
-      USE parallel, ONLY: nproc
-      INTEGER, INTENT(IN) :: ijl, mpime
-      INTEGER :: i,j,i1,i2,j1
+      INTEGER FUNCTION cell_l2g( ijkl, mpime)
+
+        USE dimensions
+        USE control_flags, ONLY: job_type
+        USE parallel, ONLY: nproc
+
+        INTEGER, INTENT(IN) :: ijkl, mpime
+        INTEGER :: i,j,k, i1,i2,j1,j2, nxl, nyl, nzl 
 !
-      IF ( proc_map(mpime)%type == LAYER_MAP ) THEN
-        cell_l2g = ijl + proc_map(mpime)%lay(1) - 1
-      ELSE IF ( proc_map(mpime)%type == BLOCK2D_MAP ) THEN
-        j1 = proc_map(mpime)%colsw(2)
-        i1 = proc_map(mpime)%colsw(1)
-        i2 = proc_map(mpime)%colne(1)
-        i = MOD( ( ijl - 1 ), (i2-i1+1)) + i1
-        j = ( ijl - 1 ) / (i2-i1+1) + j1
-        cell_l2g = i + (j-1)*nr
-      ELSE
-        CALL error(' cell_l2g ', ' partition type not yet implemented ', proc_map(mpime)%type )
-      END IF
+        IF ( proc_map(mpime)%type == LAYER_MAP ) THEN
+
+          cell_l2g = ijkl + proc_map( mpime )%lay(1) - 1
+
+        ELSE IF ( proc_map(mpime)%type == BLOCK2D_MAP ) THEN
+
+          IF( job_type == '2D' ) THEN
+
+            j1 = proc_map(mpime)%colsw(2)
+            i1 = proc_map(mpime)%colsw(1)
+            i2 = proc_map(mpime)%colne(1)
+            i = MOD( ( ijkl - 1 ), (i2-i1+1)) + i1
+            j = ( ijkl - 1 ) / (i2-i1+1) + j1
+            cell_l2g = i + (j-1)*nr
+
+          ELSE IF( job_type == '3D' ) THEN
+
+            j1 = proc_map(mpime)%colsw(2)
+            i1 = proc_map(mpime)%colsw(1)
+            j2 = proc_map(mpime)%colne(2)
+            i2 = proc_map(mpime)%colne(1)
+            nxl = i2 - i1 + 1
+            nyl = j2 - j1 + 1
+            nzl = nz
+            
+            i = MOD( MOD( ijkl - 1, nxl*nyl ), nxl ) + i1
+            j = MOD( ijkl - 1, nxl*nyl ) / nxl + j1
+            k = ( ijkl - 1 ) / ( nxl*nyl ) + 1
+
+            cell_l2g = i + (j-1)*nx + (k-1)*nx*ny
+
+          ELSE
+
+            CALL error(' cell_owner ', ' unknown job_type ', 1 )
+
+          END IF
+
+        ELSE
+
+          CALL error(' cell_l2g ', ' partition type not yet implemented ', proc_map(mpime)%type )
+
+        END IF
 !
-      RETURN
+        RETURN
       END FUNCTION     
+!
 !----------------------------------------------------------------------
 !
-!*****MX3D : cambiare secondo le nuove maps
+      INTEGER FUNCTION cell_g2l(ijk, mpime)
+
+        USE dimensions
+        USE parallel, ONLY: nproc
+        USE control_flags, ONLY: job_type
+
+        INTEGER, INTENT(IN) :: ijk, mpime
+        INTEGER :: i, j, k, i1, i2, j1, j2, nxl, nyl, nzl
 !
-      INTEGER FUNCTION cell_g2l(ij, mpime)
-      USE dimensions
-      USE parallel, ONLY: nproc
-      INTEGER, INTENT(IN) :: ij, mpime
-      INTEGER :: i,j,i1,i2,j1
+        IF ( proc_map(mpime)%type == LAYER_MAP ) THEN
+
+          cell_g2l = ijk - proc_map(mpime)%lay(1) + 1
+
+        ELSE IF ( proc_map(mpime)%type == BLOCK2D_MAP ) THEN
+
+          IF( job_type == '2D' ) THEN
+
+            j = ( ijk - 1 ) / nr + 1
+            i = MOD( ( ijk - 1 ), nr) + 1
+            j1 = proc_map(mpime)%colsw(2)
+            i1 = proc_map(mpime)%colsw(1)
+            i2 = proc_map(mpime)%colne(1)
+            cell_g2l = (i-i1+1) + (j-j1)*(i2-i1+1)
+
+          ELSE IF( job_type == '3D' ) THEN
+
+            i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
+            j = MOD( ijk - 1, nx*ny ) / nx + 1
+            k = ( ijk - 1 ) / ( nx*ny ) + 1
+
+            j1 = proc_map(mpime)%colsw(2)
+            i1 = proc_map(mpime)%colsw(1)
+            j2 = proc_map(mpime)%colne(2)
+            i2 = proc_map(mpime)%colne(1)
+
+            nxl = i2 - i1 + 1
+            nyl = j2 - j1 + 1
+            nzl = nz
+
+            cell_g2l = 1 + (i-i1) + (j-j1)*nxl + (k-1)*nxl*nyl
+
+          ELSE
+
+            CALL error(' cell_owner ', ' unknown job_type ', 1 )
+
+          END IF
+
+        ELSE
+
+          CALL error(' cell_g2l ', ' partition type not yet implemented ', proc_map(mpime)%type )
+
+        END IF
 !
-      IF ( proc_map(mpime)%type == LAYER_MAP ) THEN
-        cell_g2l = ij - proc_map(mpime)%lay(1) + 1
-      ELSE IF ( proc_map(mpime)%type == BLOCK2D_MAP ) THEN
-        j = ( ij - 1 ) / nr + 1
-        i = MOD( ( ij - 1 ), nr) + 1
-        j1 = proc_map(mpime)%colsw(2)
-        i1 = proc_map(mpime)%colsw(1)
-        i2 = proc_map(mpime)%colne(1)
-        cell_g2l = (i-i1+1) + (j-j1)*(i2-i1+1)
-      ELSE
-        CALL error(' cell_g2l ', ' partition type not yet implemented ', proc_map(mpime)%type )
-      END IF
-!
-      RETURN
+        RETURN
       END FUNCTION     
+!
 !----------------------------------------------------------------------
 !
-!*****MX3D : aggiungere la terza dimensione nei loop
+      INTEGER FUNCTION cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
 !
-      INTEGER FUNCTION cell_neighbours(ij, mpime, nset, rcv_cell_set, myijk)
         USE dimensions
         USE basic_types, ONLY: imatrix
-        INTEGER, INTENT(IN) :: ij, mpime
+        USE control_flags, ONLY: job_type
+!
+        INTEGER, INTENT(IN) :: ijk
+        INTEGER, INTENT(IN) :: mpime
         INTEGER, INTENT(INOUT) :: nset(0:)
         TYPE (imatrix), OPTIONAL :: rcv_cell_set(0:)
         INTEGER, OPTIONAL :: myijk(:,:)
-        INTEGER :: ippj, ijpp, ijmm, immj
-        INTEGER :: icnt, ipe, i, j, ije, ijl, ijel
-        INTEGER :: im, jm
+!
+        INTEGER :: ippj, ijpp, ii, jj, kk
+        INTEGER :: icnt, ipe, i, j, k, ijke, ijkel, ijkl
+        INTEGER :: im, jm, km
         LOGICAL :: fill
 
-        IF ( PRESENT(rcv_cell_set) .AND. .NOT. present(myijk) ) THEN
-          WRITE(8,*) ' error in neighbour - 1 '
-          STOP 
-        END IF
-        IF( .NOT. PRESENT(rcv_cell_set) .AND. present(myijk) ) THEN
-          WRITE(8,*) ' error in neighbour - 2 '
-          STOP 
-        END IF
+! ...   Subroutine Body
 
-        fill = PRESENT(rcv_cell_set)
+        IF ( PRESENT(rcv_cell_set) .AND. .NOT. present(myijk) ) &
+          CALL error(' cell_neighbours ', ' in neighbour ', 1 )
+!
+        IF( .NOT. PRESENT(rcv_cell_set) .AND. present(myijk) ) &
+          CALL error(' cell_neighbours ', ' in neighbour ', 2 )
+
+        fill = PRESENT( rcv_cell_set )
         icnt = 0
         IF( fill ) THEN
-          ncint = SIZE(myijk, 2)
-          ijl   = cell_g2l(ij, mpime)
+          ncint = SIZE( myijk, 2 )
+          ijkl  = cell_g2l( ijk, mpime )
         END IF
+
+        IF( job_type == '2D' ) THEN
+
+          j = ( ijk - 1 ) / nr + 1
+          i = MOD( ( ijk - 1 ), nr) + 1
         
-! ...   loop over the first neighbouring cells
-        DO im = -1, 1
-          DO jm = -1, 1
-            IF( (im .NE. 0) .OR. (jm .NE. 0) ) THEN
-              ije = ij + im + jm*nr
-              ipe =  cell_owner(ije) 
-              IF( ipe .NE. mpime) THEN
-! ...           the cell ije is not local, count and register its position
-                nset(ipe) = nset(ipe) + 1
-                icnt = icnt + 1
-                IF( fill ) THEN
-                  rcv_cell_set(ipe)%i(1,nset(ipe)) = ije
-                  rcv_cell_set(ipe)%i(2,nset(ipe)) = ijl
-                  rcv_cell_set(ipe)%i(3,nset(ipe)) = im
-                  rcv_cell_set(ipe)%i(4,nset(ipe)) = jm
+! ...     loop over the first neighbouring cells
+          DO im = -2, 2
+            DO jm = -2, 2
+              IF( ( ABS( im ) + ABS( jm ) ) < 2 ) THEN
+                IF( (im /= 0) .OR. (jm /= 0) ) THEN
+                  ii = im
+                  jj = jm 
+                  IF( ( i == 2    ) .AND. ( ii == -2 ) ) ii = -1
+                  IF( ( i == nr-1 ) .AND. ( ii == +2 ) ) ii = +1
+                  IF( ( j == 2    ) .AND. ( jj == -2 ) ) jj = -1
+                  IF( ( j == nz-1 ) .AND. ( jj == +2 ) ) jj = +1
+                  ijke = ijk + ii + jj * nr
+                  ipe =  cell_owner(ijke) 
+                  IF( ipe /= mpime) THEN
+! ...               the cell ijke is not local, count and register its position
+                    nset(ipe) = nset(ipe) + 1
+                    icnt = icnt + 1
+                    IF( fill ) THEN
+                      rcv_cell_set(ipe)%i(1,nset(ipe)) = ijke
+                      rcv_cell_set(ipe)%i(2,nset(ipe)) = ijkl
+                      rcv_cell_set(ipe)%i(3,nset(ipe)) = im
+                      rcv_cell_set(ipe)%i(4,nset(ipe)) = jm
+                      rcv_cell_set(ipe)%i(5,nset(ipe)) = 0
+                    END IF
+                  ELSE IF( fill ) THEN
+! ...               the cell ijke is local, set the mapping with cell ijkl
+                    ijkel = cell_g2l(ijke, mpime)
+                    myijk( indijk( im, jm, 0), ijkl ) = ijkel
+                  END IF
+                ELSE IF( fill ) THEN   
+! ...             store the global cell index ij, of the the local cell ijkl
+                  myijk( ip0_jp0_kp0_, ijkl) = ijk
                 END IF
-              ELSE IF( fill ) THEN
-! ...           the cell ije is local, set the mapping with cell ijl
-                ijel = cell_g2l(ije, mpime)
-                myijk( indijk(im,jm,0), ijl ) = ijel
               END IF
-            ELSE IF( fill ) THEN   
-! ...         store the global cell index ij, of the the local cell ijl
-              myijk( ip0_jp0_kp0_, ijl) = ij
-            END IF
+            END DO
           END DO
-        END DO
 
-        j = ( ij - 1 ) / nr + 1
-        i = MOD( ( ij - 1 ), nr) + 1
+        ELSE IF( job_type == '3D' ) THEN
 
-        immj=ij-2
-        IF(i .EQ. (2)) immj = ij-1
-        ipe =  cell_owner(immj) 
-        IF( ipe .NE. mpime) THEN
-          nset(ipe) = nset(ipe) + 1
-          icnt = icnt + 1
-          IF( fill ) THEN
-            rcv_cell_set(ipe)%i(1,nset(ipe)) = immj
-            rcv_cell_set(ipe)%i(2,nset(ipe)) = ijl
-            rcv_cell_set(ipe)%i(3,nset(ipe)) = -2
-            rcv_cell_set(ipe)%i(4,nset(ipe)) = 0
-          END IF
-        ELSE IF( fill ) THEN
-          ijel = cell_g2l(immj, mpime)
-          myijk( im2_jp0_kp0_, ijl) = ijel
-        END IF
+          i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
+          j = MOD( ijk - 1, nx*ny ) / nx + 1
+          k = ( ijk - 1 ) / ( nx*ny ) + 1
 
-        ippj=ij+2
-        IF(i .EQ. (nr-1)) ippj = ij+1
-        ipe =  cell_owner(ippj) 
-        IF( ipe .NE. mpime) THEN
-          nset(ipe) = nset(ipe) + 1
-          icnt = icnt + 1
-          IF( fill ) THEN
-            rcv_cell_set(ipe)%i(1,nset(ipe)) = ippj
-            rcv_cell_set(ipe)%i(2,nset(ipe)) = ijl
-            rcv_cell_set(ipe)%i(3,nset(ipe)) = 2
-            rcv_cell_set(ipe)%i(4,nset(ipe)) = 0
-          END IF
-        ELSE IF( fill ) THEN
-          ijel = cell_g2l(ippj, mpime)
-          myijk( ip2_jp0_kp0_, ijl ) = ijel
-        END IF
+! ...     loop over the first neighbouring cells
+          DO km = -2, 2
+            DO jm = -2, 2
+              DO im = -2, 2
+                IF( ( ABS( im ) + ABS( jm ) + ABS( km ) ) < 2 ) THEN
+                  IF( (im /= 0) .OR. (jm /= 0) .OR. (km /= 0) ) THEN
+                    ii = im
+                    jj = jm
+                    kk = km
+                    IF( ( i == 2    ) .AND. ( ii == -2 ) ) ii = -1
+                    IF( ( i == nx-1 ) .AND. ( ii == +2 ) ) ii = +1
+                    IF( ( j == 2    ) .AND. ( jj == -2 ) ) jj = -1
+                    IF( ( j == ny-1 ) .AND. ( jj == +2 ) ) jj = +1
+                    IF( ( k == 2    ) .AND. ( kk == -2 ) ) kk = -1
+                    IF( ( k == nz-1 ) .AND. ( kk == +2 ) ) kk = +1
+                    ijke = ijk + ii + jj * ny + kk * nx*ny
+                    ipe  =  cell_owner(ijke)
+                    IF( ipe /= mpime ) THEN
+! ...                 the cell ijke is not local, count and register its position
+                      nset(ipe) = nset(ipe) + 1
+                      icnt = icnt + 1
+                      IF( fill ) THEN
+                        rcv_cell_set(ipe)%i(1,nset(ipe)) = ijke
+                        rcv_cell_set(ipe)%i(2,nset(ipe)) = ijkl
+                        rcv_cell_set(ipe)%i(3,nset(ipe)) = im
+                        rcv_cell_set(ipe)%i(4,nset(ipe)) = jm
+                        rcv_cell_set(ipe)%i(5,nset(ipe)) = km
+                      END IF
+                    ELSE IF( fill ) THEN
+! ...                 the cell ijke is local, set the mapping with cell ijkl
+                      ijkel = cell_g2l(ijke, mpime)
+                      myijk( indijk( im, jm, km ), ijkl ) = ijkel
+                    END IF
+                  ELSE IF( fill ) THEN
+! ...               store the global cell index ij, of the the local cell ijkl
+                    myijk( ip0_jp0_kp0_, ijkl) = ijk
+                  END IF
+                END IF
+              END DO
+            END DO
+          END DO
 
-        ijmm=ij-nr-nr
-        IF(j .EQ. (2)) ijmm = ij-nr
-        ipe =  cell_owner(ijmm) 
-        IF( ipe .NE. mpime) THEN
-          nset(ipe) = nset(ipe) + 1
-          icnt = icnt + 1
-          IF( fill ) THEN
-            rcv_cell_set(ipe)%i(1,nset(ipe)) = ijmm
-            rcv_cell_set(ipe)%i(2,nset(ipe)) = ijl
-            rcv_cell_set(ipe)%i(3,nset(ipe)) = 0
-            rcv_cell_set(ipe)%i(4,nset(ipe)) = -2
-          END IF
-        ELSE IF( fill ) THEN
-          ijel = cell_g2l(ijmm, mpime)
-          myijk( ip0_jm2_kp0_, ijl ) = ijel
-        END IF
+        ELSE 
 
-        ijpp=ij+nr+nr
-        IF(j .EQ. (nz-1)) ijpp = ij+nr
-        ipe =  cell_owner(ijpp) 
-        IF( ipe .NE. mpime) THEN
-          nset(ipe) = nset(ipe) + 1
-          icnt = icnt + 1
-          IF( fill ) THEN
-            rcv_cell_set(ipe)%i(1,nset(ipe)) = ijpp
-            rcv_cell_set(ipe)%i(2,nset(ipe)) = ijl
-            rcv_cell_set(ipe)%i(3,nset(ipe)) = 0
-            rcv_cell_set(ipe)%i(4,nset(ipe)) = 2
-          END IF
-        ELSE IF( fill ) THEN
-          ijel = cell_g2l(ijpp, mpime)
-          myijk( ip0_jp2_kp0_, ijl ) = ijel
+          CALL error(' cell_neighbours ', ' wrong job_type ', 1 )
+
         END IF
 
         cell_neighbours = icnt
 
         RETURN
       END FUNCTION
+!
 !----------------------------------------------------------------------
 !
-!*****MX3D : ok
-!
       SUBROUTINE cell_set_sort(rcv_cell_set, nset, nrcv)
+!
         USE basic_types, ONLY: imatrix
+
         TYPE (imatrix) :: rcv_cell_set(0:)
         INTEGER, INTENT(OUT) :: nrcv(0:)
         INTEGER, INTENT(IN) :: nset(0:)
-        INTEGER :: ipe, nproc, icell(4), ic, it, icurr
-        INTEGER, ALLOCATABLE :: ijsort(:), indx(:)
+        INTEGER :: ipe, nproc, icell(5), ic, it, icurr
+        INTEGER, ALLOCATABLE :: ijksort(:), indx(:)
+!
         nproc = SIZE(rcv_cell_set)
         DO ipe = 0, nproc - 1
           IF( nset(ipe) .GT. 0 ) THEN
-            ALLOCATE( ijsort(nset(ipe)) )
+            ALLOCATE( ijksort(nset(ipe)) )
             ALLOCATE( indx(nset(ipe)) )
-            ijsort(:) = rcv_cell_set(ipe)%i(1,:)
-            CALL ikb07ad(ijsort(1), nset(ipe), indx(1))
+            ijksort(:) = rcv_cell_set(ipe)%i(1,:)
+            CALL ikb07ad(ijksort(1), nset(ipe), indx(1))
             DO ic = 1, nset(ipe)
               icurr = ic 
  3000         IF(indx(icurr) .NE. ic) THEN
@@ -1292,84 +1364,103 @@
 
             nrcv(ipe) = 1
             DO ic = 2, nset(ipe)
-              IF( ijsort(ic) .NE. ijsort(ic-1) ) THEN
+              IF( ijksort(ic) .NE. ijksort(ic-1) ) THEN
                 nrcv(ipe) = nrcv(ipe) + 1
               END IF 
             END DO
-            DEALLOCATE( ijsort, indx)
+            DEALLOCATE( ijksort, indx)
           END IF
         END DO
 
         RETURN
       END SUBROUTINE
+!
 !----------------------------------------------------------------------
 !
-!*****MX3D : aggiungere la terza dimensione
-!
       SUBROUTINE set_rcv_map(rcv_map, myijk, rcv_cell_set, nset, nrcv)
+!
         USE basic_types, ONLY: imatrix 
+        USE control_flags, ONLY: job_type
+!
         TYPE (rcv_map_type) :: rcv_map(0:)
         TYPE (imatrix) :: rcv_cell_set(0:)
         INTEGER :: myijk(:,:)
         INTEGER, INTENT(IN) :: nrcv(0:), nset(0:)
-        INTEGER :: ipe, nproc, icnt, ijl, i, j, ije
+        INTEGER :: ipe, nproc, icnt, ijkl, i, j, k, ijke
         INTEGER :: ic, icnt_rcv
-        INTEGER, ALLOCATABLE :: ijsort(:)
+        INTEGER, ALLOCATABLE :: ijksort(:)
 
-        nproc = SIZE(rcv_cell_set)
-        ncint = SIZE(myijk,2)
-        icnt  = 0                    ! counts received cells from all processors
+        nproc = SIZE( rcv_cell_set )
+        ncint = SIZE( myijk, 2 )
+
+
+        icnt  = 0    !  counts received cells from all processors
 
         DO ipe = 0, nproc - 1
 
           rcv_map(ipe)%nrcv = nrcv(ipe)
+
           IF( ASSOCIATED(rcv_map(ipe)%ircv) ) DEALLOCATE( rcv_map(ipe)%ircv )
           IF( ASSOCIATED(rcv_map(ipe)%iloc) ) DEALLOCATE( rcv_map(ipe)%iloc )
 
-          IF( nrcv(ipe) .GT. 0 ) THEN
+          IF( nrcv(ipe) > 0 ) THEN
+
             ALLOCATE( rcv_map(ipe)%ircv(nrcv(ipe)) )
             ALLOCATE( rcv_map(ipe)%iloc(nrcv(ipe)) )
 
-            ALLOCATE( ijsort(nset(ipe)) )
-            ijsort(:) = rcv_cell_set(ipe)%i(1,:)
+            ALLOCATE( ijksort( nset(ipe) ) )
+
+            ijksort(:) = rcv_cell_set(ipe)%i(1,:)
+
+! ...       Manage the first cell to be received
 
             ic        = 1           ! index that run over neighbour cells from the current processor 
             icnt_rcv  = 1           ! counts received cells from the current processor (ipe)
-            icnt      = icnt + 1
-            ije = rcv_cell_set(ipe)%i(1,ic)
-            ijl = rcv_cell_set(ipe)%i(2,ic)
-            i   = rcv_cell_set(ipe)%i(3,ic)
-            j   = rcv_cell_set(ipe)%i(4,ic)
-            rcv_map(ipe)%ircv(icnt_rcv) = ije
-            rcv_map(ipe)%iloc(icnt_rcv) = icnt + ncint
-            myijk( indijk(i,j,0), ijl ) = icnt + ncint
+            icnt      = icnt + 1    ! increment the number of cell
+
+            ijke = rcv_cell_set(ipe)%i(1,ic)
+            ijkl = rcv_cell_set(ipe)%i(2,ic)
+            i    = rcv_cell_set(ipe)%i(3,ic)
+            j    = rcv_cell_set(ipe)%i(4,ic)
+            k    = rcv_cell_set(ipe)%i(5,ic)
+
+            rcv_map(ipe)%ircv(icnt_rcv)  = ijke
+            rcv_map(ipe)%iloc(icnt_rcv)  = icnt + ncint
+            myijk( indijk(i,j,k), ijkl ) = icnt + ncint
+
+! ...       Manage the remaining cells
+
             DO ic = 2, nset(ipe)
-              ije = rcv_cell_set(ipe)%i(1,ic)
-              ijl = rcv_cell_set(ipe)%i(2,ic)
-              i   = rcv_cell_set(ipe)%i(3,ic)
-              j   = rcv_cell_set(ipe)%i(4,ic)
-              ! ... k  = rcv_cell_set(ipe)%i(5,ic)    ! aggiungere
-              ! ... stind = stencil_index( i, j, k )  ! = a number from 0 and 24, aggiungere
-              IF( ijsort(ic) .NE. ijsort(ic-1) ) THEN
+
+              ijke = rcv_cell_set(ipe)%i(1,ic)
+              ijkl = rcv_cell_set(ipe)%i(2,ic)
+              i    = rcv_cell_set(ipe)%i(3,ic)
+              j    = rcv_cell_set(ipe)%i(4,ic)
+              k    = rcv_cell_set(ipe)%i(5,ic)
+
+! ...         Here add to the list only new cells
+
+              IF( ijksort( ic ) /= ijksort( ic-1 ) ) THEN
                 icnt_rcv  = icnt_rcv + 1
                 icnt      = icnt + 1
-                rcv_map(ipe)%ircv(icnt_rcv) = ije
+                rcv_map(ipe)%ircv(icnt_rcv) = ijke
                 rcv_map(ipe)%iloc(icnt_rcv) = icnt + ncint
               END IF 
-              myijk( indijk(i,j,0), ijl ) = icnt + ncint  ! da sostituire con
-              ! ... myijk( stind, ijl ) = icnt + ncint
+
+              myijk( indijk(i,j,k), ijkl ) = icnt + ncint  
+
             END DO
 
-            DEALLOCATE( ijsort)
+            DEALLOCATE( ijksort )
 
-            IF( icnt_rcv .NE. nrcv(ipe) ) THEN
-              WRITE(8,*) ' error in set_rcv_map - 1 '
-              STOP
-            END IF
+            IF( icnt_rcv /= nrcv(ipe) ) &
+              CALL error( '  set_rcv_map ', ' inconsistent numbero of cells ', icnt_rcv )
 
           ELSE
-            NULLIFY(rcv_map(ipe)%ircv)
-            NULLIFY(rcv_map(ipe)%iloc)
+
+            NULLIFY( rcv_map(ipe)%ircv )
+            NULLIFY( rcv_map(ipe)%iloc )
+
           END IF
 
         END DO
@@ -1382,7 +1473,10 @@
 !*****MX3D : cambiare gli stencil
 !
       SUBROUTINE set_myinds(myinds, myijk)
+!
         USE dimensions
+        USE control_flags, ONLY: job_type
+!
         IMPLICIT NONE
         INTEGER :: myinds(:,:)
         INTEGER :: myijk(:,:)
@@ -1393,27 +1487,39 @@
         INTEGER :: nflr, nflt, nfll, nflb
         INTEGER :: nfltr, nfltl, nflbr, nflbl
         INTEGER :: nflrr, nfltt, nflll, nflbb
-        INTEGER :: i, j, ij, imesh
+        INTEGER :: i, j, k, ijk, imesh
+
+        INTEGER ::  ipjk,  imjk,  ippjk,  immjk,  ijpk,  ipjpk,  imjpk,  ijmk,  &
+                    ipjmk,  imjmk,  ijppk,  ijmmk,  ijkp,  ipjkp,  imjkp,  ijpkp,  &
+                    ijmkp,  ijkm,  ipjkm,  imjkm,  ijpkm,  ijmkm,  ijkpp,  ijkmm
+
+        INTEGER ::  ijke,  ijkw,  ijkee,  ijkww,  ijkn,  ijken,  ijkwn,  ijks,  ijkes,  &
+                    ijkws,  ijknn,  ijkss,  ijkt,  ijket,  ijkwt,  ijknt,  ijkst,  ijkb, &
+                    ijkeb,  ijkwb,  ijknb,  ijksb,  ijktt,  ijkbb
 !
-        DO ij = 1, ncint 
-          imesh = myijk( ip0_jp0_kp0_, ij)
-          j  = ( imesh - 1 ) / nr + 1
-          i  = MOD( ( imesh - 1 ), nr) + 1
-          IF( (i .GE. 2) .AND. (i .LE. (nr-1)) .AND.   &
-              (j .GE. 2) .AND. (j .LE. (nz-1))      ) THEN
+        DO ijk = 1, ncint 
+
+          imesh = myijk( ip0_jp0_kp0_, ijk)
+
+          IF( job_type == '2D' ) THEN
+
+            j  = ( imesh - 1 ) / nr + 1
+            i  = MOD( ( imesh - 1 ), nr) + 1
+            IF( (i .GE. 2) .AND. (i .LE. (nr-1)) .AND.   &
+                (j .GE. 2) .AND. (j .LE. (nz-1))      ) THEN
 !
-            ijm = myijk( ip0_jm1_kp0_, ij)
-            imj = myijk( im1_jp0_kp0_, ij)
-            ipj = myijk( ip1_jp0_kp0_, ij)
-            ijp = myijk( ip0_jp1_kp0_, ij)
-            ipjm= myijk( ip1_jm1_kp0_, ij)
-            ipjp= myijk( ip1_jp1_kp0_, ij)
-            imjm= myijk( im1_jm1_kp0_, ij)
-            imjp= myijk( im1_jp1_kp0_, ij)
-            ippj= myijk( ip2_jp0_kp0_, ij)
-            ijpp= myijk( ip0_jp2_kp0_, ij)
-            immj= myijk( im2_jp0_kp0_, ij)
-            ijmm= myijk( ip0_jm2_kp0_, ij)
+              ijm = myijk( ip0_jm1_kp0_, ijk)
+              imj = myijk( im1_jp0_kp0_, ijk)
+              ipj = myijk( ip1_jp0_kp0_, ijk)
+              ijp = myijk( ip0_jp1_kp0_, ijk)
+              ipjm= myijk( ip1_jm1_kp0_, ijk)
+              ipjp= myijk( ip1_jp1_kp0_, ijk)
+              imjm= myijk( im1_jm1_kp0_, ijk)
+              imjp= myijk( im1_jp1_kp0_, ijk)
+              ippj= myijk( ip2_jp0_kp0_, ijk)
+              ijpp= myijk( ip0_jp2_kp0_, ijk)
+              immj= myijk( im2_jp0_kp0_, ijk)
+              ijmm= myijk( ip0_jm2_kp0_, ijk)
 !
 ! ... indexes labelled Right, Top, Left, Bottom, etc., correspond to those defined 
 ! ...  above, except at boundaries ...
@@ -1421,100 +1527,168 @@
 ! ... First neighbours: near the axis or solid boundaries 
 ! ... impose homogeneous Neumann conditions
 !
-            ijr = ipj
-            nflr = fl_l(ipj) 
-            IF((nflr.EQ.2).OR.(nflr.EQ.3)) ijr = ij
+              ijr = ipj
+              nflr = fl_l(ipj) 
+              IF((nflr.EQ.2).OR.(nflr.EQ.3)) ijr = ijk
 
-            ijl = imj
-            nfll = fl_l(imj) 
-            IF((nfll.EQ.2).OR.(nfll.EQ.3)) ijl = ij
+              ijl = imj
+              nfll = fl_l(imj) 
+              IF((nfll.EQ.2).OR.(nfll.EQ.3)) ijl = ijk
 
-            ijt = ijp
-            nflt = fl_l(ijp) 
-            IF((nflt.EQ.2).OR.(nflt.EQ.3)) ijt = ij
+              ijt = ijp
+              nflt = fl_l(ijp) 
+              IF((nflt.EQ.2).OR.(nflt.EQ.3)) ijt = ijk
 
-            ijb = ijm
-            nflb = fl_l(ijm) 
-            IF((nflb.EQ.2).OR.(nflb.EQ.3)) ijb = ij
+              ijb = ijm
+              nflb = fl_l(ijm) 
+              IF((nflb.EQ.2).OR.(nflb.EQ.3)) ijb = ijk
 
-            ijtl = imjp
-            nfltl=fl_l(imjp)
-            IF(nfltl.EQ.2 .OR. nfltl.EQ.3) ijtl = ijp 
+              ijtl = imjp
+              nfltl=fl_l(imjp)
+              IF(nfltl.EQ.2 .OR. nfltl.EQ.3) ijtl = ijp 
 
-            ijbr = ipjm
-            nflbr=fl_l(ipjm)
-            IF(nflbr.EQ.2 .OR. nflbr.EQ.3) ijbr = ipj 
+              ijbr = ipjm
+              nflbr=fl_l(ipjm)
+              IF(nflbr.EQ.2 .OR. nflbr.EQ.3) ijbr = ipj 
 
-            ijtr = ipjp
-            nfltr = fl_l(ipjp)
-            IF (nfltr.EQ.2 .OR. nfltr.EQ.3) THEN
-              nflt=fl_l(ijp)
-              nflr=fl_l(ipj)
-              IF (nflt.EQ.2 .OR. nflt.EQ.3) THEN
-                IF (nflr.EQ.2 .OR. nflr.EQ.3) THEN
-                  ijtr = ij 
+              ijtr = ipjp
+              nfltr = fl_l(ipjp)
+              IF (nfltr.EQ.2 .OR. nfltr.EQ.3) THEN
+                nflt=fl_l(ijp)
+                nflr=fl_l(ipj)
+                IF (nflt.EQ.2 .OR. nflt.EQ.3) THEN
+                  IF (nflr.EQ.2 .OR. nflr.EQ.3) THEN
+                    ijtr = ijk 
+                  ELSE
+                    ijtr = ipj
+                  END IF
                 ELSE
-                  ijtr = ipj
-                END IF
-              ELSE
-                IF (nflr.EQ.2 .OR. nflr.EQ.3) THEN
-                  ijtr = ijp 
-                ELSE
-                  ijtr = ij
+                  IF (nflr.EQ.2 .OR. nflr.EQ.3) THEN
+                    ijtr = ijp 
+                  ELSE
+                    ijtr = ijk
+                  END IF
                 END IF
               END IF
-            END IF
 !
 ! ... Second neighbours are not available on boundaries
 !
-            ijrr = ippj
-            IF(i .EQ. (nr-1)) ijrr = ijr
-            nflrr=fl_l(ippj)
-            IF( (nflrr.EQ.2) .OR. (nflrr.EQ.3) ) ijrr = ipj
+              ijrr = ippj
+              IF(i .EQ. (nr-1)) ijrr = ijr
+              nflrr=fl_l(ippj)
+              IF( (nflrr.EQ.2) .OR. (nflrr.EQ.3) ) ijrr = ipj
 
-            ijtt = ijpp
-            IF(j.EQ.(nz-1)) ijtt = ijt
-            nfltt=fl_l(ijpp)
-            IF( (nfltt.EQ.2) .OR. (nfltt.EQ.3) ) ijtt = ijp
+              ijtt = ijpp
+              IF(j.EQ.(nz-1)) ijtt = ijt
+              nfltt=fl_l(ijpp)
+              IF( (nfltt.EQ.2) .OR. (nfltt.EQ.3) ) ijtt = ijp
+  
+              ijll = immj
+              IF(i .EQ. (2)) ijll = ijl
+              nflll=fl_l(immj)
+              IF( (nflll.EQ.2) .OR. (nflll.EQ.3) ) ijll = imj
 
-            ijll = immj
-            IF(i .EQ. (2)) ijll = ijl
-            nflll=fl_l(immj)
-            IF( (nflll.EQ.2) .OR. (nflll.EQ.3) ) ijll = imj
-
-            ijbb = ijmm
-            IF(j.EQ.(2)) ijbb = ijb
-            nflbb=fl_l(ijmm)
-            IF( (nflbb.EQ.2) .OR. (nflbb.EQ.3) ) ijbb = ijm
+              ijbb = ijmm
+              IF(j.EQ.(2)) ijbb = ijb
+              nflbb=fl_l(ijmm)
+              IF( (nflbb.EQ.2) .OR. (nflbb.EQ.3) ) ijbb = ijm
 !
-            myinds(bb_, ij) = ijbb
-            myinds(bl_, ij) = ijbl
-            myinds(b_,  ij) = ijb
-            myinds(br_, ij) = ijbr
-            myinds(ll_, ij) = ijll
-            myinds(l_,  ij) = ijl
-            myinds(r_,  ij) = ijr
-            myinds(rr_, ij) = ijrr
-            myinds(tl_, ij) = ijtl
-            myinds(t_,  ij) = ijt
-            myinds(tr_, ij) = ijtr
-            myinds(tt_, ij) = ijtt
+              myinds(ip0_jm2_kp0_, ijk) = ijbb
+              myinds(im1_jm1_kp0_, ijk) = ijbl
+              myinds(ip0_jm1_kp0_,  ijk) = ijb
+              myinds(ip1_jm1_kp0_, ijk) = ijbr
+              myinds(im2_jp0_kp0_, ijk) = ijll
+              myinds(im1_jp0_kp0_,  ijk) = ijl
+              myinds(ip1_jp0_kp0_,  ijk) = ijr
+              myinds(ip2_jp0_kp0_, ijk) = ijrr
+              myinds(im1_jp1_kp0_, ijk) = ijtl
+              myinds(ip0_jp1_kp0_,  ijk) = ijt
+              myinds(ip1_jp1_kp0_, ijk) = ijtr
+              myinds(ip0_jp2_kp0_, ijk) = ijtt
 
+            END IF
+
+          ELSE IF( job_type == '3D' ) THEN
+
+            i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
+            j = MOD( ijk - 1, nx*ny ) / nx + 1
+            k = ( ijk - 1 ) / ( nx*ny ) + 1
+
+            ijk = myijk( ip0_jp0_kp0_ , ijk )
+            ipjk = myijk( ip1_jp0_kp0_ , ijk )
+            imjk = myijk( im1_jp0_kp0_ , ijk )
+            ippjk = myijk( ip2_jp0_kp0_ , ijk )
+            immjk = myijk( im2_jp0_kp0_ , ijk )
+            ijpk = myijk( ip0_jp1_kp0_ , ijk )
+            ipjpk = myijk( ip1_jp1_kp0_ , ijk )
+            imjpk = myijk( im1_jp1_kp0_ , ijk )
+            ijmk = myijk( ip0_jm1_kp0_ , ijk )
+            ipjmk = myijk( ip1_jm1_kp0_ , ijk )
+            imjmk = myijk( im1_jm1_kp0_ , ijk )
+            ijppk = myijk( ip0_jp2_kp0_ , ijk )
+            ijmmk = myijk( ip0_jm2_kp0_ , ijk )
+            ijkp = myijk( ip0_jp0_kp1_ , ijk )
+            ipjkp = myijk( ip1_jp0_kp1_ , ijk )
+            imjkp = myijk( im1_jp0_kp1_ , ijk )
+            ijpkp = myijk( ip0_jp1_kp1_ , ijk )
+            ijmkp = myijk( ip0_jm1_kp1_ , ijk )
+            ijkm = myijk( ip0_jp0_km1_ , ijk )
+            ipjkm = myijk( ip1_jp0_km1_ , ijk )
+            imjkm = myijk( im1_jp0_km1_ , ijk )
+            ijpkm = myijk( ip0_jp1_km1_ , ijk )
+            ijmkm = myijk( ip0_jm1_km1_ , ijk )
+            ijkpp = myijk( ip0_jp0_kp2_ , ijk )
+            ijkmm = myijk( ip0_jp0_km2_ , ijk )
+
+            myinds( ip1_jp0_kp0_ , ijk ) = ijke
+            myinds( im1_jp0_kp0_ , ijk ) = ijkw
+            myinds( ip2_jp0_kp0_ , ijk ) = ijkee
+            myinds( im2_jp0_kp0_ , ijk ) = ijkww
+            myinds( ip0_jp1_kp0_ , ijk ) = ijkn
+            myinds( ip1_jp1_kp0_ , ijk ) = ijken
+            myinds( im1_jp1_kp0_ , ijk ) = ijkwn
+            myinds( ip0_jm1_kp0_ , ijk ) = ijks
+            myinds( ip1_jm1_kp0_ , ijk ) = ijkes
+            myinds( im1_jm1_kp0_ , ijk ) = ijkws
+            myinds( ip0_jp2_kp0_ , ijk ) = ijknn
+            myinds( ip0_jm2_kp0_ , ijk ) = ijkss
+            myinds( ip0_jp0_kp1_ , ijk ) = ijkt
+            myinds( ip1_jp0_kp1_ , ijk ) = ijket
+            myinds( im1_jp0_kp1_ , ijk ) = ijkwt
+            myinds( ip0_jp1_kp1_ , ijk ) = ijknt
+            myinds( ip0_jm1_kp1_ , ijk ) = ijkst
+            myinds( ip0_jp0_km1_ , ijk ) = ijkb
+            myinds( ip1_jp0_km1_ , ijk ) = ijkeb
+            myinds( im1_jp0_km1_ , ijk ) = ijkwb
+            myinds( ip0_jp1_km1_ , ijk ) = ijknb
+            myinds( ip0_jm1_km1_ , ijk ) = ijksb
+            myinds( ip0_jp0_kp2_ , ijk ) = ijktt
+            myinds( ip0_jp0_km2_ , ijk ) = ijkbb
+
+
+          ELSE
+ 
+            CALL error(' set_myinds ',' unknown job_type ',1) 
+            
           END IF
+
+
         END DO
 
       RETURN
       END SUBROUTINE
+!
 !----------------------------------------------------------------------
 !
-!*****MX3D : ok (rivedere)
-!
       SUBROUTINE data_exchange_r(array)
+!
         USE parallel, ONLY: nproc, mpime
+!
         IMPLICIT NONE
         REAL*8 :: array(:)
         REAL*8, ALLOCATABLE :: sndbuf(:), rcvbuf(:) 
         INTEGER :: ip, isour, idest, ib
+!
         DO ip = 1, (nproc - 1)
           isour = MOD(mpime - ip + nproc, nproc)
           idest = MOD(mpime + ip        , nproc)

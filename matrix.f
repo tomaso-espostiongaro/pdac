@@ -67,10 +67,10 @@
       i  = MOD( ( imesh - 1 ), nr) + 1
       ijm = myijk( ip0_jm1_kp0_, ij)
       imj = myijk( im1_jp0_kp0_, ij)
-      ijr = myinds(r_, ij)
-      ijt = myinds(t_, ij)
-      ijl = myinds(l_, ij)
-      ijb = myinds(b_, ij)
+      ijr = myinds(ip1_jp0_kp0_, ij)
+      ijt = myinds(ip0_jp1_kp0_, ij)
+      ijl = myinds(im1_jp0_kp0_, ij)
+      ijb = myinds(ip0_jm1_kp0_, ij)
 !
       drm=dr(i)+dr(i-1)
       dzm=dz(j)+dz(j-1)
@@ -189,8 +189,8 @@
       imesh = myijk( ip0_jp0_kp0_, ij)
       j  = ( imesh - 1 ) / nr + 1
       i  = MOD( ( imesh - 1 ), nr) + 1
-      ijr = myinds(r_, ij)
-      ijt = myinds(t_, ij)
+      ijr = myinds(ip1_jp0_kp0_, ij)
+      ijt = myinds(ip0_jp1_kp0_, ij)
 !
 ! ... Forward ...
 !

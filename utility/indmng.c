@@ -20,6 +20,24 @@ int plot_indexes( int ni, int nj, int nk, int max)
                 for( l = 0; l < abs( k ); l ++ ) sdk[l] = sk;
                 sdk[l] = '\0';
 
+                switch( k ) {
+                        case -2:
+                                strcpy(dk,"bb");
+                                break;
+                        case -1:
+                                strcpy(dk,"b");
+                                break;
+                        case +1:
+                                strcpy(dk,"t");
+                                break;
+                        case +2:
+                                strcpy(dk,"tt");
+                                break;
+                        default:
+                                strcpy(dk,"");
+                }
+
+
 		for(jj=0;jj<(nj+nj+1);jj++) {
 
 			j = ord[jj];
@@ -30,16 +48,16 @@ int plot_indexes( int ni, int nj, int nk, int max)
 
                         switch( j ) {
 				case -2:
-					strcpy(dj,"bb");
+					strcpy(dj,"ss");
 					break;
 				case -1:
-					strcpy(dj,"b");
+					strcpy(dj,"s");
 					break;
 				case +1:
-					strcpy(dj,"t");
+					strcpy(dj,"n");
 					break;
 				case +2:
-					strcpy(dj,"tt");
+					strcpy(dj,"nn");
 					break;
 				default:
 					strcpy(dj,"");
@@ -55,16 +73,16 @@ int plot_indexes( int ni, int nj, int nk, int max)
 
                         	switch( i ) {
 					case -2:
-						strcpy(di,"ll");
+						strcpy(di,"ww");
 						break;
 					case -1:
-						strcpy(di,"l");
+						strcpy(di,"w");
 						break;
 					case +1:
-						strcpy(di,"r");
+						strcpy(di,"e");
 						break;
 					case +2:
-						strcpy(di,"rr");
+						strcpy(di,"ee");
 						break;
 					default:
 						strcpy(di,"");
@@ -72,8 +90,16 @@ int plot_indexes( int ni, int nj, int nk, int max)
 
 				if( ( abs(i)+abs(j)+abs(k) ) <= max ) {
 					t++;
+					/*
 					printf("%s i%c%d_j%c%d_k%c%d_ = %3d  ! i%sj%sk%s ! %s%s_\n",
                                           str,si,abs(i),sj,abs(j),sk,abs(k),t,sdi,sdj,sdk,dj,di);
+					printf(" i%sj%sk%s = myijk( i%c%d_j%c%d_k%c%d_ , ijk )\n",
+                                          sdi, sdj, sdk, si, abs(i), sj, abs(j), sk, abs(k) );
+					printf("              myinds( i%c%d_j%c%d_k%c%d_ , ijk ) = ijk%s%s%s\n",
+                                          si, abs(i), sj, abs(j), sk, abs(k), di, dj, dk );
+					printf(" i%sj%sk%s, ", sdi, sdj, sdk );
+					*/
+					printf(" ijk%s%s%s, ", di, dj, dk );
 				}
 			}
 		}
@@ -233,8 +259,8 @@ int filter2()
 
 int main()
 {
-	/* plot_indexes( 2, 2, 2, 2 ); */
-	filter2(); 
+	plot_indexes( 2, 2, 2, 2 ); 
+	/* filter2();  */
 	/* plot_map( 2, 2, 2, 2 ); */
 
 }
