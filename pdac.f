@@ -148,12 +148,15 @@
 
 ! ... Import the topography from dem file and interpolate
 ! ... on the computational mesh
-! ... Set immersed boundary parameters if prescribed
 !
       IF (itp >= 1)  CALL import_topography
 
+! ... Set immersed boundary parameters if prescribed
+!
       IF (immb >= 1) CALL set_forcing
 
+! ... Write the implicit topographic profile
+!
       IF (itp >= 1)  CALL write_profile
  
 ! ... Define volcanic vent position on the 3D topography
@@ -173,7 +176,6 @@
 ! ... and the indexes
 !
       CALL ghost
-      !CALL error(' ', ' ', 1)
 
       IF (timing) then
           s3 = cpclock()

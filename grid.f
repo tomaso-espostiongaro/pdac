@@ -123,7 +123,7 @@
       INTEGER :: i, j, k, ijk
       REAL*8 :: zrif
 !
-! ... generate the non-uniform mesh (without referencing)
+! ... generate the non-uniform mesh (without geographic referencing)
 !
       IF (grigen > 0) THEN
 
@@ -349,7 +349,7 @@
 !
 ! ... relative center of the mesh (for refinement)
 !
-      REAL*8 :: alpha
+      REAL*8, INTENT(INOUT) :: alpha
 !
 ! ... minimum and maximum mesh size
 !
@@ -360,13 +360,17 @@
 !
       INTEGER, INTENT(IN), OPTIONAL  :: n0
 !
+! ... index of the central cell
+!
+      INTEGER, INTENT(OUT) :: center
+!
       REAL*8 :: ded, der, dem, lder
 !      
       REAL*8  :: beta, beta1, beta2, frac, dbeta
       REAL*8  :: ntilde1, ntilde2
       REAL*8  :: l, l1, l2, lcomp
       INTEGER :: n01,n02,m1,m2,n11,n12
-      INTEGER :: i, j, m, n, center
+      INTEGER :: i, j, m, n
       LOGICAL :: print_mesh, already,maxn
       INTEGER :: idelta, ncount
 !

@@ -784,9 +784,7 @@
       RETURN
       END SUBROUTINE columns
 ! ---------------------------------------------------------------------
-
-
-! ---------------------------------------------------------------------
+!
       SUBROUTINE ghost
 !
 ! ... Identifies and allocates ghost cells

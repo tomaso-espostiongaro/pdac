@@ -216,7 +216,7 @@
 !
       OPEN(17,FILE='mesh.dat')
 !
-      WRITE(17,*) 'Geoferenced x-y mesh'
+      WRITE(17,*) 'Georeferenced x-y mesh'
 
       WRITE(17,*) 'x'
       WRITE(17,*) x
@@ -511,7 +511,7 @@
 ! ... implicit profile
 !
       USE control_flags, ONLY: job_type, lpr
-      USE grid, ONLY: x, xb, y, yb, z, zb
+      USE grid, ONLY: x, xb, y, yb, z, zb, iv, jv, kv
 
       IMPLICIT NONE
       INTEGER :: i,j,k,ijk
@@ -535,19 +535,20 @@
         CALL interpolate_2d(x, zb, topo, dummy)
         CALL vertical_shift(topo)
 !
-! ... set flags on topography
+! ... Reset the 'ord' array and set the implicit profile
 !
-        CALL interpolate_2d(x, zb, topo, dummy)
-        CALL set_flag3
-!
-! ... set the implicit profile
-!
-        DO k = 1, nz
-          DO i = 1, nx
+        DO i = 1, nx
+          DO k = 1, nz
+            IF (z(k) <= topo(i))  ord(i) = k
             ijk = i + (k-1) * nx
             dist(ijk) = zb(k) - topo(i)
           END DO
-        ENDDO
+        END DO
+        kv = ord(iv)
+!
+! ... set flags on topography
+!
+        CALL set_flag3
 
       ELSE IF (job_type == '3D') THEN
 
@@ -560,21 +561,22 @@
         CALL interpolate_dem(x, y, zb, topo2d, dummy)
         CALL vertical_shift(topo2d)
 !
-! ... set flags on topography
+! ... Reset the 'ord2d' array and set the implicit profile
 !
-        CALL interpolate_dem(x, y, zb, topo2d, dummy)
-        CALL set_flag3
-!
-! ... set the implicit profile
-!
-        DO k=1,nz
-          DO j=1,ny
-            DO i=1,nx
+	DO j = 1, ny
+	  DO i = 1, nx
+	    DO k = 1, nz
+	      IF (z(k) <= topo2d(i,j)) ord2d(i,j) = k  
               ijk = i + (j-1) * nx + (k-1) * nx * ny
               dist(ijk) = zb(k) - topo2d(i,j)
-            END DO
-          END DO
-        END DO
+	    END DO
+	  END DO
+	END DO
+        kv = ord2d(iv,jv)
+!
+! ... set flags on topography
+!
+        CALL set_flag3
 
       END IF
 
@@ -600,14 +602,6 @@
         OPEN(UNIT=14,FILE='improfile.dat',STATUS='UNKNOWN')
         WRITE(14,*) dist
         CLOSE(14)
-      END IF
-!
-! ... define the ordinate of the vent
-!
-      IF( job_type == '2D') THEN
-        kv = ord(iv)
-      ELSE IF ( job_type == '3D') THEN
-        kv = ord2d(iv,jv)
       END IF
 !
 ! ... Deallocate all arrays in the topography module
@@ -639,7 +633,7 @@
       INTEGER :: i, j, k, ijk
 !
       IF( job_type == '2D') THEN
-        DO i=1, nx
+        DO i=2, nx-1
           DO k = 1, nz
             ijk = i + (k-1) * nx
             IF (ord(i) >= k) THEN
@@ -650,8 +644,8 @@
           END DO
         END DO
       ELSE IF( job_type == '3D') THEN
-        DO j=1, ny
-          DO i=1, nx
+        DO j=2, ny-1
+          DO i=2, nx-1
             DO k = 1, nz
               ijk = i + (j-1) * nx + (k-1) * nx * ny
               IF (ord2d(i,j) >= k) THEN

@@ -33,10 +33,11 @@
       INTEGER :: ijk
       INTEGER :: ig, dfg
 
-      REAL*8, ALLOCATABLE :: rgpgc(:), ygcl(:)
+      REAL*8, ALLOCATABLE :: rgpgc(:), ygcl(:), xgcl(:)
 !
       ALLOCATE(rgpgc(ngas)); rgpgc = 0.D0
       ALLOCATE(ygcl(ngas)) ; ygcl = 0.D0
+      ALLOCATE(xgcl(ngas)) ; xgcl = 0.D0
 !
       IF (ngas == 1) THEN
         ygc(:,1) = 1.D0
@@ -55,10 +56,6 @@
 ! ... Compute the convective mass fluxes
 !
       CALL compute_all_fluxes
-!
-      IF (lpr > 1) THEN
-        WRITE(8,*) 'ygas report at time: ', time
-      END IF
 !
 ! ... Mass conservation of each gas component is solved
 ! ... explicitly in each cell
@@ -126,12 +123,13 @@
 ! ... Update molar fractions
 !
          ygcl(:) = ygc(ijk,:)
-         CALL mole( xgc(ijk,:), ygc(ijk,:) )
+         CALL mole( xgcl(:), ygcl(:) )
+         xgc(ijk,:) = xgcl(:)
 
        END IF
       END DO
 !
-      DEALLOCATE(rgpgc,ygcl)
+      DEALLOCATE(rgpgc,ygcl,xgcl)
       DEALLOCATE(yfe, yft)
       IF (job_type == '3D') DEALLOCATE(yfn)
 !

@@ -62,16 +62,15 @@
 ! ... define the 'quota' of the volcanic vent
 ! ... (considering the topography)
 !
-      IF( itp >= 1 ) THEN
-        quota = kv
-      ELSE
+      IF( itp < 1 ) THEN
         iv = (ieast  + iwest ) / 2
         jv = (jnorth + jsouth) / 2
         DO k= 1, nz
-          ijk = 1 + (j-1) * nx + (k-1) * nx * ny
+          ijk = iv + (jv-1) * nx + (k-1) * nx * ny
           IF (fl(ijk) == 3) kv = k
         END DO
       END IF
+      quota = kv
 !
       nvt = (ieast-iwest+1)*(jnorth-jsouth+1)
       ALLOCATE(vcell(nvt))
@@ -113,6 +112,8 @@
           
         END DO
       END DO
+      
+      WRITE(19,'(80(I3))') (fl(ijk), ijk=1,nx*ny*nz)
 !
       RETURN
       END SUBROUTINE locate_vent
@@ -184,6 +185,9 @@
         END IF
       END DO
 
+      DEALLOCATE(vcell)
+
+      RETURN
       END SUBROUTINE set_ventc
 !-----------------------------------------------------------------------
       REAL*8 FUNCTION cell_fraction(i, j)
