@@ -160,7 +160,7 @@
 
         IF (lform) THEN
           OPEN(UNIT=12,FILE=filnam)
-          WRITE(12,*) time
+          WRITE(12,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
         ELSE 
           OPEN(UNIT=12,FORM='UNFORMATTED',FILE=filnam)
           WRITE(12) REAL(time,4)
@@ -170,24 +170,39 @@
  
       END IF
 !
+      IF( lform ) WRITE(12,'(1x,//,1x,"P",/)')
       CALL write_array( 12, p, sgl, lform )  ! gas_pressure
 
       IF (job_type == '2D') THEN
+
+        IF( lform ) WRITE(12,'(1x,//,1x,"UG",/)')
         CALL write_array( 12, ug, sgl, lform ) ! gas_velocity_r
+
+        IF( lform ) WRITE(12,'(1x,//,1x,"WG",/)')
         CALL write_array( 12, wg, sgl, lform ) ! gas_velocity_z
+
       ELSE IF (job_type == '3D') THEN
+
+        IF( lform ) WRITE(12,'(1x,//,1x,"UG",/)')
         CALL write_array( 12, ug, sgl, lform ) ! gas_velocity_x
+
+        IF( lform ) WRITE(12,'(1x,//,1x,"VG",/)')
         CALL write_array( 12, vg, sgl, lform ) ! gas_velocity_y
+
+        IF( lform ) WRITE(12,'(1x,//,1x,"WG",/)')
         CALL write_array( 12, wg, sgl, lform ) ! gas_velocity_z
+
       ELSE
         CALL error('outp_','Unknown job type',1)
       END IF
 
+      IF( lform ) WRITE(12,'(1x,//,1x,"TG",/)')
       CALL write_array( 12, tg, sgl, lform )  ! gas_temperature
 !
       ALLOCATE( otmp( SIZE( xgc, 2 ) ) )
       DO ig=1,ngas
           otmp = xgc(ig,:)
+          IF( lform ) WRITE(12,'(1x,//,1x,"XGC",I1,/)') ig
           CALL write_array( 12, otmp, sgl, lform )  ! gc_molar_fraction
       END DO
       DEALLOCATE( otmp )
@@ -195,17 +210,35 @@
       ALLOCATE( otmp( SIZE( rlk, 1 ) ) )
 
       DO is = 1, nsolid
+
         otmp = rlk(:,is)*inrl(is)
+        IF( lform ) WRITE(12,'(1x,//,1x,"EPS",I1,/)') is
         CALL write_array( 12, otmp, sgl, lform )  ! solid_bulk_density
+
         IF (job_type == '2D') THEN
+
+          IF( lform ) WRITE(12,'(1x,//,1x,"US",I1,/)') is
           CALL write_array( 12, us(:,is), sgl, lform )  ! solid_velocity_r
+
+          IF( lform ) WRITE(12,'(1x,//,1x,"WS",I1,/)') is
           CALL write_array( 12, ws(:,is), sgl, lform )  ! solid_velocity_z
+
         ELSE IF (job_type == '3D') THEN
+
+          IF( lform ) WRITE(12,'(1x,//,1x,"US",I1,/)') is
           CALL write_array( 12, us(:,is), sgl, lform )  ! solid_velocity_x
+
+          IF( lform ) WRITE(12,'(1x,//,1x,"VS",I1,/)') is
           CALL write_array( 12, vs(:,is), sgl, lform )  ! solid_velocity_y
+
+          IF( lform ) WRITE(12,'(1x,//,1x,"WS",I1,/)') is
           CALL write_array( 12, ws(:,is), sgl, lform )  ! solid_velocity_z
+
         END IF
+
+        IF( lform ) WRITE(12,'(1x,//,1x,"TS",I1,/)') is
         CALL write_array( 12, ts(:,is), sgl, lform )  ! solid_temperature
+
       END DO
 
       DEALLOCATE( otmp )

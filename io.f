@@ -2,19 +2,19 @@
       MODULE io_restart
 !----------------------------------------------------------------------
 
-      USE kinds
+      USE control_flags, ONLY: job_type, nfil
+      USE dimensions
+      USE domain_decomposition, ONLY: data_collect, data_distribute, ncint
       USE eos_gas, ONLY: rgpgc, xgc, ygc
       USE gas_solid_density, ONLY: rog, rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE gas_solid_temperature, ONLY: sieg, ts, sies, tg 
       USE gas_constants, ONLY: gas_type
+      USE kinds
       USE parallel, ONLY: mpime, root
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: time
-      USE control_flags, ONLY: job_type, nfil
-      USE domain_decomposition, ONLY: data_collect, data_distribute, ncint
-      USE dimensions
 !
         IMPLICIT NONE
         PRIVATE
@@ -382,7 +382,7 @@
       LOGICAL, INTENT(IN) :: lform
       REAL*8 :: array(:)
 
-      INTEGER :: ijk, ierr
+      INTEGER :: ijk, ij, k, ierr, first
       REAL*8, ALLOCATABLE :: io_buf(:)
 
       IF( ntot < 1 ) &
@@ -396,9 +396,17 @@
         CALL error(' write_array ', ' cannot allocate io_buf ', ntot )
 
       CALL data_collect( io_buf, array, 1, ntot )
+
       IF( mpime == root ) THEN
          IF( lform ) THEN
-           WRITE(iunit,10) ( io_buf(ijk), ijk = 1, ntot )
+           !WRITE(iunit,10) ( io_buf(ijk), ijk = 1, ntot )
+           !
+           ! ... This format is consistent with the old PDAC2D
+           ! ... OUTPUT format
+           DO k = 1, nz
+             first = (nz-1) * ntr + 1
+             WRITE(iunit,10) ( io_buf(ij), ij = first, first + ntr - 1 )
+           END DO
          ELSE
            IF( prec == sgl ) THEN
              WRITE(iunit) REAL( io_buf( 1 : ntot ), sgl )
@@ -407,8 +415,9 @@
            END IF
          END IF
       END IF
+
       DEALLOCATE( io_buf )
-10    FORMAT( 5(G14.6E3,1X) )
+10    FORMAT(1x,10(1x,G14.6E3))
       RETURN
       END SUBROUTINE
 

@@ -5,6 +5,7 @@
         SAVE
         INTEGER :: nx, ny, nz
         INTEGER :: ntot ! ntot = nx*nz or nx*ny*nz
+        INTEGER :: ntr  ! ntr = nx or nx*ny
         INTEGER :: no
         INTEGER :: nsolid
         INTEGER :: ngas
