@@ -41,9 +41,18 @@
       
       IF( job_type == '2D') RETURN
 !
+! ... Vent is located where the mesh is more refined
+!
       IF (grigen >= 1) THEN
-        xvent = center_x
-        yvent = center_y
+        xvent = x(iv)
+        yvent = y(jv)
+      ELSE 
+        DO i = 1, nx
+          IF (x(i) <= xvent) iv = i
+        END DO
+        DO j = 1, ny
+          IF (y(j) <= yvent) jv = j
+        END DO
       END IF
 !
       WRITE(7,*) 'Vent conditions imposed in cells: '
@@ -66,8 +75,6 @@
 ! ... (considering the topography)
 !
       IF( itp < 1 ) THEN
-        iv = (ieast  + iwest ) / 2
-        jv = (jnorth + jsouth) / 2
         DO k= 1, nz
           ijk = iv + (jv-1) * nx + (k-1) * nx * ny
           IF (fl(ijk) == 3) kv = k

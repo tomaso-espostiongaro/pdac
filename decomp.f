@@ -2423,7 +2423,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
             END IF
 
             IF (bd(ijk) /= filled) THEN
-              WRITE(6,('I8,3(I4),B8')) ijk, i, j, k, bd(ijk)
+              WRITE(6,'(I8,3(I4),B8)') ijk, i, j, k, bd(ijk)
             END IF
 
           END IF
@@ -2509,7 +2509,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               vf(ijk)  = 0.25D0 * vf(ijk)
             END IF
 
-            WRITE(6,('I8,3(I4),6(F8.4)')) ijk, i, j, k, bdr(ijk,:)
+            WRITE(6,'(I8,3(I4),6(F8.4))') ijk, i, j, k, bdr(ijk,:)
 
           END IF
 

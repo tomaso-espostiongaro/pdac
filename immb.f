@@ -641,24 +641,31 @@
       INTEGER, INTENT(IN) :: ijk
       INTEGER, INTENT(OUT) :: b_e, b_w, b_t, b_b, b_n, b_s
       REAL*8, INTENT(OUT) :: ivf
+      INTEGER*2 :: num
  
       b_e = 0
-      IF( IAND(bd(ijk),1) /= 0 )  b_e = 1 
+      num = 1
+      IF( IAND(bd(ijk),num) /= 0 )  b_e = 1 
  
       b_w = 0
-      IF( IAND(bd(ijk),2) /= 0 )  b_w = 1
+      num = 2
+      IF( IAND(bd(ijk),num) /= 0 )  b_w = 1
  
       b_t = 0
-      IF( IAND(bd(ijk),4) /= 0 )  b_t = 1
+      num = 4
+      IF( IAND(bd(ijk),num) /= 0 )  b_t = 1
  
       b_b = 0
-      IF( IAND(bd(ijk),8) /= 0 )  b_b = 1
+      num = 8
+      IF( IAND(bd(ijk),num) /= 0 )  b_b = 1
       
       b_n = 0
-      IF( IAND(bd(ijk),16) /= 0 ) b_n = 1
+      num = 16
+      IF( IAND(bd(ijk),num) /= 0 ) b_n = 1
  
       b_s = 0
-      IF( IAND(bd(ijk),32) /= 0 ) b_s = 1
+      num = 32
+      IF( IAND(bd(ijk),num) /= 0 ) b_s = 1
  
       IF (vf(ijk) > 0.D0) THEN
         ivf = 1.D0 / vf(ijk)
