@@ -31,14 +31,11 @@
         TYPE cells_map_type
           INTEGER :: type              ! Identify the map type (1 layer, 2 columns, 3 blocks)
           INTEGER :: lay(2)            ! lay(1) -> imesh start, lay(2) -> imesh end (layer)
-          INTEGER :: colsw(2)          ! colw(1) -> SW x coord., colw(2) -> SW y coord. 
-          INTEGER :: colne(2)          ! cole(1) -> NE x coord., colw(2) -> NE y coord.
+          INTEGER :: corner1(2)        ! corner1(1) -> x coord., corner1(2) -> z coord. 
+          INTEGER :: corner2(2)        ! corner2(1) -> x coord., corner2(2) -> z coord.
           INTEGER :: blkbsw(3)         ! blkbsw(.) -> BSW x, y, z coordinates 
           INTEGER :: blktne(3)         ! blktne(.) -> TNE x, y, z coordinates
         END TYPE
-
-!*******MX3D da rivedere
-        INTEGER :: nbx, nby            ! number of blocks in x and y directions
 !
         TYPE (rcv_map_type), ALLOCATABLE :: rcv_map(:)
         TYPE (snd_map_type), ALLOCATABLE :: snd_map(:)
@@ -73,10 +70,6 @@
         INTEGER, ALLOCATABLE :: myijk(:,:)
         INTEGER, ALLOCATABLE :: myinds(:,:)
 !
-        LOGICAL, PRIVATE :: outppm = .FALSE.
-
-!*******MX3D fl da eliminare in un secondo tempo
-!
         INTEGER :: countfl(5)
 
         INTERFACE data_exchange
@@ -101,6 +94,7 @@
 ! ... Gives out the processor maps.
 ! ... (2D/3D-Compliant)
 !
+      USE control_flags, ONLY: job_type
       USE dimensions
       USE parallel, ONLY: nproc, mpime, root
       IMPLICIT NONE
@@ -147,7 +141,7 @@
 
       IF ( proc_map(0)%type == LAYER_MAP ) THEN
         CALL layers( ncfl1, nctot )
-      ELSE IF ( proc_map(0)%type == BLOCK2D_MAP ) THEN
+      ELSE IF ( proc_map(0)%type == BLOCK2D_MAP .AND. job_type == '2D') THEN
         CALL blocks( ncfl1, nctot )
       ELSE
         CALL error(' partition ',' partition type not yet implemented ',proc_map(0)%type)
@@ -177,6 +171,10 @@
 ! 
 ! ... partition N.1 (layers)
 ! ... decomposes the domain into N horizontal layers.
+! ... The layer map is represented by the global index 
+! ... of the first and the last cell belonging to the
+! ... processor. The cells within the layer are ordered
+! ... following the main-sweep.
 ! ... (2D/3D-Compliant)
 !
       USE dimensions
@@ -209,10 +207,10 @@
         lay_map(nproc-1,2) = nx*nz
         ipe = 0
 
-        DO j = 1, nz
+        DO k = 1, nz
           DO i = 1, nx
 
-            ijk = i + (j-1) * nx
+            ijk = i + (k-1) * nx
   
             IF ( fl(ijk) == 1 ) THEN
               icnt_ipe = icnt_ipe + 1
@@ -284,12 +282,13 @@
       RETURN
       END SUBROUTINE layers
 ! ------------------------------------------------------------------------
-
-!***** MX3D 
-!***** da rivedere la procedura 2D
-!***** non implementata la procedura 3D
-
       SUBROUTINE blocks( ncfl1, nctot )
+!
+! ... partition N.1 (layers)
+! ... decomposes the domain into N rectangular blocks.
+! ... The processor map consist of the coordinate pairs
+! ... of the bottom-west and the top-east corners of the blocks
+! ... (ONLY 2D)
 !
 ! ... partition N.2 (blocks)
 !
@@ -302,30 +301,35 @@
       INTEGER :: ncfl1(0:)
       INTEGER :: nctot(0:)
 !
-      INTEGER :: i, j, ij
-      INTEGER :: i1, i2, j1, j2, ij1, ij2
+      INTEGER :: i, k, ijk
+      INTEGER :: i1, i2, k1, k2, ijk1, ijk2
       INTEGER :: nbl
       INTEGER :: icnt, ipe
       INTEGER :: bl1
       INTEGER :: size_x, rest, skipl, rrest
+      INTEGER :: nbx, nby
       INTEGER :: layer, icnt_layer, here
       INTEGER :: localdim
 !
       INTEGER, ALLOCATABLE :: lay_map(:,:)
       INTEGER, ALLOCATABLE :: nctot_lay(:), nbl_lay(:), ncfl1_lay(:)
-
 !
       REAL*8 side, area
       REAL*8 fact
 !
+! ... Initially subdivides the domain into 'nby' layers. Each layer
+! ... will be in turn subdivided into 'nbx' blocks.
+! ... If the number of the processors 'nproc' is not factorable
+! ... as 'nbx*nby', some blocks in the lower layer will be merged together.
+! ... Guess the optimum 'size_x' of the blocks.
+!
         area  = DBLE(countfl(1)/nproc)
         side  = DSQRT(area)
         nbx    = NINT(nx/side)
-! ... compute the number of layers nby 
         nby    = NINT(countfl(1)/nbx/side**2)     
-        IF (nbx .EQ. 0) nbx = 1
-        IF (nby .EQ. 0) nby = 1
-        DO WHILE (nbx*nby .LT. nproc)
+        IF (nbx == 0) nbx = 1
+        IF (nby == 0) nby = 1
+        DO WHILE (nbx*nby <= nproc)
          IF (INT(nx/nbx) .GT. INT(nz/nby)) THEN
            nbx = nbx + 1
          ELSE
@@ -337,9 +341,12 @@
 !
         ALLOCATE(lay_map(1:nby,2))
         lay_map(:,:) = 0
+!
+! ... Initialize the processor maps
+!
         DO i = 0, nproc-1
-          proc_map(i)%colsw(:) = 0
-          proc_map(i)%colne(:) = 0
+          proc_map(i)%corner1(:) = 0
+          proc_map(i)%corner2(:) = 0
         END DO
 !
         IF (ALLOCATED(nctot_lay)) DEALLOCATE(nctot_lay)
@@ -351,11 +358,11 @@
         ncfl1_lay = 0
         nbl_lay = 0
 !
-! ... distribute cells among layers proportionally
-! ... to the number of blocks (processors) contained
-! ... (compute ncfl1_lay(layer))
+! ... distribute cells among layers proportionally to the 
+! ... number of blocks contained. 
+! ... 'ncfl1_lay' is the number of cells with fl=1 in the layer.
 !
-        IF (rest .EQ. 0) THEN
+        IF (rest == 0) THEN
           DO layer = 1, nby
            ncfl1_lay(layer) = localdim(countfl(1),nby,layer)
            nbl_lay(layer) = nbx
@@ -363,7 +370,7 @@
         ELSE
           skipl = INT(rest/nbx) 
           rrest = MOD(rest, nbx)
-          IF (rest .LE. nbx) THEN
+          IF (rest <= nbx) THEN
             nbl_lay(1) = nbx - rrest
             DO layer = 2, nby
               nbl_lay(layer) = nbx
@@ -378,10 +385,12 @@
             END DO
           END IF
           DO layer = 1, nby
-            fact = DBLE(countfl(1)/nproc*nbl_lay(layer))
+            fact = DBLE(countfl(1)/nproc * nbl_lay(layer))
             ncfl1_lay(layer) = NINT(fact)
           END DO
         END IF
+        IF (SUM(ncfl1_lay(:) /= countfl(1))) &
+              CALL error('partition','control blocks decomposition',1)
 !
 ! ... build the layer maps
 !
@@ -389,94 +398,106 @@
         ipe = 0
         lay_map(1,1) = 1
         lay_map(nby,2) = nx*nz
-        DO j = 1, nz
+        DO k = 1, nz
         DO i = 1, nx
-          ij = i + (j-1)*nx
+          ijk = i + (k-1)*nx
 !
-          IF ( fl(ij) .EQ. 1 ) THEN
+          IF ( fl(ijk) == 1 ) THEN
             icnt_layer = icnt_layer + 1
             icnt     = icnt     + 1
           END IF
 
           nctot_lay(layer) = nctot_lay(layer) + 1
 
-         IF ( icnt_layer .EQ. ncfl1_lay(layer) ) THEN
+         IF ( icnt_layer == ncfl1_lay(layer) ) THEN
             icnt_layer = 0
-            IF(layer .LT. nby) THEN
-              lay_map(layer,2) = ij
+            IF(layer < nby) THEN
+              lay_map(layer,2) = ijk
               layer = layer + 1
-              lay_map(layer,1) = ij+1
+              lay_map(layer,1) = ijk+1
             END IF
           END IF
         END DO
         END DO
 !
-! ... cut steps
-!
       ipe = -1
       DO layer = 1, nby
-        ij2 = lay_map(layer,2)
-        j2  = ( ij2 - 1 ) / nx + 1
-        i2  = MOD( ( ij2 - 1 ), nx) + 1
-        IF (i2 .LT. nx/2) j2 = j2-1
-        IF (layer .LT. nby) THEN
-          lay_map(layer,2) = j2 * nx
+
+        ijk2 = lay_map(layer,2)
+        k2  = ( ijk2 - 1 ) / nx + 1
+        i2  = MOD( ( ijk2 - 1 ), nx) + 1
+!
+! ... cut steps to layers
+!
+        IF (i2 < nx/2) k2 = k2-1
+
+        IF (layer < nby) THEN
+          lay_map(layer,2) = k2 * nx
         ELSE
           lay_map(layer,2) = nz * nx
         END IF
-        IF (layer .GT. 1) THEN 
+        IF (layer > 1) THEN 
           lay_map(layer,1) = lay_map(layer-1,2) + 1
         ELSE
           lay_map(layer,1) = 1
         END IF
-        ij1 = lay_map(layer,1)
-        ij2 = lay_map(layer,2)
-        j1  = ( ij1 - 1 ) / nx + 1
-        i1  = MOD( ( ij1 - 1 ), nx) + 1
-        j2  = ( ij2 - 1 ) / nx + 1
-        i2  = MOD( ( ij2 - 1 ), nx) + 1
-        IF (i1.NE.1 .OR. i2.NE.nx) WRITE(8,*)'error in layer',layer
+
+        ijk1 = lay_map(layer,1)
+        ijk2 = lay_map(layer,2)
+        k1  = ( ijk1 - 1 ) / nx + 1
+        i1  = MOD( ( ijk1 - 1 ), nx) + 1
+        k2  = ( ijk2 - 1 ) / nx + 1
+        i2  = MOD( ( ijk2 - 1 ), nx) + 1
+        IF (i1 /= 1 .OR. i2 /= nx) WRITE(8,*)'error in layer',layer
 !
-! ...   updates the number of cells with fl=1 into layers
+! ...  now updates the number of cells with fl=1 into layers
 !
         nctot_lay(layer)  = 0
         ncfl1_lay(layer) = 0
-        DO ij = ij1, ij2
+        DO ijk = ijk1, ijk2
           nctot_lay(layer) = nctot_lay(layer) + 1
-          IF (fl(ij) .EQ. 1) ncfl1_lay(layer) = ncfl1_lay(layer) + 1 
+          IF (fl(ijk) == 1) ncfl1_lay(layer) = ncfl1_lay(layer) + 1 
         END DO
 !
-! ...   build block maps        
+! ... Estimate of the number of cells contained in each block
+! ... in the layer
 !
         bl1 = INT(ncfl1_lay(layer)/nbl_lay(layer))
+!
+! ... Build block maps
+!
         i = i1
         DO nbl = 1, nbl_lay(layer) 
           ipe = ipe + 1
-          proc_map(ipe)%colsw(1) = i
-          proc_map(ipe)%colsw(2) = j1
-          DO WHILE (ncfl1(ipe) .LT. bl1)
-            DO j = j1, j2
-              ij = i + (j-1)*nx
-              IF (fl(ij) .EQ. 1) ncfl1(ipe) = ncfl1(ipe) + 1
+
+          proc_map(ipe)%corner1(1) = i
+          proc_map(ipe)%corner1(2) = k1
+
+          DO WHILE (ncfl1(ipe) < bl1)
+            DO k = k1, k2
+              ijk = i + (k-1)*nx
+              IF (fl(ijk) == 1) ncfl1(ipe) = ncfl1(ipe) + 1
             END DO  
             i = i+1
           END DO
-          proc_map(ipe)%colne(1) = i-1
-          IF (nbl .EQ. nbl_lay(layer)) proc_map(ipe)%colne(1) = nx 
-          proc_map(ipe)%colne(2) = j2
+
+          proc_map(ipe)%corner2(1) = i-1
+          proc_map(ipe)%corner2(2) = k2
+
+          IF (nbl == nbl_lay(layer)) proc_map(ipe)%corner2(1) = nx 
 !
-! ...     updates the number of cells with fl=1 into blocks
+! ... Now updates the number of cells with fl=1 into blocks
 !
           nctot(ipe)  = 0
           ncfl1(ipe) = 0
-          DO j = proc_map(ipe)%colsw(2), proc_map(ipe)%colne(2)
-          DO i = proc_map(ipe)%colsw(1), proc_map(ipe)%colne(1)
-            ij = i + (j-1)*nx
-            nctot(ipe) = nctot(ipe) + 1
-            IF (fl(ij) .EQ. 1) ncfl1(ipe) = ncfl1(ipe) + 1
+          DO k = proc_map(ipe)%corner1(2), proc_map(ipe)%corner2(2)
+            DO i = proc_map(ipe)%corner1(1), proc_map(ipe)%corner2(1)
+              ijk = i + (k-1)*nx
+              nctot(ipe) = nctot(ipe) + 1
+              IF (fl(ijk) == 1) ncfl1(ipe) = ncfl1(ipe) + 1
+            END DO
           END DO
-          END DO
-          WRITE(7,*)'proc_map(',ipe,'):',proc_map(ipe)%colsw(:),proc_map(ipe)%colne(:)
+          WRITE(7,*)'proc_map(',ipe,'):',proc_map(ipe)%corner1(:),proc_map(ipe)%corner2(:)
         END DO
       END DO
 
@@ -484,7 +505,6 @@
 
       RETURN
       END SUBROUTINE blocks
-!
 ! ---------------------------------------------------------------------
       SUBROUTINE ghost
 !
@@ -534,10 +554,10 @@
           END IF
         END DO
       ELSE IF ( proc_map(mpime)%type == BLOCK2D_MAP ) THEN
-        i1 = proc_map(mpime)%colsw(1)
-        i2 = proc_map(mpime)%colne(1)
-        k1 = proc_map(mpime)%colsw(2)
-        k2 = proc_map(mpime)%colne(2)
+        i1 = proc_map(mpime)%corner1(1)
+        i2 = proc_map(mpime)%corner2(1)
+        k1 = proc_map(mpime)%corner1(2)
+        k2 = proc_map(mpime)%corner2(2)
         IF( job_type == '2D' ) THEN
           DO k = k1, k2
             DO i = i1, i2
@@ -608,10 +628,10 @@
           END IF
         END DO
       ELSE IF ( proc_map(mpime)%type == BLOCK2D_MAP ) THEN
-        i1 = proc_map(mpime)%colsw(1)
-        i2 = proc_map(mpime)%colne(1)
-        k1 = proc_map(mpime)%colsw(2)
-        k2 = proc_map(mpime)%colne(2)
+        i1 = proc_map(mpime)%corner1(1)
+        i2 = proc_map(mpime)%corner2(1)
+        k1 = proc_map(mpime)%corner1(2)
+        k2 = proc_map(mpime)%corner2(2)
         IF( job_type == '2D' ) THEN
           DO k = k1, k2
             DO i = i1, i2
@@ -836,10 +856,10 @@
             IF( ijk >= proc_map(ipe)%lay(1) .AND.  &
                 ijk <= proc_map(ipe)%lay(2) )       cell_owner = ipe
           ELSE IF ( proc_map(ipe)%type == BLOCK2D_MAP ) THEN
-            IF (k >= proc_map(ipe)%colsw(2) .AND.  &
-                k <= proc_map(ipe)%colne(2))        THEN
-              IF (i >= proc_map(ipe)%colsw(1) .AND.  &
-                  i <= proc_map(ipe)%colne(1))        cell_owner = ipe
+            IF (k >= proc_map(ipe)%corner1(2) .AND.  &
+                k <= proc_map(ipe)%corner2(2))        THEN
+              IF (i >= proc_map(ipe)%corner1(1) .AND.  &
+                  i <= proc_map(ipe)%corner2(1))        cell_owner = ipe
             END IF
           ELSE
             CALL error(' cell_owner',' partition type not yet implemented ', &
@@ -869,19 +889,19 @@
 
           IF( job_type == '2D' ) THEN
 
-            k1 = proc_map(mpime)%colsw(2)
-            i1 = proc_map(mpime)%colsw(1)
-            i2 = proc_map(mpime)%colne(1)
+            k1 = proc_map(mpime)%corner1(2)
+            i1 = proc_map(mpime)%corner1(1)
+            i2 = proc_map(mpime)%corner2(1)
             i = MOD( ( ijkl - 1 ), (i2-i1+1)) + i1
             k = ( ijkl - 1 ) / (i2-i1+1) + k1
             cell_l2g = i + (k-1) * nx
 
           ELSE IF( job_type == '3D' ) THEN
 
-            j1 = proc_map(mpime)%colsw(2)
-            i1 = proc_map(mpime)%colsw(1)
-            j2 = proc_map(mpime)%colne(2)
-            i2 = proc_map(mpime)%colne(1)
+            j1 = proc_map(mpime)%corner1(2)
+            i1 = proc_map(mpime)%corner1(1)
+            j2 = proc_map(mpime)%corner2(2)
+            i2 = proc_map(mpime)%corner2(1)
             nxl = i2 - i1 + 1
             nyl = j2 - j1 + 1
             nzl = nz
@@ -929,9 +949,10 @@
 
             k = ( ijk - 1 ) / nx + 1
             i = MOD( ( ijk - 1 ), nx) + 1
-            k1 = proc_map(mpime)%colsw(2)
-            i1 = proc_map(mpime)%colsw(1)
-            i2 = proc_map(mpime)%colne(1)
+
+            k1 = proc_map(mpime)%corner1(2)
+            i1 = proc_map(mpime)%corner1(1)
+            i2 = proc_map(mpime)%corner2(1)
             cell_g2l = (i-i1+1) + (k-k1)*(i2-i1+1)
 
           ELSE IF( job_type == '3D' ) THEN
@@ -940,10 +961,10 @@
             j = MOD( ijk - 1, nx*ny ) / nx + 1
             k = ( ijk - 1 ) / ( nx*ny ) + 1
 
-            j1 = proc_map(mpime)%colsw(2)
-            i1 = proc_map(mpime)%colsw(1)
-            j2 = proc_map(mpime)%colne(2)
-            i2 = proc_map(mpime)%colne(1)
+            j1 = proc_map(mpime)%corner1(2)
+            i1 = proc_map(mpime)%corner1(1)
+            j2 = proc_map(mpime)%corner2(2)
+            i2 = proc_map(mpime)%corner2(1)
 
             nxl = i2 - i1 + 1
             nyl = j2 - j1 + 1
