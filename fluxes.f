@@ -14,11 +14,14 @@
 
       IMPLICIT NONE
 !
-      REAL*8, PRIVATE :: cs                        ! convective stream   !
-      REAL*8, PRIVATE :: cn                        ! Courant number      !
-      REAL*8, PRIVATE :: upwnd                     ! upwinded variable   !
+      REAL*8, PRIVATE :: cs                      ! convective stream   !
+      REAL*8, PRIVATE :: cn                      ! Courant number      !
+      REAL*8, PRIVATE :: upwnd                   ! upwinded variable   !
+      REAL*8, PRIVATE :: centrd                  ! centered variable   !
+      REAL*8, PUBLIC  :: upc_e, upc_n, upc_t     ! upwinded/centered   !
+      REAL*8, PUBLIC  :: upc_w, upc_s, upc_b     !            fields   !
 
-      REAL*8 :: beta, muscl, lmtr
+      REAL*8, PUBLIC  :: beta, muscl, lmtr
 !
       SAVE
 !----------------------------------------------------------------------
@@ -802,6 +805,8 @@
       ELSE IF (cs < 0.D0) THEN
         upwnd  = dens%c + lmtr*(gradm)*0.5*dx(i)
       ENDIF
+      centrd = (dx(i)*dens%w+dx(i-1)*dens%c)*indxm
+      upc_w = upwnd / centrd
 !
       fw = upwnd * cs
 !
@@ -821,6 +826,8 @@
       ELSE IF (cs < 0.D0) THEN
         upwnd  = dens%e + lmtr*(gradm)*0.5*dx(i+1)
       ENDIF
+      centrd = (dx(i)*dens%e+dx(i+1)*dens%c)*indxp
+      upc_e = upwnd / centrd
 !
       fe = upwnd * cs
 !
@@ -840,6 +847,8 @@
       ELSE IF (cs < 0.D0) THEN
         upwnd = dens%c + lmtr*(gradm)*0.5*dy(j)
       ENDIF
+      centrd = (dy(j)*dens%s+dy(j-1)*dens%c)*indym
+      upc_s = upwnd / centrd
 !
       fs = upwnd * cs
 !
@@ -859,6 +868,8 @@
       ELSE IF (cs < 0.D0) THEN
         upwnd = dens%n + lmtr*(gradm)*0.5*dy(j+1)
       ENDIF
+      centrd = (dy(j)*dens%n+dy(j+1)*dens%c)*indyp
+      upc_n = upwnd / centrd
 !
       fn = upwnd * cs
 !
@@ -878,6 +889,8 @@
       ELSE IF (cs < 0.D0) THEN
         upwnd = dens%c + lmtr*(gradm)*0.5*dz(k)
       ENDIF
+      centrd = (dz(k)*dens%b+dz(k-1)*dens%c)*indzm
+      upc_b = upwnd / centrd
 !
       fb = upwnd * cs
 !
@@ -897,6 +910,8 @@
       ELSE IF (cs < 0.D0) THEN
         upwnd = dens%t + lmtr*(gradm)*0.5*dz(k+1)
       ENDIF
+      centrd = (dz(k)*dens%t+dz(k+1)*dens%c)*indzp
+      upc_t = upwnd / centrd
 !
       ft = upwnd * cs
 !

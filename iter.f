@@ -62,8 +62,6 @@
       conv = 0.0D0
       abeta = 0.0D0
 !
-      CALL betas(conv, abeta)
-!
       ALLOCATE(converge(ncint))
 !
 ! ... Allocate and initialize local mass fluxes.
@@ -119,6 +117,12 @@
           CALL fmas(rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &
                     rgfe(imjk), rgfn(ijmk), rgft(ijkm),   &
                     dens, u, v, w, ijk)
+!
+! ... compute the derivative of the gas mass residual
+! ... with respect to gas pressure
+!
+          CALL betas(conv(ijk), abeta(ijk), ijk)
+!
         END IF
       END DO
 !
@@ -524,9 +528,11 @@
       RETURN
       END FUNCTION newp
 !----------------------------------------------------------------------
-      SUBROUTINE betas(cnv, abt)
+      SUBROUTINE betas(cnv, abt, ijk)
 ! 
       USE dimensions
+      USE convective_fluxes, ONLY: upc_e, upc_n, upc_t
+      USE convective_fluxes, ONLY: upc_w, upc_s, upc_b
       USE eos_gas, ONLY: rags
       USE gas_constants, ONLY: gammaair
       USE gas_solid_density, ONLY: rog, rgp
@@ -547,13 +553,11 @@
        
       INTEGER :: nfle, nflw, nfln, nfls, nflt, nflb
       INTEGER :: i, j, k, imesh
-      INTEGER :: ijk
-      REAL*8, INTENT(OUT) :: cnv(:), abt(:)
+      INTEGER, INTENT(IN) :: ijk
+      REAL*8, INTENT(OUT) :: cnv, abt
 !
       REAL*8, PARAMETER :: delg=1.D-8
 !
-      DO ijk = 1, ncint
-        IF (fl_l(ijk) == 1) THEN
           imesh = myijk( ip0_jp0_kp0_, ijk)
           CALL subscr(ijk)
           i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
@@ -585,37 +589,46 @@
             iep_e = 0.D0
           ELSE
             iep_e = ( dx(i+1)*ep(ijk)+dx(i)*ep(ijke))*indxp*indxp*2.D0
+            iep_e = iep_e * upc_e
           END IF
 
           IF( (nflw /= 1) .AND. (nflw /= 4) .AND. (nflw /= 6) ) THEN
             iep_w = 0.D0
           ELSE
             iep_w = ( dx(i-1)*ep(ijk)+dx(i)*ep(ijkw) )*indxm*indxm*2.D0 
+            iep_w = iep_w * upc_w
           END IF
 !
           IF( (nfln /= 1) .AND. (nfln /= 4) .AND. (nfln /= 6) ) THEN 
             iep_n = 0.0D0
           ELSE
             iep_n = ( dy(j+1)*ep(ijk)+dy(j)*ep(ijkn) )*indyp*indyp*2.D0 
+            iep_n = iep_n * upc_n 
           END IF
 
           IF( (nfls /= 1) .AND. (nfls /= 4) .AND. (nfls /= 6) ) THEN
             iep_s = 0.D0
           ELSE
             iep_s = ( dy(j-1)*ep(ijk)+dy(j)*ep(ijks) )*indym*indym*2.D0
+            iep_s = iep_s * upc_s
           END IF
 !
           IF( (nflt /= 1) .AND. (nflt /= 4) .AND. (nflt /= 6) ) THEN 
             iep_t = 0.0D0
           ELSE
             iep_t = ( dz(k+1)*ep(ijk)+dz(k)*ep(ijkt) )*indzp*indzp*2.D0 
+            iep_t = iep_t * upc_t 
           END IF
 
           IF( (nflb /= 1) .AND. (nflb /= 4) .AND. (nflb /= 6) ) THEN
             iep_b = 0.D0
           ELSE
             iep_b = ( dz(k-1)*ep(ijk)+dz(k)*ep(ijkb) )*indzm*indzm*2.D0
+            iep_b = iep_b * upc_b
           END IF
+
+!            WRITE(*,'(I6)') ijk
+!            WRITE(*,'(6(F8.4))') upc_e ,upc_w ,upc_n ,upc_s ,upc_t ,upc_b
 
           dt2x = dt * dt * indx(i)
           dt2z = dt * dt * indz(k)
@@ -632,10 +645,8 @@
 	                           dt2y * (  iep_n + iep_s ) +    &
                                    dt2z * (  iep_t + iep_b )
 !
-          abt(ijk) = 1.D0 / rbeta
-          cnv(ijk) = delg * rgp(ijk)
-        END IF
-      END DO
+          abt = 1.D0 / rbeta
+          cnv = delg * rgp(ijk)
 !
       RETURN
       END SUBROUTINE betas

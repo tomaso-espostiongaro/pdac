@@ -38,9 +38,9 @@
       USE pressure_epsilon, ONLY: bounds_press_eps, &
      &                            local_bounds_press_eps
       USE roughness_module, ONLY: zrough, deallocate_roughness
-      USE initial_conditions, ONLY: setup, epsob, tpob, ygc0, &
-     &    ygcob, ugob, vgob, wgob, upob, vpob, wpob, pob, tgob, epob, lpr, zzero, &
-     &    bounds_setup
+      USE initial_conditions, ONLY: setup, epsob, tpob, ygc0, ygcob, &
+     &     ugob, vgob, wgob, upob, vpob, wpob, pob, tgob, epob, lpr, & 
+     &     zzero, bounds_setup
       USE heat_capacity, ONLY: bounds_hcapgs, local_bounds_hcapgs
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut
@@ -54,7 +54,7 @@
       CHARACTER(LEN=8) :: inputfile, logfile, errorfile, testfile
       CHARACTER(LEN=3) :: procnum
 !
-      INTEGER :: inputunit
+      INTEGER :: inputunit, logunit, errorunit, testunit
       INTEGER :: ig
       REAL*8 :: s0, s1, s2, s3, s4
       REAL*8 :: timtot, timprog, timdist, timsetup, timinit
@@ -72,6 +72,9 @@
 ! ... I/O files
 !
       inputunit = 5
+      logunit   = 6
+      testunit  = 7
+      errorunit = 8
       inputfile = 'pdac.dat'
       logfile = 'pdac.log'
       testfile = 'pdac.tst'
@@ -80,12 +83,12 @@
       testnb = testfile//procnum(mpime)
       IF(mpime .EQ. root) THEN
         OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN')
-        OPEN(UNIT=6, FILE=logfile, STATUS='UNKNOWN')
-        OPEN(UNIT=7, FILE=testfile, STATUS='UNKNOWN')
-        OPEN(UNIT=8, FILE=errorfile, STATUS='UNKNOWN')
+        OPEN(UNIT=logunit,   FILE=logfile,   STATUS='UNKNOWN')
+        OPEN(UNIT=testunit,  FILE=testfile,  STATUS='UNKNOWN')
+        OPEN(UNIT=errorunit, FILE=errorfile, STATUS='UNKNOWN')
       ELSE
-        OPEN(UNIT=7,FILE=testnb,STATUS='UNKNOWN')
-        OPEN(UNIT=8,FILE=errnb,STATUS='UNKNOWN')
+        OPEN(UNIT=testunit,  FILE=testnb,    STATUS='UNKNOWN')
+        OPEN(UNIT=errorunit, FILE=errnb,     STATUS='UNKNOWN')
       END IF
 !
 ! ... Read Input file
