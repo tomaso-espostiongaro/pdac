@@ -41,9 +41,12 @@
       USE domain_decomposition, ONLY: cell_g2l, cell_owner, meshinds
       USE grid, ONLY: dx, dz, flag
       USE io_files, ONLY: blunit, blfile
-      INTEGER :: prm, l, m, n, i, j, k, ijk, imesh
 
-      IF (mpime == root) OPEN( blunit, FILE=blfile )
+      IMPLICIT NONE
+      INTEGER :: prm, l, m, n, i, j, k, ijk, imesh
+      LOGICAL :: ex
+
+      IF (mpime == root) OPEN( blunit, FILE=blfile, POSITION='APPEND')
       perim = 0
       prm   = 0
       DO n = 1, no
