@@ -34,6 +34,7 @@
       USE grid, ONLY: fl_l
       USE grid, ONLY: nij_l, myijk, nijx_l
       USE dimensions
+      USE indijk_module, ONLY: ip0_jp0_kp0_
       IMPLICIT NONE
 !
       INTEGER :: ij
@@ -42,7 +43,7 @@
       ALLOCATE(r1(nijx_l), r2(nijx_l), r3(nijx_l), r4(nijx_l), r5(nijx_l))
 !
       DO ij = 1, nij_l
-          imesh = myijk(0, 0, ij)
+          imesh = myijk( ip0_jp0_kp0_, ij)
           IF(fl_l(ij).EQ.1) THEN
             r1(ij)=0.D0
             r2(ij)=0.D0

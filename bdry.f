@@ -23,6 +23,7 @@
       USE reactions, ONLY: irex
       USE set_indexes
       USE time_parameters, ONLY: dt, time
+      USE indijk_module, ONLY: ip0_jp0_kp0_
 !
       IMPLICIT NONE
 !
@@ -44,7 +45,7 @@
 ! ... MODIFICARE_X3D (fino fine file )
 
       DO ij = 1, nij_l
-        imesh = myijk(0, 0, ij)
+        imesh = myijk( ip0_jp0_kp0_, ij)
         j = ( imesh - 1 ) / nr + 1
         i = MOD( ( imesh - 1 ), nr) + 1
         IF(fl_l(ij).EQ.1) THEN

@@ -5,6 +5,8 @@
       USE gas_solid_velocity, ONLY: ug,wg 
       USE grid, ONLY: fl_l, myijk,  nij_l, nijx_l, data_exchange
       USE environment, ONLY: timing, cpclock
+      USE indijk_module, ONLY: ip0_jp0_kp0_
+
       IMPLICIT NONE
 !
       REAL*8, DIMENSION(:),   ALLOCATABLE :: mugt   ! gas turbulent viscosity
@@ -196,7 +198,7 @@
        DO ij = 1, nij_l
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)
-          imesh = myijk(0,0,ij)
+          imesh = myijk( ip0_jp0_kp0_, ij)
           j = ( imesh - 1 ) / nr + 1
           i = MOD( ( imesh - 1 ), nr) + 1
 !
@@ -289,7 +291,7 @@
       REAL*8 :: d33
       INTEGER :: i, j, imesh 
 !
-        imesh = myijk(0,0,ij)
+        imesh = myijk( ip0_jp0_kp0_, ij)
         j = ( imesh - 1 ) / nr + 1
         i = MOD( ( imesh - 1 ), nr) + 1
 
@@ -436,7 +438,7 @@
 !
       d33=0.D0
       DO ij = 1, nij_l
-        imesh = myijk(0, 0, ij)
+        imesh = myijk( ip0_jp0_kp0_, ij)
         IF(fl_l(ij).EQ.1) THEN
          CALL subscr(ij)
          j = ( imesh - 1 ) / nr + 1

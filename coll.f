@@ -22,6 +22,7 @@
       USE heat_capacity, ONLY: gc_heat_capacity, solid_heat_capacity
       USE heat_capacity, ONLY: cp, ck
       USE control_flags, ONLY: job_type
+      USE indijk_module, ONLY: ip0_jp0_kp0_
 !
       USE turbulence, ONLY: scoeff, smag_coeff
 
@@ -64,7 +65,7 @@
       smag_coeff                  = 0.D0
 !
       DO ijk = 1, nij_l
-        imesh = myijk(0,0,ijk)
+        imesh = myijk( ip0_jp0_kp0_, ijk)
         gas_pressure(imesh) = p(ijk)
         solid_bulk_density(:,imesh) = rlk(:,ijk)
         gas_enthalpy(imesh) = sieg(ijk)

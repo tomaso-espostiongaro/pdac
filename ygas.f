@@ -16,6 +16,7 @@
       USE grid, ONLY: nij_l, myijk, data_exchange
       USE set_indexes
       USE time_parameters, ONLY: dt
+      USE indijk_module, ONLY: ip0_jp0_kp0_
 !
       IMPLICIT NONE
 !
@@ -27,7 +28,7 @@
       CALL data_exchange(rgpgc)
 !
       DO ij = 1, nij_l
-       imesh = myijk(0, 0, ij)
+       imesh = myijk( ip0_jp0_kp0_, ij)
        IF(fl_l(ij).EQ.1) THEN
         CALL subscr(ij)
         j  = ( imesh - 1 ) / nr + 1

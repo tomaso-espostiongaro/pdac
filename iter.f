@@ -29,6 +29,7 @@
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
       USE grid, ONLY: fl_l
       USE grid, ONLY: myijk, nij_l, nijx_l, data_exchange
+      USE indijk_module, ONLY: ip0_jp0_kp0_
       USE tilde_momentum, ONLY: appu, appw
       USE particles_constants, ONLY: rl, inrl
       USE phases_matrix, ONLY: mats, matsa, velsk, velsk2
@@ -88,7 +89,7 @@
 ! ... biassed by the wrong pressure field.
 !
       DO ij = 1, nij_l
-        imesh = myijk(0, 0, ij)
+        imesh = myijk( ip0_jp0_kp0_, ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)
           CALL matsa(ij, ep(ij), ep(ijr), ep(ijt),            &
@@ -110,7 +111,7 @@
       DO ij = 1, nij_l
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)
-          imesh = myijk(0, 0, ij)
+          imesh = myijk( ip0_jp0_kp0_, ij)
           i = MOD( ( imesh - 1 ), nr) + 1
           CALL masfg(rgfr(imj), rgft(ijm), rgfr(ij),rgft(ij), &
                       rnb(ug,ij),rnb(wg,ij),nb(rgp,ij),i)
@@ -138,7 +139,7 @@
          DO ij = 1, nij_l
            avloop(ij) = avloop(ij) + 1
 
-           imesh = myijk(0, 0, ij)
+           imesh = myijk( ip0_jp0_kp0_, ij)
            j  = ( imesh - 1 ) / nr + 1
            i  = MOD( ( imesh - 1 ), nr) + 1
            
@@ -353,7 +354,7 @@
  500      FORMAT('time =', F8.3)
       END IF
       DO ij=1,nij_l
-           imesh = myijk(0, 0, ij)
+           imesh = myijk( ip0_jp0_kp0_, ij)
            j  = ( imesh - 1 ) / nr + 1
            i  = MOD( ( imesh - 1 ), nr) + 1
         IF (avloop(ij) .GT. 5*avlp) THEN
@@ -477,6 +478,7 @@
       USE grid, ONLY: fl_l
       USE grid, ONLY: r, rb, dr, dz
       USE grid, ONLY: nij_l, myijk
+      USE indijk_module, ONLY: ip0_jp0_kp0_
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes
       USE time_parameters, ONLY: dt, time
@@ -496,7 +498,7 @@
 !
       DO ij = 1, nij_l
         IF (fl_l(ij) == 1) THEN
-          imesh = myijk(0, 0, ij)
+          imesh = myijk( ip0_jp0_kp0_, ij)
           CALL subscr(ij)
           j  = ( imesh - 1 ) / nr + 1
           i  = MOD( ( imesh - 1 ), nr) + 1

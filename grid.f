@@ -1,6 +1,9 @@
 !----------------------------------------------------------------------
       MODULE grid
 !----------------------------------------------------------------------
+
+        USE indijk_module
+
         IMPLICIT NONE
         SAVE
 !
@@ -74,12 +77,8 @@
 ! nije_l -> nijke -> ncext
 ! nijx_l -> nijkx -> ncdom
 
-!*******MX3D cambiare nome e struttura 
-        INTEGER, ALLOCATABLE :: myijk(:,:,:)
+        INTEGER, ALLOCATABLE :: myijk(:,:)
 !
-! myij -> myijk 
-!
-
 !*******MX3D  OK! cambiare dimensione
         INTEGER, ALLOCATABLE :: myinds(:,:)
 !
@@ -633,7 +632,6 @@
       USE dimensions
       USE parallel, ONLY: nproc, mpime
       USE basic_types, ONLY: imatrix
-      USE indijk_module
 !
       IMPLICIT NONE
 !
@@ -709,11 +707,12 @@
 !
 ! ... allocate the indexes matrix
 !
-!*****MX3D : cambia myijk(:,:,:,:), myinds(25,:)
+      ALLOCATE(myijk( nijk_ , nij_l))
 !
-      ALLOCATE(myijk(-2:2,-2:2,nij_l))
+!*****MX3D : cambia myinds(25,:)
+!
       ALLOCATE(myinds(12,nij_l))
-      myijk    = 0
+      myijk   = 0
       myinds  = 0
       CALL indijk_setup()
 
@@ -748,11 +747,9 @@
       END IF
 !
 !
-!*****MX3D : dimensioni di myijk
-!
       DO ijl = 1, nij_l
 ! ...     store the global cell index ij, of the the local cell ijl
-          myijk(0, 0, ijl) = cell_l2g(ijl, mpime)
+          myijk( ip0_jp0_kp0_, ijl) = cell_l2g(ijl, mpime)
       END DO
 
 !
@@ -901,7 +898,7 @@
 !
       ALLOCATE(fl_l(nijx_l))
       DO ijl = 1, nij_l
-        ij = myijk( 0, 0, ijl)
+        ij = myijk( ip0_jp0_kp0_, ijl)
         fl_l(ijl) = fl(ij)
       END DO
       CALL data_exchange(fl_l)
@@ -911,6 +908,7 @@
 !      DO ijl = 1, nij_l
 !        WRITE(7,*) ijl
 !        WRITE(7,*) (myinds(k,ijl), k=1,12)
+! *CHANGE  (i,j,ijl) => (indijk(i,j,0),ijl) 
 !        WRITE(7,*) ((myijk(i,j,ijl),i=-2,2),j=-2,2)
 !      END DO
 !
@@ -1006,7 +1004,7 @@
         INTEGER, INTENT(IN) :: ij, mpime
         INTEGER, INTENT(INOUT) :: nset(0:)
         TYPE (imatrix), OPTIONAL :: rcv_cell_set(0:)
-        INTEGER, OPTIONAL :: myijk(-2:,-2:,:)
+        INTEGER, OPTIONAL :: myijk(:,:)
         INTEGER :: ippj, ijpp, ijmm, immj
         INTEGER :: icnt, ipe, i, j, ije, ijl, ijel
         INTEGER :: im, jm
@@ -1024,7 +1022,7 @@
         fill = PRESENT(rcv_cell_set)
         icnt = 0
         IF( fill ) THEN
-          nij_l = SIZE(myijk, 3)
+          nij_l = SIZE(myijk, 2)
           ijl   = cell_g2l(ij, mpime)
         END IF
         
@@ -1047,11 +1045,11 @@
               ELSE IF( fill ) THEN
 ! ...           the cell ije is local, set the mapping with cell ijl
                 ijel = cell_g2l(ije, mpime)
-                myijk(im,jm,ijl) = ijel
+                myijk( indijk(im,jm,0), ijl ) = ijel
               END IF
             ELSE IF( fill ) THEN   
 ! ...         store the global cell index ij, of the the local cell ijl
-              myijk(0, 0, ijl) = ij
+              myijk( ip0_jp0_kp0_, ijl) = ij
             END IF
           END DO
         END DO
@@ -1073,7 +1071,7 @@
           END IF
         ELSE IF( fill ) THEN
           ijel = cell_g2l(immj, mpime)
-          myijk(-2,0,ijl) = ijel
+          myijk( im2_jp0_kp0_, ijl) = ijel
         END IF
 
         ippj=ij+2
@@ -1090,7 +1088,7 @@
           END IF
         ELSE IF( fill ) THEN
           ijel = cell_g2l(ippj, mpime)
-          myijk(2,0,ijl) = ijel
+          myijk( ip2_jp0_kp0_, ijl ) = ijel
         END IF
 
         ijmm=ij-nr-nr
@@ -1107,7 +1105,7 @@
           END IF
         ELSE IF( fill ) THEN
           ijel = cell_g2l(ijmm, mpime)
-          myijk(0,-2,ijl) = ijel
+          myijk( ip0_jm2_kp0_, ijl ) = ijel
         END IF
 
         ijpp=ij+nr+nr
@@ -1124,7 +1122,7 @@
           END IF
         ELSE IF( fill ) THEN
           ijel = cell_g2l(ijpp, mpime)
-          myijk(0,2,ijl) = ijel
+          myijk( ip0_jp2_kp0_, ijl ) = ijel
         END IF
 
         cell_neighbours = icnt
@@ -1184,14 +1182,14 @@
         USE basic_types, ONLY: imatrix 
         TYPE (rcv_map_type) :: rcv_map(0:)
         TYPE (imatrix) :: rcv_cell_set(0:)
-        INTEGER :: myijk(-2:,-2:,:)
+        INTEGER :: myijk(:,:)
         INTEGER, INTENT(IN) :: nrcv(0:), nset(0:)
         INTEGER :: ipe, nproc, icnt, ijl, i, j, ije
         INTEGER :: ic, icnt_rcv
         INTEGER, ALLOCATABLE :: ijsort(:)
 
         nproc = SIZE(rcv_cell_set)
-        nij_l = SIZE(myijk,3)
+        nij_l = SIZE(myijk,2)
         icnt  = 0                    ! counts received cells from all processors
 
         DO ipe = 0, nproc - 1
@@ -1216,7 +1214,7 @@
             j   = rcv_cell_set(ipe)%i(4,ic)
             rcv_map(ipe)%ircv(icnt_rcv) = ije
             rcv_map(ipe)%iloc(icnt_rcv) = icnt + nij_l
-            myijk(i,j,ijl) = icnt + nij_l
+            myijk( indijk(i,j,0), ijl ) = icnt + nij_l
             DO ic = 2, nset(ipe)
               ije = rcv_cell_set(ipe)%i(1,ic)
               ijl = rcv_cell_set(ipe)%i(2,ic)
@@ -1230,7 +1228,7 @@
                 rcv_map(ipe)%ircv(icnt_rcv) = ije
                 rcv_map(ipe)%iloc(icnt_rcv) = icnt + nij_l
               END IF 
-              myijk(i,j,ijl) = icnt + nij_l  ! da sostituire con
+              myijk( indijk(i,j,0), ijl ) = icnt + nij_l  ! da sostituire con
               ! ... myijk( stind, ijl ) = icnt + nij_l
             END DO
 
@@ -1259,7 +1257,7 @@
         USE dimensions
         IMPLICIT NONE
         INTEGER :: myinds(:,:)
-        INTEGER :: myijk(-2:,-2:,:)
+        INTEGER :: myijk(:,:)
 !
         INTEGER :: ijl, ijr, ijb, ijt, ijbr, ijtr, ijbl, ijtl, ijrr, ijtt, ijll, ijbb
         INTEGER :: imj, ipj, ijm, ijp, ipjm, ipjp, imjm, imjp, ippj, ijpp, immj, ijmm
@@ -1270,24 +1268,24 @@
         INTEGER :: i, j, ij, imesh
 !
         DO ij = 1, nij_l 
-          imesh = myijk(0, 0, ij)
+          imesh = myijk( ip0_jp0_kp0_, ij)
           j  = ( imesh - 1 ) / nr + 1
           i  = MOD( ( imesh - 1 ), nr) + 1
           IF( (i .GE. 2) .AND. (i .LE. (nr-1)) .AND.   &
               (j .GE. 2) .AND. (j .LE. (nz-1))      ) THEN
 !
-            ijm = myijk( 0,-1, ij)
-            imj = myijk(-1, 0, ij)
-            ipj = myijk(+1, 0, ij)
-            ijp = myijk( 0,+1, ij)
-            ipjm= myijk(+1,-1, ij)
-            ipjp= myijk(+1,+1, ij)
-            imjm= myijk(-1,-1, ij)
-            imjp= myijk(-1,+1, ij)
-            ippj= myijk(+2, 0, ij)
-            ijpp= myijk( 0,+2, ij)
-            immj= myijk(-2, 0, ij)
-            ijmm= myijk( 0,-2, ij)
+            ijm = myijk( ip0_jm1_kp0_, ij)
+            imj = myijk( im1_jp0_kp0_, ij)
+            ipj = myijk( ip1_jp0_kp0_, ij)
+            ijp = myijk( ip0_jp1_kp0_, ij)
+            ipjm= myijk( ip1_jm1_kp0_, ij)
+            ipjp= myijk( ip1_jp1_kp0_, ij)
+            imjm= myijk( im1_jm1_kp0_, ij)
+            imjp= myijk( im1_jp1_kp0_, ij)
+            ippj= myijk( ip2_jp0_kp0_, ij)
+            ijpp= myijk( ip0_jp2_kp0_, ij)
+            immj= myijk( im2_jp0_kp0_, ij)
+            ijmm= myijk( ip0_jm2_kp0_, ij)
 !
 ! ... indexes labelled Right, Top, Left, Bottom, etc., correspond to those defined 
 ! ...  above, except at boundaries ...
@@ -1476,7 +1474,7 @@
 
         itest = 0
         DO ijl = 1, nij_l
-          itest( ijl ) = myijk(0, 0, ijl)
+          itest( ijl ) = myijk( ip0_jp0_kp0_, ijl)
         END DO
 
         CALL data_exchange(itest)

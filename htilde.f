@@ -31,6 +31,7 @@
       USE grid, ONLY: r, rb, dr, zb, dz, inr, indr, indz 
       USE grid, ONLY: fl_l
       USE grid, ONLY: nij_l, nijx_l, myijk, data_exchange
+      USE indijk_module, ONLY: ip0_jp0_kp0_
       USE heat_diffusion, ONLY: hotcg, hotck
       USE particles_constants, ONLY: inrl
       USE pressure_epsilon, ONLY: p, pn, ep
@@ -82,7 +83,7 @@
       CALL data_exchange(kapgt)
 !
       DO ij = 1, nij_l
-        imesh = myijk(0, 0, ij)
+        imesh = myijk( ip0_jp0_kp0_, ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)
 !
@@ -128,7 +129,7 @@
 ! ... on boundaries, fluxes on left and bottom sides must be calculated
 !
       DO ij = 1, nij_l
-        imesh = myijk(0, 0, ij)
+        imesh = myijk( ip0_jp0_kp0_, ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)
           j = ( imesh - 1 ) / nr + 1

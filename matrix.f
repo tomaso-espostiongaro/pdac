@@ -1,8 +1,12 @@
 !--------------------------------------------------------------------
       MODULE phases_matrix
 !--------------------------------------------------------------------
+
+      USE indijk_module
+
       IMPLICIT NONE
       SAVE
+
       REAL*8, PRIVATE, DIMENSION(:),   ALLOCATABLE ::  bu1, bw1, bu, bw
       REAL*8, PRIVATE, DIMENSION(:,:), ALLOCATABLE ::  au1, aw1, au, aw
       REAL*8 :: rlim
@@ -58,11 +62,11 @@
       REAL*8, INTENT(IN) :: rlk(:), rlkr(:), rlkt(:), rlkl(:), rlkb(:)
       REAL*8, INTENT(IN) :: rgp, rgpr, rgpt, rgpl, rgpb
 !
-      imesh = myijk(0, 0, ij)
+      imesh = myijk( ip0_jp0_kp0_, ij)
       j  = ( imesh - 1 ) / nr + 1
       i  = MOD( ( imesh - 1 ), nr) + 1
-      ijm = myijk( 0,-1, ij)
-      imj = myijk(-1, 0, ij)
+      ijm = myijk( ip0_jm1_kp0_, ij)
+      imj = myijk( im1_jp0_kp0_, ij)
       ijr = myinds(r_, ij)
       ijt = myinds(t_, ij)
       ijl = myinds(l_, ij)
@@ -182,7 +186,7 @@
       REAL*8 :: ep_e, ep_n
       REAL*8 :: eps_e, eps_n
 !
-      imesh = myijk( 0, 0, ij)
+      imesh = myijk( ip0_jp0_kp0_, ij)
       j  = ( imesh - 1 ) / nr + 1
       i  = MOD( ( imesh - 1 ), nr) + 1
       ijr = myinds(r_, ij)
@@ -250,13 +254,13 @@
       INTEGER :: imj, ijm, ipj, ijp
       REAL*8 :: flt, flr, fll, div, amul, flb
 !
-      imesh = myijk( 0, 0, ij)
+      imesh = myijk( ip0_jp0_kp0_, ij)
       j  = ( imesh - 1 ) / nr + 1
       i  = MOD( ( imesh - 1 ), nr) + 1
 !
 ! ... Use Gauss-Jordan method for matrix inversion
 !
-      imj = myijk(-1, 0, ij)
+      imj = myijk( im1_jp0_kp0_, ij)
       fll=fl_l(imj)
       IF(.NOT.(fll.EQ.2.OR.fll.eq.3.or.fll.eq.5)) THEN
 
@@ -297,7 +301,7 @@
 
       END IF
 
-      ijm = myijk( 0,-1, ij)
+      ijm = myijk( ip0_jm1_kp0_, ij)
       flb=fl_l(ijm)
       IF(.NOT.(flb.EQ.2.OR.flb.eq.3.or.flb.eq.5)) THEN
 
@@ -338,7 +342,7 @@
 !
       END IF
 
-      ipj = myijk(+1, 0, ij)
+      ipj = myijk( ip1_jp0_kp0_, ij)
       flr=fl_l(ipj)
       IF(.NOT.(flr.EQ.2.OR.flr.eq.3.or.flr.eq.5)) THEN
 
@@ -379,7 +383,7 @@
 !
       END IF
 
-      ijp = myijk( 0,+1, ij)
+      ijp = myijk( ip0_jp1_kp0_, ij)
       flt=fl_l(ijp)
       IF(.NOT.(flt.EQ.2.OR.flt.eq.3.or.flt.eq.5)) THEN
 
@@ -438,7 +442,7 @@
       INTEGER :: kk, kp1, k, kj, ki
       REAL*8 :: flt, flr, fll, div, amul, flb
 
-      ipj = myijk(+1, 0, ij)
+      ipj = myijk( ip1_jp0_kp0_, ij)
       flr=fl_l(ipj)
       IF(.NOT.(flr.EQ.2.OR.flr.eq.3.or.flr.eq.5)) THEN
 
@@ -479,7 +483,7 @@
 !
       END IF
 
-      ijp = myijk( 0,+1, ij)
+      ijp = myijk( ip0_jp1_kp0_, ij)
       flt=fl_l(ijp)
       IF(.NOT.(flt.EQ.2.OR.flt.eq.3.or.flt.eq.5)) THEN
 

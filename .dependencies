@@ -1,11 +1,12 @@
 
 atmosphere.o : dimensions.o gas.o 
 
-bdry.o : atmosphere.o dens.o dimensions.o eosg.o gas.o grid.o parallel.o  \
-    particles.o press.o reactions.o subscr.o temp.o time.o velocity.o 
-
-coll.o : control_flags.o dens.o eosg.o grid.o hcapgs.o press.o temp.o turbo.o  \
+bdry.o : atmosphere.o dens.o dimensions.o eosg.o gas.o grid.o indijk.o  \
+    parallel.o particles.o press.o reactions.o subscr.o temp.o time.o  \
     velocity.o 
+
+coll.o : control_flags.o dens.o eosg.o grid.o hcapgs.o indijk.o press.o  \
+    temp.o turbo.o velocity.o 
 
 control_flags.o : 
 
@@ -13,8 +14,8 @@ dens.o : dimensions.o grid.o
 
 dimensions.o : 
 
-distr.o : control_flags.o dens.o eosg.o grid.o hcapgs.o press.o temp.o  \
-    turbo.o velocity.o visc.o 
+distr.o : control_flags.o dens.o eosg.o grid.o hcapgs.o indijk.o press.o  \
+    temp.o turbo.o velocity.o visc.o 
 
 drag.o : dimensions.o particles.o time.o 
 
@@ -25,7 +26,7 @@ eosg.o : dens.o dimensions.o gas.o grid.o hcapgs.o press.o reactions.o temp.o  \
 
 eosl.o : dens.o dimensions.o gas.o hcapgs.o particles.o reactions.o temp.o 
 
-fluxes.o : dimensions.o grid.o subscr.o time.o 
+fluxes.o : dimensions.o grid.o indijk.o subscr.o time.o 
 
 ftem.o : dens.o dimensions.o eosg.o grid.o hcapgs.o htilde.o hvs.o  \
     particles.o press.o reactions.o subscr.o temp.o time.o velocity.o visc.o 
@@ -36,10 +37,10 @@ grid.o : control_flags.o dimensions.o indijk.o parallel.o types.o
 
 hcapgs.o : dimensions.o gas.o grid.o 
 
-hotc.o : dimensions.o grid.o particles.o subscr.o 
+hotc.o : dimensions.o grid.o indijk.o particles.o subscr.o 
 
-htilde.o : dens.o dimensions.o fluxes.o grid.o hotc.o particles.o press.o  \
-    subscr.o temp.o time.o turbo.o velocity.o visc.o 
+htilde.o : dens.o dimensions.o fluxes.o grid.o hotc.o indijk.o particles.o  \
+    press.o subscr.o temp.o time.o turbo.o velocity.o visc.o 
 
 hvs.o : dimensions.o particles.o 
 
@@ -52,14 +53,14 @@ input.o : atmosphere.o control_flags.o dimensions.o fluxes.o gas.o grid.o  \
 io.o : dens.o dimensions.o eosg.o hcapgs.o parallel.o press.o temp.o time.o  \
     velocity.o 
 
-iter.o : dens.o dimensions.o eosg.o fluxes.o gas.o grid.o hcapgs.o matrix.o  \
-    particles.o press.o subscr.o temp.o tilde.o time.o velocity.o 
+iter.o : dens.o dimensions.o eosg.o fluxes.o gas.o grid.o hcapgs.o indijk.o  \
+    matrix.o particles.o press.o subscr.o temp.o tilde.o time.o velocity.o 
 
 kb07ad.o : 
 
 letter.o : 
 
-matrix.o : dimensions.o grid.o particles.o tilde.o time.o 
+matrix.o : dimensions.o grid.o indijk.o particles.o tilde.o time.o 
 
 outp.o : dens.o dimensions.o eosg.o parallel.o particles.o press.o  \
     reactions.o temp.o time.o turbo.o velocity.o 
@@ -76,10 +77,10 @@ pdac2d.o : atmosphere.o control_flags.o dens.o dimensions.o environment.o  \
 press.o : dimensions.o grid.o 
 
 prog.o : bdry.o dens.o dimensions.o environment.o eosg.o eosl.o ftem.o grid.o  \
-    hcapgs.o htilde.o io.o iter.o outp.o particles.o press.o reactions.o  \
-    temp.o tilde.o time.o turbo.o visc.o ygas.o 
+    hcapgs.o htilde.o indijk.o io.o iter.o outp.o particles.o press.o  \
+    reactions.o temp.o tilde.o time.o turbo.o visc.o ygas.o 
 
-reactions.o : dimensions.o grid.o time.o 
+reactions.o : dimensions.o grid.o indijk.o time.o 
 
 roughness.o : dimensions.o 
 
@@ -89,25 +90,25 @@ setc.o : dimensions.o gas.o particles.o reactions.o roughness.o turbo.o  \
 setup.o : atmosphere.o dens.o dimensions.o eosg.o eosl.o gas.o grid.o  \
     particles.o press.o temp.o time.o velocity.o visc.o 
 
-subscr.o : dimensions.o grid.o 
+subscr.o : dimensions.o grid.o indijk.o 
 
 system.o : 
 
 temp.o : dimensions.o grid.o 
 
-tilde.o : atmosphere.o dens.o dimensions.o drag.o fluxes.o grid.o parallel.o  \
-    particles.o press.o subscr.o time.o turbo.o velocity.o visc.o 
+tilde.o : atmosphere.o dens.o dimensions.o drag.o fluxes.o grid.o indijk.o  \
+    parallel.o particles.o press.o subscr.o time.o turbo.o velocity.o visc.o 
 
 time.o : 
 
-turbo.o : bdry.o dens.o dimensions.o environment.o eosg.o grid.o particles.o  \
-    roughness.o subscr.o velocity.o 
+turbo.o : bdry.o dens.o dimensions.o environment.o eosg.o grid.o indijk.o  \
+    particles.o roughness.o subscr.o velocity.o 
 
 types.o : 
 
 velocity.o : control_flags.o dimensions.o grid.o 
 
-visc.o : dens.o dimensions.o gas.o grid.o particles.o press.o subscr.o  \
-    turbo.o velocity.o 
+visc.o : dens.o dimensions.o gas.o grid.o indijk.o particles.o press.o  \
+    subscr.o turbo.o velocity.o 
 
-ygas.o : dimensions.o eosg.o grid.o subscr.o time.o velocity.o 
+ygas.o : dimensions.o eosg.o grid.o indijk.o subscr.o time.o velocity.o 

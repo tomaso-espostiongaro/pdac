@@ -10,6 +10,7 @@
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
       USE gas_solid_temperature, ONLY: sieg, siegn, sies, siesn, ts, tg
       USE grid, ONLY: nij_l, myijk, fl_l
+      USE indijk_module, ONLY: ip0_jp0_kp0_
       USE io_restart, ONLY: tapewr
       USE iterative_solver, ONLY: iter
       USE output_dump, ONLY: outp
@@ -73,7 +74,7 @@
 !
         DO ijk = 1, nij_l
 
-           imesh = myijk(0, 0, ijk)
+           imesh = myijk( ip0_jp0_kp0_, ijk)
 ! 
 ! ... Compute molar fractions of gas species
 !

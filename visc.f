@@ -180,6 +180,8 @@
       USE particles_constants, ONLY: rl, inrl
       USE set_indexes
       USE turbulence, ONLY: must
+      USE indijk_module, ONLY: ip0_jp0_kp0_
+
       IMPLICIT NONE
 !
       REAL*8, ALLOCATABLE :: eps(:)
@@ -205,7 +207,7 @@
       repulsive_model = .TRUE.
       IF ( repulsive_model ) THEN
         DO ij = 1, nij_l
-         imesh = myijk(0, 0, ij)
+         imesh = myijk(ip0_jp0_kp0_, ij)
          IF(fl_l(ij).EQ.1) THEN
            CALL subscr(ij)
            j = ( imesh - 1 ) / nr + 1
@@ -248,6 +250,8 @@
       USE grid, ONLY: itc, dz, dr, r, rb, indz, indr, inr, inrb
       USE grid, ONLY: fl_l, nij_l
       USE set_indexes
+      USE indijk_module, ONLY: ip0_jp0_kp0_
+
       IMPLICIT NONE
 !
       REAL*8, INTENT(OUT) :: visx(:), visz(:)
@@ -265,7 +269,7 @@
       visz = 0.D0
 !
       DO ij = 1, nij_l
-        imesh = myijk(0, 0, ij)
+        imesh = myijk( ip0_jp0_kp0_, ij)
         IF(fl_l(ij).EQ.1) THEN
          CALL subscr(ij)
          j = ( imesh - 1 ) / nr + 1

@@ -25,6 +25,8 @@ MODULE indijk_module
   INTEGER, PARAMETER :: ip0_jp0_kp2_ =  24
   INTEGER, PARAMETER :: ip0_jp0_km2_ =  25
 
+  INTEGER, PARAMETER :: nijk_        =  25
+
   INTEGER :: indijk(-2:2,-2:2,-2:2)
 
 CONTAINS

@@ -1,9 +1,12 @@
 !-----------------------------------------------------------------------
       MODULE set_indexes
 !-----------------------------------------------------------------------
+
       USE grid, ONLY: myinds, myijk
       USE grid, ONLY: r_, t_, l_, b_, tr_, tl_, br_, bl_
       USE grid, ONLY: rr_, tt_, ll_, bb_
+      USE indijk_module
+
       IMPLICIT NONE
 !
       INTEGER :: ijr, ijt, ijl, ijb
@@ -40,18 +43,18 @@
 !
       INTEGER, INTENT(IN) :: ij
 !
-      ijm  = myijk( 0,-1, ij)
-      imj  = myijk(-1, 0, ij)
-      ipj  = myijk(+1, 0, ij)
-      ijp  = myijk( 0,+1, ij)
-      ipjm = myijk(+1,-1, ij)
-      ipjp = myijk(+1,+1, ij)
-      imjm = myijk(-1,-1, ij)
-      imjp = myijk(-1,+1, ij)
-      ijpp = myijk( 0,+2, ij)
-      ippj = myijk(+2, 0, ij)
-      immj = myijk(-2, 0, ij)
-      ijmm = myijk( 0,-2, ij)
+      ijm  = myijk( ip0_jm1_kp0_, ij)
+      imj  = myijk( im1_jp0_kp0_, ij)
+      ipj  = myijk( ip1_jp0_kp0_, ij)
+      ijp  = myijk( ip0_jp1_kp0_, ij)
+      ipjm = myijk( ip1_jm1_kp0_, ij)
+      ipjp = myijk( ip1_jp1_kp0_, ij)
+      imjm = myijk( im1_jm1_kp0_, ij)
+      imjp = myijk( im1_jp1_kp0_, ij)
+      ijpp = myijk( ip0_jp2_kp0_, ij)
+      ippj = myijk( ip2_jp0_kp0_, ij)
+      immj = myijk( im2_jp0_kp0_, ij)
+      ijmm = myijk( ip0_jm2_kp0_, ij)
 !
       ijr  = myinds(r_, ij)
       ijt  = myinds(t_, ij)
@@ -102,7 +105,7 @@
       INTEGER, INTENT(IN) :: ij
       INTEGER :: i,j,imesh
 !
-      imesh = myijk(0,0,ij)
+      imesh = myijk( ip0_jp0_kp0_, ij)
       i  = MOD( ( imesh - 1 ), nr) + 1
       j  = ( imesh - 1 ) / nr + 1
 !
