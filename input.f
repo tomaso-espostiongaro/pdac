@@ -148,7 +148,7 @@
 
       rungekut = 1
       beta = 0.25
-      lim_type = 4
+      lim_type = 0
       muscl = 0
       inmax = 8
       maxout = 1000
@@ -270,7 +270,6 @@
       CALL bcast_integer(zrough%ir, 1, root)
       CALL bcast_real(zrough%r, zrough%ir, root)
       CALL bcast_real(zrough%roucha, 1, root)
-!
 !
       tend = .FALSE.
       IF(mpime == root) THEN

@@ -81,7 +81,7 @@
       CHARACTER*4 :: letter
 !
       INTEGER :: ig,is
-      LOGICAL :: lform = .FALSE.
+      LOGICAL :: lform = .TRUE.
       REAL*8, ALLOCATABLE :: otmp(:)
 !
       nfil=nfil+1
