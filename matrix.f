@@ -306,15 +306,15 @@
       RETURN
       END SUBROUTINE mats2
 !----------------------------------------------------------------------
-      SUBROUTINE velsk(ug, vg, wg, us, vs, ws, ugm, vgm, wgm, usm, vsm, wsm)
+      SUBROUTINE velsk(ijk)
 !
       USE dimensions, ONLY: nphase
+      USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: fl_l
       USE set_indexes, ONLY: imjk, ijmk, ijkm, ipjk, ijpk, ijkp
       IMPLICIT NONE
 !
-      REAL*8, INTENT(OUT) :: ug,vg,wg,us(:),vs(:),ws(:)
-      REAL*8, INTENT(OUT) :: ugm,vgm,wgm,usm(:),vsm(:),wsm(:)
+      INTEGER, INTENT(IN) :: ijk
 !
       INTEGER :: ll, lp1, l, lj, li
       INTEGER :: flw, fls, flb, fle, fln, flt
@@ -355,9 +355,9 @@
           END IF
         END DO
 !
-        ugm=bu1(1)
+        ug(imjk) = bu1(1)
         DO l=2,nphase
-          usm(l-1)=bu1(l)
+          us(imjk,l-1) = bu1(l)
         END DO
 
       END IF
@@ -395,9 +395,9 @@
           END IF
         END DO
 !
-        vgm=bv1(1)
+        vg(ijmk) = bv1(1)
         DO l=2, nphase
-          vsm(l-1)=bv1(l)
+          vs(ijmk,l-1) = bv1(l)
         END DO
 !
       END IF
@@ -435,9 +435,9 @@
           END IF
         END DO
 !
-        wgm=bw1(1)
+        wg(ijkm) = bw1(1)
         DO l=2, nphase
-          wsm(l-1)=bw1(l)
+          ws(ijkm,l-1) = bw1(l)
         END DO
 !
       END IF
@@ -475,9 +475,9 @@
           END IF
         END DO
 !
-        ug=bu(1)
+        ug(ijk) = bu(1)
         DO l=2,nphase
-          us(l-1)=bu(l)
+          us(ijk,l-1) = bu(l)
         END DO
 !
       END IF
@@ -514,9 +514,9 @@
           END IF
         END DO
 !
-        vg=bv(1)
+        vg(ijk) = bv(1)
         DO l=2,nphase
-          vs(l-1)=bv(l)
+          vs(ijk,l-1) = bv(l)
         END DO
 !
       END IF
@@ -555,9 +555,9 @@
           END IF
         END DO
 !
-        wg=bw(1)
+        wg(ijk) = bw(1)
         DO l=2,nphase
-          ws(l-1)=bw(l)
+          ws(ijk,l-1) = bw(l)
         END DO
 !
       END IF

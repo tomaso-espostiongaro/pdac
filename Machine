@@ -10,8 +10,8 @@ MACROS= -DSCALAR
 #OMPIINC= $(OMPITRACE_HOME)/include
 #HPMHOME= /cineca/prod/ACTC_pmtoolkit_beta/HPM_V2.2/
 #IPAFLG= -qipa -qipa=inline -qipa=list
-FFLAGS= -O3 -qstrict -qarch=pwr4 -qtune=pwr4 $(IPAFLG) -qalias=noaryovrlp -Q -bstatic -bmaxdata:0x70000000 
-CPPFLAGS= -WF,$(MACROS)
+FFLAGS= -O3 -qstrict -qarch=pwr4 -qtune=pwr4 $(IPAFLG) -qalias=noaryovrlp -Q -bstatic -bmaxdata:0x70000000 -g
+CPPFLAGS= -WF,$(MACROS) -g
 #PREPROCESSING = -qsuffix=cpp=f -I $(HPMHOME)/include/
 PREPROCESSING =
 FREEFORM= -qfree=f90

@@ -107,10 +107,10 @@
         IF (fl_l(ijk) == 1) THEN
           CALL subscr(ijk)
           imesh = myijk( ip0_jp0_kp0_, ijk)
-          CALL nb(dens,rgp,ijk)
-          CALL rnb(u,ug,ijk)
-          CALL rnb(v,vg,ijk)
-          CALL rnb(w,wg,ijk)
+          CALL first_nb(dens,rgp,ijk)
+          CALL first_rnb(u,ug,ijk)
+          CALL first_rnb(v,vg,ijk)
+          CALL first_rnb(w,wg,ijk)
           
           CALL masf(rgfe(imjk), rgfn(ijmk), rgft(ijkm),   &
 	             rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &
@@ -226,32 +226,25 @@
                           sieg(ijk), p(ijk), 0, 1, 0, imesh)
 
                 rgp(ijk) = ep(ijk) * rog(ijk)
-
 !
 ! ... Update gas and particles velocities using the corrected pressure
 ! ... at current location. Pressure at neighbour locations
 ! ... could still be wrong.
 
-                ! IF( MOD( ijk, 100 ) == 0 ) call f_hpmstart( 5, ' ITER_masf ' )
-
+                !IF( MOD( ijk, 100 ) == 0 ) call f_hpmstart( 5, ' ITER_masf ')
 !
                 CALL mats(ijk)
-
-                CALL velsk(ug(ijk), vg(ijk), wg(ijk),               &
-		           us(ijk,:), vs(ijk,:), ws(ijk,:),         &
-			   ug(imjk), vg(ijmk), wg(ijkm),            &
-			   us(imjk,:), vs(imjk,:), ws(ijkm,:)) 
-
+                CALL velsk(ijk)
 !
 ! ... Put the new biassed velocities into the Particle Mass Balance
 ! ... equation ...
 !
                 rls=0.D0
                 DO is=1,nsolid
-                  CALL nb(dens,rlk(:,is),ijk)
-                  CALL rnb(u,us(:,is),ijk)
-                  CALL rnb(v,vs(:,is),ijk)
-                  CALL rnb(w,ws(:,is),ijk)
+                  CALL first_nb(dens,rlk(:,is),ijk)
+                  CALL first_rnb(u,us(:,is),ijk)
+                  CALL first_rnb(v,vs(:,is),ijk)
+                  CALL first_rnb(w,ws(:,is),ijk)
 
                   CALL masf(rsfe(is,imjk), rsfn(is,ijmk), rsft(is,ijkm),   &
 	                     rsfe(is,ijk),  rsfn(is,ijk),  rsft(is,ijk),    &
@@ -286,10 +279,10 @@
 ! ... (at least one internal iteration must be done).
 !
                 IF(DABS(dg) > conv(ijk)) THEN
-                   CALL nb(dens,rgp,ijk)
-                   CALL rnb(u,ug,ijk)
-                   CALL rnb(v,vg,ijk)
-                   CALL rnb(w,wg,ijk)
+                   CALL first_nb(dens,rgp,ijk)
+                   CALL first_rnb(u,ug,ijk)
+                   CALL first_rnb(v,vg,ijk)
+                   CALL first_rnb(w,wg,ijk)
 
                    CALL masf(rgfe(imjk), rgfn(ijmk), rgft(ijkm),    &
 	                      rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &

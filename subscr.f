@@ -377,68 +377,157 @@
       
       END FUNCTION fracstencil
 !-----------------------------------------------------------------------
-      SUBROUTINE nb( nb_rank1, array, ijk )
+      SUBROUTINE nb( stncl, array, ijk )
 
       IMPLICIT NONE 
 !
-      TYPE(stencil) :: nb_rank1
+      TYPE(stencil) :: stncl
       REAL*8, INTENT(IN) :: array(:)
       INTEGER, INTENT(IN) :: ijk
 !
       IF( job_type_flag == 2 ) THEN
 
-        nb_rank1%c  = array(ijk)
-        nb_rank1%e  = array(ijr)
-        nb_rank1%n  = array(ijt)
-        nb_rank1%w  = array(ijl)
-        nb_rank1%s  = array(ijb)
-        nb_rank1%en  = array(ijtr)
-        nb_rank1%wn  = array(ijtl)
-        nb_rank1%es  = array(ijbr)
-        nb_rank1%ws  = array(ijbl)
-        nb_rank1%ee  = array(ijrr)
-        nb_rank1%nn  = array(ijtt)
-        nb_rank1%ww  = array(ijll)
-        nb_rank1%ss  = array(ijbb)
+        stncl%c  = array(ijk)
+        stncl%e  = array(ijr)
+        stncl%n  = array(ijt)
+        stncl%w  = array(ijl)
+        stncl%s  = array(ijb)
+        stncl%en  = array(ijtr)
+        stncl%wn  = array(ijtl)
+        stncl%es  = array(ijbr)
+        stncl%ws  = array(ijbl)
+        stncl%ee  = array(ijrr)
+        stncl%nn  = array(ijtt)
+        stncl%ww  = array(ijll)
+        stncl%ss  = array(ijbb)
 
       ELSE IF( job_type_flag == 3 ) THEN
 
-        nb_rank1%c = array( ijk )
-        nb_rank1%e = array( ijke )
-        nb_rank1%w = array( ijkw )
-        nb_rank1%ee = array( ijkee )
-        nb_rank1%ww = array( ijkww )
-        nb_rank1%n = array( ijkn )
-        nb_rank1%en = array( ijken )
-        nb_rank1%wn = array( ijkwn )
-        nb_rank1%s = array( ijks )
-        nb_rank1%es = array( ijkes )
-        nb_rank1%ws = array( ijkws )
-        nb_rank1%nn = array( ijknn )
-        nb_rank1%ss = array( ijkss )
-        nb_rank1%t = array( ijkt )
-        nb_rank1%et = array( ijket )
-        nb_rank1%wt = array( ijkwt )
-        nb_rank1%nt = array( ijknt )
-        nb_rank1%st = array( ijkst )
-        nb_rank1%b = array( ijkb )
-        nb_rank1%eb = array( ijkeb )
-        nb_rank1%wb = array( ijkwb )
-        nb_rank1%nb = array( ijknb )
-        nb_rank1%sb = array( ijksb )
-        nb_rank1%tt = array( ijktt )
-        nb_rank1%bb = array( ijkbb )
+        stncl%c = array( ijk )
+        stncl%e = array( ijke )
+        stncl%w = array( ijkw )
+        stncl%ee = array( ijkee )
+        stncl%ww = array( ijkww )
+        stncl%n = array( ijkn )
+        stncl%en = array( ijken )
+        stncl%wn = array( ijkwn )
+        stncl%s = array( ijks )
+        stncl%es = array( ijkes )
+        stncl%ws = array( ijkws )
+        stncl%nn = array( ijknn )
+        stncl%ss = array( ijkss )
+        stncl%t = array( ijkt )
+        stncl%et = array( ijket )
+        stncl%wt = array( ijkwt )
+        stncl%nt = array( ijknt )
+        stncl%st = array( ijkst )
+        stncl%b = array( ijkb )
+        stncl%eb = array( ijkeb )
+        stncl%wb = array( ijkwb )
+        stncl%nb = array( ijknb )
+        stncl%sb = array( ijksb )
+        stncl%tt = array( ijktt )
+        stncl%bb = array( ijkbb )
 
       END IF
 
       RETURN
       END SUBROUTINE nb
 !-----------------------------------------------------------------------
-      SUBROUTINE rnb(rnb_rank1,array,ijk)
+      SUBROUTINE rnb(stncl,array,ijk)
       USE dimensions
       IMPLICIT NONE 
 !
-      TYPE(stencil) :: rnb_rank1
+      TYPE(stencil) :: stncl
+      REAL*8, INTENT(IN) :: array(:)
+      INTEGER, INTENT(IN) :: ijk
+      INTEGER :: i,j,k,imesh
+!
+      IF( job_type_flag == 2 ) THEN
+
+        stncl%c  = array(ijk)
+        stncl%e  = array(ipj)
+        stncl%n  = array(ijp)
+        stncl%w  = array(imj)
+        stncl%s  = array(ijm)
+        stncl%en  = array(ipjp)
+        stncl%wn  = array(imjp)
+        stncl%es  = array(ipjm)
+        stncl%ws  = array(imjm)
+        stncl%ee  = array(ippj)
+        stncl%nn  = array(ijpp)
+        stncl%ww  = array(immj)
+        stncl%ss  = array(ijmm)
+
+      ELSE IF( job_type_flag == 3 ) THEN
+
+         stncl%c = array( ijk )
+         stncl%e = array( ipjk )
+         stncl%w = array( imjk )
+         stncl%ee = array( ippjk )
+         stncl%ww = array( immjk )
+         stncl%n = array( ijpk )
+         stncl%en = array( ipjpk )
+         stncl%wn = array( imjpk )
+         stncl%s = array( ijmk )
+         stncl%es = array( ipjmk )
+         stncl%ws = array( imjmk )
+         stncl%nn = array( ijppk )
+         stncl%ss = array( ijmmk )
+         stncl%t = array( ijkp )
+         stncl%et = array( ipjkp )
+         stncl%wt = array( imjkp )
+         stncl%nt = array( ijpkp )
+         stncl%st = array( ijmkp )
+         stncl%b = array( ijkm )
+         stncl%eb = array( ipjkm )
+         stncl%wb = array( imjkm )
+         stncl%nb = array( ijpkm )
+         stncl%sb = array( ijmkm )
+         stncl%tt = array( ijkpp )
+         stncl%bb = array( ijkmm )
+
+      END IF
+
+      RETURN
+      END SUBROUTINE rnb
+!-----------------------------------------------------------------------
+      SUBROUTINE first_nb( stncl, array, ijk )
+
+      IMPLICIT NONE 
+!
+      TYPE(stencil) :: stncl
+      REAL*8, INTENT(IN) :: array(:)
+      INTEGER, INTENT(IN) :: ijk
+!
+      IF( job_type_flag == 2 ) THEN
+
+        stncl%c  = array(ijk)
+        stncl%e  = array(ijr)
+        stncl%n  = array(ijt)
+        stncl%w  = array(ijl)
+        stncl%s  = array(ijb)
+
+      ELSE IF( job_type_flag == 3 ) THEN
+
+        stncl%c = array( ijk )
+        stncl%e = array( ijke )
+        stncl%w = array( ijkw )
+        stncl%n = array( ijkn )
+        stncl%s = array( ijks )
+        stncl%t = array( ijkt )
+        stncl%b = array( ijkb )
+
+      END IF
+
+      RETURN
+      END SUBROUTINE first_nb
+!-----------------------------------------------------------------------
+      SUBROUTINE first_rnb(stncl,array,ijk)
+      USE dimensions
+      IMPLICIT NONE 
+!
+      TYPE(stencil) :: stncl
       REAL*8, INTENT(IN) :: array(:)
       INTEGER, INTENT(IN) :: ijk
       INTEGER :: i,j,k,imesh
@@ -447,70 +536,26 @@
 
       IF( job_type_flag == 2 ) THEN
 
-        i  = MOD( ( imesh - 1 ), nr) + 1
-        j  = ( imesh - 1 ) / nr + 1
-!
-        rnb_rank1%c  = array(ijk)
-        rnb_rank1%e  = array(ipj)
-        rnb_rank1%n  = array(ijp)
-        rnb_rank1%w  = array(imj)
-        rnb_rank1%s  = array(ijm)
-        rnb_rank1%en  = array(ipjp)
-        rnb_rank1%wn  = array(imjp)
-        rnb_rank1%es  = array(ipjm)
-        rnb_rank1%ws  = array(imjm)
-        rnb_rank1%ee  = array(ippj)
-        IF (i == (nr-1))  rnb_rank1%ee  = array(ipj)
-        rnb_rank1%nn  = array(ijpp)
-        IF (j == (nz-1))  rnb_rank1%nn  = array(ijp)
-        rnb_rank1%ww  = array(immj)
-        IF (i == 2)  rnb_rank1%ww  = array(imj)
-        rnb_rank1%ss  = array(ijmm)
-        IF (j == (2))  rnb_rank1%ss  = array(ijm)
+        stncl%c  = array(ijk)
+        stncl%e  = array(ipj)
+        stncl%n  = array(ijp)
+        stncl%w  = array(imj)
+        stncl%s  = array(ijm)
 
       ELSE IF( job_type_flag == 3 ) THEN
 
-         i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
-         j = MOD( ijk - 1, nx*ny ) / nx + 1
-         k = ( ijk - 1 ) / ( nx*ny ) + 1
-
-         rnb_rank1%c = array( ijk )
-         rnb_rank1%e = array( ipjk )
-         rnb_rank1%w = array( imjk )
-         rnb_rank1%ee = array( ippjk )
-         rnb_rank1%ww = array( immjk )
-         rnb_rank1%n = array( ijpk )
-         rnb_rank1%en = array( ipjpk )
-         rnb_rank1%wn = array( imjpk )
-         rnb_rank1%s = array( ijmk )
-         rnb_rank1%es = array( ipjmk )
-         rnb_rank1%ws = array( imjmk )
-         rnb_rank1%nn = array( ijppk )
-         rnb_rank1%ss = array( ijmmk )
-         rnb_rank1%t = array( ijkp )
-         rnb_rank1%et = array( ipjkp )
-         rnb_rank1%wt = array( imjkp )
-         rnb_rank1%nt = array( ijpkp )
-         rnb_rank1%st = array( ijmkp )
-         rnb_rank1%b = array( ijkm )
-         rnb_rank1%eb = array( ipjkm )
-         rnb_rank1%wb = array( imjkm )
-         rnb_rank1%nb = array( ijpkm )
-         rnb_rank1%sb = array( ijmkm )
-         rnb_rank1%tt = array( ijkpp )
-         rnb_rank1%bb = array( ijkmm )
-
-         IF (i == (nx-1))  rnb_rank1%ee  = array(ipjk)
-         IF (i == 2)       rnb_rank1%ww  = array(imjk)
-         IF (j == (ny-1))  rnb_rank1%nn  = array(ijpk)
-         IF (j == 2)       rnb_rank1%ss  = array(ijmk)
-         IF (k == (nz-1))  rnb_rank1%tt  = array(ijkp)
-         IF (k == 2)       rnb_rank1%bb  = array(ijkm)
+         stncl%c = array( ijk )
+         stncl%e = array( ipjk )
+         stncl%w = array( imjk )
+         stncl%n = array( ijpk )
+         stncl%s = array( ijmk )
+         stncl%t = array( ijkp )
+         stncl%b = array( ijkm )
 
       END IF
 
       RETURN
-      END SUBROUTINE rnb
+      END SUBROUTINE first_rnb
 !-----------------------------------------------------------------------
       END MODULE set_indexes
 !-----------------------------------------------------------------------
