@@ -56,7 +56,7 @@
             res_gc(ig) = res_gc(ig) + rgp(ijk) * ygc(ijk,ig) * volume
           END DO
 
-        ELSE IF (flag(ijk) == 15) THEN
+        ELSE IF (flag(ijk) == 5 .OR. flag(ijk) == 8) THEN
           !
           ! ... Compute the mass entered since the beginning
           !

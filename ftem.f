@@ -54,6 +54,8 @@
       INTEGER :: fx, fy, fz
       LOGICAL :: forced = .FALSE.
 !
+      fx = 0; fy = 0; fz = 0
+!
       ALLOCATE(at(nphase, nphase))
       ALLOCATE(bt(nphase))
 !
@@ -94,12 +96,12 @@
 !
           indxc = 1.D0/(dx(i)+(dx(i+1)+dx(i-1))*0.5D0)
           indzc = 1.D0/(dz(k)+(dz(k+1)+dz(k-1))*0.5D0)
-          ugc = (ug(ijk)+ug(imjk))/2.D0
-          wgc = (wg(ijk)+wg(ijkm))/2.D0
+          ugc = 0.5D0*(ug(ijk)+ug(imjk))
+          wgc = 0.5D0*(wg(ijk)+wg(ijkm))
 
           IF (job_type == '3D') THEN
             indyc = 1.D0 / (dy(j)+(dy(j+1)+dy(j-1))*0.5D0)
-            vgc = (vg(ijk)+vg(ijmk))/2.D0
+            vgc = 0.5D0*(vg(ijk)+vg(ijmk))
           END IF
 !
 ! ... Pressure term (can be coupled in pressure algorithm)

@@ -33,11 +33,9 @@
       INTEGER :: ijk
       INTEGER :: ig, dfg
 
-      REAL*8, ALLOCATABLE :: rgpgc(:), ygcl(:), xgcl(:)
+      REAL*8, ALLOCATABLE :: rgpgc(:)
 !
       ALLOCATE(rgpgc(ngas)); rgpgc = 0.D0
-      ALLOCATE(ygcl(ngas)) ; ygcl = 0.D0
-      ALLOCATE(xgcl(ngas)) ; xgcl = 0.D0
 !
       IF (ngas == 1) THEN
         ygc(:,1) = 1.D0
@@ -114,22 +112,14 @@
         END DO
         ygc(ijk,ngas) = ygcdfg
 !
-       END IF
-      END DO
-!
-      DO ijk = 1, ncint
-       IF( flag(ijk) == 1 ) THEN
-!
 ! ... Update molar fractions
 !
-         ygcl(:) = ygc(ijk,:)
-         CALL mole( xgcl(:), ygcl(:) )
-         xgc(ijk,:) = xgcl(:)
-
+        CALL mole( xgc(ijk,:), ygc(ijk,:) )
+!
        END IF
       END DO
 !
-      DEALLOCATE(rgpgc,ygcl,xgcl)
+      DEALLOCATE(rgpgc)
       DEALLOCATE(yfe, yft)
       IF (job_type == '3D') DEALLOCATE(yfn)
 !
@@ -154,7 +144,7 @@
       IMPLICIT NONE
 
       INTEGER :: ijk, ig
-      TYPE(stencil) :: dens, field, u, v, w
+      TYPE(stencil) :: dens, conc, u, v, w
 !
       CALL data_exchange(ygc)
 !
@@ -170,22 +160,22 @@
 !
              ! ... Assemble the first order computational stencils
 	     CALL first_nb(dens,rgp(:),ijk)
-	     CALL first_nb(field,ygc(:,ig),ijk)
+	     CALL first_nb(conc,ygc(:,ig),ijk)
              CALL first_rnb(u,ug,ijk)
 	     CALL first_rnb(w,wg,ijk)
 
   	     CALL fsc(yfe(ijk,ig), yft(ijk,ig),      &
                       yfe(imjk,ig), yft(ijkm,ig),   &
-                      dens, field, u, w, ijk)
+                      dens, conc, u, w, ijk)
 !
 ! ... Second order MUSCL correction
 !
              IF (muscl > 0) THEN
 
                CALL third_nb(dens,rgp(:),ijk)
-               CALL third_nb(field,ygc(:,ig),ijk)
+               CALL third_nb(conc,ygc(:,ig),ijk)
   	       CALL muscl_fsc(yfe(ijk,ig), yft(ijk,ig),      &
-                            dens, field, u, w, ijk)
+                            dens, conc, u, w, ijk)
 
              END IF
 
@@ -195,23 +185,23 @@
 !
              ! ... Assemble the first order computational stencils
 	     CALL first_nb(dens,rgp(:),ijk)
-	     CALL first_nb(field,ygc(:,ig),ijk)
+	     CALL first_nb(conc,ygc(:,ig),ijk)
              CALL first_rnb(u,ug,ijk)
 	     CALL first_rnb(v,vg,ijk)
 	     CALL first_rnb(w,wg,ijk)
 
   	     CALL fsc(yfe(ijk,ig), yfn(ijk,ig), yft(ijk,ig),      &
                       yfe(imjk,ig), yfn(ijmk,ig), yft(ijkm,ig),   &
-                      dens, field, u, v, w, ijk)
+                      dens, conc, u, v, w, ijk)
 !
 ! ... Second order MUSCL correction
 !
              IF (muscl > 0) THEN
 
                CALL third_nb(dens,rgp(:),ijk)
-               CALL third_nb(field,ygc(:,ig),ijk)
+               CALL third_nb(conc,ygc(:,ig),ijk)
   	       CALL muscl_fsc(yfe(ijk,ig), yfn(ijk,ig), yft(ijk,ig),      &
-                              dens, field, u, v, w, ijk)
+                              dens, conc, u, v, w, ijk)
 
              END IF
 

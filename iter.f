@@ -769,11 +769,23 @@
       REAL*8 :: rlkx, rlky, rlkz, rls, rlk_tmp
       INTEGER, INTENT(IN) :: i, j, k, ijk
       INTEGER :: is
-      REAL*8 :: vf, vf0, ivf
+      REAL*8 :: vf, ivf
       INTEGER :: fx, fy, fz
       LOGICAL :: forced = .FALSE.
 
-      vf0 = b_e(ijk) + b_w(ijk) + b_t(ijk) + b_b(ijk)
+      IF (job_type == '2D') THEN
+        vf = b_e(ijk) + b_w(ijk) + b_t(ijk) + b_b(ijk)
+        vf = 0.25D0 * vf
+      ELSE IF (job_type == '3D') THEN
+        vf = b_e(ijk) + b_w(ijk) + b_t(ijk) + b_b(ijk) + b_n(ijk) + b_s(ijk)
+        vf = vf / 6.D0
+      END IF
+
+      IF (vf > 0.D0) THEN
+        ivf = 1.D0 / vf
+      ELSE
+        ivf = 0.D0
+      END IF
 
       rls = 0.D0
       DO is = 1, nsolid
@@ -783,24 +795,14 @@
 
         IF (job_type == '2D') THEN
           rlky = 0.D0
-          vf = 0.25D0 * vf0
         ELSE IF (job_type == '3D') THEN
           rlky = (b_n(ijk)*rsfn(ijk,is) - b_s(ijk)*rsfn(ijmk,is)) * indy(j)
-          vf = vf0 + b_n(ijk) + b_s(ijk)
-          vf = vf0 / 6.D0
-        END IF
-
-        IF (vf > 0.D0) THEN
-          ivf = 1.D0 / vf
-        ELSE
-          ivf = 0.D0
         END IF
 
         rlk_tmp = rlkn( ijk, is ) - dt * ivf * ( rlkx + rlky + rlkz )
               !- dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
-        rlk_tmp = MAX( 0.0d0, rlk_tmp )
 
-        rlk( ijk, is ) = rlk_tmp
+        rlk( ijk, is ) = MAX( 0.0d0, rlk_tmp )
         rls = rls + rlk( ijk, is ) * inrl(is)
 
       END DO

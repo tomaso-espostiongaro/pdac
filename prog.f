@@ -136,6 +136,8 @@
         IF (.NOT.run) EXIT time_sweep
 !
 ! ... If needed, update gas density (check algorithm)
+! ... Notice that the update of the gas density could
+! ... result in an error in the gas mass conservation ...
 !
         IF (update_eosg) THEN
           DO ijk=1, ncint

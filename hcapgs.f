@@ -39,7 +39,7 @@
 !
       cpc = 0.D0
 
-      !  Carlo consistency position
+      !  consistency position
       !
       t1 = MAX( 0.0d0, tg )
       t2 = t1*t1

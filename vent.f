@@ -51,6 +51,8 @@
 ! ... define the rectangle containing the vent
 ! ... 'nvt' is the number of vent cells
 !
+      iwest = 1
+      jsouth = 1
       DO i = 2, nx
         IF (xb(i-1) <= (xvent-radius)) iwest = i
         IF (xb(i-1) < (xvent+radius)) ieast = i
@@ -145,7 +147,7 @@
 
       REAL*8 :: area, ygcsum
       REAL*8 :: mixdens, mixvel, mfr, mg
-      REAL*8 :: alpha, ep0, ra, beta
+      REAL*8 :: alpha, ep0, ra, beta, fact_r
       INTEGER :: ijk, imesh, i,j,k, is, ig, n
 
       IF (job_type == '2D') RETURN
@@ -158,10 +160,9 @@
             beta = 1.D0 / (wrat - 1.D0)
             ra = DSQRT((x(i)-xvent)**2 + (y(j)-yvent)**2)
             ra = ra / radius
+            fact_r = wrat * (1.D0 - ra ** beta)
           ELSE IF (wrat <= 1.D0) THEN
-            wrat = 1.D0
-            beta = 1.D0
-            ra = 0.D0
+            fact_r = 1.D0
           END IF
 
           DO n = 1, nvt
@@ -176,7 +177,7 @@
           !
           ! ... vertical velocity profile
           !
-          wg(ijk) = w_gas * wrat * (1.D0 - ra ** beta)
+          wg(ijk) = w_gas * fact_r
           
           tg(ijk) = t_gas
           ep0     = 1.D0 - SUM(ep_solid(1:nsolid))
@@ -195,7 +196,7 @@
             !
             ! ... vertical velocity profile
             !
-            ws(ijk,is) = w_solid(is) * wrat * (1.D0 - ra ** beta)
+            ws(ijk,is) = w_solid(is) * fact_r
 
             ws(ijk,is)  = w_solid(is) 
             ts(ijk,is)  = t_solid(is)

@@ -179,7 +179,7 @@
 
             CALL specified_flow(n)
 
-          CASE (3) ! ... Obstacle
+          CASE (3) ! ... Obstacles
 
             CONTINUE
 

@@ -77,7 +77,7 @@
 ! 
       CALL compute_all_fluxes
 !
-! ... fluxes on left and bottom sides keep values
+! ... Fluxes on west, south, and bottom sides keep values
 ! ... entering from neighbouring cells.
 !
       egfx = 0.D0; egfy = 0.D0; egfz = 0.D0
