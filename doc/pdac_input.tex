@@ -44,6 +44,10 @@ velocity. The maximum CFL number $C_{max}\approx 0.2$ has been
 found empirically.}
 
 \item
+\PDACCONFWDEF{tau}{transient v.c.}{double real}{0.0}
+{Time needed to esablish the flow conditions at the vent (in seconds)}
+
+\item
 \PDACCONFWDEF{lpr}{level of verbosity}{1,2,3}{2}
 {increases the level of verbosity in warning and error messages 
 in {\tt pdac.log}, {\tt pdac.err}, {\tt pdac.tst} files}
@@ -72,6 +76,14 @@ The output time can be recovered as $({\tt XXXX - nfil})* {\tt tpr}$ }
 {Determine the format of output files: T - formatted ascii, 
 F - binary 4-bytes }
 
+\item
+\PDACCONFWDEF{run}{flag for running/setup}{T/F}{T}
+{If .FALSE. is selected, the run stops after writing log files, the setup and the boundary conditions}
+
+\item
+\PDACCONFWDEF{imr}{flag for output maps}{0/1}{0}
+{ When 1 selected, writes out a geo-referenced map of hazard variables, computed by projecting the
+field values at a distance {\em zdist} from the ground at time intervals of {\em tpr}}
 \end{itemize}
 
 \subsubsection{\OBJ{model} namelist}
@@ -129,7 +141,13 @@ non-necessary}
 \item
 \PDACCONFWDEF{rlim}{Multiphase limit}{very small real value}{$10^{-8}$}
 {It is related to minimum particle concentration for which multiphase flow
-equations are solved. Below this limit one-phase equations are solved
+equations of momentum are solved. Below this limit one-phase equations are solved
+(often critical for convergence on the cloud margins).}
+
+\item
+\PDACCONFWDEF{flim}{Multiphase limit}{very small real value}{$10^{-8}$}
+{It is related to minimum particle concentration for which multiphase flow
+equations of energy are solved. Below this limit one-phase equations are solved
 (often critical for convergence on the cloud margins).}
 
 \item
@@ -196,16 +214,85 @@ by modifying the discretized equations.}
 cells size in the two/three coordinate directions.}
 
 \item
-\PDACCONFWDEF{dx0}{cell sizes in x(r)-direction}{any real}{10.D0}
-{Uniform cell sizes along x(r)}
+\PDACCONFWDEF{dx0}{cell sizes in x(r)-direction}{any real $>$ 0.0}{10.D0}
+{Size along x(r) of the cells in metres, when the flag for uniform mesh is selected}
 
 \item
-\PDACCONFWDEF{dy0}{cell sizes in y-direction}{any real}{10.D0}
-{Uniform cell sizes along y}
+\PDACCONFWDEF{dy0}{cell sizes in y-direction}{any real $>$ 0.0}{10.D0}
+{Size along y of the cells in metres, when the flag for uniform mesh is selected}
 
 \item
-\PDACCONFWDEF{dz0}{cell sizes in z-direction}{any real}{10.D0}
-{Uniform cell sizes along z}
+\PDACCONFWDEF{dz0}{cell sizes in z-direction}{any real $>$ 0.0}{10.D0}
+{Size along z of the cells in metres, when the flag for uniform mesh is selected}
+
+\item
+\PDACCONFWDEF{grigen}{flag for grid generation}{0/1}{0}
+{Automatically builds a non-uniform mesh when 1 is selected}
+
+\item
+\PDACCONFWDEF{maxbeta}{Maximum increase rate for non-uniform cells}{any real $>$ 1.0}{1.2}
+{The ratio between the size of two adjacent cells. Increasing the non-uniform rate can deteriorate the accuracy of the numerical solution.}
+
+\item
+\PDACCONFWDEF{dxmin}{Minimun cell size in x(r) direction}{any real $>$ 0.0}{10.0}
+{The minimum cell size (in metres) determines the highest numerical resolution and constraints the time-step size accordingly to the CFL condition (see above)}
+
+\item
+\PDACCONFWDEF{dymin}{Minimun cell size in y direction}{any real $>$ 0.0}{10.0}
+{The minimum cell size (in metres) determines the highest numerical resolution and constraints the time-step size accordingly to the CFL condition (see above)}
+
+\item
+\PDACCONFWDEF{dzmin}{Minimun cell size in z direction}{any real $>$ 0.0}{10.0}
+{The minimum cell size (in metres) determines the highest numerical resolution and constraints the time-step size accordingly to the CFL condition (see above)}
+
+\item
+\PDACCONFWDEF{dxmax}{Maximum cell size in x(r) direction}{any real $>$ 0.0}{10.0}
+{The cell size is increased at a given rate from minimum to maximum size, until the domain\_x is covered. The code stops if the maximum cell size is too small.}
+
+\item
+\PDACCONFWDEF{dymax}{Maximum cell size in y direction}{any real $>$ 0.0}{10.0}
+{The cell size is increased at a given rate from minimum to maximum size, until the domain\_y is covered. The code stops if the maximum cell size is too small.}
+
+\item
+\PDACCONFWDEF{dzmax}{Maximum cell size in z direction}{any real $>$ 0.0}{10.0}
+{The cell size is increased at a given rate from minimum to maximum size, until the domain\_z is covered. The code stops if the maximum cell size is too small.}
+
+\item
+\PDACCONFWDEF{alpha\_x}{Relative position of the mesh center}{[0.0:1.0]}{0.5}
+{The center of the mesh corresponds to the position of the more refined part of the domain in the x(r) direction}
+
+\item
+\PDACCONFWDEF{alpha\_y}{Relative position of the mesh center}{[0.0:1.0]}{0.5}
+{The center of the mesh corresponds to the position of the more refined part of the domain in the y direction}
+
+\item
+\PDACCONFWDEF{alpha\_z}{Relative position of the mesh center}{[0.0:1.0]}{0.0}
+{The center of the mesh corresponds to the position of the more refined part of the domain in the z direction}
+
+\item
+\PDACCONFWDEF{center\_x}{UTM longitude of the mesh center}{}
+{The UTM longitude is needed to reference the mesh when volcanic topography has to be read. Usually corresponds to the crater vent longitude}
+
+\item
+\PDACCONFWDEF{center\_y}{UTM latitude of the mesh center}{}
+{The UTM longitude is needed to reference the mesh when volcanic topography has to be read. Usually corresponds to the crater vent latitude}
+
+\item
+\PDACCONFWDEF{domain\_x}{Domain size along x(r)}{any real $>$ 0.0}{10000}
+{Size (in metres) of the computational domain along x(r) for automatic mesh generation}
+
+\item
+\PDACCONFWDEF{domain\_y}{Domain size along x(r)}{any real $>$ 0.0}{10000}
+{Size (in metres) of the computational domain along y for automatic mesh generation}
+
+\item
+\PDACCONFWDEF{domain\_z}{Domain size along x(r)}{any real $>$ 0.0}{10000}
+{Size (in metres) of the computational domain along z for automatic mesh generation}
+
+\item
+\PDACCONFWDEF{zzero}{Grid bottom level}{any real}{0.0}
+{Elevation of the mesh bottom above sea level. The atmosphere is correctly
+described below 80 Km.}
 
 \item
 \PDACCONFWDEF{origin\_x}{origin of the cartesian space}{any real}{0.0}
@@ -222,6 +309,145 @@ cells size in the two/three coordinate directions.}
 \item
 \PDACCONFWDEF{mesh\_partition}{domain decomposition criterion}{1,2,3}{1}
 {1 - Layers decomposition, 2 - 2D Blocks decomposition, 3 - 3D Blocks decomposition}
+
+\end{itemize}
+
+\subsubsection{\OBJ{Boundaries} namelist}
+The \OBJ{Boundaries} namelist contains the flags that specify the
+conditions to be imposed on the domain boundaries. The domain boundaries
+are identified by their compass position, i.e. west-east in x-direction,
+south-north in y-direction and bottom-top in z-direction. The flag for the
+use of the immersed boundaries technique for no-slip boundaries is also
+included.
+\begin{itemize}
+\item
+\PDACCONFWDEF{west}{Flag for west boundary}{integer $\le$ 20}{2}
+{In 2D cylindrical, it must accounts for axial symmetry (flag=2). In 3D, 
+inflow/ouflow conditions (flag = 4,6) are usually imposed.}
+
+\item
+\PDACCONFWDEF{east}{Flag for east boundary}{integer $\le$ 20}{2}
+{In 2D and 3D inflow/ouflow conditions (flag = 4,6) are usually imposed.}
+
+\item
+\PDACCONFWDEF{south}{Flag for south boundary}{integer $\le$ 20}{2}
+{Inflow/ouflow conditions (flag = 4,6) are usually imposed (just 3D).}
+
+\item
+\PDACCONFWDEF{north}{Flag for north boundary}{integer $\le$ 20}{2}
+{Inflow/ouflow conditions (flag = 4,6) are usually imposed (just 3D).}
+
+\item
+\PDACCONFWDEF{bottom}{Flag for bottom boundary}{integer $\le$ 20}{3}
+{Bottom boundary condition represents usually a no-slip solid surface}
+
+\item
+\PDACCONFWDEF{top}{Flag for top boundary}{integer $\le$ 20}{4}
+{Please consider that top boundary can influence the behaviours of
+the atmospheric conditions during the simulation.}
+
+\item
+\PDACCONFWDEF{immb}{Flag for immersed boundaries}{0/1}{0}
+{When immb = 1, a generic solid boundary immersed in the computational domain
+is described by the immersed-boundaries technique. Please notice that this 
+procedure can be computationally expensive.}
+
+\item
+\PDACCONFWDEF{ibl}{Flag for blunt body}{0/1}{0}
+{When ibl = 1, the code writes out the lift and drag forces at each time-step
+on a rectangular block defined in the FIXED\_FLOWS card.}
+
+\item
+\PDACCONFWDEF{deltaz}{Height above the ground for mapping}{any real $>$ 0.0}{20.0}
+{Field values are interpolated vertically at this level to produce a 2D map.}
+\end{itemize}
+
+\subsubsection{\OBJ{topography} namelist}
+The present version of \PDAC can include (in 2D and 3D) an external file specifying a generic volcano topography. In 2D the topography can be given on a non-uniform mesh, whereas in 3D it is assumed that a standard ASCII DEM file is read.
+
+\begin{itemize}
+\item
+\PDACCONFWDEF{dem\_file}{Name of the DEM external file}{string between single quotes}{'topo.dat'}
+{Please controls that the ASCII file does not contain meta-characters (e.g. from Windows coding or decompression).}
+
+\item
+\PDACCONFWDEF{itp}{Flag for importing DEM file}{0/1}{0}
+{If itp = 1, read the topography from a file.}
+
+\item
+\PDACCONFWDEF{iavv}{Flag for averaging the topography}{0/1}{0}
+{Averages the topography to obtain an axisymmetric topography.}
+
+\item
+\PDACCONFWDEF{nocrater}{Flag for crater flattening}{T/F}{F}
+{Allows to flatten a region of the volcano around the vent at a given rim\_quota (see below).}
+
+\item
+\PDACCONFWDEF{rim\_quota}{Elevation a.s.l. where the topography is flattened}{any real}{1000}
+{If 'nocrater' is selected, flatten the topography at this quota.}
+
+\item
+\PDACCONFWDEF{imap}{Flag for mapping}{0/1}{0}
+{When imap = 1, the code writes out a map of hazard variables at a given height
+above the ground, at each OUTPUT time.}
+
+\item
+\PDACCONFWDEF{filtersize}{High-pass filtering size (in metres) for the topography}{any real $>$ 0.0}{50}
+{The filtering procedure is obtained by a combination of sub-sampling and averaging.}
+
+\item
+\PDACCONFWDEF{cellsize}{Resample the topography on a given mesh}{any real $>$ 0.0}{10}
+{This value is usually set equal to the dxmin, dymin values}
+\end{itemize}
+
+\subsubsection{\OBJ{Inlet} namelist}
+This namelist is intended for 3D simulations. It is useful to impose the vent
+conditions on a {\em circular} vent, without specifying the flow field in each 
+cell of the vent. It also includes some procedures to correct the description
+of a circular source within a cartesian mesh.
+
+\begin{itemize}
+\item
+\PDACCONFWDEF{ivent}{Flag for inlet conditions on a circular vent}{0/1}{0}
+{Vent conditions can be also imposed through the FIXED\_FLOWS card.}
+
+\item
+\PDACCONFWDEF{iali}{Flag for anti-aliasing}{0/1}{0}
+{Activates the anti-aliasing procedure to correct the mass flux in the cells
+partially filled by the topography, on the vent boundary.}
+
+\item
+\PDACCONFWDEF{irand}{Flag for random switch}{0/1}{0}
+{Activates the random-switch procedure. The inlet cells are switched on
+(i.e. the flux is feeded) with a probability proportional to the area not 
+occupied by the topography.}
+
+\item
+\PDACCONFWDEF{ipro}{Flag for flow radial profile}{0/1}{0}
+{Allows to set a radial inflow profile read from an external file (see below).}
+
+\item
+\PDACCONFWDEF{rad\_file}{Name of the file defining the profile}{string between sinfle quotes}{'profile.dat'}
+{The input file is described in the i/o files section of this manual}
+
+\item
+\PDACCONFWDEF{xvent}{UTM longitude of the center of the vent}{any real}{0.0}
+{The mesh is translated so that the vent is located in the more refined region}
+
+\item
+\PDACCONFWDEF{yvent}{UTM latitude of the center of the vent}{any real}{0.0}
+{The mesh is translated so that the vent is located in the more refined region}
+
+\item
+\PDACCONFWDEF{vent\_radius}{Radius of the vent}{any real > 0.0}{100}
+{The radius in metres}
+
+\item
+\PDACCONFWDEF{base\_radius}{The radius of the base of the crater}{any real > 0.0}{200}
+{}
+
+\item
+\PDACCONFWDEF{}{}{}{}{}
 
 \end{itemize}
 
