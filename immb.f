@@ -240,7 +240,7 @@
  
               ! ... Add external Forcing in x
               !
-              IF (forcez(ijk) .AND. forcez(ijkm) .AND. &
+              IF (forcez(ijk) .AND.                    &
                   forcey(ijk) .AND. forcey(ijmk) .AND. &
                   forcex(ijk) .AND.                    &
                   (z(k) > topo2d_x(i-1,j)) ) THEN
@@ -248,7 +248,7 @@
                     IF( fl(ijk) /=5 .AND. fl(ijk) /=8 ) fl(ijk) = 17
               END IF
 
-              IF (forcez(ijk) .AND. forcez(ijkm) .AND. &
+              IF (forcez(ijk) .AND.                    &
                   forcey(ijk) .AND. forcey(ijmk) .AND. &
                   forcex(imjk) .AND.                   &
                   (z(k) > topo2d_x(i,j)) ) THEN
@@ -258,7 +258,7 @@
 
               ! ... Add external Forcing in y 
               !
-              IF (forcez(ijk) .AND. forcez(ijkm) .AND. &
+              IF (forcez(ijk) .AND.                    &
                   forcex(ijk) .AND. forcex(imjk) .AND. &
                   forcey(ijk) .AND.                    &
                   (z(k) > topo2d_y(i,j-1)) ) THEN
@@ -266,7 +266,7 @@
                     IF( fl(ijk) /=5 .AND. fl(ijk) /=8 ) fl(ijk) = 17
               END IF
 
-              IF (forcez(ijk) .AND. forcez(ijkm) .AND. &
+              IF (forcez(ijk) .AND.                    &
                   forcex(ijk) .AND. forcex(imjk) .AND. &
                   forcey(ijmk) .AND.                   &
                   (z(k) > topo2d_y(i,j)) ) THEN
