@@ -19,7 +19,7 @@
       REAL*8, INTENT(IN) :: du, dv, dw
       REAL*8, INTENT(OUT) :: hv
 !
-      REAL*8 :: reynum, pranum, eps, eps2, vrel
+      REAL*8 :: reynum, pranum, eps, eps2, vrel,pranumexp
       REAL*8 :: asurf
       REAL*8 :: nusselt
 !
@@ -32,17 +32,22 @@
       eps  =  rlk * inrl(k)
       !eps2 = (rlk * inrl(k))**2
       eps2 = eps**2 
-      asurf = 6.D0 * kapg * eps / (dk(k)**2)
-      vrel = DSQRT(du**2+dv**2+dw**2)
+      asurf = 6.D0 * kapg * eps / (dk(k)*dk(k))
+      vrel = DSQRT( du*du + dv*dv + dw*dw )
       reynum = dk(k) * vrel * rog / mug
       pranum = cg * mug / kapg
-!
+      pranumexp = pranum ** ( 1.D0/3.D0)
+     
 ! generalized Gunn's correlation for n particles
 !
-      nusselt = ((2.D0 + 5.D0 * eps2)*                                   &
-                (1.D0 + 0.7D0 * reynum**0.2D0 * pranum**(1.D0/3.D0)) +   &
-                (0.13D0 + 1.2D0 * eps2) * reynum**0.7D0 *                &
-                pranum**(1.D0/3.D0))
+      !nusselt = ((2.D0 + 5.D0 * eps2)*                                   &
+      !          (1.D0 + 0.7D0 * reynum**0.2D0 * pranum**(1.D0/3.D0)) +   &
+      !          (0.13D0 + 1.2D0 * eps2) * reynum**0.7D0 *                &
+      !          pranum**(1.D0/3.D0))
+
+      nusselt = (2.D0 + 5.D0 * eps2)*(1.D0 + 0.7D0 * reynum**0.2D0 * pranumexp)
+      nusselt = nusselt + (0.13D0 + 1.2D0 * eps2) * reynum**0.7D0 * pranumexp 
+
 !
 ! Gunn's correlation
 !

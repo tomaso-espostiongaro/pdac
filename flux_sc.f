@@ -12,6 +12,7 @@
       USE flux_limiters, ONLY: muscl, limiters
 
       IMPLICIT NONE
+      SAVE
 !
       REAL*8, PRIVATE :: cs                      ! convective stream   !
       REAL*8, PRIVATE :: cn                      ! Courant number      !
@@ -24,7 +25,10 @@
       INTERFACE fsc
         MODULE PROCEDURE fsc_2d, fsc_3d
       END INTERFACE
-      SAVE
+      INTERFACE fsc_1st
+        MODULE PROCEDURE fsc_3d_1st
+      END INTERFACE
+      
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
@@ -204,6 +208,106 @@
 !
       RETURN
       END SUBROUTINE fsc_3d
+
+!----------------------------------------------------------------------
+      SUBROUTINE fsc_3d_1st(fe, fn, ft, fw, fs, fb, dens, field, u, v, w)
+!
+      USE dimensions
+      USE domain_decomposition, ONLY: myijk
+      USE grid, ONLY: fl_l
+      USE grid, ONLY: dx, dy, dz
+      USE indijk_module, ONLY: ip0_jp0_kp0_
+      USE set_indexes, ONLY: imjk, ijmk, ijkm
+      USE set_indexes, ONLY: stencil
+      USE time_parameters, ONLY: dt
+      IMPLICIT NONE
+!
+      REAL*8, INTENT(OUT) :: fe, fn, ft, fw, fs, fb
+      TYPE(stencil), INTENT(IN) :: dens, field, u, v, w
+!
+
+! ... On boundaries mantain first order accuracy
+!
+! ... on West volume boundary
+!
+      IF ((fl_l(imjk) /= 1)) THEN
+        cs = u%w
+        IF (cs >= 0.D0) THEN
+          upwnd = dens%w * field%w
+        ELSE IF (cs < 0.D0) THEN
+          upwnd = dens%c * field%c
+        ENDIF
+        fw = upwnd * cs
+      END IF
+!
+! ... on South volume boundary
+!
+      IF ((fl_l(ijmk) /= 1)) THEN
+        cs = v%s
+        IF (cs >= 0.D0) THEN
+          upwnd = dens%s * field%s
+        ELSE IF (cs < 0.D0) THEN
+          upwnd = dens%c * field%c
+        ENDIF
+        fs = upwnd * cs
+      END IF
+!
+! ... on Bottom volume boundary
+!
+      IF ((fl_l(ijkm) /= 1)) THEN
+        cs = w%b
+        IF (cs >= 0.D0) THEN
+          upwnd = dens%b * field%b
+        ELSE IF (cs < 0.D0) THEN
+          upwnd = dens%c * field%c
+        ENDIF
+        fb = upwnd * cs
+      END IF
+!
+! ... MUSCL reconstruction of fields
+!
+! ... on East volume boundary
+!
+     
+      lim = 0.D0
+      erre = 0.D0
+!
+      cs = u%c
+      !cn = cs * dt * 2.0 * indxp
+      IF (cs >= 0.D0) THEN
+        fou  = dens%c*field%c 
+      ELSE IF (cs < 0.D0) THEN
+        fou  = dens%e*field%e 
+      ENDIF
+!
+      fe = fou * cs
+!
+! ... on North volume boundary
+!
+      cs = v%c
+      !cn = cs * dt * 2.0 * indyp
+      IF (cs >= 0.D0) THEN
+        fou  = dens%c*field%c 
+      ELSE IF (cs < 0.D0) THEN
+        fou  = dens%n*field%n 
+      ENDIF
+!
+      fn = fou * cs
+!
+! ... on Top volume boundary
+!
+      cs = w%c
+      !cn = cs * dt * 2.0 * indzp
+      IF (cs >= 0.D0) THEN
+        fou  = dens%c*field%c 
+      ELSE IF (cs < 0.D0) THEN
+        fou  = dens%t*field%t 
+      ENDIF
+!
+      ft = fou * cs
+!
+      RETURN
+      END SUBROUTINE fsc_3d_1st
 !----------------------------------------------------------------------
       SUBROUTINE fsc_2d(fe, ft, fw, fb, dens, field, u, w, ij)
 !

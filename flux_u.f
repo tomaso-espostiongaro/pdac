@@ -12,6 +12,7 @@
       USE flux_limiters, ONLY: muscl, limiters
 
       IMPLICIT NONE
+      SAVE
 !
       REAL*8, PRIVATE :: cs                      ! convective stream   !
       REAL*8, PRIVATE :: cn                      ! Courant number      !
@@ -24,7 +25,10 @@
       INTERFACE flu
         MODULE PROCEDURE flu_2d, flu_3d
       END INTERFACE
-      SAVE
+      INTERFACE flu_1st
+        MODULE PROCEDURE flu_3d_1st
+      END INTERFACE
+      
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
@@ -214,6 +218,116 @@
 !
       RETURN
       END SUBROUTINE flu_3d
+
+!----------------------------------------------------------------------
+      SUBROUTINE flu_3d_1st(fe, fn, ft, fw, fs, fb, dens, u, v, w, i )
+!
+! ... Compute the convective fluxes on East, North, and Top sides of the cell
+! ... for the momentum density along x.
+!
+      USE dimensions
+      !USE domain_decomposition, ONLY: myijk
+      USE grid, ONLY: dx, dy, dz, indx, fl_l
+      USE indijk_module, ONLY: ip0_jp0_kp0_
+      USE set_indexes, ONLY: imjk, ijmk, ijkm
+      USE set_indexes, ONLY: stencil
+      USE time_parameters, ONLY: dt
+
+      IMPLICIT NONE
+!
+      REAL*8, INTENT(OUT) :: fe, fn, ft, fw, fs, fb
+      TYPE(stencil), INTENT(IN) :: dens, u, v, w
+      INTEGER, INTENT(IN) :: i
+!
+      REAL*8 :: dens_c, dens_e, dens_n, dens_t
+      REAL*8 :: dens_w, dens_s, dens_b
+      REAL*8 :: dxm, dxp, dxpp, indxpp, indxp, indxm
+
+!
+      dxm=dx(i)+dx(i-1)
+      dxp=dx(i)+dx(i+1)
+      dxpp=dx(i+1)+dx(i+2)
+
+      indxm=1.D0/dxm
+      indxp=1.D0/dxp
+      indxpp=1.D0/dxpp
+!       
+! ... Compute linearly interpolated values of density on the staggered grid
+!
+      dens_c = (dx(i+1) * dens%c + dx(i) * dens%e) * indxp
+      dens_e = (dx(i+2) * dens%e + dx(i+1) * dens%ee) * indxpp
+      dens_n = (dx(i+1) * dens%n + dx(i) * dens%en) * indxp
+      dens_t = (dx(i+1) * dens%t + dx(i) * dens%et) * indxp
+      dens_w = (dx(i)   * dens%w + dx(i-1) * dens%c) * indxm
+      dens_s = (dx(i+1) * dens%s + dx(i) * dens%es) * indxp
+      dens_b = (dx(i+1) * dens%b + dx(i) * dens%eb) * indxp
+!
+! ... On boundary mantain first order accuracy (1st order Upwind).
+!
+! ... on West volume bondary
+!
+      IF( fl_l(imjk) /= 1 ) THEN
+        cs = 0.5D0*(u%c + u%w)
+        IF ( cs >= 0.D0 ) fw = dens_w * u%w * cs
+        IF ( cs <  0.D0 ) fw = dens_c * u%c * cs
+      END IF
+!
+! ... on South volume bondary
+!
+      IF( fl_l(ijmk) /= 1 ) THEN
+        cs = (dx(i+1) * v%s + dx(i) * v%es) * indxp
+        IF ( cs >= 0.D0 ) fs = dens_s * u%s * cs
+        IF ( cs <  0.D0 ) fs = dens_c * u%c * cs
+      END IF
+!
+! ... on Bottom volume bondary
+!
+      IF( fl_l(ijkm) /= 1 ) THEN
+        cs = (dx(i+1) * w%b + dx(i) * w%eb) * indxp
+        IF ( cs >= 0.D0 ) fb = dens_b * u%b * cs
+        IF ( cs <  0.D0 ) fb = dens_c * u%c * cs
+      END IF
+!
+! ... MUSCL reconstruction of momentum
+!
+! ... on East volume boundary
+!
+      lim = 0.D0
+      erre = 0.D0
+!
+      cs = 0.5D0 * (u%c + u%e)    
+      IF ( cs >= 0.D0 ) THEN
+        fou  = dens_c * u%c 
+      ELSE IF ( cs < 0.D0 ) THEN
+        fou  = dens_e * u%e
+      END IF
+!
+      fe = fou * cs
+!
+! ... on North volume boundary
+!
+      cs = (dx(i+1) * v%c + dx(i) * v%e) * indxp
+      IF (cs >= 0.D0) THEN
+        fou  = dens_c * u%c
+      ELSE IF (cs < 0.D0) THEN 
+        fou  = dens_n * u%n
+      END IF 
+!
+      fn = fou * cs
+!
+! ... on Top volume boundary
+!
+      cs = (dx(i+1) * w%c + dx(i) * w%e) * indxp
+      IF (cs >= 0.D0) THEN
+        fou  = dens_c * u%c
+      ELSE IF (cs < 0.D0) THEN
+        fou  = dens_t * u%t
+      END IF 
+!
+      ft = fou * cs
+!
+      RETURN
+      END SUBROUTINE flu_3d_1st
 !----------------------------------------------------------------------
       SUBROUTINE flu_2d(fe, ft, fw, fb, dens, u, w, ij)
 !

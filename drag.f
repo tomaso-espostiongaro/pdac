@@ -148,10 +148,10 @@
       INTEGER, INTENT(IN) :: is
       REAL*8 :: denom
 !
-      denom = dk(is) * phis(is) * ep
-      drag = 150.D0 * ep * rlk * inrl(is) * mug  / denom +   &
+      denom = 1.0D0 / (dk(is) * phis(is) * ep)
+      drag = 150.D0 * ep * rlk * inrl(is) * mug  * denom +   &
              1.75D0 * rgp * vrel
-      drag = drag  * rlk * inrl(is) / denom
+      drag = drag  * rlk * inrl(is) * denom
       CONTINUE
 !
       RETURN
@@ -171,6 +171,7 @@
       REAL*8 :: ep1, ep2, epsum
       REAL*8 :: xbar, epkl, effe
       REAL*8 :: fac, restc
+      REAL*8 :: espo, m1, m2 
       INTEGER :: k1, k2
 !
       fac=1.D0
@@ -195,13 +196,16 @@
         ENDIF
 !
 ! ... for Nakamura & Capes correlation effe=1.5
-        effe=1.5D0
-        effe=(3.D0*epkl**(1.D0/3.D0)+epsum**(1.D0/3.D0))/ &
-             (2.D0*(epkl**(1.D0/3.D0)-epsum**(1.D0/3.D0)))
-
-        ppdr=fac*(1.D0+restc)*rlk(k-1)*rlk(kk-1)*dkf(k-1,kk-1)*effe
+        !effe=1.5D0
+        espo = 1.D0/3.D0  
+        m1 = epkl**espo
+        m2 = epsum**espo
+        !effe=(3.D0*epkl**(1.D0/3.D0)+epsum**(1.D0/3.D0))/ &
+        !     (2.D0*(epkl**(1.D0/3.D0)-epsum**(1.D0/3.D0)))
+        effe = (3.D0*m1+m2) / (2.D0*(m1-m2))
+        ppdr = fac*(1.D0+restc)*rlk(k-1)*rlk(kk-1)*dkf(k-1,kk-1)*effe
       ELSE
-        ppdr=0.D0
+        ppdr = 0.D0
       ENDIF
       RETURN
       END SUBROUTINE

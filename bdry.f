@@ -29,7 +29,7 @@
       USE grid, ONLY: fl_l
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE parallel, ONLY: mpime
-      USE set_indexes, ONLY: subscr
+      USE set_indexes, ONLY: subscr, subscr_bdry
       USE set_indexes, ONLY: ipjk, imjk, ippjk, immjk, ijpk, ipjpk,    &
         imjpk, ijmk, ipjmk, imjmk, ijppk, ijmmk, ijkp, ipjkp, imjkp,   &
         ijpkp, ijmkp, ijkm, ipjkm, imjkm, ijpkm, ijmkm, ijkpp, ijkmm
@@ -51,7 +51,8 @@
         IF( fl_l(ijk) == 1 ) THEN
 
             CALL meshinds(ijk,imesh,i,j,k)
-            CALL subscr(ijk)
+            !CALL subscr(ijk)
+            CALL subscr_bdry(ijk)
 !
 ! ***** East boundary conditions ***** !
 !

@@ -12,6 +12,7 @@
       USE flux_limiters, ONLY: muscl, limiters
 
       IMPLICIT NONE
+      SAVE
 !
       REAL*8, PRIVATE :: cs                      ! convective stream   !
       REAL*8, PRIVATE :: cn                      ! Courant number      !
@@ -24,7 +25,10 @@
       INTERFACE flw
         MODULE PROCEDURE flw_2d, flw_3d
       END INTERFACE
-      SAVE
+      INTERFACE flw_1st
+        MODULE PROCEDURE flw_3d_1st
+      END INTERFACE
+     
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
@@ -211,7 +215,125 @@
 !
       RETURN
       END SUBROUTINE flw_3d
+
 !------------------------------------------------------
+      SUBROUTINE flw_3d_1st(fe, fn, ft, fw, fs, fb, dens, u, v, w, k)
+!
+! ... Compute the convective fluxes on East, North, and Top sides of the cell
+! ... for the momentum density along z.
+!
+      USE dimensions
+      USE domain_decomposition, ONLY: myijk
+      USE grid, ONLY: dx, dy, dz, indz, fl_l
+      USE indijk_module, ONLY: ip0_jp0_kp0_
+      USE set_indexes, ONLY: imjk, ijmk, ijkm
+      USE set_indexes, ONLY: stencil
+      USE time_parameters, ONLY: dt
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: k
+      REAL*8, INTENT(OUT) :: fe, fn, ft, fw, fs, fb
+      TYPE(stencil), INTENT(IN) :: dens, u, v, w
+!
+     
+      REAL*8 :: dzp, indzp, dzm, indzm, dzpp, indzpp
+      REAL*8 :: dens_c, dens_e, dens_n, dens_t
+      REAL*8 :: dens_w, dens_s, dens_b
+     
+      
+      dzm=dz(k)+dz(k-1)
+      dzp=dz(k)+dz(k+1)
+      dzpp=dz(k+1)+dz(k+2)
+     
+      indzm=1.D0/dzm
+      indzp=1.D0/dzp
+      indzpp=1.D0/dzpp
+!       
+! ... values of density interpolated linearly on the staggered grid
+!
+      dens_c = (dz(k+1) * dens%c + dz(k) * dens%t) * indzp
+      dens_e = (dz(k+1) * dens%e + dz(k) * dens%et) * indzp
+      dens_n = (dz(k+1) * dens%n + dz(k) * dens%nt) * indzp
+      dens_t = (dz(k+2) * dens%t + dz(k+1) * dens%tt) * indzpp
+      dens_w = (dz(k+1) * dens%w  + dz(k) * dens%wt) * indzp
+      dens_s = (dz(k+1) * dens%s  + dz(k) * dens%st) * indzp
+      dens_b = (dz(k-1) * dens%c  + dz(k) * dens%b) * indzm
+!
+!
+! ... On boundary mantain first order accuracy (1st order Upwind).
+!
+! ... on West volume bondary
+!
+      IF (fl_l(imjk) /= 1) THEN
+        cs = (dz(k+1)*u%w + dz(k)*u%wt) * indzp
+        IF ( cs >= 0.D0 ) fw = dens_w * w%w * cs
+        IF ( cs <  0.D0 ) fw = dens_c * w%c * cs
+      END IF
+!
+! ... on South volume bondary
+!
+      IF (fl_l(ijmk) /= 1) THEN
+        cs = (dz(k+1)*v%s + dz(k)*v%st) * indzp
+        IF ( cs >= 0.D0 ) fs = dens_s * w%s * cs
+        IF ( cs <  0.D0 ) fs = dens_c * w%c * cs
+      END IF
+!
+! ... on Bottom volume bondary
+!
+      IF (fl_l(ijkm) /= 1) THEN
+        cs=0.5D0*(w%b+w%c)
+        IF ( cs >= 0.D0 ) fb = dens_b * w%b * cs
+        IF ( cs <  0.D0 ) fb = dens_c * w%c * cs
+      END IF
+!
+! ... MUSCL reconstruction of momentum
+!
+! ... on East volume boundary
+!
+      
+      lim = 0.D0
+      erre = 0.D0
+!
+      cs = (dz(k+1)*u%c+dz(k)*u%t)*indzp
+      !cn = cs * dt * 2.0 * indxp
+      IF (cs >= 0.D0) THEN
+        fou  = dens_c * w%c
+      ELSE IF (cs < 0.D0) THEN
+        fou  = dens_e * w%e
+      END IF
+!
+      fe = fou * cs
+!
+! ... on North volume boundary
+!
+     
+      cs = (dz(k+1)*v%c+dz(k)*v%t)*indzp
+      !cn = cs * dt * 2.0 * indyp
+      IF (cs >= 0.D0) THEN
+        fou  = dens_c * w%c
+      ELSE IF (cs < 0.D0) THEN
+        fou  = dens_n * w%n
+      END IF
+!
+      fn = fou * cs
+!
+! ... on Top volume boundary
+!
+      cs = 0.5D0*(w%c+w%t)
+      !cn = cs * dt * indz(k+1)
+      IF (cs >= 0.D0) THEN
+        fou  = dens_c * w%c
+      ELSE IF (cs < 0.D0) THEN
+        fou  = dens_t * w%t
+      END IF 
+!
+      ft = fou * cs
+!
+      RETURN
+      END SUBROUTINE flw_3d_1st
+
+!------------------------------------------------------    
+
       SUBROUTINE flw_2d(fe, ft, fw, fb, dens, u, w, ij)
 !
 ! ... Compute the convective fluxes on East, Top, sides of the cell

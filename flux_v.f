@@ -12,6 +12,7 @@
       USE flux_limiters, ONLY: muscl, limiters
 
       IMPLICIT NONE
+      SAVE
 !
       REAL*8, PRIVATE :: cs                      ! convective stream   !
       REAL*8, PRIVATE :: cn                      ! Courant number      !
@@ -24,7 +25,10 @@
       INTERFACE flv
         MODULE PROCEDURE flv_3d
       END INTERFACE
-      SAVE
+      INTERFACE flv_1st
+        MODULE PROCEDURE flv_3d_1st
+      END INTERFACE
+      
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
@@ -215,6 +219,121 @@
 !
       RETURN
       END SUBROUTINE flv_3d
+!xxx
+!----------------------------------------------------------------------
+      SUBROUTINE flv_3d_1st(fe, fn, ft, fw, fs, fb, dens, u, v, w, j)
+!
+! ... Compute the convective fluxes on East, North, and Top sides of the cell
+! ... for the momentum density along y.
+!
+!      USE dimensions
+      USE grid, ONLY: fl_l
+      USE grid, ONLY: dx, dy, dz, indy
+      USE indijk_module, ONLY: ip0_jp0_kp0_
+      USE set_indexes, ONLY: imjk, ijmk, ijkm
+      USE set_indexes, ONLY: stencil
+      USE time_parameters, ONLY: dt
+
+      IMPLICIT NONE
+!
+      REAL*8, INTENT(OUT) :: fe, fn, ft, fw, fs, fb
+      TYPE(stencil), INTENT(IN) :: dens, u, v, w
+      INTEGER, INTENT(IN) :: j
+      
+!
+      REAL*8 :: dens_c, dens_e, dens_n, dens_t
+      REAL*8 :: dens_w, dens_s, dens_b    
+      REAL*8 :: dym, dyp, dypp, indypp, indyp, indym
+      REAL*8 :: gradc, grade, gradw, gradn, grads, gradt, gradb
+    
+      dym=dy(j)+dy(j-1)
+      dyp=dy(j)+dy(j+1)
+      dypp=dy(j+1)+dy(j+2)
+     
+      indym=1.D0/dym
+      indyp=1.D0/dyp
+      indypp=1.D0/dypp
+      
+!       
+! ... Compute linearly interpolated values of density on the staggered grid
+!
+      dens_c = (dy(j+1) * dens%c + dy(j) * dens%n) * indyp
+      dens_n = (dy(j+2) * dens%n + dy(j+1) * dens%nn) * indypp
+      dens_e = (dy(j+1) * dens%e + dy(j) * dens%en) * indyp
+      dens_t = (dy(j+1) * dens%t + dy(j) * dens%nt) * indyp
+      dens_s = (dy(j)   * dens%s + dy(j-1) * dens%c) * indym
+      dens_w = (dy(j+1) * dens%w + dy(j) * dens%wn) * indyp
+      dens_b = (dy(j+1) * dens%b + dy(j) * dens%nb) * indyp
+!
+! ... On boundary mantain first order accuracy (1st order Upwind).
+!
+! ... on West volume bondary
+!
+      IF( fl_l(imjk) /= 1 ) THEN
+        cs = (u%wn * dy(j) + u%w * dy(j+1)) * indyp
+        IF ( cs >= 0.D0 ) fw = dens_w * v%w * cs
+        IF ( cs <  0.D0 ) fw = dens_c * v%c * cs
+      END IF
+!
+! ... on South volume bondary
+!
+      IF( fl_l(ijmk) /= 1 ) THEN
+        cs = 0.5D0 * ( v%c + v%s ) 
+        IF ( cs >= 0.D0 ) fs = dens_s * v%s * cs
+        IF ( cs <  0.D0 ) fs = dens_c * v%c * cs
+      END IF
+!
+! ... on Bottom volume bondary
+!
+      IF( fl_l(ijkm) /= 1 ) THEN
+        cs = ( w%b * dy(j+1) + w%nb * dy(j) ) * indyp
+        IF ( cs >= 0.D0 ) fb = dens_b * v%b * cs
+        IF ( cs <  0.D0 ) fb = dens_c * v%c * cs
+      END IF
+!
+! ... MUSCL reconstruction of momentum
+!
+! ... on East volume boundary
+!
+      lim = 0.D0
+      erre = 0.D0
+!
+      cs = indyp * (u%c * dy(j+1) + u%n * dy(j))
+      !cn = cs * dt * 2.D0 * indxp
+      IF ( cs >= 0.D0 ) THEN
+        fou  = dens_c * v%c
+      ELSE IF ( cs < 0.D0 ) THEN
+        fou  = dens_e * v%e
+      END IF
+!
+      fe = fou * cs
+!
+! ... on North volume boundary
+!
+      cs = 0.5D0 * ( v%n + v%c )
+      !cn = cs * dt * indy(j+1)
+      IF (cs >= 0.D0) THEN
+        fou  = dens_c * v%c
+      ELSE IF (cs < 0.D0) THEN
+        fou  = dens_n * v%n
+      END IF
+!
+      fn = fou * cs
+!
+! ... on Top volume boundary
+!
+      cs = (dy(j+1) * w%c + dy(j) * w%n) * indyp
+      !cn = cs * dt * 2.0 * indzp
+      IF (cs >= 0.D0) THEN
+        fou  = dens_c * v%c
+      ELSE IF (cs < 0.D0) THEN
+        fou  = dens_t * v%t
+      END IF 
+!
+      ft = fou * cs
+!
+      RETURN
+      END SUBROUTINE flv_3d_1st
 !----------------------------------------------------------------------
       END MODULE convective_fluxes_v
 !-----------------------------------------------------------------------

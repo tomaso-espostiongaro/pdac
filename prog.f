@@ -10,7 +10,7 @@
       USE eos_gas, ONLY: mole, caloric_eosg, thermal_eosg
       USE eos_gas, ONLY: ygc, rgpgc, xgc, cg
       USE eos_solid, ONLY: eosl
-      USE gas_components, ONLY: ygas
+      USE gas_components, ONLY: ygas, ygas_3d
       USE gas_solid_density, ONLY: rog, rgp, rlk
       USE gas_solid_temperature, ONLY: sieg, sies, ts, tg
       USE grid, ONLY: fl_l
@@ -292,7 +292,12 @@
 ! ... Solve the explicit transport equation of gas species
 !
            IF (irex > 2) CALL rexion
-           CALL ygas
+
+           IF ( job_type == '2D' ) THEN 
+             CALL ygas
+           ELSE IF ( job_type == '3D' ) THEN 
+             CALL ygas_3d
+           END IF
 
                 IF( timing ) then
                     s9 = cpclock()

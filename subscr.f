@@ -173,6 +173,224 @@
 
     END SUBROUTINE subscr
 !-----------------------------------------------------------------------
+    SUBROUTINE subscr_iter( ijk )
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: ijk
+!
+      IF( job_type_flag == 2 ) THEN
+
+        ijkm  = myijk( ip0_jp0_km1_, ijk )
+        imjk  = myijk( im1_jp0_kp0_, ijk )
+        ipjk  = myijk( ip1_jp0_kp0_, ijk )
+        ijkp  = myijk( ip0_jp0_kp1_, ijk )
+
+        ijke  = myinds(ip1_jp0_kp0_, ijk )
+        ijkt  = myinds(ip0_jp0_kp1_, ijk )
+        ijkw  = myinds(im1_jp0_kp0_, ijk )
+        ijkb  = myinds(ip0_jp0_km1_, ijk )
+
+      ELSE IF( job_type_flag == 3 ) THEN
+
+        imjk   = myijk( im1_jp0_kp0_ , ijk )
+        ijmk   = myijk( ip0_jm1_kp0_ , ijk )
+        ijkm   = myijk( ip0_jp0_km1_ , ijk )
+        ipjk   = myijk( ip1_jp0_kp0_ , ijk )
+        ijpk   = myijk( ip0_jp1_kp0_ , ijk )
+        ijkp   = myijk( ip0_jp0_kp1_ , ijk )
+
+        ijke = myinds( ip1_jp0_kp0_ , ijk )
+        ijkw = myinds( im1_jp0_kp0_ , ijk )
+        ijkn = myinds( ip0_jp1_kp0_ , ijk )
+        ijks = myinds( ip0_jm1_kp0_ , ijk )
+        ijkt = myinds( ip0_jp0_kp1_ , ijk )
+        ijkb = myinds( ip0_jp0_km1_ , ijk )
+
+      END IF
+
+    END SUBROUTINE subscr_iter
+!-----------------------------------------------------------------------
+    SUBROUTINE subscr_red( ijk )
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: ijk
+!
+      IF( job_type_flag == 2 ) THEN
+        ijkm  = myijk( ip0_jp0_km1_, ijk )
+        imjk  = myijk( im1_jp0_kp0_, ijk )
+
+        ijke  = myinds(ip1_jp0_kp0_, ijk )
+        ijkt  = myinds(ip0_jp0_kp1_, ijk )
+        ijkw  = myinds(im1_jp0_kp0_, ijk )
+        ijkb  = myinds(ip0_jp0_km1_, ijk )
+
+      ELSE IF( job_type_flag == 3 ) THEN
+
+        imjk   = myijk( im1_jp0_kp0_ , ijk )
+        ijmk   = myijk( ip0_jm1_kp0_ , ijk )
+        ijkm   = myijk( ip0_jp0_km1_ , ijk )
+
+        ijke = myinds( ip1_jp0_kp0_ , ijk )
+        ijkw = myinds( im1_jp0_kp0_ , ijk )
+        ijkn = myinds( ip0_jp1_kp0_ , ijk )
+        ijks = myinds( ip0_jm1_kp0_ , ijk )
+        ijkt = myinds( ip0_jp0_kp1_ , ijk )
+        ijkb = myinds( ip0_jp0_km1_ , ijk )
+      END IF
+
+  END SUBROUTINE subscr_red
+
+!----------------------------------------------------------------------------
+      SUBROUTINE subscr_bdry( ijk )
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: ijk
+!
+      IF( job_type_flag == 2 ) THEN
+
+        ijkm  = myijk( ip0_jp0_km1_, ijk )
+        imjk  = myijk( im1_jp0_kp0_, ijk )
+        ipjk  = myijk( ip1_jp0_kp0_, ijk )
+        ijkp  = myijk( ip0_jp0_kp1_, ijk )
+        ipjkm = myijk( ip1_jp0_km1_, ijk )
+        ipjkp = myijk( ip1_jp0_kp1_, ijk )
+        imjkm = myijk( im1_jp0_km1_, ijk )
+        imjkp = myijk( im1_jp0_kp1_, ijk )
+        ijkpp = myijk( ip0_jp0_kp2_, ijk )
+        ippjk = myijk( ip2_jp0_kp0_, ijk )
+        immjk = myijk( im2_jp0_kp0_, ijk )
+        ijkmm = myijk( ip0_jp0_km2_, ijk )
+
+      ELSE  IF( job_type_flag == 3 ) THEN
+
+        ipjk   = myijk( ip1_jp0_kp0_ , ijk )
+        imjk   = myijk( im1_jp0_kp0_ , ijk )
+        ippjk  = myijk( ip2_jp0_kp0_ , ijk )
+        immjk  = myijk( im2_jp0_kp0_ , ijk )
+        ijpk   = myijk( ip0_jp1_kp0_ , ijk )
+        ipjpk  = myijk( ip1_jp1_kp0_ , ijk )
+        imjpk  = myijk( im1_jp1_kp0_ , ijk )
+        ijmk   = myijk( ip0_jm1_kp0_ , ijk )
+        ipjmk  = myijk( ip1_jm1_kp0_ , ijk )
+        imjmk  = myijk( im1_jm1_kp0_ , ijk )
+        ijppk  = myijk( ip0_jp2_kp0_ , ijk )
+        ijmmk  = myijk( ip0_jm2_kp0_ , ijk )
+        ijkp   = myijk( ip0_jp0_kp1_ , ijk )
+        ipjkp  = myijk( ip1_jp0_kp1_ , ijk )
+        imjkp  = myijk( im1_jp0_kp1_ , ijk )
+        ijpkp  = myijk( ip0_jp1_kp1_ , ijk )
+        ijmkp  = myijk( ip0_jm1_kp1_ , ijk )
+        ijkm   = myijk( ip0_jp0_km1_ , ijk )
+        ipjkm  = myijk( ip1_jp0_km1_ , ijk )
+        imjkm  = myijk( im1_jp0_km1_ , ijk )
+        ijpkm  = myijk( ip0_jp1_km1_ , ijk )
+        ijmkm  = myijk( ip0_jm1_km1_ , ijk )
+        ijkpp  = myijk( ip0_jp0_kp2_ , ijk )
+        ijkmm  = myijk( ip0_jp0_km2_ , ijk )
+
+      END IF
+
+     END SUBROUTINE subscr_bdry
+!-----------------------------------------------------------------------
+      SUBROUTINE subscr_fieldn( ijk )
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: ijk
+!
+      IF( job_type_flag == 2 ) THEN
+      
+        ijke  = myinds(ip1_jp0_kp0_, ijk )
+        ijkt  = myinds(ip0_jp0_kp1_, ijk )
+        ijkw  = myinds(im1_jp0_kp0_, ijk )
+        ijkb  = myinds(ip0_jp0_km1_, ijk )
+
+      ELSE IF( job_type_flag == 3 ) THEN
+
+        ijke = myinds( ip1_jp0_kp0_ , ijk )
+        ijkw = myinds( im1_jp0_kp0_ , ijk )
+        ijkn = myinds( ip0_jp1_kp0_ , ijk )
+        ijks = myinds( ip0_jm1_kp0_ , ijk )
+        ijkt = myinds( ip0_jp0_kp1_ , ijk )
+        ijkb = myinds( ip0_jp0_km1_ , ijk )
+      END IF
+
+    END SUBROUTINE subscr_fieldn
+
+!----------------------------------------------------------------------------
+    SUBROUTINE subscr_tilde( ijk )
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: ijk
+!
+      IF( job_type_flag == 2 ) THEN
+      
+        imjk   = myijk( im1_jp0_kp0_, ijk )
+        ijkm   = myijk( ip0_jp0_km1_ , ijk )
+        ijkt   = myinds(ip0_jp0_kp1_, ijk )
+       
+      ELSE IF( job_type_flag == 3 ) THEN
+
+        imjk   = myijk( im1_jp0_kp0_ , ijk )
+        ijmk   = myijk( ip0_jm1_kp0_ , ijk )
+        ijkm   = myijk( ip0_jp0_km1_ , ijk )
+        ijkt   = myinds( ip0_jp0_kp1_ , ijk )
+      
+      END IF
+
+    END SUBROUTINE subscr_tilde
+
+!----------------------------------------------------------------------------
+    SUBROUTINE subscr_ygas_1st( ijk )
+
+!   The same as subscr_red but only for job_type = 3D 
+
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: ijk
+!
+        imjk   = myijk( im1_jp0_kp0_ , ijk )
+        ijmk   = myijk( ip0_jm1_kp0_ , ijk )
+        ijkm   = myijk( ip0_jp0_km1_ , ijk )
+
+        ijke = myinds( ip1_jp0_kp0_ , ijk )
+        ijkw = myinds( im1_jp0_kp0_ , ijk )
+        ijkn = myinds( ip0_jp1_kp0_ , ijk )
+        ijks = myinds( ip0_jm1_kp0_ , ijk )
+        ijkt = myinds( ip0_jp0_kp1_ , ijk )
+        ijkb = myinds( ip0_jp0_km1_ , ijk )
+     
+
+  END SUBROUTINE subscr_ygas_1st
+
+!----------------------------------------------------------------------------
+   SUBROUTINE subscr_ygas( ijk )
+
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: ijk
+!
+        imjk   = myijk( im1_jp0_kp0_ , ijk )
+        ijmk   = myijk( ip0_jm1_kp0_ , ijk )
+        ijkm   = myijk( ip0_jp0_km1_ , ijk )
+
+        ijke = myinds( ip1_jp0_kp0_ , ijk )
+        ijkw = myinds( im1_jp0_kp0_ , ijk )
+        ijkn = myinds( ip0_jp1_kp0_ , ijk )
+        ijks = myinds( ip0_jm1_kp0_ , ijk )
+        ijkt = myinds( ip0_jp0_kp1_ , ijk )
+        ijkb = myinds( ip0_jp0_km1_ , ijk )
+        ijkee = myinds( ip2_jp0_kp0_ , ijk )
+        ijkww = myinds( im2_jp0_kp0_ , ijk )
+        ijknn = myinds( ip0_jp2_kp0_ , ijk )
+        ijkss = myinds( ip0_jm2_kp0_ , ijk )
+        ijktt = myinds( ip0_jp0_kp2_ , ijk )
+        ijkbb = myinds( ip0_jp0_km2_ , ijk )
+
+
+    END SUBROUTINE subscr_ygas
+
+!----------------------------------------------------------------------------
+
       FUNCTION cte(c)
 ! ... build a stencil with constant values c at each location
 !

@@ -166,7 +166,7 @@
 !
       USE control_flags, ONLY: job_type
       USE dimensions
-      USE domain_decomposition, ONLY: myijk, meshinds
+      USE domain_decomposition, ONLY: myijk, meshinds, ip0_jp0_kp0_
       USE gas_solid_density, ONLY: rgp, rlk
       USE grid, ONLY: dx, dy, dz
       USE indijk_module
@@ -190,8 +190,23 @@
       REAL*8 :: dxip1, dyjp1, dzkp1
       REAL*8 :: pijk
 !
-      CALL meshinds(ijk,imesh,i,j,k)
-!
+      !CALL meshinds(ijk,imesh,i,j,k)
+
+       imesh = myijk( ip0_jp0_kp0_, ijk )
+
+         IF ( job_type == '3D' ) THEN
+
+           k = ( imesh - 1 ) / ( nx*ny ) + 1
+           j = MOD( imesh - 1, nx*ny) / nx + 1
+           i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
+
+         ELSE IF ( job_type == '2D' ) THEN
+
+           k = ( imesh - 1 ) / nx + 1
+           i = MOD( ( imesh - 1 ), nx) + 1
+
+         END IF
+
       dxi=dx(i)
       dxip1=dx(i+1)
       dyj=dy(j)

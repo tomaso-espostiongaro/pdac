@@ -3,7 +3,7 @@
 #include<ctype.h>
 #include<strings.h>
 
-#define MMAX 100
+#define MMAX 500
 
 char str[BUFSIZ];
 char module[MMAX][BUFSIZ];

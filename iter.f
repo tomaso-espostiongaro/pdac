@@ -62,7 +62,7 @@
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
       USE grid, ONLY: fl_l
-      USE indijk_module, ONLY: ip0_jp0_kp0_
+      USE indijk_module
       USE output_dump, ONLY: outp
       USE parallel, ONLY: mpime
       USE particles_constants, ONLY: rl, inrl
@@ -71,7 +71,7 @@
       USE phases_matrix, ONLY: matspre_3phase
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: nb, rnb, first_rnb, rnb_13, nb_13
-      USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
+      USE set_indexes, ONLY: subscr, subscr_iter,subscr_red, imjk, ijmk, ijkm, ijkn, ijks, ijke, ijkw, ijkt, ijkb, myinds
       USE specific_heat_module, ONLY: cp
       USE tilde_energy, ONLY: htilde
       USE tilde_momentum, ONLY: tilde, appu, appv, appw
@@ -92,6 +92,7 @@
       INTEGER :: is, imesh, ii, jj
       REAL*8 :: dgorig
       REAL*8 :: rls
+      REAL*8 :: rlkx, rlky, rlkz, rlk_tmp
       REAL*8 :: omega0
       REAL*8 :: d3, p3
 
@@ -141,11 +142,11 @@
 ! ... to update velocity fields. New velocities are
 ! ... biassed by the wrong (old) pressure field.
 !
-
       DO ijk_ = 1, ncint
         IF ( fl_l( ijk_ ) == 1) THEN
-          CALL meshinds( ijk_ , imesh, i_ , j_ , k_ )
-          CALL subscr( ijk_ )
+          !CALL meshinds( ijk_ , imesh, i_ , j_ , k_ )
+          !CALL subscr( ijk_ )
+          CALL subscr_iter( ijk_ )
           CALL assemble_matrix( ijk_ )
           CALL solve_velocities( ijk_ )
         END IF
@@ -174,8 +175,50 @@
 
         IF ( fl_l( ijk_ ) == 1 ) THEN
  
-          CALL meshinds( ijk_ , imesh, i_ , j_ , k_ )
-          CALL subscr( ijk_ )
+          !CALL meshinds( ijk_ , imesh, i_ , j_ , k_ )
+
+              imesh = myijk( ip0_jp0_kp0_, ijk_ )
+
+              IF ( job_type == '3D' ) THEN
+
+                 k_ = ( imesh - 1 ) / ( nx*ny ) + 1
+                 j_ = MOD( imesh - 1, nx*ny) / nx + 1
+                 i_ = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
+
+              ELSE IF ( job_type == '2D' ) THEN
+
+                 k_ = ( imesh - 1 ) / nx + 1
+                 i_ = MOD( ( imesh - 1 ), nx) + 1
+
+              END IF
+
+          !CALL subscr( ijk_ )
+          !CALL subscr_red( ijk_ )
+
+              IF( job_type == '2D' ) THEN
+                 ijkm  = myijk( ip0_jp0_km1_, ijk_ )
+                 imjk  = myijk( im1_jp0_kp0_, ijk_ )
+
+                 ijke  = myinds(ip1_jp0_kp0_, ijk_ )
+                 ijkt  = myinds(ip0_jp0_kp1_, ijk_ )
+                 ijkw  = myinds(im1_jp0_kp0_, ijk_ )
+                 ijkb  = myinds(ip0_jp0_km1_, ijk_ )
+
+              ELSE IF( job_type == '3D' ) THEN
+
+                 imjk   = myijk( im1_jp0_kp0_ , ijk_ )
+                 ijmk   = myijk( ip0_jm1_kp0_ , ijk_ )
+                 ijkm   = myijk( ip0_jp0_km1_ , ijk_ )
+
+                 ijke = myinds( ip1_jp0_kp0_ , ijk_ )
+                 ijkw = myinds( im1_jp0_kp0_ , ijk_ )
+                 ijkn = myinds( ip0_jp1_kp0_ , ijk_ )
+                 ijks = myinds( ip0_jm1_kp0_ , ijk_ )
+                 ijkt = myinds( ip0_jp0_kp1_ , ijk_ )
+                 ijkb = myinds( ip0_jp0_km1_ , ijk_ )
+
+              END IF
+
 
           CALL calc_gas_mass_flux( i_, j_, k_, ijk_ )
 !
@@ -253,7 +296,33 @@
 
               ! ...   Calculate indexes of the neighbouring cells
 
-              CALL subscr( ijk_ )
+              !CALL subscr( ijk_ )
+              !CALL subscr_red( ijk_ )
+
+              IF( job_type == '2D' ) THEN
+                 ijkm  = myijk( ip0_jp0_km1_, ijk_ )
+                 imjk  = myijk( im1_jp0_kp0_, ijk_ )
+
+                 ijke  = myinds(ip1_jp0_kp0_, ijk_ )
+                 ijkt  = myinds(ip0_jp0_kp1_, ijk_ )
+                 ijkw  = myinds(im1_jp0_kp0_, ijk_ )
+                 ijkb  = myinds(ip0_jp0_km1_, ijk_ )
+
+              ELSE IF( job_type == '3D' ) THEN
+
+                 imjk   = myijk( im1_jp0_kp0_ , ijk_ )
+                 ijmk   = myijk( ip0_jm1_kp0_ , ijk_ )
+                 ijkm   = myijk( ip0_jp0_km1_ , ijk_ )
+
+                 ijke = myinds( ip1_jp0_kp0_ , ijk_ )
+                 ijkw = myinds( im1_jp0_kp0_ , ijk_ )
+                 ijkn = myinds( ip0_jp1_kp0_ , ijk_ )
+                 ijks = myinds( ip0_jm1_kp0_ , ijk_ )
+                 ijkt = myinds( ip0_jp0_kp1_ , ijk_ )
+                 ijkb = myinds( ip0_jp0_km1_ , ijk_ )
+
+              END IF
+
 !
               ! ...   Compute the residual of the mass balance 
               ! ...   equation of the gas phase
@@ -272,7 +341,52 @@
 
                 ! ... Compute new ep(.)
 
-                CALL calc_eps( i_ , j_ , k_ , ijk_  )
+                !CALL calc_eps( i_ , j_ , k_ , ijk_  )
+
+                rls = 0.D0 
+
+                IF (job_type == '2D') THEN
+
+                  DO is = 1, nsolid
+
+                    rlkx = (rsfe(ijk_,is) - rsfe(imjk,is)) * indx(i_) * inx(i_)
+                    rlkz = (rsft(ijk_,is) - rsft(ijkm,is)) * indz(k_)
+                    rlky = 0.D0
+
+                    rlk( ijk_, is) = rlkn( ijk_,is ) - dt * ( rlkx + rlky + rlkz )
+!                    - dt * (r1(ijk_)+r2(ijk_)+r3(ijk_)+r4(ijk_)+r5(ijk_))
+                    rlk( ijk_, is) = MAX( 0.0d0, rlk(ijk_,is) )
+                    rls = rls + rlk( ijk_,is) * inrl(is)
+
+                 END DO
+
+              ELSE IF (job_type == '3D') THEN
+
+                 DO is = 1, nsolid
+
+                   rlkx = (rsfe(ijk_,is) - rsfe(imjk,is)) * indx(i_) * inx(i_)
+                   rlky = (rsfn(ijk_,is) - rsfn(ijmk,is)) * indy(j_)
+                   rlkz = (rsft(ijk_,is) - rsft(ijkm,is)) * indz(k_)
+          
+                   rlk_tmp = rlkn( ijk_, is ) - dt * ( rlkx + rlky + rlkz )
+!                   - dt * (r1(ijk_)+r2(ijk_)+r3(ijk_)+r4(ijk_)+r5(ijk_))
+                   rlk_tmp= MAX( 0.0d0, rlk_tmp )
+                   rls = rls + rlk_tmp * inrl(is)
+                   rlk( ijk_, is) = rlk_tmp
+
+                END DO
+
+             END IF
+      
+             IF( rls > 1.D0 ) THEN
+                WRITE(8,*) ' warning1: mass is not conserved'
+                WRITE(8,*) ' time, i, j, k, rls ', time, i_, j_, k_, rls
+                CALL error('iter', 'warning: mass is not conserved',1)
+             ENDIF
+
+             ep( ijk_ ) = 1.D0 - rls
+
+
                 rgp( ijk_ ) = ep( ijk_ ) * rog( ijk_ )
 
               ELSE IF ( DABS(dg) > conv( ijk_ ) ) THEN
@@ -580,7 +694,7 @@
 ! ... to compute particle volumetric fractions and the void fraction.
 !
       IMPLICIT NONE
-      REAL*8 :: rlkx, rlky, rlkz, rls
+      REAL*8 :: rlkx, rlky, rlkz, rls, rlk_tmp
       INTEGER :: i, j, k, ijk
       INTEGER :: is
 
@@ -589,6 +703,7 @@
       IF (job_type == '2D') THEN
 
         DO is = 1, nsolid
+
           rlkx = (rsfe(ijk,is) - rsfe(imjk,is)) * indx(i) * inx(i)
           rlkz = (rsft(ijk,is) - rsft(ijkm,is)) * indz(k)
           rlky = 0.D0
@@ -597,19 +712,28 @@
 !          - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
           rlk( ijk, is) = MAX( 0.0d0, rlk(ijk,is) )
           rls = rls + rlk( ijk,is) * inrl(is)
+
         END DO
 
       ELSE IF (job_type == '3D') THEN
 
         DO is = 1, nsolid
+
           rlkx = (rsfe(ijk,is) - rsfe(imjk,is)) * indx(i) * inx(i)
           rlky = (rsfn(ijk,is) - rsfn(ijmk,is)) * indy(j)
           rlkz = (rsft(ijk,is) - rsft(ijkm,is)) * indz(k)
-
-          rlk( ijk, is) = rlkn( ijk, is ) - dt * ( rlkx + rlky + rlkz )
+           
+          !rlk( ijk, is) = rlkn( ijk, is ) - dt * ( rlkx + rlky + rlkz )
 !          - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
-          rlk( ijk, is) = MAX( 0.0d0, rlk(ijk,is) )
-          rls = rls + rlk( ijk, is ) * inrl(is)
+          !rlk( ijk, is) = MAX( 0.0d0, rlk(ijk,is) )
+          !rls = rls + rlk( ijk, is ) * inrl(is)
+          
+          rlk_tmp = rlkn( ijk, is ) - dt * ( rlkx + rlky + rlkz )
+!          - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
+          rlk_tmp= MAX( 0.0d0, rlk_tmp )
+          rls = rls + rlk_tmp * inrl(is)
+          rlk( ijk, is) = rlk_tmp
+
         END DO
 
       END IF
@@ -785,7 +909,6 @@
       USE convective_mass_fluxes, ONLY: upc_w, upc_s, upc_b
       USE control_flags, ONLY: job_type
       USE eos_gas, ONLY: csound
-!      USE gas_constants, ONLY: gammaair
       USE gas_solid_density, ONLY: rog, rgp
       USE grid, ONLY: dx, dy, dz, fl_l
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -1111,7 +1234,6 @@
                 rsft1_ = w1%c * dens1%t
              ENDIF
 
-
             !CALL masf( rsfe1_ ,  rsfn1_ ,  rsft1_ , rsfem1_ , rsfnm1_ , rsftm1_ ,   &
             !     dens1, u1, v1, w1 )
 
@@ -1420,57 +1542,14 @@
 
           IF( loop == 1 ) THEN
 
-             IF( muscl == 0 ) THEN
-
-               ! CALL first_nb(dens1,rlk(:,1),ijk)
-               dens1%c = rlk( ijk,  1 )
-               dens1%e = rlk( ijke, 1 )
-               dens1%w = rlk( ijkw, 1 )
-               dens1%n = rlk( ijkn, 1 )
-               dens1%s = rlk( ijks, 1 )
-               dens1%t = rlk( ijkt, 1 )
-               dens1%b = rlk( ijkb, 1 )
-
-               ! CALL first_nb(dens2,rlk(:,2),ijk)
-               dens2%c = rlk( ijk,  2 )
-               dens2%e = rlk( ijke, 2 )
-               dens2%w = rlk( ijkw, 2 )
-               dens2%n = rlk( ijkn, 2 )
-               dens2%s = rlk( ijks, 2 )
-               dens2%t = rlk( ijkt, 2 )
-               dens2%b = rlk( ijkb, 2 )
-
-               ! CALL first_rnb(u1,us(:,1),ijk)
-               ! CALL first_rnb(u2,us(:,2),ijk)
-               ! CALL first_rnb(w1,ws(:,1),ijk)
-               ! CALL first_rnb(w2,ws(:,2),ijk)
-               ! CALL first_rnb(v1,vs(:,1),ijk)
-               ! CALL first_rnb(v2,vs(:,2),ijk)
-               u1%c = us( ijk, 1 )
-               u1%w = us( imjk, 1 )
-               u2%c = us( ijk, 2 )
-               u2%w = us( imjk, 2 )
-               w1%c = ws( ijk, 1 )
-               w1%b = ws( ijkm, 1 )
-               w2%c = ws( ijk, 2 )
-               w2%b = ws( ijkm, 2 )
-               v1%c = vs( ijk, 1 )
-               v1%s = vs( ijmk, 1 )
-               v2%c = vs( ijk, 2 )
-               v2%s = vs( ijmk, 2 )
-
-             ELSE
-
-               CALL nb_13(dens1,rlk(:,1),ijk)
-               CALL nb_13(dens2,rlk(:,2),ijk)
-               CALL rnb_13(u1,us(:,1),ijk)
-               CALL rnb_13(u2,us(:,2),ijk)
-               CALL rnb_13(w1,ws(:,1),ijk)
-               CALL rnb_13(w2,ws(:,2),ijk)
-               CALL rnb_13(v1,vs(:,1),ijk)
-               CALL rnb_13(v2,vs(:,2),ijk)
-
-             END IF
+             CALL nb_13(dens1,rlk(:,1),ijk)
+             CALL nb_13(dens2,rlk(:,2),ijk)
+             CALL rnb_13(u1,us(:,1),ijk)
+             CALL rnb_13(u2,us(:,2),ijk)
+             CALL rnb_13(w1,ws(:,1),ijk)
+             CALL rnb_13(w2,ws(:,2),ijk)
+             CALL rnb_13(v1,vs(:,1),ijk)
+             CALL rnb_13(v2,vs(:,2),ijk)
          
           ELSE
 
@@ -1491,57 +1570,8 @@
 
           END IF
 
-          IF( muscl == 0 ) THEN
-             ! ... West, South and Bottom fluxes
-             !
-             IF (u1%w >= 0.D0) THEN
-                rsfem1_ = u1%w * dens1%w
-             ELSE
-                rsfem1_ = u1%w * dens1%c
-             ENDIF
-
-             IF (v1%s >= 0.D0) THEN
-                rsfnm1_ = v1%s * dens1%s
-             ELSE
-                rsfnm1_ = v1%s * dens1%c  
-             ENDIF
-
-             IF (w1%b >= 0.D0) THEN
-                rsftm1_ = w1%b * dens1%b
-             ELSE
-                rsftm1_ = w1%b * dens1%c
-             ENDIF
-
-             ! ... East, North and Top fluxes
-             !
-             IF (u1%c >= 0.D0) THEN
-                rsfe1_ = u1%c * dens1%c
-             ELSE
-                rsfe1_ = u1%c * dens1%e
-             ENDIF
-
-             IF (v1%c >= 0.D0) THEN
-                rsfn1_ = v1%c * dens1%c
-             ELSE
-                rsfn1_ = v1%c * dens1%n
-             ENDIF
-
-             IF (w1%c >= 0.D0) THEN
-                rsft1_ = w1%c * dens1%c
-             ELSE
-                rsft1_ = w1%c * dens1%t
-             ENDIF
-
-
-            !CALL masf( rsfe1_ ,  rsfn1_ ,  rsft1_ , rsfem1_ , rsfnm1_ , rsftm1_ ,   &
-            !     dens1, u1, v1, w1 )
-
-          ELSE
-
-            CALL fmas( rsfe1_ ,  rsfn1_ ,  rsft1_ , rsfem1_ , rsfnm1_ , rsftm1_ ,   &
+          CALL fmas( rsfe1_ ,  rsfn1_ ,  rsft1_ , rsfem1_ , rsfnm1_ , rsftm1_ ,   &
                  dens1, u1, v1, w1, i, j, k, ijk)
-
-          END IF
 
           rlkx = ( rsfe1_ - rsfem1_ ) * indx(i) * inx(i)
           rlky = ( rsfn1_ - rsfnm1_ ) * indy(j)
@@ -1550,57 +1580,8 @@
           rlk( ijk, 1) = MAX( 0.0d0, rlk(ijk,1) )
           rls = rlk( ijk, 1 ) * inrl(1)
 
-          IF( muscl == 0 ) THEN
-
-             ! ... West, South and Bottom fluxes
-             !
-             IF (u2%w >= 0.D0) THEN
-                rsfem2_ = u2%w * dens2%w
-             ELSE
-                rsfem2_ = u2%w * dens2%c
-             ENDIF
-
-             IF (v2%s >= 0.D0) THEN
-                rsfnm2_ = v2%s * dens2%s
-             ELSE
-                rsfnm2_ = v2%s * dens2%c  
-             ENDIF
-
-             IF (w2%b >= 0.D0) THEN
-                rsftm2_ = w2%b * dens2%b
-             ELSE
-                rsftm2_ = w2%b * dens2%c
-             ENDIF
-
-             ! ... East, North and Top fluxes
-             !
-             IF (u2%c >= 0.D0) THEN
-                rsfe2_ = u2%c * dens2%c
-             ELSE
-                rsfe2_ = u2%c * dens2%e
-             ENDIF
-
-             IF (v2%c >= 0.D0) THEN
-                rsfn2_ = v2%c * dens2%c
-             ELSE
-                rsfn2_ = v2%c * dens2%n
-             ENDIF
-
-             IF (w2%c >= 0.D0) THEN
-                rsft2_ = w2%c * dens2%c
-             ELSE
-                rsft2_ = w2%c * dens2%t
-             ENDIF
-
-            !CALL masf( rsfe2_ ,  rsfn2_ ,  rsft2_ , rsfem2_ , rsfnm2_ , rsftm2_ ,   &
-            !     dens2, u2, v2, w2 )
-
-          ELSE
-
-            CALL fmas( rsfe2_ ,  rsfn2_ ,  rsft2_ , rsfem2_ , rsfnm2_ , rsftm2_ ,   &
+          CALL fmas( rsfe2_ ,  rsfn2_ ,  rsft2_ , rsfem2_ , rsfnm2_ , rsftm2_ ,   &
                  dens2, u2, v2, w2, i, j, k, ijk)
-
-          END IF
 
           rlkx = ( rsfe2_ - rsfem2_ ) * indx(i) * inx(i)
           rlky = ( rsfn2_ - rsfnm2_ ) * indy(j)
@@ -1624,31 +1605,10 @@
           ! CALL update_res(dg)
 
           IF( loop == 1 ) THEN
-             IF( muscl == 0 ) THEN
-               ! CALL first_nb( densg_, rgp, ijk )
-               densg_%c = rgp( ijk  )
-               densg_%e = rgp( ijke )
-               densg_%w = rgp( ijkw )
-               densg_%n = rgp( ijkn )
-               densg_%s = rgp( ijks )
-               densg_%t = rgp( ijkt )
-               densg_%b = rgp( ijkb )
-
-               ! CALL first_rnb( ug_, ug, ijk )
-               ! CALL first_rnb( wg_, wg, ijk )
-               ! CALL first_rnb( vg_, vg, ijk )
-               ug_%c = ug( ijk )
-               ug_%w = ug( imjk )
-               wg_%c = wg( ijk )
-               wg_%b = wg( ijkm )
-               vg_%c = vg( ijk )
-               vg_%s = vg( ijmk )
-             ELSE
                CALL nb_13( densg_, rgp, ijk )
                CALL rnb_13( ug_, ug, ijk )
                CALL rnb_13( wg_, wg, ijk )
                CALL rnb_13( vg_, vg, ijk )
-             END IF
           ELSE
              densg_%c = rgp(ijk)
              ug_%c = ug( ijk )
@@ -1659,55 +1619,8 @@
              vg_%s = vg( ijmk )
           END IF
 
-          IF( muscl == 0 ) THEN
-             
-             ! ... West, South and Bottom fluxes
-             !
-             IF (ug_%w >= 0.D0) THEN
-                rgfem_ = ug_%w * densg_%w
-             ELSE
-                rgfem_ = ug_%w * densg_%c
-             ENDIF
-
-             IF (vg_%s >= 0.D0) THEN
-                rgfnm_ = vg_%s * densg_%s
-             ELSE
-                rgfnm_ = vg_%s * densg_%c  
-             ENDIF
-
-             IF (wg_%b >= 0.D0) THEN
-                rgftm_ = wg_%b * densg_%b
-             ELSE
-                rgftm_ = wg_%b * densg_%c
-             ENDIF
-
-             ! ... East, North and Top fluxes
-             !
-             IF (ug_%c >= 0.D0) THEN
-               rgfe_ = ug_%c * densg_%c
-             ELSE
-               rgfe_ = ug_%c * densg_%e
-             ENDIF
-
-             IF (vg_%c >= 0.D0) THEN
-               rgfn_ = vg_%c * densg_%c
-             ELSE
-               rgfn_ = vg_%c * densg_%n
-             ENDIF
-
-             IF (wg_%c >= 0.D0) THEN
-               rgft_ = wg_%c * densg_%c
-             ELSE
-               rgft_ = wg_%c * densg_%t
-             ENDIF
-
-
-            !CALL masf( rgfe_ ,  rgfn_ ,  rgft_ , rgfem_ , rgfnm_ , rgftm_ ,   &
-            !          densg_, ug_, vg_, wg_ )
-          ELSE
-            CALL fmas( rgfe_ ,  rgfn_ ,  rgft_ , rgfem_ , rgfnm_ , rgftm_ ,   &
+          CALL fmas( rgfe_ ,  rgfn_ ,  rgft_ , rgfem_ , rgfnm_ , rgftm_ ,   &
                       densg_, ug_, vg_, wg_, i, j, k, ijk )
-          END IF
 
           resx = ( rgfe_ - rgfem_ ) * indx(i) * inx(i)
           resz = ( rgft_ - rgftm_ ) * indz(k)
@@ -1878,6 +1791,7 @@
                       rgfe(imjk), rgfn(ijmk), rgft(ijkm),   &
                       densg_, ug_, vg_, wg_, i, j, k, ijk)
             ENDIF
+
           ENDIF
           ! --- by hand inlining -- CALL calc_gas_mass_flux
 

@@ -31,7 +31,7 @@
       USE heat_transfer, ONLY: hvs
       USE pressure_epsilon, ONLY: ep, p, pn
       USE reactions, ONLY: hrex, irex
-      USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
+      USE set_indexes, ONLY: subscr, subscr_red, imjk, ijmk, ijkm
       USE set_indexes, ONLY: ijke, ijkn, ijkt, ijkw, ijks, ijkb
       USE tilde_energy, ONLY: rhg, rhs
       USE time_parameters, ONLY: time, dt
@@ -66,7 +66,8 @@
 
         IF(fl_l(ijk) == 1) THEN
           CALL meshinds(ijk,imesh,i,j,k)
-          CALL subscr(ijk)
+          !CALL subscr(ijk)
+          CALL subscr_red(ijk)
 !
           IF(irex == 2) CALL hrex(ijk,hrexg,hrexs)
 !

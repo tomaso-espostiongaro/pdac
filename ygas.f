@@ -24,7 +24,7 @@
       USE grid, ONLY: dx, dy, dz, indx, indy, indz, inx
       USE grid, ONLY: fl_l
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE set_indexes, ONLY: stencil, nb, rnb, cte
+      USE set_indexes, ONLY: stencil, nb, rnb, cte, nb_13
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
       USE time_parameters, ONLY: dt,time
 !
@@ -48,16 +48,22 @@
       CALL data_exchange(rgpgc)
 !
       one  = cte(1.D0)
+
       DO ijk = 1, ncint
        IF( fl_l(ijk) == 1 ) THEN
          CALL meshinds(ijk,imesh,i,j,k)
          CALL subscr(ijk)
          
          DO ig=1,ngas
-	   CALL nb(field,rgpgc(:,ig),ijk)
-	   CALL rnb(u,ug,ijk)
-	   CALL rnb(w,wg,ijk)
-
+	   CALL nb_13(field,rgpgc(:,ig),ijk)
+           !CALL rnb(u,ug,ijk)
+	   !CALL rnb(w,wg,ijk)
+           u%w = ug ( imjk )
+           u%c = ug ( ijk )
+           w%b = wg ( ijkm )
+           w%c = wg ( ijk )
+          
+           
            IF (job_type == '2D') THEN
 
   	     CALL fsc(yfe(ijk,ig), yft(ijk,ig),      &
@@ -66,7 +72,10 @@
 
            ELSE IF (job_type == '3D') THEN
 
-   	     CALL rnb(v,vg,ijk)
+            
+	     !CALL rnb(v,vg,ijk)
+             v%s = vg ( ijmk )
+             v%c = vg ( ijk )
   	     CALL fsc(yfe(ijk,ig), yfn(ijk,ig), yft(ijk,ig),      &
                       yfe(imjk,ig), yfn(ijmk,ig), yft(ijkm,ig),   &
                       one, field, u, v, w, ijk)
@@ -134,6 +143,156 @@
 !
       RETURN
       END SUBROUTINE ygas
+
+
+!----------------------------------------------------------------------
+      SUBROUTINE ygas_3d
+!
+      USE convective_fluxes_sc, ONLY: fsc, fsc_1st
+      USE dimensions
+      USE domain_decomposition, ONLY: ncint, ncdom, myijk, &
+          data_exchange, meshinds, im1_jp0_kp0_ , ip0_jp0_km1_ , ip0_jm1_kp0_
+      USE eos_gas, ONLY: rgpgc, rgpgcn, ygc
+      USE flux_limiters, ONLY: muscl
+      USE gas_constants, ONLY: default_gas
+      USE gas_solid_velocity, ONLY: ug, vg, wg
+      USE grid, ONLY: dx, dy, dz, indx, indy, indz, inx
+      USE grid, ONLY: fl_l
+      USE indijk_module, ONLY: ip0_jp0_kp0_
+      USE set_indexes, ONLY: stencil, nb, rnb, cte, nb_13, first_nb
+      USE set_indexes, ONLY: subscr, subscr_ygas_1st, subscr_ygas, imjk, ijmk, ijkm
+      USE time_parameters, ONLY: dt,time
+!
+      IMPLICIT NONE
+!
+      TYPE(stencil) :: one, field, u, v, w
+      REAL*8 :: yfw, yfs, yfb, yfx, yfy, yfz
+      REAL*8 :: rgp
+      REAL*8 :: rgpgc_tmp
+      INTEGER :: i, j, k, imesh
+      INTEGER :: ijk
+      INTEGER :: ig
+!
+      ALLOCATE(yfe(ncdom,ngas), yft(ncdom,ngas))
+      yfe = 0.D0; yft = 0.D0
+      ALLOCATE(yfn(ncdom,ngas))
+      yfn = 0.D0
+!
+      CALL data_exchange(rgpgc)
+!
+      one  = cte(1.D0)
+
+      DO ijk = 1, ncint
+       IF( fl_l(ijk) == 1 ) THEN
+
+         IF ( muscl == 0) THEN
+     
+           !CALL meshinds(ijk,imesh,i,j,k)
+           CALL subscr_ygas_1st(ijk)
+         
+           DO ig=1,ngas
+
+             u%w = ug ( imjk )
+             u%c = ug ( ijk )
+             v%s = vg ( ijmk )
+             v%c = vg ( ijk )
+             w%b = wg ( ijkm )
+             w%c = wg ( ijk )
+
+             CALL first_nb(field,rgpgc(:,ig),ijk)
+             CALL fsc_1st(yfe(ijk,ig), yfn(ijk,ig), yft(ijk,ig),    &
+                      yfe(imjk,ig), yfn(ijmk,ig), yft(ijkm,ig),   &
+                      one, field, u, v, w)
+           
+           END DO
+
+         ELSE
+	
+           !CALL meshinds(ijk,imesh,i,j,k)
+           CALL subscr_ygas(ijk)
+         
+           DO ig=1,ngas
+
+             u%w = ug ( imjk )
+             u%c = ug ( ijk )
+             v%s = vg ( ijmk )
+             v%c = vg ( ijk )
+             w%b = wg ( ijkm )
+             w%c = wg ( ijk )
+  
+             CALL nb_13(field,rgpgc(:,ig),ijk)
+	     CALL fsc(yfe(ijk,ig), yfn(ijk,ig), yft(ijk,ig),        &
+                      yfe(imjk,ig), yfn(ijmk,ig), yft(ijkm,ig),   &
+                      one, field, u, v, w, ijk)
+           
+           END DO
+
+         END IF
+         
+       END IF
+      END DO
+      
+      CALL data_exchange(yfe)
+      CALL data_exchange(yft)
+      CALL data_exchange(yfn)
+
+      DO ijk = 1, ncint
+       IF( fl_l(ijk) == 1 ) THEN
+
+         CALL meshinds(ijk,imesh,i,j,k)
+         !CALL subscr(ijk)
+!        Inlined
+         imjk   = myijk( im1_jp0_kp0_ , ijk )
+         ijmk   = myijk( ip0_jm1_kp0_ , ijk )
+         ijkm   = myijk( ip0_jp0_km1_ , ijk )
+	   
+         yfx = 0.D0
+         yfy = 0.D0
+         yfz = 0.D0
+         rgp = 0.D0
+
+         DO ig=1,ngas
+	   
+	   yfw = yfe(imjk,ig)
+           yfx = yfe(ijk,ig) - yfw
+	   yfb = yft(ijkm,ig)
+	   yfz = yft(ijk,ig) - yfb
+  	   yfs = yfn(ijmk,ig)
+  	   yfy = yfn(ijk,ig) - yfs
+
+	   rgpgc_tmp = rgpgcn(ijk,ig)     
+	   rgpgc_tmp = rgpgc_tmp - dt * indx(i) * yfx * inx(i) 
+	   rgpgc_tmp = rgpgc_tmp - dt * indy(j) * yfy   
+	   rgpgc_tmp = rgpgc_tmp - dt * indz(k) * yfz
+           rgpgc(ijk,ig) = rgpgc_tmp
+ 
+           IF(rgpgc(ijk,ig) < 0.D0) THEN
+             WRITE(8,*) 'Warning!: gas mass is not conserved'
+             WRITE(8,128) time, ijk, ig, rgpgc(ijk,ig)
+ 128         FORMAT('Time= ',F8.3,' Cell= ',I6, ' Specie= ',I2)
+             rgpgc(ijk,ig) = 0.D0
+           END IF
+           
+           rgp = rgp + rgpgc(ijk,ig)
+
+         END DO
+
+         ygc(default_gas, ijk) = 1.D0
+         DO ig=1,ngas
+           IF (ig /= default_gas) THEN
+             ygc(ig,ijk)=rgpgc(ijk,ig)/rgp
+             ygc(default_gas, ijk) = ygc(default_gas, ijk) - ygc(ig,ijk)
+           END IF
+         END DO
+
+       END IF
+      END DO
+!
+      DEALLOCATE(yfe, yft)
+      DEALLOCATE(yfn)
+!
+      RETURN
+      END SUBROUTINE ygas_3d
 !----------------------------------------------------------------------
       END MODULE gas_components
 !----------------------------------------------------------------------
