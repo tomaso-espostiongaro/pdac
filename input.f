@@ -118,7 +118,7 @@
 
       NAMELIST / pp / first_out, last_out, incr_out
 
-      NAMELIST / mesh / nx, ny, nz, itc, iuni, dx0, dy0, dz0,        &
+      NAMELIST / mesh / nx, ny, nz, itc, iuni, dx0, dy0, dz0, zzero, &
         origin_x, origin_y, origin_z, center_x, center_y, center_z,  &
         dxmin, dxmax, dymin, dymax, dzmin, dzmax, n0x, n0y, n0z,     &
         domain_x, domain_y, domain_z, maxbeta, grigen, mesh_partition
