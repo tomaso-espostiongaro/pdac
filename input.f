@@ -42,34 +42,23 @@
       REAL*8 :: fixed_parteps(max_nsolid, max_nblock)
       REAL*8 :: fixed_parttemp(max_nsolid, max_nblock)
       REAL*8 :: fixed_gasconc(max_ngas, max_nblock)
-
-! ... SPECIFIED_PROFILE
-      REAL*8 :: prof_vgas_x(max_size)
-      REAL*8 :: prof_vgas_y(max_size)
-      REAL*8 :: prof_vgas_z(max_size)
-      REAL*8 :: prof_pressure(max_size)
-      REAL*8 :: prof_gaseps(max_size)
-      REAL*8 :: prof_gastemp(max_size)
-      REAL*8 :: prof_vpart_x(max_nsolid, max_size)
-      REAL*8 :: prof_vpart_y(max_nsolid, max_size)
-      REAL*8 :: prof_vpart_z(max_nsolid, max_size)
-      REAL*8 :: prof_parteps(max_nsolid, max_size)
-      REAL*8 :: prof_parttemp(max_nsolid, max_size)
-      REAL*8 :: prof_gasconc(max_ngas, max_size)
-
-! ... INITIAL_CONDITIONS
-      REAL*8 :: initial_vgas_x
-      REAL*8 :: initial_vgas_y
-      REAL*8 :: initial_vgas_z
-      REAL*8 :: initial_pressure
-      REAL*8 :: initial_void_fraction   
-      REAL*8 :: max_packing
-      REAL*8 :: initial_temperature
-      REAL*8 :: initial_vpart_x
-      REAL*8 :: initial_vpart_y
-      REAL*8 :: initial_vpart_z
-      REAL*8 :: initial_gasconc(max_ngas)
-
+!
+      REAL*8 :: atm_O2
+      REAL*8 :: atm_N2
+      REAL*8 :: atm_CO2
+      REAL*8 :: atm_H2
+      REAL*8 :: atm_H2O
+      REAL*8 :: atm_Air
+      REAL*8 :: atm_SO2
+!
+      REAL*8 :: vent_O2
+      REAL*8 :: vent_N2
+      REAL*8 :: vent_CO2
+      REAL*8 :: vent_H2
+      REAL*8 :: vent_H2O
+      REAL*8 :: vent_Air
+      REAL*8 :: vent_SO2
+!
       INTEGER :: iuni_nml = 20
       INTEGER :: iuni_fld = 21
       INTEGER :: iuni_grx = 22
@@ -87,8 +76,9 @@
 !-----------------------------------------------------------------------
       SUBROUTINE input( iunit, which )
 
-      USE atmosphere, ONLY: w0, u0, p0, temp0, us0, ws0, ep0, epsmx0
-      USE atmosphere, ONLY: gravx, gravy, gravz
+      USE atmospheric_conditions, ONLY: gravx, gravy, gravz
+      USE atmospheric_conditions, ONLY: wind_x, wind_y, wind_z, &
+          p_ground, t_ground, void_fraction, max_packing
       USE control_flags, ONLY: nfil, job_type, lpr, immb, itp
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
       USE domain_decomposition, ONLY: mesh_partition
@@ -98,13 +88,13 @@
       USE gas_solid_viscosity, ONLY: repulsive_model
       USE grid, ONLY: dx, dy, dz, itc, zzero
       USE grid, ONLY: west, east, south, north, bottom, top, topography
-      USE initial_conditions, ONLY: setup, epsob, wpob, tpob, ygc0, &
-     &    ygcob, upob, wgob, ugob, pob, tgob, epob, density_specified
-      USE initial_conditions, ONLY: ivent, xvent, yvent, radius
+      USE initial_conditions, ONLY: density_specified
+      USE vent_conditions, ONLY: ivent, xvent, yvent, radius,         &
+          u_gas, v_gas, w_gas, p_gas, t_gas,                          &
+          u_solid, v_solid, w_solid,  ep_solid, t_solid
       USE iterative_solver, ONLY: inmax, maxout, omega
       USE io_restart, ONLY: old_restart, max_seconds
       USE output_dump, ONLY: formatted_output
-
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl, kap, &
      &     cmus, phis, cps, dk, nsolid
@@ -115,8 +105,6 @@
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut
       USE turbulence_model, ONLY: iturb, cmut, iss, modturbo
-      USE initial_conditions, ONLY: ugpr, wgpr, ppr, eppr, tgpr, &
-                                   uppr, wppr, epspr, tppr, ygcpr, npr
 !
       IMPLICIT NONE
  
@@ -137,7 +125,15 @@
         origin_x, origin_y, origin_z, mesh_partition
 
       NAMELIST / boundaries / west, east, south, north, bottom, top, &
-        itp, topography, immb, ivent, xvent, yvent, radius
+        itp, topography, immb
+      
+      NAMELIST / inlet / ivent, xvent, yvent, radius, u_gas, v_gas, w_gas,  &
+        p_gas, t_gas, u_solid, v_solid, w_solid, ep_solid, t_solid, &
+        vent_O2, vent_N2, vent_CO2, vent_H2, vent_H2O, vent_Air, vent_SO2
+
+      NAMELIST / atmosphere / wind_x, wind_y, wind_z, p_ground, t_ground, &
+        void_fraction, max_packing, atm_O2, atm_N2, atm_CO2, atm_H2, atm_H2O, &
+        atm_Air, atm_SO2
 
       NAMELIST / particles / nsolid, diameter, density, sphericity, &
         viscosity, specific_heat, thermal_conductivity
@@ -195,7 +191,7 @@
       nz = 100                !  number of cell in the Z directions
       ny = 1                  !  number of cell in the Y directions
       itc = 0                 !  itc = 1 cylindrical coordinates are used
-      mesh_partition = 1      !  type of partition ( 1 = layers, 2 = columns, 3 = blocks )
+      mesh_partition = 1      !  type of partition
       iuni = 0                !  1 = uniform grid, 0 = non uniform grid
       dz0  = 10.D0            !  default cell z size in meters
       dx0  = 10.D0            !  default cell x size in meters
@@ -207,19 +203,56 @@
 
 ! ... Boundaries
 
-      west = 2                !
-      east = 4                !
+      west = 6                !
+      east = 6                !
       bottom = 3              ! boundary types
-      top = 4                 !
-      south = 2               !
-      north = 2               !
+      top = 6                 !
+      south = 6               !
+      north = 6               !
       itp   = 0               ! itp = 1 => read topography from file
       topography = 'topo.dat' ! file containing the topographic profile
       immb  = 0               ! 1: use immersed boundaries
-      ivent = 0               ! 1: Specify vent position and radius
+
+! ... Inlet
+
+      ivent = 0               ! 0: specify inlet blocks 1: circular vent
       xvent = 0.D0            ! x-coord of the vent
       yvent = 0.D0            ! y-coord of the vent
-      radius = 200.D0         ! vent radius
+      radius = 100.D0         ! vent radius
+      u_gas = 0.D0            ! gas velocity x
+      v_gas = 0.D0            ! gas velocity y
+      w_gas = 0.D0            ! gas velocity z
+      p_gas = 1.01325D5       ! gas pressure
+      t_gas  = 288.15D0       ! gas temperature
+      u_solid = 0.D0           ! particle velocity x (array)
+      v_solid = 0.D0           ! particle velocity y (array)
+      w_solid = 0.D0           ! particle velocity z (array)
+      ep_solid = 0.D0          ! particle fraction   (array)
+      t_solid  = 288.15D0      ! gas temperature
+      vent_O2  = 0.D0          ! gas components mass fractions
+      vent_N2  = 0.D0
+      vent_CO2 = 0.D0
+      vent_H2  = 0.D0
+      vent_H2O = 1.D0
+      vent_Air = 0.D0
+      vent_SO2 = 0.D0
+
+! ... Atmosphere
+
+      wind_x = 0.D0            ! wind velocity x
+      wind_y = 0.D0            ! wind velocity y
+      wind_z = 0.D0            ! wind velocity z
+      p_ground  = 1.01325D5    ! atmospheric pressure at ground level
+      t_ground  = 288.15D0     ! atmospheric temperature at ground level
+      void_fraction = 1.D0     ! void fraction
+      max_packing = 0.6413     ! maximum packing vol. fract.
+      atm_O2  = 0.D0           ! gas components mass fractions
+      atm_N2  = 0.D0
+      atm_CO2 = 0.D0
+      atm_H2  = 0.D0
+      atm_H2O = 0.D0
+      atm_Air = 1.D0
+      atm_SO2 = 0.D0
 
 ! ... Particles
  
@@ -425,10 +458,6 @@
               WRITE( iuni_nml, * ) topography
             CALL iotk_write_end( iuni_nml, "topography" )
             CALL iotk_write_dat( iuni_nml, "immb", immb )
-            CALL iotk_write_dat( iuni_nml, "ivent", ivent )
-            CALL iotk_write_dat( iuni_nml, "xvent", xvent )
-            CALL iotk_write_dat( iuni_nml, "yvent", yvent )
-            CALL iotk_write_dat( iuni_nml, "radius", radius )
           CALL iotk_write_end( iuni_nml, "boundaries" )
         END IF
       END IF
@@ -442,10 +471,77 @@
       CALL bcast_integer(itp,1,root)
       CALL bcast_character(topography,80,root)
       CALL bcast_integer(immb,1,root)
+!
+! ... Inlet Namelist ................................................
+!
+      IF(mpime == root) THEN
+
+        READ(iunit, inlet) 
+
+        IF( which == 'PP' ) THEN
+          CALL iotk_write_begin( iuni_nml, "inlet" )
+          ! WRITE(iuni_nml, inlet) 
+            CALL iotk_write_dat( iuni_nml, "ivent", ivent )
+            CALL iotk_write_dat( iuni_nml, "xvent", xvent )
+            CALL iotk_write_dat( iuni_nml, "yvent", yvent )
+            CALL iotk_write_dat( iuni_nml, "radius", radius )
+          CALL iotk_write_end( iuni_nml, "inlet" )
+        END IF
+      END IF
+
       CALL bcast_integer(ivent,1,root)
       CALL bcast_real(xvent,1,root)
       CALL bcast_real(yvent,1,root)
       CALL bcast_real(radius,1,root)
+      CALL bcast_real(u_gas,1,root)
+      CALL bcast_real(v_gas,1,root)
+      CALL bcast_real(w_gas,1,root)
+      CALL bcast_real(p_gas,1,root)
+      CALL bcast_real(t_gas,1,root)
+      CALL bcast_real(u_solid,1,root)
+      CALL bcast_real(v_solid,1,root)
+      CALL bcast_real(w_solid,1,root)
+      CALL bcast_real(ep_solid,1,root)
+      CALL bcast_real(t_solid,1,root)
+      CALL bcast_real(vent_O2,1,root)
+      CALL bcast_real(vent_N2,1,root)
+      CALL bcast_real(vent_CO2,1,root)
+      CALL bcast_real(vent_H2,1,root)
+      CALL bcast_real(vent_H2O,1,root)
+      CALL bcast_real(vent_Air,1,root)
+      CALL bcast_real(vent_SO2,1,root)
+!
+! ... Atmosphere Namelist ................................................
+!
+      IF(mpime == root) THEN
+
+        READ(iunit, atmosphere) 
+
+        IF( which == 'PP' ) THEN
+          CALL iotk_write_begin( iuni_nml, "atmosphere" )
+          ! WRITE(iuni_nml, atmosphere) 
+            CALL iotk_write_dat( iuni_nml, "wind_x", wind_x )
+            CALL iotk_write_dat( iuni_nml, "wind_y", wind_y )
+            CALL iotk_write_dat( iuni_nml, "wind_z", wind_z )
+          CALL iotk_write_end( iuni_nml, "atmosphere" )
+        END IF
+
+      END IF
+
+      CALL bcast_real(wind_x,1,root)
+      CALL bcast_real(wind_y,1,root)
+      CALL bcast_real(wind_z,1,root)
+      CALL bcast_real(p_ground,1,root)
+      CALL bcast_real(t_ground,1,root)
+      CALL bcast_real(void_fraction,1,root)
+      CALL bcast_real(max_packing,1,root)
+      CALL bcast_real(atm_O2,1,root)
+      CALL bcast_real(atm_N2,1,root)
+      CALL bcast_real(atm_CO2,1,root)
+      CALL bcast_real(atm_H2,1,root)
+      CALL bcast_real(atm_H2O,1,root)
+      CALL bcast_real(atm_Air,1,root)
+      CALL bcast_real(atm_SO2,1,root)
 !
 ! ... Particles Namelist ..............................................
 !
@@ -667,7 +763,6 @@
 !
 ! ... Fixed Flows Card (Inlet conditions) .............................
 !
-      npr = 0
       tend = .FALSE.
 
       IF(mpime == root) THEN
@@ -692,8 +787,6 @@
               READ(5,*) (fixed_vpart_x(k,n), fixed_vpart_z(k,n), &
                          fixed_parteps(k,n), fixed_parttemp(k,n), k=1, nsolid)
               READ(5,*) ( fixed_gasconc(ig,n), ig=1, max_ngas )
-            ELSE IF( block_type(n) == 7) THEN
-              CALL read_profile(n)
             ENDIF
           END DO
 
@@ -762,94 +855,23 @@
       END IF
 
       CALL bcast_integer(number_of_block, 1, root)
-      CALL bcast_integer(block_type, SIZE(block_type), root)
-      CALL bcast_integer(block_bounds, SIZE(block_bounds), root)
-      CALL bcast_real(fixed_vgas_x, SIZE(fixed_vgas_x), root)
-      CALL bcast_real(fixed_vgas_y, SIZE(fixed_vgas_y), root)
-      CALL bcast_real(fixed_vgas_z, SIZE(fixed_vgas_z), root)
-      CALL bcast_real(fixed_pressure, SIZE(fixed_pressure), root)
-      CALL bcast_real(fixed_gaseps, SIZE(fixed_gaseps), root)
-      CALL bcast_real(fixed_gastemp, SIZE(fixed_gastemp), root)
-      CALL bcast_real(fixed_vpart_x, SIZE(fixed_vpart_x), root)
-      CALL bcast_real(fixed_vpart_y, SIZE(fixed_vpart_y), root)
-      CALL bcast_real(fixed_vpart_z, SIZE(fixed_vpart_z), root)
-      CALL bcast_real(fixed_parteps, SIZE(fixed_parteps), root)
-      CALL bcast_real(fixed_parttemp, SIZE(fixed_parttemp), root)
-      CALL bcast_real(fixed_gasconc, SIZE(fixed_gasconc), root)
- 
-      CALL bcast_integer(npr, 1, root)
-      CALL bcast_real(prof_vgas_x, SIZE(prof_vgas_x), root)
-      CALL bcast_real(prof_vgas_z, SIZE(prof_vgas_z), root)
-      CALL bcast_real(prof_pressure, SIZE(prof_pressure), root)
-      CALL bcast_real(prof_gaseps, SIZE(prof_gaseps), root)
-      CALL bcast_real(prof_gastemp, SIZE(prof_gastemp), root)
-      CALL bcast_real(prof_vpart_x, SIZE(prof_vpart_x), root)
-      CALL bcast_real(prof_vpart_z, SIZE(prof_vpart_z), root)
-      CALL bcast_real(prof_parteps, SIZE(prof_parteps), root)
-      CALL bcast_real(prof_parttemp, SIZE(prof_parttemp), root)
-      CALL bcast_real(prof_gasconc, SIZE(prof_gasconc), root)
-!
-! ... Initial conditions Card .........................................
-!
-      tend = .FALSE.
-      IF(mpime == root) THEN
-        initial_conditions_search: DO
-          READ(5,*,END=400) card
-          IF( TRIM(card) == 'INITIAL_CONDITIONS' ) THEN
-            EXIT initial_conditions_search
-          END IF
-        END DO initial_conditions_search
-
-        IF( job_type == '2D' ) THEN
-          READ(5,*) initial_vgas_x, initial_vgas_z, initial_pressure, &
-            initial_void_fraction, max_packing, initial_temperature
-          READ(5,*) initial_vpart_x, initial_vpart_z 
-          READ(5,*) (initial_gasconc(ig), ig=1, max_ngas)
-        ELSE IF( job_type == '3D' ) THEN
-          READ(5,*) initial_vgas_x, initial_vgas_y, initial_vgas_z, &
-            initial_pressure, initial_void_fraction, max_packing, initial_temperature
-          READ(5,*) initial_vpart_x, initial_vpart_y, initial_vpart_z
-          READ(5,*) (initial_gasconc(ig), ig=1, max_ngas)
-        ELSE 
-          CALL error('input # INITIAL_CONDITIONS', 'unknown job_type',1) 
-        ENDIF
-
-        IF( which == 'PP' ) THEN
-          CALL iotk_write_begin( iuni_nml, "initial_conditions" )
-            CALL iotk_write_dat( iuni_nml, "initial_vgas_x", initial_vgas_x )
-            CALL iotk_write_dat( iuni_nml, "initial_vgas_y", initial_vgas_y )
-            CALL iotk_write_dat( iuni_nml, "initial_vgas_z", initial_vgas_z )
-            CALL iotk_write_dat( iuni_nml, "initial_pressure", initial_pressure )
-            CALL iotk_write_dat( iuni_nml, "initial_void_fraction", initial_void_fraction )
-            CALL iotk_write_dat( iuni_nml, "max_packing", max_packing )
-            CALL iotk_write_dat( iuni_nml, "initial_temperature", initial_temperature )
-            CALL iotk_write_dat( iuni_nml, "initial_vpart_x", initial_vpart_x )
-            CALL iotk_write_dat( iuni_nml, "initial_vpart_y", initial_vpart_y )
-            CALL iotk_write_dat( iuni_nml, "initial_vpart_z", initial_vpart_z )
-            CALL iotk_write_dat( iuni_nml, "initial_gasconc", initial_gasconc( 1 : max_ngas ) )
-          CALL iotk_write_end( iuni_nml, "initial_conditions" )
-        END IF
-
-        GOTO 410
- 400    tend = .TRUE.
- 410    continue
+      IF (number_of_block > 0) THEN
+        CALL bcast_integer(block_type, SIZE(block_type), root)
+        CALL bcast_integer(block_bounds, SIZE(block_bounds), root)
+        CALL bcast_real(fixed_vgas_x, SIZE(fixed_vgas_x), root)
+        CALL bcast_real(fixed_vgas_y, SIZE(fixed_vgas_y), root)
+        CALL bcast_real(fixed_vgas_z, SIZE(fixed_vgas_z), root)
+        CALL bcast_real(fixed_pressure, SIZE(fixed_pressure), root)
+        CALL bcast_real(fixed_gaseps, SIZE(fixed_gaseps), root)
+        CALL bcast_real(fixed_gastemp, SIZE(fixed_gastemp), root)
+        CALL bcast_real(fixed_vpart_x, SIZE(fixed_vpart_x), root)
+        CALL bcast_real(fixed_vpart_y, SIZE(fixed_vpart_y), root)
+        CALL bcast_real(fixed_vpart_z, SIZE(fixed_vpart_z), root)
+        CALL bcast_real(fixed_parteps, SIZE(fixed_parteps), root)
+        CALL bcast_real(fixed_parttemp, SIZE(fixed_parttemp), root)
+        CALL bcast_real(fixed_gasconc, SIZE(fixed_gasconc), root)
       END IF
-!
-      CALL bcast_logical(tend, 1, root)
-      IF( tend ) THEN
-        CALL error( ' input ', ' INITIAL_CONDITIONS card not found ', 1 )
-      END IF
-      CALL bcast_real(initial_vgas_x,1,root)
-      CALL bcast_real(initial_vgas_y,1,root)
-      CALL bcast_real(initial_vgas_z,1,root)
-      CALL bcast_real(initial_pressure,1,root)
-      CALL bcast_real(initial_void_fraction,1,root)
-      CALL bcast_real(max_packing,1,root)
-      CALL bcast_real(initial_temperature,1,root)
-      CALL bcast_real(initial_vpart_x,1,root)
-      CALL bcast_real(initial_vpart_y,1,root)
-      CALL bcast_real(initial_vpart_z,1,root)
-      CALL bcast_real(initial_gasconc, SIZE(initial_gasconc),root)
+!.....................................................................
 
       IF( mpime == root ) THEN
         IF( which == 'PP' ) THEN
@@ -866,22 +888,22 @@
 !----------------------------------------------------------------------
       SUBROUTINE initc
 
-      USE atmosphere, ONLY: v0, u0, w0, p0, temp0, us0, vs0, ws0, &
-     &                      ep0, epsmx0
+      USE atmospheric_conditions, ONLY: atm_ygc
       USE control_flags, ONLY: job_type, lpr
       USE dimensions
       USE grid, ONLY: dx, dy, dz, itc
       USE grid, ONLY: iob, zzero
-      USE initial_conditions, ONLY: epsob, tpob, ygc0, ygcob,   &
+      USE initial_conditions, ONLY: epsob, tpob, ygcob,   &
      &     ugob, vgob, wgob, upob, vpob, wpob, pob, tgob, epob
-      USE initial_conditions, ONLY: ugpr, wgpr, ppr, eppr, tgpr, &
-                                    uppr,wppr,epspr,tppr, ygcpr, npr
       USE particles_constants, ONLY: rl, inrl, kap, cmus, phis, cps, dk
+      USE vent_conditions, ONLY: vent_ygc, ivent
 
       IMPLICIT NONE
 
       INTEGER :: ig, is
-
+!
+! ... mesh
+!
       dx(1:nx) = delta_x(1:nx)
       IF( job_type == '3D' ) THEN
         dy(1:ny) = delta_y(1:ny)
@@ -890,64 +912,68 @@
       END IF
       dz(1:nz) = delta_z(1:nz)
 !
-      iob(1:no)%typ = block_type(1:no)
-
-      iob(1:no)%xlo = block_bounds(1,1:no)
-      iob(1:no)%xhi = block_bounds(2,1:no)
-      IF ( job_type == '3D' ) THEN
-        iob(1:no)%ylo = block_bounds(3,1:no)
-        iob(1:no)%yhi = block_bounds(4,1:no)
-      END IF
-      iob(1:no)%zlo = block_bounds(5,1:no)
-      iob(1:no)%zhi = block_bounds(6,1:no)
-
-      ugob(1:no)  = fixed_vgas_x(1:no)
-      IF( job_type == '3D' ) THEN
-        vgob(1:no)  = fixed_vgas_y(1:no)
-      END IF
-      wgob(1:no)  = fixed_vgas_z(1:no)
-      pob(1:no)  = fixed_pressure(1:no)
-      epob(1:no)  = fixed_gaseps(1:no)
-      tgob(1:no)  = fixed_gastemp(1:no)
-      upob(1:nsolid,1:no) = fixed_vpart_x(1:nsolid,1:no)
-      IF( job_type == '3D' ) THEN
-        vpob(1:nsolid,1:no) = fixed_vpart_y(1:nsolid,1:no)
-      END IF
-      wpob(1:nsolid,1:no) = fixed_vpart_z(1:nsolid,1:no)
-      epsob(1:nsolid,1:no) = fixed_parteps(1:nsolid,1:no)
-      tpob(1:nsolid,1:no) = fixed_parttemp(1:nsolid,1:no)
-      ygcob(1:max_ngas,1:no) = fixed_gasconc(1:max_ngas,1:no)
-
-      ugpr(1:npr)  = prof_vgas_x(1:npr)
-      wgpr(1:npr)  = prof_vgas_z(1:npr)
-      ppr(1:npr)  = prof_pressure(1:npr)
-      eppr(1:npr)  = prof_gaseps(1:npr)
-      tgpr(1:npr)  = prof_gastemp(1:npr)
-      uppr(1:nsolid,1:npr) = prof_vpart_x(1:nsolid,1:npr)
-      wppr(1:nsolid,1:npr) = prof_vpart_z(1:nsolid,1:npr)
-      epspr(1:nsolid,1:npr) = prof_parteps(1:nsolid,1:npr)
-      tppr(1:nsolid,1:npr) = prof_parttemp(1:nsolid,1:npr)
-      ygcpr(1:max_ngas,1:npr) = prof_gasconc(1:max_ngas,1:npr)
-
-      u0 = initial_vgas_x
-      IF( job_type == '3D' ) THEN
-        v0 = initial_vgas_y
-      END IF
-      w0 = initial_vgas_z
-
-      p0 = initial_pressure
-      ep0 = initial_void_fraction
-      epsmx0 = max_packing
-      temp0 = initial_temperature
-
-      us0 = initial_vpart_x
-      IF( job_type == '3D' ) THEN
-        vs0 = initial_vpart_y
-      END IF
-      ws0 = initial_vpart_z
-
-      ygc0(1:max_ngas) = initial_gasconc(1:max_ngas)
+! ... specified flows
 !
+      IF (no > 0) THEN
+        !
+        ! ... blocks specification
+        !
+        iob(1:no)%typ = block_type(1:no)
+        iob(1:no)%xlo = block_bounds(1,1:no)
+        iob(1:no)%xhi = block_bounds(2,1:no)
+        IF ( job_type == '3D' ) THEN
+          iob(1:no)%ylo = block_bounds(3,1:no)
+          iob(1:no)%yhi = block_bounds(4,1:no)
+        END IF
+        iob(1:no)%zlo = block_bounds(5,1:no)
+        iob(1:no)%zhi = block_bounds(6,1:no)
+        !
+        ! ... specified flow
+        !
+        ugob(1:no)  = fixed_vgas_x(1:no)
+        IF( job_type == '3D' ) THEN
+        vgob(1:no)  = fixed_vgas_y(1:no)
+          END IF
+        wgob(1:no)  = fixed_vgas_z(1:no)
+        pob(1:no)  = fixed_pressure(1:no)
+        epob(1:no)  = fixed_gaseps(1:no)
+        tgob(1:no)  = fixed_gastemp(1:no)
+        upob(1:nsolid,1:no) = fixed_vpart_x(1:nsolid,1:no)
+        IF( job_type == '3D' ) THEN
+          vpob(1:nsolid,1:no) = fixed_vpart_y(1:nsolid,1:no)
+        END IF
+        wpob(1:nsolid,1:no) = fixed_vpart_z(1:nsolid,1:no)
+        epsob(1:nsolid,1:no) = fixed_parteps(1:nsolid,1:no)
+        tpob(1:nsolid,1:no) = fixed_parttemp(1:nsolid,1:no)
+        ygcob(1:max_ngas,1:no) = fixed_gasconc(1:max_ngas,1:no)
+      END IF
+!
+! ... Atmospheric composition
+!
+      atm_ygc(1) = atm_O2
+      atm_ygc(2) = atm_N2
+      atm_ygc(3) = atm_CO2
+      atm_ygc(4) = atm_H2
+      atm_ygc(5) = atm_H2O
+      atm_ygc(6) = atm_Air
+      atm_ygc(7) = atm_SO2
+!
+! ... Gas components at vent
+!
+      IF (ivent >= 1) THEN
+        vent_ygc(1) = vent_O2
+        vent_ygc(2) = vent_N2
+        vent_ygc(3) = vent_CO2
+        vent_ygc(4) = vent_H2
+        vent_ygc(5) = vent_H2O
+        vent_ygc(6) = vent_Air
+        vent_ygc(7) = vent_SO2
+      ELSE
+        vent_ygc = 0.D0
+      END IF
+!
+! ... particle properties
+! 
       dk(1:nsolid) = diameter(1:nsolid) * 1.D-6 ! input diameter in microns !
       rl(1:nsolid) = density(1:nsolid)
       phis(1:nsolid) = sphericity(1:nsolid)
@@ -958,38 +984,6 @@
       inrl(:)=1.D0/rl(:)
 
       END SUBROUTINE initc
-!----------------------------------------------------------------------
-      SUBROUTINE read_profile(n)
-
-      USE dimensions, ONLY: max_ngas, nsolid
-      USE initial_conditions, ONLY: npr
-      USE parallel, ONLY: mpime, root
-
-      IMPLICIT NONE
-
-      INTEGER, INTENT(IN) :: n
-      INTEGER :: k, ig, is
-      INTEGER :: x1,x2,z1,z2
-
-      OPEN(UNIT=17, FILE='input.prof', STATUS='OLD')
-      READ(17,*) x1,x2,z1,z2
-
-      npr = z2 - z1 + 1
-
-      IF ( (z2-z1) /= (block_bounds(6,n)-block_bounds(5,n)) .OR. (x1/=x2) ) THEN
-        CALL error('setup','Error in input profile, block:', n)
-      END IF
-
-      DO k= 1, npr
-        READ(17,*) prof_vgas_x(k),prof_vgas_z(k),prof_pressure(k),  &
-                   prof_gaseps(k),prof_gastemp(k),                  &
-                  (prof_vpart_x(is,k),prof_vpart_z(is,k),           &
-                   prof_parteps(is,k),prof_parttemp(is,k), is=1,nsolid), &
-                  (prof_gasconc(ig,k), ig = 1,max_ngas)
-      END DO
-      CLOSE(17)
-
-      END SUBROUTINE read_profile
 !----------------------------------------------------------------------
       END MODULE input_module
 !----------------------------------------------------------------------

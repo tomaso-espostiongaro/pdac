@@ -4,15 +4,14 @@
       IMPLICIT NONE
       SAVE
       REAL*8, DIMENSION(:), ALLOCATABLE   :: ugob, vgob, wgob, epob, &
-                                             tgob, pob, ygc0
+                                             tgob, pob
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: upob, vpob, wpob, epsob, &
                                              tpob, ygcob
       REAL*8, DIMENSION(:), ALLOCATABLE   :: ugpr, wgpr, ppr, eppr, tgpr
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: uppr,wppr,epspr,tppr, ygcpr
       LOGICAL :: density_specified
 
-      INTEGER :: npr, ivent
-      REAL*8 :: xvent, yvent, radius
+      INTEGER :: npr
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
@@ -22,21 +21,13 @@
 !
 ! ... Specified flow blocks
 !
-       ALLOCATE(ugob(no), vgob(no), wgob(no), pob(no), epob(no), tgob(no))
-       ALLOCATE(upob(nsolid,no), vpob(nsolid,no), wpob(nsolid,no),        &
-                epsob(nsolid,no), tpob(nsolid,no))
-       ALLOCATE(ygc0(max_ngas))
-       ALLOCATE(ygcob(max_ngas,no))
-!
-! ... Specified profile
-!
-       IF (npr > 0) THEN
-         ALLOCATE(ugpr(npr), wgpr(npr), ppr(npr), eppr(npr), tgpr(npr))
-         ALLOCATE(uppr(nsolid,npr), wppr(nsolid,npr))
-         ALLOCATE(epspr(nsolid,npr), tppr(nsolid,npr))
-         ALLOCATE(ygcpr(max_ngas,npr))
+       IF (no > 0) THEN
+         ALLOCATE(ugob(no), vgob(no), wgob(no), pob(no), epob(no), tgob(no))
+         ALLOCATE(upob(nsolid,no), vpob(nsolid,no), wpob(nsolid,no),        &
+                  epsob(nsolid,no), tpob(nsolid,no))
+         ALLOCATE(ygcob(max_ngas,no))
        END IF
-
+!
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
@@ -44,9 +35,9 @@
 ! ... Set initial conditions
 ! ... (2D/3D_Compliant and fully parallel)
 !
-      USE atmosphere, ONLY: u0, v0, w0, p0, temp0, us0, vs0, ws0, ep0
-      USE atmosphere, ONLY: control_atmosphere, set_atmosphere
-      USE atmosphere, ONLY: p_atm, t_atm
+      USE atmospheric_conditions, ONLY: wind_x, wind_y, wind_z, void_fraction
+      USE atmospheric_conditions, ONLY: control_atmosphere, set_atmosphere
+      USE atmospheric_conditions, ONLY: p_atm, t_atm, atm_ygc
       USE control_flags, ONLY: job_type
       USE dimensions
       USE domain_decomposition, ONLY: ncint, meshinds, myijk
@@ -64,6 +55,7 @@
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: itd
+      USE vent_conditions, ONLY: set_ventc, ivent
       USE indijk_module, ONLY: ip0_jp0_kp0_
 
       IMPLICIT NONE
@@ -99,32 +91,35 @@
 
           p( ijk ) = p_atm(k)
           tg( ijk ) = t_atm(k)
-!
-! ... Set initial gas composition, particle concentrations and temperature
-!
-          ep(ijk) = ep0
-          DO ig = 1, ngas
-            ygc(ig,ijk) = ygc0(gas_type(ig))
+
+          ! ... Set initial gas composition, particle concentrations 
+          ! .... and temperature
+          !
+          ep(ijk) = void_fraction
+
+          DO ig = 1, ngas 
+            ygc(ig,ijk) = atm_ygc(gas_type(ig))
           END DO
+
           DO is = 1, nsolid
-            rlk(ijk,is) = rl(is)*(1.D0-ep0) / nsolid
+            rlk(ijk,is) = rl(is)*(1.D0-ep(ijk)) / nsolid
             ts(ijk,is)  = tg(ijk)
           END DO
-!
-! ... Set initial velocity profiles
-!
+
+          ! ... Set initial velocity profiles
+          !
           IF ( flag(ijk) == 1 .OR. flag(ijk) == 4 .OR. flag(ijk) == 6 ) THEN
             IF( .NOT.forced(ijk) ) THEN
-              ug(ijk) = u0
-              wg(ijk) = w0
+              ug(ijk) = wind_x
+              wg(ijk) = wind_z
               DO is = 1, nsolid
-                us(ijk,is) = us0
-                ws(ijk,is) = ws0
+                us(ijk,is) = ug(ijk)
+                ws(ijk,is) = wg(ijk)
               END DO
               IF ( job_type == '3D' ) THEN
-                vg(ijk) = v0
+                vg(ijk) = wind_y
                 DO is = 1, nsolid
-                  vs(ijk,is) = vs0
+                  vs(ijk,is) = vg(ijk)
                 END DO
               END IF
             END IF
@@ -133,8 +128,10 @@
         END DO
 ! 
 ! ... Set initial conditions in boundary cells 
-! ... with imposed fluid flow 
+! ... with specified fluid flow 
 !
+        IF (ivent >= 1) CALL set_ventc
+
         DO n = 1, no
 
           SELECT CASE (iob(n)%typ)
@@ -143,18 +140,10 @@
 
             CALL specified_flow(n)
 
-          CASE (7) ! ... Assign vertical profile 
-!
-            IF ( job_type == '2D' ) THEN
-             
-              CALL specified_profile(n)
+          CASE (3) ! ... Obstacle
 
-            ELSE IF ( job_type == '3D' ) THEN
-            
-              CALL error('setup','Flow profile can be specified only in 2D',1)
-            
-            END IF
-            
+            CONTINUE
+
           END SELECT
         
         END DO 
@@ -162,7 +151,7 @@
 ! ... initial conditions already set from RESTART file
 !
       ELSE IF (itd == 2) THEN 
-!
+
         CONTINUE
 !
 ! ... set initial conditions from OUTPUT file
@@ -336,130 +325,45 @@
       REAL*8 :: ygcsum, dist2
       INTEGER :: ijk,i,j,k,imesh
       INTEGER :: ig, is, dfg
-      LOGICAL :: setflow
-
-        !csnd = DSQRT(gammaair*rgas/gmw(6)*tgob(n))
 
         DO ijk = 1, ncint
           CALL meshinds(ijk,imesh,i,j,k)
 
-          IF (ivent >= 1) THEN
-
-            dist2 = (x(i)-xvent)**2 + (y(j)-yvent)**2
-            IF (dist2 <= radius**2) setflow = .TRUE.
-          
-          ELSEIF (ivent == 0) THEN
-
-            IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi  ) THEN
-              IF ( ( j >= iob(n)%ylo .AND. j <= iob(n)%yhi )    &
-                                      .OR. job_type == '2D') THEN
-                IF ( i >= iob(n)%xlo .AND. i <= iob(n)%xhi  ) THEN
-                  
-                  setflow = .TRUE.
-                  
+          IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi  ) THEN
+            IF ( ( j >= iob(n)%ylo .AND. j <= iob(n)%yhi )    &
+                                    .OR. job_type == '2D') THEN
+              IF ( i >= iob(n)%xlo .AND. i <= iob(n)%xhi  ) THEN
+                
+                ug(ijk) = ugob(n)
+                IF (job_type == '3D') vg(ijk) = vgob(n)
+                wg(ijk) = wgob(n)
+                tg(ijk) = tgob(n)
+                p(ijk)  = pob(n)
+                ep(ijk) = 1.D0 - SUM(epsob(:,n))
+                DO ig = 1, ngas
+                  ygc(ig,ijk) = ygcob(gas_type(ig),n)
+                END DO
+                DO is = 1,nsolid
+                  ts(ijk,is)  = tpob(is,n)
+                  us(ijk,is)  = upob(is,n)
+                  IF (job_type == '3D') vs(ijk,is)  = vpob(is,n)
+                  ws(ijk,is)  = wpob(is,n)
+                  rlk(ijk,is) = epsob(is,n)*rl(is)
+                END DO
+                !
+                ! ... check gas components closure relation
+                ygcsum = SUM(ygc(:,ijk))
+                IF ( ygcsum /= 1.D0 ) THEN
+                  ygc(ngas,ijk) = 1.D0 - SUM( ygc(1:ngas-1,ijk) )
                 END IF
+
               END IF
             END IF
-
-          END IF
-
-          IF (setflow) THEN
-
-            ug(ijk) = ugob(n)
-            IF (job_type == '3D') vg(ijk) = vgob(n)
-            wg(ijk) = wgob(n)
-            tg(ijk) = tgob(n)
-            p(ijk)  = pob(n)
-            ep(ijk) = 1.D0 - SUM(epsob(:,n))
-            DO ig = 1, ngas
-              ygc(ig,ijk) = ygcob(gas_type(ig),n)
-            END DO
-            DO is = 1,nsolid
-              ts(ijk,is)  = tpob(is,n)
-              us(ijk,is)  = upob(is,n)
-              IF (job_type == '3D') vs(ijk,is)  = vpob(is,n)
-              ws(ijk,is)  = wpob(is,n)
-              rlk(ijk,is) = epsob(is,n)*rl(is)
-            END DO
-            !
-            ! ... check gas components closure relation
-            ygcsum = SUM(ygc(:,ijk))
-            IF ( ygcsum /= 1.D0 ) THEN
-              ygc(ngas,ijk) = 1.D0 - SUM( ygc(1:ngas-1,ijk) )
-            END IF
-
           END IF
 !
         END DO 
 
       END SUBROUTINE specified_flow
-!----------------------------------------------------------------------
-      SUBROUTINE specified_profile(n)
-
-      USE dimensions
-      USE domain_decomposition, ONLY: ncint, meshinds, myijk
-      USE eos_gas, ONLY: ygc, xgc, mole
-      USE gas_constants, ONLY: rgas, gammaair
-      USE gas_constants, ONLY: gas_type
-      USE gas_solid_density, ONLY: rgp, rlk
-      USE gas_solid_temperature, ONLY: tg, ts
-      USE gas_solid_velocity, ONLY: ug, wg, vg
-      USE gas_solid_velocity, ONLY: us, vs, ws
-      USE grid, ONLY: flag, iob
-      USE particles_constants, ONLY: rl, inrl
-      USE pressure_epsilon, ONLY: ep, p
-      USE indijk_module, ONLY: ip0_jp0_kp0_
-      IMPLICIT NONE
-
-      INTEGER, INTENT(IN) :: n
-
-      REAL*8 :: ygcsum
-      INTEGER :: ijk,i,j,k,imesh
-      INTEGER :: ig, is, np, dfg
-
-        DO ijk = 1, ncint
-          imesh = myijk( ip0_jp0_kp0_ , ijk )
-          CALL meshinds(ijk,imesh,i,j,k)
-
-          IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi ) THEN
-            IF ( i >= iob(n)%xlo .AND. i <= iob(n)%xhi  ) THEN
-              np = k - iob(n)%zlo + 1 
-
-              ug(ijk) = ugpr(np)
-              wg(ijk) = wgpr(np)
-              tg(ijk) = tgpr(np)+273.15
-              p(ijk)  = ppr(np)
-              ep(ijk) = 1.D0 - SUM(epspr(:,np))
-
-              DO is=1,nsolid
-                ts(ijk,is)=tppr(is,np)+273.15
-                us(ijk,is)=uppr(is,np)
-                ws(ijk,is)=wppr(is,np)
-                rlk(ijk,is)=epspr(is,np)*rl(is)
-              END DO
-
-              DO ig=1,ngas
-                ygc(ig,ijk) = ygcpr(gas_type(ig),np)
-              END DO
-!
-! ... check gas components closure relation
-!
-              ygcsum = SUM(ygc(:,ijk))
-              IF ( ygcsum /= 1.D0 ) THEN
-                ygc(ngas,ijk) = 1.D0 - SUM( ygc(1:ngas-1,ijk) )
-              END IF
-!
-              IF (i == 1) THEN
-                flag(ijk) = 5
-              ELSE
-                flag(ijk) = 1
-              END IF
-!
-            END IF
-          END IF
-        END DO
-
-      END SUBROUTINE specified_profile
 !----------------------------------------------------------------------
       SUBROUTINE setc
 !
@@ -541,26 +445,37 @@
       END SUBROUTINE setc
 !----------------------------------------------------------------------
       SUBROUTINE gas_check
+      USE atmospheric_conditions, ONLY: atm_ygc
       USE dimensions
       USE gas_constants, ONLY: gas_type, present_gas
+      USE eos_gas, ONLY: ygc
+      USE vent_conditions, ONLY: vent_ygc
       IMPLICIT NONE
       INTEGER :: ig, igg
       
+      present_gas = .FALSE.
       ig = 0
       DO igg = 1, max_ngas
-          IF ((ygc0(igg) /= 0.0) .OR. ANY(ygcob(igg,:) /= 0.0) ) THEN
-            ig = ig + 1
-            gas_type(ig) = igg
-            present_gas(igg) = .TRUE.
-          END IF
-          IF (npr > 0) THEN
-            IF( ANY(ygcpr(igg,:) /= 0.0) ) THEN
-              ig = ig + 1
-              gas_type(ig) = igg
-              present_gas(igg) = .TRUE.
-            END IF
-          END IF
+
+        ! ... check gas species in specified-flow blocks
+        !
+        IF (no > 0 ) THEN
+          IF( ANY(ygcob(igg,:) /= 0.0) ) present_gas(igg) = .TRUE.
+        END IF 
+        !
+        ! ... check gas species in atmosphere and inlet
+        !
+        IF ((atm_ygc(igg) /= 0.D0) .OR. (vent_ygc(igg) /= 0.D0) ) THEN
+          present_gas(igg) = .TRUE.
+        END IF
+
+        IF (present_gas(igg)) THEN
+          ig = ig + 1
+          gas_type(ig) = igg
+        END IF
+
       END DO
+
       IF (ig /= ngas) CALL error('setup','wrong number of gas species',ig)
       DO ig = 1, ngas
         WRITE(6,*) ' Gas ', ig, ' is type ', gas_type(ig)

@@ -2,8 +2,8 @@
 atmosphere.o : control.o dimensions.o gas.o grid.o parallel.o 
 
 bdry.o : atmosphere.o control.o decomp.o dens.o dimensions.o eosg.o gas.o  \
-    grid.o immb.o indijk.o outp.o parallel.o particles.o press.o setup.o  \
-    subscr.o temp.o time.o velocity.o 
+    grid.o immb.o indijk.o parallel.o particles.o press.o subscr.o temp.o  \
+    time.o velocity.o 
 
 control.o : 
 
@@ -58,7 +58,7 @@ indijk.o :
 
 input.o : atmosphere.o control.o decomp.o dimensions.o eosg.o grid.o io.o  \
     iotk_module.o iter.o limiters.o matrix.o outp.o parallel.o particles.o  \
-    reactions.o roughness.o setup.o subscr.o time.o turbo.o visc.o 
+    reactions.o roughness.o setup.o subscr.o time.o turbo.o vent.o visc.o 
 
 interp.o : dimensions.o grid.o subscr.o 
 
@@ -94,7 +94,7 @@ particles.o : dimensions.o
 
 pdac.o : control.o decomp.o dens.o dimensions.o environment.o eosg.o gas.o  \
     grid.o hcapgs.o immb.o input.o io.o matrix.o parallel.o particles.o  \
-    press.o setup.o temp.o tilde.o time.o turbo.o velocity.o visc.o 
+    press.o setup.o temp.o tilde.o time.o turbo.o velocity.o vent.o visc.o 
 
 pp.o : decomp.o dens.o dimensions.o environment.o eosg.o gas.o grid.o  \
     hcapgs.o input.o matrix.o parallel.o particles.o press.o roughness.o  \
@@ -112,7 +112,7 @@ roughness.o : dimensions.o
 
 setup.o : atmosphere.o control.o decomp.o dens.o dimensions.o eosg.o eosl.o  \
     gas.o grid.o hcapgs.o immb.o indijk.o io.o particles.o press.o reactions.o  \
-    temp.o time.o turbo.o velocity.o visc.o 
+    temp.o time.o turbo.o velocity.o vent.o visc.o 
 
 subscr.o : decomp.o dimensions.o indijk.o 
 
@@ -133,6 +133,9 @@ turbo.o : control.o decomp.o dens.o dimensions.o environment.o eosg.o grid.o  \
 types.o : 
 
 velocity.o : control.o decomp.o dimensions.o 
+
+vent.o : control.o decomp.o dens.o dimensions.o eosg.o gas.o grid.o  \
+    particles.o press.o temp.o velocity.o 
 
 visc.o : control.o decomp.o dens.o dimensions.o gas.o grid.o indijk.o  \
     particles.o press.o subscr.o turbo.o velocity.o 

@@ -964,33 +964,37 @@
           nflt=flag(ijkp)
           nflb=flag(ijkm)
 
-          IF( (nfle /= 1) .AND. (nfle /= 4) .AND. (nfle /= 6) ) THEN
-            iep_e = 0.D0
-          ELSE
-            iep_e = ( dx(i+1)*ep(ijk)+dx(i)*ep(ijke))*indxp*indxp*2.D0
-            !iep_e = iep_e * upc_e
-          END IF
+          SELECT CASE (nfle)
+            CASE(1,4,6)
+              iep_e = 0.D0
+            CASE DEFAULT
+              iep_e = ( dx(i+1)*ep(ijk)+dx(i)*ep(ijke) )*indxp*indxp*2.D0
+              !iep_e = iep_e * upc_e
+          END SELECT
 
-          IF( (nflw /= 1) .AND. (nflw /= 4) .AND. (nflw /= 6) ) THEN
-            iep_w = 0.D0
-          ELSE
-            iep_w = ( dx(i-1)*ep(ijk)+dx(i)*ep(ijkw) )*indxm*indxm*2.D0 
-            !iep_w = iep_w * upc_w
-          END IF
+          SELECT CASE (nflw)
+            CASE(1,4,6)
+              iep_w = 0.D0
+            CASE DEFAULT
+              iep_w = ( dx(i-1)*ep(ijk)+dx(i)*ep(ijkw) )*indxm*indxm*2.D0 
+              !iep_w = iep_w * upc_w
+          END SELECT
 !
-          IF( (nflt /= 1) .AND. (nflt /= 4) .AND. (nflt /= 6) ) THEN 
-            iep_t = 0.0D0
-          ELSE
-            iep_t = ( dz(k+1)*ep(ijk)+dz(k)*ep(ijkt) )*indzp*indzp*2.D0 
-            !iep_t = iep_t * upc_t 
-          END IF
+          SELECT CASE (nflt)
+            CASE(1,4,6)
+              iep_t = 0.0D0
+            CASE DEFAULT
+              iep_t = ( dz(k+1)*ep(ijk)+dz(k)*ep(ijkt) )*indzp*indzp*2.D0 
+              !iep_t = iep_t * upc_t 
+          END SELECT
 
-          IF( (nflb /= 1) .AND. (nflb /= 4) .AND. (nflb /= 6) ) THEN
-            iep_b = 0.D0
-          ELSE
-            iep_b = ( dz(k-1)*ep(ijk)+dz(k)*ep(ijkb) )*indzm*indzm*2.D0
-            !iep_b = iep_b * upc_b
-          END IF
+          SELECT CASE (nflb)
+            CASE (1,4,6)
+              iep_b = 0.D0
+            CASE DEFAULT
+              iep_b = ( dz(k-1)*ep(ijk)+dz(k)*ep(ijkb) )*indzm*indzm*2.D0
+              !iep_b = iep_b * upc_b
+          END SELECT
 !
           IF (job_type == '3D') THEN
 
@@ -1001,19 +1005,21 @@
             nfln=flag(ijpk)
             nfls=flag(ijmk)
 
-            IF( (nfln /= 1) .AND. (nfln /= 4) .AND. (nfln /= 6) ) THEN 
-              iep_n = 0.0D0
-            ELSE
-              iep_n = ( dy(j+1)*ep(ijk)+dy(j)*ep(ijkn) )*indyp*indyp*2.D0 
-              !iep_n = iep_n * upc_n 
-            END IF
+            SELECT CASE (nfln)
+              CASE (1,4,6)
+                iep_n = 0.0D0
+              CASE DEFAULT
+                iep_n = ( dy(j+1)*ep(ijk)+dy(j)*ep(ijkn) )*indyp*indyp*2.D0 
+                !iep_n = iep_n * upc_n 
+            END SELECT
 
-            IF( (nfls /= 1) .AND. (nfls /= 4) .AND. (nfls /= 6) ) THEN
-              iep_s = 0.D0
-            ELSE
-              iep_s = ( dy(j-1)*ep(ijk)+dy(j)*ep(ijks) )*indym*indym*2.D0
-              !iep_s = iep_s * upc_s
-            END IF
+            SELECT CASE (nfls)
+              CASE (1,4,6)
+                iep_s = 0.D0
+              CASE DEFAULT
+                iep_s = ( dy(j-1)*ep(ijk)+dy(j)*ep(ijks) )*indym*indym*2.D0
+                !iep_s = iep_s * upc_s
+            END SELECT
 
           END IF
 

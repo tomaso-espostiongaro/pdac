@@ -126,4 +126,3 @@
 #endif
         RETURN
       END SUBROUTINE PARALLEL_MAX_REAL
-

@@ -250,7 +250,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE tilde
 !
-      USE atmosphere, ONLY: gravz, gravx, gravy
+      USE atmospheric_conditions, ONLY: gravz, gravx, gravy
       USE dimensions
       USE domain_decomposition, ONLY: meshinds
       USE domain_decomposition, ONLY: ncint, myijk, ncdom, data_exchange

@@ -1,13 +1,21 @@
 !------------------------------------------------------------------------
-      MODULE atmosphere
+      MODULE atmospheric_conditions
 !------------------------------------------------------------------------
+      USE dimensions, ONLY: max_ngas
       IMPLICIT NONE
       PUBLIC
 !
 ! ... Initial atmospheric variables
 !
-      REAL*8 :: u0, v0, w0, p0, temp0, us0, vs0, ws0
-      REAL*8 :: ep0, epsmx0
+      REAL*8 :: wind_x
+      REAL*8 :: wind_y
+      REAL*8 :: wind_z
+      REAL*8 :: p_ground
+      REAL*8 :: t_ground
+      REAL*8 :: void_fraction
+      REAL*8 :: atm_ygc(max_ngas)
+
+      REAL*8 :: max_packing
       REAL*8 :: gravx, gravy, gravz
       REAL*8, ALLOCATABLE :: p_atm(:), t_atm(:)
 
@@ -49,9 +57,9 @@
 !
       IF (stratification) THEN
         IF( mpime == root ) THEN
-          IF (temp0 /= 288.15D0) WRITE(6,*) 'WARNING! control atmospheric &
+          IF (t_ground /= 288.15D0) WRITE(6,*) 'WARNING! control atmospheric &
                                           & temperature profile'
-          IF (p0 /= 1.01325D5) WRITE(6,*)   'WARNING! control atmospheric &
+          IF (p_ground /= 1.01325D5) WRITE(6,*)   'WARNING! control atmospheric &
                                           & pressure profile'
         END IF
       END IF	
@@ -110,8 +118,8 @@
 !
       ALLOCATE(p_atm(nz), t_atm(nz))
 !
-      ptop = p0
-      ttop = temp0
+      ptop = p_ground
+      ttop = t_ground
 !
 ! ... For each layer, compute the bottom and top 
 ! ... pressure and temperature
@@ -178,8 +186,8 @@
         za = zb(k) + 0.5D0*(dz(1)-dz(k))
 
         IF (za <= 0.D0 .OR. .NOT.stratification) THEN
-          ta=temp0
-          pa=p0
+          ta = t_ground
+          pa = p_ground
           GOTO 100
         ELSE IF (za > layer(l)%ztop) THEN
           l = l + 1
@@ -193,8 +201,8 @@
           tbot = layer(l-1)%ttop
         ELSE
           zbot = zzero
-          pbot = p0
-          tbot = temp0
+          pbot = p_ground
+          tbot = t_ground
         END IF
         gradt = layer(l)%gradt
 !
@@ -245,5 +253,5 @@
       RETURN
       END SUBROUTINE hydrostatic
 !----------------------------------------------------------------------
-      END MODULE atmosphere
+      END MODULE atmospheric_conditions
 !------------------------------------------------------------------------

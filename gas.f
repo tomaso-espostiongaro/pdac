@@ -16,7 +16,7 @@
 !  whose constants and parameters are statically compiled
 !  with pdac.
 !  present_gas logical array is a musk of size "max_ngas"
-!           and the i-th element is TRUE if the i-th predefined
+!           and the i-th element is TRUE the i-th predefined
 !           gas type is included in the simulation.
 !  gas_type array maps the i-th simulated gas into the array 
 !           of gas types statically defined at compile time.

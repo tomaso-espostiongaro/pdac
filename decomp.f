@@ -72,7 +72,7 @@
         INTEGER, ALLOCATABLE :: myijk(:,:)
         INTEGER, ALLOCATABLE :: myinds(:,:)
 !
-        INTEGER :: countfl(5)
+        INTEGER :: countfl(10)
 
         INTERFACE data_exchange
           MODULE PROCEDURE data_exchange_i, data_exchange_r, data_exchange_rm, &
@@ -131,7 +131,7 @@
         countfl(i) = COUNT( (fl == i) )
       END DO
 !
-      IF (lpr >= 1) WRITE(7,'(a13,5i7)') ' # countfl ', countfl
+      IF (lpr >= 1) WRITE(7,'(a13,10i7)') ' # countfl ', countfl
 !
 ! ... domain decomposition (build maps)
 !

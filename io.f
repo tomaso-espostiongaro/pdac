@@ -8,7 +8,7 @@
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE gas_solid_temperature, ONLY: sieg, ts, sies, tg 
-      USE gas_constants, ONLY: gas_type, present_gas
+      USE gas_constants, ONLY: gas_type
       USE parallel, ONLY: mpime, root
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: time
@@ -153,7 +153,7 @@
 !
       USE dimensions
       USE domain_decomposition, ONLY: ncint, meshinds
-      USE atmosphere, ONLY: p_atm, t_atm
+      USE atmospheric_conditions, ONLY: p_atm, t_atm
       USE grid, ONLY: zb, dz
       USE specific_heat_module, ONLY: hcapg
       USE gas_constants, ONLY: tzero, hzerog, gas_type

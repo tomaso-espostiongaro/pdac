@@ -75,7 +75,7 @@
       USE dimensions
       IMPLICIT NONE
       
-      ALLOCATE(iob(no))
+      IF (no > 0) ALLOCATE(iob(no))
       
       RETURN
       END SUBROUTINE allocate_blbody
@@ -255,6 +255,7 @@
         ! ... Specify cell flags for blocks
         !
         DO n = 1, no
+
           DO k = iob(n)%zlo, iob(n)%zhi
             DO j = iob(n)%ylo, iob(n)%yhi
               DO i = iob(n)%xlo, iob(n)%xhi

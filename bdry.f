@@ -2,7 +2,7 @@
       MODULE boundary_conditions
 !-----------------------------------------------------------------------
 !
-      USE atmosphere, ONLY: gravx, gravy, gravz
+      USE atmospheric_conditions, ONLY: gravx, gravy, gravz
       USE dimensions
       USE gas_solid_density, ONLY: rgp, rlk, rog
       USE gas_solid_temperature, ONLY: sieg, tg, sies, ts
@@ -547,7 +547,7 @@
 ! ... cell, i.e. the normal component of the velocity and the scalar fields
 ! ... for /// E a s t , N o r t h , T o p /// boundaries
 
-      USE atmosphere, ONLY: p_atm, t_atm
+      USE atmospheric_conditions, ONLY: p_atm, t_atm
       USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
       USE gas_constants, ONLY: gas_type
 
@@ -739,7 +739,7 @@
 ! ... cell, i.e. the normal component of the velocity and the scalar fields
 ! ... for /// W e s t,  S o u t h ///  boundaries
 
-      USE atmosphere, ONLY: p_atm, t_atm
+      USE atmospheric_conditions, ONLY: p_atm, t_atm
       USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
       USE gas_constants, ONLY: gas_type
 
@@ -927,10 +927,9 @@
 ! ... (incompressible flow)
 ! ... Works on East, North, Top boundaries
 
-      USE atmosphere, ONLY: p_atm, t_atm
+      USE atmospheric_conditions, ONLY: p_atm, t_atm, atm_ygc
       USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
       USE gas_constants, ONLY: gas_type
-      USE initial_conditions, ONLY : ygc0
       USE eos_gas, ONLY: mole, thermal_eosg
 
       REAL*8, INTENT(IN) :: ucn
@@ -1002,7 +1001,7 @@
         END DO
       ELSE IF (ucn < 0.D0) THEN
         DO ig = 1, ngas
-          ygc(ig,n2) = ygc0(gas_type(ig))
+          ygc(ig,n2) = atm_ygc(gas_type(ig))
         END DO
       ELSE
       END IF
@@ -1038,10 +1037,9 @@
 ! ... (incompressible flow)
 ! ... Works on West, South, Bottom boundaries
 
-      USE atmosphere, ONLY: p_atm, t_atm
+      USE atmospheric_conditions, ONLY: p_atm, t_atm, atm_ygc
       USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
       USE gas_constants, ONLY: gas_type
-      USE initial_conditions, ONLY : ygc0
       USE eos_gas, ONLY: mole, thermal_eosg
 
       REAL*8, INTENT(IN) :: ucn
@@ -1131,7 +1129,7 @@
         END DO
       ELSE IF (umn > 0.D0) THEN
         DO ig = 1, ngas
-          ygc(ig,n2) = ygc0(gas_type(ig))
+          ygc(ig,n2) = atm_ygc(gas_type(ig))
         END DO
       ELSE
       END IF

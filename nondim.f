@@ -48,7 +48,7 @@
 ! ... compute the ratio between gas-particle drag and the sum of particle-particle 
 ! ... drag coefficients for each solid phase
 !
-      USE atmosphere, ONLY: gravz
+      USE atmospheric_conditions, ONLY: gravz
       USE time_parameters, ONLY: time, dt
       IMPLICIT NONE
 
@@ -71,7 +71,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE richardson(p,rgp,rhog,rlk,ug,wg,uk,wk,ijk,ijpk)
 !
-        USE atmosphere, ONLY : gravz, p_atm, t_atm
+        USE atmospheric_conditions, ONLY : gravz, p_atm, t_atm
         USE domain_decomposition, ONLY: myijk
         USE gas_constants, ONLY: gmw, rgas, gammaair, gamn
         USE grid, ONLY: zb, dz

@@ -39,6 +39,7 @@
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut
       USE turbulence_model, ONLY: allocate_turbo
+      USE vent_conditions, ONLY: ivent, locate_vent
       USE environment, ONLY: cpclock, timing, elapsed_seconds
 !
       IMPLICIT NONE
@@ -145,6 +146,10 @@
 ! ... and set immersed boundary parameters
 !
       IF (itp >= 1) CALL import_topo
+!
+! ... Define volcanic vent position on 3D topography
+!
+      IF (ivent >= 1) CALL locate_vent
 !
 ! ... Domain decomposition for parallelization 
 !

@@ -334,17 +334,6 @@
         END DO
       END IF
 !
-! ... Set flag 3 below specified flow cells
-!
-      DO i=1, nx
-        undg = .FALSE.
-        DO k = nz, 1, -1
-          ijk = i + (k-1) * nx
-          IF (fl(ijk)/=5 .AND. undg) fl(ijk) = 3
-          IF ( fl(ijk) == 5 ) undg = .TRUE.
-        END DO
-      END DO
-!
       IF (lpr > 1 .AND. (mpime == root)) THEN
         DO k = nz, 1, -1
           WRITE(6,11) (fl(i + (k-1) * nx), i=1,nx)
