@@ -249,7 +249,7 @@ subroutine chk_bcast( dim, mpime, nproc )
   END IF
   CALL bcast_logical( larr, dim, root )
   DO i = 1, dim
-    IF( .NOT. larr ) THEN
+    IF( .NOT. larr( i ) ) THEN
       WRITE(*,*) ' ERROR bcast_logical ( mpime, i ) ', mpime, i
     END IF
   END DO

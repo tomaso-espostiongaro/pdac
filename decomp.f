@@ -2432,13 +2432,22 @@
         REAL*8 :: array(:)
         REAL*8, ALLOCATABLE :: sndbuf(:), rcvbuf(:) 
         INTEGER :: ip, isour, idest, ib, itag, ishand, irhand
+        INTEGER :: ierr
 !
         DO ip = 1, (nproc - 1)
 
           isour = MOD(mpime - ip + nproc, nproc)
           idest = MOD(mpime + ip        , nproc)
-          ALLOCATE( rcvbuf( MAX(rcv_map(isour)%nrcv,1) ) )
-          ALLOCATE( sndbuf( MAX(snd_map(idest)%nsnd,1) ) )
+          ALLOCATE( rcvbuf( MAX(rcv_map(isour)%nrcv,1) ), STAT=ierr )
+          IF( ierr /= 0 ) THEN
+            WRITE(7,*) 'Trying to allocate ', MAX(rcv_map(isour)%nrcv,1), ' elements '
+            CALL error(' data_exchange_r ', ' allocating rcvbuf ', ierr )
+          END IF
+          ALLOCATE( sndbuf( MAX(snd_map(idest)%nsnd,1) ), STAT=ierr )
+          IF( ierr /= 0 ) THEN
+            WRITE(7,*) 'Trying to allocate ', MAX(snd_map(idest)%nsnd,1), ' elements '
+            CALL error(' data_exchange_r ', ' allocating sndbuf ', ierr )
+          END IF
 
           IF( rcv_map(isour)%nrcv > 0 ) THEN
             CALL irecv_real( rcvbuf, rcv_map(isour)%nrcv, isour, ip, irhand )
@@ -2467,54 +2476,108 @@
             CALL mp_wait( ishand )
           END IF
 
-          DEALLOCATE( rcvbuf )
-          DEALLOCATE( sndbuf )
+          DEALLOCATE( rcvbuf, STAT=ierr )
+          IF( ierr /= 0 ) &
+            CALL error(' data_exchange_r ', ' deallocating rcvbuf ', ierr )
+          DEALLOCATE( sndbuf, STAT=ierr )
+          IF( ierr /= 0 ) &
+            CALL error(' data_exchange_r ', ' deallocating sndbuf ', ierr )
         END DO
         RETURN
       END SUBROUTINE data_exchange_r
+
+!----------------------------------------------------------------------
 
       SUBROUTINE data_exchange_rm(array)
         USE parallel, ONLY: nproc, mpime
         IMPLICIT NONE
         REAL*8 :: array(:,:)
         REAL*8, ALLOCATABLE :: sndbuf(:), rcvbuf(:) 
-        INTEGER :: ip, isour, idest, ib, ik, sdim, rdim
+        INTEGER :: ip, isour, idest, ib, ik, sdim, rdim, ierr
+        INTEGER :: itag, ishand, irhand
+
         DO ip = 1, (nproc - 1)
+
           isour = MOD(mpime - ip + nproc, nproc)
           idest = MOD(mpime + ip        , nproc)
+
           sdim = MAX( SIZE(array,2) * snd_map(idest)%nsnd, 1)
           rdim = MAX( SIZE(array,2) * rcv_map(isour)%nrcv, 1)
-          ALLOCATE( rcvbuf( rdim ) )
-          ALLOCATE( sndbuf( sdim ) )
+          ALLOCATE( rcvbuf( rdim ), STAT=ierr )
+          IF( ierr /= 0 ) THEN
+            WRITE(7,*) 'Trying to allocate ', rdim, ' elements '
+            CALL error(' data_exchange_rm ', ' allocating rcvbuf ', ierr )
+          END IF
+          ALLOCATE( sndbuf( sdim ), STAT=ierr )
+          IF( ierr /= 0 ) THEN
+            WRITE(7,*) 'Trying to allocate ', sdim, ' elements '
+            CALL error(' data_exchange_rm ', ' allocating sndbuf ', ierr )
+          END IF
+
+
+          IF( rcv_map(isour)%nrcv > 0 ) THEN
+            CALL irecv_real( rcvbuf, SIZE( rcvbuf ), isour, ip, irhand )    !!
+          END IF
+
           DO ik = 1, SIZE(array,2)
             DO ib = 1, snd_map(idest)%nsnd
               sndbuf(ib + snd_map(idest)%nsnd*(ik-1)) = array( snd_map(idest)%iloc(ib), ik )
             END DO
           END DO 
-          CALL sendrecv_real(sndbuf(1), SIZE(sndbuf), idest,     &      
-                             rcvbuf(1), SIZE(rcvbuf), isour, ip)
+
+          IF( snd_map(idest)%nsnd > 0 ) THEN
+            CALL isend_real( sndbuf(1), SIZE( sndbuf ), idest, ip, ishand )  !!
+          END IF
+        
+!          CALL sendrecv_real(sndbuf(1), SIZE(sndbuf), idest,     &      
+!                             rcvbuf(1), SIZE(rcvbuf), isour, ip)
+        
+          IF( rcv_map(isour)%nrcv > 0 ) THEN
+            CALL mp_wait( irhand )                    !!
+          END IF
+
           DO ik = 1, SIZE(array,2)
             DO ib = 1, rcv_map(isour)%nrcv
               array( rcv_map(isour)%iloc(ib), ik ) = rcvbuf( ib + rcv_map(isour)%nrcv*(ik-1))
             END DO
           END DO 
-          DEALLOCATE( rcvbuf )
-          DEALLOCATE( sndbuf )
+          
+          IF( snd_map(idest)%nsnd > 0 ) THEN
+            CALL mp_wait( ishand )   !!
+          END IF
+
+          DEALLOCATE( rcvbuf, STAT=ierr )
+          IF( ierr /= 0 ) &
+            CALL error(' data_exchange_rm ', ' deallocating rcvbuf ', ierr )
+          DEALLOCATE( sndbuf, STAT=ierr )
+          IF( ierr /= 0 ) &
+            CALL error(' data_exchange_rm ', ' deallocating sndbuf ', ierr )
+
         END DO
         RETURN
       END SUBROUTINE data_exchange_rm
+
+!----------------------------------------------------------------------
 
       SUBROUTINE data_exchange_i(array)
         USE parallel, ONLY: nproc, mpime
         IMPLICIT NONE
         INTEGER :: array(:)
         INTEGER, ALLOCATABLE :: sndbuf(:), rcvbuf(:)
-        INTEGER :: ip, isour, idest, ib
+        INTEGER :: ip, isour, idest, ib, ierr
         DO ip = 1, (nproc - 1)
           isour = MOD(mpime - ip + nproc, nproc)
           idest = MOD(mpime + ip        , nproc)
-          ALLOCATE( rcvbuf( MAX(rcv_map(isour)%nrcv,1) ) )
-          ALLOCATE( sndbuf( MAX(snd_map(idest)%nsnd,1) ) )
+          ALLOCATE( rcvbuf( MAX(rcv_map(isour)%nrcv,1) ), STAT=ierr )
+          IF( ierr /= 0 ) THEN
+            WRITE(7,*) 'Trying to allocate ', MAX(rcv_map(isour)%nrcv,1), ' elements '
+            CALL error(' data_exchange_i ', ' allocating rcvbuf ', ierr )
+          END IF
+          ALLOCATE( sndbuf( MAX(snd_map(idest)%nsnd,1) ), STAT=ierr )
+          IF( ierr /= 0 ) THEN
+            WRITE(7,*) 'Trying to allocate ', MAX(snd_map(idest)%nsnd,1), ' elements '
+            CALL error(' data_exchange_i ', ' allocating sndbuf ', ierr )
+          END IF
           DO ib = 1, snd_map(idest)%nsnd
             sndbuf(ib) = array( snd_map(idest)%iloc(ib) )
           END DO
@@ -2523,23 +2586,37 @@
           DO ib = 1, rcv_map(isour)%nrcv
             array( rcv_map(isour)%iloc(ib) ) = rcvbuf(ib)
           END DO
-          DEALLOCATE( rcvbuf )
-          DEALLOCATE( sndbuf )
+          DEALLOCATE( rcvbuf, STAT=ierr )
+          IF( ierr /= 0 ) &
+            CALL error(' data_exchange_i ', ' deallocating rcvbuf ', ierr )
+          DEALLOCATE( sndbuf, STAT=ierr )
+          IF( ierr /= 0 ) &
+            CALL error(' data_exchange_i ', ' deallocating sndbuf ', ierr )
         END DO
         RETURN
       END SUBROUTINE data_exchange_i
+
+!----------------------------------------------------------------------
 
       SUBROUTINE data_exchange_l(array)
         USE parallel, ONLY: nproc, mpime
         IMPLICIT NONE
         LOGICAL :: array(:)
         INTEGER, ALLOCATABLE :: sndbuf(:), rcvbuf(:)
-        INTEGER :: ip, isour, idest, ib
+        INTEGER :: ip, isour, idest, ib, ierr
         DO ip = 1, (nproc - 1)
           isour = MOD(mpime - ip + nproc, nproc)
           idest = MOD(mpime + ip        , nproc)
-          ALLOCATE( rcvbuf( MAX(rcv_map(isour)%nrcv,1) ) )
-          ALLOCATE( sndbuf( MAX(snd_map(idest)%nsnd,1) ) )
+          ALLOCATE( rcvbuf( MAX(rcv_map(isour)%nrcv,1) ), STAT=ierr )
+          IF( ierr /= 0 ) THEN
+            WRITE(7,*) 'Trying to allocate ', MAX(rcv_map(isour)%nrcv,1), ' elements '
+            CALL error(' data_exchange_l ', ' allocating rcvbuf ', ierr )
+          END IF
+          ALLOCATE( sndbuf( MAX(snd_map(idest)%nsnd,1) ), STAT=ierr )
+          IF( ierr /= 0 ) THEN
+            WRITE(7,*) 'Trying to allocate ', MAX(snd_map(idest)%nsnd,1), ' elements '
+            CALL error(' data_exchange_l ', ' allocating sndbuf ', ierr )
+          END IF
           DO ib = 1, snd_map(idest)%nsnd
             IF( array( snd_map(idest)%iloc(ib) ) ) THEN
               sndbuf(ib) = 1
@@ -2556,11 +2633,17 @@
               array( rcv_map(isour)%iloc(ib) ) = .FALSE.
             END IF
           END DO
-          DEALLOCATE( rcvbuf )
-          DEALLOCATE( sndbuf )
+          DEALLOCATE( rcvbuf, STAT=ierr )
+          IF( ierr /= 0 ) &
+            CALL error(' data_exchange_l ', ' deallocating rcvbuf ', ierr )
+          DEALLOCATE( sndbuf, STAT=ierr )
+          IF( ierr /= 0 ) &
+            CALL error(' data_exchange_l ', ' deallocating sndbuf ', ierr )
         END DO
         RETURN
       END SUBROUTINE data_exchange_l
+
+!----------------------------------------------------------------------
 
       SUBROUTINE data_collect_r( garray, larray, imstart, imend )
 
