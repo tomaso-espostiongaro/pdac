@@ -216,11 +216,9 @@
 !
 ! ... Compute the temperature-dependent gas viscosity and th. conductivity
 !
-      IF (gas_viscosity) THEN
-        DO ijk = 1, ncint
-          CALL viscon(mug(ijk), kapg(ijk), xgc(:,ijk), tg(ijk))
-        END DO
-      END IF
+      DO ijk = 1, ncint
+        CALL viscon(mug(ijk), kapg(ijk), xgc(:,ijk), tg(ijk))
+      END DO
 !
       RETURN
       END SUBROUTINE fieldn

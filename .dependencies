@@ -84,10 +84,9 @@ parallel.o :
 
 particles.o : dimensions.o 
 
-pdac.o : atmosphere.o control.o decomp.o dens.o dimensions.o environment.o  \
-    eosg.o gas.o grid.o hcapgs.o input.o io.o iter.o matrix.o parallel.o  \
-    particles.o press.o roughness.o setup.o temp.o tilde.o time.o turbo.o  \
-    velocity.o visc.o 
+pdac.o : decomp.o dens.o dimensions.o environment.o eosg.o gas.o grid.o  \
+    hcapgs.o input.o io.o matrix.o parallel.o particles.o press.o roughness.o  \
+    setup.o temp.o tilde.o time.o turbo.o velocity.o visc.o 
 
 press.o : decomp.o dimensions.o 
 

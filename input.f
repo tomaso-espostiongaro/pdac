@@ -49,10 +49,9 @@
       REAL*8 :: initial_vpart_y
       REAL*8 :: initial_vpart_z
       REAL*8 :: initial_gasconc(max_ngas) ! initial gas concentration (for each specie)
-!-----------------------------------------------------------------------------------------
+!-----------------------------------------------------------------------
      CONTAINS
-!-----------------------------------------------------------------------------------------
-!
+!-----------------------------------------------------------------------
       SUBROUTINE input( iunit )
 
       USE atmosphere, ONLY: w0, u0, p0, temp0, us0, ws0, ep0, epsmx0, gravx, gravz
@@ -146,7 +145,7 @@
 
 ! ... Particles
  
-      nsolid = 2              !  numbero of solid components
+      nsolid = 2              !  number of solid components
       diameter = 100          !  particle diameters in micron
       density = 2700          !  particle density in kg/m^3
       sphericity = 1.0        !  sphericity coefficients ( 1.0 sphere )
@@ -439,7 +438,90 @@
       CALL bcast_real(initial_gasconc, SIZE(initial_gasconc),root)
 
       END SUBROUTINE
+!----------------------------------------------------------------------
+      SUBROUTINE initc
 
+      USE atmosphere, ONLY: v0, u0, w0, p0, temp0, us0, vs0, ws0, &
+     &                      ep0, epsmx0, gravx, gravy, gravz
+      USE dimensions
+      USE gas_constants, ONLY: present_gas
+      USE grid, ONLY: dx, dy, dz, itc
+      USE grid, ONLY: iob
+      USE initial_conditions, ONLY: epsob, tpob, ygc0, ygcob,   &
+     &     ugob, vgob, wgob, upob, vpob, wpob, pob, tgob, epob, &
+     &     lpr, zzero
+      USE particles_constants, ONLY: rl, inrl, kap, cmus, phis, cps, dk
+      USE control_flags, ONLY: job_type
+
+      dx(1:nx) = delta_x(1:nx)
+      IF( job_type == '3D' ) THEN
+        dy(1:ny) = delta_y(1:ny)
+      ELSE IF( job_type == '2D' ) THEN
+        dy(1:ny) = 0.D0
+      END IF
+      dz(1:nz) = delta_z(1:nz)
+!
+      iob(1:no)%typ = block_type(1:no)
+
+      iob(1:no)%xlo = block_bounds(1,1:no)
+      iob(1:no)%xhi = block_bounds(2,1:no)
+      IF ( job_type == '3D' ) THEN
+        iob(1:no)%ylo = block_bounds(3,1:no)
+        iob(1:no)%yhi = block_bounds(4,1:no)
+      END IF
+      iob(1:no)%zlo = block_bounds(5,1:no)
+      iob(1:no)%zhi = block_bounds(6,1:no)
+
+      ugob(1:no)  = fixed_vgas_x(1:no)
+      IF( job_type == '3D' ) THEN
+        vgob(1:no)  = fixed_vgas_y(1:no)
+      END IF
+      wgob(1:no)  = fixed_vgas_z(1:no)
+      pob(1:no)  = fixed_pressure(1:no)
+      epob(1:no)  = fixed_gaseps(1:no)
+      tgob(1:no)  = fixed_gastemp(1:no)
+      upob(1:nsolid,1:no) = fixed_vpart_x(1:nsolid,1:no)
+      IF( job_type == '3D' ) THEN
+        vpob(1:nsolid,1:no) = fixed_vpart_y(1:nsolid,1:no)
+      END IF
+      wpob(1:nsolid,1:no) = fixed_vpart_z(1:nsolid,1:no)
+      epsob(1:nsolid,1:no) = fixed_parteps(1:nsolid,1:no)
+      tpob(1:nsolid,1:no) = fixed_parttemp(1:nsolid,1:no)
+      ygcob(1:ngas,1:no) = fixed_gasconc(1:ngas,1:no)
+
+      u0 = initial_vgas_x
+      IF( job_type == '3D' ) THEN
+        v0 = initial_vgas_y
+      END IF
+      w0 = initial_vgas_z
+
+      p0 = initial_pressure
+      ep0 = initial_void_fraction
+      epsmx0 = max_packing
+      temp0 = initial_temperature
+
+      us0 = initial_vpart_x
+      IF( job_type == '3D' ) THEN
+        vs0 = initial_vpart_y
+      END IF
+      ws0 = initial_vpart_z
+
+      ygc0(1:ngas) = initial_gasconc(1:ngas)
+
+      DO ig = 1, ngas
+        present_gas(ig) = (ygc0(ig) /= 0.D0 .OR. ANY(ygcob(ig,:) /= 0.D0 ) )
+      END DO
+!
+      dk(1:nsolid) = diameter(1:nsolid) * 1.D-6 ! input diameter in microns !
+      rl(1:nsolid) = density(1:nsolid)
+      phis(1:nsolid) = sphericity(1:nsolid)
+      cmus(1:nsolid) = viscosity(1:nsolid)
+      cps(1:nsolid) = specific_heat(1:nsolid)
+      kap(1:nsolid) = thermal_conductivity(1:nsolid)
+!
+      inrl(:)=1.D0/rl(:)
+
+      END SUBROUTINE initc
 !----------------------------------------------------------------------
       END MODULE input_module
 !----------------------------------------------------------------------

@@ -174,7 +174,7 @@
 !
 
          IF( timing ) THEN
-            st0 = cclock_wall()
+            ! st0 = cclock_wall()
             ! call system_clock (st0,ratc)
          END IF  
 
@@ -279,7 +279,7 @@
          END DO mesh_loop
 
          IF( timing ) THEN
-             st1 = cclock_wall()
+             ! st1 = cclock_wall()
              ! call system_clock(st1,ratc)
          END IF
 

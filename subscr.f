@@ -174,6 +174,8 @@
     END SUBROUTINE subscr
 !-----------------------------------------------------------------------
       FUNCTION cte(c)
+! ... build a stencil with constant values c at each location
+!
       IMPLICIT NONE
         REAL*8, INTENT(IN) :: c
         TYPE(stencil) :: cte
@@ -207,6 +209,8 @@
       END FUNCTION cte
 !-----------------------------------------------------------------------
       FUNCTION sumstencil(st1, st2)
+! ... sum two stencils
+!
       IMPLICIT NONE
         TYPE(stencil), INTENT(in) :: st1, st2
         TYPE(stencil) :: sumstencil
@@ -240,6 +244,8 @@
       END FUNCTION sumstencil
 !-----------------------------------------------------------------------
       FUNCTION difstencil(st1, st2)
+! ... subtract two stencils
+!
       IMPLICIT NONE
         TYPE(stencil), INTENT(in) :: st1, st2
         TYPE(stencil) :: difstencil
@@ -273,6 +279,8 @@
       END FUNCTION difstencil
 !-----------------------------------------------------------------------
       FUNCTION prodstencil(st1, st2)
+! ... multiply two stencils, location by location
+!
       IMPLICIT NONE
         TYPE(stencil), INTENT(in) :: st1, st2
         TYPE(stencil) :: prodstencil
@@ -306,6 +314,8 @@
       END FUNCTION prodstencil
 !-----------------------------------------------------------------------
       FUNCTION dotstencil(a, st2)
+! ... multiply each stencil location by a constant value a
+
       IMPLICIT NONE
         REAL*8, INTENT(IN) :: a
         TYPE(stencil), INTENT(IN) :: st2
@@ -340,6 +350,8 @@
       END FUNCTION dotstencil
 !-----------------------------------------------------------------------
       FUNCTION fracstencil(st1, st2)
+! ... compute the ratio between two stencils, location by location
+!
       IMPLICIT NONE
         TYPE(stencil), INTENT(in) :: st1, st2
         TYPE(stencil) :: fracstencil

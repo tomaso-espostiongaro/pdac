@@ -600,7 +600,7 @@
 !
 ! ... This routine computes the free in/outflow conditions in the boundary
 ! ... cell, i.e. the normal component of the velocity and the scalar fields
-! ... for /// E a s t , N o r t h, T o p /// boundaries
+! ... for /// E a s t , N o r t h , T o p /// boundaries
 
       USE atmosphere, ONLY: atm
       USE gas_constants, ONLY: gmw, gammaair, gamn, rgas

@@ -179,6 +179,7 @@
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: sieg, sies, tg, ts
       USE gas_solid_viscosity, ONLY: kapg
+      USE gas_solid_viscosity, ONLY: gas_viscosity, part_viscosity
       USE grid, ONLY: fl_l
       USE particles_constants, ONLY: inrl, kap
       USE pressure_epsilon, ONLY: ep
@@ -216,9 +217,11 @@
                      egfe(imjk), egft(ijkm),    &
                      enth, dens, u, w, ijk)
 !
-            CALL hotc(hgfe(ijk), zero, hgft(ijk),      &
-                      hgfe(imjk), zero, hgft(ijkm),      &
-                      eps, temp, kappa, ijk)
+            IF (gas_viscosity) THEN
+              CALL hotc(hgfe(ijk), zero, hgft(ijk),        &
+                        hgfe(imjk), zero, hgft(ijkm),      &
+                        eps, temp, kappa, ijk)
+            END IF
 
           ELSE IF (job_type == '3D') THEN
 
@@ -227,12 +230,15 @@
                      egfe(imjk), egfn(ijmk), egft(ijkm),    &
                      enth, dens, u, v, w, ijk)
 !
-            CALL hotc(hgfe(ijk), hgfn(ijk), hgft(ijk),      &
-                      hgfe(imjk), hgfn(ijmk), hgft(ijkm),      &
-                      eps, temp, kappa, ijk)
+            IF (gas_viscosity) THEN
+              CALL hotc(hgfe(ijk), hgfn(ijk), hgft(ijk),         &
+                        hgfe(imjk), hgfn(ijmk), hgft(ijkm),      &
+                        eps, temp, kappa, ijk)
+            END IF
 
           END IF
 !
+          IF (gas_viscosity) THEN
             egfe(ijk) = egfe(ijk) - hgfe(ijk)
             egft(ijk) = egft(ijk) - hgft(ijk)
 !
@@ -243,6 +249,7 @@
               egfn(ijk) = egfn(ijk) - hgfn(ijk)
               IF (fl_l(ijmk) /= 1) egfn(ijmk) = egfn(ijmk) - hgfn(ijmk)
             END IF
+          END IF
 !
           DO is=1, nsolid
 !
@@ -263,9 +270,11 @@
                        esfe(imjk, is), esft(ijkm, is),  &
                        enth, dens, u, w, ijk)
 !
-              CALL hotc(hsfe(ijk,is), zero, hsft(ijk, is),    &
-                        hsfe(imjk,is), zero, hsft(ijkm, is),    &
-                        eps, temp, kappa, ijk)
+              IF (part_viscosity) THEN
+                CALL hotc(hsfe(ijk,is), zero, hsft(ijk, is),    &
+                          hsfe(imjk,is), zero, hsft(ijkm, is),    &
+                          eps, temp, kappa, ijk)
+              END IF
 
             ELSE IF (job_type == '3D') THEN
 
@@ -274,21 +283,25 @@
                        esfe(imjk, is), esfn(ijmk, is), esft(ijkm, is),  &
                        enth, dens, u, v, w, ijk)
 !
-              CALL hotc(hsfe(ijk,is), hsfn(ijk, is), hsft(ijk, is),    &
-                        hsfe(imjk,is), hsfn(ijmk, is), hsft(ijkm, is),    &
-                        eps, temp, kappa, ijk)
+              IF (part_viscosity) THEN
+                CALL hotc(hsfe(ijk,is), hsfn(ijk, is), hsft(ijk, is),    &
+                          hsfe(imjk,is), hsfn(ijmk, is), hsft(ijkm, is),    &
+                          eps, temp, kappa, ijk)
+              END IF
 
             END IF
 !
-            esfe(ijk, is) = esfe(ijk, is) - hsfe(ijk,is)
-            esft(ijk, is) = esft(ijk, is) - hsft(ijk, is)
+            IF (part_viscosity) THEN
+              esfe(ijk, is) = esfe(ijk, is) - hsfe(ijk,is)
+              esft(ijk, is) = esft(ijk, is) - hsft(ijk, is)
 !
-            IF (fl_l(imjk) /= 1) esfe(imjk,is) = esfe(imjk,is) - hsfe(imjk,is)
-            IF (fl_l(ijkm) /= 1) esft(ijkm,is) = esft(ijkm,is) - hsft(ijkm,is)
+              IF (fl_l(imjk) /= 1) esfe(imjk,is) = esfe(imjk,is) - hsfe(imjk,is)
+              IF (fl_l(ijkm) /= 1) esft(ijkm,is) = esft(ijkm,is) - hsft(ijkm,is)
 
-            IF (job_type == '3D') THEN
-              esfn(ijk, is) = esfn(ijk, is) - hsfn(ijk, is)
-              IF (fl_l(ijmk) /= 1) esfn(ijmk,is) = esfn(ijmk,is) - hsfn(ijmk,is)
+              IF (job_type == '3D') THEN
+                esfn(ijk, is) = esfn(ijk, is) - hsfn(ijk, is)
+                IF (fl_l(ijmk)/=1) esfn(ijmk,is)=esfn(ijmk,is)-hsfn(ijmk,is)
+              END IF
             END IF
 !
           END DO

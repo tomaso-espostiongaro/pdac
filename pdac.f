@@ -12,39 +12,30 @@
 !
       PROGRAM pdac
 
-      USE atmosphere, ONLY: v0, u0, w0, p0, temp0, us0, vs0, ws0, &
-     &                      ep0, epsmx0, gravx, gravz
       USE dimensions
       USE domain_decomposition, ONLY: partition, ghost
       USE eos_gas, ONLY: allocate_eosg
-      USE gas_constants, ONLY: allocate_gas_constants, present_gas
+      USE gas_constants, ONLY: allocate_gas_constants
       USE gas_solid_density, ONLY: allocate_density
       USE gas_solid_velocity, ONLY: allocate_velocity
       USE gas_solid_temperature, ONLY: allocate_temperature
       USE gas_solid_viscosity, ONLY: allocate_viscosity
-      USE grid, ONLY: dx, dy, dz, itc
-      USE grid, ONLY: iob, flic, allocate_blbody, allocate_grid
+      USE grid, ONLY: flic, allocate_blbody, allocate_grid
+      USE initial_conditions, ONLY: setup, allocate_setup
+      USE input_module, ONLY: input, initc, number_of_block
       USE io_restart, ONLY: taperd, tapewr
-      USE iterative_solver, ONLY: inmax, maxout, omega
-      USE control_flags, ONLY: nfil
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
      &    mpime, root
-      USE particles_constants, ONLY: rl, inrl, kap, &
-     &     cmus, phis, cps, dk, allocate_part_constants
-      USE phases_matrix, ONLY: rlim, allocate_matrix
+      USE particles_constants, ONLY: allocate_part_constants
+      USE phases_matrix, ONLY: allocate_matrix
       USE pressure_epsilon, ONLY: allocate_press_eps
       USE roughness_module, ONLY: zrough, deallocate_roughness
-      USE initial_conditions, ONLY: setup, epsob, tpob, ygc0, ygcob, &
-     &     ugob, vgob, wgob, upob, vpob, wpob, pob, tgob, epob, lpr, & 
-     &     zzero, allocate_setup
       USE specific_heat_module, ONLY: allocate_hcapgs
       USE tilde_momentum, ONLY: allocate_momentum
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut
       USE turbulence_model, ONLY: allocate_turbo
       USE environment, ONLY: cpclock, timing, elapsed_seconds
-      USE input_module
-      USE control_flags, ONLY: job_type
 !
       IMPLICIT NONE
       CHARACTER(LEN=11) :: errnb, testnb, lognb
@@ -57,9 +48,9 @@
       REAL*8 :: s0, s1, s2, s3, s4, s5, s6, t0
       REAL*8 :: pt0, pt1, pt2, pt3, pt4, pt5, pt6
       REAL*8 :: timtot, timprog, timdist, timsetup, timinit, timres, timghost
-      REAL*8 :: mptimtot, mptimprog, mptimdist, mptimsetup, mptiminit, mptimres, mptimghost
+      REAL*8 :: mptimtot, mptimprog, mptimdist, mptimsetup, &
+     &          mptiminit, mptimres, mptimghost
       LOGICAL :: debug = .FALSE.
-
 !
 ! ... initialize parallel environment
 
@@ -74,7 +65,7 @@
          call MP_WALLTIME(pt0)
       END IF
 
-! ...  DATE AND TIME
+! ... date and time
       CALL date_and_time( values = mydate )
 
 ! ... Initialize the IBM HW performance monitor
@@ -116,90 +107,25 @@
 ! ... Read Input file
 !
       CALL input(inputunit)
-
-! ... allocation of arrays ...(dependence on nr, nx,ny,nz)
-      CALL allocate_grid
-!
-      dx(1:nx) = delta_x(1:nx)
-      IF( job_type == '3D' ) THEN
-        dy(1:ny) = delta_y(1:ny)
-      ELSE IF( job_type == '2D' ) THEN
-        dy(1:ny) = 0.D0
-      END IF
-      dz(1:nz) = delta_z(1:nz)
-
-      no = number_of_block
 !
 ! ... set dimensions ...
-      nphase=nsolid+1
-
-! ... allocation of arrays ...(dependence on no, ngas, nsolid, nr, nz)
+!
+      no = number_of_block
+      nphase = nsolid + 1
+!
+! ... allocate global arrays 
+!
+      CALL allocate_grid
       CALL allocate_blbody
       CALL allocate_gas_constants
       CALL allocate_matrix
       CALL allocate_part_constants
       CALL allocate_setup
-
-      iob(1:no)%typ = block_type(1:no)
-
-      iob(1:no)%xlo = block_bounds(1,1:no)
-      iob(1:no)%xhi = block_bounds(2,1:no)
-      IF ( job_type == '3D' ) THEN
-        iob(1:no)%ylo = block_bounds(3,1:no)
-        iob(1:no)%yhi = block_bounds(4,1:no)
-      END IF
-      iob(1:no)%zlo = block_bounds(5,1:no)
-      iob(1:no)%zhi = block_bounds(6,1:no)
-
-      ugob(1:no)  = fixed_vgas_x(1:no)
-      IF( job_type == '3D' ) THEN
-        vgob(1:no)  = fixed_vgas_y(1:no)
-      END IF
-      wgob(1:no)  = fixed_vgas_z(1:no)
-      pob(1:no)  = fixed_pressure(1:no)
-      epob(1:no)  = fixed_gaseps(1:no)
-      tgob(1:no)  = fixed_gastemp(1:no)
-      upob(1:nsolid,1:no) = fixed_vpart_x(1:nsolid,1:no)
-      IF( job_type == '3D' ) THEN
-        vpob(1:nsolid,1:no) = fixed_vpart_y(1:nsolid,1:no)
-      END IF
-      wpob(1:nsolid,1:no) = fixed_vpart_z(1:nsolid,1:no)
-      epsob(1:nsolid,1:no) = fixed_parteps(1:nsolid,1:no)
-      tpob(1:nsolid,1:no) = fixed_parttemp(1:nsolid,1:no)
-      ygcob(1:ngas,1:no) = fixed_gasconc(1:ngas,1:no)
-
-      u0 = initial_vgas_x
-      IF( job_type == '3D' ) THEN
-        v0 = initial_vgas_y
-      END IF
-      w0 = initial_vgas_z
-
-      p0 = initial_pressure
-      ep0 = initial_void_fraction
-      epsmx0 = max_packing
-      temp0 = initial_temperature
-
-      us0 = initial_vpart_x
-      IF( job_type == '3D' ) THEN
-        vs0 = initial_vpart_y
-      END IF
-      ws0 = initial_vpart_z
-
-      ygc0(1:ngas) = initial_gasconc(1:ngas)
 !
-      DO ig = 1, ngas
-        present_gas(ig) = (ygc0(ig) /= 0.D0 .OR. ANY(ygcob(ig,:) /= 0.D0 ) )
-      END DO
+! ... initialize input fields
 !
-      dk(1:nsolid) = diameter(1:nsolid) * 1.D-6 ! input diameter in microns !
-      rl(1:nsolid) = density(1:nsolid)
-      phis(1:nsolid) = sphericity(1:nsolid)
-      cmus(1:nsolid) = viscosity(1:nsolid)
-      cps(1:nsolid) = specific_heat(1:nsolid)
-      kap(1:nsolid) = thermal_conductivity(1:nsolid)
+      CALL initc
 !
-      inrl(:)=1.D0/rl(:)
-
 ! ... set start time
       timestart = time
 !
@@ -231,6 +157,8 @@
           call MP_WALLTIME(pt3)
       END IF
 !
+! ... allocate local arrays
+!
       CALL allocate_velocity
       CALL allocate_momentum
       CALL allocate_density
@@ -243,10 +171,9 @@
 !
 ! ... Read restart file
 !
-
       IF(itd == 2) THEN 
         CALL taperd
-      ELSE IF (itd >= 3) THEN
+      ELSE IF (itd > 2) THEN
         CALL error('setup','Output recovering not implemented',1)         
       END IF
 
@@ -254,8 +181,6 @@
           s4 = cpclock()
           call MP_WALLTIME(pt4)
       END IF
-!
-
 !
 ! ... Set initial conditions
 !
@@ -299,20 +224,17 @@
 ! ... terminate the IBM HW performance monitor session
 !      call f_hpmterminate( mpime )
 
-! ...  DATE AND TIME
+! ... date and time
       CALL date_and_time( values = mydate )
       WRITE(6,110) mydate(5), mydate(6), mydate(7), mydate(3), mydate(2), mydate(1)
 110   FORMAT( ' This run ended at ', I2, ':', I2, ':', I2, 3X, 'day ', I2, &
               ' month ', I2, ' year ', I4 )
-
 !
       CLOSE(5)
       IF( .NOT. debug ) CLOSE(6)
       CLOSE(7)
       CLOSE(8)
 !
-      CALL deallocate_roughness( zrough )
-! 
 ! ... Finalize parallel environment
 !
 
