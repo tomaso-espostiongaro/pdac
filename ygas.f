@@ -7,10 +7,22 @@
 ! ... convective concentration fluxes 
 !
       REAL*8, ALLOCATABLE :: yfe(:,:), yfn(:,:), yft(:,:)
+      REAL*8, ALLOCATABLE :: rgpgcn(:,:)
       
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
+!----------------------------------------------------------------------
+      SUBROUTINE allocate_species
+      USE dimensions
+      USE domain_decomposition, ONLY: ncint
+      IMPLICIT NONE
+      
+      ALLOCATE(rgpgcn(ncint,ngas))
+      rgpgcn = 0.D0
+
+      RETURN
+      END SUBROUTINE allocate_species
 !----------------------------------------------------------------------
       SUBROUTINE ygas
 !
@@ -84,7 +96,7 @@
   	     yfy = yfn(ijk,ig) - yfs
            END IF
 
-           rgpgc(ig) = rgpn(ijk) * ygc(ijk,ig)
+           rgpgc(ig) = rgpgcn(ijk)
 	   rgpgc(ig) = rgpgc(ig) - dt * indx(i) * yfx * inr(i)     
            rgpgc(ig) = rgpgc(ig) - dt * indy(j) * yfy              
 	   rgpgc(ig) = rgpgc(ig) - dt * indz(k) * yfz

@@ -69,6 +69,8 @@
         m = m + 1
         l = 0
         
+        ! ... West wall
+        !
         i = iob(n)%xlo - 1
         DO k = iob(n)%zlo, iob(n)%zhi
           l = l+1
@@ -84,6 +86,8 @@
           surfp(m,l)%n(3) = 0
         END DO
         
+        ! ... Roof
+        !
         k = iob(n)%zhi + 1
         DO i = iob(n)%xlo, iob(n)%xhi
           l = l+1
@@ -99,6 +103,8 @@
           surfp(m,l)%n(3) = +1
         END DO
         
+        ! ... East wall
+        !
         i = iob(n)%xhi + 1
         DO k = iob(n)%zhi, iob(n)%zlo, -1
           l = l+1
@@ -114,6 +120,8 @@
           surfp(m,l)%n(3) = 0
         END DO
         
+        ! ... Bottom
+        !
         k = iob(n)%zlo - 1
         DO i = iob(n)%xhi, iob(n)%xlo, -1
           l = l+1

@@ -16,6 +16,7 @@
       USE dimensions
       USE domain_decomposition, ONLY: partition, ghost
       USE eos_gas, ONLY: allocate_eosg
+      USE gas_components, ONLY: allocate_species
       USE gas_constants, ONLY: allocate_gas_constants
       USE gas_solid_density, ONLY: allocate_density
       USE gas_solid_velocity, ONLY: allocate_velocity
@@ -196,6 +197,7 @@
       CALL allocate_velocity
       CALL allocate_momentum
       CALL allocate_density
+      CALL allocate_species
       CALL allocate_press_eps
       CALL allocate_temperature
       CALL allocate_eosg

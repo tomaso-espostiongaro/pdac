@@ -129,7 +129,8 @@
       USE dimensions
       USE domain_decomposition, ONLY: ncint, myijk, ncdom
       USE domain_decomposition, ONLY: meshinds, data_exchange
-      USE eos_gas, ONLY: xgc
+      USE eos_gas, ONLY: xgc, ygc
+      USE gas_components, ONLY: rgpgcn
       USE gas_solid_density, ONLY: rgp, rgpn, rlk, rlkn
       USE gas_solid_temperature, ONLY: sieg, siegn, sies, siesn, tg, ts
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
@@ -232,6 +233,7 @@
           pn(ijk)    = p(ijk)
           rgpn(ijk)  = rgp(ijk)
           siegn(ijk) = sieg(ijk)
+          rgpgcn(ijk,:) = rgpn(ijk)*ygc(ijk,:)
 !
           DO is = 1, nsolid
             rlkn(ijk,is)  = rlk(ijk,is)

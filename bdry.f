@@ -62,7 +62,6 @@
 
         CALL subscr(ijk)
         CALL meshinds(ijk,imesh,i,j,k)
-
 !
 ! ... Update inlet cells for non-stationnary boundary conditions
 !
@@ -1314,6 +1313,11 @@
 !
       RETURN
       END SUBROUTINE wsb_inout6
+!-----------------------------------------------------------------------
+      SUBROUTINE constant_pressure
+      IMPLICIT NONE
+      RETURN
+      END SUBROUTINE constant_pressure
 !-----------------------------------------------------------------------
 !     I N T E R P O L A T I O N     P R O C E D U R E S 
 !-----------------------------------------------------------------------
