@@ -1,6 +1,5 @@
-\section{Data and modules}
+\section{Data and Modules}
 The computer code PDAC is organized in a modular structure.
-
 Modules can contain only the definition and type declaration
 of global array variables (as velocities, pressure, densities or
 temperatures) and their allocation routines. These modules allow
@@ -12,21 +11,20 @@ Other modules refer to an independent block of the algorithm, and then contain
 variable definitions, constants, procedures that are needed only
 within the scope of the module (variables that can be declared as {\tt PRIVATE}). 
 These include, for example, the module for boundary conditions, computation 
-of fluxes, invertion of the multiphase matrix.
+of fluxes, invertion of the multiphase matrices.
 
 In general, modules contain the definition of variables 
-and the procedures acting on these variables (these include,
+and the procedures acting on these variables. These include,
 for example, the definition of new data-types for the definition of 
 the parallel environment variables or the setting of the grid, but also
 specific functions within the program, as those for computing the atmospheric 
-profile, or the turbulence model or particles properties.)
-
+profile, or the turbulence model or particles properties. 
  This modular structure is particularly suited for global
 data that are needed in many steps of computation and to give a more 
-coherent organization of the data in the program flow.
+coherent organization of the data in the program.
 
 A short description of modules is given below, with the description of the main 
-variable used and the routines acting on them. Variables that are used only within one
+variables used and the routines acting on them. Variables that are used only within one
 module or a routine are not necessarily presented here.
 Modules are presented in alphabetical order with their name in {\bf bold}, whereas the corresponding
 file name is in parentheses. 
@@ -53,8 +51,9 @@ VARIABLE & MEANING\\\hline
 \end{tabular}\\
 
 \begin{itemize}
-\item {\em atm} computes the vertical stratification of the atmosphere using 
- empirical coefficients
+\item {\em set\_atmosphere} set the empirical coefficients defining the different atmospheric layers
+\item {\em compute\_profile} compute the vertical stratification of the atmosphere by using
+ and hydrostatic approximation
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% B O U N D A R Y   C O N D I T I O N S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -72,8 +71,11 @@ VARIABLE & MEANING\\\hline
 {\large {\bf control\_flags}} (control.f)\\[5mm]
 \begin{tabular}{|p{6cm}|p{6cm}|}\hline
 VARIABLE & MEANING\\\hline
-\tt  job\_type    & job type ('2D' or '3D') \\\hline
+\tt  job\_type    & job type (2D or 3D) \\\hline
 \tt  nfil         & number of the first OUTPUT file \\\hline
+\tt  lpr          & level of verbosity \\\hline
+\tt  itp          & read topography from a file \\\hline
+\tt  immb         & flag for immersed boundaries \\\hline
 \end{tabular}\\[5mm]
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% D O M A I N   D E C O M P O S I T I O N  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -81,13 +83,13 @@ VARIABLE & MEANING\\\hline
 {\large{\bf domain\_decomposition}} (decomp.f)\\[5mm]
 \begin{tabular}{|p{6cm}|p{6cm}|}\hline
 VARIABLE & MEANING\\\hline
-\tt mesh\_partition   & \\ \hline
-\tt layer\_map   & \\ \hline
-\tt block2d\_map & \\ \hline
-\tt block3d\_map & \\ \hline
-\tt rcv\_map   & \\ \hline
-\tt snd\_map & \\ \hline
-\tt proc\_map & \\ \hline
+\tt mesh\_partition   & topology of the domain decomposition\\ \hline
+\tt layer\_map   & processor map for layers\\ \hline
+\tt block2d\_map & processor map for 2D blocks\\ \hline
+\tt block3d\_map & processor map for 3D blocks\\ \hline
+\tt rcv\_map   & index received by each proc.\\ \hline
+\tt snd\_map & index sent by each proc.\\ \hline
+\tt proc\_map & generic processor map\\ \hline
 \tt ncint    & number of cells belonging to one processor\\ \hline
 \tt ncext    & number of ghost cells of one processor\\ \hline
 \tt ncdom    & total number of cells of one processor\\ \hline
@@ -96,16 +98,16 @@ VARIABLE & MEANING\\\hline
 \end{tabular}\\[5mm]
 \begin{itemize}
 \item{\em partition} distributes computational cells among processors following the 
-prescribed strategy, and builds the processors map, that is, a function that
+prescribed strategy, and builds up the processors map (i.e., a function that
  for each cells, identified by its global index, gives the number of 
-processor it owns and the local index in the processor sub-domain (and viceversa);\\
-\item{\em ghost}, given the processor maps, identifies each processor boundaries 
+processor it owns and the local index in the processor sub-domain and viceversa);
+\item{\em ghost}, given the processor map, identifies each processor boundaries 
 (ghost cells) and
 allocates the buffers to be sent or received in the communication calls;\\
 \item{\em data\_exchange} invokes MPI send-receive calls to exchange communication 
- buffers \\
-\item{\em data\_collect} 
-\item{\em data\_distribute} 
+ buffers
+\item{\em data\_collect} collect local data from processors to build up global arrays
+\item{\em data\_distribute} scatter global arrays among processors
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% G A S   S O L I D   D E N S I T Y %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -113,11 +115,11 @@ allocates the buffers to be sent or received in the communication calls;\\
 {\large {\bf gas\_solid\_density}} (dens.f)\\[5mm]
 \begin{tabular}{|p{6cm}|c|p{6cm}|}\hline
 VARIABLE & REPRESENTATION & MEANING\\\hline
-\tt rog(ncint) & $(\rho_g)_{ij}=\frac{P_{ij}m}{R_m(T_g)_{ij}}$ &  Thermodynamic gas density \\\hline
-\tt rgp(ncdom) & $(\rho_g')_ij=(\epsilon_g\rho_g)_ij $&  bulk gas density \\\hline
-\tt rgpn(ncint) & $(\rho_g')^{n}_ij=(\epsilon_g\rho_g)^{n}_ij $&  bulk gas density at time $n$ \\\hline
-\tt rlk(ncl,ncdom) & $(\rho_k')_{ij}=(\epsilon)_{ij}\rho_k$ &  bulk density of solid phase $k$ \\\hline
-\tt rlkn(ncl,ncint) & $(\rho_k')^{n}_{ij}=(\epsilon)^{n}_{ij}\rho_k$ &  bulk density of solid phase $k$ at time $n$\\\hline
+\tt rog(ncint) & $(\rho_g)_{ijk}=\frac{P_{ijk}m}{R_m(T_g)_{ijk}}$ &  Thermodynamic gas density \\\hline
+\tt rgp(ncdom) & $(\rho_g')_{ijk}=(\epsilon_g\rho_g)_{ijk} $&  bulk gas density \\\hline
+\tt rgpn(ncint) & $(\rho_g')^{n}_{ijk}=(\epsilon_g\rho_g)^{n}_{ijk} $&  bulk gas density at time $n$ \\\hline
+\tt rlk(ncl,ncdom) & $(\rho_s')_{ijk}=(\epsilon_s)_{ijk}\rho_s$ &  bulk density of solid phase $k$ \\\hline
+\tt rlkn(ncl,ncint) & $(\rho_s')^{n}_{ijk}=(\epsilon_s)^{n}_{ijk}\rho_s$ &  bulk density of solid phase $k$ at time $n$\\\hline
 \end{tabular}\\[5mm]
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% D I M E N S I O N S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -140,11 +142,8 @@ VARIABLE & MEANING\\\hline
 %
 {\large{\bf momentum\_transfer}} (drag.f)\\
 \begin{itemize}
-\item{\em kdragg} computes the gas-particles drag coefficient for $\epsilon_g \geq 0.8$;
-\item{\em kdragl} computes the gas-particles drag coefficient for $\epsilon_g < 0.8$;
 \item{\em kdrags} computes gas-particles drag coefficient;
 \item{\em ppdrag} computes particle-particles drag coefficient;
-\item{\em inter} computes particle-particle drag coefficient.
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% E O S   G A S  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -152,21 +151,20 @@ VARIABLE & MEANING\\\hline
 {\large {\bf eos\_gas}} (eosg.f)\\[5mm]
 \begin{tabular}{|p{6cm}|c|p{6cm}|}\hline
 VARIABLE & REPRESENTATION & MEANING\\\hline
-\tt cg(ncint)          & $(C_{P_g})_{ij}^n=\sum\limits_{kg=1}^{\tt ngas}(C_{P_kg})_{ij}^n$ &  gas specific heat at constant P\\\hline
-\tt ygc(ngas,ncint)    & $(y_i)_{ij}^n$&  mass fraction of gas species $i$\\ \hline
-\tt xgc(ngas,ncint)    & $(\chi_i)_{ij}^n$&  molar fraction of gas species $i$\\ \hline
-\tt rgpgc(ngas,ncdom)  & $(y_{i}\epsilon_g\rho_g)_{ij}$& bulk density of gas species $i$ \\ \hline
-\tt rgpgcn(ngas,ncint) & $(y_{i}\epsilon_g\rho_g)_{ij}^{n}$& bulk density of gas species $i$ at time $n$ \\ \hline
+\tt cg(ncint)          & $(C_{P_g})_{ijk}^n=\sum\limits_{kg=1}^{\tt ngas}(C_{P_{kg}})_{ijk}^n$ &  gas specific heat at constant $P$\\\hline
+\tt ygc(ngas,ncint)    & $(y_i)_{ijk}^n$&  mass fraction of gas species $i$\\ \hline
+\tt xgc(ngas,ncint)    & $(\chi_i)_{ijk}^n$&  molar fraction of gas species $i$\\ \hline
+\tt rgpgc(ngas,ncdom)  & $(y_{i}\epsilon_g\rho_g)_{ijk}$& bulk density of gas species $i$ \\ \hline
+\tt rgpgcn(ngas,ncint) & $(y_{i}\epsilon_g\rho_g)_{ijk}^{n}$& bulk density of gas species $i$ at time $n$ \\ \hline
 \end{tabular}\\
 
 \begin{itemize}
 \item {\em mole} computes the molar fraction of gas components from mass fraction;\\
 \item {\em mas} computes the mass fraction of gas components from molar fraction;\\
-\item {\em csound} computes the adiabatic (squared) gas speed of sound;\\
-\item  {\em thermal\_eosg}computes the mixture gas density from pressure and temperature 
+\item {\em csound} computes the squared adiabatic gas speed of sound;\\
+\item  {\em thermal\_eosg} computes the mixture gas density from pressure and temperature 
 using the equation of state;\\
 \item  {\em caloric\_eosg} computes the temperature using enthalpy;
-\item  {\em cnvertg} computes thermodynamic mean quantitites at t=0;
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% E O S   S O L I D %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -174,7 +172,6 @@ using the equation of state;\\
 {\large{\bf eos\_solid}} (eosl.f)\\
 \begin{itemize}
 \item {\em caloric\_eosl} computes solid temperatures from enthalpies;\\
-\item {\em converts} computes thermodynamic mean quantitites at t=0;\\
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% C O N V E C T I V E   M A S S   F L U X E S %%%%%%%%%%%%%%%%%%%%%%%%
@@ -222,7 +219,7 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 \tt bt(nphase)  & $({\bf B_H})_{i+\frac{1}{2},j}$ & explicit vector 
 of enthalpies \\ \hline
 \tt at(nphase,nphase) & $({\bf A_H})_{i+\frac{1}{2},j}$ & phase matrix of enthalpies\\\hline
-\tt hv               & $(Q_k)_{ij}^n$ & gas-particles temperature exchange coefficient\\\hline
+\tt hv               & $(Q_s)_{ijk}^n$ & gas-particles temperature exchange coefficient\\\hline
 \end{tabular}\\
 \begin{itemize}
 \item{\em ftem} computes the elements of the enthalpies phases matrix\\
@@ -237,11 +234,10 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 \tt  ckg(ngas)    & $k_g(T)$ & temperature-dependent thermal conductivity of gas components\\\hline
 \tt  mmug(ngas)   & $\mu_g$  & temperature-dependent viscosity of gas components\\\hline
 \tt  mmugs(ngas)  & $\sigma$ & Lennard-Jones potential\\\hline
-\tt  mmugek(ngas) & $\epsilon_k$ & Lennard-Jones potential\\\hline
+\tt  mmugek(ngas) & $\epsilon_s$ & Lennard-Jones potential\\\hline
 \tt  gmw(ngas)    & $m_g$    & molecular weight of gas components\\\hline
 \tt  phij(:,:)    & $\phi_{i,j}$ & weight function for the mixture mean viscosity/conductivity\\\hline
 \tt  present\_gas(ngas)  & & logical control  \\\hline
-\tt  default\_gas        & & default gas component in atmosphere \\\hline
 \tt  gammaair         & $\gamma$ & air adiabatic constant \\\hline
 \tt  c\_joule, c\_erg & & conversion factors (calories/joules, calories/erg) \\\hline
 \tt  rgas             & $R$ & universal gas constant \\\hline
@@ -254,8 +250,10 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 {\large{\bf grid}} (grid.f)\\[5mm]
 \begin{tabular}{|p{6cm}|p{6cm}|}\hline
 VARIABLE & MEANING\\\hline
-\tt x(nx), xb(nx) & physical x or radial coordinates of the cell centers and borders \\ \hline
-\tt zb(nz) & physical vertical coordinates of the cell borders \\ \hline
+\tt x(nx), xb(nx) & physical x(r)-coordinates of the cell centers and borders \\ \hline
+\tt r(nx), rb(nx) & radial coordinates for cylindrical transport equations \\ \hline
+\tt y(ny), yb(ny) & physical y-coordinates of the cell centers and borders \\ \hline
+\tt z(nz), zb(nz) & physical z-coordinates of the cell centers and borders \\ \hline
 \tt dx(nx) & cell dimensions in $x(r)$-direction\\ \hline
 \tt dy(ny) & cell dimensions in $y$-direction\\ \hline
 \tt dz(nz) & cell dimensions in $z$-direction\\ \hline
@@ -276,8 +274,8 @@ VARIABLE & MEANING\\\hline
 {\large{\bf specific\_heat\_module}} (hcapgs.f)\\[5mm]
 \begin{tabular}{|p{6cm}|c|p{6cm}|}\hline
 VARIABLE & REPRESENTATION & MEANING\\\hline
-\tt cp(ngas,ncint) & $((C_P)_{kg})^n_{ij}$ & temperature-dependent thermal capacity of gas species $kg$\\\hline
-\tt ck(ncl,ncint) & $((C)_{k})^n_{ij}$ & thermal capacity of particle class $k$\\\hline
+\tt cp(ngas,ncint) & $(C_{P_{kg}})^n_{ijk}$ & temperature-dependent thermal capacity of gas species $kg$\\\hline
+\tt ck(ncl,ncint) & $(C_s)^n_{ijk}$ & thermal capacity of particle class $s$\\\hline
 \end{tabular}\\
 \begin{itemize}
 \item{\em hcapg} computes thermal capacities of gas components 
@@ -296,14 +294,14 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 {\large {\bf tilde\_energy}} (htilde.f)\\[5mm]
 \begin{tabular}{|p{6cm}|c|p{6cm}|}\hline
 VARIABLE & REPRESENTATION & MEANING\\\hline
-\tt rhg(ncint) & $\widetilde{(\rho_g'h_g)_{ij}^n}$ & explicit (tilde) terms in the gas enthalpy equation\\\hline
-\tt rhs(ncl,ncint)& $\widetilde{(\epsilon_s \rho_s h_s)_{ij}^n}$ & explicit (tilde) terms in the particles enthalpy equation\\\hline
+\tt rhg(ncint) & $\widetilde{(\rho_g'h_g)_{ijk}^n}$ & explicit (tilde) terms in the gas enthalpy equation\\\hline
+\tt rhs(ncl,ncint)& $\widetilde{(\rho_s' h_s)_{ijk}^n}$ & explicit (tilde) terms in the particles enthalpy equation\\\hline
 \tt egfe(ncdom) & $\left[ (\rho_g')h_g u_g x \right]_{E}$ &EAST convective flux of gas enthalpy\\\hline
 \tt egfn(ncdom) & $\left[ (\rho_g')h_g v_g \right]_{N}$ &NORTH convective flux of gas enthalpy\\\hline
 \tt egft(ncdom) & $\left[ (\rho_g')h_g w_g \right]_{T}$ &TOP convective flux of gas enthalpy\\\hline
-\tt esfe(ncl,ncdom)& $\left[ \epsilon_s\rho_sh_su_s x\right]_{E}$ &EAST convective flux of particles enthalpy\\\hline
-\tt esfn(ncl,ncdom)& $\left[ \epsilon_s\rho_sh_sv_s \right]_{N}$ &NORTH convective flux of particles enthalpy\\\hline
-\tt esft(ncl,ncdom)& $\left[ \epsilon_s\rho_sh_sw_s \right]_{T}$ &TOP convective flux of particles enthalpy\\\hline
+\tt esfe(ncl,ncdom)& $\left[ (\rho_s')h_su_s x\right]_{E}$ &EAST convective flux of particles enthalpy\\\hline
+\tt esfn(ncl,ncdom)& $\left[ (\rho_s')h_sv_s \right]_{N}$ &NORTH convective flux of particles enthalpy\\\hline
+\tt esft(ncl,ncdom)& $\left[ (\rho_s')h_sw_s \right]_{T}$ &TOP convective flux of particles enthalpy\\\hline
 \tt hgfe(ncdom)&$ (\epsilon_g \kappa_g \nabla T_gx)_{E}$ &EAST diffusive flux of gas enthalpy\\\hline
 \tt hgfn(ncdom)&$ (\epsilon_g \kappa_g \nabla T_g)_{N}$ &NORTH diffusive flux of gas enthalpy\\\hline
 \tt hgft(ncdom)&$ (\epsilon_g \kappa_g \nabla T_g)_{T}$ &TOP diffusive flux of gas enthalpy\\\hline
@@ -328,7 +326,7 @@ diffusive fluxes are computed by central differencing ({\em heat\_diffusion} mod
 %
 {\large{\bf indijk\_module}} (indijk.f) \\
 \begin{itemize}
-\item{\em indijk\_setup} Set the numeration order and the position of the stencil elements in 3D
+\item{\em indijk\_setup} sets the numeration order and the position of the stencil elements in 3D
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% I N P U T   M O D U L E %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -341,8 +339,8 @@ diffusive fluxes are computed by central differencing ({\em heat\_diffusion} mod
 \item{\em tapewr} writes the restart file
 \item{\em taperd} reads the restart file
 \item{\em tapebc} calls the MPI BroadCast function to distribute data among processors
-\item{\em write\_array} collect data from different processors and write output file
-\item{\em read\_array}  read output or restart file and  distribute data among processors
+\item{\em write\_array} collects data from different processors and write output file
+\item{\em read\_array}  reads output or restart file and distributes data among processors
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% I T E R A T I V E   S O L V E R %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -350,15 +348,15 @@ diffusive fluxes are computed by central differencing ({\em heat\_diffusion} mod
 {\large{\bf iterative\_solver}} (iter.f)\\[5mm]
 \begin{tabular}{|p{6cm}|c|p{6cm}|}\hline
 VARIABLE & REPRESENTATION & MEANING\\\hline
-\tt rgfe(ncdom) & $\left[ (\rho_g')u_gx \right]_{E} $ & convective gas mass flux in $x(r)$ direction\\\hline
+\tt rgfe(ncdom) & $\left[ (\rho_g')u_g r \right]_{E} $ & convective gas mass flux in $x(r)$ direction\\\hline
 \tt rgfn(ncdom) & $\left[ (\rho_g')v_g \right]_{N} $ & convective gas mass flux in $y$ direction\\\hline
 \tt rgft(ncdom) & $\left[ (\rho_g')w_g \right]_{T} $ & convective gas mass flux in $z$ direction\\\hline
-\tt rsfe(ncl,ncdom) & $\left[ \epsilon_s\rho_su_sx \right]_{E} $ & convective particles mass flux in $x(r)$ direction\\\hline
-\tt rsfn(ncl,ncdom) & $\left[ \epsilon_s\rho_sv_s \right]_{N} $ & convective particles mass flux in $y$ direction\\\hline
-\tt rsft(ncl,ncdom) & $\left[ \epsilon_s\rho_sw_s \right]_{T} $ & convective particles mass flux in $z$ direction\\\hline
-\tt conv(ncint) & $10^{-8}\times(\rho_g')_{ij}$ & convergence criterion\\\hline
-\tt dg(ncint) & $(D_g)_{ij}$ & residual of the gas mass conservation equation \\\hline
-\tt abeta(ncint) & $\left(\frac{dD_g}{dP}\right)_{ij}$ & derivative of the mass residual for the Newton solver\\\hline
+\tt rsfe(ncl,ncdom) & $\left[ (\rho_s')u_s r \right]_{E} $ & convective particles mass flux in $x(r)$ direction\\\hline
+\tt rsfn(ncl,ncdom) & $\left[ (\rho_s')v_s \right]_{N} $ & convective particles mass flux in $y$ direction\\\hline
+\tt rsft(ncl,ncdom) & $\left[ (\rho_s')w_s \right]_{T} $ & convective particles mass flux in $z$ direction\\\hline
+\tt conv(ncint) & $10^{-8}\times(\rho_g')_{ijk}$ & convergence criterion\\\hline
+\tt dg(ncint) & $(D_g)_{ijk}$ & residual of the gas mass conservation equation \\\hline
+\tt abeta(ncint) & $\left(\frac{dD_g}{dP}\right)_{ijk}$ & derivative of the mass residual for the Newton solver\\\hline
 \tt omega & $\omega$ & overrelaxation parameter \\\hline
 \tt inmax, maxout && maximum number of inner and outer iteration\\\hline
 \end{tabular}\\
@@ -413,18 +411,18 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 {\large{\bf particles\_constants}} (particles.f)\\[5mm]
 \begin{tabular}{|p{6cm}|c|p{6cm}|}\hline
 VARIABLE & REPRESENTATION & MEANING\\\hline
-\tt dk(ncl) & $d_k$ &  particle diameters\\\hline
-\tt rl(ncl) & $\rho_k$ & specific particle density\\\hline
-\tt inrl(ncl)& $\frac{1}{\rho_k} $& inverse of specific density\\\hline
-\tt phis(ncl)& $\phi_k$   & sphericity\\\hline
-\tt cmus(ncl) & $c_k$ & coefficient for the correlation of the particles turbulent viscosity\\\hline
-\tt cps(ncl) & $C_k$ &   thermal capacity\\\hline
-\tt phi(ncl) & $\Phi_k$ & volume of particles maximum packing\\\hline
-\tt kap(ncl) & $\kappa_k$ &  solid thermal conductivity\\\hline
-\tt dkf(ncl,ncl) & $\frac{(d_k+d_{kk})^2}{(\rho_kd_k^3+\rho_{kk}d_{kk}^3)}$ &   Syamlal's particle-particle interaction coefficient \\\hline
-\tt philim(ncl,ncl) &$ \frac{\Phi_k}{\Phi_k+(1-\Phi_k)\Phi_j}$& \\\hline
-\tt epsl & $\epsilon_{kj}$ & volume of maximum packing for a mixture\\\hline
-\tt epsu & $\epsilon_{kj}$ & volume of maximum packing for a mixture\\\hline
+\tt dk(ncl) & $d_s$ &  particle diameters\\\hline
+\tt rl(ncl) & $\rho_s$ & specific particle density\\\hline
+\tt inrl(ncl)& $\frac{1}{\rho_s} $& inverse of specific density\\\hline
+\tt phis(ncl)& $\phi_s$   & sphericity\\\hline
+\tt cmus(ncl) & $c_s$ & coefficient for the correlation of the particles turbulent viscosity\\\hline
+\tt cps(ncl) & $C_s$ &   thermal capacity\\\hline
+\tt phi(ncl) & $\Phi_s$ & volume of particles maximum packing\\\hline
+\tt kap(ncl) & $\kappa_s$ &  solid thermal conductivity\\\hline
+\tt dkf(ncl,ncl) & $\frac{(d_s+d_{ss})^2}{(\rho_sd_s^3+\rho_{ss}d_{ss}^3)}$ &   Syamlal's particle-particle interaction coefficient \\\hline
+\tt philim(ncl,ncl) &$ \frac{\Phi_s}{\Phi_s+(1-\Phi_s)\Phi_j}$& \\\hline
+\tt epsl & $\epsilon_{sj}$ & ``lower'' volume of maximum packing for a mixture\\\hline
+\tt epsu & $\epsilon_{sj}$ & ``upper'' volume of maximum packing for a mixture\\\hline
 \end{tabular}\\
 \begin{itemize}
 \item{\em particles\_constants\_set} sets the correlation coefficients for particle-particle drag.
@@ -435,9 +433,9 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 {\large{\bf pressure\_epsilon}} (press.f)\\[5mm]
 \begin{tabular}{|p{6cm}|c|p{6cm}|}\hline
 VARIABLE & REPRESENTATION & MEANING\\\hline
-\tt ep(ncdom) & $(\epsilon_g)_{ij}$ &  volumetric fraction of gas\\\hline
-\tt pn(ncdom) & $P_{ij}^{n}$ &  gas pressure at time $n$\\\hline
-\tt p(ncdom) & $P_{ij}$ &  gas pressure\\\hline
+\tt ep(ncdom) & $(\epsilon_g)_{ijk}$ &  volumetric fraction of gas\\\hline
+\tt pn(ncdom) & $P_{ijk}^{n}$ &  gas pressure at time $n$\\\hline
+\tt p(ncdom) & $P_{ijk}$ &  gas pressure\\\hline
 \end{tabular}\\[5mm]
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% R E A C T I O N S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -477,7 +475,6 @@ VARIABLE & MEANING\\\hline
 \tt tpob(ncl,nnso) & particles temperature at specified fluid cells\\\hline
 \tt ygc0(ngas) & gas components mass fraction in atmospheric air\\\hline
 \tt ygcob(ngas,nnso) & gas components mass fraction at specified fluid cells\\\hline
-\tt lpr & print log file (y/n) flag\\\hline
 \tt zzero & height above sea level of the first cell\\\hline
 \end{tabular}\\
 \begin{itemize}
@@ -505,12 +502,12 @@ VARIABLE & MEANING \\ \hline
 {\large {\bf gas\_solid\_temperature}} (temp.f)\\[5mm]
 \begin{tabular}{|p{6cm}|c|p{6cm}|}\hline
 VARIABLE & REPRESENTATION & MEANING\\\hline
-\tt sieg(ncdom) & $(h_g)_{ij}$ &  gas specific enthalpy \\\hline 
-\tt siegn(ncdom) & $(h_g)^{n}_{ij}$ &  enthalpy of gas at time $n$\\\hline
-\tt tg(ncdom) & $(T_g)_{ij}$ &  gas temperature\\\hline
-\tt sies(ncl,ncdom) & $(h_s)_{ij}$ &  specific enthalpy of solid phase $s$ \\\hline
-\tt siesn(ncl,ncdom) & $(h_s)^{n}_{ij}$ &  enthalpy of solid phase $s$ at time $n$\\\hline
-\tt ts(ncl,ncdom) & $(T_s)_{ij}$ &  temperature of solid phase $s$\\\hline
+\tt sieg(ncdom) & $(h_g)_{ijk}$ &  gas specific enthalpy \\\hline 
+\tt siegn(ncdom) & $(h_g)^{n}_{ijk}$ &  enthalpy of gas at time $n$\\\hline
+\tt tg(ncdom) & $(T_g)_{ijk}$ &  gas temperature\\\hline
+\tt sies(ncl,ncdom) & $(h_s)_{ijk}$ &  specific enthalpy of solid phase $s$ \\\hline
+\tt siesn(ncl,ncdom) & $(h_s)^{n}_{ijk}$ &  enthalpy of solid phase $s$ at time $n$\\\hline
+\tt ts(ncl,ncdom) & $(T_s)_{ijk}$ &  temperature of solid phase $s$\\\hline
 \end{tabular}\\[5mm]
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% T I L D E   M O M E N T U M %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -518,13 +515,13 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 {\large{\bf tilde\_momentum}} (tilde.f)\\[5mm]
 \begin{tabular}{|p{4cm}|c|p{8cm}|}\hline
 VARIABLE & REPRESENTATION & MEANING\\\hline
-\tt rug(ncdom)& $\widetilde{(\rho_g'u_g)_{ij}}$ &explicit (tilde) terms for gas $x(r)$-mo\-men\-tum equation\\\hline
-\tt rvg(ncdom)& $\widetilde{(\rho_g'v_g)_{ij}}$ &explicit (tilde) terms for gas $y$-mo\-men\-tum equation\\\hline
-\tt rwg(ncdom)& $\widetilde{(\rho_g'w_g)_{ij}}$ &explicit (tilde) terms for gas $z$-mo\-men\-tum equation\\\hline
-\tt rus(ncl,ncdom)& $\widetilde{(\epsilon_s\rho_su_s)_{ij}}$ &explicit (tilde) terms for particles $x(r)$-mo\-men\-tum equation\\\hline
-\tt rvs(ncl,ncdom)& $\widetilde{(\epsilon_s\rho_sv_s)_{ij}}$ &explicit (tilde) terms for particles $y$-mo\-men\-tum equation\\\hline
-\tt rws(ncl,ncdom)& $\widetilde{(\epsilon_s\rho_sw_s)_{ij}}$ &explicit (tilde) terms for particles $z$-mo\-men\-tum equation\\\hline
-\tt ugfe(ncdom) & $\left[ \rho_g' u_g u_g x \right]_{E}^n$ & EAST flux of gas $x(r)$-momentum \\\hline 
+\tt rug(ncdom)& $\widetilde{(\rho_g'u_g)_{ijk}}$ &explicit (tilde) terms for gas $x(r)$-mo\-men\-tum equation\\\hline
+\tt rvg(ncdom)& $\widetilde{(\rho_g'v_g)_{ijk}}$ &explicit (tilde) terms for gas $y$-mo\-men\-tum equation\\\hline
+\tt rwg(ncdom)& $\widetilde{(\rho_g'w_g)_{ijk}}$ &explicit (tilde) terms for gas $z$-mo\-men\-tum equation\\\hline
+\tt rus(ncl,ncdom)& $\widetilde{(\rho_s'u_s)_{ijk}}$ &explicit (tilde) terms for particles $x(r)$-mo\-men\-tum equation\\\hline
+\tt rvs(ncl,ncdom)& $\widetilde{(\rho_s'v_s)_{ijk}}$ &explicit (tilde) terms for particles $y$-mo\-men\-tum equation\\\hline
+\tt rws(ncl,ncdom)& $\widetilde{(\rho_s'w_s)_{ijk}}$ &explicit (tilde) terms for particles $z$-mo\-men\-tum equation\\\hline
+\tt ugfe(ncdom) & $\left[ \rho_g' u_g u_g r \right]_{E}^n$ & EAST flux of gas $x(r)$-momentum \\\hline 
 \tt ugfn(ncdom) & $\left[ \rho_g' u_g v_g \right]_{N}^n$ & NORTH flux of gas $x(r)$-momentum \\\hline
 \tt ugft(ncdom) & $\left[ \rho_g' u_g w_g \right]_{T}^n$ & TOP flux of gas $x(r)$-momentum \\\hline
 \tt vgfe(ncdom) & $\left[ \rho_g' v_g u_g r \right]_{E}^n$ & EAST flux of gas $y$-momentum \\\hline
@@ -533,17 +530,17 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 \tt wgfe(ncdom) & $\left[ \rho_g' w_g u_g r \right]_{E}^n$ & EAST flux of gas $z$-momentum \\\hline
 \tt wgfn(ncdom) & $\left[ \rho_g' w_g v_g \right]_{N}^n$ & NORTH of gas $z$-momentum \\\hline
 \tt wgft(ncdom) & $\left[ \rho_g' w_g w_g \right]_{T}^n$ & TOP flux of gas $z$-momentum \\\hline
-\tt usfe(ncdom) & $\left[ \epsilon\_s\rho_s u_s u_s x \right]_{E}^n$ & EAST flux of particle $x(r)$-momentum \\\hline 
-\tt usfn(ncdom) & $\left[ \epsilon\_s\rho_s u_s v_s \right]_{N}^n$ & NORTH flux of particle $x(r)$-momentum \\\hline
-\tt usft(ncdom) & $\left[ \epsilon\_s\rho_s u_s w_s \right]_{T}^n$ & TOP flux of particle $x(r)$-momentum \\\hline
-\tt vsfe(ncdom) & $\left[ \epsilon\_s\rho_s v_s u_s x \right]_{E}^n$ & EAST flux of particle $y$-momentum \\\hline
-\tt vsfn(ncdom) & $\left[ \epsilon\_s\rho_s v_s v_s \right]_{N}^n$ & NORTH of particle $y$-momentum \\\hline
-\tt vsft(ncdom) & $\left[ \epsilon\_s\rho_s v_s w_s \right]_{T}^n$ & TOP flux of particle $y$-momentum \\\hline
-\tt wsfe(ncdom) & $\left[ \epsilon\_s\rho_s w_s u_s x \right]_{E}^n$ & EAST flux of particle $z$-momentum \\\hline
-\tt wsfn(ncdom) & $\left[ \epsilon\_s\rho_s w_s v_s \right]_{N}^n$ & NORTH of particle $z$-momentum \\\hline
-\tt wsft(ncdom) & $\left[ \epsilon\_s\rho_s w_s w_s \right]_{T}^n$ & TOP flux of particle $z$-momentum \\\hline
+\tt usfe(ncdom) & $\left[ \rho_s' u_s u_s r \right]_{E}^n$ & EAST flux of particle $x(r)$-momentum \\\hline 
+\tt usfn(ncdom) & $\left[ \rho_s' u_s v_s \right]_{N}^n$ & NORTH flux of particle $x(r)$-momentum \\\hline
+\tt usft(ncdom) & $\left[ \rho_s' u_s w_s \right]_{T}^n$ & TOP flux of particle $x(r)$-momentum \\\hline
+\tt vsfe(ncdom) & $\left[ \rho_s' v_s u_s r \right]_{E}^n$ & EAST flux of particle $y$-momentum \\\hline
+\tt vsfn(ncdom) & $\left[ \rho_s' v_s v_s \right]_{N}^n$ & NORTH of particle $y$-momentum \\\hline
+\tt vsft(ncdom) & $\left[ \rho_s' v_s w_s \right]_{T}^n$ & TOP flux of particle $y$-momentum \\\hline
+\tt wsfe(ncdom) & $\left[ \rho_s' w_s u_s r \right]_{E}^n$ & EAST flux of particle $z$-momentum \\\hline
+\tt wsfn(ncdom) & $\left[ \rho_s' w_s v_s \right]_{N}^n$ & NORTH of particle $z$-momentum \\\hline
+\tt wsft(ncdom) & $\left[ \rho_s' w_s w_s \right]_{T}^n$ & TOP flux of particle $z$-momentum \\\hline
 
-\tt kpgv(ncl,ncint) & $(D_{g,k})^n_{ij}$ & gas-particles Drag coefficient\\\hline
+\tt kpgv(ncl,ncint) & $(D_{g,k})^n_{ijk}$ & gas-particles drag coefficient\\\hline
 \tt appu(sup, ncdom) & $\delta t\sum_{l=g,1}^{\tt ncl}(D_{l,k})^n$ & drag terms in the $x(r)$-momentum phase-matrix\\\hline
 \tt appv(sup, ncdom) &  $\delta t\sum_{l=g,1}^{\tt ncl}(D_{l,k})^n$ & drag terms in the $y$-momentum phase-matrix\\\hline
 \tt appw(sup, ncdom) &  $\delta t\sum_{l=g,1}^{\tt ncl}(D_{l,k})^n$ & drag terms in the $z$-momentum phase-matrix\\\hline
@@ -573,13 +570,13 @@ VARIABLE & MEANING\\\hline
 {\large{\bf turbulence}} (turbo.f)\\[5mm]
 \begin{tabular}{|p{6cm}|c|p{6cm}|}\hline
 VARIABLE & REPRESENTATION & MEANING\\\hline
-\tt mugt(ncdom) & $(\mu_{gt})_{ij}$ &  turbulent viscosity (gas)\\\hline
-\tt kapgt(ncdom) & $(\kappa_{gt})_{ij}$ &  turbulent conductivity (gas)\\\hline
-\tt must(ncl, ncdom) & $(\mu_s)_{ij}$ &   granular turbulent viscosity (particles)\\\hline
+\tt mugt(ncdom) & $(\mu_{gt})_{ijk}$ &  turbulent viscosity (gas)\\\hline
+\tt kapgt(ncdom) & $(\kappa_{gt})_{ijk}$ &  turbulent conductivity (gas)\\\hline
+\tt must(ncl, ncdom) & $(\mu_s)_{ijk}$ &   granular turbulent viscosity (particles)\\\hline
 \tt smag(ncint) & $c_S^2(\Delta x\Delta z)^{1/2}$ &  Smagorinsky length scale \\\hline
 \tt scoeff(ncint) & $c_S(x,y)$ &  Dynamic Smagorinsky coefficient \\\hline
 \tt iss & $ $ & flag for modeled turbulent particle viscosity \\\hline
-\tt iturb & $ $ & flag for modeled furbulent gas viscosity \\\hline
+\tt iturb & $ $ & flag for modeled turbulent gas viscosity \\\hline
 \tt modturbo & $ $ & flag for classical or dynamic Smagorinsky model\\\hline
 \tt cmut & $ c_S $ &Smagorinsky coefficient \\\hline
 \tt pranumt & $ Pr $ & Prandtl number\\\hline
@@ -598,12 +595,12 @@ or dynamic Smagorinsky models.
 {\large {\bf gas\_solid\_velocity}} (velocity.f)\\[5mm]
 \begin{tabular}{|p{6cm}|c|p{6cm}|}\hline
 VARIABLE & REPRESENTATION & MEANING\\\hline
-\tt ug(ncdom) & $(u_g)^n_{ij}$ &   $r$ or $x$ component of gas velocity\\\hline
-\tt vg(ncdom) & $(v_g)^n_{ij}$ &  $y$ component of gas velocity\\\hline
-\tt wg(ncdom) & $(v_g)^n_{ij}$ &  $z$ component of gas velocity\\\hline
-\tt us(ncl,ncdom) & $(u_s)^n_{ij}$ &   $r$ or $x$ component of gas velocity\\\hline
-\tt vs(ncl,ncdom) & $(v_s)^n_{ij}$ &  $y$ component of particles velocity\\\hline
-\tt ws(ncl,ncdom) & $(v_s)^n_{ij}$ &  $z$ component of particles velocity\\\hline
+\tt ug(ncdom) & $(u_g)^n_{ijk}$ &   $r$ or $x$ component of gas velocity\\\hline
+\tt vg(ncdom) & $(v_g)^n_{ijk}$ &  $y$ component of gas velocity\\\hline
+\tt wg(ncdom) & $(v_g)^n_{ijk}$ &  $z$ component of gas velocity\\\hline
+\tt us(ncl,ncdom) & $(u_s)^n_{ijk}$ &   $r$ or $x$ component of gas velocity\\\hline
+\tt vs(ncl,ncdom) & $(v_s)^n_{ijk}$ &  $y$ component of particles velocity\\\hline
+\tt ws(ncl,ncdom) & $(w_s)^n_{ijk}$ &  $z$ component of particles velocity\\\hline
 \end{tabular}\\[5mm]
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% G A S   S O L I D   V I S C O S I T Y %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -611,15 +608,15 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 {\large{\bf gas\_solid\_viscosity}} (visc.f)\\[5mm]
 \begin{tabular}{|p{6cm}|c|p{6cm}|}\hline
 VARIABLE & REPRESENTATION & MEANING\\\hline
-\tt mug(ncdom)& $(\nu_g)_{ij}$ &   molecular viscosity (gas)\\\hline
-\tt mus(ncdom)& $(\nu_s)_{ij}$ &   particle viscosity coefficient \\\hline
-\tt kapg(ncdom)& $(\kappa_g)_{ij}$ &   molecular thermal conductivity (gas)\\\hline
-\tt gvisx(ncint)& $(\nabla_x\cdot{\bf T}_g)_{ij}$ & $r$ or $x$ gradient of viscous stress tensor (gas)\\\hline
-\tt gvisy(ncint)& $(\nabla_y\cdot{\bf T}_g)_{ij}$&  $y$ gradient of viscous stress tensor (gas)\\\hline
-\tt gvisz(ncint)& $(\nabla_z\cdot{\bf T}_g)_{ij}$&  $z$ gradient of viscous stress tensor (gas)\\\hline
-\tt pvisx(ncint)& $(\nabla_x\cdot{\bf T}_s)_{ij}$&  $r$ or $x$ gradient of viscous stress tensor (particles)\\\hline
-\tt pvisy(ncint)& $(\nabla_y\cdot{\bf T}_s)_{ij}$&  $y$ gradient of viscous stress tensor (particles)\\\hline
-\tt pvisz(ncint)& $(\nabla_z\cdot{\bf T}_s)_{ij}$&  $z$ gradient of viscous stress tensor (particles)\\\hline
+\tt mug(ncdom)& $(\nu_g)_{ijk}$ &   molecular viscosity (gas)\\\hline
+\tt mus(ncdom)& $(\nu_s)_{ijk}$ &   particle viscosity coefficient \\\hline
+\tt kapg(ncdom)& $(\kappa_g)_{ijk}$ &   molecular thermal conductivity (gas)\\\hline
+\tt gvisx(ncint)& $(\nabla_x\cdot{\bf T}_g)_{ijk}$ & $r$ or $x$ gradient of viscous stress tensor (gas)\\\hline
+\tt gvisy(ncint)& $(\nabla_y\cdot{\bf T}_g)_{ijk}$&  $y$ gradient of viscous stress tensor (gas)\\\hline
+\tt gvisz(ncint)& $(\nabla_z\cdot{\bf T}_g)_{ijk}$&  $z$ gradient of viscous stress tensor (gas)\\\hline
+\tt pvisx(ncint)& $(\nabla_x\cdot{\bf T}_s)_{ijk}$&  $r$ or $x$ gradient of viscous stress tensor (particles)\\\hline
+\tt pvisy(ncint)& $(\nabla_y\cdot{\bf T}_s)_{ijk}$&  $y$ gradient of viscous stress tensor (particles)\\\hline
+\tt pvisz(ncint)& $(\nabla_z\cdot{\bf T}_s)_{ijk}$&  $z$ gradient of viscous stress tensor (particles)\\\hline
 \end{tabular}\\
 \begin{itemize}
 \item{\em viscon}  computes temperature-dependent conductivity and viscosity

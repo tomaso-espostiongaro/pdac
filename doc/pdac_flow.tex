@@ -8,33 +8,33 @@ procedure on the mesh.
 \subsection{Main flow chart}
 
 \begin{enumerate}
-\item Startup: the parallel environment is initialized
-\item Input: root processor reads input files and open I/O units
-\item Broadcast: input data are broadcasted among parallel processes
-\item Domain Decomposition: set the processors sub-domains, ghost cells, and communication routines
+\item {\bf Startup}: the parallel environment is initialized
+\item {\bf Input}: root processor reads input files and open I/O units
+\item {\bf Broadcast}: input data are broadcasted among parallel processes
+\item {\bf Domain Decomposition}: set the processors sub-domains, ghost cells, and communication routines
 (after DD, all computation is carried out in parallel)
-\item Setc: set constants and evaluate physical parameters
-\item Setup: set initial conditions (standard atmosphere, topography, vent conditions)
-\item Time Marching: solve the model equation to advance the solution from the prescribed initial conditions,
-until the final time is reached
-\item Hangup: finalize the parallel environment
+\item {\bf Setc}: set constants and evaluate physical parameters
+\item {\bf Setup}: set initial conditions (standard atmosphere, topography, vent conditions)
+\item {\bf Time Marching}: solve the model equation to advance the solution 
+from the prescribed initial conditions until the final time
+\item {\bf Hangup}: finalize the parallel environment
 \end{enumerate}
 
-\subsection{Time Marching}
+\subsection{Time marching}
 \begin{enumerate}
-\item Compute boundary conditions
-\item Compute gas density from the thermal equation of state
-\item Store all fields at time $n\delta t$
-\item Compute temperature dependent viscosity and thermal conductivity of gas
+\item {\bf Boundary Conditions} are computed
+\item {\bf EOS} Compute gas density from the thermal equation of state
+\item {\bf Store} all fields at time $n\delta t$ and
+compute temperature dependent viscosity and thermal conductivity of gas
 \item Start Runge-Kutta cycle
-\item Compute Tilde terms and interphase coefficients.
-\item Solve iteratively the coupled system equations to update velocity fields,
+\item {\bf Tilde} terms and interphase coefficients are computed
+\item {\bf Iter}: Solve iteratively the coupled system equations to update velocity fields,
 pressure, and volumetric fractions.
-\item Solve the mass balance equation for gas species
-\item Solve explicitly the enthalpy transport equation of all phases
-\item Loop over the Runge-Kutta cycle or increase the time step and restart the time-marching procedure
-\item Write output file and restart file when prescribed
-\item EXIT if maximum time is reached
+\item {\bf Gas components} mass fraction updated
+\item {\bf Enthalpy} transport equations solved explicitly for all phases
+\item Loop over the Runge-Kutta cycle or increase the time and restart the time-marching procedure
+\item Write {\bf Output} file and restart file when prescribed
+\item {\bf RETURN} if maximum time is reached
 \end{enumerate}
 \clearpage
 
@@ -65,21 +65,21 @@ pressure, and volumetric fractions.
 {\normalsize \bf MAIN}\\[1cm]
 \begin{picture}(6,25)
 \multiput(3,23)(0,-3){6}{\vector(0,-1){1}}
-\put(0,23){\makebox(6,2){\bf STARTUP}}
+\put(0,23){\makebox(6,2){\bf Startup}}
 \put(3,24){\oval(6,2)}
-\put(0,20){\makebox(6,2){\bf INPUT}}
+\put(0,20){\makebox(6,2){\bf Input}}
 \put(0,21){\usebox{\IO}}
-\put(0,17){\makebox(6,2){\bf broadcast}}
+\put(0,17){\makebox(6,2){\bf Broadcast}}
 \put(3,18){\oval(6,2)}
 \put(0,14){\framebox(6,2){\parbox{30mm}{\begin{center} 
-\bf domain \\ \bf decomposition \end{center}}}}
-\put(0,11){\framebox(6,2){\bf SETC}}
-\put(0,8){\framebox(6,2){\bf SETUP}}
+\bf Domain \\ \bf decomp. \end{center}}}}
+\put(0,11){\framebox(6,2){\bf Set Const.}}
+\put(0,8){\framebox(6,2){\bf Setup}}
 \put(0,3){\framebox(6,4){\parbox{30mm}{\begin{center} 
-\bf TIME \\ \bf MARCHING \end{center} }}}
+\bf Time \\ \bf marching \end{center} }}}
 \put(6,4.5){\vector(1,0){4.5}}
 \put(3,3){\vector(0,-1){1}}
-\put(0,0){\makebox(6,2){\bf HANGUP}}
+\put(0,0){\makebox(6,2){\bf Hangup}}
 \put(3,1){\oval(6,2)}
 \end{picture}
 \end{center}
@@ -106,10 +106,10 @@ pressure, and volumetric fractions.
 \put(0,21)
   {\framebox(6,5)
     {\parbox{25mm}{\begin{center} 
-      \bf EXPLICIT\\
+      \bf Store\\
+      \bf Fields at $\bf n\delta t$ \\
       \bf Viscosity\\
-      \bf Conductivity\\
-      \bf Fields at $\bf n\delta t$ \end{center} }
+      \bf Conductivity \end{center} }
     }
   }
 \put(6.5,23.5){\bf $dt_0=dt$}
@@ -117,7 +117,7 @@ pressure, and volumetric fractions.
 \put(0,17)
   {\framebox(6,2)
     {\parbox{30mm}
-      {\begin{center} \bf Convective \\ \bf Fluxes \end{center}}
+      {\begin{center} \bf Tilde \end{center}}
     }
   }
 \put(0,16){\framebox(6,1){\bf Drag}}
@@ -127,10 +127,10 @@ pressure, and volumetric fractions.
   {\framebox(6,5)
     {\parbox{25mm}
       {\begin{center} 
-         \bf ITER \\
-         \bf Solver for \\
-         \bf Implicit\\
-         \bf Coupling
+         \bf Iter \\
+         \bf solver for \\
+         \bf implicit\\
+         \bf coupling
        \end{center}
       }
     }
@@ -152,7 +152,7 @@ pressure, and volumetric fractions.
   {\framebox(6,2)
     {\parbox{25mm}
       {\begin{center} 
-         \bf GAS \\
+         \bf Gas \\
          \bf Components
        \end{center}
       }
@@ -166,7 +166,7 @@ pressure, and volumetric fractions.
 \put(9,3){\vector(0,1){17}}
 \put(9,20){\vector(-1,0){6}}
 %
-\put(0,0){\makebox(6,2){\bf OUTPUT}}
+\put(0,0){\makebox(6,2){\bf Output}}
 \put(0,1){\usebox{\IO}}
 \put(3,0){\vector(0,-1){1}}
 \put(3,-2){\usebox{\IF}}
@@ -176,7 +176,7 @@ pressure, and volumetric fractions.
 \put(3,-3){\vector(0,-1){1}}
 \put(1.5,-3.5){no}
 \put(3,-5){\oval(6,2)}
-\put(1,-6){\makebox(4,2){\bf RETURN}}
+\put(1,-6){\makebox(4,2){\bf Return}}
 %
 \put(6,-2.0){\vector(1,0){8}}
 \put(5,-1.5){\bf $dt=dt_0; \quad t=t+dt$}
@@ -189,39 +189,14 @@ pressure, and volumetric fractions.
 \end{center}
 \end{minipage}
 \vspace{1cm}
-\caption{\label{fig:prog_chart} Flow chart of the PDAC2D {\em main} program flow and 
-of the time-advancement procedure.  The whole time-advancement block is repeated at each 
-time-step, from initial condition to the prescribed final time.} 
+\caption{\label{fig:prog_chart} Flow chart of the PDAC {\em main} program and 
+time-advancement procedure. The whole time-advancement block is repeated at 
+each time-step, from the initial condition to the prescribed final time.} 
 \end{figure}
 \clearpage
 %...................................ITER..............................
 \normalsize
-\subsubsection{Iterative solver}
-\begin{enumerate}
-\item Compute the sound speed of gas and the derivative of the mass residual with respect to pressure
-\item Compute the coefficients of the interphase matrix derived from the implicit interphase coupling of the 
-momentum trasport equations by using the pressure field at time $n\delta t$, and the explicit (Tilde) terms 
-previously calculated. Invert the matrix, obtaining gas and particles velocity fields biassed by the wrong
-pressure field.
-\item Compute gas mass fluxes by using the guessed velocities
-\item Start the mesh sweep
-\item Compute the mass residual $D_g$ in a cell
-\item If $D_g$ is less than  prescribed value, update the volumetric fraction of solids by using the mass balance
-equation of particles, the void fraction, and proceed to next cell
-\item Otherwise, correct the value of the pressure, according to one of the techniques described above
-\item Correct the gas density with the new pressure
-\item Use the new pressure to compute a new guessed velocity field (by inverting the interphase matrix)
-\item Compute solid mass fluxes with the new velocities
-\item Use the continuity equation of solids to compute the new particle volumetric fractions (void fraction 
-is obtained by the closure equation)
-\item Compute new gas mass fluxes by using the new velocities and the new void fraction
-\item Compute the mass residual $D_g$
-\item If $D_g$ is less than  prescribed value, proceed to next cell
-\item Otherwise, restart the loop in the same cell from a new pressure correction, until the convergence criterion is
-satisfied or a maximum number of inner iteration is reached
-\item Proceed to the next cell in the same way
-\item At the end of the mesh sweep, if convergence is not reached in every cell, restart the whole mesh iteration.
-\end{enumerate}
+%
 \begin{figure}
 \scriptsize
 \setlength{\unitlength}{10pt}
@@ -327,30 +302,43 @@ satisfied or a maximum number of inner iteration is reached
 \put(6,-1){\makebox(6,2){\bf RETURN}}
 \end{picture}
 \end{center}
-\caption{\label{fig:iter_chart} Flow chart of the algorithm flow in the iterative solver:
-at each time-step, converegence is reached by iteratively correct the pressure field in each
-cell and re-calculating the velocity fields. Corrections are propagated to neighbour cells
-by using Successive Over-Relaxation (SOR) technique until the gas mass residual is less than a prescribed value in the whole
-computational domain.}
+\caption{\label{fig:iter_chart} Flow chart of the algorithm in the iterative 
+solver: at each time-step, converegence is reached by iteratively correct the 
+pressure field in each cell and re-calculating the velocity fields. Corrections 
+are propagated to neighbour cells by using Successive Over-Relaxation (SOR) 
+technique until the gas mass residual is less than a prescribed value in the 
+whole computational domain.}
 \end{figure}
 \normalsize
 %**************************************************************************
 \clearpage
 
 \subsection{Iterative solver}
+The core of the numerical algorithm is the iterative procedure to compute
+the simultaneous solution of the mass and momentum equations, that are
+coupled through the pressure term and the velocities.\\
 
-The procedure starts with a guessed pressure field that may be represented
+{\bf Initial guess}\\
+The procedure starts with a pressure field that may be represented
 by either the initial pressure distribution of standard atmosphere (initial
 conditions) or the pressure distribution of the previous time-step.
-By using such a pressure field, momentum equations are solved explicitly to get the 
-velocity of each phase.
-The residual of the gas mass balance equation is then evaluated by using 
-the old volumetric fraction and the velocity field just computed: 
+By using such a pressure field, momentum equations are solved explicitly 
+(i.e. the matrix of momenta is directly inverted) to guess the velocity 
+of each phase in each cell. The velocity field thus obtained is
+biassed by the ``wrong'' pressure field. The basic idea of the solver is
+to iteratively correct the pressure in each cell by minimizing the residual
+of the gas continuity equation until convergence is achieved.\\
+
+%
+{\bf Mesh sweep}\\
+The residual of the gas mass balance equation is evaluated cell-by-cell
+by using the old volumetric fraction and the velocity field just computed: 
 
 \begin{eqnarray}
-D_{i,j} =  (\epsilon_g \rho_g)_{i,j}^{*} - (\epsilon_g \rho_g)_{i,j}^{n}
--\frac {\delta t} {R_i \delta r_i} \langle R (\epsilon_g \rho_g) u_g \rangle_{i,j}^{*}
-- \frac {\delta t} {\delta z_j } \langle (\epsilon_g \rho_g) v_g \rangle_{i,j}^{*}
+D_{i,j,k} =  (\epsilon_g \rho_g)_{i,j,k}^{*} - (\epsilon_g \rho_g)_{i,j,k}^{n}
+-\frac {\delta t} {R_i \delta r_i} \langle R (\epsilon_g \rho_g) u_g \rangle_{i,j,k}^{*}
+- \frac {\delta t} {\delta y_j } \langle (\epsilon_g \rho_g) v_g \rangle_{i,j,k}^{*}
+- \frac {\delta t} {\delta z_k } \langle (\epsilon_g \rho_g) w_g \rangle_{i,j,k}^{*}
 \nonumber
 \end{eqnarray}
 %
@@ -360,8 +348,8 @@ reached in the whole computational domain.
 In the code the convergence is reached when $D_{i,j}$ is $\le 10^{-8} \times 
 (\epsilon_g \rho_g)_{i,j}^{n}$. 
 
-If the convergence criterion is satisfied, the continuity equations of the solid phases are 
-solved to determine the updated particulate volumetric fraction of each phase.
+If the convergence criterion is satisfied in a cell, the continuity equations of the solid 
+phases are solved to determine the updated particulate volumetric fraction of each phase.
 The new gas volumetric fraction is then computed from:
 %
 \begin{eqnarray}
@@ -370,6 +358,7 @@ The new gas volumetric fraction is then computed from:
 \end{eqnarray}
 %
 and the calculation proceeds to the next cell.
+
 If the residual is greater than the prescribed limit the {\em in-cell} correction procedure
 is started, proceedings throughout the following steps:
 \begin{itemize}
@@ -386,26 +375,21 @@ from the closure equation.
 continuity  equation to compute the new mass residual.
 \item If the gas mass residual is too large the in-cell correction is repeated, otherwise
 the entire procedure is repeated in the next cell.
+\end{itemize}
 The iteration begins at the left-bottom corner fluid cell. The computation proceeds 
-from left to right and from bottom to top until the entire computational domain is covered.
-\item When all cells have been updated the procedure is repeated (by applying over-relaxation)
+from left to right and from bottom to top until the entire computational domain is covered.\\
+
+{\bf Successive Over-Relaxation (SOR)}\\
+When all cells have been updated the mesh sweep is repeated (by applying over-relaxation)
 to propagate the corrections to the neighbour cells, until convergence is simultaneously reached
 in all the cells. 
-\end{itemize}
-To illustrate the need for this external iteration (SOR iteration in Fig.~\ref{fig:iter_chart})
-it is sufficient to examinate the pressure term in the momentum equations. 
-When the pressure field in a cell is corrected, the pressure gradient in all
-(first) neighbours needs to be modified as we use a (first order) finite difference representation
-of gradients. In the mesh loop, the previously updated values are used when evaluating
-the new fields in one cell, but the information coming from the following cells cannot be used 
-in the same iteration. 
-As a few tens of iterations are needed to reach simultaneous convergence
+As few tens of iterations are needed to reach simultaneous convergence
 in all cells, in-cell pressure corrections are limited to a max number of inner iteration,
 even if correction is not usually completed. In fact, a further correction could be needed in the next 
 mesh loop, and therefore a good trade-off must be selected between the number of pressure corrections
 ({\tt inmax}) and the number of mesh iterations ({\tt maxout}).\\
 %
-\subsection{\label{sect:pressure} Pressure correction algorithm}
+\subsection{\label{sect:pressure}Pressure correction algorithm}
 %
 The above reported convergence criterion is reached by adjusting 
 pressure through a combination of different numerical methods.
@@ -424,13 +408,15 @@ The derivative of the residue with respect to pressure has been computed by (see
 a derivation of this expression):
 %
 \begin{eqnarray}
-\frac{\partial D_{i,j}} {\partial (P_g)_{i,j}} \approx 
+\frac{\partial D_{i,j}} {\partial (P_g)_{i,j}} & \approx & 
 \frac{\epsilon_g}{C_{i,j}^{2}} +
 \frac{1}{R_i}\Big(\frac {\delta t} {\delta r_i}\Big)^2 \big( 
-R_{i+\frac{1}{2}} (\epsilon_g)_{i+\frac{1}{2},j} +
-R_{i-\frac{1}{2}} (\epsilon_g)_{i-\frac{1}{2},j} \big)+
-\Big(\frac {\delta t} {\delta z_j}\Big)^2 \big( 
-(\epsilon_g)_{i,j+\frac{1}{2}} + (\epsilon_g)_{i,j-\frac{1}{2}} \big)
+R_{i+\frac{1}{2}} (\epsilon_g)_{i+\frac{1}{2},j,k} +
+R_{i-\frac{1}{2}} (\epsilon_g)_{i-\frac{1}{2},j,k} \big)+\\
+&&+\Big(\frac {\delta t} {\delta y_j}\Big)^2 \big( 
+(\epsilon_g)_{i,j+\frac{1}{2},k} + (\epsilon_g)_{i,j-\frac{1}{2},k} \big)+
+\Big(\frac {\delta t} {\delta z_k}\Big)^2 \big( 
+(\epsilon_g)_{i,j,k+\frac{1}{2}} + (\epsilon_g)_{i,j,k-\frac{1}{2}} \big)
 \nonumber
 \end{eqnarray}
 %
@@ -441,29 +427,31 @@ the convergence of the method.\\
 Newton's method is used until the residual changes sign.
 \begin{figure}[h]
 \centerline{\psfig{figure=./newtonm.eps,height=8cm}}
-\caption{\label{fig:newtonm} Sketch of the Newton's method used to find the zero of the function
-$D_g(p_g)$: the slope of the function is computed once and used to iteratively approach the zero.
-If the value of the function $D_g$ changes sign (point 2) the iterative Newton's method is
-stopped and the secant method of Fig.~\ref{fig:secantm} is used.}
+\caption{\label{fig:newtonm} Sketch of the Newton's method used to find the 
+zero of the function $D_g(P_g)$: the slope of the function is computed once 
+and used to iteratively approach the zero.  If the value of the function 
+$D_g$ changes sign (point 2) the iterative Newton's method is stopped and 
+the secant method of Fig.~\ref{fig:secantm} is used.}
 \end{figure}
 %
 \item A new approximation of the solution is reached in a further stage by using the 
 secant method (Fig.~\ref{fig:secantm}), i.e. by evaluating Eq.~\ref{eq:dDdP} with:
 %
 \begin{eqnarray}
-\partial (p_g)_{i,j}^{s} / \partial D_{i,j} = \bigg( \frac {(p_g)_{i,j}^{s-1} - (p_g)_{i,j}^{s}}
+\partial (P_g)_{i,j}^{s} / \partial D_{i,j} = \bigg( \frac {(P_g)_{i,j}^{s-1} - (P_g)_{i,j}^{s}}
 {D_{i,j}^{s-1} - D_{i,j}^{s}} \bigg)
 \nonumber
 \end{eqnarray}
 %
-$(p_g)_{i,j}^{s-1}$ and $(p_g)_{i,j}^{s}$ are the two last values obtained by the Newton's 
+$(P_g)_{i,j}^{s-1}$ and $(P_g)_{i,j}^{s}$ are the two last values obtained by the Newton's 
 method, and their corresponding residuals have opposite sign. The secant method is used once 
 to obtain a third pressure between these two values. 
 %
 \begin{figure}[h]
 \centerline{\psfig{figure=./secantm.eps,height=8cm}}
-\caption{\label{fig:secantm} Sketch of the secant method used when the iterative Newton's method
-changes sign: a third point between points P1 and P2 is found by tracing the secant between 1 and 2.}
+\caption{\label{fig:secantm} Sketch of the secant method used when the 
+iterative Newton's method changes sign: a third point between points P1 and P2 
+is found by tracing the secant between 1 and 2.} 
 \end{figure}
 %
 \item With three points surrounding the solution, the bi-secant method (Fig.~\ref{fig:bisecantm}) 
@@ -473,7 +461,7 @@ can be applied iteratively to fastly converge to the zero-residual pressure.
 \centerline{\psfig{figure=./bisecantm.eps,height=8cm}}
 \caption{\label{fig:bisecantm} Sketch of the iterative bisecant method used with three points surrounding
 the zero of the function $D_g(P_g)$. The two secants between 1-3 and 2-3 are traced to find points
-A and B on the $D_g=0$ axis. Point 4 lay mid-way between A and B. In the case shown (where P4 is 
+A and B on the $D_g=0$ axis. Point 4 lays mid-way between A and B. In the case shown (where P4 is 
 between P2 and P3) point 1 is discarded and the procedure is repeated with points 2,3,4.}
 \end{figure}
 %
@@ -490,7 +478,7 @@ A few manipulation and approximation of the momentum transport equations are nec
 to obtain the derivative of the gas mass-residual with respect to pressure, used in 
 Eq.~\ref{eq:dDdP}.
 The procedure is presented in 1D and cartesian coordinates although its extension to 2D 
-is straighforward.
+and 3D is straighforward.
 
 The residual is obtained from the mass transport equation as:
 \begin{eqnarray}
@@ -517,7 +505,7 @@ to pressure variations!) so that the momentum equation can be written:
 (\epsilon_g \rho_g)^n_{i+\frac{1}{2}}(u_g)^*_{i+\frac{1}{2}} \approx
 (\epsilon_g \rho_g)^n_{i+\frac{1}{2}}(u_g)^n_{i+\frac{1}{2}} -
 \frac {\delta t} {\delta x_{i+\frac{1}{2}}}
-(\epsilon_g)^n_{i+\frac{1}{2}}(p_{i+1}-p_i)^*
+(\epsilon_g)^n_{i+\frac{1}{2}}(P_{i+1}-P_i)^*
 \nonumber
 \end{eqnarray}
 Now, if this equation is substituted into \ref{eq:resid}, we obtain:
@@ -540,7 +528,7 @@ the first term was approximated as:
 \end{displaymath}
 where $C$ is the adiabatic speed of sound of the gas.\\
 \begin{eqnarray}
-\frac{\partial D_{i}} {\partial (p_g)_{i}} \approx
+\frac{\partial D_{i}} {\partial (P_g)_{i}} \approx
 \frac{\epsilon_g}{C_{i}^{2}} +
 \frac {\delta t} {\delta x_i} \left(
 \frac{\delta t}{\delta x_{i+\frac{1}{2}}}(\epsilon_g)^n_{i+\frac{1}{2}} + 

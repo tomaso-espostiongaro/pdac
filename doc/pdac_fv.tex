@@ -1,459 +1,17 @@
-\section{Discretized equations \label{ch:FV}}
+\section{Discretized Equations \label{ch:FV}}
 In this section the discretized equations are reported according to the scheme adopted
-in PDAC2D. The discretization of convective fluxes is indicated by brackets
+in PDAC2D. The discretization of convective fluxes is indicated by brakets
 $<...>$. 
-Explicit terms are collected in a {\em tilde} term indicated by the 
-tilde-symbol $(\widetilde{...})$ in the equations, and their form is explicitly 
-given.
 
-\subsection{Time discretization}
-
-Here the discretized equations are presented, highlighting the 
-explicit/implicit treatment of each term.
-Explicit terms are collected in a {\em tilde} term indicated by the 
-tilde-symbol $(\widetilde{...})$ in the equations, and their form is 
-explicitly given in the next section.\\
-The implicit treatement of some terms is highlighted by the superscript $(n+1)$.
-
-The mass and momentum balance equations for gas and solid phases can be written in a 
-unified notation for gas and solids, as follows:\\
-
-%
-{\bf Continuity Equations}\\
-%
-\begin{eqnarray}
-\htmlimage{}
-(\epsilon_k \rho_k)_{i,j}^{n+1} = (\epsilon_k \rho_k)_{i,j}^{n} -
-\frac{\delta t}{R_i \delta r_i} \langle R(\epsilon_k \rho_k) u_k \rangle_{i,j}^{n+1}-
-\frac{\delta t}{\delta z_j} \langle (\epsilon_k \rho_k) v_k \rangle_{i,j}^{n+1}
-\qquad (k=g,1,2, ....,N)
-\nonumber
-\end{eqnarray}\\
-
-{\bf Momentum Equations}\\
-%
-\begin{eqnarray}
-\htmlimage{}
-(\epsilon_k \rho_k u_k)_{i+\frac{1}{2},j}^{n+1} =
-(\widetilde{\epsilon_k \rho_k u_k})_{i+\frac{1}{2},j}^{n} -
-\frac{\delta t}{R_{i+\frac{1}{2}}\delta r_{i+\frac{1}{2}}} 
-(\epsilon_k)_{i+\frac{1}{2},j}^{n+1}
-((p_g)_{i+1,j} - (p_g)_{i,j})^{n+1} + \nonumber \\
-+\delta t \sum_{l=g,1}^{N} (D_{lk})^n_{i+\frac{1}{2},j}
-((u_l)_{i+\frac{1}{2},j}^{n+1} - (u_k)_{i+\frac{1}{2},j}^{n+1})
-\qquad (k=g,1,2,...,N)
-\nonumber
-\end{eqnarray}
-%
-\begin{eqnarray}
-\htmlimage{}
-(\epsilon_k \rho_k v_k)_{i,j+\frac{1}{2}}^{n+1} =
-(\widetilde{\epsilon_k \rho_k v_k})_{i,j+\frac{1}{2}}^{n} -
-\frac{\delta t}{\delta z_{j+\frac{1}{2}}} (\epsilon_k)_{i,j+\frac{1}{2}}^{n+1}
-((p_g)_{i,j+1} - (p_g)_{i,j})^{n+1} + \nonumber \\
-+ \delta t \sum_{g,1}^{N} (D_{lk})^n_{i,j+\frac{1}{2}}
-((v_l)_{i,j+\frac{1}{2}}^{n+1} - (v_k)_{i,j+\frac{1}{2}}^{n+1})
-\qquad (k=g,1,2,...,N)
-\nonumber
-\end{eqnarray}
-%
-The enthalpy balance equations for gas and solid phases must be written with a 
-slightly different notation for gas and solids, because the particle-particle
-heat exchange term is neglected:\\
-
-{\bf Energy Equations}\\
-%
-Gas phase:
-%
-\begin{eqnarray}
-(\epsilon_g \rho_g h_g)_{i,j}^{n+1} = 
-(\widetilde{\epsilon_g \rho_g h_g})^n_{i,j} +
-\delta t \sum_{k=1}^{n} (Q_{k})_{i,j}^{n} (T_k - T_g)_{i,j}^{n+1}
-\nonumber
-\end{eqnarray}
-%
-Solid phases:
-%
-\begin{eqnarray}
-(\epsilon_k \rho_k h_k)_{i,j}^{n+1} = 
-(\widetilde{\epsilon_k \rho_k h_k})^n_{i,j} +
-\delta t  (Q_{k})_{i,j}^{n} (T_g - T_k)_{i,j}^{n+1}
-\nonumber
-\end{eqnarray}
-%
-\newpage
-%
-\subsection{Discretization of  explicit (TILDE) terms}
-Convective and diffusive fluxes, body forces and the interphase coefficients
-are computed explicitly before the solution of the equation system. 
-The implicit treatment of these terms is computationally expensive.\\
-
-{\bf Radial momentum}\\
-%
-\begin{eqnarray}
-\htmlimage{}
-(\widetilde{\epsilon_k \rho_k u_k})_{i+\frac{1}{2},j}^{n} =
-(\epsilon_k \rho_k u_k)_{i+\frac{1}{2},j}^{n} - 
-\frac{\delta t}{R_{i+\frac{1}{2}} \delta r_{i+\frac{1}{2}}} 
-\langle (R \epsilon_k \rho_k u_k) u_k \rangle_{i+\frac{1}{2},j}^{n} - 
-\frac{\delta t} {\delta z_j} 
-\langle (\epsilon_k \rho_k u_k) v_k \rangle_{i+\frac{1}{2},j}^{n} + \nonumber \\
-+ \frac{\delta t} {R_{i+\frac{1}{2}} \delta r_{i+\frac{1}{2}}} 
-\big(R_{i+1}(\tau_{k,rr})_{i+1,j}^{n} - R_i (\tau_{k,rr})_{i,j}^{n} \big) + 
-\frac{\delta t} {\delta z_j} 
-\big( (\tau_{k,rz})_{i+\frac{1}{2},j+\frac{1}{2}}^{n} - 
-(\tau_{k,rz})_{i+\frac{1}{2},j-\frac{1}{2}}^{n} \big) - \nonumber \\
-- \frac{\delta t} {R_{i+\frac{1}{2}}}
-(\tau_{k,o})_{i+\frac{1}{2},j}^{n} 
-\big( \frac{\delta R}{\delta r} \big)_{i+\frac{1}{2}}
--\delta t \epsilon_k \rho_k g_x
-\qquad (k=g,1,2, ....,N)
-\nonumber
-\end{eqnarray}
-
-{\bf Vertical momentum}\\
-%
-\begin{eqnarray}
-\htmlimage{}
-(\widetilde{\epsilon_k \rho_k v_k})_{i,j+\frac{1}{2}}^{n} =
-(\epsilon_k \rho_k v_k)_{i,j+\frac{1}{2}}^{n} -
-\frac{\delta t}{R_{i} \delta r_{i}} 
-\langle (R \epsilon_k \rho_k v_k) u_k \rangle_{i,j+\frac{1}{2}}^{n} -
-\frac{\delta t} {\delta z_{j+\frac{1}{2}}} 
-\langle (\epsilon_k \rho_k v_k) v_k \rangle_{i,j+\frac{1}{2}}^{n} + \nonumber \\
-+ \frac{\delta t} {R_{i} \delta r_{i}} 
-\big(R_{i+\frac{1}{2}}(\tau_{k,rz})_{i+\frac{1}{2},j+\frac{1}{2}}^{n} 
-- R_{i-\frac{1}{2}} (\tau_{k,rz})_{i-\frac{1}{2},j+\frac{1}{2}}^{n} \big) + \nonumber \\
-+ \frac{\delta t} {\delta z_{j+\frac{1}{2}}}
-\big( (\tau_{k,zz})_{i,j+1}^{n} -
-(\tau_{k,zz})_{i,j}^{n} \big)
-- \delta t \epsilon_k \rho_k g_y
-\qquad (k=g,1,2, ....,N).
-\nonumber
-\end{eqnarray}
-
-{\bf Gas enthalpy}\\
-%
-\begin{eqnarray}
-\htmlimage{}
-(\widetilde{\epsilon_g \rho_g h_g})^n_{i,j} = 
-(\epsilon_k \rho_k h_g)_{i,j}^{n} -
-\frac {\delta t}{R_i \delta r_{i}} 
-\langle R (\epsilon_g \rho_g)^{n+1} h_g (u_g)^{n+1} \rangle_{i,j} -
-\frac {\delta t}{\delta z_{j}} 
-\langle (\epsilon_g \rho_g)^{n+1} h_g (v_g)^{n+1} \rangle_{i,j} + \nonumber \\
-+ \epsilon_g \big ((p_g)_{i,j}^{n+1} - (p_g)_{i,j}^{n} \big )+\nonumber \\
-+ \frac {\delta t} {R_i \delta r_i} (u_g \epsilon_g)_{i,j}^{n+1}
-\big( R_{i+\frac{1}{2}} (p_g)_{i+\frac{1}{2},j} - 
-R_{i-\frac{1}{2}} (p_g)_{i-\frac{1}{2},j} \big)
-+ \frac{\delta t}{\delta z_j} (v_g \epsilon_g)_{i,j}^{n+1}
-\cdot \big( (p_g)_{i,j+\frac{1}{2}} - (p_g)_{i,j-\frac{1}{2}} \big)+\nonumber \\
-+ \frac {\delta t} {R_i \delta r_i} \bigg( R_{i+\frac{1}{2}} 
-(k_g)_{i+\frac{1}{2},j}^{n} 
-\frac{(T_g)_{i+1,j}^{n} - (T_g)_{i,j}^{n}}{\delta r_{i+\frac{1}{2}}} 
-- R_{i-\frac{1}{2}} (k_g)_{i-\frac{1}{2},j}^{n} 
-\frac{(T_g)_{i,j}^{n} - (T_g)_{i-1,j}^{n}}{\delta r_{i-\frac{1}{2}}} \bigg)+ \nonumber \\
-+ \frac {\delta t} {\delta z_j} \bigg( (k_g)_{i,j+\frac{1}{2}}^{n} 
-\frac{(T_g)_{i,j+1}^{n} - (T_g)_{i,j}^{n}}{\delta z_{j+\frac{1}{2}}} - 
-(k_g)_{i,j-\frac{1}{2}}^{n} \frac{(T_g)_{i,j}^{n} - 
-(T_g)_{i,j-1}^{n}}{\delta z_{j-\frac{1}{2}}} \bigg)
-\nonumber
-\end{eqnarray}
-
-{\bf Particles enthalpy}\\
-%
-\begin{eqnarray}
-\htmlimage{}
-(\widetilde{\epsilon_k \rho_k h_k})^n_{i,j} = 
-(\epsilon_k \rho_k h_k)_{i,j}^{n} -
-\frac {\delta t}{R_i \delta r_{i}}
-\langle R ((\epsilon_k \rho_k)^{n+1} h_k (u_k)^{n+1} \rangle_{i,j}-
-\frac {\delta t}{\delta z_{j}}\langle ((\epsilon_k \rho_k)^{n+1} i
-h_k (v_k)^{n+1} \rangle_{i,j} +\nonumber \\
-\frac {\delta t} {R_i \delta r_i}
-\cdot \bigg( R_{i+\frac{1}{2}} (k_k)_{i+\frac{1}{2},j}^{n} 
-\frac{(T_k)_{i+1,j}^{n} - (T_k)_{i,j}^{n}}{\delta r_{i+\frac{1}{2}}} - 
-( R_{i-\frac{1}{2}} (k_k)_{i-\frac{1}{2},j}^{n} 
-\frac{(T_k)_{i,j}^{n} - (T_k)_{i-1,j}^{n}}{\delta r_{i-\frac{1}{2}}} \bigg) + \nonumber \\
-+ \frac {\delta t} {\delta z_j} \bigg( (k_k)_{i,j+\frac{1}{2}}^{n} 
-\frac{(T_k)_{i,j+1}^{n} - (T_k)_{i,j}^{n}}{\delta z_{j+\frac{1}{2}}} - 
-(k_k)_{i,j-\frac{1}{2}}^{n} \frac{(T_k)_{i,j}^{n} - 
-(T_k)_{i,j-1}^{n}}{\delta z_{j-\frac{1}{2}}} \bigg)
-\nonumber
-\end{eqnarray}
-\newpage
-%
-\subsection{Discretization of convective fluxes}
-All convective fluxes are computed by using First Order Upwind technique.
-If the option for High Order Upwind is selected, this is computed as
-a correction to the first order method. Upwind techniques are shown for
-a centered quantity $\Phi$. The upwinding method for velocities
-require some interpolations to define centered fields on staggered locations.\\
-
-{\bf First Order Upwind (Donor-cell)}
-%
-\begin{eqnarray}
-\htmlimage{}
-%
-\langle R \Phi u_k \rangle_{m,p} & = & R_{m+\frac{1}{2}} (u_k)_{m+\frac{1}{2},p} 
-\left[ \begin{array}{cc}
-\displaystyle{(\Phi)_{m,p}}, & \displaystyle if (u_k)_{m+\frac{1}{2},p}  \ge 0 \\
-\displaystyle{(\Phi)_{m+1,p}}, & \displaystyle if (u_k)_{m+\frac{1}{2},p} < 0
-\end{array} \right] \\ \nonumber
-%
-                                 & - & R_{m-\frac{1}{2}} (u_k)_{m-\frac{1}{2},p}
-\left[ \begin{array}{cc}
-\displaystyle{(\Phi)_{m-1,p}}, & \displaystyle if (u_k)_{m-\frac{1}{2},p}  \ge 0 \\
-\displaystyle{(\Phi)_{m,p}}, & \displaystyle if (u_k)_{m-\frac{1}{2},p} < 0
-\end{array} \right] \\ \nonumber
-%
-\langle \Phi v_k \rangle_{m,p} & = & (v_k)_{m,p+\frac{1}{2}}
-\left[ \begin{array}{cc}
-\displaystyle{(\Phi)_{m,p}}, & \displaystyle if (v_k)_{m,p+\frac{1}{2}}  \ge 0 \\
-\displaystyle{(\Phi)_{m,p+1}}, & \displaystyle if (v_k)_{m,p+\frac{1}{2}} < 0
-\end{array} \right] \\ \nonumber
-%
-                               & - & (v_k)_{m,p-\frac{1}{2}}
-\left[ \begin{array}{cc}
-\displaystyle{(\Phi)_{m,p-1}}, & \displaystyle if (v_k)_{m,p-\frac{1}{2}}  \ge 0 \\
-\displaystyle{(\Phi)_{m,p}}, & \displaystyle if (v_k)_{m,p-\frac{1}{2}} < 0
-\end{array} \right] \nonumber
-%
-\end{eqnarray}
-
-{\bf High Order Upwind (MUSCL)}
-%
-\subsection{Viscous Stress Tensor}
-
-The stress tensor for both gas and solid phases is assumed to model a Newtonian fluid
-so that it is proportional to the strain tensor. In two dimensions this writes:\\
-
-\begin{eqnarray}
-\htmlimage{}
-(\tau_{k,rr})_{i,j} = 2 (\mu_k)_{i,j} 
-\Big( \frac{(u_k)_{i+\frac{1}{2},j} - (u_k)_{i-\frac{1}{2},j}}
-{\delta r_{i}} \Big ) - \frac{2}{3} (\mu_k)_{i,j} 
-(\mbox{\boldmath $\nabla$} \cdot {\bf v}_k)_{i,j}
-\nonumber
-\end{eqnarray}
-%
-\begin{eqnarray}
-\htmlimage{}
-(\tau_{k,zz})_{i,j} = 2 (\mu_k)_{i,j} 
-\Big( \frac{(v_k)_{i,j+\frac{1}{2}} -(v_k)_{i,j-\frac{1}{2}}}
-{\delta z_{j}} \Big ) - \frac{2}{3} (\mu_k)_{i,j} 
-(\mbox{\boldmath $\nabla$} \cdot {\bf v}_k)_{i,j}
-\nonumber
-\end{eqnarray}
-%
-\begin{eqnarray}
-\htmlimage{}
-(\tau_{k,rz})_{i,j} = (\mu_k)_{i,j} \Big( \frac{(u_k)_{i,j+1} -(u_k)_{i,j-1}}
-{\delta z_{j-\frac{1}{2}}+\delta z_{j+\frac{1}{2}}} +
-\frac{(v_k)_{i+1,j} -(v_k)_{i-1,j-1}}
-{\delta r_{i-\frac{1}{2}}+\delta r_{i+\frac{1}{2}}} \Big)
-\nonumber
-\end{eqnarray}
-%
-\begin{eqnarray}
-\htmlimage{}
-(\tau_{k,rz})_{i+\frac{1}{2},j+\frac{1}{2}} = (\mu_k)_{i+\frac{1}{2},j+\frac{1}{2}} 
-\Big( \frac{(u_k)_{i+\frac{1}{2},j+1} -(u_k)_{i+\frac{1}{2},j}}
-{\delta z_{j+\frac{1}{2}}} +
-\frac{(v_k)_{i+1,j+\frac{1}{2}} -(v_k)_{i,j-\frac{1}{2}}}
-{\delta r_{i+\frac{1}{2}}} \Big )
-\nonumber
-\end{eqnarray}
-%
-\begin{eqnarray}
-\htmlimage{}
-(\tau_{k,o})_{i+\frac{1}{2},j} = 2 (\mu_k)_{i+\frac{1}{2},j} 
-\frac{(u_k)_{i+\frac{1}{2},j}}
-{R_{i+\frac{1}{2}}} -
-\frac{2}{3} (\mu_k)_{i+\frac{1}{2},j}
-\Bigg( \frac{R_{i+\frac{3}{2}} (u_k)_{i+\frac{3}{2},j}^{n} - 
-R_{i-\frac{1}{2}} (u_k)_{i-\frac{1}{2},j}^{n}}
-{2 R_{i+\frac{1}{2}} \delta r_{i+\frac{1}{2}}} + \nonumber \\
-+ \frac{(v_k)_{i+\frac{1}{2},j+\frac{1}{2}}^{n} - 
-(v_k)_{i+\frac{1}{2},j-\frac{1}{2}}}
-{\delta z_{j}} \Bigg)
-\nonumber
-\end{eqnarray}
-%
-\begin{eqnarray}
-\htmlimage{}
-(\tau_{k,o})_{i,j} = 2 (\mu_k)_{i,j} \frac{(u_k)_{i,j}}
-{R_{i}} - \frac{2}{3} (\mu_k)_{i,j} (\mbox{\boldmath $\nabla$} 
-\cdot {\bf v}_k)_{i,j}
-\nonumber
-\end{eqnarray}
-%
-and:
-%
-\begin{eqnarray}
-\htmlimage{}
-(\mbox{\boldmath $\nabla$} \cdot {\bf v}_{k})_{i,j} = 
-\bigg( \frac{R_{i+\frac{1}{2}} (u_k)_{i+\frac{1}{2},j} - 
-R_{i-\frac{1}{2}} (u_k)_{i-\frac{1}{2},j}} {R_{i} \delta r_{i}} + 
-\frac{(v_k)_{i,j+\frac{1}{2}} - (v_k)_{i,j-\frac{1}{2}}} {\delta z_{j}} \bigg)
-\nonumber
-\end{eqnarray}
-%
-where for the gas phase the viscosity $\mu_k$ is replaced 
-by $\epsilon_g \mu_g$.\\[3mm]
-%
-\newpage
-\subsection{Interphase-Matrix of Momentum Equations}
-
-The momentum equations are solved by recasting them in matricial 
-form and then solving  the final system by a Gauss-Jordan inversion algorithm. \\
-The momentum equations in $r$ direction can be collected in the following form:
-
-\begin{eqnarray}
-\htmlimage{}
-({\bf A_U})_{i+\frac{1}{2},j} ({\bf U})_{i+\frac{1}{2},j}^{n+1} = 
-({\bf B_{U^{\rm n}}})_{i+\frac{1}{2},j}
-\nonumber
-\end{eqnarray}
-%
-\begin{eqnarray}
-\htmlimage{}
-({\bf A_U}) = \left ( \begin{array}{ccccc}
-A_{gg} & A_{g1} & A_{g2} & \cdots & A_{gN} \\
-A_{1g} & A_{11} & A_{12} & \cdots & A_{1N} \\
-\vdots  & \vdots  &   \vdots  &    \vdots &   \vdots  \\
-A_{Ng} & A_{N1} & A_{N2} & \cdots & A_{NN}  \end{array} \right )
-\nonumber
-\end{eqnarray}
-%
-where:
-%
-\begin{eqnarray}
-\htmlimage{}
-(A)_{kk} = (\epsilon_k \rho_k)^{n+1} + \delta t \sum_{l=g,1}^{N} (D_{lk})^{n},
-\qquad  k = g,1,2,....,N
-\nonumber
-\end{eqnarray}
-%
-\begin{eqnarray}
-\htmlimage{}
-(A)_{kl} = (A)_{lk} = - \delta t (D_{lk})^{n},
-\qquad  k,l  = g,1,2,....,N; \quad k \not= l
-\nonumber
-\end{eqnarray}
-%
-\begin{eqnarray}
-\htmlimage{}
-({\bf U})^{n+1} =
-\left( \begin{array}{c}
-u_g \\
-u_1 \\
-u_2 \\
-\vdots \\
-u_N \end{array} \right )^{(n+1)}; &
-({\bf B_{U^{\rm n}}})_{i+\frac{1}{2},j} = 
-\left( \begin{array}{c}
-(\widetilde {\epsilon_g \rho_g u_g})^n - 
-\frac{\delta t}{\delta r_{i+\frac{1}{2}a}} 
-(\epsilon_g)_{i+\frac{1}{2},j}^{n+1} ((p_g)_{i+1,j} - (p_g)_{i,j})^{n+1}     \\
-(\widetilde {\epsilon_1 \rho_1 u_1})^n - 
-\frac{\delta t}{\delta r_{i+\frac{1}{2}}} 
-(\epsilon_1)_{i+\frac{1}{2},j}^{n+1} ((p_g)_{i+1,j} - (p_g)_{i,j})^{n+1}     \\
-\vdots        \\
-(\widetilde {\epsilon_N \rho_N u_N})^n -
-\frac{\delta t}{\delta r_{i+\frac{1}{2}}} 
-(\epsilon_N)_{i+\frac{1}{2},j}^{n+1} ((p_g)_{i+1,j} - (p_g)_{i,j})^{n+1}
-\end{array} \right )
-\nonumber
-\end{eqnarray}
-%
-and, similarly, the momentum equation in $z$ direction can be written as:
-%
-\begin{eqnarray}
-\htmlimage{}
-({\bf A_V})_{i,j+\frac{1}{2}} ({\bf V})_{i,j+\frac{1}{2}}^{n+1} = 
-({\bf B_{V^{\rm n}}})_{i,j+\frac{1}{2}}
-\nonumber
-\end{eqnarray}
-%
-\begin{eqnarray}
-\htmlimage{}
-({\bf A_V})_{i,j+\frac{1}{2}} \cdot \left( \begin{array}{c}
-v_g \\
-v_1 \\
-v_2 \\
-\vdots \\
-v_N  \end{array} \right )^{(n+1)} = \left( \begin{array}{c}
-(\widetilde {\epsilon_g \rho_g v_g})^n - 
-\frac{\delta t}{\delta z_{j+\frac{1}{2}}} 
-(\epsilon_g)_{i,j+\frac{1}{2}}^{n+1} ((p_g)_{i,j+1} - (p_g)_{i,j})^{n+1}     \\
-(\widetilde {\epsilon_1 \rho_1 v_1})^n - 
-\frac{\delta t}{\delta z_{j+\frac{1}{2}}} 
-(\epsilon_1)_{i,j+\frac{1}{2}}^{n+1} ((p_g)_{i,j+1} - (p_g)_{i,j})^{n+1}     \\
-\vdots       \\
-(\widetilde {\epsilon_N \rho_N v_N})^n - 
-\frac{\delta t}{\delta z_{j+\frac{1}{2}}}
-(\epsilon_N)_{i,j+\frac{1}{2}}^{n+1} ((p_g)_{i,j+1} - (p_g)_{i,j})^{n+1}
-\end{array} \right )
-\nonumber
-\end{eqnarray}
-%
-%
-\newpage
-\subsection{Interphase-matrix in Energy Equations}
-
-Similarly to the procedure followed for the momentum equations, the energy equations
-are recasted in matrix form as:
-%
-\begin{eqnarray}
-\htmlimage{}
-({\bf A_H})_{i,j} ({\bf H})_{i,j}^{n+1} = ({\bf B_{H^{\rm n}}})_{i,j}
-\nonumber
-\end{eqnarray}
-%
-\begin{eqnarray}
-({\bf A_H})_{i,j} = \left ( \begin{array}{ccccc}
-\epsilon_g \rho_g + \frac{\delta t}{C_{pg}} \sum_{k=1}^{N} Q_{k} & -\delta t Q_1/ C_{p1} & -\delta t Q_2/ C_{p2}  & \cdots & -\delta t Q_N/ C_{pN} \\
--\delta t Q_1/ C_{p1} & \epsilon_1 \rho_1 + \frac{\delta t}{C_{p1}} Q_{1} & 0 & \cdots & 0  \\
--\delta t Q_2/ C_{p2} & 0 & \epsilon_2 \rho_2 + \frac{\delta t}{C_{p2}} Q_{2} & \cdots & 0  \\
-\vdots  & \vdots  & \vdots  & \vdots  & \vdots   \\
--\delta t Q_N/ C_{pN} &  0  &  0  &  \cdots   & \epsilon_N \rho_N + \frac{\delta t}{C_{pN}} Q_{N}
-\end{array} \right )
-\nonumber
-\end{eqnarray}
-%
-\begin{eqnarray}
-\htmlimage{}
-({\bf H})^{n+1} =  \left( \begin{array}{c}
-h_g \\
-h_1 \\
-h_2 \\
-\vdots \\
-h_N \end{array} \right )^{n+1} 
-\nonumber
-\end{eqnarray}
-%
-and:
-%
-\begin{eqnarray}
-\htmlimage{}
-({\bf B_{H^{\rm n}}})_{i,j}=  \left ( \begin{array}{c}
-(\epsilon_g \rho_g) h_g + (\widetilde{\epsilon_g \rho_g h_g})^n_{i,j} \\
-(\epsilon_1 \rho_1) h_1 + (\widetilde{\epsilon_1 \rho_1 h_1})^n_{i,j} \\
-(\epsilon_2 \rho_2) h_2 + (\widetilde{\epsilon_2 \rho_2 h_2})^n_{i,j} \\
-\cdots \\
-(\epsilon_N \rho_N) h_N + (\widetilde{\epsilon_N \rho_N h_N})^n_{i,j} \\
-\end{array} \right )
-\nonumber
-\end{eqnarray}
-%
-\newpage
-
-%
 {\bf Coordinate system}\\
 Some coordinate-system dependent terms will now be defined.
 These terms enter the following described conservation equations.
-For cartesian coordinates, we set:
+PDAC can solve the 2D transport equations described above in both cartesian
+and cylindrical coordinate systems, whereas for 3D simulations a cartesian
+reference frame is adopted. Therefore, here the 2D/3D discretized equations
+are written by using the following conventions: for 2D, ignore the equations
+between square brakets $\Bigg[...\Bigg]$ (transport along $y$) and the subscript $j$.
+For 2D and 3D cartesian coordinates, set:
 %
 \begin{eqnarray}
 \htmlimage{}
@@ -461,7 +19,7 @@ R_{i} =  R_{i+\frac{1}{2}} = 1
 \nonumber
 \end{eqnarray}
 %
-and for cylindrical coordinates:
+and for 2D cylindrical coordinates:
 %
 \begin{eqnarray}
 \htmlimage{}
@@ -492,8 +50,719 @@ and:
 \nonumber
 \end{eqnarray}
 %
-In cylindrical coordinates, $R_{i}$, and $R_{i+\frac{1}{2}}$ represent the coordinate
-of the center of the cell $(i,j)$ and the coordinates of the right edge of this cell.
+In 2D cylindrical coordinates, $R_{i}$, and $R_{i+\frac{1}{2}}$ represent the coordinate
+of the center of the cell $(i,j,k)$ and the coordinates of the right edge of this cell.
 Coordinates are measured from the right edge of the first computational cell.\\
 
+
+\subsection{Time discretization}
+
+Here the discretized equations are presented, highlighting the 
+explicit/implicit treatment of each term.
+Explicit terms are collected in a {\em tilde} term indicated by the 
+tilde-symbol $(\widetilde{...})$ in the equations, and their form is 
+explicitly given in the next section.\\
+The implicit treatement of some terms is highlighted by the superscript $(n+1)$.
+
+The mass and momentum balance equations for gas and solid phases can be written in a 
+unified notation for gas and solids, as follows:\\
+
+%
+{\bf Continuity Equations}\\
+%
+\begin{eqnarray}
+\htmlimage{}
+(\epsilon_s \rho_s)_{i,j,k}^{n+1} = (\epsilon_s \rho_s)_{i,j,k}^{n} -
+\frac{\delta t}{R_i \delta r_i} \langle R(\epsilon_s \rho_s) u_s \rangle_{i,j,k}^{n+1}
+\Bigg[- \frac{\delta t}{\delta y_j} \langle (\epsilon_s \rho_s) v_s \rangle_{i,j,k}^{n+1}\Bigg]
+- \frac{\delta t}{\delta z_k} \langle (\epsilon_s \rho_s) w_s \rangle_{i,j,k}^{n+1}
+\qquad (s=g,1,2, ....,N)
+\nonumber
+\end{eqnarray}\\
+
+{\bf Momentum Equations}\\
+%
+\begin{eqnarray}
+\htmlimage{}
+(\epsilon_s \rho_s u_s)_{i+\frac{1}{2},j,k}^{n+1} =
+(\widetilde{\epsilon_s \rho_s u_s})_{i+\frac{1}{2},j,k}^{n} -
+\frac{\delta t}{R_{i+\frac{1}{2}}\delta r_{i+\frac{1}{2}}} 
+(\epsilon_s)_{i+\frac{1}{2},j,k}^{n+1}
+((P_g)_{i+1,j,k} - (P_g)_{i,j,k})^{n+1} + \nonumber \\
++\delta t \sum_{l=g,1}^{N} (D_{ls})^n_{i+\frac{1}{2},j,k}
+((u_l)_{i+\frac{1}{2},j,k}^{n+1} - (u_s)_{i+\frac{1}{2},j,k}^{n+1})
+\qquad (s=g,1,2,...,N)
+\nonumber
+\end{eqnarray}
+%
+\begin{eqnarray}
+\htmlimage{}
+\Bigg[
+(\epsilon_s \rho_s v_s)_{i,j+\frac{1}{2},k}^{n+1} =
+(\widetilde{\epsilon_s \rho_s v_s})_{i,j+\frac{1}{2},k}^{n} -
+\frac{\delta t}{\delta y_{j+\frac{1}{2}}} (\epsilon_s)_{i,j+\frac{1}{2},k}^{n+1}
+((P_g)_{i,j+1,k} - (P_g)_{i,j,k})^{n+1} + 
+\nonumber \\ 
++ \delta t \sum_{g,1}^{N} (D_{ls})^n_{i,j+\frac{1}{2},k}
+((v_l)_{i,j+\frac{1}{2},k}^{n+1} - (v_s)_{i,j+\frac{1}{2},k}^{n+1})
+\qquad (s=g,1,2,...,N)
+\Bigg]
+\nonumber
+\end{eqnarray}
+%
+\begin{eqnarray}
+\htmlimage{}
+(\epsilon_s \rho_s w_s)_{i,j,k+\frac{1}{2}}^{n+1} =
+(\widetilde{\epsilon_s \rho_s w_s})_{i,j,k+\frac{1}{2}}^{n} -
+\frac{\delta t}{\delta z_{k+\frac{1}{2}}} (\epsilon_s)_{i,j,k+\frac{1}{2}}^{n+1}
+((P_g)_{i,j,k+1} - (P_g)_{i,j,k})^{n+1} + \nonumber \\
++ \delta t \sum_{g,1}^{N} (D_{ls})^n_{i,j,k+\frac{1}{2}}
+((w_l)_{i,j,k+\frac{1}{2}}^{n+1} - (w_s)_{i,j,k+\frac{1}{2}}^{n+1})
+\qquad (s=g,1,2,...,N)
+\nonumber
+\end{eqnarray}
+%
+The form of the enthalpy balance equations for gas and solid phases is 
+slightly different, because some terms are neglected for particles
+(the particle-particle heat exchange term - note that the sum over
+all phases is missing in the particle equation):\\
+
+
+{\bf Energy Equations}\\
+%
+Gas phase:
+%
+\begin{eqnarray}
+(\epsilon_g \rho_g h_g)_{i,j,k}^{n+1} = 
+(\widetilde{\epsilon_g \rho_g h_g})^n_{i,j,k} +
+\delta t \sum_{s=1}^{n} (Q_s)_{i,j,k}^{n} (T_s - T_g)_{i,j,k}^{n+1}
+\nonumber
+\end{eqnarray}
+%
+Solid phases:
+%
+\begin{eqnarray}
+(\epsilon_s \rho_s h_s)_{i,j,k}^{n+1} = 
+(\widetilde{\epsilon_s \rho_s h_s})^n_{i,j,k} +
+\delta t  (Q_s)_{i,j,k}^{n} (T_g - T_s)_{i,j,k}^{n+1}
+\nonumber
+\end{eqnarray}
+%
+\newpage
+%
+\subsection{Discretization of  explicit (TILDE) terms}
+Convective and diffusive fluxes, body forces and the interphase coefficients
+are computed explicitly before the solution of the equation system. 
+The expressions of the three components of momentum equations are similar
+for gas and particles:
+
+{\bf Radial (X) momentum}\\
+%
+\begin{eqnarray}
+\htmlimage{}
+(\widetilde{\epsilon_s \rho_s u_s})_{i+\frac{1}{2},j,k}^{n} =
+(\epsilon_s \rho_s u_s)_{i+\frac{1}{2},j,k}^{n} 
++ \nonumber \\
+- \frac{\delta t}{R_{i+\frac{1}{2}} \delta r_{i+\frac{1}{2}}} 
+\langle (R \epsilon_s \rho_s u_s) u_s \rangle_{i+\frac{1}{2},j,k}^{n} 
+\Bigg[
+- \frac{\delta t} {\delta y_j} 
+\langle (\epsilon_s \rho_s u_s) v_s \rangle_{i+\frac{1}{2},j,k}^{n}
+\Bigg]
+- \frac{\delta t} {\delta z_k} 
+\langle (\epsilon_s \rho_s u_s) w_s \rangle_{i+\frac{1}{2},j,k}^{n} 
++ \nonumber \\
++ \frac{\delta t} {R_{i+\frac{1}{2}} \delta r_{i+\frac{1}{2}}} 
+\big(R_{i+1}(\tau_{s,rr})_{i+1,j,k}^{n} - R_i (\tau_{s,rr})_{i,j,k}^{n} \big) 
+- \frac{\delta t} {R_{i+\frac{1}{2}}}
+(\tau_{s,o})_{i+\frac{1}{2},j,k}^{n} 
+\big( \frac{\delta R}{\delta r} \big)_{i+\frac{1}{2}}
++ \nonumber \\
+\Bigg[
++ \frac{\delta t} {\delta y_j} 
+\big( (\tau_{s,ry})_{i+\frac{1}{2},j+\frac{1}{2},k}^{n} - 
+(\tau_{s,ry})_{i+\frac{1}{2},j-\frac{1}{2},k}^{n} \big)
+\Bigg]
++\frac{\delta t} {\delta z_k} 
+\big( (\tau_{s,rz})_{i+\frac{1}{2},j,k+\frac{1}{2}}^{n} - 
+(\tau_{s,rz})_{i+\frac{1}{2},j,k-\frac{1}{2}}^{n} \big) 
++ \nonumber \\
+-\delta t \epsilon_s \rho_s g_x
+\qquad (s=g,1,2, ....,N)
+\nonumber
+\end{eqnarray}
+
+{\bf Trasverse (Y) momentum}\\
+%
+\begin{eqnarray}
+\htmlimage{}
+\Bigg[
+(\widetilde{\epsilon_s \rho_s v_s})_{i,j+\frac{1}{2},k}^{n} =
+(\epsilon_s \rho_s v_s)_{i,j+\frac{1}{2},k}^{n} +
+\nonumber \\
+- \frac{\delta t}{R_{i} \delta r_{i}} 
+\langle (R \epsilon_s \rho_s v_s) u_s \rangle_{i,j+\frac{1}{2},k}^{n} -
+\frac{\delta t} {\delta y_{j+\frac{1}{2}}} 
+\langle (\epsilon_s \rho_s v_s) v_s \rangle_{i,j+\frac{1}{2},k}^{n} -
+\frac{\delta t} {\delta z_{k+\frac{1}{2}}} 
+\langle (\epsilon_s \rho_s v_s) w_s \rangle_{i,j+\frac{1}{2},k}^{n} + 
+\nonumber \\
++ \frac{\delta t} {R_{i} \delta r_{i}} 
+\big(R_{i+\frac{1}{2}}(\tau_{s,ry})_{i+\frac{1}{2},j+\frac{1}{2},k}^{n} 
+- R_{i-\frac{1}{2}} (\tau_{s,ry})_{i-\frac{1}{2},j+\frac{1}{2},k}^{n} \big) +
+\nonumber \\
++ \frac{\delta t} {\delta y_{j+\frac{1}{2}}}
+\big( (\tau_{s,yy})_{i,j+1,k}^{n} - (\tau_{s,yy})_{i,j,k}^{n} \big)
++ \frac{\delta t} {\delta z_{k+\frac{1}{2}}}
+\big( (\tau_{s,zy})_{i,j+\frac{1}{2},k+\frac{1}{2}}^{n} - (\tau_{s,zy})_{i,j+\frac{1}{2},k-\frac{1}{2}}^{n} \big)
+\nonumber \\
+- \delta t \epsilon_s \rho_s g_y
+\qquad (s=g,1,2, ....,N)
+\Bigg]
+\nonumber
+\end{eqnarray}
+
+{\bf Vertical (Z) momentum}\\
+%
+\begin{eqnarray}
+\htmlimage{}
+(\widetilde{\epsilon_s \rho_s w_s})_{i,j,k+\frac{1}{2}}^{n} =
+(\epsilon_s \rho_s w_s)_{i,j,k+\frac{1}{2}}^{n} +
+\nonumber \\
+- \frac{\delta t}{R_{i} \delta r_{i}} 
+\langle (R \epsilon_s \rho_s w_s) u_s \rangle_{i,j,k+\frac{1}{2}}^{n}
+\Bigg[
+- \frac{\delta t} {\delta y_{j+\frac{1}{2}}} 
+\langle (\epsilon_s \rho_s w_s) v_s \rangle_{i,j,k+\frac{1}{2}}^{n}
+\Bigg]
+- \frac{\delta t} {\delta z_{k+\frac{1}{2}}} 
+\langle (\epsilon_s \rho_s w_s) w_s \rangle_{i,j,k+\frac{1}{2}}^{n} + 
+\nonumber \\
++ \frac{\delta t} {R_{i} \delta r_{i}} 
+\big(R_{i+\frac{1}{2}}(\tau_{s,rz})_{i+\frac{1}{2},j,k+\frac{1}{2}}^{n} 
+- R_{i-\frac{1}{2}} (\tau_{s,rz})_{i-\frac{1}{2},j,k+\frac{1}{2}}^{n} \big) +
+\nonumber \\
+\Bigg[
++ \frac{\delta t} {\delta y_{j+\frac{1}{2}}}
+\big( (\tau_{s,zy})_{i,j+\frac{1}{2},k+\frac{1}{2}}^{n} - (\tau_{s,zy})_{i,j-\frac{1}{2},k+\frac{1}{2}}^{n} \big)
+\Bigg]
++ \frac{\delta t} {\delta z_{k+\frac{1}{2}}}
+\big( (\tau_{s,zz})_{i,j,k+1}^{n} - (\tau_{s,zz})_{i,j,k}^{n} \big)
+\nonumber \\
+- \delta t \epsilon_s \rho_s g_z
+\qquad (s=g,1,2, ....,N)
+\nonumber
+\end{eqnarray}
+
+The expressions of the enthalpy equations differ slightly for gas and particles,
+because pressure terms are neglected in the equations of solids. They writes, respectively, as follows:\\
+
+{\bf Gas enthalpy}\\
+%
+\begin{eqnarray}
+\htmlimage{}
+(\widetilde{\epsilon_g \rho_g h_g})^n_{i,j,k} = 
+(\epsilon_s \rho_s h_g)_{i,j,k}^{n} +
+\nonumber \\
+- \frac {\delta t}{R_i \delta r_{i}} 
+\langle R (\epsilon_g \rho_g)^{n+1} h_g (u_g)^{n+1} \rangle_{i,j,k}
+\Bigg[
+- \frac {\delta t}{\delta y_j} 
+\langle (\epsilon_g \rho_g)^{n+1} h_g (v_g)^{n+1} \rangle_{i,j,k} 
+\Bigg]
+- \frac {\delta t}{\delta z_k} 
+\langle (\epsilon_g \rho_g)^{n+1} h_g (w_g)^{n+1} \rangle_{i,j,k} + \nonumber \\
++ \epsilon_g \big ((P_g)_{i,j,k}^{n+1} - (P_g)_{i,j,k}^{n} \big )+
+\frac {\delta t} {R_i \delta r_i} (u_g \epsilon_g)_{i,j,k}^{n+1}
+\big( R_{i+\frac{1}{2}} (P_g)_{i+\frac{1}{2},j,k} - R_{i-\frac{1}{2}} (P_g)_{i-\frac{1}{2},j,k} \big) +
+\nonumber \\
+\Bigg[
++ \frac{\delta t}{\delta y_j} (v_g \epsilon_g)_{i,j,k}^{n+1}
+\cdot \big( (P_g)_{i,j+\frac{1}{2},k} - (P_g)_{i,j-\frac{1}{2},k} \big)
+\Bigg]
++ \frac{\delta t}{\delta z_k} (w_g \epsilon_g)_{i,j,k}^{n+1}
+\cdot \big( (P_g)_{i,j,k+\frac{1}{2}} - (P_g)_{i,j,k-\frac{1}{2}} \big)+
+\nonumber \\
++ \frac {\delta t} {R_i \delta r_i} \bigg( R_{i+\frac{1}{2}} 
+(k_g)_{i+\frac{1}{2},j,k}^{n} 
+\frac{(T_g)_{i+1,j,k}^{n} - (T_g)_{i,j,k}^{n}}{\delta r_{i+\frac{1}{2}}} 
+- R_{i-\frac{1}{2}} (k_g)_{i-\frac{1}{2},j,k}^{n} 
+\frac{(T_g)_{i,j,k}^{n} - (T_g)_{i-1,j,k}^{n}}{\delta r_{i-\frac{1}{2}}} \bigg)
++ \nonumber \\
+\Bigg[
++ \frac {\delta t} {\delta y_j} \bigg( (k_g)_{i,j+\frac{1}{2},k}^{n} 
+\frac{(T_g)_{i,j+1,k}^{n} - (T_g)_{i,j,k}^{n}}{\delta y_{j+\frac{1}{2}}} - 
+(k_g)_{i,j-\frac{1}{2},k}^{n} \frac{(T_g)_{i,j,k}^{n} - 
+(T_g)_{i,j-1,k}^{n}}{\delta y_{j-\frac{1}{2}}} \bigg)
+\Bigg] +
+\nonumber \\
++ \frac {\delta t} {\delta z_k} \bigg( (k_g)_{i,j,k+\frac{1}{2}}^{n} 
+\frac{(T_g)_{i,j,k+1}^{n} - (T_g)_{i,j,k}^{n}}{\delta z_{k+\frac{1}{2}}} - 
+(k_g)_{i,j,k-\frac{1}{2}}^{n} \frac{(T_g)_{i,j,k}^{n} - 
+(T_g)_{i,j,k-1}^{n}}{\delta z_{k-\frac{1}{2}}} \bigg)
+\nonumber
+\end{eqnarray}
+
+{\bf Particles enthalpy}\\
+%
+\begin{eqnarray}
+\htmlimage{}
+(\widetilde{\epsilon_s \rho_s h_s})^n_{i,j,k} = 
+(\epsilon_s \rho_s h_s)_{i,j,k}^{n} +
+\nonumber \\
+- \frac {\delta t}{R_i \delta r_{i}} 
+\langle R (\epsilon_s \rho_s)^{n+1} h_s (u_s)^{n+1} \rangle_{i,j,k}
+\Bigg[
+- \frac {\delta t}{\delta y_j} 
+\langle (\epsilon_s \rho_s)^{n+1} h_s (v_s)^{n+1} \rangle_{i,j,k} 
+\Bigg]
+- \frac {\delta t}{\delta z_k} 
+\langle (\epsilon_s \rho_s)^{n+1} h_s (w_s)^{n+1} \rangle_{i,j,k} + \nonumber \\
+\nonumber \\
++ \frac {\delta t} {R_i \delta r_i} \bigg( R_{i+\frac{1}{2}} 
+(k_s)_{i+\frac{1}{2},j,k}^{n} 
+\frac{(T_s)_{i+1,j,k}^{n} - (T_s)_{i,j,k}^{n}}{\delta r_{i+\frac{1}{2}}} 
+- R_{i-\frac{1}{2}} (k_s)_{i-\frac{1}{2},j,k}^{n} 
+\frac{(T_s)_{i,j,k}^{n} - (T_s)_{i-1,j,k}^{n}}{\delta r_{i-\frac{1}{2}}} \bigg)
++ \nonumber \\
+\Bigg[
++ \frac {\delta t} {\delta y_j} \bigg( (k_s)_{i,j+\frac{1}{2},k}^{n} 
+\frac{(T_s)_{i,j+1,k}^{n} - (T_s)_{i,j,k}^{n}}{\delta y_{j+\frac{1}{2}}} - 
+(k_s)_{i,j-\frac{1}{2},k}^{n} \frac{(T_s)_{i,j,k}^{n} - 
+(T_s)_{i,j-1,k}^{n}}{\delta y_{j-\frac{1}{2}}} \bigg)
+\Bigg] +
+\nonumber \\
++ \frac {\delta t} {\delta z_k} \bigg( (k_s)_{i,j,k+\frac{1}{2}}^{n} 
+\frac{(T_s)_{i,j,k+1}^{n} - (T_s)_{i,j,k}^{n}}{\delta z_{k+\frac{1}{2}}} - 
+(k_s)_{i,j,k-\frac{1}{2}}^{n} \frac{(T_s)_{i,j,k}^{n} - 
+(T_s)_{i,j,k-1}^{n}}{\delta z_{k-\frac{1}{2}}} \bigg)
+\nonumber
+\end{eqnarray}
+\newpage
+%
+\subsection{Discretization of convective fluxes}
+By default, convective fluxes are computed by using First Order Upwind 
+technique.
+If the option for High Order Upwind is selected, this is computed as
+a correction to the first order method. All upwind techinques implemented
+in PDAC are essentially one-dimensional (i.e., the computation of fluxes
+along one axis involves only interpolations over points laying in the 
+same direction), so that we present here the one-dimensional notation,
+assuming that the indices that do not appear are constant.
+The convective transport of a centered quantity (e.g. density or enthalpy),
+represented in the following equations by $\Phi$, therefore can be written:
+
+{\bf First Order Upwind (Donor-cell)} \\
+
+Radial $(X)$ convective trasport:
+\begin{eqnarray}
+\htmlimage{}
+%
+\langle R \Phi u \rangle_{i} & = & R_{i+\frac{1}{2}} u_{i+\frac{1}{2}} 
+\left[ \begin{array}{cc}
+\displaystyle{\Phi_{i}}, & \textstyle{if} \quad u_{i+\frac{1}{2}}  \ge 0 \\
+\displaystyle{\Phi_{i+1}}, & \textstyle{if} \quad u_{i+\frac{1}{2}} < 0
+\end{array} \right] \\ \nonumber
+%
+                                 & - & R_{i-\frac{1}{2}} u_{i-\frac{1}{2}}
+\left[ \begin{array}{cc}
+\displaystyle{\Phi_{i-1}}, & \textstyle{if} \quad u_{i-\frac{1}{2}}  \ge 0 \\
+\displaystyle{\Phi_{i}}, & \textstyle{if} \quad u_{i-\frac{1}{2}} < 0
+\end{array} \right] \\ \nonumber
+\end{eqnarray}
+%
+
+$(Y)$ convective trasport:
+\begin{eqnarray}
+\langle \Phi v \rangle_{j} & = & v_{j+\frac{1}{2}}
+\left[ \begin{array}{cc}
+\displaystyle{\Phi_{j}}, & \textstyle{if} \quad v_{j+\frac{1}{2}}  \ge 0 \\
+\displaystyle{\Phi_{j+1}}, & \textstyle{if} \quad v_{j+\frac{1}{2}} < 0
+\end{array} \right] \\ \nonumber
+%
+                               & - & v_{j-\frac{1}{2}}
+\left[ \begin{array}{cc}
+\displaystyle{\Phi_{j-1}}, & \textstyle{if} \quad v_{j-\frac{1}{2}}  \ge 0 \\
+\displaystyle{\Phi_{j}}, & \textstyle{if} \quad v_{j-\frac{1}{2}} < 0
+\end{array} \right] \nonumber
+%
+\end{eqnarray}
+
+$(Z)$ convective trasport:
+\begin{eqnarray}
+\langle \Phi w \rangle_{k} & = & w_{k+\frac{1}{2}}
+\left[ \begin{array}{cc}
+\displaystyle{\Phi_{k}}, & \textstyle{if} \quad w_{k+\frac{1}{2}}  \ge 0 \\
+\displaystyle{\Phi_{k+1}}, & \textstyle{if} \quad w_{k+\frac{1}{2}} < 0
+\end{array} \right] \\ \nonumber
+%
+                               & - & w_{k-\frac{1}{2}}
+\left[ \begin{array}{cc}
+\displaystyle{\Phi_{k-1}}, & \textstyle{if} \quad w_{k-\frac{1}{2}}  \ge 0 \\
+\displaystyle{\Phi_{k}}, & \textstyle{if} \quad w_{k-\frac{1}{2}} < 0
+\end{array} \right] \nonumber
+%
+\end{eqnarray}
+
+This upwind methods appears to be well suited for centered fields,
+as velocities are defined precisely on the staggered locations
+ ($i+\frac{1}{2}, j+\frac{1}{2}$, or $k+\frac{1}{2}$),
+whereas $\Phi$ is defined in cell centers ($i,j,k$).
+For momentum transport equations the notation becomes a little bit 
+more complex, due to the need of interpolation of scalar fields on the 
+staggered locations and velocities on cell centers, nevertheless the extension 
+to the staggered fields is straightforward and it is omitted in what follows.\\
+
+{\bf High Order Upwind (MUSCL)}\\
+
+Radial $(X)$ convective trasport:
+\begin{eqnarray}
+\htmlimage{}
+%
+\langle R \Phi u \rangle_{i} & = & R_{i+\frac{1}{2}} u_{i+\frac{1}{2}} 
+\left[ \begin{array}{cc}
+\displaystyle{\Phi_{i}+lim \cdot\frac{dx_i}{2} \cdot \nabla\Phi_{i+\frac{1}{2}}}, & \textstyle{if} \quad u_{i+\frac{1}{2}}  \ge 0 \\
+\displaystyle{\Phi_{i+1}-lim \cdot\frac{dx_{i+1}}{2} \cdot \nabla\Phi_{i+\frac{1}{2}}}, & \textstyle{if} \quad u_{i+\frac{1}{2}} < 0
+\end{array} \right] \\ \nonumber
+%
+                                 & - & R_{i-\frac{1}{2}} u_{i-\frac{1}{2}}
+\left[ \begin{array}{cc}
+\displaystyle{\Phi_{i-1}+lim \cdot\frac{dx_{i-1}}{2} \cdot \nabla\Phi_{i-\frac{1}{2}}}, & \textstyle{if} \quad u_{i-\frac{1}{2}}  \ge 0 \\
+\displaystyle{\Phi_{i}-lim \cdot\frac{dx_i}{2} \cdot \nabla\Phi_{i-\frac{1}{2}}}, & \textstyle{if} \quad u_{i-\frac{1}{2}} < 0
+\end{array} \right] \\ \nonumber
+\end{eqnarray}
+%
+
+$(Y)$ convective trasport:
+\begin{eqnarray}
+\langle \Phi v \rangle_{j} & = & v_{j+\frac{1}{2}}
+\left[ \begin{array}{cc}
+\displaystyle{\Phi_{j} +lim \cdot\frac{dy_j}{2} \cdot \nabla\Phi_{j+\frac{1}{2}}}, & \textstyle{if} \quad v_{j+\frac{1}{2}}  \ge 0 \\
+\displaystyle{\Phi_{j+1} -lim \cdot\frac{dy_{j+1}}{2} \cdot \nabla\Phi_{j+\frac{1}{2}}}, & \textstyle{if} \quad v_{j+\frac{1}{2}} < 0
+\end{array} \right] \\ \nonumber
+%
+                               & - & v_{j-\frac{1}{2}}
+\left[ \begin{array}{cc}
+\displaystyle{\Phi_{j-1} +lim \cdot\frac{dy_{j-1}}{2} \cdot \nabla\Phi_{j-\frac{1}{2}}}, & \textstyle{if} \quad v_{j-\frac{1}{2}}  \ge 0 \\
+\displaystyle{\Phi_{j} -lim \cdot\frac{dy_j}{2} \cdot \nabla\Phi_{j-\frac{1}{2}}}, & \textstyle{if} \quad v_{j-\frac{1}{2}} < 0
+\end{array} \right] \nonumber
+%
+\end{eqnarray}
+
+$(Z)$ convective trasport:
+\begin{eqnarray}
+\langle \Phi w \rangle_{k} & = & w_{k+\frac{1}{2}}
+\left[ \begin{array}{cc}
+\displaystyle{\Phi_{k} +lim \cdot\frac{dz_k}{2} \cdot \nabla\Phi_{k+\frac{1}{2}}}, & \textstyle{if} \quad w_{k+\frac{1}{2}}  \ge 0 \\
+\displaystyle{\Phi_{k+1} -lim \cdot\frac{dz_{k+1}}{2} \cdot \nabla\Phi_{k+\frac{1}{2}}}, & \textstyle{if} \quad w_{k+\frac{1}{2}} < 0
+\end{array} \right] \\ \nonumber
+%
+                               & - & w_{k-\frac{1}{2}}
+\left[ \begin{array}{cc}
+\displaystyle{\Phi_{k-1} +lim \cdot\frac{dz_{k-1}}{2} \cdot \nabla\Phi_{k-\frac{1}{2}}}, & \textstyle{if} \quad w_{k-\frac{1}{2}}  \ge 0 \\
+\displaystyle{\Phi_{k} -lim \cdot\frac{dz_k}{2} \cdot \nabla\Phi_{k-\frac{1}{2}}}, & \textstyle{if} \quad w_{k-\frac{1}{2}} < 0
+\end{array} \right] \nonumber
+%
+\end{eqnarray}
+
+In the above equations $\nabla\Phi_i$ is the ``centered'' field gradient, computed as $\nabla\Phi_{i+\frac{1}{2}}= \frac{\Phi_{i+1}-\Phi{i}}{0.5\cdot(dx(i)+dx(i+1))} $ (analogous relationships hold along $y$ and $z$). $lim$ is the {\em limiter}, that includes the high order formulation and is expressed as a function
+of $r=\frac{\nabla_U\Phi}{\nabla_C\Phi}$, where $\nabla_U\Phi$ is the gradient 
+of $\Phi$ computed ``upwind''. Four limiters are implemented, according to the
+following expressions:
+\begin{itemize}
+\item  Van Leer
+\begin{equation}
+lim = MAX( 0, \frac{2r}{1+r} )
+\end{equation}
+\item minmod
+\begin{equation}
+lim = MAX( 0, MIN( r, 1 ))
+\end{equation}
+\item superbee
+\begin{equation}
+lim = MAX( 0, MIN( 2r, 1 ), MIN( r, 2 ))
+\end{equation}
+\item ultra-beta
+\begin{equation}
+lim = MAX( 0, MIN( 2r, (1-\beta)+\beta r, 2 ))
+\end{equation}
+\end{itemize}
+%
+\newpage
+%
+\subsection{Viscous stress tensor}
+
+The stress tensor for both gas and solid phases is assumed to model a Newtonian fluid
+so that it is proportional to the strain tensor. In two dimensions this writes:\\
+
+\begin{eqnarray}
+\htmlimage{}
+(\tau_{s,rr})_{i,j,k} = 2 (\mu_s)_{i,j,k} 
+\Big( \frac{(u_s)_{i+\frac{1}{2},j,k} - (u_s)_{i-\frac{1}{2},j,k}}
+{\delta r_{i}} \Big ) - \frac{2}{3} (\mu_s)_{i,j,k} 
+(\mbox{\boldmath $\nabla$} \cdot {\bf v}_s)_{i,j,k}
+\nonumber
+\end{eqnarray}
+%
+\begin{eqnarray}
+\htmlimage{}
+(\tau_{s,yy})_{i,j,k} = 2 (\mu_s)_{i,j,k} 
+\Big( \frac{(v_s)_{i,j+\frac{1}{2},k} - (v_s)_{i,j-\frac{1}{2},k}}
+{\delta y_{j}} \Big ) - \frac{2}{3} (\mu_s)_{i,j,k} 
+(\mbox{\boldmath $\nabla$} \cdot {\bf v}_s)_{i,j,k}
+\nonumber
+\end{eqnarray}
+%
+\begin{eqnarray}
+\htmlimage{}
+(\tau_{s,zz})_{i,j,k} = 2 (\mu_s)_{i,j,k} 
+\Big( \frac{(w_s)_{i,j,k+\frac{1}{2}} -(w_s)_{i,j,k-\frac{1}{2}}}
+{\delta z_k} \Big ) - \frac{2}{3} (\mu_s)_{i,j,k} 
+(\mbox{\boldmath $\nabla$} \cdot {\bf v}_s)_{i,j,k}
+\nonumber
+\end{eqnarray}
+%
+\begin{eqnarray}
+\htmlimage{}
+(\tau_{s,rz})_{i+\frac{1}{2},j,k+\frac{1}{2}} = (\mu_s)_{i+\frac{1}{2},j,k+\frac{1}{2}} 
+\Big( \frac{(u_s)_{i+\frac{1}{2},j,k+1} -(u_s)_{i+\frac{1}{2},j,k}}
+{\delta z_{k+\frac{1}{2}}} +
+\frac{(w_s)_{i+1,j,k+\frac{1}{2}} -(w_s)_{i,j,k+\frac{1}{2}}}
+{\delta r_{i+\frac{1}{2}}} \Big )
+\nonumber
+\end{eqnarray}
+%
+\begin{eqnarray}
+\htmlimage{}
+(\tau_{s,ry})_{i+\frac{1}{2},j+\frac{1}{2},k} = (\mu_s)_{i+\frac{1}{2},j+\frac{1}{2},k} 
+\Big( \frac{(u_s)_{i+\frac{1}{2},j+1,k} -(u_s)_{i+\frac{1}{2},j,k}}
+{\delta y_{j+\frac{1}{2}}} +
+\frac{(v_s)_{i+1,j+\frac{1}{2},k} -(v_s)_{i,j+\frac{1}{2},k}}
+{\delta r_{i+\frac{1}{2}}} \Big )
+\nonumber
+\end{eqnarray}
+%
+\begin{eqnarray}
+\htmlimage{}
+(\tau_{s,zy})_{i,j+\frac{1}{2},k+\frac{1}{2}} = (\mu_s)_{i,j+\frac{1}{2},k+\frac{1}{2}} 
+\Big( \frac{(v_s)_{i,j+\frac{1}{2},k+1} -(v_s)_{i,j+\frac{1}{2},k}}
+{\delta z_{k+\frac{1}{2}}} +
+\frac{(w_s)_{i,j+1,k+\frac{1}{2}} -(w_s)_{i,j,k+\frac{1}{2}}}
+{\delta y_{j+\frac{1}{2}}} \Big )
+\nonumber
+\end{eqnarray}
+%
+\begin{eqnarray}
+\htmlimage{}
+(\tau_{s,o})_{i+\frac{1}{2},j,k} = 2 (\mu_s)_{i+\frac{1}{2},j,k} 
+\frac{(u_s)_{i+\frac{1}{2},j,k}}
+{R_{i+\frac{1}{2}}} -
+\frac{2}{3} (\mu_s)_{i+\frac{1}{2},j,k}
+\Bigg( \frac{R_{i+\frac{3}{2}} (u_s)_{i+\frac{3}{2},j}^{n} - 
+R_{i-\frac{1}{2}} (u_s)_{i-\frac{1}{2},j,k}^{n}}
+{2 R_{i+\frac{1}{2}} \delta r_{i+\frac{1}{2}}} + \nonumber \\
++ \frac{(v_s)_{i+\frac{1}{2},j+\frac{1}{2},k}^{n} - 
+(v_s)_{i+\frac{1}{2},j-\frac{1}{2},k}}
+{\delta y_j}
++ \frac{(w_s)_{i+\frac{1}{2},j,k+\frac{1}{2}}^{n} - 
+(w_s)_{i+\frac{1}{2},j,k-\frac{1}{2}}}
+{\delta z_k} \Bigg)
+\nonumber
+\end{eqnarray}
+%
+and:
+%
+\begin{eqnarray}
+\htmlimage{}
+(\mbox{\boldmath $\nabla$} \cdot {\bf v}_s)_{i,j,k} = 
+\frac{R_{i+\frac{1}{2}} (u_s)_{i+\frac{1}{2},j,k} - 
+R_{i-\frac{1}{2}} (u_s)_{i-\frac{1}{2},j,k}} {R_{i} \delta r_{i}} + 
+\frac{(v_s)_{i,j+\frac{1}{2},k} - (v_s)_{i,j-\frac{1}{2},k}} {\delta y_j}+ 
+\frac{(w_s)_{i,j,k+\frac{1}{2}} - (w_s)_{i,j,k-\frac{1}{2}}} {\delta z_k}
+\nonumber
+\end{eqnarray}
+%
+where for the gas phase the viscosity $\mu_s$ is replaced 
+by $\epsilon_g \mu_g$.\\[3mm]
+%
+\newpage
+%
+\subsection{Interphase-matrix of momentum equations}
+
+The momentum equations are solved by recasting them in matricial 
+form and then solving  the final system by a Gauss-Jordan inversion algorithm. \\
+The momentum equations in $r(x), y, z$ directions can be collected in the following form:
+
+\begin{eqnarray}
+\htmlimage{}
+({\bf A})_{i+\frac{1}{2},j,k} ({\bf U})_{i+\frac{1}{2},j,k}^{n+1} = 
+({\bf B_{U^{\rm n}}})_{i+\frac{1}{2},j,k}
+\nonumber
+\end{eqnarray}
+%
+\begin{eqnarray}
+\htmlimage{}
+({\bf A})_{i,j+\frac{1}{2},k} ({\bf V})_{i,j+\frac{1}{2},k}^{n+1} = 
+({\bf B_{V^{\rm n}}})_{i,j+\frac{1}{2},k}
+\nonumber
+\end{eqnarray}
+%
+\begin{eqnarray}
+\htmlimage{}
+({\bf A})_{i,j,k+\frac{1}{2}} ({\bf W})_{i,j,k+\frac{1}{2}}^{n+1} = 
+({\bf B_{W^{\rm n}}})_{i,j,k+\frac{1}{2}}
+\nonumber
+\end{eqnarray}
+%
+\begin{eqnarray}
+\htmlimage{}
+({\bf A}) = \left ( \begin{array}{ccccc}
+A_{gg} & A_{g1} & A_{g2} & \cdots & A_{gN} \\
+A_{1g} & A_{11} & A_{12} & \cdots & A_{1N} \\
+\vdots  & \vdots  &   \vdots  &    \vdots &   \vdots  \\
+A_{Ng} & A_{N1} & A_{N2} & \cdots & A_{NN}  \end{array} \right )
+\nonumber
+\end{eqnarray}
+%
+where:
+%
+\begin{eqnarray}
+\htmlimage{}
+(A)_{ss} = (\epsilon_s \rho_s)^{n+1} + \delta t \sum_{l=g,1}^{N} (D_{ls})^{n},
+\qquad  s = g,1,2,....,N
+\nonumber
+\end{eqnarray}
+%
+\begin{eqnarray}
+\htmlimage{}
+(A)_{sl} = (A)_{ls} = - \delta t (D_{ls})^{n},
+\qquad  s,l  = g,1,2,....,N; \quad s \not= l
+\nonumber
+\end{eqnarray}
+%
+\begin{eqnarray}
+\htmlimage{}
+({\bf U})^{n+1} =
+\left( \begin{array}{c}
+u_g \\
+u_1 \\
+u_2 \\
+\vdots \\
+u_N \end{array} \right )^{(n+1)}; &
+({\bf B_{U^{\rm n}}})_{i+\frac{1}{2},j,k} = 
+\left( \begin{array}{c}
+(\widetilde {\epsilon_g \rho_g u_g})^n - 
+\frac{\delta t}{\delta r_{i+\frac{1}{2}a}} 
+(\epsilon_g)_{i+\frac{1}{2},j,k}^{n+1} ((P_g)_{i+1,j,k} - (P_g)_{i,j,k})^{n+1}     \\
+(\widetilde {\epsilon_1 \rho_1 u_1})^n - 
+\frac{\delta t}{\delta r_{i+\frac{1}{2}}} 
+(\epsilon_1)_{i+\frac{1}{2},j,k}^{n+1} ((P_g)_{i+1,j,k} - (P_g)_{i,j,k})^{n+1}     \\
+\vdots        \\
+(\widetilde {\epsilon_N \rho_N u_N})^n -
+\frac{\delta t}{\delta r_{i+\frac{1}{2}}} 
+(\epsilon_N)_{i+\frac{1}{2},j,k}^{n+1} ((P_g)_{i+1,j,k} - (P_g)_{i,j,k})^{n+1}
+\end{array} \right )
+\nonumber
+\end{eqnarray}
+%
+\begin{eqnarray}
+\htmlimage{}
+({\bf V})^{n+1} =
+\left( \begin{array}{c}
+v_g \\
+v_1 \\
+v_2 \\
+\vdots \\
+v_N \end{array} \right )^{(n+1)}; &
+({\bf B_{V^{\rm n}}})_{i,j+\frac{1}{2},k} = 
+\left( \begin{array}{c}
+(\widetilde {\epsilon_g \rho_g v_g})^n - 
+\frac{\delta t}{\delta y_{j+\frac{1}{2}}} 
+(\epsilon_g)_{i,j+\frac{1}{2},k}^{n+1} ((P_g)_{i,j+1,k} - (P_g)_{i,j,k})^{n+1}     \\
+(\widetilde {\epsilon_1 \rho_1 v_1})^n - 
+\frac{\delta t}{\delta y_{j+\frac{1}{2}}} 
+(\epsilon_1)_{i,j+\frac{1}{2},k}^{n+1} ((P_g)_{i,j+1,k} - (P_g)_{i,j,k})^{n+1}     \\
+\vdots        \\
+(\widetilde {\epsilon_N \rho_N v_N})^n -
+\frac{\delta t}{\delta y_{j+\frac{1}{2}}} 
+(\epsilon_N)_{i,j+\frac{1}{2},k}^{n+1} ((P_g)_{i,j+1,k} - (P_g)_{i,j,k})^{n+1}
+\end{array} \right )
+\nonumber
+\end{eqnarray}
+%
+\begin{eqnarray}
+\htmlimage{}
+({\bf W})^{n+1} =
+\left( \begin{array}{c}
+w_g \\
+w_1 \\
+w_2 \\
+\vdots \\
+w_N \end{array} \right )^{(n+1)}; &
+({\bf B_{W^{\rm n}}})_{i,j,k+\frac{1}{2}} = 
+\left( \begin{array}{c}
+(\widetilde {\epsilon_g \rho_g w_g})^n - 
+\frac{\delta t}{\delta z_{k+\frac{1}{2}}} 
+(\epsilon_g)_{i,j,k+\frac{1}{2}}^{n+1} ((P_g)_{i,j,k+1} - (P_g)_{i,j,k})^{n+1}     \\
+(\widetilde {\epsilon_1 \rho_1 w_1})^n - 
+\frac{\delta t}{\delta z_{k+\frac{1}{2}}} 
+(\epsilon_1)_{i,j,k+\frac{1}{2}}^{n+1} ((P_g)_{i,j,k+1} - (P_g)_{i,j,k})^{n+1}     \\
+\vdots        \\
+(\widetilde {\epsilon_N \rho_N w_N})^n -
+\frac{\delta t}{\delta z_{k+\frac{1}{2}}} 
+(\epsilon_N)_{i,j,k+\frac{1}{2}}^{n+1} ((P_g)_{i,j,k+1} - (P_g)_{i,j,k})^{n+1}
+\end{array} \right )
+\nonumber
+\end{eqnarray}
+\newpage
+\subsection{Interphase-matrix in energy equations}
+
+Similarly to the procedure followed for the momentum equations, the energy equations
+are recasted in matrix form as:
+%
+\begin{eqnarray}
+\htmlimage{}
+({\bf A_H})_{i,j,k} ({\bf H})_{i,j,k}^{n+1} = ({\bf B_{H^{\rm n}}})_{i,j,k}
+\nonumber
+\end{eqnarray}
+%
+\begin{eqnarray}
+({\bf A_H})_{i,j,k} = \left ( \begin{array}{ccccc}
+\epsilon_g \rho_g + \frac{\delta t}{C_{pg}} \sum_{s=1}^{N} Q_s & -\delta t Q_1/ C_{p1} & -\delta t Q_2/ C_{p2}  & \cdots & -\delta t Q_N/ C_{pN} \\
+-\delta t Q_1/ C_{p1} & \epsilon_1 \rho_1 + \frac{\delta t}{C_{p1}} Q_{1} & 0 & \cdots & 0  \\
+-\delta t Q_2/ C_{p2} & 0 & \epsilon_2 \rho_2 + \frac{\delta t}{C_{p2}} Q_{2} & \cdots & 0  \\
+\vdots  & \vdots  & \vdots  & \vdots  & \vdots   \\
+-\delta t Q_N/ C_{pN} &  0  &  0  &  \cdots   & \epsilon_N \rho_N + \frac{\delta t}{C_{pN}} Q_{N}
+\end{array} \right )
+\nonumber
+\end{eqnarray}
+%
+\begin{eqnarray}
+\htmlimage{}
+({\bf H})^{n+1} =  \left( \begin{array}{c}
+h_g \\
+h_1 \\
+h_2 \\
+\vdots \\
+h_N \end{array} \right )^{n+1} 
+\nonumber
+\end{eqnarray}
+%
+and:
+%
+\begin{eqnarray}
+\htmlimage{}
+({\bf B_{H^{\rm n}}})_{i,j,k}=  \left ( \begin{array}{c}
+(\epsilon_g \rho_g) h_g + (\widetilde{\epsilon_g \rho_g h_g})^n_{i,j,k} \\
+(\epsilon_1 \rho_1) h_1 + (\widetilde{\epsilon_1 \rho_1 h_1})^n_{i,j,k} \\
+(\epsilon_2 \rho_2) h_2 + (\widetilde{\epsilon_2 \rho_2 h_2})^n_{i,j,k} \\
+\cdots \\
+(\epsilon_N \rho_N) h_N + (\widetilde{\epsilon_N \rho_N h_N})^n_{i,j,k} \\
+\end{array} \right )
+\nonumber
+\end{eqnarray}
+%
+\newpage
+
+%
 \clearpage

@@ -563,7 +563,7 @@
       REAL*8 :: tcn, tmn, t1nn, t1n, t0n, t2n
       REAL*8 :: mg
       REAL*8 :: dc
-      REAL*8 :: d1inv,d2inv,dcinv
+      REAL*8 :: ind1,ind2,indc
       REAL*8 :: pf1, pf2, pfd
 
       INTEGER :: ig, is
@@ -573,9 +573,9 @@
       u1n = ( umn + ucn ) * 0.5D0
       u2n = ( upn + ucn ) * 0.5D0
       dc = ( d2  + d1 ) * 0.5D0
-      d1inv = 1.0D0 / d1
-      d2inv = 1.0D0 / d2
-      dcinv = 1.0D0 / dc
+      ind1 = 1.0D0 / d1
+      ind2 = 1.0D0 / d2
+      indc = 1.0D0 / dc
 !
 ! ... interpolation of mid-point values
 
@@ -603,7 +603,7 @@
 
         epc = 0.D0
         DO is = 1, nsolid
-          eps = rlk(n1,is) * inrl(is) - ( dt * inrl(is) * d1inv )  *          &
+          eps = rlk(n1,is) * inrl(is) - ( dt * inrl(is) * ind1 )  *          &
                 ( uscn(is)*rlk(n1,is) - usmn(is)*rlk(n0,is) )
           epc = epc + eps
         END DO
@@ -628,7 +628,7 @@
         rmcn=(rm2n+rm1n)*0.5D0
         rmmn=(rm1n+rm0n)*0.5D0
 !
-        rmcnn = rmcn-dt*dcinv*(u2n*rmcn-u1n*rmmn)
+        rmcnn = rmcn-dt*indc*(u2n*rmcn-u1n*rmmn)
 !
 ! ... Calculation of fluid pressure from the gas equation of state and 
 ! ... the mixture density transport equation
@@ -638,22 +638,22 @@
           mg = mg + xgc(ig,n1) * gmw( gas_type( ig ) )
         END DO
         rm1nn = ( rgas * t1nn ) / ( ep1nn * mg )      
-        p1nn  = rm1nn * (- rm1knn + rm1n - dt * d1inv * ( rm1n * ucn - rm0n * umn ) )
+        p1nn  = rm1nn * (- rm1knn + rm1n - dt * ind1 * ( rm1n * ucn - rm0n * umn ) )
 
         IF (epc < 1.0D-8) p1nn = p(n1)
 !
 ! ... Calculation of the advanced-time fluid pressure from Momentum balance
 ! ... equation of the mixture
 
-        p(n2) = -rmcnn*ucnn + rmcn*ucn - dt*dcinv*( u2n*ucn*rmcn - u1n*umn*rmmn) 
+        p(n2) = -rmcnn*ucnn + rmcn*ucn - dt*indc*( u2n*ucn*rmcn - u1n*umn*rmmn) 
         p(n2) = p(n2) + grav * dt * rmcn
-        p(n2) = p(n2) / ( dt * dcinv ) + p1nn
+        p(n2) = p(n2) / ( dt * indc ) + p1nn
 !
         ep(n2) = ep(n1)
         tg(n2) = tg(n1)
         DO ig = 1, ngas
            rgpgc(n2,ig) = rgpgc(n2,ig) - &
-                          ucn * dt * d2inv * ( rgpgc(n2,ig) - rgpgc(n1,ig) )
+                          ucn * dt * ind2 * ( rgpgc(n2,ig) - rgpgc(n1,ig) )
         END DO
 !
 ! ... Correct non-physical pressure
@@ -730,7 +730,7 @@
       RETURN
       END SUBROUTINE inout_flow
 !----------------------------------------------------------------------
-      SUBROUTINE outin_flow(upn, ucn, uspn, uscn, d1, d2, k)
+      SUBROUTINE outin_flow(ucn, umn, uscn, usmn, d1, d2, k)
 !
 ! ... This routine computes the free in/outflow conditions in the boundary
 ! ... cell, i.e. the normal component of the velocity and the scalar fields
@@ -740,22 +740,22 @@
       USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
       USE gas_constants, ONLY: gas_type
 
-      REAL*8, INTENT(IN) :: upn
-      REAL*8, INTENT(INOUT) :: ucn
-      REAL*8, INTENT(IN) :: uspn(:)
-      REAL*8, INTENT(INOUT) :: uscn(:)
+      REAL*8, INTENT(IN) :: ucn
+      REAL*8, INTENT(INOUT) :: umn
+      REAL*8, INTENT(IN) :: uscn(:)
+      REAL*8, INTENT(INOUT) :: usmn(:)
       REAL*8, INTENT(IN) :: d1, d2
       INTEGER, INTENT(IN) :: k
 
       REAL*8 :: prif, pnn2, p1nn
       REAL*8 :: zrif, trif, rhorif, cost, costc
       REAL*8 :: rmcn, rmcnn, rmpn, rm1nn, rm1knn, rm2n, rm1n, rm0n
-      REAL*8 :: u1n, u2n, ucnn
+      REAL*8 :: u1n, u2n, umnn
       REAL*8 :: eps, epc, epcn, ep1nn
       REAL*8 :: tcn, tpn, t1nn, t1n, t0n, t2n
       REAL*8 :: mg
       REAL*8 :: dc
-      REAL*8 :: d1inv,d2inv,dcinv
+      REAL*8 :: ind1,ind2,indc
       REAL*8 :: pf1, pf2, pfd
 
       INTEGER :: ig, is
@@ -763,11 +763,11 @@
 ! ... definitions
 !
       dc    = ( d1 + d2 ) * 0.5D0
-      d1inv = 1.0D0 / d1
-      d2inv = 1.0D0 / d2
-      dcinv = 1.0D0 / dc 
+      ind1 = 1.0D0 / d1
+      ind2 = 1.0D0 / d2
+      indc = 1.0D0 / dc 
 
-      u1n  = ( upn + ucn ) * 0.5D0
+      u1n  = ( ucn + umn ) * 0.5D0
 
       t2n  = tg( n2 )
       t1n  = tg( n1 )
@@ -776,25 +776,25 @@
       tcn  = ( t1n + t2n ) * 0.5D0
       epcn = ( ep( n1 ) + ep( n2 ) ) * 0.5D0
 !
-      u2n = ucn - ( upn - ucn ) * d1inv * 0.5 * d2
+      u2n = umn - ( ucn - umn ) * ind1 * 0.5 * d2
 !
 ! ... OUTFLOW ...
 
-      IF( upn < 0.D0 ) THEN
+      IF( ucn < 0.D0 ) THEN
 !
 ! ... Extrapolations
-        ucnn = u1n
+        umnn = u1n
         t1nn = tpn
 ! 
 ! ... MODIFICAREX3D IF(j.EQ.2) ug(imjmk) = - ug(n2)
 !
-! ... calculation of the gas volumetric fraction at time (n+1)dt
+! ... calculation of the gas volumetric fraction at time (n+1)
 ! ... from the mass balance equation of solids in cell (ijk)
 
         epc = 0.D0
         DO is = 1, nsolid
          eps = rlk(n1,is) * inrl(is) -                                 &
-             dt*inrl(is)*d1inv * (uspn(is)*rlk(n0,is) - uscn(is)*rlk(n1,is))
+             dt*inrl(is)*ind1 * (uscn(is)*rlk(n0,is) - usmn(is)*rlk(n1,is))
          epc = epc + eps
         END DO
         ep1nn = 1.D0 - epc
@@ -816,7 +816,7 @@
         rmcn=(rm2n+rm1n)*0.5D0
         rmpn=(rm1n+rm0n)*0.5D0
 !
-        rmcnn = rmcn - dt*dcinv * (u1n*rmpn-u2n*rmcn)
+        rmcnn = rmcn - dt*indc * (u1n*rmpn-u2n*rmcn)
 !
 ! ... calculation of fluid pressure 
 ! ... from a mass balance equation for the mixture.
@@ -826,20 +826,17 @@
         DO ig=1,ngas
           mg = mg + xgc(ig,n1) * gmw(gas_type(ig))
         END DO
-        !rm1nn = ep1nn*mg/(rgas*t1nn)
-        !p1nn = (1.D0/rm1nn) * &
-        !       (-rm1knn+rm1n-dt*d1inv*(upn*rm0n-rm1n*ucn))
-        rm1nn = (rgas*t1nn)/(ep1nn*mg)
-        p1nn = rm1nn * (-rm1knn+rm1n-dt*d1inv*(upn*rm0n-rm1n*ucn))
+        rm1nn = ep1nn*mg/(rgas*t1nn)
+        p1nn = (1.D0/rm1nn) * &
+               (-rm1knn+rm1n-dt*ind1*(ucn*rm0n-rm1n*umn))
         IF (epc < 1.0D-8) p1nn = p(n1)
 !
 ! ... Calculation of the advanced-time fluid pressure from Momentum balance
 ! ... equation of the mixture
 
-        p(n2) = -rmcnn*ucnn + rmcn*ucn - dt*dcinv *     &
-                 ( u1n*upn*rmpn - u2n*ucn*rmcn) + dt*dcinv * p1nn
-        p(n2)=p(n2)/(dt*dcinv)
-
+        p(n2) = -rmcnn*umnn + rmcn*umn - dt*indc *     &
+                 ( u1n*ucn*rmpn - u2n*umn*rmcn) + dt*indc * p1nn
+        p(n2)=p(n2)/(dt*indc)
 !
 ! ... Correct non-physical pressure
         IF (p(n2) <= 0.0D0) p(n2) = p(n1)
@@ -848,7 +845,7 @@
         tg(n2) = tg(n1)
         DO ig=1,ngas
           rgpgc(n2,ig) = rgpgc(n2,ig) - &
-                         upn * dt*d2inv * (rgpgc(n1,ig)-rgpgc(n2,ig))
+                         ucn * dt*ind2 * (rgpgc(n1,ig)-rgpgc(n2,ig))
         END DO
 !
 ! ... extrapolation of the temperature and solid fraction to time (n+1)dt
@@ -856,10 +853,10 @@
         DO is=1,nsolid
           ! IF(nfllt.EQ.4) ws(n2,is)=ws(n1,is)
           rlk(n2,is)=rlk(n1,is)
-          uscn(is)=uspn(is)
+          usmn(is)=uscn(is)
         END DO
 
-      ELSE IF( upn > 0.D0 ) THEN
+      ELSE IF( ucn > 0.D0 ) THEN
 
 ! ... INFLOW ...
 !
@@ -904,12 +901,12 @@
 ! .... Set primary variables
 !
       DO is=1,nsolid
-        IF( uspn(is) >= 0.D0 ) THEN
+        IF( uscn(is) >= 0.D0 ) THEN
           rlk(n2,is)=rlk(n1,is)
-          uscn(is)=uspn(is)
+          usmn(is)=uscn(is)
         ELSE
           rlk(n2,is)=0.0D0
-          uscn(is) =0.0D0
+          usmn(is) =0.0D0
         ENDIF
       END DO
 !
