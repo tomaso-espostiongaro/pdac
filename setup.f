@@ -62,7 +62,7 @@
       USE control_flags, ONLY: job_type
       USE dimensions
       USE domain_decomposition, ONLY: ncint, meshinds, myijk
-      USE eos_gas, ONLY: mas, mole, xgc, ygc
+      USE eos_gas, ONLY: mas, mole, ygc
       USE gas_constants, ONLY: gmw, rgas, gammaair
       USE gas_constants, ONLY: gas_type
       USE gas_solid_density, ONLY: rlk
@@ -122,7 +122,7 @@
           ep(ijk) = void_fraction
 
           DO ig = 1, ngas 
-            ygc(ig,ijk) = atm_ygc(gas_type(ig))
+            ygc(ijk,ig) = atm_ygc(gas_type(ig))
           END DO
 
           DO is = 1, nsolid
@@ -213,7 +213,7 @@
       USE control_flags, ONLY: job_type
       USE dimensions
       USE domain_decomposition, ONLY: ncint
-      USE eos_gas, ONLY: mas, xgc, ygc, rgpgc
+      USE eos_gas, ONLY: mas, xgc, ygc
       USE eos_gas, ONLY: cg, caloric_eosg, thermal_eosg, mole
       USE eos_solid, ONLY: caloric_eosl
       USE gas_constants, ONLY: gas_type, gmw, rgas, tzero, hzerog, hzeros
@@ -231,7 +231,7 @@
       INTEGER :: ijk, info
       INTEGER :: ig, is, dfg
       REAL*8  :: xgc_def, mass, tem, rls
-      REAL*8  :: hc, mg , xg(1:max_ngas), eps
+      REAL*8  :: hc, mg , xgcl(1:max_ngas), eps
 !
       IF (itd <= 1) THEN
 !
@@ -240,7 +240,7 @@
           ! ... compute gas components molar fractions 
           ! ... from mass fractions
           !
-          CALL mole( xgc(:,ijk), ygc(:,ijk) )
+          CALL mole( xgc(ijk,:), ygc(ijk,:) )
           
           ! ... If density is specified tg(ijk) is a density
           ! ... that must be converted into a temperature
@@ -248,7 +248,7 @@
           IF (density_specified) THEN
             mass = 0.D0
             DO ig=1,ngas
-              mass = mass + xgc(ig,ijk)*gmw(gas_type(ig))
+              mass = mass + xgc(ijk,ig)*gmw(gas_type(ig))
             END DO
             tem  = p(ijk) * mass / rgas / tg(ijk)
             tg(ijk) = tem
@@ -257,18 +257,16 @@
           ! ... compute gas density from thermal equation of state
           ! ... compute gas and gas components bulk densities
           !
-          CALL thermal_eosg( rog(ijk), tg(ijk), p(ijk), xgc(:,ijk) )
+          xgcl(1:ngas) = xgc(ijk,:)
+          CALL thermal_eosg( rog(ijk), tg(ijk), p(ijk), xgcl(:) )
           rgp(ijk) = rog(ijk) * ep(ijk)
-          DO ig = 1, ngas
-            rgpgc(ijk,ig) = ygc(ig,ijk) * rgp(ijk)
-          END DO
 
           ! ... compute specific heat from temperature
           !
           CALL hcapg(cp(:,ijk), tg(ijk))
           hc = 0.D0
           DO ig = 1, ngas
-            hc = hc + cp(gas_type(ig),ijk) * ygc(ig,ijk)
+            hc = hc + cp(gas_type(ig),ijk) * ygc(ijk,ig)
           END DO
           cg(ijk) = hc
 
@@ -294,7 +292,7 @@
             ! ... compute gas components molar fractions 
             ! ... from mass fractions
             !
-            CALL mole( xgc(:,ijk), ygc(:,ijk) )
+            CALL mole( xgc(ijk,:), ygc(ijk,:) )
 
             ! ... compute void fraction
             !
@@ -304,17 +302,11 @@
             END DO
             ep(ijk) = 1.D0 - rls
 
-            ! ... gas components bulk densities
-            !
-            DO ig = 1, ngas
-              rgpgc(ijk,ig) = ygc(ig,ijk) * rgp(ijk)
-            END DO
-
             ! ... WARNING!: an error is introduced in gas temperature ...
             ! ... In the iterative inversion of the enthalpy equation 
             ! ... the initial value of temperature is different
             !
-            CALL caloric_eosg(cp(:,ijk), cg(ijk), tg(ijk), ygc(:,ijk), &
+            CALL caloric_eosg(cp(:,ijk), cg(ijk), tg(ijk), ygc(ijk,:), &
                             sieg(ijk), ijk, info)
             DO is=1, nsolid
               CALL caloric_eosl(ts(ijk,is),cps(is),ck(is,ijk),sies(ijk,is),ijk)
@@ -327,7 +319,7 @@
             CALL hcapg(cp(:,ijk), tg(ijk))
             hc = 0.D0
             DO ig = 1, ngas
-              hc = hc + cp(gas_type(ig),ijk) * ygc(ig,ijk)
+              hc = hc + cp(gas_type(ig),ijk) * ygc(ijk,ig)
             END DO
             cg(ijk) = hc
             DO is = 1, nsolid
@@ -383,7 +375,7 @@
                 p(ijk)  = pob(n)
                 ep(ijk) = 1.D0 - SUM(epsob(:,n))
                 DO ig = 1, ngas
-                  ygc(ig,ijk) = ygcob(gas_type(ig),n)
+                  ygc(ijk,ig) = ygcob(gas_type(ig),n)
                 END DO
                 DO is = 1,nsolid
                   ts(ijk,is)  = tpob(is,n)
@@ -394,9 +386,9 @@
                 END DO
                 !
                 ! ... check gas components closure relation
-                ygcsum = SUM(ygc(:,ijk))
+                ygcsum = SUM(ygc(ijk,:))
                 IF ( ygcsum /= 1.D0 ) THEN
-                  ygc(ngas,ijk) = 1.D0 - SUM( ygc(1:ngas-1,ijk) )
+                  ygc(ijk,ngas) = 1.D0 - SUM( ygc(ijk,1:ngas-1) )
                 END IF
 
               END IF

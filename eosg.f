@@ -10,10 +10,6 @@
 ! ... gas components mass and molar fractions
 
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: ygc, xgc
-
-! ... gas component bulk densities
-
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: rgpgc, rgpgcn
 !
       LOGICAL :: update_eosg
 !
@@ -27,14 +23,11 @@
       IMPLICIT NONE
 !
        ALLOCATE(cg(ncint))
-       ALLOCATE(ygc(ngas,ncint),xgc(ngas,ncint),             &
-                rgpgc(ncdom,ngas), rgpgcn(ncint,ngas))
+       ALLOCATE(ygc(ncdom,ngas),xgc(ncint,ngas))
 !
       cg     = 0.D0
       ygc    = 0.D0
       xgc    = 0.D0
-      rgpgc  = 0.D0
-      rgpgcn = 0.D0
 !
       RETURN
       END SUBROUTINE
@@ -53,6 +46,7 @@
       REAL*8 :: mol
       REAL*8 :: molinv
 !
+      xg = 0.D0
       mol = 0.D0
       DO ig = 1, ngas
         mol = mol + yg(ig) / gmw(gas_type(ig))
@@ -172,7 +166,7 @@
       REAL*8 :: tg0, sieg0, cgas0
       INTEGER :: ii, nlmax
       INTEGER :: ig, i, j, k, imesh
-      PARAMETER( nlmax = 1000) 
+      PARAMETER( nlmax = 2000) 
       PARAMETER( ratmin = 1.D-8) 
 
           tg0   = tg

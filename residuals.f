@@ -11,7 +11,7 @@
 
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: ngas, nsolid
-      USE eos_gas, ONLY: rgpgc
+      USE eos_gas, ONLY: ygc
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: dx, dy, dz, r, rb, flag
@@ -53,10 +53,10 @@
           END DO
 
           DO ig = 1, ngas
-            res_gc(ig) = res_gc(ig) + rgpgc(ijk,ig) * volume
+            res_gc(ig) = res_gc(ig) + rgp(ijk) * ygc(ijk,ig) * volume
           END DO
 
-        ELSE IF (flag(ijk) == 5) THEN
+        ELSE IF (flag(ijk) == 15) THEN
           !
           ! ... Compute the mass entered since the beginning
           !
@@ -85,7 +85,7 @@
           DO ig = 1, ngas
             flux = ug(ijk)*sx + wg(ijk) * sz
             IF (job_type == '3D') flux = flux + vg(ijk) * sy
-            flux = rgpgc(ijk,ig) * flux
+            flux = rgp(ijk) * ygc(ijk,ig) * flux
             res_gc(ig) = res_gc(ig) - flux * nswp * dt
           END DO
 

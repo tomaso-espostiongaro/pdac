@@ -164,7 +164,7 @@
           p(ijk)  = p_gas * alpha * ep0 / ep(ijk)
 
           DO ig = 1, ngas
-            ygc(ig,ijk) = vent_ygc(gas_type(ig))
+            ygc(ijk,ig) = vent_ygc(gas_type(ig))
           END DO
 
           DO is = 1,nsolid
@@ -176,9 +176,9 @@
           END DO
           !
           ! ... check gas components closure relation
-          ygcsum = SUM(ygc(:,ijk))
+          ygcsum = SUM(ygc(ijk,:))
           IF ( ygcsum /= 1.D0 ) THEN
-            ygc(ngas,ijk) = 1.D0 - SUM( ygc(1:ngas-1,ijk) )
+            ygc(ijk,ngas) = 1.D0 - SUM( ygc(ijk,1:ngas-1) )
           END IF
           
         END IF

@@ -12,7 +12,7 @@
       USE enthalpy_matrix, ONLY: ftem
       USE environment, ONLY: cpclock, timing, elapsed_seconds
       USE eos_gas, ONLY: thermal_eosg, update_eosg
-      USE eos_gas, ONLY: ygc, rgpgc, xgc
+      USE eos_gas, ONLY: xgc
       USE gas_components, ONLY: ygas
       USE gas_solid_density, ONLY: rog, rgp, rlk
       USE gas_solid_temperature, ONLY: sieg, sies, ts, tg
@@ -50,6 +50,7 @@
                 cptimiter, cptimygas, cptimtem, cptimout, cptimres, cptimtot
       REAL*8 :: mptimbdry, mptimfieldn, mptimturbo, mptimtilde, &
                 mptimiter, mptimygas, mptimtem, mptimout, mptimres, mptimtot
+      REAL*8 :: xgcl(max_ngas)
       
       LOGICAL :: stop_now
 !
@@ -138,9 +139,9 @@
 !
         IF (update_eosg) THEN
           DO ijk=1, ncint
-            CALL thermal_eosg(rog(ijk),tg(ijk),p(ijk),xgc(:,ijk))
+            xgcl(1:ngas) = xgc(ijk,:)
+            CALL thermal_eosg(rog(ijk),tg(ijk),p(ijk),xgcl(:))
             rgp(ijk) = rog(ijk) * ep(ijk)
-            rgpgc(ijk,:) = ygc(:,ijk) * rgp(ijk)
           END DO
         END IF
 !

@@ -5,7 +5,7 @@
       USE control_flags, ONLY: job_type
       USE dimensions
       USE domain_decomposition, ONLY: data_collect, data_distribute, ncint
-      USE eos_gas, ONLY: rgpgc, xgc, ygc
+      USE eos_gas, ONLY: xgc, ygc
       USE gas_solid_density, ONLY: rog, rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE gas_solid_velocity, ONLY: us, vs, ws
@@ -114,7 +114,7 @@
       END DO
 
       DO ig = 1, ngas
-        CALL write_array( 9, ygc(ig,:), dbl, lform )
+        CALL write_array( 9, ygc(:,ig), dbl, lform )
       END DO
 !
       CALL write_array( 9, rgp, dbl, lform )
@@ -133,11 +133,7 @@
         CALL write_array( 9, ep, dbl, lform )
 
         DO ig = 1, ngas
-          CALL write_array( 9, rgpgc(:,ig), dbl, lform )
-        END DO
-
-        DO ig = 1, ngas
-          CALL write_array( 9, xgc(ig,:), dbl, lform )
+          CALL write_array( 9, xgc(:,ig), dbl, lform )
         END DO
 
       END IF
@@ -310,7 +306,7 @@
 
       ygc = 0.0d0
       DO ig = 1, ngas
-        CALL read_array( 9, ygc(ig,:), dbl, lform )
+        CALL read_array( 9, ygc(:,ig), dbl, lform )
       END DO
       IF( ANY( ygc < 0 ) ) THEN
          WRITE(6,*) 'WARNING reading restart, ygc < 0'
@@ -350,17 +346,9 @@
            WRITE(6,*) 'WARNING reading restart, ep < 0'
         END IF
 
-        rgpgc = 0.0d0
-        DO ig = 1, ngas
-          CALL read_array( 9, rgpgc(:,ig), dbl, lform )
-        END DO
-        IF( ANY( rgpgc < 0 ) ) THEN
-           WRITE(6,*) 'WARNING reading restart, rgpgc < 0'
-        END IF
-
         xgc = 0.0d0
         DO ig = 1, ngas
-          CALL read_array( 9, xgc(ig,:), dbl, lform )
+          CALL read_array( 9, xgc(:,ig), dbl, lform )
         END DO
         IF( ANY( xgc < 0 ) ) THEN
            WRITE(6,*) 'WARNING reading restart, xgc < 0'

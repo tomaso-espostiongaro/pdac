@@ -129,7 +129,7 @@
       USE dimensions
       USE domain_decomposition, ONLY: ncint, myijk, ncdom
       USE domain_decomposition, ONLY: meshinds, data_exchange
-      USE eos_gas, ONLY: rgpgc, rgpgcn, xgc
+      USE eos_gas, ONLY: xgc
       USE gas_solid_density, ONLY: rgp, rgpn, rlk, rlkn
       USE gas_solid_temperature, ONLY: sieg, siegn, sies, siesn, tg, ts
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
@@ -230,10 +230,6 @@
           pn(ijk)    = p(ijk)
           rgpn(ijk)  = rgp(ijk)
           siegn(ijk) = sieg(ijk)
- 
-          DO ig = 1, ngas
-            rgpgcn(ijk,ig) = rgpgc(ijk,ig)
-          END DO
 !
           DO is = 1, nsolid
             rlkn(ijk,is)  = rlk(ijk,is)
@@ -247,7 +243,7 @@
 ! ... For inviscid simulation (gas_viscosity = FALSE) mug is used only
 ! ... to compute the gas-particle drag coefficient
 !
-         CALL viscon( mug(ijk), kapg(ijk), xgc(:,ijk), tg(ijk) )
+         CALL viscon( mug(ijk), kapg(ijk), xgc(ijk,:), tg(ijk) )
 
       END DO
 !
@@ -385,9 +381,9 @@
 ! ... Fluxes on West, South and Bottom sides keep values 
 ! ... of East, North and Top fluxes from neighbouring cells.
 !
-      DO ijk = 1, ncint
-        IF(flag(ijk) == 1) THEN
+      mesh_loop: DO ijk = 1, ncint
 
+        IF(flag(ijk) == 1) THEN
           CALL meshinds(ijk,imesh,i,j,k)
           CALL subscr(ijk)
 !
@@ -572,7 +568,7 @@
                 rus(ijk,is) = rus(ijk,is) + dt * force
               END DO
             END IF
-            !
+            
             IF (job_type == '3D') THEN
 
               fy = numy(ijk)
@@ -603,8 +599,7 @@
                 END DO
               END IF
             END IF
-            !
-
+            
             fz = numz(ijk)
 
             IF (fz/=0) THEN
@@ -634,9 +629,10 @@
             END IF
 
           END IF
-
+          
         END IF
-      END DO
+
+      END DO mesh_loop
 !
       DEALLOCATE(ugfe, ugft)
       DEALLOCATE(wgfe, wgft)

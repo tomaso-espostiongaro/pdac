@@ -16,7 +16,6 @@
       SUBROUTINE jet_out
 !
       USE dimensions, ONLY: nsolid
-      USE eos_gas, ONLY: xgc
       USE gas_constants, ONLY: gas_type
       USE gas_solid_density, ONLY: rlk, rog
       USE gas_solid_velocity, ONLY: ug, vg, wg
@@ -199,9 +198,9 @@
       IF( lform .AND. mpime == root ) WRITE(12,'(1x,//,1x,"TG",/)')
       CALL write_array( 12, tg, sgl, lform )  ! gas_temperature
 !
-      ALLOCATE( otmp( SIZE( xgc, 2 ) ) )
+      ALLOCATE( otmp( SIZE( xgc, 1 ) ) )
       DO ig=1,ngas
-          otmp = xgc(ig,:)
+          otmp = xgc(:,ig)
           IF( lform .AND. mpime == root ) WRITE(12,'(1x,//,1x,"XGC",I1,/)') ig
           CALL write_array( 12, otmp, sgl, lform )  ! gc_molar_fraction
       END DO

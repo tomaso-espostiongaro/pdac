@@ -42,7 +42,6 @@
       USE domain_decomposition, ONLY: myijk, meshinds
       USE enthalpy_matrix, ONLY: ftem
       USE environment, ONLY: cpclock, timing
-      USE eos_gas, ONLY: xgc, cg
       USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
@@ -465,9 +464,11 @@
       REAL*8, INTENT(INOUT)  :: d3, p3, abeta, dgorig
       LOGICAL, INTENT(OUT) :: cvg
 
-      REAL*8 :: resx, resy, resz
-
+      REAL*8  :: resx, resy, resz
       INTEGER :: loop, kros, nloop
+
+      REAL*8 :: xgcl(max_ngas)
+      xgcl(1:ngas) = xgc(ijk,:)
 
       kros = -1
 
@@ -490,7 +491,7 @@
         ! ... (notice that the explicit solution of the enthalpy
         ! ... equations affects only this updating)
 !
-        CALL thermal_eosg(rog(ijk),tg(ijk),p(ijk),xgc(:,ijk))
+        CALL thermal_eosg(rog(ijk),tg(ijk),p(ijk),xgcl(:))
 !
         rgp(ijk) = ep(ijk) * rog(ijk)
 
@@ -1145,7 +1146,7 @@
         USE pressure_epsilon, ONLY: p, ep
         USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
         USE gas_solid_temperature, ONLY: tg
-        USE eos_gas, ONLY: thermal_eosg, xgc, cg
+        USE eos_gas, ONLY: thermal_eosg, xgc
         USE phases_matrix, ONLY: assemble_all_matrix, solve_all_velocities
         USE set_indexes, ONLY: third_nb, third_rnb, first_rnb, first_nb
         USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
@@ -1174,6 +1175,9 @@
         TYPE(stencil) :: rgp_, rlk_(max_nsolid) 
 
         INTEGER :: loop, kros, ig, is
+!
+        REAL*8 :: xgcl(max_ngas)
+        xgcl(1:ngas) = xgc(ijk,:)
 !
         ! ... These values of the mass fluxes will be updated
         ! ... in the inner_loop.
@@ -1241,7 +1245,7 @@
           ! ... Use equation of state to calculate gas density 
           ! ... from (new) pressure and (old) temperature.
 !
-          CALL thermal_eosg(rog(ijk),tg(ijk),p(ijk),xgc(:,ijk))
+          CALL thermal_eosg(rog(ijk),tg(ijk),p(ijk),xgcl(:))
 !
           rgp(ijk) = ep(ijk) * rog(ijk)
 !
@@ -1418,7 +1422,7 @@
         USE pressure_epsilon, ONLY: p, ep
         USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
         USE gas_solid_temperature, ONLY: tg
-        USE eos_gas, ONLY: thermal_eosg, xgc, cg
+        USE eos_gas, ONLY: thermal_eosg, xgc
         USE phases_matrix, ONLY: matsvels_3phase
         USE set_indexes, ONLY: third_nb, third_rnb, first_rnb, first_nb
         USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
@@ -1455,6 +1459,9 @@
 
         INTEGER :: loop, kros, ig
 
+        REAL*8 :: xgcl(max_ngas)
+        xgcl(1:ngas) = xgc(ijk,:)
+!
         kros = -1
 
         rsfe1_ = rsfe( ijk, 1 )
@@ -1505,6 +1512,7 @@
           CALL third_rnb( vg_, vg, ijk )
         END IF
 
+
         DO loop = 1, inmax
 !
           ! ... Correct the pressure at current cell
@@ -1524,7 +1532,7 @@
 !
           mg = 0.D0
           DO ig = 1, ngas
-            mg = mg + xgc(ig,ijk) * gmw( gas_type(ig) )
+            mg = mg + xgcl(ig) * gmw( gas_type(ig) )
           END DO
           rog(ijk) = p(ijk) / ( rgas * tg(ijk) ) * mg
 !

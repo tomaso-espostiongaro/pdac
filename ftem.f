@@ -53,6 +53,10 @@
       INTEGER :: ijk, i, j, k, imesh, info
       INTEGER :: fx, fy, fz
       LOGICAL :: forced = .FALSE.
+      REAL*8, ALLOCATABLE :: ygcl(:), cpl(:)
+!
+      ALLOCATE(ygcl(ngas)); ygcl = 0.D0
+      ALLOCATE(cpl(ngas)) ; cpl  = 0.D0
 !
       ALLOCATE(at(nphase, nphase))
       ALLOCATE(bt(nphase))
@@ -151,7 +155,9 @@
 ! ... update temperature of gas (tg ) and particles (ts)
 ! ... from caloric Equation of State
 !
-          CALL caloric_eosg(cp(:,ijk), cg(ijk), tg(ijk), ygc(:,ijk), &
+          ygcl(:) = ygc(ijk,:)
+          cpl(:)  = cp(:,ijk)
+          CALL caloric_eosg(cpl(:), cg(ijk), tg(ijk), ygcl(:), &
                             sieg(ijk), ijk, info)
 
           DO is=1, nsolid
@@ -162,6 +168,7 @@
 
       END DO
 !
+      DEALLOCATE(ygcl,cpl)
       DEALLOCATE(at)
       DEALLOCATE(bt)
 !

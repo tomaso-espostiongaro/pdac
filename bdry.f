@@ -8,7 +8,7 @@
       USE gas_solid_temperature, ONLY: sieg, tg, sies, ts
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: dx, dy, dz, xb, zb
-      USE eos_gas, ONLY: rgpgc, xgc, ygc
+      USE eos_gas, ONLY: xgc, ygc
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p, ep
       USE time_parameters, ONLY: dt, time, sweep
@@ -753,7 +753,7 @@
 !
         mg = 0.D0
         DO ig = 1, ngas
-          mg = mg + xgc(ig,n1) * gmw( gas_type( ig ) )
+          mg = mg + xgc(n1,ig) * gmw( gas_type( ig ) )
         END DO
         rm1nn = ( rgas * t1nn ) / ( ep1nn * mg )      
         p1nn  = rm1nn * (- rm1knn + rm1n - dt * ind1 * ( rm1n * ucn - rm0n * umn ) )
@@ -770,8 +770,8 @@
         ep(n2) = ep(n1)
         tg(n2) = tg(n1)
         DO ig = 1, ngas
-           rgpgc(n2,ig) = rgpgc(n2,ig) - &
-                          ucn * dt * ind2 * ( rgpgc(n2,ig) - rgpgc(n1,ig) )
+           ygc(n2,ig) = ygc(n2,ig) - &
+                          ucn * dt * ind2 * ( ygc(n2,ig) - ygc(n1,ig) )
         END DO
 !
 ! ... Correct non-physical pressure
@@ -808,7 +808,7 @@
         ep(n2) = 1.D0
         tg(n2) = trif
         DO ig = 1, ngas
-          rgpgc(n2,ig) = rgpgc(n1,ig)
+          ygc(n2,ig) = ygc(n1,ig)
         END DO
 
 ! ... Correct non-physical pressure
@@ -823,7 +823,7 @@
         ep(n2)   = ep(n1)
         tg(n2)   = tg(n1)
         DO ig=1,ngas
-          rgpgc(n2,ig) = rgpgc(n1,ig)
+          ygc(n2,ig) = ygc(n1,ig)
         END DO
 
       ENDIF
@@ -942,7 +942,7 @@
 !
         mg=0.D0
         DO ig=1,ngas
-          mg = mg + xgc(ig,n1) * gmw(gas_type(ig))
+          mg = mg + xgc(n1,ig) * gmw(gas_type(ig))
         END DO
         rm1nn = ep1nn*mg/(rgas*t1nn)
         p1nn = (1.D0/rm1nn) * &
@@ -962,8 +962,8 @@
         ep(n2) = ep(n1)
         tg(n2) = tg(n1)
         DO ig=1,ngas
-          rgpgc(n2,ig) = rgpgc(n2,ig) - &
-                         ucn * dt*ind2 * (rgpgc(n1,ig)-rgpgc(n2,ig))
+          ygc(n2,ig) = ygc(n2,ig) - &
+                         ucn * dt*ind2 * (ygc(n1,ig)-ygc(n2,ig))
         END DO
 !
 ! ... extrapolation of the temperature and solid fraction to time (n+1)dt
@@ -1011,7 +1011,7 @@
         ep(n2) = 1.D0
         tg(n2) = trif
         DO ig=1,ngas
-          rgpgc(n2,ig) = rgpgc(n1,ig)
+          ygc(n2,ig) = ygc(n1,ig)
         END DO
 
       ENDIF
@@ -1057,6 +1057,7 @@
       REAL*8 :: kfl, deltau, rls, mg
       REAL*8 :: zrif, prif, trif, rhorif
       INTEGER :: is, ig
+      REAL*8 :: xgcn2(max_ngas)
 !
 ! ... This value can be "tuned"  (0.0 <= kfl <= 1.0)
       kfl = 1.0D0
@@ -1112,16 +1113,16 @@
 !
       IF (ucn > 0.D0) THEN
         DO ig=1, ngas
-          ygc(ig,n2) = ygc(ig,n2) - dt/d2 * ucn * ( ygc(ig,n2) - ygc(ig,n1) )
+          ygc(n2,ig) = ygc(n2,ig) - dt/d2 * ucn * ( ygc(n2,ig) - ygc(n1,ig) )
         END DO
       ELSE IF (ucn < 0.D0) THEN
         DO ig = 1, ngas
-          ygc(ig,n2) = atm_ygc(gas_type(ig))
+          ygc(n2,ig) = atm_ygc(gas_type(ig))
         END DO
       ELSE
       END IF
-      CALL mole(xgc(:,n2), ygc(:,n2))
-      CALL thermal_eosg(rhorif, trif, prif, xgc(:,n2))
+      CALL mole(xgcn2(:), ygc(n2,:))
+      CALL thermal_eosg(rhorif, trif, prif, xgcn2(:))
 
 ! ... Transport gas bulk density (compressible)
 !
@@ -1138,7 +1139,7 @@
 !
       mg = 0.D0
       DO ig = 1, ngas
-        mg = mg + xgc(ig,n2) * gmw(gas_type(ig))
+        mg = mg + xgcn2(ig) * gmw(gas_type(ig))
       END DO
 
       p(n2) = rog(n2) * tg(n2) * ( rgas / mg )
@@ -1168,6 +1169,7 @@
       REAL*8 :: kfl, deltau, rls, mg
       REAL*8 :: zrif, prif, trif, rhorif
       INTEGER :: is, ig
+      REAL*8 :: xgcn2(max_ngas)
 !
 ! ... This value can be "tuned" (0.0 <= kfl <= 1.0)
 ! ... (analogous to CFL number)
@@ -1240,16 +1242,16 @@
 !
       IF (umn < 0.D0) THEN
         DO ig=1, ngas
-          ygc(ig,n2) = ygc(ig,n2) - dt/d2 * umn * ( ygc(ig,n1) - ygc(ig,n2) )
+          ygc(n2,ig) = ygc(n2,ig) - dt/d2 * umn * ( ygc(n1,ig) - ygc(n2,ig) )
         END DO
       ELSE IF (umn > 0.D0) THEN
         DO ig = 1, ngas
-          ygc(ig,n2) = atm_ygc(gas_type(ig))
+          ygc(n2,ig) = atm_ygc(gas_type(ig))
         END DO
       ELSE
       END IF
-      CALL mole(xgc(:,n2), ygc(:,n2))
-      CALL thermal_eosg(rhorif, trif, prif, xgc(:,n2))
+      CALL mole(xgcn2(:), ygc(n2,:))
+      CALL thermal_eosg(rhorif, trif, prif, xgcn2(:))
 
 ! ... Transport gas bulk density
 !
@@ -1265,7 +1267,7 @@
 !
       mg = 0.D0
       DO ig = 1, ngas
-        mg = mg + xgc(ig,n2) * gmw(gas_type(ig))
+        mg = mg + xgcn2(ig) * gmw(gas_type(ig))
       END DO
 !
       p(n2) = rog(n2) * tg(n2) * ( rgas / mg )
