@@ -857,43 +857,9 @@
             CALL flw_1st(wgfe(ijk), wgfn(ijk), wgft(ijk),                     &
                     wgfe(imjk), wgfn(ijmk), wgft(ijkm), dens, u, v, w, k)
 
-          ELSE
 
-            CALL nb ( dens, rgp, ijk )
-
-            CALL first_rnb(u,ug,ijk)
-            u%nn = ug ( ijppk ) 
-            u%tt = ug ( ijkpp )
-            u%ee = ug ( ippjk )
-            u%wn = ug ( imjpk ) 
-            u%wt = ug ( imjkp )
-
-            CALL first_rnb(v,vg,ijk)
-            v%nn = vg ( ijppk ) 
-            v%tt = vg ( ijkpp )
-            v%ee = vg ( ippjk )
-            v%es = vg ( ipjmk )
-            v%st = vg ( ijmkp ) 
-
-            CALL first_rnb(w,wg,ijk) 
-            w%nn = wg ( ijppk ) 
-            w%tt = wg ( ijkpp )
-            w%ee = wg ( ippjk )
-            w%eb = wg ( ipjkm )
-            w%nb = wg ( ijpkm )
-
-            CALL flu(ugfe(ijk), ugfn(ijk), ugft(ijk), ugfe(imjk),             &
-                    ugfn(ijmk), ugft(ijkm), dens, u, v, w, ijk )
-            CALL flv(vgfe(ijk), vgfn(ijk), vgft(ijk), vgfe(imjk),             &
-                    vgfn(ijmk), vgft(ijkm), dens, u, v, w, ijk)
-            CALL flw(wgfe(ijk), wgfn(ijk), wgft(ijk),                        &
-                    wgfe(imjk), wgfn(ijmk), wgft(ijkm), dens, u, v, w, ijk)
-          END IF
-!
-          !DO is = 1, nsolid
-!         Unrolled loop
-         
-          IF ( muscl == 0) THEN
+!             DO is = 1, nsolid
+!             Unrolled loop       
 
             !CALL nb ( dens1, rlk(:,1), ijk ) 
             !CALL nb ( dens2, rlk(:,2), ijk )       
@@ -1025,7 +991,44 @@
             CALL flw_1st(wsfe(ijk,2), wsfn(ijk,2), wsft(ijk,2),     &
                      wsfe(imjk,2), wsfn(ijmk,2), wsft(ijkm,2),        &
                      dens2, u2, v2, w2, k)
+
+
           ELSE
+
+            CALL nb ( dens, rgp, ijk )
+
+            CALL first_rnb(u,ug,ijk)
+            u%nn = ug ( ijppk ) 
+            u%tt = ug ( ijkpp )
+            u%ee = ug ( ippjk )
+            u%wn = ug ( imjpk ) 
+            u%wt = ug ( imjkp )
+
+            CALL first_rnb(v,vg,ijk)
+            v%nn = vg ( ijppk ) 
+            v%tt = vg ( ijkpp )
+            v%ee = vg ( ippjk )
+            v%es = vg ( ipjmk )
+            v%st = vg ( ijmkp ) 
+
+            CALL first_rnb(w,wg,ijk) 
+            w%nn = wg ( ijppk ) 
+            w%tt = wg ( ijkpp )
+            w%ee = wg ( ippjk )
+            w%eb = wg ( ipjkm )
+            w%nb = wg ( ijpkm )
+
+            CALL flu(ugfe(ijk), ugfn(ijk), ugft(ijk), ugfe(imjk),             &
+                    ugfn(ijmk), ugft(ijkm), dens, u, v, w, ijk )
+            CALL flv(vgfe(ijk), vgfn(ijk), vgft(ijk), vgfe(imjk),             &
+                    vgfn(ijmk), vgft(ijkm), dens, u, v, w, ijk)
+            CALL flw(wgfe(ijk), wgfn(ijk), wgft(ijk),                        &
+                    wgfe(imjk), wgfn(ijmk), wgft(ijkm), dens, u, v, w, ijk)
+
+
+!            DO is = 1, nsolid
+!            Unrolled loop
+
 
             CALL nb ( dens1, rlk(:,1), ijk ) 
             CALL nb ( dens2, rlk(:,2), ijk )       
@@ -1093,8 +1096,8 @@
                      wsfe(imjk,2), wsfn(ijmk,2), wsft(ijkm,2),        &
                      dens2, u2, v2, w2, ijk)
 
-          END IF 
-                    
+          END IF
+!                   
         END IF
          
       END DO

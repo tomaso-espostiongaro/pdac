@@ -512,10 +512,11 @@
 ! ... If convergence is not reached in some cell
 ! ... start a new external sweep.
 !
-       IF( MOD( nit, 50 ) == 0 ) THEN
-         omega = omega * 0.9D0
+       IF( MOD( nit, 100 ) == 0 ) THEN
+         omega = omega * 0.5D0
          WRITE(6, fmt="('  reducing relaxation parameter omega')")
          WRITE(6, fmt="('  new value = ',F12.4)") omega
+         call myflush( 6 )
        END IF
 !
       END DO sor_loop
@@ -550,7 +551,7 @@
         END DO
  700    FORMAT('max number of iterations (',I5,') reached at time: ', F8.3)
 
-        CALL error( ' iter ', 'max number of iters exceeded ', 1)
+        ! CALL error( ' iter ', 'max number of iters exceeded ', 1)
         omega = omega0
 
       END IF

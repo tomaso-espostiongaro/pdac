@@ -43,8 +43,10 @@
 
 #if defined MPI
       CALL mpi_finalize( ierr )
-      IF ( ierr/=0 ) THEN
-        CALL mpi_abort(mpi_comm_world, ierr)
+      IF ( ierr /= 0 ) THEN
+        WRITE (8,*) ' *** MPI_FINALIZE failed, .... aborting ***'
+        CALL myflush( 8 )  
+        CALL mpi_abort( mpi_comm_world, ierr )
       END IF
 #endif
 
@@ -52,5 +54,7 @@
 100   FORMAT (/,' *** from PE : ',I3,'  *** in routine ',A, 
      &         /,' *** error msg. : ',A,' *** code ',I5, 
      &         /,' *** aborting ***', /)
+
       STOP 'CRASH'
+
       END SUBROUTINE

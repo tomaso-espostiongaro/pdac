@@ -190,7 +190,7 @@
           WRITE(8,*) 'time:', time, 'proc:', mpime, 'cell:', ijk 
           WRITE(8,*) 'temperature:',tg0, 'enthalpy:',sieg0
           WRITE(8,*) 'specific heat:',cgas0
-          info = info + 1
+          info = 1
           ! CALL error( 'eosg', 'max number of iteration reached in eosg', 1)
 !**********************************************************************
   223     CONTINUE

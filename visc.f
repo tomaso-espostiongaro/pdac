@@ -121,10 +121,10 @@
         IF (present_gas(ig)) THEN
           DO jg=1,ngas
             IF (present_gas(jg)) THEN
-              aa=gmw(ig)/gmw(jg)
-              bb=mmug(ig)/mmug(jg)
-              cc=1.D0+DSQRT(bb)*aa**(-0.25D0)
-              phij(ig,jg)=cc**2/DSQRT(8.D0*(1.D0+aa))
+              aa = gmw(ig) / gmw(jg)
+              bb = mmug(ig) / mmug(jg)
+              cc = 1.D0 + DSQRT(bb) * aa**(-0.25D0)
+              phij(ig,jg) = cc**2 / DSQRT(8.D0 * (1.D0 + aa))
             END IF
           END DO
         END IF

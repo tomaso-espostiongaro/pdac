@@ -147,11 +147,17 @@
       cs = 0.5D0 * (u%c + u%e)
       cn = cs * dt * indx(i+1)
       IF ( cs >= 0.D0 ) THEN
-        erre = gradw / gradc
+        IF (gradc /= 0.0) THEN
+           erre = gradw / gradc    
+        END IF
+        !erre = gradw / gradc  
         fou  = dens_c * u%c 
         incr = 0.5D0 * dx(i+1)
       ELSE IF ( cs < 0.D0 ) THEN
-        erre = grade / gradc
+        IF (gradc /= 0.0) THEN
+           erre = grade / gradc    
+        END IF
+        !erre = grade / gradc
         fou  = dens_e * u%e
         incr = 0.5D0 * dx(i+1)
       END IF
@@ -176,11 +182,17 @@
       cs = (dx(i+1) * v%c + dx(i) * v%e) * indxp
       cn = cs * dt * 2.0 * indyp
       IF (cs >= 0.D0) THEN
-        erre = grads / gradc 
+        IF (gradc /= 0.0) THEN
+           erre = grads / gradc    
+        END IF
+        !erre = grads / gradc 
         fou  = dens_c * u%c
 	incr = 0.5D0 * dy(j)
       ELSE IF (cs < 0.D0) THEN
-        erre = gradn / gradc 
+        IF (gradc /= 0.0) THEN
+           erre = gradn / gradc    
+        END IF
+        !erre = gradn / gradc 
         fou  = dens_n * u%n
 	incr = 0.5D0 * dy(j+1)
       END IF 
@@ -205,11 +217,17 @@
       cs = (dx(i+1) * w%c + dx(i) * w%e) * indxp
       cn = cs * dt * 2.0 * indzp
       IF (cs >= 0.D0) THEN
-	erre = gradb / gradc
+        IF (gradc /= 0.0) THEN
+           erre = gradb / gradc    
+        END IF
+	!erre = gradb / gradc
         fou  = dens_c * u%c
 	incr = 0.5D0 * dz(k)
       ELSE IF (cs < 0.D0) THEN
-	erre = gradt / gradc
+        IF (gradc /= 0.0) THEN
+           erre = gradt / gradc    
+        END IF
+	!erre = gradt / gradc
         fou  = dens_t * u%t
 	incr = 0.5D0 * dz(k+1)
       END IF 
