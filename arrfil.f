@@ -37,9 +37,10 @@
 
       x2 = 0.D0; f2 = 0.D0
       ! ... Uniformly Subsample and smooth the radial function 
-      ! ... of the averaged quota
+      ! ... of the averaged quota. Smoothing is performed by
+      ! ... averaging on a window of size 'sstep'
       !
-      sstep = REAL(x1(counter)/(nsm-1),8)
+      sstep = REAL( (x1(counter)-x1(1))/(nsm-1),8 )
       x2(1) = x1(1)
       f2(1) = f1(1)
       DO i = 2, nsm-1
