@@ -544,7 +544,14 @@
 
         CALL interpolate_2d(x, zb, topo, dummy)
         CALL vertical_shift(topo)
-
+!
+! ... set flags on topography
+!
+        CALL interpolate_2d(x, zb, topo, dummy)
+        CALL set_flag3
+!
+! ... set the implicit profile
+!
         DO k = 1, nz
           DO i = 1, nx
             ijk = i + (k-1) * nx
@@ -562,7 +569,14 @@
 
         CALL interpolate_dem(x, y, zb, topo2d, dummy)
         CALL vertical_shift(topo2d)
-
+!
+! ... set flags on topography
+!
+        CALL interpolate_dem(x, y, zb, topo2d, dummy)
+        CALL set_flag3
+!
+! ... set the implicit profile
+!
         DO k=1,nz
           DO j=1,ny
             DO i=1,nx
@@ -596,10 +610,6 @@
         WRITE(14,*) dist
         CLOSE(14)
       END IF
-!
-! ... set flags on topography
-!
-      CALL set_flag3
 !
 ! ... Deallocate all arrays in the topography module
 !

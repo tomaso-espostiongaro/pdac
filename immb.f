@@ -150,10 +150,8 @@
       END DO
 !
       IF (job_type == '2D') THEN
-        DEALLOCATE (topo_c, topo_x)
         DEALLOCATE (forcex, forcez)
       ELSE IF (job_type == '3D') THEN
-        DEALLOCATE (topo2d_c, topo2d_x, topo2d_y)
         DEALLOCATE (forcex, forcey, forcez)
       END IF
 !

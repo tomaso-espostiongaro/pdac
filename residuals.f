@@ -57,6 +57,7 @@
           END DO
 
         ELSE IF (flag(ijk) == 5) THEN
+          !
           ! ... Compute the mass entered since the beginning
           !
           IF (job_type == '2D') THEN

@@ -1088,7 +1088,7 @@
 !
       USE control_flags, ONLY: job_type
       USE domain_decomposition, ONLY: ncint, meshinds
-      USE grid, ONLY: z, zb
+      USE grid, ONLY: z, zb, flag
       USE immersed_boundaries, ONLY: immb
       USE immersed_boundaries, ONLY: topo_c, topo_x
       USE immersed_boundaries, ONLY: topo2d_c, topo2d_x, topo2d_y
@@ -1110,20 +1110,22 @@
 !
       IF (immb >= 1) THEN
         DO ijk=1, ncint
-          CALL meshinds(ijk,imesh,i,j,k)
-
-          IF (job_type == '2D') THEN
-            IF (z(k) < topo_x(i))     b_e(ijk) = 0 ! East
-            IF (z(k) < topo_x(i-1))   b_w(ijk) = 0 ! West
-            IF (zb(k) < topo_c(i))    b_t(ijk) = 0 ! Top
-            IF (zb(k-1) < topo_c(i))  b_b(ijk) = 0 ! Bottom
-          ELSE IF (job_type == '3D') THEN
-            IF (z(k) < topo2d_x(i,j))     b_e(ijk) = 0 ! East
-            IF (z(k) < topo2d_x(i-1,j))   b_w(ijk) = 0 ! West
-            IF (z(k) < topo2d_y(i,j))     b_n(ijk) = 0 ! North
-            IF (z(k) < topo2d_y(i,j-1))   b_s(ijk) = 0 ! South
-            IF (zb(k) < topo2d_c(i,j))    b_t(ijk) = 0 ! Top
-            IF (zb(k-1) < topo2d_c(i,j))  b_b(ijk) = 0 ! Bottom
+          IF( flag(ijk) == 1 ) THEN
+            CALL meshinds(ijk,imesh,i,j,k)
+  
+            IF (job_type == '2D') THEN
+              IF (z(k) < topo_x(i))     b_e(ijk) = 0 ! East
+              IF (z(k) < topo_x(i-1))   b_w(ijk) = 0 ! West
+              IF (zb(k) < topo_c(i))    b_t(ijk) = 0 ! Top
+              IF (zb(k-1) < topo_c(i))  b_b(ijk) = 0 ! Bottom
+            ELSE IF (job_type == '3D') THEN
+              IF (z(k) < topo2d_x(i,j))     b_e(ijk) = 0 ! East
+              IF (z(k) < topo2d_x(i-1,j))   b_w(ijk) = 0 ! West
+              IF (z(k) < topo2d_y(i,j))     b_n(ijk) = 0 ! North
+              IF (z(k) < topo2d_y(i,j-1))   b_s(ijk) = 0 ! South
+              IF (zb(k) < topo2d_c(i,j))    b_t(ijk) = 0 ! Top
+              IF (zb(k-1) < topo2d_c(i,j))  b_b(ijk) = 0 ! Bottom
+            END IF
           END IF
 
         END DO
