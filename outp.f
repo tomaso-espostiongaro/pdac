@@ -514,13 +514,10 @@
       DEALLOCATE( otmp )
 !
       ALLOCATE( otmp( SIZE( rlk, 1 ) ) )
-      DO is=1,nsolid
-        otmp = rlk(:,is)*inrl(is)
-        CALL write_array( 12, otmp, sgl, lform )  ! solid_bulk_density
-      END DO
-      DEALLOCATE( otmp )
 
       DO is = 1, nsolid
+        otmp = rlk(:,is)*inrl(is)
+        CALL write_array( 12, otmp, sgl, lform )  ! solid_bulk_density
         IF (job_type == '2D') THEN
           CALL write_array( 12, us(:,is), sgl, lform )  ! solid_velocity_r
           CALL write_array( 12, ws(:,is), sgl, lform )  ! solid_velocity_z
@@ -529,11 +526,10 @@
           CALL write_array( 12, vs(:,is), sgl, lform )  ! solid_velocity_y
           CALL write_array( 12, ws(:,is), sgl, lform )  ! solid_velocity_z
         END IF
-      END DO
-
-      DO is=1,nsolid
         CALL write_array( 12, ts(:,is), sgl, lform )  ! solid_temperature
       END DO
+
+      DEALLOCATE( otmp )
 
       IF( mpime == root ) THEN
         CLOSE (12)
