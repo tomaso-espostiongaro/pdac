@@ -299,21 +299,20 @@
             CALL rnb(u,ug,ijk)
             CALL rnb(w,wg,ijk)
 
-            CALL flu(ugfe(ijk), ugfn(ijk),                  &
-                     ugfe(imjk), ugfn(ijkm), dens, u, w, ijk)
-            CALL flw(wgfe(ijk), wgfn(ijk),                   &
-                      wgfe(imjk), wgfn(ijkm), dens, u, w, ijk)
-                            CALL error('tilde','debug',1)
+            CALL flu(ugfe(ijk), ugft(ijk),                  &
+                     ugfe(imjk), ugft(ijkm), dens, u, w, ijk)
+            CALL flw(wgfe(ijk), wgft(ijk),                   &
+                      wgfe(imjk), wgft(ijkm), dens, u, w, ijk)
 
             DO is = 1, nsolid
               CALL nb(dens,rlk(:,is),ijk)
               CALL rnb(u,us(:,is),ijk)
               CALL rnb(w,ws(:,is),ijk)
 
-              CALL flu(usfe(ijk,is), usfn(ijk,is),                     &
-                       usfe(imjk,is), usfn(ijkm,is), dens, u, w, ijk)
-              CALL flw(wsfe(ijk,is), wsfn(ijk,is),                     &
-                       wsfe(imjk,is), wsfn(ijkm,is), dens, u, w, ijk)
+              CALL flu(usfe(ijk,is), usft(ijk,is),                     &
+                       usfe(imjk,is), usft(ijkm,is), dens, u, w, ijk)
+              CALL flw(wsfe(ijk,is), wsft(ijk,is),                     &
+                       wsfe(imjk,is), wsft(ijkm,is), dens, u, w, ijk)
             END DO
             
           ELSE IF (job_type == '3D') THEN
@@ -323,7 +322,7 @@
             CALL rnb(v,vg,ijk)
             CALL rnb(w,wg,ijk)
 
-            CALL flu(ugfe(ijk), ugfn(ijk), ugft(ijk),                        &
+            CALL flu(ugfe(ijk), ugfn(ijk), ugft(ijk),                     &
                     ugfe(imjk), ugfn(ijmk), ugft(ijkm), dens, u, v, w, ijk)
             CALL flv(vgfe(ijk), vgfn(ijk), vgft(ijk),                        &
                     vgfe(imjk), vgfn(ijmk), vgft(ijkm), dens, u, v, w, ijk)

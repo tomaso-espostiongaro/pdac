@@ -33,6 +33,9 @@ ftem.o : dens.o dimensions.o eosg.o grid.o hcapgs.o htilde.o hvs.o  \
 
 gas.o : dimensions.o 
 
+glocal.o : control.o dens.o eosg.o grid.o hcapgs.o indijk.o press.o temp.o  \
+    turbo.o velocity.o visc.o 
+
 grid.o : control.o dimensions.o indijk.o parallel.o types.o 
 
 hcapgs.o : dimensions.o gas.o grid.o 
