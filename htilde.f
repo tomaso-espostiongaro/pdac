@@ -36,7 +36,6 @@
       USE gas_solid_viscosity, ONLY: kapg
       USE grid, ONLY: dx, dy, dz, indx, indy, indz, inx
       USE grid, ONLY: fl_l
-      USE indijk_module
       USE particles_constants, ONLY: inrl
       USE pressure_epsilon, ONLY: ep
       USE set_indexes, ONLY: subscr, subscr_red, imjk, ijmk, ijkm
@@ -106,32 +105,7 @@
         IF(fl_l(ijk) == 1) THEN
           CALL meshinds(ijk,imesh,i,j,k)
           !CALL subscr(ijk)
-          !CALL subscr_red(ijk)
-          IF( job_type == '2D' ) THEN
-
-                 ijkm  = myijk( ip0_jp0_km1_, ijk )
-                 imjk  = myijk( im1_jp0_kp0_, ijk )
-
-                 ijke  = myinds(ip1_jp0_kp0_, ijk )
-                 ijkt  = myinds(ip0_jp0_kp1_, ijk )
-                 ijkw  = myinds(im1_jp0_kp0_, ijk )
-                 ijkb  = myinds(ip0_jp0_km1_, ijk )
-
-          ELSE IF( job_type == '3D' ) THEN
-
-                 imjk   = myijk( im1_jp0_kp0_ , ijk )
-                 ijmk   = myijk( ip0_jm1_kp0_ , ijk )
-                 ijkm   = myijk( ip0_jp0_km1_ , ijk )
-
-                 ijke = myinds( ip1_jp0_kp0_ , ijk )
-                 ijkw = myinds( im1_jp0_kp0_ , ijk )
-                 ijkn = myinds( ip0_jp1_kp0_ , ijk )
-                 ijks = myinds( ip0_jm1_kp0_ , ijk )
-                 ijkt = myinds( ip0_jp0_kp1_ , ijk )
-                 ijkb = myinds( ip0_jp0_km1_ , ijk )
-
-          END IF
-
+          CALL subscr_red(ijk)
 ! 
           egfx = egfe(ijk) - egfe(imjk)
           egfz = egft(ijk) - egft(ijkm)
@@ -424,7 +398,6 @@
         IF(fl_l(ijk) == 1) THEN
           !CALL subscr(ijk)
           !CALL subscr_red(ijk)
-
              
                  imjk   = myijk( im1_jp0_kp0_ , ijk )
                  ijmk   = myijk( ip0_jm1_kp0_ , ijk )
@@ -436,8 +409,6 @@
                  ijks = myinds( ip0_jm1_kp0_ , ijk )
                  ijkt = myinds( ip0_jp0_kp1_ , ijk )
                  ijkb = myinds( ip0_jp0_km1_ , ijk )
-
-             
 
 !
 ! ... compute convective and diffusive fluxes (gas)
@@ -498,11 +469,11 @@
 
 !
             IF (gas_viscosity) THEN
+
               egfe(ijk) = egfe(ijk) - hgfe(ijk)
               egft(ijk) = egft(ijk) - hgft(ijk)
-!
               IF (fl_l(imjk) /= 1) egfe(imjk) = egfe(imjk) - hgfe(imjk)
-              IF (fl_l(ijkm) /= 1) egft(ijkm) = egft(ijkm) - hgft(ijkm)         
+              IF (fl_l(ijkm) /= 1) egft(ijkm) = egft(ijkm) - hgft(ijkm)        
               egfn(ijk) = egfn(ijk) - hgfn(ijk)
               IF (fl_l(ijmk) /= 1) egfn(ijmk) = egfn(ijmk) - hgfn(ijmk)
            
@@ -542,13 +513,13 @@
                 CALL hotc(hsfe(ijk,is), hsfn(ijk, is), hsft(ijk, is),    &
                           hsfe(imjk,is), hsfn(ijmk, is), hsft(ijkm, is),    &
                           eps, temp, kappa, ijk)
-              END IF
+              !END IF
 !
-              IF (part_viscosity) THEN
+              !IF (part_viscosity) THEN
                 esfe(ijk, is) = esfe(ijk, is) - hsfe(ijk,is)
                 esft(ijk, is) = esft(ijk, is) - hsft(ijk, is)
                 IF (fl_l(imjk) /= 1) esfe(imjk,is) = esfe(imjk,is) - hsfe(imjk,is)
-                IF (fl_l(ijkm) /= 1) esft(ijkm,is) = esft(ijkm,is) - hsft(ijkm,is)             
+                IF (fl_l(ijkm) /= 1) esft(ijkm,is) = esft(ijkm,is) - hsft(ijkm,is) 
                 esfn(ijk, is) = esfn(ijk, is) - hsfn(ijk, is)
                 IF (fl_l(ijmk)/=1) esfn(ijmk,is)=esfn(ijmk,is)-hsfn(ijmk,is)
               END IF

@@ -43,7 +43,7 @@
       USE gas_constants, ONLY: present_gas
       IMPLICIT NONE
 !
-      REAL*8, INTENT(IN) :: xgc(:), tg
+      REAL*8, INTENT(INOUT) :: xgc(:), tg
       REAL*8, INTENT(OUT) :: mu, kap
 !
       REAL*8 :: bb, aa, cc, sum, om
@@ -54,10 +54,17 @@
 !
 ! ... Compute Temperature Dependent Viscosity of each gas specie (Reid)
 !
+
+      IF ( tg < 0) THEN
+         WRITE(6,*)'WARNING: negative temperature!'
+         tg = 1.0D0
+      END IF
+
       DO ig=1,ngas
         IF (present_gas(ig) ) THEN
 !
 ! ... non-dimensional temperature 
+           
           tst=tg/mmugek(ig)
 !
 ! ... collision integral (omega) 
@@ -70,7 +77,7 @@
 !
 ! ... semi-empirical consitutive equation for
 ! ... viscosity is expressed in microPoise (cgs unit system)
-          mmug(ig) = 26.69D0 * (m * tg)**0.5D0 / (mmugs(ig)**2 * om)
+          mmug(ig) = 26.69D0 * SQRT(m * tg) / (mmugs(ig)**2 * om)
 !
 ! ... conversion to (Pa-s) (mks unit system)
           mmug(ig) = mmug(ig) * 1.D-7 
@@ -147,6 +154,7 @@
       ELSE IF (iturb == 0) THEN
         mugt = mug
       END IF
+
 !
 ! ... Newtonian stress tensor
 !
@@ -301,8 +309,19 @@
       REAL*8 :: epmyz2, epmyz1, epmzy2, epmzy1
       REAL*8 :: dxm, dxp, dym, dyp, dzm, dzp
       REAL*8 :: indxm, indxp, indym, indyp, indzm, indzp
+      REAL*8 :: indxm2, indxp2, indym2, indyp2, indzm2, indzp2
+      REAL*8 :: cm
+      REAL*8 :: dum, dup, dvm, dvp, dwm, dwp, dvp1
+      REAL*8 :: dupm1, dvpm1, dwpm1, dupm2, dvpm2, dwpm2
+      REAL*8 :: epsc, epse, epsw, epsn, epss, epst, epsb
+      REAL*8 :: epsen, epset, epses, epseb, epswn, epswt, epsnt, epsnb, epsst 
+      REAL*8 :: muc, mue, muw, mun, mus, mut, mub
+      REAL*8 :: muen, muet, mues, mueb, muwn, muwt, munt, munb, must 
+       
       INTEGER :: imesh, i, j, k, ijk
 !
+      cm = 2.D0/3.D0
+
       visx = 0.D0
       visy = 0.D0
       visz = 0.D0
@@ -311,6 +330,7 @@
         imesh = myijk( ip0_jp0_kp0_, ijk)
         IF(fl_l(ijk) == 1) THEN
          CALL subscr(ijk)
+         !CALL subscr_iter(ijk)
          i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
 	 j = MOD( imesh - 1, nx*ny ) / nx + 1
 	 k = ( imesh - 1 ) / ( nx*ny ) + 1
@@ -328,118 +348,194 @@
          indym=1.D0/dym
          indzp=1.D0/dzp
          indzm=1.D0/dzm
+
+         indxp2 = indxp * 2.0D0
+         indxm2 = indxm * 2.0D0
+         indyp2 = indyp * 2.0D0
+         indym2 = indym * 2.0D0
+         indzp2 = indzp * 2.0D0
+         indzm2 = indzm * 2.0D0
+
+         dum = u(ijk) - u(imjk)
+         dup = u(ipjk) - u(ijk)
+         dvm = v(ijk) - v(ijmk)
+         dvp = v(ijpk) - v(ijk)    
+         dwm = w(ijk) - w(ijkm)
+         dwp = w(ijkp) - w(ijk)
+
+         dupm1 = u(ijpk) - u(imjpk)
+         dupm2 = u(ijkp) - u(imjkp)
+         dvpm1 = v(ipjk) - v(ipjmk)
+         dvpm2 = v(ijkp) - v(ijmkp)
+         dwpm1 = w(ipjk) - w(ipjkm)
+         dwpm2 = w(ijpk) - w(ijpkm)
 !
 ! ... divergence of the velocity field at centered, east, north and top cells
 !
-         divc = ( (u(ijk)-u(imjk)) * indx(i) + (v(ijk)-v(ijmk)) * indy(j) +        &
-	          (w(ijk)-w(ijkm)) * indz(k) )
-         dive = ( (u(ipjk)-u(ijk)) * indx(i+1) + (v(ipjk)-v(ipjmk)) * indy(j) +   &
-	          (w(ipjk)-w(ipjkm)) * indz(k) )
-         divn = ( (u(ijpk)-u(imjpk)) * indx(i) + (v(ijpk)-v(ijk)) * indy(j+1) +   &
-	          (w(ijpk)-w(ijpkm)) * indz(k) )
-         divt = ( (u(ijkp)-u(imjkp)) * indx(i) + (v(ijkp)-v(ijmkp)) * indy(j) +   &
-	          (w(ijkp)-w(ijk)) * indz(k+1) )
+         divc = dum * indx(i) + dvm * indy(j) + dwm * indz(k) 
+         dive = dup * indx(i+1) + dvpm1 * indy(j) + dwpm1 * indz(k) 
+         divn = dupm1 * indx(i) + dvp * indy(j+1) + dwpm2 * indz(k) 
+         divt = dupm2 * indx(i) + dvpm2* indy(j) + dwp * indz(k+1) 
+
 !         
 ! ... diagonal components of the strain tensor ...
 !
-         txx2 = 2.D0*(u(ipjk)-u(ijk)) * indx(i+1)  
-         txx1 = 2.D0*(u(ijk)-u(imjk)) * indx(i)   
-         tyy2 = 2.D0*(v(ijpk)-v(ijk)) * indy(j+1) 
-         tyy1 = 2.D0*(v(ijk)-v(ijmk)) * indy(j)   
-         tzz2 = 2.D0*(w(ijkp)-w(ijk)) * indz(k+1) 
-         tzz1 = 2.D0*(w(ijk)-w(ijkm)) * indz(k)   
+         txx2 = 2.D0 * dup * indx(i+1)  
+         txx1 = 2.D0 * dum * indx(i)   
+         tyy2 = 2.D0 * dvp * indy(j+1) 
+         tyy1 = 2.D0 * dvm  * indy(j) 
+         tzz2 = 2.D0 * dwp * indz(k+1) 
+         tzz1 = 2.D0 * dwm * indz(k) 
 !
 ! ... (isotropy)
 !
-         txx2 = mu(ijke) * txx2 - 2.D0/3.D0 * lambda(ijke) * dive
-         txx1 = mu(ijk)  * txx1 - 2.D0/3.D0 * lambda(ijk)  * divc
-         tyy2 = mu(ijkn) * tyy2 - 2.D0/3.D0 * lambda(ijkn) * divn
-         tyy1 = mu(ijk)  * tyy1 - 2.D0/3.D0 * lambda(ijk)  * divc
-         tzz2 = mu(ijkt) * tzz2 - 2.D0/3.D0 * lambda(ijkt) * divt
-         tzz1 = mu(ijk)  * tzz1 - 2.D0/3.D0 * lambda(ijk)  * divc
+         txx2 = mu(ijke) * txx2 - cm * lambda(ijke) * dive
+         txx1 = mu(ijk)  * txx1 - cm * lambda(ijk)  * divc
+         tyy2 = mu(ijkn) * tyy2 - cm * lambda(ijkn) * divn
+         tyy1 = mu(ijk)  * tyy1 - cm * lambda(ijk)  * divc
+         tzz2 = mu(ijkt) * tzz2 - cm * lambda(ijkt) * divt
+         tzz1 = mu(ijk)  * tzz1 - cm * lambda(ijk)  * divc
 !
 ! ... non-diagonal component of the stress tensor
 !
-         tyx2 = (u(ijpk)-u(ijk)) * indyp*2.D0 + (v(ipjk)-v(ijk)) * indxp*2.D0
-         tyx1 = (u(ijk)-u(ijmk)) * indym*2.D0 + (v(ipjmk)-v(ijmk)) * indxp*2.D0
+         dum = u(ijk) - u(ijmk)
+         dup = u(ijpk) - u(ijk)
+         dvm = v(ijk) - v(imjk)
+         dvp = v(ipjk) - v(ijk)
+         dwm = w(ijk) - w(ijmk)
+         dwp = w(ijpk) - w(ijk)
+
+         dupm1 = u(imjpk) - u(imjk)
+         dupm2 = u(imjkp) - u(imjk)
+         dvpm1 = v(ipjmk) - v(ijmk)
+         dvpm2 = v(ijmkp) - v(ijmk) 
+         dwpm1 = w(ijpkm) - w(ijkm)
+         dwpm2 = w(ipjkm) - w(ijkm)
+
+         tyx2 = dup * indyp2 + dvp * indxp2
+         tyx1 = dum * indym2 + dvpm1 * indxp2
          txy2 = tyx2
-         txy1 = (u(imjpk)-u(imjk)) * indyp*2.D0 + (v(ijk)-v(imjk)) * indxm*2.D0
-!
-         tzy2 = (v(ijkp)-v(ijk)) * indzp*2.D0 + (w(ijpk)-w(ijk)) * indyp*2.D0
-         tzy1 = (v(ijk)-v(ijkm)) * indzm*2.D0 + (w(ijpkm)-w(ijkm)) * indyp*2.D0
+         txy1 = dupm1 * indyp2 + dvm * indxm2
+
+         dvp = v(ijkp) - v(ijk)
+         dvm = v(ijk) - v(ijkm)
+
+         tzy2 = dvp * indzp2 + dwp * indyp2
+         tzy1 = dvm * indzm2 + dwpm1 * indyp2
          tyz2 = tzy2
-         tyz1 = (v(ijmkp)-v(ijmk)) * indzp*2.D0 + (w(ijk)-w(ijmk)) * indym*2.D0
-! 
-         txz2 = (w(ipjk)-w(ijk)) * indxp*2.D0 + (u(ijkp)-u(ijk)) * indzp*2.D0
-         txz1 = (w(ijk)-w(imjk)) * indxm*2.D0 + (u(imjkp)-u(imjk)) * indzp*2.D0
+         tyz1 = dvpm2 * indzp2 + dwm * indym2
+
+         dwp = w(ipjk) - w(ijk)
+         dwm = w(ijk) - w(imjk)
+         dup = u(ijkp) - u(ijk)
+         dum = u(ijk) - u(ijkm)
+
+         txz2 = dwp * indxp2 + dup * indzp2
+         txz1 = dwm * indxm2 + dupm2 * indzp2
          tzx2 = txz2
-         tzx1 = (w(ipjkm)-w(ijkm)) * indxp*2.D0 + (u(ijk)-u(ijkm)) * indzm*2.D0
+         tzx1 = dwpm2 * indxp2 + dum * indzm2
 !
 ! ... compute linearly interpolated values of viscosity on the staggered grid
 !
-         epm1 =   ( dy(j)*eps(ijkn)*mu(ijkn)   + dy(j+1)*eps(ijk)*mu(ijk) ) * indyp
-         epm2 =   ( dy(j)*eps(ijken)*mu(ijken) + dy(j+1)*eps(ijke)*mu(ijke) ) * indyp
-         epmyx2 = ( dx(i+1)*epm1 + dx(i)*epm2 ) * indxp
+
+         epsc = eps(ijk)
+         epse = eps(ijke)
+         epsw = eps(ijkw)
+         epsn = eps(ijkn)
+         epss = eps(ijks)
+         epst = eps(ijkt)
+         epsb = eps(ijkb)
+         epsen = eps(ijken)
+         epset = eps(ijket)
+         epses = eps(ijkes)
+         epseb = eps(ijkeb)
+         epswn = eps(ijkwn)
+         epswt = eps(ijkwt)
+         epsnt = eps(ijknt)
+         epsnb = eps(ijknb)
+         epsst = eps(ijkst)
+
+         muc = mu(ijk)
+         mue = mu(ijke)
+         muw = mu(ijkw)
+         mun = mu(ijkn)
+         mus = mu(ijks)
+         mut = mu(ijkt)
+         mub = mu(ijkb)
+         muen = mu(ijken)
+         muet = mu(ijket)
+         mues = mu(ijkes)
+         mueb = mu(ijkeb)
+         muwn = mu(ijkwn)
+         muwt = mu(ijkwt)
+         munt = mu(ijknt)
+         munb = mu(ijknb)
+         must = mu(ijkst)
+
+
+         epm1 =   ( dy(j) * epsn * mun + dy(j+1) * epsc *muc ) * indyp
+         epm2 =   ( dy(j) * epsen * muen + dy(j+1) * epse * mue ) * indyp
+         epmyx2 = ( dx(i+1) * epm1 + dx(i) * epm2 ) * indxp
 !
-         epm1 =   ( dy(j-1)*eps(ijk)*mu(ijk)   + dy(j)*eps(ijks)*mu(ijks) ) * indym
-         epm2 =   ( dy(j-1)*eps(ijke)*mu(ijke) + dy(j)*eps(ijkes)*mu(ijkes) ) * indym
-         epmyx1 = ( dx(i+1)*epm1 + dx(i)*epm2 ) * indxp
+         epm1 =   ( dy(j-1) * epsc * muc + dy(j) * epss * mus ) * indym
+         epm2 =   ( dy(j-1) * epse * mue + dy(j) * epses * mues ) * indym
+         epmyx1 = ( dx(i+1) * epm1 + dx(i) * epm2 ) * indxp
 !
-         epm1 =   ( dz(k)*eps(ijkt)*mu(ijkt)   + dz(k+1)*eps(ijk)*mu(ijk) ) * indzp
-         epm2 =   ( dz(k)*eps(ijket)*mu(ijket) + dz(k+1)*eps(ijke)*mu(ijke) ) * indzp
-         epmzx2 = ( dx(i+1)*epm1 + dx(i)*epm2 ) * indxp
+         epm1 =   ( dz(k) * epst * mut + dz(k+1) * epsc * muc ) * indzp
+         epm2 =   ( dz(k) * epset * muet + dz(k+1) * epse * mue ) * indzp
+         epmzx2 = ( dx(i+1) * epm1 + dx(i) * epm2 ) * indxp
 !
-         epm1 =   ( dz(k-1)*eps(ijk)*mu(ijk)   + dz(k)*eps(ijkb)*mu(ijkb) ) * indzm
-         epm2 =   ( dz(k-1)*eps(ijke)*mu(ijke) + dz(k)*eps(ijkeb)*mu(ijkeb) ) * indzm
-         epmzx1 = ( dx(i+1)*epm1 + dx(i)*epm2 ) * indxp
+         epm1 =   ( dz(k-1) * epsc * muc + dz(k) * epsb * mub ) * indzm
+         epm2 =   ( dz(k-1) * epse * mue + dz(k) * epseb * mueb ) * indzm
+         epmzx1 = ( dx(i+1) * epm1 + dx(i) * epm2 ) * indxp
 ! 
 ! ... X-gradient of the stress tensor
 !
-         visx(ijk) = (eps(ijke)*txx2 - eps(ijk)*txx1) * indxp*2.D0 +        &
-                     (epmyx2*tyx2 - epmyx1*tyx1) * indy(j)         +        &
-		     (epmzx2*tzx2 - epmzx1*tzx1) * indz(k)
+         visx(ijk) = (epse * txx2 - epsc * txx1) * indxp2 
+         visx(ijk) = visx(ijk) + (epmyx2 * tyx2 - epmyx1 * tyx1) * indy(j)    
+         visx(ijk) = visx(ijk) + (epmzx2 * tzx2 - epmzx1 * tzx1) * indz(k)
 !
 ! ... compute linearly interpolated values of viscosity on the staggered grid
 !
-         epm1 =   ( dy(j)*eps(ijkwn)*mu(ijkwn) + dy(j+1)*eps(ijkw)*mu(ijkw)) * indyp
-         epm2 =   ( dy(j)*eps(ijkn)*mu(ijkn)   + dy(j+1)*eps(ijk)*mu(ijk) ) * indyp
-         epmxy1 = ( dx(i)*epm1 + dx(i-1)*epm2 ) * indxm
+         epm1 =   ( dy(j) * epswn * muwn + dy(j+1) * epsw * muw) * indyp
+         epm2 =   ( dy(j) * epsn * mun + dy(j+1) * epsc * muc ) * indyp
+         epmxy1 = ( dx(i) * epm1 + dx(i-1) * epm2 ) * indxm
 !
          epmxy2 = epmyx2
 !
-         epm1 =   ( dz(k)*eps(ijkt)*mu(ijkt)   + dz(k+1)*eps(ijk)*mu(ijk) ) * indzp
-         epm2 =   ( dz(k)*eps(ijknt)*mu(ijknt) + dz(k+1)*eps(ijkn)*mu(ijkn) ) * indzp
-         epmzy2 = ( dy(j+1)*epm1 + dy(j)*epm2 ) * indyp
+         epm1 =   ( dz(k) * epst * mut + dz(k+1) * epsc * muc ) * indzp
+         epm2 =   ( dz(k) * epsnt * munt + dz(k+1) * epsn * mun ) * indzp
+         epmzy2 = ( dy(j+1) * epm1 + dy(j) * epm2 ) * indyp
 !
-         epm1 =   ( dz(k-1)*eps(ijk)*mu(ijk)   + dz(k)*eps(ijkb)*mu(ijkb) ) * indzm
-         epm2 =   ( dz(k-1)*eps(ijkn)*mu(ijkn) + dz(k)*eps(ijknb)*mu(ijknb) ) * indzm
-         epmzy1 = ( dy(j+1)*epm1 + dy(j)*epm2 ) * indyp
+         epm1 =   ( dz(k-1) * epsc * muc + dz(k) * epsb * mub ) * indzm
+         epm2 =   ( dz(k-1) * epsn * mun + dz(k) * epsnb * munb ) * indzm
+         epmzy1 = ( dy(j+1) * epm1 + dy(j) * epm2 ) * indyp
 !
 ! ... Y-gradient of the stress tensor
 !
-         visy(ijk) = (eps(ijkn)*tyy2 - eps(ijk)*tyy1) * indyp*2.D0    +      &
-                     (epmxy2*txy2 - epmxy1*txy1) * indx(i)            +      &
-                     (epmzy2*tzy2 - epmzy1*tzy1) * indz(k) 
+         visy(ijk) = (epsn * tyy2 - epsc * tyy1) * indyp2    
+         visy(ijk) = visy(ijk) + (epmxy2 * txy2 - epmxy1 * txy1) * indx(i)         
+         visy(ijk) = visy(ijk) + (epmzy2 * tzy2 - epmzy1 * tzy1) * indz(k) 
 !
 ! ... compute linearly interpolated values of viscosity on the staggered grid
 !
          epmxz2 = epmzx2
 !
-         epm1 =   ( dz(k)*eps(ijkwt)*mu(ijkwt) + dz(k+1)*eps(ijkw)*mu(ijkw)) * indzp
-         epm2 =   ( dz(k)*eps(ijkt)*mu(ijkt)   + dz(k+1)*eps(ijk)*mu(ijk) ) * indzp
-         epmxz1 = ( dx(i)*epm1 + dx(i-1)*epm2 ) * indxm
+         epm1 =   ( dz(k) * epswt * muwt + dz(k+1) * epsw * muw) * indzp
+         epm2 =   ( dz(k) * epst * mut + dz(k+1) * epsc * muc ) * indzp
+         epmxz1 = ( dx(i) * epm1 + dx(i-1) * epm2 ) * indxm
 !
          epmyz2 = epmzy2
 !
-         epm1 =   ( dz(k)*eps(ijkst)*mu(ijkst) + dz(k+1)*eps(ijks)*mu(ijks)) * indzp
-         epm2 =   ( dz(k)*eps(ijkt)*mu(ijkt)   + dz(k+1)*eps(ijk)*mu(ijk) ) * indzp
-         epmyz1 = ( dy(j)*epm1 + dy(j-1)*epm2 ) * indym
+         epm1 =   ( dz(k) * epsst * must + dz(k+1) * epss * mus) * indzp
+         epm2 =   ( dz(k) * epst * mut + dz(k+1) * epsc * muc ) * indzp
+         epmyz1 = ( dy(j) * epm1 + dy(j-1) * epm2 ) * indym
 !
 ! ... Z-gradient of the stress tensor
 !
-         visz(ijk) = (eps(ijkt)*tzz2 - eps(ijk)*tzz1) * indzp*2.D0   +  &
-                    (epmxz2*txz2 - epmxz1*txz1) * indx(i)            +  &
-                    (epmyz2*tyz2 - epmyz1*tyz1) * indy(j) 
+         visz(ijk) = (epst * tzz2 - epsc * tzz1) * indzp2   
+         visz(ijk) = visz(ijk) + (epmxz2 * txz2 - epmxz1 * txz1) * indx(i)           
+         visz(ijk) = visz(ijk) + (epmyz2 * tyz2 - epmyz1 * tyz1) * indy(j) 
 
         END IF
       END DO
@@ -472,8 +568,11 @@
       REAL*8 :: divc, divr, divt, dive
       REAL*8 :: epsmu2, epsmu11, epsmu22, epsmu1, epsmu12, epsmu21
       REAL*8 :: dxm, dxp, dzm, dzp, indxm, indxp, indzm, indzp
+      REAL*8 :: cm
       INTEGER :: imesh, i, j, ij
 !
+      cm = 2.D0/3.D0
+
       visx = 0.D0
       visz = 0.D0
 !
@@ -512,10 +611,10 @@
 !
 ! ... (isotropy)
 !
-         txx2 = mu(ijke) * txx2 - 2.D0/3.D0 * lambda(ijke) * divr
-         txx1 = mu(ij)  * txx1 - 2.D0/3.D0 * lambda(ij)  * divc
-         tyy2 = mu(ijkt) * tyy2 - 2.D0/3.D0 * lambda(ijkt) * divt
-         tyy1 = mu(ij)  * tyy1 - 2.D0/3.D0 * lambda(ij)  * divc
+         txx2 = mu(ijke) * txx2 - cm * lambda(ijke) * divr
+         txx1 = mu(ij)  * txx1 - cm * lambda(ij)  * divc
+         tyy2 = mu(ijkt) * tyy2 - cm * lambda(ijkt) * divt
+         tyy1 = mu(ij)  * tyy1 - cm * lambda(ij)  * divc
 !
 ! ... non-diagonal component of the stress tensor
 !
@@ -542,7 +641,7 @@
 !
 ! ... (isotropy)
 !
-           t0 = mu0 * t0 - 2.D0/3.D0*lambda0 * dive
+           t0 = mu0 * t0 - cm *lambda0 * dive
          ELSE
            t0 = 0.D0
          ENDIF

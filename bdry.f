@@ -92,6 +92,7 @@
               CALL inoutflow(ug(n0),ug(n1),ug(n2),              &
                              us(n0,:),us(n1,:),us(n2,:),d1,d2,gravx,k)
 
+
 ! ... Compute tangential components of velocities
 
               IF(fl_l(ipjkp) == 4) THEN
@@ -109,6 +110,10 @@
 
             END SELECT
 
+        !IF ( i == 2 .AND. j == 2 .AND. k == 59 ) THEN
+        !   WRITE(6,*) ' from boundary 1 '
+        !   WRITE(6,*) ug(n0), ug(n1), ug(n2)
+        !END IF
 !
 ! ***** West boundary conditions ***** !
 !
@@ -213,6 +218,10 @@
 
               END SELECT
 
+        !IF ( i == 2 .AND. j == 2 .AND. k == 59 ) THEN
+        !   WRITE(6,*) ' from boundary 2 '
+        !   WRITE(6,*) ug(n0), ug(n1), ug(n2)
+        !END IF
 !
 ! ***** South boundary conditions ***** !
 !
@@ -263,6 +272,11 @@
               END SELECT
 
             END IF
+
+        !IF ( i == 2 .AND. j == 2 .AND. k == 59 ) THEN
+        !   WRITE(6,*) ' from boundary 3 '
+        !   WRITE(6,*) ug(n0), ug(n1), ug(n2)
+        !END IF
 !
 ! ***** Top boundary conditions ***** !
 !
@@ -328,6 +342,10 @@
               ENDIF
             END IF
 
+        !IF ( i == 2 .AND. j == 2 .AND. k == 59 ) THEN
+        !   WRITE(6,*) ' from boundary 4 '
+        !   WRITE(6,*) ug(n0), ug(n1), ug(n2)
+        !END IF
 !
 ! ***** Bottom boundary conditions ***** !
 !
@@ -359,6 +377,11 @@
               CONTINUE
 
             END SELECT
+
+        !IF ( i == 2 .AND. j == 2 .AND. k == 59 ) THEN
+        !   WRITE(6,*) ' from boundary 5 '
+        !   WRITE(6,*) ug(n0), ug(n1), ug(n2)
+        !END IF
 !
 ! ... Set lower corners velocities
 !

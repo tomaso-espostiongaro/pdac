@@ -1,3 +1,8 @@
+
+#if defined __HPM
+#  include "/cineca/prod/hpm/include/f_hpm.h"
+#endif
+
 !----------------------------------------------------------------------
       MODULE iterative_solver
 !----------------------------------------------------------------------
@@ -86,8 +91,6 @@
 !
 ! ... HW performance monitor include file
 
-! #include "f_hpm.h" 
-
 !
       INTEGER :: is, imesh, ii, jj
       REAL*8 :: dgorig
@@ -148,7 +151,7 @@
           !CALL subscr( ijk_ )
           CALL subscr_iter( ijk_ )
           CALL assemble_matrix( ijk_ )
-          CALL solve_velocities( ijk_ )
+          CALL solve_velocities( ijk_)
         END IF
       END DO
 
@@ -261,6 +264,7 @@
 !
          IF( timing ) THEN
             st0 = cclock_wall()
+            !CALL f_hpmstart( 1, ' sor ' )
             ! call system_clock (st0,ratc)
          END IF  
 
@@ -273,6 +277,7 @@
            converge( ijk_ ) = .FALSE.
 
            IF( fl_l( ijk_ ) /= 1 ) converge( ijk_ ) = .TRUE.
+
            IF( fl_l( ijk_ ) == 1 ) THEN
 
               ! ...   Calculate global index i_ , j_ , k_
@@ -331,7 +336,12 @@
 
               dgorig = dg
 
-              IF( DABS( dg ) <= conv( ijk_ ) ) THEN
+              !IF( nit == maxout ) &
+              !WRITE(6,*) 'Pre ',imesh, i_ , j_ , k_, converge( ijk_ ), conv( ijk_ ), dg
+
+              IF( ABS( dg ) <= conv( ijk_ ) ) THEN
+
+                ncnt = ncnt + 1
               
                 ! ... If the residual is lower then the prescribed limit
                 ! ... compute the gas and particle densities and proceed 
@@ -358,38 +368,42 @@
                     rlk( ijk_, is) = MAX( 0.0d0, rlk(ijk_,is) )
                     rls = rls + rlk( ijk_,is) * inrl(is)
 
+                  END DO
+
+                ELSE IF (job_type == '3D') THEN
+
+                  DO is = 1, nsolid
+
+                    rlkx = (rsfe(ijk_,is) - rsfe(imjk,is)) * indx(i_) * inx(i_)
+                    rlky = (rsfn(ijk_,is) - rsfn(ijmk,is)) * indy(j_)
+                    rlkz = (rsft(ijk_,is) - rsft(ijkm,is)) * indz(k_)
+          
+                    rlk_tmp = rlkn( ijk_, is ) - dt * ( rlkx + rlky + rlkz )
+!                    - dt * (r1(ijk_)+r2(ijk_)+r3(ijk_)+r4(ijk_)+r5(ijk_))
+                    rlk_tmp= MAX( 0.0d0, rlk_tmp )
+                    rls = rls + rlk_tmp * inrl(is)
+                    rlk( ijk_, is) = rlk_tmp
+
                  END DO
 
-              ELSE IF (job_type == '3D') THEN
-
-                 DO is = 1, nsolid
-
-                   rlkx = (rsfe(ijk_,is) - rsfe(imjk,is)) * indx(i_) * inx(i_)
-                   rlky = (rsfn(ijk_,is) - rsfn(ijmk,is)) * indy(j_)
-                   rlkz = (rsft(ijk_,is) - rsft(ijkm,is)) * indz(k_)
-          
-                   rlk_tmp = rlkn( ijk_, is ) - dt * ( rlkx + rlky + rlkz )
-!                   - dt * (r1(ijk_)+r2(ijk_)+r3(ijk_)+r4(ijk_)+r5(ijk_))
-                   rlk_tmp= MAX( 0.0d0, rlk_tmp )
-                   rls = rls + rlk_tmp * inrl(is)
-                   rlk( ijk_, is) = rlk_tmp
-
-                END DO
-
-             END IF
+               END IF
       
-             IF( rls > 1.D0 ) THEN
-                WRITE(8,*) ' warning1: mass is not conserved'
-                WRITE(8,*) ' time, i, j, k, rls ', time, i_, j_, k_, rls
-                CALL error('iter', 'warning: mass is not conserved',1)
-             ENDIF
+               IF( rls > 1.D0 ) THEN
+                 WRITE(8,*) ' warning1: mass is not conserved'
+                 WRITE(8,*) ' time, i, j, k, rls ', time, i_, j_, k_, rls
+                 CALL error('iter', 'warning: mass is not conserved',1)
+               ENDIF
 
-             ep( ijk_ ) = 1.D0 - rls
+               ep( ijk_ ) = 1.D0 - rls
 
 
-                rgp( ijk_ ) = ep( ijk_ ) * rog( ijk_ )
+               rgp( ijk_ ) = ep( ijk_ ) * rog( ijk_ )
 
-              ELSE IF ( DABS(dg) > conv( ijk_ ) ) THEN
+               !IF( nit == maxout ) &
+               !WRITE(6,*) 'IF1 ',imesh, i_ , j_ , k_, converge( ijk_ ), conv( ijk_ ), dg
+
+
+             ELSE IF ( ABS(dg) > conv( ijk_ ) ) THEN
 !
                 ! ... If the residual is higher then the prescribed limit
                 ! ... start the inner (in-cell) iterative loop
@@ -398,6 +412,9 @@
 !
                 d3 = dg
                 p3 = p( ijk_ )
+
+                !IF( nit == maxout ) &
+                !WRITE(6,*) 'IF2P ',imesh, i_ , j_ , k_, converge( ijk_ ), conv( ijk_ ), d3, p3
 !
                 IF( use_opt_inner ) THEN
                   IF( muscl == 0 ) THEN
@@ -414,6 +431,9 @@
 
                 ninner = ninner + 1
 
+                !IF( nit == maxout ) &
+                !WRITE(6,*) 'IF2D ',imesh, i_ , j_ , k_, converge( ijk_ ), conv( ijk_ ), d3, p3
+
 !   *** END TIMING (Convergence in the ijk cell) ***
 
               END IF
@@ -426,6 +446,7 @@
          IF( timing ) THEN
              st1 = cclock_wall()
              ! call system_clock(st1,ratc)
+             !CALL f_hpmstop( 1 )
          END IF
 
 
@@ -433,6 +454,9 @@
          IF( ninner > 0 ) THEN
            WRITE(6, fmt="( I10, 2X, F4.2, 2X, I10, 2X, F6.3)" ) &
              ninner, REAL(nloop) / REAL(ninner), ncnt, timconv(nit)
+         ELSE
+           WRITE(6, fmt="( I10, 2X, F4.2, 2X, I10, 2X, F6.3)" ) &
+             ninner, REAL(nloop), ncnt, timconv(nit)
          END IF
     
 !
@@ -468,7 +492,7 @@
 ! ... mustit equals zero when convergence is reached 
 ! ... simultaneously in each cell of the subdomain
 !
-        IF( ALL(converge) ) mustit = 0
+        IF( ALL( converge ) ) mustit = 0
 !
 ! ... mustit must be zero simultaneously in all subdomains
 !
@@ -488,7 +512,11 @@
 ! ... If convergence is not reached in some cell
 ! ... start a new external sweep.
 !
-       IF( MOD( nit, 1000 ) == 0 ) omega = omega * 0.9D0
+       IF( MOD( nit, 50 ) == 0 ) THEN
+         omega = omega * 0.9D0
+         WRITE(6, fmt="('  reducing relaxation parameter omega')")
+         WRITE(6, fmt="('  new value = ',F12.4)") omega
+       END IF
 !
       END DO sor_loop
 
@@ -517,7 +545,7 @@
         DO ijk_ = 1, ncint
           IF ( .NOT. converge( ijk_ ) ) THEN
             CALL meshinds( ijk_ , imesh, i_ , j_ , k_ )
-            WRITE(6,*) imesh, i_ , j_ , k_
+            WRITE(6,*) imesh, i_ , j_ , k_, conv( ijk_ )
           END IF
         END DO
  700    FORMAT('max number of iterations (',I5,') reached at time: ', F8.3)
@@ -773,6 +801,14 @@
       resx = ( rgfe(ijk) - rgfe(imjk) ) * indx(i) * inx(i)
       resz = ( rgft(ijk) - rgft(ijkm) ) * indz(k)
       IF (job_type == '3D') resy = (rgfn(ijk) - rgfn(ijmk)) * indy(j)
+
+      !IF( i == 2 .AND. j == 2 .AND. k == 59 ) then
+      !  write(6,*) 'from calc_res'
+      !  write(6,*) 'rgfe ', rgfe(ijk), rgfe(imjk)
+      !  write(6,*) 'rgft ', rgft(ijk), rgft(ijkm)
+      !  write(6,*) 'rgfn ', rgfn(ijk), rgfn(ijmk)
+      !  write(6,*) 'rgp  ', rgp(ijk),  rgpn(ijk)
+      !endif
 !
       res  = rgp(ijk) - rgpn(ijk) + dt * (resx+resy+resz)
 !          - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
@@ -794,7 +830,6 @@
         INTEGER :: kros
         REAL*8, SAVE :: dp, d1, d2, p1, p2, d12
 
-          ncnt = ncnt + 1
 
         IF( kros /= 3 ) THEN
 
@@ -1323,6 +1358,7 @@
                ! CALL first_rnb( ug_, ug, ijk )
                ! CALL first_rnb( wg_, wg, ijk )
                ! CALL first_rnb( vg_, vg, ijk )
+
                ug_%c = ug( ijk )
                ug_%w = ug( imjk )
                wg_%c = wg( ijk )

@@ -173,6 +173,7 @@
       REAL*8 :: num, den
       REAL*8 :: delt
       INTEGER  :: i, j, k, ijk, imesh  
+
       TYPE(stencil) :: sp11, sp12, sp22, sp13, sp23, sp33
 !
       ALLOCATE(modsr(ncdom));     modsr = 0.0D0
@@ -325,6 +326,7 @@
 ! ... Smagorinsky turbulent viscosity
 !
           mugt(ijk) = rog(ijk) * smag(ijk) * modsr(ijk)
+
           IF(mugt(ijk) < 0.0D0) mugt(ijk) = 0.0D0
 !
           scoeff(ijk) = cdyn

@@ -156,7 +156,8 @@
 
          CALL parallel_sum_integer( info, 1 )
          IF( info /= 0 ) THEN
-           CALL error( ' prog ',' some cells did not converge in eosg ', info )
+!           CALL error( ' prog ',' some cells did not converge in eosg ', info )
+         WRITE (6,*)'  WARNING: some cells did not converge in eosg'
          END IF 
 !
        END IF

@@ -12,7 +12,7 @@ subscr.o temp.o tilde.o time.o turbo.o types.o \
 velocity.o visc.o ygas.o $(SYSOBJ) 
 
 pdac.x: $(FOBJS) comm/comm.a
-	$(LINKER) -o pdac.x $(LINKFLAGS) $(FOBJS) comm/comm.a $(LIBS)
+	$(LINKER) -o pdac.x $(MPFFLAGS) $(LINKFLAGS) $(FOBJS) comm/comm.a $(LIBS)
 
 clean:
 	rm -f *.o *.mod *.a core core.* *.stb

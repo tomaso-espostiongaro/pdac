@@ -139,6 +139,13 @@
 !
 ! ... on West volume boundary
 !
+      !IF( i == 2 .AND. j == 2 .AND. k == 59 ) THEN
+      !  WRITE(6,*) 'from masf_3d_new'
+      !  WRITE(6,*) 'dens ', dens%c, dens%w, dens%e, dens%s, dens%n, dens%b, dens%t
+      !  WRITE(6,*) 'u ', u%c, u%w
+      !  WRITE(6,*) 'v ', v%c, v%s
+      !  WRITE(6,*) 'w ', w%c, w%b
+      !END IF
       cs = u%w
       IF (cs >= 0.D0) THEN
         fou  = dens%w 

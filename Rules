@@ -2,7 +2,7 @@
 	$(CC) -c $(CFLAGS) $<
 
 .f.o:
-	$(FC) -c $(FREEFORM) $(FFLAGS) $(MODULES) $<
+	$(FC) -c $(PREPROCESSING) $(FREEFORM) $(FFLAGS) $(MODULES) $<
 
 .F.o:
-	$(MPFC) -c $(MPFFLAGS) $(CPPFLAGS) $(MODULES) $<
+	$(MPFC) -c $(PREPROCESSINGF) $(MPFFLAGS) $(CPPFLAGS) $(MODULES) $<

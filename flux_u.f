@@ -242,8 +242,12 @@
       REAL*8 :: dens_c, dens_e, dens_n, dens_t
       REAL*8 :: dens_w, dens_s, dens_b
       REAL*8 :: dxm, dxp, dxpp, indxpp, indxp, indxm
-
+   
 !
+      !IF( (i+2) > SIZE( dx ) ) THEN
+      !  write(6,*) 'flu_3d_1st: i+2 out of bounds ', i+2, SIZE(dx)
+      !ENDIF
+
       dxm=dx(i)+dx(i-1)
       dxp=dx(i)+dx(i+1)
       dxpp=dx(i+1)+dx(i+2)

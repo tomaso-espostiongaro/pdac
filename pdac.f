@@ -10,6 +10,12 @@
 ! 3d version implemented by: T. Esposti Ongaro, C. Cavazzoni
 !******************************************************************************
 !
+
+#if defined __HPM
+#  include "/cineca/prod/hpm/include/f_hpm.h"
+#endif
+!
+!
       PROGRAM pdac
 
       USE dimensions
@@ -62,14 +68,14 @@
 
       IF(timing) then
          s0 = cpclock()
-         call MP_WALLTIME(pt0)
+         call MP_WALLTIME(pt0,mpime)
       END IF
 
 ! ... date and time
       CALL date_and_time( values = mydate )
 
 ! ... Initialize the IBM HW performance monitor
-!      call f_hpminit( mpime, 'pdac' )
+      !call f_hpminit( mpime, 'pdac' )
 !
 ! ... I/O files
 !
@@ -135,7 +141,7 @@
 
       IF (timing) then
           s1 = cpclock()
-          call MP_WALLTIME(pt1)
+          call MP_WALLTIME(pt1,mpime)
       END IF   
 !
 ! ... Domain decomposition for parallelization 
@@ -144,7 +150,7 @@
 
       IF (timing) then
           s2 = cpclock()
-          call MP_WALLTIME(pt2)
+          call MP_WALLTIME(pt2,mpime)
       END IF
 !
 ! ... Setting ghost cells for parallel data exchange
@@ -154,7 +160,7 @@
 
       IF (timing) then
           s3 = cpclock()
-          call MP_WALLTIME(pt3)
+          call MP_WALLTIME(pt3,mpime)
       END IF
 !
 ! ... allocate local arrays
@@ -179,7 +185,7 @@
 
       IF (timing) then
           s4 = cpclock()
-          call MP_WALLTIME(pt4)
+          call MP_WALLTIME(pt4,mpime)
       END IF
 !
 ! ... Set initial conditions
@@ -188,7 +194,7 @@
 
       IF (timing) then
           s5 = cpclock()
-          call MP_WALLTIME(pt5)
+          call MP_WALLTIME(pt5,mpime)
       END IF
 !
 ! ... Time advancement loop
@@ -197,7 +203,7 @@
 !
         IF (timing ) THEN
           s6 = cpclock()
-          call MP_WALLTIME(pt6)
+          call MP_WALLTIME(pt6,mpime)
           timtot     = (s6 - s0)/1000.D0
           timprog    = (s6 - s5)/1000.D0
           timsetup   = (s5 - s4)/1000.D0
@@ -222,7 +228,7 @@
         END IF
 
 ! ... terminate the IBM HW performance monitor session
-!      call f_hpmterminate( mpime )
+      !call f_hpmterminate( mpime )
 
 ! ... date and time
       CALL date_and_time( values = mydate )

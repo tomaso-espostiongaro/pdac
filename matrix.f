@@ -437,16 +437,19 @@
 !
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nphase
+      USE domain_decomposition, ONLY:  meshinds
       USE grid, ONLY: fl_l
       USE set_indexes, ONLY: ipjk, ijpk, ijkp
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       IMPLICIT NONE
 !
       INTEGER, INTENT(IN) :: ijk
-!
+
+      INTEGER :: i,j,k,imesh
       INTEGER :: ll, lp1, l, lj, li
       INTEGER :: fle, fln, flt
       REAL*8 :: div, amul
+
 !
 ! ... Use Gauss-Jordan method for matrix inversion
 !
@@ -462,6 +465,7 @@
             bu(l)=0.D0
           END IF
         END DO
+
 
         DO l=1,nphase
           IF(au(l,l) /= 0.D0) THEN
@@ -483,6 +487,7 @@
         END DO
 !
         ug(ijk)=bu(1)
+!
         DO l=2,nphase
           us(ijk,l-1)=bu(l)
         END DO
@@ -563,6 +568,7 @@
         END DO
 !
         wg(ijk)=bw(1)
+
         DO l=2,nphase
           ws(ijk,l-1)=bw(l)
         END DO
@@ -910,6 +916,7 @@
       bu(2)  = rus(ijk,1)  + bu(2) * dpijk
       bu(3)  = rus(ijk,2)  + bu(3) * dpijk
 !
+
       IF ( flip ) THEN
 
         call matsvels_solve( au, bu )

@@ -238,10 +238,10 @@
         ijkb = myinds( ip0_jp0_km1_ , ijk )
       END IF
 
-  END SUBROUTINE subscr_red
+    END SUBROUTINE subscr_red
 
-!----------------------------------------------------------------------------
-      SUBROUTINE subscr_bdry( ijk )
+!---------------------------------------------------------------------------
+    SUBROUTINE subscr_bdry( ijk )
       IMPLICIT NONE
 !
       INTEGER, INTENT(IN) :: ijk
@@ -312,6 +312,7 @@
         ijks = myinds( ip0_jm1_kp0_ , ijk )
         ijkt = myinds( ip0_jp0_kp1_ , ijk )
         ijkb = myinds( ip0_jp0_km1_ , ijk )
+
       END IF
 
     END SUBROUTINE subscr_fieldn

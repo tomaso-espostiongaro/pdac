@@ -32,7 +32,7 @@
 !
       TYPE(stencil) :: one, field, u, v, w
       REAL*8 :: yfw, yfs, yfb, yfx, yfy, yfz
-      REAL*8 :: rgp
+      REAL*8 :: rgp, rgpinv
       INTEGER :: i, j, k, imesh
       INTEGER :: ijk
       INTEGER :: ig
@@ -61,8 +61,7 @@
            u%w = ug ( imjk )
            u%c = ug ( ijk )
            w%b = wg ( ijkm )
-           w%c = wg ( ijk )
-          
+           w%c = wg ( ijk )         
            
            IF (job_type == '2D') THEN
 
@@ -99,6 +98,7 @@
          yfy = 0.D0
          yfz = 0.D0
          rgp = 0.D0
+
          DO ig=1,ngas
 	   
 	   yfw = yfe(imjk,ig)
@@ -111,10 +111,9 @@
   	     yfy = yfn(ijk,ig) - yfs
            END IF
 
-	   rgpgc(ijk,ig) = rgpgcn(ijk,ig)                  &
-	                 - dt * indx(i) * yfx * inx(i)     &
-	                 - dt * indy(j) * yfy              &
-	                 - dt * indz(k) * yfz
+	   rgpgc(ijk,ig) = rgpgcn(ijk,ig) - dt * indx(i) * yfx * inx(i)     
+           rgpgc(ijk,ig) = rgpgc(ijk,ig) - dt * indy(j) * yfy              
+	   rgpgc(ijk,ig) = rgpgc(ijk,ig) - dt * indz(k) * yfz
  
            IF(rgpgc(ijk,ig) < 0.D0) THEN
              WRITE(8,*) 'Warning!: gas mass is not conserved'
@@ -127,10 +126,12 @@
 
          END DO
 
+         rgpinv = 1.0D0/rgp 
          ygc(default_gas, ijk) = 1.D0
+
          DO ig=1,ngas
            IF (ig /= default_gas) THEN
-             ygc(ig,ijk)=rgpgc(ijk,ig)/rgp
+             ygc(ig,ijk) = rgpgc(ijk,ig) * rgpinv
              ygc(default_gas, ijk) = ygc(default_gas, ijk) - ygc(ig,ijk)
            END IF
          END DO
@@ -167,7 +168,7 @@
 !
       TYPE(stencil) :: one, field, u, v, w
       REAL*8 :: yfw, yfs, yfb, yfx, yfy, yfz
-      REAL*8 :: rgp
+      REAL*8 :: rgp,rgpinv
       REAL*8 :: rgpgc_tmp
       INTEGER :: i, j, k, imesh
       INTEGER :: ijk
@@ -278,9 +279,11 @@
          END DO
 
          ygc(default_gas, ijk) = 1.D0
+         rgpinv = 1.0D0 / rgp
+         
          DO ig=1,ngas
            IF (ig /= default_gas) THEN
-             ygc(ig,ijk)=rgpgc(ijk,ig)/rgp
+             ygc(ig,ijk)=rgpgc(ijk,ig)*rgpinv
              ygc(default_gas, ijk) = ygc(default_gas, ijk) - ygc(ig,ijk)
            END IF
          END DO
