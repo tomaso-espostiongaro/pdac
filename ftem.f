@@ -5,10 +5,12 @@
 
 ! ... Interphase enthalpy matrix elements
 !
+      PUBLIC
       REAL*8, DIMENSION(:),   ALLOCATABLE :: bt
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: at
 
       REAL*8 :: flim
+      REAL*8, PRIVATE :: hv
 !
       SAVE
 !----------------------------------------------------------------------
@@ -43,7 +45,6 @@
       USE time_parameters, ONLY: time, dt
       IMPLICIT NONE
 !
-      REAL*8 :: hv
       REAL*8 :: hrexs, hrexg
       REAL*8 :: dugs, dvgs, dwgs
       REAL*8 :: dpxyz, deltap

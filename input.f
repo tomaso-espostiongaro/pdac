@@ -5,6 +5,8 @@
           max_nblock, max_ngas, nz, nx, ny
       USE io_files, ONLY: logunit
 
+      PRIVATE
+      PUBLIC :: input, initc, number_of_block
       REAL*8 :: diameter(max_nsolid)
       REAL*8 :: density(max_nsolid)
       REAL*8 :: sphericity(max_nsolid)
@@ -71,11 +73,6 @@
       REAL*8 :: vent_Air
       REAL*8 :: vent_SO2
 !
-! ... POST PROCESSING
-      INTEGER :: first_out = 1
-      INTEGER :: last_out = 1
-      INTEGER :: incr_out = 1
-
       SAVE
 !-----------------------------------------------------------------------
       CONTAINS
@@ -134,8 +131,6 @@
       NAMELIST / model / irex, gas_viscosity, part_viscosity,      &
         iss, repulsive_model, iturb, modturbo, cmut, rlim, flim,   &
         gravx, gravy, gravz, ngas, density_specified
-
-      NAMELIST / pp / first_out, last_out, incr_out
 
       NAMELIST / mesh / nx, ny, nz, itc, iuni, dx0, dy0, dz0, zzero, &
         center_x, center_y, alpha_x, alpha_y, alpha_z,  &

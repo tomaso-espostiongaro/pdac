@@ -5,7 +5,7 @@
 !
       INTEGER, PUBLIC :: muscl
       REAL*8, PUBLIC  :: beta
-      INTEGER :: lv, lm
+      INTEGER, PUBLIC :: lv, lm
 !
       SAVE
 !----------------------------------------------------------------------

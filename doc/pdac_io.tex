@@ -230,7 +230,7 @@ ts(s)           ! Particle temperature
 \end{verbatim}
 
 where the first line is a scalar real value representing the 
-simulated time at which the fields are written and the oter lines
+simulated time at which the fields are written and the other lines
 represent the fields (of dimension {\tt nx*ny*nz}) that are written 
 using the Fortran format specifier {\tt FORMAT( 5(G14.6E3,1X) )}.
 The components of the gas and solid velocities in the y dimension
@@ -245,51 +245,22 @@ while all other fields in records of lenght {\tt nx*ny*nz}.
 \subsection{Post-processing files}
 \label{sect:pp}
 
-\PDAC\ release \PDACVERSION\ provides the executable \FIL{pp.x} utility,
-that is intended to be a pre-processing tool for visualization of
+\PDAC\ release \PDACVERSION\ provides the executable \FIL{postp.x} utility,
+that is intended to be a pre-processing tool for the visualization of
 output files produced by \PDAC. Even though this tool is still under 
 development its usage is shortly described in this section in order to make it
 useful for the user, especially when the output of very large simulations
 are too big to be processed directly by a visualization tool.
-\FIL{pp.x} extracts from a series of \FIL{OUTPUT.nnnn} files the individual single fields,
+\FIL{postp.x} extracts from a series of \FIL{OUTPUT.nnnn} files the individual single fields,
 with the possibility of downsize, interpolate, and crop the data
 and stores them in separate files that can be easily plotted with
-various graphical application.
+various graphical application. Moreover it can process the flow fields to
+compute derived quantities of physical interest.
 
 \subsubsection{Post-processing input files}
 
-The pre-processing tool must read the input file \FIL{pdac.dat}, to which
-an additional namelist with the parameters that control the post-processing
-is added. The name of the additional namelist is \OBJ{\&pp}, and
-should be typed in between the namelist \&numeric and the first card
-\OBJ{'ROUGHNESS'} . The layout of the \FIL{pdac.dat} file for the post-processing
-is then:
-
-\begin{verbatim}
-...
-...
-
-&numeric
-  numeric_parameters1 = numeric_value1, 
-  numeric_parameters2 = numeric_value2,
-  ...
-/
-
-&pp
-  pp_parameter1 = pp_value1,
-  pp_parameter2 = pp_value2,
-  ...
-/
-
-'ROUGHNESS'
-roughness_parameters
-
-...
-...
-\end{verbatim}
-
-Note that you can leave the \&pp namelist in the \FIL{pdac.dat} file
-for the usage of main program too since it will be simply ignored.
+The pre-processing tool must read the input file \FIL{pdac.dat} and an
+input file \FIL{pp.dat}, containing the parameters that control the post-processing
 
 \subsubsection{Post-processing output files}
 

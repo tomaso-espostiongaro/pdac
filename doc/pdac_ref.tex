@@ -34,7 +34,7 @@ are presented by using the {\em emphasized} font.\\[5mm]
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% A R R A Y   F I L T E R S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-{\large {\bf array\_filters}} (arrfil.f)\\[5mm]
+{\large {\bf array\_filters}} (arrfil.f)\\
 \begin{itemize}
 \item {\em interp} interpolate the values of an array on a different mesh
 \item{\em filter} filter out high frequency modes by successively subsampling, averaging and interpolating
@@ -344,8 +344,8 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 \tt ck(ncl,ncint) & $(C_s)^n_{ijk}$ & thermal capacity of particle class $s$\\\hline
 \end{tabular}\\
 \begin{itemize}
-\item{\em hcapg} computes thermal capacities of gas components ;
-\item{\em hcaps} computes thermal capacities of particles ;
+\item{\em hcapg} computes thermal capacities of gas components;
+\item{\em hcaps} computes thermal capacities of particles;
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% D I F F U S I V E   F L U X E S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -428,9 +428,9 @@ VARIABLE & MEANING\\\hline
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% I N P U T   M O D U L E %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-{\large{\bf input\_modult}} (input.f)\\
+{\large{\bf input\_module}} (input.f)\\
 \begin{itemize}
-\item{\em input} Read the input file, set the default input parameters, writes an XML file of input data ;
+\item{\em input} Read the input file, set the default input parameters, writes an XML file of input data;
 \item{\em initc} Initialize some input parameters from ``human readable'' to compact format;
 \end{itemize}
 %
@@ -438,7 +438,7 @@ VARIABLE & MEANING\\\hline
 %
 {\large{\bf interpolate\_fields}} (interp.f)\\
 \begin{itemize}
-\item{\em interpolate\_x} interpolate the stencil of a field defined on the cell centers onto the east faces ;
+\item{\em interpolate\_x} interpolate the stencil of a field defined on the cell centers onto the east faces;
 \item{\em interpolate\_y}  interpolate the stencil of a field defined on the cell centers onto the north faces;
 \item{\em interpolate\_z}  interpolate the stencil of a field defined on the cell centers onto the top faces;
 \end{itemize}
@@ -527,7 +527,7 @@ VARIABLE &  MEANING\\\hline
 \begin{itemize}
 \item{\em outp} dumps output variables by using the {\em write\_array} procedure defined in the {\em io\_restart}
  module;
-\item{\em outp\_map} write out a map of hazard variables by interpolating fields at a given distance from the ground ;
+\item{\em outp\_map} write out a map of hazard variables by interpolating fields at a given distance from the ground;
 \item{\em outp\_recover} read the {\em nfil} output file to restart an interrupted run;
 \end{itemize}
 %
@@ -810,7 +810,7 @@ VARIABLE & MEANING \\ \hline
 \begin{itemize}
 \item {locate\_vent} Identify the vent cells on the topography;
 \item {set\_ventc} Set vent conditions into vent cells accordingly to the imposed flow conditions and the cell fractions;
-\item {read\_radial\_profile} Read the radial flow profile from an external file ;
+\item {read\_radial\_profile} Read the radial flow profile from an external file;
 \item {correct\_vent\_density} Correct the mass flow rate in the partially filled cells;
 \item {correct\_vent\_profile} Correct the vertical velocity profile at the vent;
 \item {update\_ventc} Change the vent conditions in time;

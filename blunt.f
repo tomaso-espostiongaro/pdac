@@ -12,11 +12,14 @@
       USE io_files, ONLY: testunit
       IMPLICIT NONE
 !      
+      PRIVATE
+      PUBLIC :: nblu, ibl, bluntb, set_blunt
+
       INTEGER :: nblu(1:max_nblock) = 0
       INTEGER :: ibl
       REAL*8, ALLOCATABLE :: fdrag(:), flift(:)
       REAL*8 :: pd
-
+!
       TYPE surface_pressure
         INTEGER :: np
         INTEGER :: ijk

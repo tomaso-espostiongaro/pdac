@@ -4,6 +4,7 @@
       USE dimensions, ONLY: max_nsolid, max_ngas, nsolid, ngas
       USE io_files, ONLY: errorunit, logunit
       IMPLICIT NONE
+      PUBLIC
 
       ! ... flags
       !
@@ -33,7 +34,8 @@
       INTEGER :: nvt
       INTEGER, SAVE :: seed
       CHARACTER(LEN=80) :: rad_file
-
+      PRIVATE :: ug_rad, wg_rad, p_rad, tg_rad, rad, ygc_rad,  &
+                 us_rad, ws_rad, ep_rad, ts_rad, vcell
       SAVE
 !-----------------------------------------------------------------------
       CONTAINS

@@ -23,7 +23,7 @@
 
       TYPE(stencil) :: u, v, w, dens         
 
-      PRIVATE :: u, v, w, dens
+      PRIVATE :: u, v, w, dens, b_e, b_w, b_t, b_b, b_n, b_s, ivf
 
       SAVE
 !----------------------------------------------------------------------

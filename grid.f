@@ -11,7 +11,6 @@
       IMPLICIT NONE
 !
       REAL*8, DIMENSION(:), ALLOCATABLE :: dx, dy, dz
-      REAL*8, DIMENSION(:), ALLOCATABLE :: dxtemp
       REAL*8, DIMENSION(:), ALLOCATABLE :: indx, indy, indz
       REAL*8, DIMENSION(:), ALLOCATABLE :: r, rb
       REAL*8, DIMENSION(:), ALLOCATABLE :: inr, inrb
@@ -46,8 +45,6 @@
 ! ... variables for grid generator:
 ! ... maximum cell size increase rate
       REAL*8 ::  maxbeta
-      REAL*8 ::  minbeta = 1.D0 + 1.D-5
-      REAL*8 ::  dbeta0 = 0.99
 !
 ! ... domain size along each axis
       REAL*8 :: domain_x, domain_y, domain_z
@@ -93,7 +90,6 @@
         CALL error( ' allocate_grid ', ' wrong job_type '//job_type, 1)
       END IF
 
-      ALLOCATE( dxtemp(nx) ) 
       ALLOCATE( dx(nx), dy(ny), dz(nz) ) 
       ALLOCATE( indx(nx), indy(ny), indz(nz) )
       ALLOCATE( r(nx), rb(nx) )
@@ -417,6 +413,8 @@
 !
       REAL*8 :: ded, der, dem, lder
 !      
+      REAL*8 ::  minbeta = 1.D0 + 1.D-5
+      REAL*8 ::  dbeta0 = 0.99
       REAL*8  :: beta, beta1, beta2, frac, dbeta
       REAL*8  :: ntilde1, ntilde2
       REAL*8  :: l, l1, l2, lcomp
