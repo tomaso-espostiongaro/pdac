@@ -97,6 +97,8 @@
 ! ****** Left boundary conditions
 !
          n2 = imj
+         n1 = ij
+         n0 = ipj
 
          IF ( (fl_l( imj ) /= 1) .AND. (fl_l( imjp ) /= 1) ) THEN
           SELECT CASE ( fl_l( n2 ) )
@@ -110,6 +112,22 @@
             DO is=1,nsolid
               IF(rlk(ij,is).GT.0.D0) ws(n2,is)=-ws(ij,is)
             END DO 
+
+          CASE (4)
+	    
+              d1 = dr(i)
+              d2 = dr(i-1)
+!
+! ... Compute the normal component of the velocities and scalar fields
+!
+              CALL outinflow(ug(n1),ug(n2),us(n1,:),us(n2,:),d1,d2,j)
+
+! ... Compute tangential components of velocities
+!              
+! ... IF(nfllt.EQ.4) wg(n2)=wg(n1)
+! ... IF(nfllt.EQ.3) ug(ipjp) = -ug(n2)
+! ... IF(nfllt.EQ.4) ws(n2,is)=ws(n1,is)
+
 !
           CASE DEFAULT
             CONTINUE
@@ -149,8 +167,8 @@
 
           CASE (4)
 
-            d1 = dx(nz-1)
-            d2 = dx(nz)
+            d1 = dx(i)
+            d2 = dx(i+1)
 !
 ! ... Compute the normal component of the velocities and scalar fields
 !
@@ -281,8 +299,8 @@
 
             CASE (4)
 
-              d1 = dx(nx-1)
-	      d2 = dx(nx)
+              d1 = dx(i)
+	      d2 = dx(i+1)
               gravx = 0.D0
 !
 ! ... Compute the normal component of the velocities and scalar fields
@@ -307,6 +325,8 @@
 !
 
             n2 = imjk
+	    n1 = ijk
+	    n0 = ipjk
 
             SELECT CASE ( fl_l( n2 ) )
 
@@ -327,6 +347,21 @@
                 vs(n2,is)=-vs(ijk,is)
                 ws(n2,is)=-ws(ijk,is)
               END DO 
+
+            CASE (4)
+	    
+              d1 = dx(i)
+              d2 = dx(i-1)
+!
+! ... Compute the normal component of the velocities and scalar fields
+!
+              CALL outinflow(ug(n1),ug(n2),us(n1,:),us(n2,:),d1,d2,k)
+
+! ... Compute tangential components of velocities
+!              
+! ... IF(nfllt.EQ.4) wg(n2)=wg(n1)
+! ... IF(nfllt.EQ.3) ug(ipjp) = -ug(n2)
+! ... IF(nfllt.EQ.4) ws(n2,is)=ws(n1,is)
 
             CASE DEFAULT
 
@@ -363,8 +398,8 @@
 
             CASE (4)
 
-              d1 = dy(ny-1)
-	      d2 = dy(ny)
+              d1 = dy(j)
+	      d2 = dy(j+1)
               gravy = 0.D0
 !
 ! ... Compute the normal component of the velocities and scalar fields
@@ -387,8 +422,9 @@
 !
 ! ***** South boundary conditions ***** !
 !
-!
             n2 = ijmk
+            n1 = ijk
+            n0 = ijpk
 
             SELECT CASE (  fl_l( n2 ) )
 
@@ -409,6 +445,21 @@
                  us(n2,is) = -us(ijk,is)
                  ws(n2,is) = -ws(ijk,is)
               END DO 
+
+            CASE (4)
+	    
+              d1 = dy(j)
+              d2 = dy(j-1)
+!
+! ... Compute the normal component of the velocities and scalar fields
+!
+              CALL outinflow(vg(n1),vg(n2),vs(n1,:),vs(n2,:),d1,d2,k)
+
+! ... Compute tangential components of velocities
+!              
+! ... IF(nfllt.EQ.4) wg(n2)=wg(n1)
+! ... IF(nfllt.EQ.3) ug(ipjp) = -ug(n2)
+! ... IF(nfllt.EQ.4) ws(n2,is)=ws(n1,is)
 
             CASE DEFAULT
 
@@ -455,8 +506,8 @@
 
             CASE (4)
 
-              d1 = dz(nz-1)
-	      d2 = dz(nz)
+              d1 = dz(k)
+	      d2 = dz(k+1)
 !
 ! ... Compute the normal component of the velocities and scalar fields
 !
@@ -538,13 +589,13 @@
       END DO
 !
       RETURN
-!
       END SUBROUTINE boundary3d
 !----------------------------------------------------------------------
       SUBROUTINE inoutflow(umn, ucn, upn, usmn, uscn, uspn, d1, d2, grav, k)
 !
 ! ... This routine computes the free in/outflow conditions in the boundary
 ! ... cell, i.e. the normal component of the velocity and the scalar fields
+! ... for East, North and Top boundaries
 
       REAL*8, INTENT(IN) :: umn, ucn
       REAL*8, INTENT(INOUT) :: upn
@@ -560,7 +611,6 @@
       REAL*8 :: eps, epc, epcn, ep1nn, epnn
       REAL*8 :: tcn, tmn, t1nn, t1n, t0n, t2n
       REAL*8 :: mg
-      REAL*8 :: gravx, gravy
       REAL*8 :: dc
 
       INTEGER :: ig, is
@@ -719,7 +769,176 @@
         sies(n2,is) = sies(n1,is)
       END DO
 !                
+      RETURN
       END SUBROUTINE inoutflow
+!----------------------------------------------------------------------
+      SUBROUTINE outinflow(upn, ucn, uspn, uscn, d1, d2, k)
+!
+! ... This routine computes the free in/outflow conditions in the boundary
+! ... cell, i.e. the normal component of the velocity and the scalar fields
+! ... for West and South boundaries
+
+      REAL*8, INTENT(IN) :: upn
+      REAL*8, INTENT(INOUT) :: ucn
+      REAL*8, INTENT(IN) :: uspn(:)
+      REAL*8, INTENT(INOUT) :: uscn(:)
+      REAL*8, INTENT(IN) :: d1, d2
+      INTEGER, INTENT(IN) :: k
+
+      REAL*8 :: prif, pnn2, p1nn
+      REAL*8 :: zrif, trif, rhorif, cost, costc
+      REAL*8 :: rmcn, rmcnn, rmpn, rm1nn, rm1knn, rm2n, rm1n, rm0n
+      REAL*8 :: u1n, u2n, ucnn
+      REAL*8 :: eps, epc, epcn, ep1nn
+      REAL*8 :: tcn, tpn, t1nn, t1n, t0n, t2n
+      REAL*8 :: mg
+      REAL*8 :: dc
+
+      INTEGER :: ig, is
+!
+! ... definitions
+!
+      dc = (d1+d2)*0.5D0
+
+      u1n  = (upn+ucn)*0.5D0
+
+      t2n  = tg(n2)
+      t1n  = tg(n1)
+      t0n  = tg(n0)
+      tpn  = (t1n + t0n) * 0.5D0
+      tcn  = (t1n + t2n) * 0.5D0
+      epcn = (ep(n1)+ep(n2))*0.5D0
+!
+      u2n = ucn - (upn-ucn)/d1 * 0.5*d2
+!
+! ... OUTFLOW ...
+
+      IF( upn < 0.D0 ) THEN
+!
+! ... Extrapolations
+        ucnn = u1n
+        t1nn = tpn
+! 
+! ... Non-reflecting boundary condition
+!
+        ucn = ucn - upn * dt/d1 * (upn - ucn)
+!
+! ... MODIFICAREX3D IF(j.EQ.2) ug(imjmk) = - ug(n2)
+!
+! ... calculation of the gas volumetric fraction at time (n+1)dt
+! ... from the mass balance equation of solids in cell (ijk)
+
+        epc = 0.D0
+        DO is = 1, nsolid
+         eps = rlk(n1,is) * inrl(is) -                                 &
+             dt*inrl(is)/d1 * (uspn(is)*rlk(n0,is) - uscn(is)*rlk(n1,is))
+         epc=epc+eps
+        END DO
+        ep1nn=1.D0-epc
+!
+! ... Mixture Density at time (n)dt
+        rm2n=0.D0
+        rm1n=0.D0
+        rm0n=0.D0
+        DO is=1,nsolid
+          rm2n=rm2n+rlk(n2,is)
+          rm1n=rm1n+rlk(n1,is)
+          rm0n=rm0n+rlk(n0,is)
+        END DO
+        rm1knn = rm1n
+        rm2n = rm2n + rgp(n2)
+        rm1n = rm1n + rgp(n1)
+        rm0n = rm0n + rgp(n0)
+!
+        rmcn=(rm2n+rm1n)*0.5D0
+        rmpn=(rm1n+rm0n)*0.5D0
+!
+        rmcnn = rmcn - dt/dc * (u1n*rmpn-u2n*rmcn)
+!
+! ... calculation of fluid pressure 
+! ... from a mass balance equation for the mixture.
+! ... Use gas velocity for mixture.
+!
+        mg=0.D0
+        DO ig=1,ngas
+          mg = mg + xgc(ig,n1) * gmw(ig)
+        END DO
+        rm1nn = ep1nn*mg/(rgas*t1nn)
+        p1nn = (1.D0/rm1nn) * &
+               (-rm1knn+rm1n-dt/d1*(upn*rm0n-rm1n*ucn))
+        IF (epc < 1.0D-8) p1nn = p(n1)
+!
+! ... Calculation of the advanced-time fluid pressure from Momentum balance
+! ... equation of the mixture
+
+        p(n2) = -rmcnn*ucnn + rmcn*ucn - dt/dc *     &
+                 ( u1n*upn*rmpn - u2n*ucn*rmcn) + dt/dc * p1nn
+        p(n2)=p(n2)/(dt/dc)
+!
+! ... Correct non-physical pressure
+        IF (p(n2) <= 0.0D0) p(n2) = p(n1)
+        ep(n2) = ep(n1)
+        tg(n2) = tg(n1)
+        DO ig=1,ngas
+          rgpgc(n2,ig) = rgpgc(n2,ig) - &
+                         upn * dt/d2 * (rgpgc(n1,ig)-rgpgc(n2,ig))
+        END DO
+!
+! ... extrapolation of the temperature and solid fraction to time (n+1)dt
+
+        DO is=1,nsolid
+          ! IF(nfllt.EQ.4) ws(n2,is)=ws(n1,is)
+          rlk(n2,is)=rlk(n1,is)
+          uscn(is)=uspn(is)
+        END DO
+
+      ELSE IF( upn > 0.D0 ) THEN
+
+! ... INFLOW ...
+!
+        ucn = ucn - upn*dt/d1 * (u1n - 0.D0)
+
+        zrif = zb(k)+0.5D0*(dz(1)-dz(k))
+        CALL atm(zrif,prif,trif)
+        rhorif = prif*gmw(6)/(rgas*trif)
+        cost = prif/(rhorif**gammaair)
+        costc = (gammaair*cost**(1.D0/gammaair))/(gammaair-1.D0)
+!
+! ... Adiabatic inflow
+
+        p(n2)=(prif**gamn-(u2n**2)/(2.D0*costc))**(1.D0/gamn)
+!
+! ... Correct non-physical pressure
+
+        IF ( p(n2) < 0.0D0 ) p(n2) = prif
+!
+        ep(n2) = 1.D0
+        tg(n2) = trif
+        DO ig=1,ngas
+          rgpgc(n2,ig) = rgpgc(n1,ig)
+        END DO
+
+      ENDIF
+!
+! .... Set primary variables
+!
+      DO is=1,nsolid
+        IF( uspn(is) >= 0.D0 ) THEN
+          rlk(n2,is)=rlk(n1,is)
+          uscn(is)=uspn(is)
+        ELSE
+          rlk(n2,is)=0.0D0
+          uscn(is) =0.0D0
+        ENDIF
+      END DO
+!
+      sieg(n2) = sieg(n1)
+      DO is=1,nsolid
+        sies(n2,is)=sies(n1,is)
+      END DO
+!
+      RETURN
+      END SUBROUTINE outinflow
 !-----------------------------------------------------------------------
       END MODULE boundary_conditions
 !-----------------------------------------------------------------------
