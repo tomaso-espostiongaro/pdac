@@ -83,6 +83,7 @@
       USE control_flags, ONLY: nfil, job_type, lpr, immb, itp
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
       USE domain_decomposition, ONLY: mesh_partition
+      USE enthalpy_matrix, ONLY: flim
       USE eos_gas, ONLY: update_eosg
       USE flux_limiters, ONLY: beta, muscl, lim_type
       USE gas_solid_viscosity, ONLY: gas_viscosity, part_viscosity
@@ -117,7 +118,7 @@
         formatted_output, max_seconds
 
       NAMELIST / model / irex, gas_viscosity, part_viscosity,      &
-        iss, repulsive_model, iturb, modturbo, cmut, rlim,         &
+        iss, repulsive_model, iturb, modturbo, cmut, rlim, flim,   &
         gravx, gravy, gravz, ngas, density_specified
 
       NAMELIST / pp / first_out, last_out, incr_out
@@ -178,8 +179,10 @@
       iturb = 1         ! turbulence  ( 0 no turbo, 1 turbo, 2 turbo + rough )
       modturbo = 1      ! turbulence  ( 1 smag, 2 dynamic )
       cmut = 0.1D0      ! Smagorinsky constant
-      rlim = 1.0D-10     ! limit for off-diagonal contribution in matrix 
-                        ! inversion
+      rlim = 1.0D-8     ! 
+                        ! limit for off-diagonal contribution in matrix
+      flim = 1.0D-8     ! inversion
+                        ! 
       gravx = 0.0D0     ! gravity along x
       gravy = 0.0D0     ! gravity along y
       gravz = -9.81D0   ! gravity along z
@@ -376,6 +379,7 @@
             CALL iotk_write_dat( iuni_nml, "modturbo", modturbo )
             CALL iotk_write_dat( iuni_nml, "cmut", cmut )
             CALL iotk_write_dat( iuni_nml, "rlim", rlim )
+            CALL iotk_write_dat( iuni_nml, "flim", flim )
             CALL iotk_write_dat( iuni_nml, "gravx", gravx )
             CALL iotk_write_dat( iuni_nml, "gravz", gravz )
             CALL iotk_write_dat( iuni_nml, "ngas", ngas )
@@ -391,6 +395,7 @@
       CALL bcast_integer(modturbo,1,root)
       CALL bcast_real(cmut,1,root)
       CALL bcast_real(rlim,1,root)
+      CALL bcast_real(flim,1,root)
       CALL bcast_real(gravx,1,root)
       CALL bcast_real(gravy,1,root)
       CALL bcast_real(gravz,1,root)

@@ -116,6 +116,9 @@
 !
             CASE (3)
 !
+              ug(n2)   = 0.D0
+              us(n2,:) = 0.D0
+              
               IF(flag(ipjkp) /= 1) THEN
                 wg(n2)   = -wg(n1)
                 DO is = 1, nsolid
@@ -282,6 +285,9 @@
 !  
               CASE (3)
 !  
+                vg(n2)   = 0.D0
+                vs(n2,:) = 0.D0
+                
                 IF(flag(ipjpk) /= 1) THEN
                   ug(n2)   = -ug(n1)
                   DO is = 1, nsolid
@@ -450,6 +456,9 @@
 !
             CASE (3)
 !  
+              wg(n2)   = 0.D0
+              ws(n2,:) = 0.D0
+
               IF (flag(ipjkp) /= 1) THEN
                 ug(n2)   = -ug(n1)
                 DO is = 1, nsolid
