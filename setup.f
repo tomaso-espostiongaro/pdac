@@ -31,12 +31,31 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
+      SUBROUTINE setpar
+! ... Set some computational parameters and the atmosphere
+!
+      USE atmospheric_conditions, ONLY: control_atmosphere, set_atmosphere
+!
+! ... Set constants
+!
+      CALL setc
+!
+! ... Control that atmospheric stratification is consistent
+! ... Set the pressure and temperature profile
+      CALL control_atmosphere
+      CALL set_atmosphere
+!
+! ... Check gas species
+      CALL gas_check
+      
+      RETURN
+      END SUBROUTINE setpar
+!----------------------------------------------------------------------
       SUBROUTINE setup
 ! ... Set initial conditions
 ! ... (2D/3D_Compliant and fully parallel)
 !
       USE atmospheric_conditions, ONLY: wind_x, wind_y, wind_z, void_fraction
-      USE atmospheric_conditions, ONLY: control_atmosphere, set_atmosphere
       USE atmospheric_conditions, ONLY: p_atm, t_atm, atm_ygc
       USE control_flags, ONLY: job_type
       USE dimensions
@@ -64,18 +83,6 @@
       INTEGER :: ig, is
       REAL*8 :: zrif
       REAL*8 :: mass, tem
-!
-! ... Set constants
-!
-      CALL setc
-!
-! ... Control that atmospheric stratification is consistent
-! ... Set the pressure and temperature profile
-      CALL control_atmosphere
-      CALL set_atmosphere
-!
-! ... Check gas species
-      CALL gas_check
 !
 ! ... set initial conditions from prescribed input data
 !

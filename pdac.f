@@ -27,7 +27,7 @@
       USE gas_solid_viscosity, ONLY: allocate_viscosity
       USE grid, ONLY: grid_setup, allocate_blbody, allocate_grid
       USE immersed_boundaries, ONLY: import_topo
-      USE initial_conditions, ONLY: setup, resetup, allocate_setup, npr
+      USE initial_conditions, ONLY: setpar, setup, resetup, allocate_setup, npr
       USE input_module, ONLY: input, initc, number_of_block
       USE io_restart, ONLY: taperd, tapewr
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
@@ -112,7 +112,7 @@
 !
 ! ... Read Input file
 !
-      CALL input( inputunit, 'PD' )
+      CALL input( inputunit )
 !
 ! ... set dimensions ...
 !
@@ -188,8 +188,9 @@
       CALL allocate_hcapgs
       CALL allocate_turbo
 !
-! ... Set initial conditions
+! ... Set parameters and initial conditions
 !
+      CALL setpar
       CALL setup
 
       IF (timing) then

@@ -3,16 +3,18 @@
 !----------------------------------------------------------------------
       USE dimensions, ONLY: nx, ny, nz, ntot
       USE parallel, ONLY: mpime, root
+      USE volcano_topography, ONLY: xtop, ytop, ztop
+      USE volcano_topography, ONLY: cx, cy, cz
 
       IMPLICIT NONE
-
+!
       TYPE point
         REAL*8 :: x
         REAL*8 :: y
         REAL*8 :: z
       END TYPE point
 !
-! ... Assemble parameters identifying a forcing point: (i,j,k) are the 
+! ... Parameters identifying a forcing point: (i,j,k) are the 
 ! ... (x,y,z) discrete coordinates, (int) is the type of interpolation
 ! ... to be done (-10= extrap z -3=lin sx/top, -2=linsx, -1=bilsx, 
 ! ... 0=lintop, 1=bildx, 2=lindx, 3=lin dx/top, 10=extrap x), 
@@ -30,23 +32,6 @@
       TYPE(forcing_point), ALLOCATABLE :: fptx(:), fptz(:)
       TYPE(forcing_point), ALLOCATABLE :: forx(:), forz(:)
 !
-! ... Parameters identifying the topography interpolated on the
-! ... numerical mesh.
-!
-      REAL*8, ALLOCATABLE, DIMENSION(:) :: cx, cy, cz
-      
-      REAL*8, ALLOCATABLE  :: topo_c(:)  ! topography on the grid
-      REAL*8, ALLOCATABLE  :: topo_x(:)  ! topography on the grid
-      INTEGER, ALLOCATABLE :: next(:)  ! index of the topographic point
-                                       ! located right of a grid point 
-      INTEGER, ALLOCATABLE :: ord(:)   ! z-coord of grid locations laying
-                                       ! below the profile
-      REAL*8, ALLOCATABLE  :: dist(:)  ! vertical distance above topography
-      LOGICAL, ALLOCATABLE :: tmp(:)   ! a temporary array
-
-      REAL*8, ALLOCATABLE :: xtop(:),ztop(:) ! input topography points
-      INTEGER :: noditop
-!
 ! ... Conditional array to be used in loops:
 ! ... this value is .TRUE. when force has to be computed at a given location
 !
@@ -58,35 +43,33 @@
       INTEGER, ALLOCATABLE :: numx(:), numz(:)
       INTEGER :: nfp
 !
+      REAL*8, ALLOCATABLE  :: topo_c(:)  ! topography on the grid
+      REAL*8, ALLOCATABLE  :: topo_x(:)  ! topography on the grid
+      REAL*8, ALLOCATABLE  :: topo_y(:)  ! topography on the grid
+      LOGICAL, ALLOCATABLE :: tmp(:)     ! a temporary array
+!           
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
       SUBROUTINE import_topo
+      USE volcano_topography, ONLY: grid_locations, dist
+      USE volcano_topography, ONLY: interpolate_2d
       USE control_flags, ONLY: job_type, lpr, immb
 
       IMPLICIT NONE
       INTEGER :: p, nfpx, nfpz
       INTEGER :: i,j,k,ijk
 !
-      IF (job_type == '3D') RETURN
-!
-! ... Read the topography file (at arbitrary resolution)
-!
-      CALL read_profile
-
-      ALLOCATE(next(nx))
-      ALLOCATE(ord(nx))
+      ALLOCATE(tmp(ntot))
       ALLOCATE(topo_c(nx))
       ALLOCATE(topo_x(nx))
-      ALLOCATE(dist(ntot))
-      ALLOCATE(tmp(ntot))
 !
 ! ... interpolate topography on cell centers and write the
 ! ... implicit profile
 !
       CALL grid_locations(0,0,0)
-      CALL intertop(topo_c,tmp)
+      CALL interpolate_2d(topo_c,tmp)
       
       IF (mpime == root) THEN
         OPEN(UNIT=14,FILE='improfile.dat',STATUS='UNKNOWN')
@@ -109,7 +92,7 @@
         !
         ! ... interpolate the topography on x-staggered mesh
         CALL grid_locations(1,0,0)
-        CALL intertop(topo_x,forcex)
+        CALL interpolate_2d(topo_x,forcex)
         nfpx = COUNT(forcex)
         ALLOCATE(fptx(nfpx))
         !
@@ -119,7 +102,7 @@
         !
         ! ... interpolate the topography on z-staggered mesh
         CALL grid_locations(0,0,1)
-        CALL intertop(topo_c,forcez)
+        CALL interpolate_2d(topo_c,forcez)
         nfpz = COUNT(forcez)
         ALLOCATE(fptz(nfpz))
         !
@@ -133,12 +116,12 @@
         ALLOCATE (forz (nfp) )
 
         CALL grid_locations(1,0,0)
-        CALL intertop(topo_x,tmp)
+        CALL interpolate_2d(topo_x,tmp)
         forx(1:nfpx) = fptx(1:nfpx)
         CALL extrafx(forx, nfpx)
 
         CALL grid_locations(0,0,1)
-        CALL intertop(topo_c,tmp)
+        CALL interpolate_2d(topo_c,tmp)
         forz(1:nfpz) = fptz(1:nfpz)
         CALL extrafz(forz, nfpz)
 
@@ -159,9 +142,7 @@
 
       END IF
 
-      DEALLOCATE (xtop, ztop)
-      DEALLOCATE (cx, cy, cz)
-      DEALLOCATE (next, ord, dist, tmp)
+      DEALLOCATE (tmp)
 ! 
 ! ... Set flags to identify the topography (where transport equations
 ! ... are not solved )
@@ -171,180 +152,9 @@
       RETURN
       END SUBROUTINE import_topo
 !----------------------------------------------------------------------
-      SUBROUTINE read_profile
-      USE grid, ONLY: topography
-      IMPLICIT NONE
-
-      INTEGER :: n
-
-      REAL*8 :: ratio
-      REAL*8 :: xmin, xmax, zmin, zmax
-      CHARACTER(LEN=20) :: topo_file
-!
-! ... read the topography, as defined on a generic rectilinear
-! ... mesh "xtop"
-!
-      topo_file = TRIM(topography)
-      OPEN(UNIT=3, FILE=topo_file, STATUS='OLD')
-
-      READ(3,*) noditop
-
-      ALLOCATE(xtop(noditop))
-      ALLOCATE(ztop(noditop))
-
-      DO n=1, noditop
-        READ(3,*) xtop(n),ztop(n)
-      END DO
-
-      CLOSE(3)
-!
-      xmin = MINVAL(xtop)
-      xmax = MAXVAL(xtop)
-      zmin = MINVAL(ztop)
-      zmax = MAXVAL(ztop)
-
-      ratio=(xmax-xmin)/(zmax-zmin)
-
-      END SUBROUTINE read_profile
-!----------------------------------------------------------------------
-      SUBROUTINE intertop(topo,ff)
-!
-! ... interpolate the topographic profile on a given
-! ... computational mesh (either centered or staggered)
-
-      IMPLICIT NONE
-
-      LOGICAL, INTENT(OUT), DIMENSION(:) :: ff
-      REAL*8, INTENT(OUT), DIMENSION(:) :: topo
-
-      INTEGER :: i, k, ijk, l, n
-      REAL*8 :: grad
-!
-! ... locate the grid points near the topographic points
-! ... and interpolate linearly the profile  
-!
-      dist = 1.0D10
-      ff = .FALSE.
-!
-! ... locate the topography on the mesh
-!
-      l=1
-      DO n = 1, noditop
-        DO i = l, nx
-
-          IF (xtop(n) >= cx(i)) THEN
-
-            ! ... next(i) indicates the progressive number of the
-            ! ... topographic point laying on the right of a grid center 'i'
-            ! ... 'l' counts the grid points
-            !
-            next(i) = n
- 
-            IF (n == 1) THEN
-              topo(i) = ztop(1)
-            ELSE
-              grad = (ztop(n)-ztop(n-1))/(xtop(n)-xtop(n-1))
-              topo(i) = ztop(n-1) + (cx(i)-xtop(n-1)) * grad
-            END IF
-
-	    l=l+1
-
-            DO k = 1, nz
-              ! ... dist defines implicitly the profile
-              !
-	      ijk = i + (k-1) * nx
-	      dist(ijk) = cz(k) - topo(i)
-	    ENDDO
-
-          ENDIF
-        ENDDO
-      ENDDO
-!
-! ... ord is the last mesh point laying below the topography
-!
-      DO i = 1, nx
-        DO k = 1, nz
-          IF (cz(k) <= topo(i))  ord(i) = k
-        END DO
-      END DO
-!
-! ... locate forced point on the mesh (more than one forcing points can
-! ... lay on the same coordinate on the plane)
-!
-      ijk = 1 + (ord(1)-1)*nx
-      ff(ijk) = .TRUE.
-      DO i = 2, nx
-        IF (ord(i) >= ord(i-1)) THEN
-          DO k = ord(i-1), ord(i)
-            ijk = i + (k-1) * nx
-            ff(ijk) = .TRUE.
-          END DO
-        ELSE IF ( ord(i) < ord(i-1) ) THEN
-          ijk = i + (ord(i)-1) * nx
-          ff(ijk) = .TRUE.
-          DO k = ord(i), ord(i-1)
-            ijk = (i-1) + (k-1) * nx
-            ff(ijk) = .TRUE.
-          END DO
-        END IF
-      END DO
-!
-      RETURN
-      END SUBROUTINE intertop
-!----------------------------------------------------------------------
-      SUBROUTINE set_flag3(topo)
-!
-! ... Set cell-flag = 3 in those cells belonging to the topography
-! ... where forcing is not applied. Values of fields in these cells
-! ... are set to zero when initialized or kept undefined
-!
-      USE control_flags, ONLY: lpr, immb
-      USE grid, ONLY: fl, z
-      IMPLICIT NONE
-
-      REAL*8, DIMENSION(:), INTENT(IN) :: topo
-      INTEGER :: i, k, ijk
-      LOGICAL :: undg
-!
-! ... If immersed boundaries are used, set flag = 3 below forcing points
-! ... otherwise set flag = 3 when topography is above the cell center
-! ... (Assumes topography on domain bottom!)
-!
-      IF (immb >= 1) THEN
-        DO i=2, nx-1
-          DO k = 1, nz
-            ijk = i + (k-1) * nx
-            IF ((.NOT.forcex(ijk)).AND.(.NOT.forcez(ijk))) THEN
-              fl(ijk) = 3
-            ELSE
-              EXIT
-            END IF
-          END DO
-        END DO
-      ELSE IF (immb < 1) THEN
-        DO i=2, nx-1
-          DO k = 1, nz
-            ijk = i + (k-1) * nx
-            IF (topo(i) > z(k)) THEN
-              fl(ijk) = 3
-            ELSE
-              EXIT
-            END IF
-          END DO
-        END DO
-      END IF
-!
-      IF (lpr > 1 .AND. (mpime == root)) THEN
-        DO k = nz, 1, -1
-          WRITE(6,11) (fl(i + (k-1) * nx), i=1,nx)
-        END DO
-      END IF
-                                                                               
- 11   FORMAT(80(I1))
-
-      END SUBROUTINE set_flag3
-!----------------------------------------------------------------------
       SUBROUTINE forcing(fpt, topo)
+      USE volcano_topography, ONLY: cx, cy, cz
+      USE volcano_topography, ONLY: ord, next
 !
 ! ... locate the forcing points and the type of interpolation
 ! ... locate the points where no-slip condition is applied
@@ -644,6 +454,7 @@
       END SUBROUTINE forcing
 !----------------------------------------------------------------------
       SUBROUTINE extrafx(fx, nfpx)
+      USE volcano_topography, ONLY: cx, cy, cz, next
 !
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: nfpx
@@ -687,6 +498,7 @@
       END SUBROUTINE extrafx
 !----------------------------------------------------------------------
       SUBROUTINE extrafz(fz, nfpz)
+      USE volcano_topography, ONLY: cx, cy, cz, next
 !
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: nfpz
@@ -718,50 +530,57 @@
       RETURN
       END SUBROUTINE extrafz
 !----------------------------------------------------------------------
-      SUBROUTINE grid_locations(sx,sy,sz)
-      USE grid, ONLY: x, xb, y, yb, z, zb
-      USE grid, ONLY: x, xb, y, yb, z, zb
-      USE dimensions, ONLY: nx, ny, nz
-
+      SUBROUTINE set_flag3(topo)
+!
+! ... Set cell-flag = 3 in those cells belonging to the topography
+! ... where forcing is not applied. Values of fields in these cells
+! ... are set to zero when initialized or kept undefined
+!
+      USE control_flags, ONLY: lpr, immb
+      USE grid, ONLY: fl, z
       IMPLICIT NONE
-      INTEGER, INTENT(IN) :: sx, sy, sz
+
+      REAL*8, DIMENSION(:), INTENT(IN) :: topo
+      INTEGER :: i, k, ijk
+      LOGICAL :: undg
 !
-! ... initialize the grids
+! ... If immersed boundaries are used, set flag = 3 below forcing points
+! ... otherwise set flag = 3 when topography is above the cell center
+! ... (Assumes topography on domain bottom!)
 !
-      IF(.NOT.(ALLOCATED(cx))) ALLOCATE(cx(nx))
-      IF(.NOT.(ALLOCATED(cy))) ALLOCATE(cy(ny))
-      IF(.NOT.(ALLOCATED(cz))) ALLOCATE(cz(nz))
-      cx = 0.D0
-      cy = 0.D0
-      cz = 0.D0
-!
-      IF( sx == 1 ) THEN
-
-        cx = xb
-        cy = y
-        cz = z
-
-      ELSE IF( sy == 1 ) THEN
-
-        cx = x
-        cy = yb
-        cz = z
-
-      ELSE IF( sz == 1 ) THEN
-
-        cx = x
-        cy = y
-        cz = zb
-        
-      ELSE 
-        
-        cx = x
-        cy = y
-        cz = z
-
+      IF (immb >= 1) THEN
+        DO i=2, nx-1
+          DO k = 1, nz
+            ijk = i + (k-1) * nx
+            IF ((.NOT.forcex(ijk)).AND.(.NOT.forcez(ijk))) THEN
+              fl(ijk) = 3
+            ELSE
+              EXIT
+            END IF
+          END DO
+        END DO
+      ELSE IF (immb < 1) THEN
+        DO i=2, nx-1
+          DO k = 1, nz
+            ijk = i + (k-1) * nx
+            IF (topo(i) > z(k)) THEN
+              fl(ijk) = 3
+            ELSE
+              EXIT
+            END IF
+          END DO
+        END DO
       END IF
+!
+      IF (lpr > 1 .AND. (mpime == root)) THEN
+        DO k = nz, 1, -1
+          WRITE(6,11) (fl(i + (k-1) * nx), i=1,nx)
+        END DO
+      END IF
+                                                                               
+ 11   FORMAT(80(I1))
 
-      END SUBROUTINE grid_locations
+      END SUBROUTINE set_flag3
 !----------------------------------------------------------------------
       END MODULE immersed_boundaries
 !----------------------------------------------------------------------

@@ -1,10 +1,8 @@
 !----------------------------------------------------------------------
-   MODULE input_module
+      MODULE input_module
 !----------------------------------------------------------------------
-
       USE dimensions, ONLY: max_nsolid, ngas, nroughx, max_size, &
           max_nblock, max_ngas, nz, nx, ny
-      USE iotk_module
 
       REAL*8 :: diameter(max_nsolid)
       REAL*8 :: density(max_nsolid)
@@ -59,12 +57,6 @@
       REAL*8 :: vent_Air
       REAL*8 :: vent_SO2
 !
-      INTEGER :: iuni_nml = 20
-      INTEGER :: iuni_fld = 21
-      INTEGER :: iuni_grx = 22
-      INTEGER :: iuni_gry = 23
-      INTEGER :: iuni_grz = 24
-
 ! ... POST PROCESSING
       INTEGER :: first_out = 1
       INTEGER :: last_out = 1
@@ -74,7 +66,7 @@
 !-----------------------------------------------------------------------
       CONTAINS
 !-----------------------------------------------------------------------
-      SUBROUTINE input( iunit, which )
+      SUBROUTINE input( iunit )
 
       USE atmospheric_conditions, ONLY: gravx, gravy, gravz
       USE atmospheric_conditions, ONLY: wind_x, wind_y, wind_z, &
@@ -90,6 +82,10 @@
       USE gas_solid_viscosity, ONLY: repulsive_model
       USE grid, ONLY: dx, dy, dz, itc, zzero
       USE grid, ONLY: west, east, south, north, bottom, top, topography
+      USE grid, ONLY: domain_x, domain_y, domain_z, n0x, n0y, n0z
+      USE grid, ONLY: center_x, center_y, center_z
+      USE grid, ONLY: dxmin, dxmax, dymin, dymax, dzmin, dzmax
+      USE grid, ONLY: maxbeta, grigen
       USE initial_conditions, ONLY: density_specified
       USE vent_conditions, ONLY: ivent, xvent, yvent, radius,         &
           u_gas, v_gas, w_gas, p_gas, t_gas,                          &
@@ -111,7 +107,6 @@
       IMPLICIT NONE
  
       INTEGER, INTENT(IN) :: iunit
-      CHARACTER(LEN=2) :: which
 
       NAMELIST / control / run_name, job_type, restart_mode,       &
         time, tstop, dt, lpr, tpr, tdump, nfil,                    &
@@ -123,8 +118,10 @@
 
       NAMELIST / pp / first_out, last_out, incr_out
 
-      NAMELIST / mesh / nx, ny, nz, itc, iuni, dx0, dy0, dz0, &
-        origin_x, origin_y, origin_z, mesh_partition
+      NAMELIST / mesh / nx, ny, nz, itc, iuni, dx0, dy0, dz0,        &
+        origin_x, origin_y, origin_z, center_x, center_y, center_z,  &
+        dxmin, dxmax, dymin, dymax, dzmin, dzmax, n0x, n0y, n0z,     &
+        domain_x, domain_y, domain_z, maxbeta, grigen, mesh_partition
 
       NAMELIST / boundaries / west, east, south, north, bottom, top, &
         itp, topography, immb, ibl
@@ -145,9 +142,7 @@
         update_eosg
 
       INTEGER :: i, j, k, n, m, ig, ierr
-      REAL*8, ALLOCATABLE :: grx(:), gry(:), grz(:)
       CHARACTER(LEN=80) :: card
-      CHARACTER(LEN=256) :: attr
       LOGICAL :: tend
 !
 !:::::::::::::::::::::::::::::  Sets default values  ::::::::::::::::::::::::::
@@ -193,15 +188,32 @@
       nx = 100                !  number of cell in the X directions
       nz = 100                !  number of cell in the Z directions
       ny = 1                  !  number of cell in the Y directions
+      n0x = 10                !  number of cell with minimum size
+      n0y = 10                !  number of cell with minimum size
+      n0z = 10                !  number of cell with minimum size
       itc = 0                 !  itc = 1 cylindrical coordinates are used
+      grigen = 0              !  flag for grid generation 0 = no grid gen.
+      maxbeta = 0             !  maximum increase rate for non-uniform meshes
       mesh_partition = 1      !  type of partition
       iuni = 0                !  1 = uniform grid, 0 = non uniform grid
-      dz0  = 10.D0            !  default cell z size in meters
-      dx0  = 10.D0            !  default cell x size in meters
-      dy0  = 10.D0            !  default cell y size in meters
+      dz0  = 20.D0            !  default cell z size in meters
+      dx0  = 20.D0            !  default cell x size in meters
+      dy0  = 20.D0            !  default cell y size in meters
+      dxmin = 10.D0           !  default cell x minimum size in metres
+      dymin = 10.D0           !  default cell y minimum size in metres
+      dzmin = 10.D0           !  default cell z minimum size in metres
+      dxmax = 100.D0           !  default cell x maximum size in metres
+      dymax = 100.D0           !  default cell y maximum size in metres
+      dzmax = 100.D0           !  default cell z maximum size in metres
       origin_x  = 0.D0        !  default x coo. of the system origin
       origin_y  = 0.D0        !  default y coo. of the system origin
       origin_z  = 0.D0        !  default z coo. of the system origin
+      center_x  = 0.D0        !  default x coo. of the mesh center
+      center_y  = 0.D0        !  default y coo. of the mesh center
+      center_z  = 0.D0        !  default z coo. of the mesh center
+      domain_x  = 10.D3       !  domain size in metres
+      domain_y  = 10.D3       !  domain size in metres
+      domain_z  = 10.D3       !  domain size in metres
       zzero = 0.0D0           !  grid bottom level
 
 ! ... Boundaries
@@ -284,49 +296,10 @@
 !
 ! :::::::::::::::::::::::  R E A D   N A M E L I S T S ::::::::::::::::
 !
-
-      IF( which == 'PP' ) THEN 
-        IF( mpime == root ) THEN
-          OPEN( UNIT=iuni_nml, FILE='pdac.nml', STATUS='UNKNOWN')
-          OPEN( UNIT=iuni_grx, FILE='pdac.grx', STATUS='UNKNOWN')
-          OPEN( UNIT=iuni_gry, FILE='pdac.gry', STATUS='UNKNOWN')
-          OPEN( UNIT=iuni_grz, FILE='pdac.grz', STATUS='UNKNOWN')
-          OPEN( UNIT=iuni_fld, FILE='pdac.fld', STATUS='UNKNOWN')
-          WRITE(iuni_nml, * ) '<?xml version="1.0" encoding="UTF-8"?>'
-          CALL iotk_write_begin( iuni_nml, "input" )
-        END IF
-      END IF
 !
 ! ... Control Namelist ................................................
 !
-      IF(mpime == root) THEN
-
-        READ(iunit, control) 
-
-        IF( which == 'PP' ) THEN
-          ! WRITE(iuni_nml, control) 
-       
-          CALL iotk_write_begin( iuni_nml, "control" )
-            CALL iotk_write_begin( iuni_nml, "run_name" )
-               WRITE( iuni_nml, * ) run_name
-            CALL iotk_write_end( iuni_nml, "run_name" )
-            CALL iotk_write_begin( iuni_nml, "job_type" )
-               WRITE( iuni_nml, * ) job_type
-            CALL iotk_write_end( iuni_nml, "job_type" )
-            CALL iotk_write_begin( iuni_nml, "restart_mode" )
-               WRITE( iuni_nml, * ) restart_mode
-            CALL iotk_write_end( iuni_nml, "restart_mode" )
-            CALL iotk_write_dat( iuni_nml, "time", time )
-            CALL iotk_write_dat( iuni_nml, "tstop", tstop )
-            CALL iotk_write_dat( iuni_nml, "dt", dt )
-            CALL iotk_write_dat( iuni_nml, "lpr", lpr )
-            CALL iotk_write_dat( iuni_nml, "tpr", tpr )
-            CALL iotk_write_dat( iuni_nml, "tdump", tdump )
-            CALL iotk_write_dat( iuni_nml, "nfil", irex )
-            CALL iotk_write_dat( iuni_nml, "max_seconds", max_seconds )
-          CALL iotk_write_end( iuni_nml, "control" )
-        END IF
-      END IF
+      IF(mpime == root) READ(iunit, control) 
 !
       CALL bcast_character(run_name,80,root)
       CALL bcast_character(job_type,80,root)
@@ -365,28 +338,7 @@
 !
 ! ... Model Namelist ................................................
 !
-      IF(mpime == root) THEN
-
-        READ(iunit, model) 
-
-        IF( which == 'PP' ) THEN
-          CALL iotk_write_begin( iuni_nml, "model" )
-            CALL iotk_write_dat( iuni_nml, "gas_viscosity", gas_viscosity )
-            CALL iotk_write_dat( iuni_nml, "part_viscosity", part_viscosity )
-            CALL iotk_write_dat( iuni_nml, "iss", iss )
-            CALL iotk_write_dat( iuni_nml, "repulsive_model",repulsive_model )
-            CALL iotk_write_dat( iuni_nml, "iturb", iturb )
-            CALL iotk_write_dat( iuni_nml, "modturbo", modturbo )
-            CALL iotk_write_dat( iuni_nml, "cmut", cmut )
-            CALL iotk_write_dat( iuni_nml, "rlim", rlim )
-            CALL iotk_write_dat( iuni_nml, "flim", flim )
-            CALL iotk_write_dat( iuni_nml, "gravx", gravx )
-            CALL iotk_write_dat( iuni_nml, "gravz", gravz )
-            CALL iotk_write_dat( iuni_nml, "ngas", ngas )
-            CALL iotk_write_dat( iuni_nml, "density_specified", density_specified )
-          CALL iotk_write_end( iuni_nml, "model" )
-        END IF
-      END IF
+      IF(mpime == root) READ(iunit, model) 
 
       CALL bcast_integer(irex,1,root)
       CALL bcast_integer(iss,1,root)
@@ -406,66 +358,42 @@
 !
 ! ... Mesh Namelist ...................................................
 !
-      IF(mpime == root) THEN
-      
-        READ(iunit, mesh) 
-        
-        IF( which == 'PP' ) THEN
-          ! WRITE(iuni_nml, mesh) 
-          CALL iotk_write_begin( iuni_nml, "mesh" )
-            CALL iotk_write_dat( iuni_nml, "nx", nx )
-            CALL iotk_write_dat( iuni_nml, "ny", ny )
-            CALL iotk_write_dat( iuni_nml, "nz", nz )
-            CALL iotk_write_dat( iuni_nml, "itc", itc )
-            CALL iotk_write_dat( iuni_nml, "iuni", iuni )
-            CALL iotk_write_dat( iuni_nml, "dx0", dx0 )
-            CALL iotk_write_dat( iuni_nml, "dy0", dy0 )
-            CALL iotk_write_dat( iuni_nml, "dz0", dz0 )
-            CALL iotk_write_dat( iuni_nml, "origin_x", origin_x )
-            CALL iotk_write_dat( iuni_nml, "origin_y", origin_y )
-            CALL iotk_write_dat( iuni_nml, "origin_z", origin_z )
-            CALL iotk_write_dat( iuni_nml, "mesh_partition", mesh_partition )
-          CALL iotk_write_end( iuni_nml, "mesh" )
-        END IF
-      END IF
+      IF(mpime == root) READ(iunit, mesh) 
 
       CALL bcast_integer(nx,1,root)
       CALL bcast_integer(ny,1,root)
       CALL bcast_integer(nz,1,root)
+      CALL bcast_integer(n0x,1,root)
+      CALL bcast_integer(n0y,1,root)
+      CALL bcast_integer(n0z,1,root)
       CALL bcast_integer(itc,1,root)
       CALL bcast_integer(iuni,1,root)
+      CALL bcast_integer(grigen,1,root)
+      CALL bcast_integer(mesh_partition,1,root)
       CALL bcast_real(dx0,1,root)
       CALL bcast_real(dy0,1,root)
       CALL bcast_real(dz0,1,root)
+      CALL bcast_real(dxmin,1,root)
+      CALL bcast_real(dymin,1,root)
+      CALL bcast_real(dzmin,1,root)
+      CALL bcast_real(dxmax,1,root)
+      CALL bcast_real(dymax,1,root)
+      CALL bcast_real(dzmax,1,root)
       CALL bcast_real(origin_x,1,root)
       CALL bcast_real(origin_y,1,root)
       CALL bcast_real(origin_z,1,root)
+      CALL bcast_real(center_x,1,root)
+      CALL bcast_real(center_y,1,root)
+      CALL bcast_real(center_z,1,root)
+      CALL bcast_real(domain_x,1,root)
+      CALL bcast_real(domain_y,1,root)
+      CALL bcast_real(domain_z,1,root)
+      CALL bcast_real(maxbeta,1,root)
       CALL bcast_real(zzero,1,root)
 !
 ! ... Boundaries Namelist ................................................
 !
-      IF(mpime == root) THEN
-
-        READ(iunit, boundaries) 
-
-        IF( which == 'PP' ) THEN
-          CALL iotk_write_begin( iuni_nml, "boundaries" )
-          ! WRITE(iuni_nml, boundaries) 
-            CALL iotk_write_dat( iuni_nml, "east", east )
-            CALL iotk_write_dat( iuni_nml, "west", west )
-            CALL iotk_write_dat( iuni_nml, "south", south )
-            CALL iotk_write_dat( iuni_nml, "north", north )
-            CALL iotk_write_dat( iuni_nml, "top", top )
-            CALL iotk_write_dat( iuni_nml, "bottom", bottom )
-            CALL iotk_write_dat( iuni_nml, "itp", itp )
-            CALL iotk_write_begin( iuni_nml, "topography" )
-              WRITE( iuni_nml, * ) topography
-            CALL iotk_write_end( iuni_nml, "topography" )
-            CALL iotk_write_dat( iuni_nml, "immb", immb )
-            CALL iotk_write_dat( iuni_nml, "ibl", ibl )
-          CALL iotk_write_end( iuni_nml, "boundaries" )
-        END IF
-      END IF
+      IF(mpime == root) READ(iunit, boundaries) 
 
       CALL bcast_integer(east,1,root)
       CALL bcast_integer(west,1,root)
@@ -480,20 +408,7 @@
 !
 ! ... Inlet Namelist ................................................
 !
-      IF(mpime == root) THEN
-
-        READ(iunit, inlet) 
-
-        IF( which == 'PP' ) THEN
-          CALL iotk_write_begin( iuni_nml, "inlet" )
-          ! WRITE(iuni_nml, inlet) 
-            CALL iotk_write_dat( iuni_nml, "ivent", ivent )
-            CALL iotk_write_dat( iuni_nml, "xvent", xvent )
-            CALL iotk_write_dat( iuni_nml, "yvent", yvent )
-            CALL iotk_write_dat( iuni_nml, "radius", radius )
-          CALL iotk_write_end( iuni_nml, "inlet" )
-        END IF
-      END IF
+      IF(mpime == root) READ(iunit, inlet) 
 
       CALL bcast_integer(ivent,1,root)
       CALL bcast_real(xvent,1,root)
@@ -519,20 +434,7 @@
 !
 ! ... Atmosphere Namelist ................................................
 !
-      IF(mpime == root) THEN
-
-        READ(iunit, atmosphere) 
-
-        IF( which == 'PP' ) THEN
-          CALL iotk_write_begin( iuni_nml, "atmosphere" )
-          ! WRITE(iuni_nml, atmosphere) 
-            CALL iotk_write_dat( iuni_nml, "wind_x", wind_x )
-            CALL iotk_write_dat( iuni_nml, "wind_y", wind_y )
-            CALL iotk_write_dat( iuni_nml, "wind_z", wind_z )
-          CALL iotk_write_end( iuni_nml, "atmosphere" )
-        END IF
-
-      END IF
+      IF(mpime == root) READ(iunit, atmosphere) 
 
       CALL bcast_real(wind_x,1,root)
       CALL bcast_real(wind_y,1,root)
@@ -551,24 +453,7 @@
 !
 ! ... Particles Namelist ..............................................
 !
-      IF(mpime == root) THEN
-
-        READ(iunit, particles) 
-
-        IF( which == 'PP' ) THEN
-          ! WRITE(iuni_nml, particles) 
-          CALL iotk_write_begin( iuni_nml, "particles" )
-            CALL iotk_write_dat( iuni_nml, "nsolid", nsolid )
-            CALL iotk_write_dat( iuni_nml, "diameter", diameter )
-            CALL iotk_write_dat( iuni_nml, "density", density )
-            CALL iotk_write_dat( iuni_nml, "sphericity", sphericity )
-            CALL iotk_write_dat( iuni_nml, "viscosity", viscosity )
-            CALL iotk_write_dat( iuni_nml, "specific_heat", specific_heat )
-            CALL iotk_write_dat( iuni_nml, "thermal_conductivity", &
-                                            thermal_conductivity )
-          CALL iotk_write_end( iuni_nml, "particles" )
-        END IF
-      END IF
+      IF(mpime == root) READ(iunit, particles) 
 
       CALL bcast_integer(nsolid,1,root)
       CALL bcast_real(diameter,max_nsolid,root)
@@ -584,29 +469,7 @@
 !
 ! ... Numeric Namelist ................................................
 !
-      IF(mpime == root) THEN
-
-        READ(iunit, numeric) 
-
-        IF( which == 'PP' ) THEN
-          ! WRITE(iuni_nml, numeric) 
-          CALL iotk_write_begin( iuni_nml, "numeric" )
-            CALL iotk_write_dat( iuni_nml, "rungekut", rungekut )
-            CALL iotk_write_dat( iuni_nml, "beta", beta )
-            CALL iotk_write_dat( iuni_nml, "muscl", muscl )
-            CALL iotk_write_dat( iuni_nml, "lim_type", lim_type )
-            CALL iotk_write_dat( iuni_nml, "linmax", inmax )
-            CALL iotk_write_dat( iuni_nml, "maxout", maxout )
-            CALL iotk_write_dat( iuni_nml, "omega", omega )
-            CALL iotk_write_dat( iuni_nml, "implicit_fluxes",   &
-                                          & implicit_fluxes )
-            CALL iotk_write_dat( iuni_nml, "implicit_enthalpy", &
-                                          & implicit_enthalpy )
-            CALL iotk_write_dat( iuni_nml, "update_eosg", &
-                                          & update_eosg )
-          CALL iotk_write_end( iuni_nml, "numeric" )
-        END IF
-      END IF
+      IF(mpime == root) READ(iunit, numeric) 
 
       CALL bcast_integer(rungekut,1,root)
       CALL bcast_real(beta,1,root)
@@ -618,23 +481,6 @@
       CALL bcast_logical(implicit_fluxes,1,root)
       CALL bcast_logical(implicit_enthalpy,1,root)
       CALL bcast_logical(update_eosg,1,root)
-!
-! ... PP Namelist .....................................................
-!
-      IF( which == 'PP' ) THEN
-        IF(mpime == root) THEN
-          READ(iunit, pp) 
-          ! WRITE(iuni_nml, pp) 
-          CALL iotk_write_begin( iuni_nml, "pp" )
-            CALL iotk_write_dat( iuni_nml, "first_out", first_out )
-            CALL iotk_write_dat( iuni_nml, "last_out", last_out )
-            CALL iotk_write_dat( iuni_nml, "incr_out", incr_out )
-          CALL iotk_write_end( iuni_nml, "pp" )
-        END IF
-        CALL bcast_integer(first_out,1,root)
-        CALL bcast_integer(last_out,1,root)
-        CALL bcast_integer(incr_out,1,root)
-      END IF
 !
 ! :::::::::::::::::::::::  R E A D   C A R D S ::::::::::::::::::::::::
 !
@@ -651,13 +497,6 @@
           END IF
         END DO rough_search
         READ(5,*) zrough%ir, (zrough%r(i),i=1,zrough%ir), zrough%roucha
-        IF( which == 'PP' ) THEN
-          CALL iotk_write_begin( iuni_nml, "roughness" )
-            CALL iotk_write_dat( iuni_nml, "ir", zrough%ir )
-            CALL iotk_write_dat( iuni_nml, "roucha", zrough%roucha )
-            CALL iotk_write_dat( iuni_nml, "r", zrough%r( 1 : zrough%ir ) )
-          CALL iotk_write_end( iuni_nml, "roughness" )
-        END IF
         GOTO 110
  100    tend = .TRUE.
  110    continue
@@ -685,11 +524,13 @@
         END DO mesh_search
 
         IF (iuni == 0) THEN
-          READ(5,*) (delta_x(i),i=1,nx)
-          IF( job_type == '3D' ) THEN
-            READ(5,*) (delta_y(j),j=1,ny)
+          IF (grigen == 0) THEN
+            READ(5,*) (delta_x(i),i=1,nx)
+            IF( job_type == '3D' ) THEN
+              READ(5,*) (delta_y(j),j=1,ny)
+            END IF
+            READ(5,*) (delta_z(k),k=1,nz)
           END IF
-          READ(5,*) (delta_z(k),k=1,nz)
         ELSE IF (iuni == 1) THEN
           delta_x = dx0
           delta_y = dy0
@@ -708,64 +549,6 @@
       CALL bcast_real(delta_x,nx,root)
       CALL bcast_real(delta_y,ny,root)
       CALL bcast_real(delta_z,nz,root)
-!
-! :::::::::::::::::::::   write post-processing files   :::::::::::::::::::::::
-!
-      IF(mpime == root) THEN
-
-        IF( which == 'PP' ) THEN
-
-          ALLOCATE( grx( nx - 1 ) )
-          ALLOCATE( gry( ny - 1 ) )
-          ALLOCATE( grz( nz - 1 ) )
-
-          grx( 1 ) = origin_x
-          WRITE( iuni_grx, * ) grx( 1 )
-          DO i = 2, nx - 1
-            grx( i ) = grx( i - 1 ) + delta_x( i )
-            WRITE( iuni_grx, * ) grx( i )
-          END DO
-  
-          gry( 1 ) = origin_y
-          WRITE( iuni_gry, * ) gry( 1 )
-          DO i = 2, ny - 1
-            gry( i ) = gry( i - 1 ) + delta_y( i )
-            WRITE( iuni_gry, * ) gry( i )
-          END DO
-  
-          grz( 1 ) = origin_z
-          WRITE( iuni_grz, * ) grz( 1 )
-          DO i = 2, nz - 1
-            grz( i ) = grz( i - 1 ) + delta_z( i )
-            WRITE( iuni_grz, * ) grz( i )
-          END DO
-
-          !WRITE( iuni_fld, fmt = "('# AVS field file')" )
-          !WRITE( iuni_fld, fmt = "('ndim=',I3)" ) 3
-          !WRITE( iuni_fld, fmt = "('dim1=',I3)" ) nx+1
-          !WRITE( iuni_fld, fmt = "('dim2=',I3)" ) ny+1
-          !WRITE( iuni_fld, fmt = "('dim3=',I3)" ) nz+1
-          !WRITE( iuni_fld, fmt = "('nspace=',I3)" ) 3
-          !WRITE( iuni_fld, fmt = "('veclen=',I3)" ) 3
-          !WRITE( iuni_fld, fmt = "('data=double')" )
-          !WRITE( iuni_fld, fmt = "('field=irregular')" )
-          !WRITE( iuni_fld, fmt = "('coord 1 file=pdac.grx, filetype=ascii')" )
-          !WRITE( iuni_fld, fmt = "('coord 2 file=pdac.gry, filetype=ascii')" )
-          !WRITE( iuni_fld, fmt = "('coord 3 file=pdac.grz, filetype=ascii')" )
-
-          CALL iotk_write_begin( iuni_nml, "mesh" )
-            CALL iotk_write_dat( iuni_nml, "grx", grx )
-            CALL iotk_write_dat( iuni_nml, "gry", gry )
-            CALL iotk_write_dat( iuni_nml, "grz", grz )
-          CALL iotk_write_end( iuni_nml, "mesh" )
-
-          DEALLOCATE( grx )
-          DEALLOCATE( gry )
-          DEALLOCATE( grz )
-
-        END IF
-
-      END IF
 !
 ! ... Fixed Flows Card (Inlet conditions) .............................
 !
@@ -818,37 +601,6 @@
 
         END IF
 
-        IF( which == 'PP' ) THEN
-          attr = ' '
-          CALL iotk_write_attr( attr, "number_of_block", number_of_block )
-          CALL iotk_write_begin( iuni_nml, "fixed_flows", attr )
-          DO n = 1, number_of_block
-            attr = ' '
-            CALL iotk_write_attr( attr, "id", n )
-            CALL iotk_write_attr( attr, "block_type", block_type(n) )
-            CALL iotk_write_begin( iuni_nml, "block", attr )
-              CALL iotk_write_dat( iuni_nml, "xlo", block_bounds(1,n) )
-              CALL iotk_write_dat( iuni_nml, "xhi", block_bounds(2,n) )
-              CALL iotk_write_dat( iuni_nml, "ylo", block_bounds(3,n) )
-              CALL iotk_write_dat( iuni_nml, "yhi", block_bounds(4,n) )
-              CALL iotk_write_dat( iuni_nml, "zlo", block_bounds(5,n) )
-              CALL iotk_write_dat( iuni_nml, "zhi", block_bounds(6,n) )
-              CALL iotk_write_dat( iuni_nml, "fixed_vgas_x", fixed_vgas_x(n) )
-              CALL iotk_write_dat( iuni_nml, "fixed_vgas_y", fixed_vgas_y(n) )
-              CALL iotk_write_dat( iuni_nml, "fixed_vgas_z", fixed_vgas_z(n) )
-              CALL iotk_write_dat( iuni_nml, "fixed_pressure", fixed_pressure(n) )
-              CALL iotk_write_dat( iuni_nml, "fixed_gaseps", fixed_gaseps(n) )
-              CALL iotk_write_dat( iuni_nml, "fixed_gastemp", fixed_gastemp(n) )
-              CALL iotk_write_dat( iuni_nml, "fixed_gasconc", fixed_gasconc( 1:max_ngas, n) )
-              CALL iotk_write_dat( iuni_nml, "fixed_vpart_x", fixed_vpart_x( 1:nsolid, n) )
-              CALL iotk_write_dat( iuni_nml, "fixed_vpart_y", fixed_vpart_y( 1:nsolid, n) )
-              CALL iotk_write_dat( iuni_nml, "fixed_vpart_z", fixed_vpart_z( 1:nsolid, n) )
-              CALL iotk_write_dat( iuni_nml, "fixed_parteps", fixed_parteps( 1:nsolid, n) )
-              CALL iotk_write_dat( iuni_nml, "fixed_parttemp", fixed_parttemp( 1:nsolid, n) )
-            CALL iotk_write_end( iuni_nml, "block" )
-          END DO
-          CALL iotk_write_end( iuni_nml, "fixed_flows" )
-        END IF
 
         GOTO 310
  300    tend = .TRUE.
@@ -880,18 +632,179 @@
         CALL bcast_real(fixed_gasconc, SIZE(fixed_gasconc), root)
       END IF
 !.....................................................................
+!
+      CALL write_xml
+!----------------------------------------------------------------------
+      CONTAINS
+!----------------------------------------------------------------------
+      SUBROUTINE write_xml
+      !
+      ! ... Writes input parameters into an XML file
+
+      USE iotk_module
+      IMPLICIT NONE
+      INTEGER :: iuni_nml = 20
+      CHARACTER(LEN=256) :: attr
 
       IF( mpime == root ) THEN
-        IF( which == 'PP' ) THEN
+
+          OPEN( UNIT=iuni_nml, FILE='pdac.nml', STATUS='UNKNOWN')
+          WRITE(iuni_nml, * ) '<?xml version="1.0" encoding="UTF-8"?>'
+
+          CALL iotk_write_begin( iuni_nml, "input" )
+
+          CALL iotk_write_begin( iuni_nml, "control" )
+            CALL iotk_write_begin( iuni_nml, "run_name" )
+               WRITE( iuni_nml, * ) run_name
+            CALL iotk_write_end( iuni_nml, "run_name" )
+            CALL iotk_write_begin( iuni_nml, "job_type" )
+               WRITE( iuni_nml, * ) job_type
+            CALL iotk_write_end( iuni_nml, "job_type" )
+            CALL iotk_write_begin( iuni_nml, "restart_mode" )
+               WRITE( iuni_nml, * ) restart_mode
+            CALL iotk_write_end( iuni_nml, "restart_mode" )
+            CALL iotk_write_dat( iuni_nml, "time", time )
+            CALL iotk_write_dat( iuni_nml, "tstop", tstop )
+            CALL iotk_write_dat( iuni_nml, "dt", dt )
+            CALL iotk_write_dat( iuni_nml, "lpr", lpr )
+            CALL iotk_write_dat( iuni_nml, "tpr", tpr )
+            CALL iotk_write_dat( iuni_nml, "tdump", tdump )
+            CALL iotk_write_dat( iuni_nml, "nfil", irex )
+            CALL iotk_write_dat( iuni_nml, "max_seconds", max_seconds )
+          CALL iotk_write_end( iuni_nml, "control" )
+
+          CALL iotk_write_begin( iuni_nml, "model" )
+            CALL iotk_write_dat( iuni_nml, "gas_viscosity", gas_viscosity )
+            CALL iotk_write_dat( iuni_nml, "part_viscosity", part_viscosity )
+            CALL iotk_write_dat( iuni_nml, "iss", iss )
+            CALL iotk_write_dat( iuni_nml, "repulsive_model",repulsive_model )
+            CALL iotk_write_dat( iuni_nml, "iturb", iturb )
+            CALL iotk_write_dat( iuni_nml, "modturbo", modturbo )
+            CALL iotk_write_dat( iuni_nml, "cmut", cmut )
+            CALL iotk_write_dat( iuni_nml, "rlim", rlim )
+            CALL iotk_write_dat( iuni_nml, "flim", flim )
+            CALL iotk_write_dat( iuni_nml, "gravx", gravx )
+            CALL iotk_write_dat( iuni_nml, "gravz", gravz )
+            CALL iotk_write_dat( iuni_nml, "ngas", ngas )
+            CALL iotk_write_dat( iuni_nml, "density_specified", density_specified )
+          CALL iotk_write_end( iuni_nml, "model" )
+
+          CALL iotk_write_begin( iuni_nml, "mesh" )
+            CALL iotk_write_dat( iuni_nml, "nx", nx )
+            CALL iotk_write_dat( iuni_nml, "ny", ny )
+            CALL iotk_write_dat( iuni_nml, "nz", nz )
+            CALL iotk_write_dat( iuni_nml, "itc", itc )
+            CALL iotk_write_dat( iuni_nml, "iuni", iuni )
+            CALL iotk_write_dat( iuni_nml, "dx0", dx0 )
+            CALL iotk_write_dat( iuni_nml, "dy0", dy0 )
+            CALL iotk_write_dat( iuni_nml, "dz0", dz0 )
+            CALL iotk_write_dat( iuni_nml, "origin_x", origin_x )
+            CALL iotk_write_dat( iuni_nml, "origin_y", origin_y )
+            CALL iotk_write_dat( iuni_nml, "origin_z", origin_z )
+            CALL iotk_write_dat( iuni_nml, "mesh_partition", mesh_partition )
+          CALL iotk_write_end( iuni_nml, "mesh" )
+
+          CALL iotk_write_begin( iuni_nml, "boundaries" )
+            CALL iotk_write_dat( iuni_nml, "east", east )
+            CALL iotk_write_dat( iuni_nml, "west", west )
+            CALL iotk_write_dat( iuni_nml, "south", south )
+            CALL iotk_write_dat( iuni_nml, "north", north )
+            CALL iotk_write_dat( iuni_nml, "top", top )
+            CALL iotk_write_dat( iuni_nml, "bottom", bottom )
+            CALL iotk_write_dat( iuni_nml, "itp", itp )
+            CALL iotk_write_begin( iuni_nml, "topography" )
+              WRITE( iuni_nml, * ) topography
+            CALL iotk_write_end( iuni_nml, "topography" )
+            CALL iotk_write_dat( iuni_nml, "immb", immb )
+            CALL iotk_write_dat( iuni_nml, "ibl", ibl )
+          CALL iotk_write_end( iuni_nml, "boundaries" )
+
+          CALL iotk_write_begin( iuni_nml, "inlet" )
+            CALL iotk_write_dat( iuni_nml, "ivent", ivent )
+            CALL iotk_write_dat( iuni_nml, "xvent", xvent )
+            CALL iotk_write_dat( iuni_nml, "yvent", yvent )
+            CALL iotk_write_dat( iuni_nml, "radius", radius )
+          CALL iotk_write_end( iuni_nml, "inlet" )
+
+          CALL iotk_write_begin( iuni_nml, "atmosphere" )
+            CALL iotk_write_dat( iuni_nml, "wind_x", wind_x )
+            CALL iotk_write_dat( iuni_nml, "wind_y", wind_y )
+            CALL iotk_write_dat( iuni_nml, "wind_z", wind_z )
+          CALL iotk_write_end( iuni_nml, "atmosphere" )
+
+          CALL iotk_write_begin( iuni_nml, "particles" )
+            CALL iotk_write_dat( iuni_nml, "nsolid", nsolid )
+            CALL iotk_write_dat( iuni_nml, "diameter", diameter )
+            CALL iotk_write_dat( iuni_nml, "density", density )
+            CALL iotk_write_dat( iuni_nml, "sphericity", sphericity )
+            CALL iotk_write_dat( iuni_nml, "viscosity", viscosity )
+            CALL iotk_write_dat( iuni_nml, "specific_heat", specific_heat )
+            CALL iotk_write_dat( iuni_nml, "thermal_conductivity", &
+                                            thermal_conductivity )
+          CALL iotk_write_end( iuni_nml, "particles" )
+
+          CALL iotk_write_begin( iuni_nml, "numeric" )
+            CALL iotk_write_dat( iuni_nml, "rungekut", rungekut )
+            CALL iotk_write_dat( iuni_nml, "beta", beta )
+            CALL iotk_write_dat( iuni_nml, "muscl", muscl )
+            CALL iotk_write_dat( iuni_nml, "lim_type", lim_type )
+            CALL iotk_write_dat( iuni_nml, "linmax", inmax )
+            CALL iotk_write_dat( iuni_nml, "maxout", maxout )
+            CALL iotk_write_dat( iuni_nml, "omega", omega )
+            CALL iotk_write_dat( iuni_nml, "implicit_fluxes",   &
+                                          & implicit_fluxes )
+            CALL iotk_write_dat( iuni_nml, "implicit_enthalpy", &
+                                          & implicit_enthalpy )
+            CALL iotk_write_dat( iuni_nml, "update_eosg", &
+                                          & update_eosg )
+          CALL iotk_write_end( iuni_nml, "numeric" )
+
+          CALL iotk_write_begin( iuni_nml, "roughness" )
+            CALL iotk_write_dat( iuni_nml, "ir", zrough%ir )
+            CALL iotk_write_dat( iuni_nml, "roucha", zrough%roucha )
+            CALL iotk_write_dat( iuni_nml, "r", zrough%r( 1 : zrough%ir ) )
+          CALL iotk_write_end( iuni_nml, "roughness" )
+
+          attr = ' '
+          CALL iotk_write_attr( attr, "number_of_block", number_of_block )
+          CALL iotk_write_begin( iuni_nml, "fixed_flows", attr )
+          DO n = 1, number_of_block
+            attr = ' '
+            CALL iotk_write_attr( attr, "id", n )
+            CALL iotk_write_attr( attr, "block_type", block_type(n) )
+            CALL iotk_write_begin( iuni_nml, "block", attr )
+              CALL iotk_write_dat( iuni_nml, "xlo", block_bounds(1,n) )
+              CALL iotk_write_dat( iuni_nml, "xhi", block_bounds(2,n) )
+              CALL iotk_write_dat( iuni_nml, "ylo", block_bounds(3,n) )
+              CALL iotk_write_dat( iuni_nml, "yhi", block_bounds(4,n) )
+              CALL iotk_write_dat( iuni_nml, "zlo", block_bounds(5,n) )
+              CALL iotk_write_dat( iuni_nml, "zhi", block_bounds(6,n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_vgas_x", fixed_vgas_x(n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_vgas_y", fixed_vgas_y(n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_vgas_z", fixed_vgas_z(n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_pressure", fixed_pressure(n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_gaseps", fixed_gaseps(n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_gastemp", fixed_gastemp(n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_gasconc", fixed_gasconc( 1:max_ngas, n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_vpart_x", fixed_vpart_x( 1:nsolid, n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_vpart_y", fixed_vpart_y( 1:nsolid, n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_vpart_z", fixed_vpart_z( 1:nsolid, n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_parteps", fixed_parteps( 1:nsolid, n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_parttemp", fixed_parttemp( 1:nsolid, n) )
+            CALL iotk_write_end( iuni_nml, "block" )
+          END DO
+
+          CALL iotk_write_end( iuni_nml, "fixed_flows" )
+
           CALL iotk_write_end( iuni_nml, "input" )
+
           CLOSE( UNIT=iuni_nml )
-          CLOSE( UNIT=iuni_fld )
-          CLOSE( UNIT=iuni_grx )
-          CLOSE( UNIT=iuni_gry )
-          CLOSE( UNIT=iuni_grz )
-        END IF
+
       END IF
 
+      RETURN
+      END SUBROUTINE write_xml
+!----------------------------------------------------------------------
       END SUBROUTINE input
 !----------------------------------------------------------------------
       SUBROUTINE initc
@@ -900,7 +813,7 @@
       USE control_flags, ONLY: job_type, lpr
       USE dimensions
       USE grid, ONLY: dx, dy, dz, itc
-      USE grid, ONLY: iob, zzero
+      USE grid, ONLY: iob, zzero, grigen
       USE initial_conditions, ONLY: epsob, tpob, ygcob,   &
      &     ugob, vgob, wgob, upob, vpob, wpob, pob, tgob, epob
       USE particles_constants, ONLY: rl, inrl, kap, cmus, phis, cps, dk
@@ -912,13 +825,15 @@
 !
 ! ... mesh
 !
-      dx(1:nx) = delta_x(1:nx)
-      IF( job_type == '3D' ) THEN
-        dy(1:ny) = delta_y(1:ny)
-      ELSE IF( job_type == '2D' ) THEN
-        dy(1:ny) = 0.D0
+      IF( grigen == 0) THEN
+        dx(1:nx) = delta_x(1:nx)
+        IF( job_type == '3D' ) THEN
+          dy(1:ny) = delta_y(1:ny)
+        ELSE IF( job_type == '2D' ) THEN
+          dy(1:ny) = 0.D0
+        END IF
+        dz(1:nz) = delta_z(1:nz)
       END IF
-      dz(1:nz) = delta_z(1:nz)
 !
 ! ... specified flows
 !
