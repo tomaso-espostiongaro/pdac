@@ -583,8 +583,8 @@
       END DO          
 !
       IF( lpr >= 1 ) WRITE(7,*) 'beta, beta1, beta2: ', beta, beta1, beta2 
-      IF( lpr >= 1 ) WRITE(7,*) 'n01,m1,n11',n01,m1,n11
-      IF( lpr >= 1 ) WRITE(7,*) 'n02,m2,n12',n02,m2,n12
+      IF( lpr >= 1 ) WRITE(7,*) 'n01, m1, n11 : ', n01, m1, n11
+      IF( lpr >= 1 ) WRITE(7,*) 'n02, m2, n12 : ', n02, m2, n12
 !
       center = n11 + m1 + n01 + 1
 
@@ -606,14 +606,14 @@
         delta(i) = delta(i) * 100.D0
         idelta = NINT(delta(i))
         delta(i) = idelta / 100.D0
-        WRITE(7,'(F8.2)') delta(i)
+        WRITE(7,fmt="(F8.2)") delta(i)
       END DO
       
       WRITE(7,777) domain_size
       WRITE(7,888) SUM(delta)
 
  777  FORMAT('domain_size = ',(F8.2)) 
- 888  FORMAT('mesh_size = ',(F8.2)) 
+ 888  FORMAT('mesh_size   = ',(F8.2)) 
 !
       RETURN
       END SUBROUTINE generate_grid

@@ -39,8 +39,17 @@
         END TYPE
 !
         TYPE (rcv_map_type), ALLOCATABLE :: rcv_map(:)
+! ...     This array store, for each processor, the indexes of local
+! ...     cell where to copy the data sent by other procesor
+
         TYPE (snd_map_type), ALLOCATABLE :: snd_map(:)
+! ...     This array store, for each processor, the indexes of local
+! ...     cell that the present procesor has to send to the other
+
         TYPE (cells_map_type), ALLOCATABLE :: proc_map(:)
+! ...     This array is used to store data about which cell belong
+! ...     to which processor, and is used to find owner, local and
+! ...     global index of a cell
 
 ! ...   The following arrays contain information on how the cells
 !       are distributed among processors.
@@ -148,11 +157,16 @@
         CALL blocks( ncfl1, nctot )
       ELSE IF ( proc_map(0)%type == BLOCK2D_MAP .AND. job_type == '3D') THEN
         CALL columns( ncfl1, nctot )
+      ELSE IF ( proc_map(0)%type == BLOCK3D_MAP .AND. job_type == '3D') THEN
+        CALL blocks3d( ncfl1, nctot )
       ELSE
         CALL error(' partition ',' partition type not yet implemented ',proc_map(0)%type)
       END IF
 !
-! ... ncell is the balanced number of cells to each processor
+! ... ncell is the optimal balanced number of cells for each processor
+! ... which always differs from the one calculated by the subroutine that actually
+! ... distribute the data, this is because there are constraints in the
+! ... data distributions itself
 ! 
       DO ipe = 0, nproc - 1
         ncell(ipe) = localdim(countfl(1), nproc, ipe)
@@ -160,16 +174,26 @@
       END DO
 !
       IF (lpr >= 1) THEN
-        WRITE(7,*) '---  partition  -----'
-        WRITE(7,*) '  '
+        WRITE(7,*) 
+        WRITE(7,*) '---  cells partition summary  ---'
+        WRITE(7,*) 
         DO ipe = 0, nproc - 1
-          WRITE(7,*) ' # nctot( ',ipe, ' )', nctot(ipe)
-          WRITE(7,*) ' # ncfl1( ',ipe, ' )', ncfl1(ipe),' -', ncell(ipe),' =', ncdif(ipe)
+          WRITE(7,*) ' # nctot( ',ipe, ' ) = ', nctot(ipe)
+          WRITE(7,*) ' # ncfl1( ',ipe, ' ) = ', ncfl1(ipe)
+          WRITE(7,*) ' # ncdif( ',ipe, ' ) = ', ncfl1(ipe),' -', ncell(ipe),' =', ncdif(ipe)
           IF( proc_map(0)%type == LAYER_MAP ) THEN
-            WRITE(7,*) 'proc(', ipe,')_map:', proc_map(ipe)%lay(1), proc_map(ipe)%lay(2)
+            WRITE(7,*) '   proc(', ipe,')_map (first-last):', &
+              proc_map(ipe)%lay(1), proc_map(ipe)%lay(2)
           ELSE IF(  proc_map(0)%type == BLOCK2D_MAP ) THEN
-            WRITE(7,*) 'proc(', ipe,')_map:', proc_map(ipe)%corner1(1), proc_map(ipe)%corner1(2)
-            WRITE(7,*) 'proc(', ipe,')_map:', proc_map(ipe)%corner2(1), proc_map(ipe)%corner2(2)
+            WRITE(7,*) '   proc(', ipe,')_map (left-bot.):', &
+              proc_map(ipe)%corner1(1), proc_map(ipe)%corner1(2)
+            WRITE(7,*) '   proc(', ipe,')_map (right-top):', &
+              proc_map(ipe)%corner2(1), proc_map(ipe)%corner2(2)
+          ELSE IF(  proc_map(0)%type == BLOCK3D_MAP ) THEN
+            WRITE(7,*) '   proc(', ipe,')_map (BSW):', &
+              proc_map(ipe)%blkbsw(1), proc_map(ipe)%blkbsw(2), proc_map(ipe)%blkbsw(3)
+            WRITE(7,*) '   proc(', ipe,')_map (TNE):', &
+              proc_map(ipe)%blktne(1), proc_map(ipe)%blktne(2), proc_map(ipe)%blktne(3)
           END IF 
         END DO
       END IF
@@ -218,9 +242,11 @@
 !
       IF( job_type == '2D' ) THEN
 
-        lay_map(0,1) = 1
-        lay_map(nproc-1,2) = nx*nz
-        ipe = 0
+        lay_map(0      ,1) = 1        !  the first cell to the first proc
+        lay_map(nproc-1,2) = nx*nz    !  the last cell to the last proc
+        ipe      = 0
+        icnt     = 0
+        icnt_ipe = 0
 
         DO k = 1, nz
           DO i = 1, nx
@@ -234,13 +260,18 @@
 
             nctot(ipe) = nctot(ipe) + 1
 
-            IF ( ( icnt_ipe == ncfl1(ipe) ) .AND. ( i /= (nx-1) ) ) THEN
-              icnt_ipe = 0
-              IF( icnt < countfl(1) ) THEN
+            IF ( ( icnt_ipe >= ncfl1(ipe) ) .AND. ( i /= (nx-1) ) ) THEN
+
+! ...         The last cell has already been assigned to the last proc,
+! ...         the next double condition is somehow redundant, but helps reading the code
+              IF( ( icnt < countfl(1) ) .AND. ( ipe < ( nproc - 1 ) ) ) THEN
                 lay_map(ipe,2) = ijk
                 ipe = ipe + 1
                 lay_map(ipe,1) = ijk+1
               END IF
+
+              icnt_ipe = 0
+
             END IF
 
           END DO 
@@ -248,9 +279,11 @@
 
       ELSE IF( job_type == '3D' ) THEN
 
-        lay_map(0,1)       = 1
-        lay_map(nproc-1,2) = nx*ny*nz
-        ipe = 0
+        lay_map(0,1)       = 1         ! the first cell to the first proc
+        lay_map(nproc-1,2) = nx*ny*nz  ! the last cell to the last proc
+        ipe      = 0
+        icnt     = 0
+        icnt_ipe = 0
 
         DO k = 1, nz
           DO j = 1, ny
@@ -266,15 +299,14 @@
               nctot(ipe) = nctot(ipe) + 1
 
               IF ( icnt_ipe >= ncfl1(ipe) ) THEN
-                IF ( (i == nx-1) .OR.  (j == ny-1) .OR. & 
-                     ( (j == ny) .AND. (i /= nx) ) ) GOTO 114
-                  icnt_ipe = 0
-                  IF( icnt < countfl(1) ) THEN
+                IF ( ( (i /= nx-1) .AND. (j <= ny-1) ) .OR. ( (i == nx) .AND. (j == ny) ) ) THEN
+                  IF( icnt < countfl(1) .AND. ( ipe < ( nproc - 1) ) ) THEN
                     lay_map(ipe,2) = ijk
                     ipe = ipe + 1
                     lay_map(ipe,1) = ijk+1
                   END IF
- 114            CONTINUE
+                  icnt_ipe = 0
+                END IF
               END IF
 
             END DO
@@ -298,6 +330,7 @@
       END SUBROUTINE layers
 
 ! ------------------------------------------------------------------------
+
       SUBROUTINE blocks( ncfl1, nctot )
 !
 ! ... partition N.1 (layers)
@@ -317,46 +350,57 @@
       INTEGER :: ncfl1(0:)
       INTEGER :: nctot(0:)
 !
-      INTEGER :: i, k, ijk
+      INTEGER :: i, ib, k, ijk
       INTEGER :: l
       INTEGER :: i1, i2, k1, k2, ijk1, ijk2
       INTEGER :: nbl
       INTEGER :: icnt, ipe
       INTEGER :: bl1
       INTEGER :: size_x, rest, skipl, rrest
-      INTEGER :: nbx, nby
+      INTEGER :: nbx, nbz
       INTEGER :: layer, icnt_layer, here
       INTEGER :: localdim
 !
       INTEGER, ALLOCATABLE :: lay_map(:,:)
-      INTEGER, ALLOCATABLE :: nctot_lay(:), nbl_lay(:), ncfl1_lay(:)
+      INTEGER, ALLOCATABLE :: nctot_lay(:), nbl_lay(:), ncfl1_lay(:), nbl_tot(:)
 !
       REAL*8 side, area
       REAL*8 fact
 !
-! ... Initially subdivides the domain into 'nby' layers. Each layer
+! ... Initially subdivides the domain into 'nbz' layers. Each layer
 ! ... will be in turn subdivided into 'nbx' blocks.
 ! ... If the number of the processors 'nproc' is not factorable
-! ... as 'nbx*nby', some blocks in the lower layer will be merged together.
-! ... Guess the optimum 'size_x' of the blocks.
+! ... as 'nbx*nbz', some blocks in the lower layer will be merged together.
 !
-        area  = DBLE(countfl(1)/nproc)
-        side  = DSQRT(area)
-        nbx    = NINT(nx/side)
-        nby    = NINT(countfl(1)/nbx/side**2)     
+        area  = DBLE(countfl(1)/nproc)       
+
+! ... Here countfl(1) is supposed to be the total area whose side
+! ... are "nx" and "nz_effective" ( lower than "nz" )
+! ... Remember nbx * nbz should be equal to nproc
+
+        side  = DSQRT(area)    !  balanced area to be assigned to each proc
+        nbx   = NINT(nx/side)  !  estimate number of block along x direction
+        nbz   = NINT(countfl(1)/nbx/area) ! estimate the number of block along z    
         IF (nbx == 0) nbx = 1
-        IF (nby == 0) nby = 1
-        DO WHILE (nbx*nby <= nproc)
-         IF (INT(nx/nbx) .GT. INT(nz/nby)) THEN
+        IF (nbz == 0) nbz = 1
+        DO WHILE (nbx*nbz <= nproc)
+         IF (INT(nx/nbx) .GT. INT(nz/nbz)) THEN
            nbx = nbx + 1
          ELSE
-           nby = nby + 1
+           nbz = nbz + 1
          END IF
         END DO
+
+! ... Guess the optimum 'size_x' of the blocks.
+
         size_x = INT(nx/nbx)
-        rest = nbx*nby - nproc
+        rest   = nbx*nbz - nproc
 !
-        ALLOCATE(lay_map(1:nby,2))
+! ... nbz is now computed, and will not be changed anymore
+! ... we need now to compute the border of the layers and the
+! ... number of block within each layer.
+!
+        ALLOCATE(lay_map(1:nbz,2))
         lay_map(:,:) = 0
 !
 ! ... Initialize the processor maps
@@ -366,90 +410,119 @@
           proc_map(i)%corner2(:) = 0
         END DO
 !
-        IF (ALLOCATED(nctot_lay)) DEALLOCATE(nctot_lay)
-        IF (ALLOCATED(ncfl1_lay)) DEALLOCATE(ncfl1_lay)
-        IF (ALLOCATED(nbl_lay)) DEALLOCATE(nbl_lay)
-        ALLOCATE(nctot_lay(1:nby), ncfl1_lay(1:nby), nbl_lay(1:nby))
+        ALLOCATE(nctot_lay(1:nbz), ncfl1_lay(1:nbz), nbl_lay(1:nbz))
 !
         nctot_lay = 0
         ncfl1_lay = 0
-        nbl_lay = 0
+        nbl_lay   = 0
 !
 ! ... distribute cells among layers proportionally to the 
 ! ... number of blocks contained. 
 ! ... 'ncfl1_lay' is the number of cells with fl=1 in the layer.
 !
         IF (rest == 0) THEN
-          DO layer = 1, nby
-           ncfl1_lay(layer) = localdim(countfl(1),nby,layer)
-           nbl_lay(layer) = nbx
+
+! ...     Every layer contain the same number of blocks ( no reminder )
+
+          DO layer = 1, nbz
+            ncfl1_lay(layer) = localdim( countfl(1), nbz, layer-1 )
+            nbl_lay(layer) = nbx
           END DO
+
         ELSE
+
+! ...     Too many blocks, some layer should remove the eceeding blocks ( "rest" )
+
           skipl = INT(rest/nbx) 
-          rrest = MOD(rest, nbx)
-          IF (rest <= nbx) THEN
-            nbl_lay(1) = nbx - rrest
-            DO layer = 2, nby
+          rrest = MOD(rest,nbx)
+
+          IF (rest < nbx) THEN
+            nbl_lay(1) = nbx - rrest   !  the first layer (usually with topography )
+            DO layer = 2, nbz          !  remove all eceeding blocks
               nbl_lay(layer) = nbx
             END DO
           ELSE
-            DO layer = 1, skipl
-              nbl_lay(layer) = 1
+            DO layer = 1, skipl        !  rest is larger than nbx, remove all possible 
+              nbl_lay(layer) = 1       !  blocks from the lower layers
             END DO
-              nbl_lay(skipl+1) = nbx - rrest 
-            DO layer = skipl + 2, nby
-              nbl_lay(layer) = nbx
-            END DO
+            IF( skipl < nbz ) THEN     !  this condition is somehow redundant
+              nbl_lay(skipl+1) = nbx - rrest  !  remove the remaining blocks
+              DO layer = skipl + 2, nbz
+                nbl_lay(layer) = nbx
+              END DO
+            END IF
           END IF
-          DO layer = 1, nby
-            fact = DBLE(countfl(1)/nproc * nbl_lay(layer))
-            ncfl1_lay(layer) = NINT(fact)
+
+          IF( SUM( nbl_lay ) /= nproc ) &
+            CALL error(' blocks ',' non consistent number of blocks ', SUM( nbl_lay ) )
+
+! ...     Distribute cells to each layer, the number of cells is proportional to
+! ...     the number of blocks
+
+          ALLOCATE( nbl_tot( nproc ) )
+
+          DO ib = 1, nproc
+            nbl_tot(ib) = localdim( countfl(1), nproc, ib-1 )
           END DO
+          ib = 0
+          DO layer = 1, nbz
+            ncfl1_lay(layer) = 0
+            DO i = 1, nbl_lay(layer)
+              ib = ib + 1
+              ncfl1_lay(layer) = ncfl1_lay(layer) + nbl_tot( ib )
+            END DO
+          END DO
+
+          DEALLOCATE( nbl_tot )
+
         END IF
 
         IF ( SUM( ncfl1_lay(:) ) /= countfl(1) ) &
-              CALL error('partition','control blocks decomposition',1)
+              CALL error(' blocks ',' control blocks decomposition ',1)
 !
 ! ... build the layer maps
 !
         layer = 1
-        ipe = 0
-        lay_map(1,1) = 1
-        lay_map(nby,2) = nx*nz
+        ipe   = 0
+        lay_map(1  ,1) = 1
+        lay_map(nbz,2) = nx*nz
+        icnt_layer = 0
+        icnt       = 0
+
         DO k = 1, nz
-        DO i = 1, nx
-          ijk = i + (k-1)*nx
+          DO i = 1, nx
+            ijk = i + (k-1)*nx
 !
-          IF ( fl(ijk) == 1 ) THEN
-            icnt_layer = icnt_layer + 1
-            icnt     = icnt     + 1
-          END IF
-
-          nctot_lay(layer) = nctot_lay(layer) + 1
-
-         IF ( icnt_layer == ncfl1_lay(layer) ) THEN
-            icnt_layer = 0
-            IF(layer < nby) THEN
-              lay_map(layer,2) = ijk
-              layer = layer + 1
-              lay_map(layer,1) = ijk+1
+            IF ( fl(ijk) == 1 ) THEN
+              icnt_layer = icnt_layer + 1
+              icnt       = icnt     + 1
             END IF
-          END IF
-        END DO
+
+            nctot_lay(layer) = nctot_lay(layer) + 1
+
+            IF ( icnt_layer >= ncfl1_lay(layer) ) THEN
+              IF( layer < nbz ) THEN
+                lay_map(layer,2) = ijk
+                layer = layer + 1
+                lay_map(layer,1) = ijk+1
+              END IF
+              icnt_layer = 0
+            END IF
+          END DO
         END DO
 !
       ipe = -1
-      DO layer = 1, nby
+      DO layer = 1, nbz
 
         ijk2 = lay_map(layer,2)
-        k2  = ( ijk2 - 1 ) / nx + 1
-        i2  = MOD( ( ijk2 - 1 ), nx) + 1
+        k2   = ( ijk2 - 1 ) / nx + 1
+        i2   = MOD( ( ijk2 - 1 ), nx) + 1
 !
 ! ... cut steps to layers
 !
-        IF (i2 < nx/2) k2 = k2-1
+        IF ( i2 < nx/2 ) k2 = k2 - 1
 
-        IF (layer < nby) THEN
+        IF ( layer < nbz ) THEN
           lay_map(layer,2) = k2 * nx
         ELSE
           lay_map(layer,2) = nz * nx
@@ -460,17 +533,20 @@
           lay_map(layer,1) = 1
         END IF
 
+! ... retieve layer boundaries and check them
+
         ijk1 = lay_map(layer,1)
         ijk2 = lay_map(layer,2)
         k1  = ( ijk1 - 1 ) / nx + 1
         i1  = MOD( ( ijk1 - 1 ), nx) + 1
         k2  = ( ijk2 - 1 ) / nx + 1
         i2  = MOD( ( ijk2 - 1 ), nx) + 1
-        IF (i1 /= 1 .OR. i2 /= nx) WRITE(8,*)'error in layer',layer
+        IF (i1 /= 1 .OR. i2 /= nx) &
+          CALL error( ' blocks ', ' inconsistent layer ', layer )
 !
-! ...  now updates the number of cells with fl=1 into layers
+! ...  now updates the number of cells with fl=1 
 !
-        nctot_lay(layer)  = 0
+        nctot_lay(layer) = 0
         ncfl1_lay(layer) = 0
         DO ijk = ijk1, ijk2
           nctot_lay(layer) = nctot_lay(layer) + 1
@@ -480,26 +556,27 @@
 ! ... Estimate of the number of cells contained in each block
 ! ... in the layer
 !
-        bl1 = INT(ncfl1_lay(layer)/nbl_lay(layer))
+        bl1 = INT( ncfl1_lay(layer) / nbl_lay(layer) )
 !
 ! ... Build block maps
 !
         i = i1
         DO nbl = 1, nbl_lay(layer) 
+
           ipe = ipe + 1
 
           proc_map(ipe)%corner1(1) = i
           proc_map(ipe)%corner1(2) = k1
 
-          DO WHILE (ncfl1(ipe) < bl1)
+          DO WHILE ( ncfl1(ipe) < bl1 )
             DO k = k1, k2
               ijk = i + (k-1)*nx
               IF (fl(ijk) == 1) ncfl1(ipe) = ncfl1(ipe) + 1
             END DO  
-            i = i+1
+            i = i + 1
           END DO
 
-          proc_map(ipe)%corner2(1) = i-1
+          proc_map(ipe)%corner2(1) = i - 1
           proc_map(ipe)%corner2(2) = k2
 
           IF (nbl == nbl_lay(layer)) proc_map(ipe)%corner2(1) = nx 
@@ -521,6 +598,7 @@
       END DO
 
       DEALLOCATE(lay_map)
+      DEALLOCATE( nctot_lay, ncfl1_lay, nbl_lay )
 
       RETURN
       END SUBROUTINE blocks
@@ -578,8 +656,7 @@
         area  = volume / zavg       ! expected average base area of column blocks 
         side  = DSQRT( area )       ! side of the base area
         nbx   = NINT( nx / side )   ! per processor number of "x"
-        ! nby   = NINT( ( DBLE( countfl(1) ) / zavg ) / DBLE(nbx) / area )     
-        nby   = NINT( DBLE( nproc ) / nbx );     
+        nby   = NINT( DBLE( nproc ) / nbx )
         IF (nbx == 0) nbx = 1
         IF (nby == 0) nby = 1
 
@@ -603,9 +680,6 @@
           proc_map(i)%corner2(:) = 0
         END DO
 !
-        IF ( ALLOCATED( nctot_lay ) ) DEALLOCATE( nctot_lay )
-        IF ( ALLOCATED( ncfl1_lay ) ) DEALLOCATE( ncfl1_lay )
-        IF ( ALLOCATED( nbl_lay   ) ) DEALLOCATE( nbl_lay   )
         ALLOCATE( nctot_lay( 1:nby ), ncfl1_lay( 1:nby ), nbl_lay( 1:nby ) )
 !
         nctot_lay = 0
@@ -619,7 +693,7 @@
         IF ( rest == 0 ) THEN
 
           DO layer = 1, nby
-            ncfl1_lay(layer) = localdim( countfl(1), nby, layer )
+            ncfl1_lay(layer) = localdim( countfl(1), nby, layer - 1 )
             nbl_lay(layer)   = nbx
           END DO
 
@@ -641,7 +715,7 @@
           END IF
 
           DO layer = 1, nby
-            fact = DBLE( countfl(1)/nproc * nbl_lay(layer) )
+            fact = DBLE( countfl(1) / nproc * nbl_lay(layer) )
             ncfl1_lay(layer) = NINT(fact)   !  expected no. of fl=1 per slab (layer 2D)
           END DO
 
@@ -651,8 +725,10 @@
 !
         layer = 1
         ipe = 0
-        lay_map(1,1) = 1
+        lay_map(1,1)   = 1
         lay_map(nby,2) = nx*ny
+        icnt_layer = 0
+        icnt       = 0
 
         DO j = 1, ny
         DO i = 1, nx
@@ -778,12 +854,381 @@
           END DO
         END DO
 
-        DEALLOCATE(lay_map)
+        DEALLOCATE( lay_map )
+        DEALLOCATE( nctot_lay, ncfl1_lay, nbl_lay )
 
       RETURN
       END SUBROUTINE columns
 ! ---------------------------------------------------------------------
+
+      SUBROUTINE blocks3d( ncfl1, nctot )
 !
+! ... This subroutine decomposes the domain into N orthorombic blocks.
+! ... The processor map consist of the cell coordinates ( i, j, k )
+! ... of the bottom-south-west and the top-north-east corners of the blocks
+! ... itself
+!
+!
+      USE dimensions
+      USE parallel, ONLY: nproc
+!
+      IMPLICIT NONE
+      SAVE
+!
+      INTEGER :: ncfl1(0:)   !  the number of cells with fl == 1 
+      INTEGER :: nctot(0:)   !  total number of local cells
+!
+      INTEGER :: i, j, k, ijk
+      INTEGER :: i1, i2, j1, j2, ij1, ij2, ij, k1, k2
+      INTEGER :: nbl, l, ibz
+      INTEGER :: icnt, ipe
+      INTEGER :: bl1
+      INTEGER :: rest, skipl, rrest
+      INTEGER :: nbx, nby, nbz
+      INTEGER :: layer, icnt_layer, here
+      INTEGER :: nprocxy, nprocz
+!
+      INTEGER :: localdim
+      EXTERNAL :: localdim
+!
+      INTEGER, ALLOCATABLE :: lay_map(:,:)  ! layer map used as first domain partition
+      INTEGER, ALLOCATABLE :: nctot_lay(:)  ! total number of cell per layer
+      INTEGER, ALLOCATABLE :: nbl_lay(:)    ! number of column blocks within a layer
+      INTEGER, ALLOCATABLE :: ncfl1_lay(:)  ! total number of cells in the layer with fl == 1
+!
+      REAL*8 :: side, area, volume, zavg, fact
+
+! ... Subroutine Body
+
+      WRITE(6,*) 'blocks 3D distribution' 
+!
+! ... Factorize the number of processors, into plane processors nprocxy
+! ... and z processors nprocz
+!
+      nprocz = NINT( DBLE( nproc )**(1.0d0/3.0d0) )   !  first guess
+
+! ... ensure that nprocz is a factor of nproc
+! ... we take the first factor lower than the first guess
+
+      DO i = nprocz, 1, -1
+        IF( MOD( nproc, i ) == 0 ) EXIT
+      END DO 
+      nprocz = i
+
+! ... compute the number of processor in the xy plane
+
+      nprocxy = nproc / nprocz
+
+      IF( nprocz == 1 ) &
+        WRITE(6,*) 'Warning: blocks3d distribution has no effect, nprocz = 1'
+
+! ... compute blocks in z direction 
+
+      nbz = nprocz  
+
+!
+! ... subdivides the XY domain into 'nby' Slabs. Each slab
+! ... will be in turn subdivided into 'nbx' column blocks.
+! ... If the number of the processors 'nprocxy' is not factorable
+! ... as 'nbx*nby', some column blocks in the lower slab will be merged together.
+!
+! ... countfl(1) represent the number of computationally demanding
+! ... units of volume, that should be equally distributed across 
+! ... processors.
+!
+
+        zavg = DBLE( countfl( 1 ) ) / ( nx * ny )      ! average no. of counts along z dim
+        volume = DBLE( countfl(1) ) / DBLE( nprocxy )  ! per (plane) processor no. of counts
+
+        area  = volume / zavg       ! expected average base area of column blocks 
+        side  = DSQRT( area )       ! side of the base area
+        nbx   = NINT( nx / side )   ! per processor number of column blocks along "x" 
+        nby   = NINT( DBLE( nprocxy ) / nbx )
+        IF (nbx == 0) nbx = 1
+        IF (nby == 0) nby = 1
+
+        DO WHILE ( nbx*nby < nprocxy )
+         IF ( INT( nx / nbx ) .GT. INT( ny / nby ) ) THEN
+           nbx = nbx + 1
+         ELSE
+           nby = nby + 1
+         END IF
+        END DO
+        rest = nbx*nby - nprocxy
+
+        WRITE(6,*) 'blocks3d (1) nbx, nby, nbz, nprocz, nprocxy = ', nbx, nby, nbz, nprocz, nprocxy
+
+! ... The number of layer (slab) nby is now defined, and it will not be
+! ... modified further
+
+        ALLOCATE( lay_map( 1:nby, 2 ) )
+        ALLOCATE( nctot_lay( 1:nby ), ncfl1_lay( 1:nby ), nbl_lay( 1:nby ) )
+        lay_map   = 0
+        nctot_lay = 0
+        ncfl1_lay = 0
+        nbl_lay   = 0
+!
+! ... Initialize the processor maps
+!
+        DO i = 0, nproc-1
+          proc_map(i)%blkbsw(:) = 0
+          proc_map(i)%blktne(:) = 0
+        END DO
+!
+! ... distribute cells among layers proportionally to the 
+! ... number of blocks contained. 
+! ... 'ncfl1_lay' is the number of cells with fl=1 in the layer.
+!
+        IF ( rest == 0 ) THEN
+
+          DO layer = 1, nby
+            ncfl1_lay(layer) = localdim( countfl(1), nby, layer - 1 )
+            nbl_lay(layer)   = nbx
+          END DO
+
+        ELSE IF ( rest > 0 ) THEN
+
+          IF( nbx == 1 ) THEN
+            CALL error(' partition ',' (nbx == 1) AND (rest /= 0) ??? ', rest )
+          END IF
+
+! ...     since in 3D we partition the domain partitioning the XY plane,
+! ...     there is no particular advantages to distinguish lower or higher
+! ...     layers
+
+          IF( rest < nby ) THEN
+            DO layer = 1, rest
+              nbl_lay(layer) = nbx - 1 
+            END DO
+            DO layer = rest + 1, nby
+              nbl_lay(layer) = nbx
+            END DO
+          ELSE
+            CALL error(' partition ',' rest >= nby ??? ', rest )
+          END IF
+
+          DO layer = 1, nby
+            fact = DBLE( countfl(1)/nprocxy * nbl_lay(layer) )
+            ncfl1_lay(layer) = NINT(fact)   !  expected no. of fl=1 per slab (layer 2D)
+          END DO
+
+        END IF
+
+        WRITE(6,*) 'blocks3d (2)'
+        DO layer = 1, nby
+          WRITE(6,*) ' layer ', layer, ' nbl = ', nbl_lay(layer)
+        END DO
+
+!
+! ... build the layers map
+!
+        layer = 1
+        lay_map(1,1)   = 1
+        lay_map(nby,2) = nx*ny
+        icnt_layer = 0
+        icnt       = 0
+
+        DO j = 1, ny
+          DO i = 1, nx
+
+            DO k = 1, nz
+
+              ijk = i + (j-1)*nx + (k-1)*nx*ny
+!
+              IF ( fl(ijk) == 1 ) THEN
+                icnt_layer = icnt_layer + 1
+                icnt       = icnt       + 1
+              END IF
+
+              nctot_lay(layer) = nctot_lay(layer) + 1
+
+              IF ( icnt_layer >= ncfl1_lay(layer) ) THEN
+                IF( layer < nby ) THEN
+                  lay_map(layer,2) =  i + (j-1)*nx
+                  layer = layer + 1
+                  lay_map(layer,1) =  i + (j-1)*nx + 1
+                END IF
+                icnt_layer = 0
+              END IF
+
+            END DO
+
+          END DO
+        END DO
+
+        WRITE(6,*) 'blocks3d (3)'
+        DO layer = 1, nby
+          WRITE(6,*) ' layer_map ', layer, ' start, end = ', lay_map(layer,1), lay_map(layer,2)
+        END DO
+
+! ... build the blocks map
+
+        ipe = -1
+        DO layer = 1, nby
+
+! ...     now set y coordinate of the block corners ( j1, j2 )
+! ...     using the layer map 
+!
+          ij2 = lay_map(layer,2)
+          j2  = ( ij2 - 1 ) / nx + 1
+          i2  = MOD( ( ij2 - 1 ), nx) + 1
+!
+! ...     cut steps to layers
+!
+          IF ( i2 < nx/2 ) j2 = j2-1
+
+          IF (layer < nby) THEN
+            lay_map(layer,2) = j2 * nx
+          ELSE
+            lay_map(layer,2) = ny * nx
+          END IF
+
+          IF (layer > 1) THEN 
+            lay_map( layer, 1 ) = lay_map( layer - 1, 2 ) + 1
+          ELSE
+            lay_map( layer, 1 ) = 1
+          END IF
+
+          ij1 = lay_map(layer,1)
+          ij2 = lay_map(layer,2)
+
+          j1  = ( ij1 - 1 ) / nx + 1
+          i1  = MOD( ( ij1 - 1 ), nx) + 1
+
+          j2  = ( ij2 - 1 ) / nx + 1
+          i2  = MOD( ( ij2 - 1 ), nx) + 1
+
+          IF (i1 /= 1 .OR. i2 /= nx) THEN
+            CALL error( ' blocks3D ', ' error in layer ', layer )
+          END IF
+!
+! ...     now updates the number of cells with fl=1 into layers
+!
+          nctot_lay(layer) = 0
+          ncfl1_lay(layer) = 0
+          DO ij = ij1, ij2
+            DO k = 1, nz
+              ijk = ij + (k-1)*nx*ny
+              ! IF( ijk < 1 .OR. ijk > SIZE( fl ) ) &
+              !   CALL error( ' blocks3d ', ' inconsistent index ijk (1) ', ijk )
+              nctot_lay(layer) = nctot_lay(layer) + 1
+              IF (fl(ijk) == 1) ncfl1_lay(layer) = ncfl1_lay(layer) + 1 
+            END DO
+          END DO
+
+          WRITE(6,*) ' layer = ', layer, ' no. column blocks = ', nbl_lay(layer)
+!
+! ...     Estimate of the number of cells contained in each column block
+! ...     in the layer
+!
+          bl1 = INT( ncfl1_lay(layer) / nbl_lay(layer) )
+
+! ...     and now estimate the number of cells in each orthorombic block
+
+          bl1 = bl1 / nbz
+!
+          DO nbl = 1, nbl_lay(layer) 
+
+! ...       now set x coordinate of the block corners ( i1, i2 )
+! ...       these define the column extension
+
+            i1 = ( nx / nbl_lay(layer) ) * ( nbl - 1 ) + 1
+            IF( nbl < nbl_lay(layer) ) THEN
+              i2 = ( nx / nbl_lay(layer) ) * nbl
+            ELSE
+              i2 = nx
+            END IF
+
+! ...       now set z coordinate (balancing the load) of the block corners ( k1, k2 )
+! ...       These together with i1,i2,j1,j2 define the corners of the orthorombic
+! ...       block
+
+            k1 = 1
+
+            DO ibz = 1, nbz
+
+              ipe = ipe + 1
+
+              IF( ipe >= nproc ) &
+                CALL error( ' blocks3d ', ' inconsistent proc index ', ipe )
+ 
+              proc_map(ipe)%blkbsw(1) = i1
+              proc_map(ipe)%blkbsw(2) = j1
+              proc_map(ipe)%blkbsw(3) = k1
+
+              IF( ibz < nbz ) THEN
+
+                k = k1
+                ncfl1(ipe) = 0
+
+                DO WHILE ( ncfl1( ipe ) < bl1 )
+                  DO j = j1, j2
+                    DO i = i1, i2
+                      ijk = i + (j-1)*nx + (k-1)*nx*ny
+                      ! IF( ijk < 1 .OR. ijk > SIZE( fl ) ) &
+                      !   CALL error( ' blocks3d ', ' inconsistent index ijk(2) ', ijk )
+                      IF (fl(ijk) == 1) ncfl1(ipe) = ncfl1(ipe) + 1
+                    END DO
+                  END DO  
+                  k = k + 1
+                END DO
+
+                proc_map(ipe)%blktne(1) = i2
+                proc_map(ipe)%blktne(2) = j2
+                proc_map(ipe)%blktne(3) = k - 1
+
+                k1 = k
+
+              ELSE
+
+                proc_map(ipe)%blktne(1) = i2
+                proc_map(ipe)%blktne(2) = j2
+                proc_map(ipe)%blktne(3) = nz 
+
+              END IF
+
+!
+! ...         Now updates the number of cells with fl=1 into blocks
+!
+              nctot(ipe) = 0
+              ncfl1(ipe) = 0
+              DO k = proc_map(ipe)%blkbsw(3), proc_map(ipe)%blktne(3)
+                DO j = proc_map(ipe)%blkbsw(2), proc_map(ipe)%blktne(2)
+                  DO i = proc_map(ipe)%blkbsw(1), proc_map(ipe)%blktne(1)
+                    ijk = i + (j-1)*nx + (k-1)*nx*ny
+                    nctot(ipe) = nctot(ipe) + 1
+                    IF (fl(ijk) == 1) ncfl1(ipe) = ncfl1(ipe) + 1
+                  END DO
+                END DO
+              END DO
+
+              IF (lpr >= 1) THEN
+                 WRITE(7,1000) ipe, proc_map(ipe)%blkbsw(:),proc_map(ipe)%blktne(:)
+  1000           FORMAT( ' proc_map(',I4,'): BSW = ', 3I4, ' TNE = ', 3I4 )
+              END IF
+
+            END DO
+
+          END DO
+
+        END DO
+
+        IF( SUM( ncfl1(0:nproc-1) ) /= countfl(1) ) &
+          CALL error(' blocks3d ', ' inconsistent number of cell ', SUM( ncfl1(0:nproc-1) ) )
+
+        DEALLOCATE( lay_map, nctot_lay, ncfl1_lay, nbl_lay )
+
+        ! CALL hangup()  ! debug
+        ! STOP           ! debug
+
+      RETURN
+      END SUBROUTINE blocks3d
+! ---------------------------------------------------------------------
+
+
+
+! ---------------------------------------------------------------------
+
       SUBROUTINE ghost
 !
 ! ... Identifies and allocates ghost cells
@@ -864,6 +1309,27 @@
         ELSE 
           CALL error( ' ghost ', ' wrong job_type '//job_type, 1)
         END IF
+      ELSE IF ( proc_map(mpime)%type == BLOCK3D_MAP ) THEN
+        IF( job_type == '3D' ) THEN
+          i1 = proc_map(mpime)%blkbsw(1)
+          i2 = proc_map(mpime)%blktne(1)
+          j1 = proc_map(mpime)%blkbsw(2)
+          j2 = proc_map(mpime)%blktne(2)
+          k1 = proc_map(mpime)%blkbsw(3)
+          k2 = proc_map(mpime)%blktne(3)
+          DO k = k1, k2
+            DO j = j1, j2
+              DO i = i1, i2
+                ijk = i + (j-1)*nx + (k-1)*nx*ny
+                IF ( fl(ijk) == 1 ) THEN
+                  ncext = ncext + cell_neighbours(ijk, mpime, nset)
+                END IF
+              END DO
+            END DO
+          END DO
+        ELSE 
+          CALL error( ' ghost ', ' wrong job_type '//job_type, 1)
+        END IF
       ELSE
         CALL error(' ghost ', ' partition type not yet implemented ', proc_map(mpime)%type )
       END IF
@@ -927,6 +1393,27 @@
           j1 = proc_map(mpime)%corner1(2)
           j2 = proc_map(mpime)%corner2(2)
           DO k = 1, nz
+            DO j = j1, j2
+              DO i = i1, i2
+                ijk = i + (j-1)*nx + (k-1)*nx*ny
+                IF ( fl(ijk) == 1 ) THEN
+                  icnt = icnt + cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
+                END IF
+              END DO
+            END DO
+          END DO
+        ELSE
+          CALL error( ' ghost ', ' wrong job_type '//job_type, 1)
+        END IF
+      ELSE IF ( proc_map(mpime)%type == BLOCK3D_MAP ) THEN
+        IF( job_type == '3D' ) THEN
+          i1 = proc_map(mpime)%blkbsw(1)
+          i2 = proc_map(mpime)%blktne(1)
+          j1 = proc_map(mpime)%blkbsw(2)
+          j2 = proc_map(mpime)%blktne(2)
+          k1 = proc_map(mpime)%blkbsw(3)
+          k2 = proc_map(mpime)%blktne(3)
+          DO k = k1, k2
             DO j = j1, j2
               DO i = i1, i2
                 ijk = i + (j-1)*nx + (k-1)*nx*ny
@@ -1169,6 +1656,17 @@
             ELSE
               CALL error(' cell_owner',' unknown job_type '//job_type, 1 )
             END IF
+          ELSE IF ( proc_map(ipe)%type == BLOCK3D_MAP ) THEN
+            IF( job_type == '3D' ) THEN
+              IF( i >= proc_map(ipe)%blkbsw(1) .AND. &
+                  i <= proc_map(ipe)%blktne(1) .AND. &
+                  j >= proc_map(ipe)%blkbsw(2) .AND. &
+                  j <= proc_map(ipe)%blktne(2) .AND. &
+                  k >= proc_map(ipe)%blkbsw(3) .AND. &
+                  k <= proc_map(ipe)%blktne(3) )  cell_owner = ipe
+            ELSE
+              CALL error(' cell_owner',' unknown job_type '//job_type, 1 )
+            END IF
           ELSE
             CALL error(' cell_owner',' partition type not yet implemented ', &
                        proc_map(ipe)%type )
@@ -1219,6 +1717,33 @@
             k = ( ijkl - 1 ) / ( nxl*nyl ) + 1
 
             cell_l2g = i + (j-1)*nx + (k-1)*nx*ny
+
+          ELSE
+
+            CALL error(' cell_owner ', ' unknown job_type ', 1 )
+
+          END IF
+
+        ELSE IF ( proc_map(mpime)%type == BLOCK3D_MAP ) THEN
+
+          IF( job_type == '3D' ) THEN
+
+            k1 = proc_map(mpime)%blkbsw(3)
+            j1 = proc_map(mpime)%blkbsw(2)
+            i1 = proc_map(mpime)%blkbsw(1)
+            k2 = proc_map(mpime)%blktne(3)
+            j2 = proc_map(mpime)%blktne(2)
+            i2 = proc_map(mpime)%blktne(1)
+            nxl = i2 - i1 + 1
+            nyl = j2 - j1 + 1
+            nzl = k2 - k1 + 1
+            
+            i = MOD( MOD( ijkl - 1, nxl*nyl ), nxl ) + i1
+            j = MOD( ijkl - 1, nxl*nyl ) / nxl + j1
+            k = ( ijkl - 1 ) / ( nxl*nyl ) + k1
+
+            cell_l2g = i + (j-1)*nx + (k-1)*nx*ny
+
 
           ELSE
 
@@ -1282,7 +1807,34 @@
 
           ELSE
 
-            CALL error(' cell_owner ', ' unknown job_type ', 1 )
+            CALL error(' cell_g2l ', ' unknown job_type ', 1 )
+
+          END IF
+
+        ELSE IF ( proc_map(mpime)%type == BLOCK3D_MAP ) THEN
+
+          IF( job_type == '3D' ) THEN
+
+            i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
+            j = MOD( ijk - 1, nx*ny ) / nx + 1
+            k = ( ijk - 1 ) / ( nx*ny ) + 1
+
+            k1 = proc_map(mpime)%blkbsw(3)
+            j1 = proc_map(mpime)%blkbsw(2)
+            i1 = proc_map(mpime)%blkbsw(1)
+            k2 = proc_map(mpime)%blktne(3)
+            j2 = proc_map(mpime)%blktne(2)
+            i2 = proc_map(mpime)%blktne(1)
+
+            nxl = i2 - i1 + 1
+            nyl = j2 - j1 + 1
+            nzl = k2 - k1 + 1
+
+            cell_g2l = 1 + (i-i1) + (j-j1)*nxl + (k-k1)*nxl*nyl
+
+          ELSE
+
+            CALL error(' cell_g2l ', ' unknown job_type ', 1 )
 
           END IF
 
@@ -2345,6 +2897,10 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
 
       bd(:) = 0
       vf(:) = 1.D0
+
+      WRITE( 7, * ) 
+      WRITE( 7, * ) 'b coefficients for immersed bndaries' 
+      WRITE( 7, * ) '     ijk   i   j   k     b (int)'
 !
         DO ijk=1, ncint
           IF( flag(ijk) == 1 ) THEN
@@ -2423,7 +2979,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
             END IF
 
             IF (bd(ijk) /= filled) THEN
-              WRITE(6,'(I8,3(I4),B8)') ijk, i, j, k, bd(ijk)
+              WRITE( 7, fmt = "( I8,3I4,2X,B8 )" ) ijk, i, j, k, bd(ijk)
             END IF
 
           END IF
@@ -2455,6 +3011,10 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
 !
       ALLOCATE(bdr(ncint,6)); bdr(:,:) = 0.D0
       ALLOCATE(vf(ncint)); vf(:) = 0.D0
+!
+      WRITE( 7, * ) 
+      WRITE( 7, * ) 'b coefficients for immersed bndaries' 
+      WRITE( 7, * ) '     ijk   i   j   k     b (real)'
 !
         DO ijk=1, ncint
           IF( flag(ijk) == 1 ) THEN
@@ -2509,7 +3069,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               vf(ijk)  = 0.25D0 * vf(ijk)
             END IF
 
-            WRITE(6,'(I8,3(I4),6(F8.4))') ijk, i, j, k, bdr(ijk,:)
+            WRITE( 7, fmt = "( I8,3I4,2X,6F8.4 )" ) ijk, i, j, k, bdr(ijk,:)
 
           END IF
 
