@@ -112,6 +112,7 @@
       REAL*8 :: dym, dyp, dypp, indypp, indyp, indym
       REAL*8 :: dzp, indzp, dzm, indzm
       REAL*8 :: gradc, grade, gradw, gradn, grads, gradt, gradb
+      REAL*8 :: dens0, dens1, dens2
 !
       INTEGER :: ip2, jp2, kp2
 !
@@ -139,9 +140,11 @@
 !
 ! ... on East volume boundary
 !
-      gradc = (2.D0 * indxp * (dens%e * w%e - dens%c * w%c))
-      gradw = (2.D0 * indxm * (dens%c * w%c - dens%w * w%w))
-      grade = (2.D0 * indxpp * (dens%ee * w%ee - dens%e * w%e))
+      dens0 = indxp * (dx(i+1)*dens%c + dx(i)*dens%e)
+
+      gradw = 2.D0 * indxm * dens%c * (w%c - w%w)
+      gradc = 2.D0 * indxp * dens0 * (w%e - w%c)
+      grade = 2.D0 * indxpp * dens%e * (w%ee - w%e)
 !
       lim = 0.D0
       erre = 0.D0
@@ -164,9 +167,11 @@
 !
 ! ... on North volume boundary
 !
-      gradc = (2.D0 * indyp * (dens%n * w%n - dens%c * w%c))
-      grads = (2.D0 * indym * (dens%c * w%c - dens%s * w%s))
-      gradn = (2.D0 * indypp * (dens%nn * w%nn - dens%n * w%n))
+      dens1 = indyp * (dy(j)*dens%n + dy(j+1)*dens%c)
+
+      grads = 2.D0 * indym * dens%c * (w%c - w%s)
+      gradc = 2.D0 * indyp * dens1 * (w%n - w%c)
+      gradn = 2.D0 * indypp * dens%n * (w%nn - w%n)
 !
       lim = 0.D0
       erre = 0.D0
@@ -189,9 +194,11 @@
 !
 ! ... on Top volume boundary
 !
-      gradc = (indz(k+1) * (dens%t * w%t - dens%c * w%c))
-      gradb = (indz(k) * (dens%c * w%c - dens%b * w%b))
-      gradt = (indz(kp2) * (dens%tt * w%tt - dens%t * w%t))
+      dens2 = 0.5D0 * (dens%t + dens%c)
+
+      gradb = indz(k) * dens%c * (w%c - w%b)
+      gradc = indz(k+1) * dens2 * (w%t - w%c)
+      gradt = indz(kp2) * dens%t * (w%tt - w%t)
 !
       lim = 0.D0
       erre = 0.D0
