@@ -372,7 +372,7 @@
 ! ... lay on the same coordinate on the plane)
 !
       DO i = 2, nx - 1
-        IF ((ord(i)-ord(i-1) > 0).AND.(ord(i+1)-ord(i) >= 0)) THEN
+        IF ((ord(i)-ord(i-1) > 0).AND.(topo(i+1)-topo(i-1) >= 0)) THEN
           DO k = ord(i-1), ord(i)
             ijk = i + (k-1) * nx
             ff(ijk) = .TRUE.

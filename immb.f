@@ -232,23 +232,23 @@
 !
       fp = 0
       DO i=2,nx-1
+         
+         IF ((ord(i)-ord(i-1) > 0).AND.(topo(i+1)-topo(i-1) >= 0)) THEN
+            
+            CALL increasing_profile(i,fp,fpt)
+            
+         ELSEIF ( ord(i+1)-ord(i) < 0) THEN
 
-        IF ((ord(i)-ord(i-1) > 0).AND.(ord(i+1)-ord(i) >= 0)) THEN
-          
-          CALL increasing_profile(i,fp,fpt)
+               CALL decreasing_profile(i,fp,fpt)
 
-        ELSEIF (ord(i+1)-ord(i) < 0) THEN
-
-          CALL decreasing_profile(i,fp,fpt)
-
-        ELSE 
-
-          CALL stationnary_profile(i,fp,fpt)
-
-        END IF
-
+         ELSE 
+            
+            CALL stationnary_profile(i,fp,fpt)
+            
+         END IF
+         
       END DO
-!
+!     
 ! ... Skip the -- last grid point -- 
 !
       RETURN
