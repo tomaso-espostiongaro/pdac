@@ -561,7 +561,7 @@
         ELSE 
            IF ( (1.D0-dbeta) <= 1.D-15 ) THEN
               print_mesh= .TRUE.
-              IF( lpr > 1 .AND. ionode) &
+              IF( lpr >= 1 .AND. ionode) &
                 WRITE(7,*) 'Final beta = ', beta, ' n= ', (n01+m1+n11)+(n02+m2+n12)+1
            ELSE
              already = .TRUE.

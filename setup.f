@@ -390,12 +390,12 @@
 
       INTEGER, INTENT(IN) :: n
       REAL*8 :: ygcsum
-!      REAL*8 :: dist, radius
+      REAL*8 :: dist, radius
       INTEGER :: ijk,i,j,k,imesh
       INTEGER :: ig, is, dfg
 
 !      dist = 0.D0
-!      radius = 40.D0
+!      radius = 41.0D0
 
         DO ijk = 1, ncint
           CALL meshinds(ijk,imesh,i,j,k)

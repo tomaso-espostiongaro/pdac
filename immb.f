@@ -54,7 +54,7 @@
       REAL*8, ALLOCATABLE :: vf(:)
 
       INTEGER :: immb           
-      INTEGER :: fp0 = 0
+      INTEGER :: fp0
 !
       INTERFACE faces
         MODULE PROCEDURE faces_real, faces_int
@@ -161,6 +161,7 @@
 
         !
         ! ... Forcing in x external points
+        fp0 = 0
         DO k = 2, nz
           DO i = 2, nx-1
             ijk = (k-1) * nx + i
@@ -217,6 +218,7 @@
         !
         ! ... interpolate the topography on x-staggered mesh
         ! ... and count the forcing points along x
+        ! ... (do not change the order of the calls!)
         !
         CALL interpolate_dem(x, yb, z, topo2d_y, forcey)
         CALL interpolate_dem(x, y, zb, topo2d_c, forcez)
@@ -353,11 +355,10 @@
         
         !
         ! ... External forcing along z
-        
         fp0=0
         DO i = 2, nx - 1
           DO j = 2, ny - 1
-            DO k = 2, nz-1
+            DO k = 2, nz - 1
               ijk = i + (j-1) * nx + (k-1) * nx * ny
               IF (extfz(ijk)) CALL ext_forcing3d(i, j, k, x, y, topo2d_c, fptz)
             END DO
@@ -422,14 +423,11 @@
 !----------------------------------------------------------------------
       SUBROUTINE ext_forcing2d(i, k, cx, cz, topo, fpt)
 
-!
       IMPLICIT NONE
-
       INTEGER, INTENT(IN) :: i,k
       REAL*8, DIMENSION(:), INTENT(IN) :: cx, cz
       REAL*8, DIMENSION(:), INTENT(IN) :: topo
       TYPE(forcing_point), DIMENSION(:), INTENT(OUT) :: fpt
-
 
       fp0 = fp0 + 1
 
@@ -439,8 +437,6 @@
       fpt(fp0)%k = k
       fpt(fp0)%nsl%x = cx(i) 
       fpt(fp0)%nsl%z = topo(i)
-      
-
 
       RETURN
       END SUBROUTINE ext_forcing2d
@@ -515,7 +511,7 @@
 ! ... find the no-slip point on the profile 
 !
       DO n=next(i-1),next(i)
-	
+
         dxt = xtop(n) - xtop(n-1)
         dzt = ztop(n) - ztop(n-1)
         dxs = xtop(n) - cx(i)
@@ -751,11 +747,6 @@
       REAL*8, DIMENSION(:,:), INTENT(IN) :: topo2d
       TYPE(forcing_point), DIMENSION(:), INTENT(OUT) :: fpt
  
-      INTEGER :: fp0
-
-
-
-      
       fp0 = fp0 + 1 
       fpt(fp0)%i  = i
       fpt(fp0)%j  = j
@@ -764,8 +755,6 @@
       fpt(fp0)%nsl%x = cx(i)
       fpt(fp0)%nsl%y = cy(j)
       fpt(fp0)%nsl%z = topo2d(i,j)
-
-
 
       END SUBROUTINE ext_forcing3d
 

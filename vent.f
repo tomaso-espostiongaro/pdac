@@ -283,11 +283,9 @@
           !
           ! ... determine the initial random seed
           !
-          IF (irand >= 1) THEN
-            !IF (mpime == root) seed = INT(cpclock())
-            !CALL bcast_integer(seed,1,root)
-            seed = 0
-          END IF
+          !IF (mpime == root) seed = INT(cpclock())
+          !CALL bcast_integer(seed,1,root)
+          seed = 0
         
         END IF
       END DO
@@ -409,6 +407,37 @@
 
       RETURN
       END SUBROUTINE update_ventc
+!-----------------------------------------------------------------------
+      SUBROUTINE update_inlet_cell(ijk)
+!
+! ... Compute the steady inlet conditions for a circular vent
+! ... An aribtrary radial profile can be assigned, as a function
+! ... of the averaged vertical velocity
+!
+      USE control_flags, ONLY: job_type
+      USE dimensions, ONLY: nsolid
+      USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
+      IMPLICIT NONE
+
+      REAL*8 :: ran0
+      EXTERNAL :: ran0
+      INTEGER, INTENT(IN) :: ijk
+      INTEGER :: is, n
+      
+      ug(ijk) = ug(ijk) * (1.D0 + 0.02D0 * (ran0(seed) - 0.5D0) )
+      IF (job_type == '3D')  &
+        vg(ijk) = vg(ijk) * (1.D0 + 0.02D0 * (ran0(seed) - 0.5D0) )
+      wg(ijk) = wg(ijk) * (1.D0 + 0.02D0 * (ran0(seed) -0.5D0) )
+      
+      DO is = 1,nsolid
+        us(ijk,is) = us(ijk,is) * (1.D0 + 0.02D0 * (ran0(seed) -0.5D0) )
+        IF (job_type == '3D') &
+          vs(ijk,is) = vs(ijk,is) * (1.D0 + 0.02D0 * (ran0(seed) -0.5D0) )
+        ws(ijk,is) = ws(ijk,is) * (1.D0 + 0.02D0 * (ran0(seed) -0.5D0) )
+      END DO
+
+      RETURN
+      END SUBROUTINE update_inlet_cell
 !-----------------------------------------------------------------------
       SUBROUTINE random_switch(sweep)
 !

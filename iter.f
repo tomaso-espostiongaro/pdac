@@ -165,6 +165,7 @@
           !
           ! ... compute the derivative of the gas mass residual
           ! ... with respect to gas pressure
+          ! ... ('abeta' is kept constant during iterative sweep)
           CALL betas( conv( ijk ), abeta( ijk ), ijk )
 
           IF(optimization==3) THEN
@@ -236,13 +237,13 @@
 
              ! ... Compute the volumes partially filled by the
              ! ... topography
+             !
              IF (immb == 1) CALL faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
 
              ! ... Compute locally the residual 'dg' of the
-             ! ... mass balance equation of the gas phase
+             ! ... mass balance equation of the gas phase and save it
              !
              CALL calc_res(i,j,k,ijk,dg)
-
              dgorig = dg
 
              IF( ABS( dg ) <= conv( ijk ) ) THEN
@@ -442,7 +443,7 @@
       END SUBROUTINE iter
 !----------------------------------------------------------------------
 !
-      SUBROUTINE inner_loop( i, j, k, ijk, nit, d3, p3, abeta, conv,  &
+      SUBROUTINE inner_loop( i, j, k, ijk, nit, d3, p3, abeta_, conv_,  &
                              dgorig, nloop, cvg )
 !
 !----------------------------------------------------------------------
@@ -464,8 +465,8 @@
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: nit, ijk, i, j, k
-      REAL*8, INTENT(IN)  :: conv
-      REAL*8, INTENT(INOUT)  :: d3, p3, abeta, dgorig
+      REAL*8, INTENT(IN)  :: conv_
+      REAL*8, INTENT(INOUT)  :: d3, p3, abeta_, dgorig
       LOGICAL, INTENT(OUT) :: cvg
 
       REAL*8  :: resx, resy, resz
@@ -487,7 +488,7 @@
         ! ... and volumetric fractions ...
 !
         IF( (loop > 1) .OR. (nit > 1) ) THEN
-          CALL padjust(p(ijk), kros, d3, p3, omega, abeta )
+          CALL padjust(p(ijk), kros, d3, p3, omega, abeta_ )
         END IF
 !
         ! ... Use equation of state to calculate gas density 
@@ -527,15 +528,15 @@
         CALL calc_gas_mass_flux( ijk )
         CALL calc_res( i, j, k, ijk, dg)
 !
-        IF ( ( DABS(dg) > conv .OR. DABS(dg) >= DABS(dgorig) ) ) THEN
+        IF ( ( DABS(dg) > conv_ .OR. DABS(dg) >= DABS(dgorig) ) ) THEN
 
           cvg = .FALSE.
           IF( nit == 1 .AND. loop == 1 ) dgorig = dg
           d3 = dg
           ! ... steepen the Newton's slope (accelerate)
-          IF( kros < 2 .AND. loop == inmax ) abeta = 0.5D0 * inmax * abeta
+          IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
 
-        ELSE IF ( DABS(dg) <= conv ) THEN
+        ELSE IF ( DABS(dg) <= conv_ ) THEN
 
           cvg = .TRUE.
           EXIT inloop
@@ -576,6 +577,7 @@
 ! ... Compute Fluxes by using First Order Upwind method
 !
           ! ... assemble the first order computational stencils
+          ! ... (includes only the first neighbours)
           CALL first_nb ( dens, rgp, ijk )
           CALL first_rnb( u, ug, ijk )
           CALL first_rnb( w, wg, ijk )
@@ -600,6 +602,7 @@
 ! ... Compute Fluxes by using First Order Upwind method
 !
           ! ... assemble the first order computational stencils
+          ! ... (includes only the first neighbours)
           CALL first_nb ( dens, rgp, ijk )
           CALL first_rnb( u, ug, ijk )
           CALL first_rnb( v, vg, ijk )
@@ -783,8 +786,14 @@
         rls = rls + rlk( ijk, is ) * inrl(is)
 
       END DO
-      
+
+      ep( ijk ) = 1.D0 - rls
+!      
+!**********************************************************************
+! ... Error report
+!
       IF( rls > 1.D0 ) THEN
+
         IF (lpr > 0) THEN
           WRITE(7,*) ' WARNING 1: mass is not conserved'
           WRITE(7,*) ' time, i, j, k ', time, i, j, k
@@ -802,12 +811,13 @@
         
           forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
         END IF
-
         IF (.NOT.forced) CALL error('iter','mass is not conserved',1)
+
       ENDIF
-
-      ep( ijk ) = 1.D0 - rls
-
+!
+!**********************************************************************
+!
+      RETURN
       END SUBROUTINE calc_eps
 !----------------------------------------------------------------------
 !
@@ -1059,10 +1069,12 @@
       RETURN
       END SUBROUTINE betas
 !----------------------------------------------------------------------
-!     H E R E   S T A R T   T H E  O P T I M I Z E D   R O U T I N E S 
+!
+!     H E R E   S T A R T   T H E   O P T I M I Z E D   R O U T I N E S 
+!
 !----------------------------------------------------------------------
 !
-      SUBROUTINE opt_inner_loop(i, j, k, ijk, nit, d3, p3,abeta,conv, &
+      SUBROUTINE opt_inner_loop(i, j, k, ijk, nit, d3, p3,abeta_,conv_, &
                                 dgorig, nloop, cvg )
 !
 !----------------------------------------------------------------------
@@ -1093,7 +1105,7 @@
         IMPLICIT NONE
 
         INTEGER :: nit, ijk, i, j, k, nloop
-        REAL*8 :: d3, p3, abeta, conv, dgorig
+        REAL*8 :: d3, p3, abeta_, conv_, dgorig
         LOGICAL, INTENT(OUT) :: cvg
         REAL*8 :: resx, resy, resz, mg
         REAL*8 :: rlkx, rlky, rlkz, rls, rlk_tmp
@@ -1108,8 +1120,11 @@
         INTEGER :: loop, kros, ig, is
 !
         REAL*8 :: xgcl(max_ngas)
-        xgcl(1:ngas) = xgc(ijk,:)
 !
+! ... Here prepare the stencils and the fluxes
+!
+        xgcl(1:ngas) = xgc(ijk,:)
+
         ! ... These values of the mass fluxes will be updated
         ! ... in the inner_loop. Storing them into smaller arrays
         ! ... optimizes memory access.
@@ -1163,8 +1178,10 @@
         END DO
 !
         kros = -1
-
-inloop: DO loop = 1, inmax
+!
+! ... Here start the inner loop
+!
+        inloop: DO loop = 1, inmax
 
           ! ... Correct the pressure at current cell
           ! ... by using successively the Newton's method
@@ -1175,7 +1192,7 @@ inloop: DO loop = 1, inmax
           ! ... and volumetric fractions ...
 !
           IF( (loop > 1) .OR. (nit > 1) ) THEN
-            CALL padjust( p(ijk), kros, d3, p3, omega, abeta )
+            CALL padjust( p(ijk), kros, d3, p3, omega, abeta_ )
           END IF
 !
           ! ... Use equation of state to calculate gas density 
@@ -1185,7 +1202,7 @@ inloop: DO loop = 1, inmax
 !
           rgp(ijk) = ep(ijk) * rog(ijk)
           
-          ! ... Update the stencil
+          ! ... Update the stencil element
           !
           rgp_%c = rgp(ijk)
 !
@@ -1196,7 +1213,7 @@ inloop: DO loop = 1, inmax
           CALL assemble_all_matrix(ijk)
           CALL solve_all_velocities(ijk)
 !
-          ! ... Update the stencils
+          ! ... Update the stencil elements
           !
           ug_%c = ug( ijk )
           ug_%w = ug( imjk )
@@ -1265,9 +1282,10 @@ inloop: DO loop = 1, inmax
 
           IF( rls > 1.D0 ) THEN
             IF (lpr > 0) THEN
-              WRITE(7,*) ' WARNING 1: mass is not conserved'
+              WRITE(7,*) ' WARNING 2: mass is not conserved'
               WRITE(7,*) ' i, j, k, rls ', i, j, k, rls
             ENDIF
+            CALL error('iter','mass is not conserved',2)
           ENDIF
 
           ep( ijk ) = 1.D0 - rls
@@ -1277,7 +1295,6 @@ inloop: DO loop = 1, inmax
           !
           rlk_(:)%c = rlk(ijk,:)
           rgp_%c = rgp(ijk)
-
 
           ! ... update residual of the Mass Balance equation of the gas phase
           ! ... using guessed velocities and pressure.
@@ -1310,15 +1327,15 @@ inloop: DO loop = 1, inmax
 
           dg = rgp(ijk) - rgpn(ijk) + dt * ( resx + resy + resz )
 !
-          IF ( ( DABS(dg) > conv ) .OR. ( DABS(dg) >= DABS(dgorig) ) ) THEN
+          IF ( ( DABS(dg) > conv_ ) .OR. ( DABS(dg) >= DABS(dgorig) ) ) THEN
 
             cvg = .FALSE.
             IF( nit == 1 .AND. loop == 1 ) dgorig = dg
             d3 = dg
             ! ... steepen the Newton's slope (accelerate)
-            IF( kros < 2 .AND. loop == inmax ) abeta = 0.5D0 * inmax * abeta
+            IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
 
-          ELSE IF ( DABS( dg ) <= conv ) THEN
+          ELSE IF ( DABS( dg ) <= conv_ ) THEN
 
             cvg = .TRUE.
             EXIT inloop
@@ -1326,7 +1343,9 @@ inloop: DO loop = 1, inmax
           END IF
 
         END DO inloop
-
+!
+! ... Here rebuild the arrays
+!
         ! ... Update the mass fluxes
         ! ... (used in the next outer iteration)
         !
@@ -1349,8 +1368,7 @@ inloop: DO loop = 1, inmax
 
         nloop = nloop + loop
 
-        RETURN
-      
+      RETURN
       END SUBROUTINE opt_inner_loop
 !----------------------------------------------------------------------
 !
@@ -1454,9 +1472,10 @@ inloop: DO loop = 1, inmax
           CALL third_rnb( wg_, wg, ijk )
           CALL third_rnb( vg_, vg, ijk )
         END IF
-
-
-        DO loop = 1, inmax
+!
+! ... Here start the inner loop
+!
+        inloop: DO loop = 1, inmax
 !
           ! ... Correct the pressure at current cell
           ! ... by using successively the Newton's method
@@ -1582,12 +1601,14 @@ inloop: DO loop = 1, inmax
           ELSE IF ( DABS( dg ) <= conv_ ) THEN
 
             cvg = .TRUE.
-            EXIT
+            EXIT inloop
 
           END IF
 
-        END DO 
-
+        END DO inloop
+!
+! ... Here rebuild the arrays
+!
         rsfe( ijk, 1 ) = rsfe1_
         rsfe( ijk, 2 ) = rsfe2_
         rsfe( imjk, 1 ) = rsfem1_

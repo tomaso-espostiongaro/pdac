@@ -36,7 +36,8 @@
       USE set_indexes, ONLY: ipjk, imjk, ippjk, immjk, ijpk, ipjpk,    &
         imjpk, ijmk, ipjmk, imjmk, ijppk, ijmmk, ijkp, ipjkp, imjkp,   &
         ijpkp, ijmkp, ijkm, ipjkm, imjkm, ijpkm, ijmkm, ijkpp, ijkmm
-      USE vent_conditions, ONLY: update_ventc, random_switch, irand, ivent
+      USE vent_conditions, ONLY: update_ventc, random_switch, irand, ivent, &
+                                 update_inlet_cell
 !
       IMPLICIT NONE
 !
@@ -72,7 +73,7 @@
 !
         IF (flag(ijk) == 5) THEN
 
-          !CALL update_inlet_cell(ijk,imesh,sweep)
+          CALL update_inlet_cell(ijk)
 
         ELSE IF (flag(ijk) == 8) THEN
 
