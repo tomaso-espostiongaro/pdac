@@ -708,6 +708,8 @@
       REAL*8, SAVE :: twodt
       REAL*8, SAVE :: div, amul
       LOGICAL, SAVE :: flim, flip, fljm, fljp, flkm, flkp
+      REAL*8 :: au1(3,3), bu1(3), av1(3,3), bv1(3), aw1(3,3), bw1(3)
+      REAL*8 :: au(3,3), bu(3), av(3,3), bv(3), aw(3,3), bw(3)
 !
       IF( ijk /= ijk_old ) THEN
 
@@ -819,85 +821,8 @@
 !
       IF ( flim ) THEN
 
-          IF( au1(2,2) < rlim ) THEN
+        call matsvels_solve( au1, bu1 )
 
-              au1(1,1) = au1(1,1) + au1(2,1)
-              au1(2,1) = 0.D0
-              au1(1,2) = 0.D0
-
-              au1(2,2) = 0.D0
-
-              au1(3,3) = au1(3,3) + au1(2,3)
-              au1(2,3) = 0.D0
-              au1(3,2) = 0.D0
-
-              bu1(2) = 0.D0
-
-          END IF
-
-          IF( au1(3,3) < rlim ) THEN
-
-              au1(1,1) = au1(1,1) + au1(3,1)
-              au1(3,1) = 0.D0
-              au1(1,3) = 0.D0
-
-              au1(2,2) = au1(2,2) + au1(3,2)
-              au1(3,2) = 0.D0
-              au1(2,3) = 0.D0
-
-              au1(3,3) = 0.D0
-
-              bu1(3) = 0.D0
-
-          END IF
-
-          IF( au1(1,1) /= 0.D0 ) THEN 
-
-            div = 1.D0 / au1(1,1)
-            au1(1,2) = au1(1,2) * div
-            au1(1,3) = au1(1,3) * div
-            bu1(1)   = bu1(1)   * div
-            au1(1,1) = 0.D0
-            !li=2
-              amul = au1(2,1)
-              au1(2,2) = au1(2,2) - amul * au1(1,2)
-              au1(2,3) = au1(2,3) - amul * au1(1,3)
-              bu1(2)   = bu1(2)   - amul * bu1(1)
-            !li=3
-              amul = au1(3,1)
-              au1(3,2) = au1(3,2) - amul * au1(1,2)
-              au1(3,3) = au1(3,3) - amul * au1(1,3)
-              bu1(3)   = bu1(3)   - amul * bu1(1)
-
-          END IF
-
-          IF( au1(2,2) /= 0.D0 ) THEN 
-            div=1.D0/au1(2,2)
-            au1(2,3)=au1(2,3)*div
-            bu1(2)=bu1(2)*div
-            au1(2,2)=0.D0
-            !li=1
-              amul=au1(1,2)
-              au1(1,3)=au1(1,3)-amul*au1(2,3)
-              bu1(1)=bu1(1)-amul*bu1(2)
-            !li=3
-              amul=au1(3,2)
-              au1(3,3)=au1(3,3)-amul*au1(2,3)
-              bu1(3)=bu1(3)-amul*bu1(2)
-          END IF
-
-          IF( au1(3,3) /= 0.D0 ) THEN 
-            div=1.D0/au1(3,3)
-            bu1(3)=bu1(3)*div
-            au1(3,3)=0.D0
-            !li=1
-              amul=au1(1,3)
-              bu1(1)=bu1(1)-amul*bu1(3)
-            !li=2
-              amul=au1(2,3)
-              bu1(2)=bu1(2)-amul*bu1(3)
-          END IF
-!
         ug(imjk)   = bu1(1)
         us(imjk,1) = bu1(2)
         us(imjk,2) = bu1(3)
@@ -925,83 +850,7 @@
 
       IF ( fljm ) THEN
 
-          IF(av1(2,2) < rlim) THEN
-
-                av1(1,1)=av1(1,1)+av1(2,1)
-                av1(2,1)=0.D0
-                av1(1,2)=0.D0
-
-                av1(2,2)=0.D0
-
-                av1(3,3)=av1(3,3)+av1(2,3)
-                av1(2,3)=0.D0
-                av1(3,2)=0.D0
-
-                bv1(2)=0.D0
-
-          END IF
-
-          IF(av1(3,3) < rlim) THEN
-
-                av1(1,1)=av1(1,1)+av1(3,1)
-                av1(3,1)=0.D0
-                av1(1,3)=0.D0
-
-                av1(2,2)=av1(2,2)+av1(3,2)
-                av1(3,2)=0.D0
-                av1(2,3)=0.D0
-
-                av1(3,3)=0.D0
-
-                bv1(3)=0.D0
-
-          END IF
-
-
-          IF(av1(1,1) /= 0.D0) THEN
-              div=1.D0/av1(1,1)
-              av1(1,2)=av1(1,2)*div
-              av1(1,3)=av1(1,3)*div
-              bv1(1)=bv1(1)*div
-              av1(1,1)=0.D0
-              !li=2
-                amul=av1(2,1)
-                av1(2,2)=av1(2,2)-amul*av1(1,2)
-                av1(2,3)=av1(2,3)-amul*av1(1,3)
-                bv1(2)=bv1(2)-amul*bv1(1)
-              !li=3
-                amul=av1(3,1)
-                av1(3,2)=av1(3,2)-amul*av1(1,2)
-                av1(3,3)=av1(3,3)-amul*av1(1,3)
-                bv1(3)=bv1(3)-amul*bv1(1)
-          END IF
-
-          IF(av1(2,2) /= 0.D0) THEN
-              div=1.D0/av1(2,2)
-              av1(2,3)=av1(2,3)*div
-              bv1(2)=bv1(2)*div
-              av1(2,2)=0.D0
-              !li=1
-                amul=av1(1,2)
-                av1(1,3)=av1(1,3)-amul*av1(2,3)
-                bv1(1)=bv1(1)-amul*bv1(2)
-              !li=3
-                amul=av1(3,2)
-                av1(3,3)=av1(3,3)-amul*av1(2,3)
-                bv1(3)=bv1(3)-amul*bv1(2)
-          END IF
-
-          IF(av1(3,3) /= 0.D0) THEN
-              div=1.D0/av1(3,3)
-              bv1(3)=bv1(3)*div
-              av1(3,3)=0.D0
-              !li=1
-                amul=av1(1,3)
-                bv1(1)=bv1(1)-amul*bv1(3)
-              !li=2
-                amul=av1(2,3)
-                bv1(2)=bv1(2)-amul*bv1(3)
-          END IF
+          call matsvels_solve( av1, bv1 )
 !
           vg(ijmk)   = bv1(1)
           vs(ijmk,1) = bv1(2)
@@ -1030,82 +879,7 @@
 
       IF ( flkm ) THEN
 
-          IF(aw1(2,2) < rlim) THEN
-
-              aw1(1,1)=aw1(1,1)+aw1(2,1)
-              aw1(2,1)=0.D0
-              aw1(1,2)=0.D0
-
-              aw1(2,2)=0.D0
-
-              aw1(3,3)=aw1(3,3)+aw1(2,3)
-              aw1(2,3)=0.D0
-              aw1(3,2)=0.D0
-
-              bw1(2)=0.D0
-
-          END IF
-
-          IF(aw1(3,3) < rlim) THEN
-
-              aw1(1,1)=aw1(1,1)+aw1(3,1)
-              aw1(3,1)=0.D0
-              aw1(1,3)=0.D0
-
-              aw1(2,2)=aw1(2,2)+aw1(3,2)
-              aw1(3,2)=0.D0
-              aw1(2,3)=0.D0
-
-              aw1(3,3)=0.D0
-
-              bw1(3)=0.D0
-
-          END IF
-
-          IF(aw1(1,1) /= 0.D0) THEN
-            div=1.D0/aw1(1,1)
-            aw1(1,2)=aw1(1,2)*div
-            aw1(1,3)=aw1(1,3)*div
-            bw1(1)=bw1(1)*div
-            aw1(1,1)=0.D0
-            !li=2
-              amul=aw1(2,1)
-              aw1(2,2)=aw1(2,2)-amul*aw1(1,2)
-              aw1(2,3)=aw1(2,3)-amul*aw1(1,3)
-              bw1(2)=bw1(2)-amul*bw1(1)
-            !li=3
-              amul=aw1(3,1)
-              aw1(3,2)=aw1(3,2)-amul*aw1(1,2)
-              aw1(3,3)=aw1(3,3)-amul*aw1(1,3)
-              bw1(3)=bw1(3)-amul*bw1(1)
-          END IF
-
-          IF(aw1(2,2) /= 0.D0) THEN
-            div=1.D0/aw1(2,2)
-            aw1(2,3)=aw1(2,3)*div
-            bw1(2)=bw1(2)*div
-            aw1(2,2)=0.D0
-            !li=1
-              amul=aw1(1,2)
-              aw1(1,3)=aw1(1,3)-amul*aw1(2,3)
-              bw1(1)=bw1(1)-amul*bw1(2)
-            !li=3
-              amul=aw1(3,2)
-              aw1(3,3)=aw1(3,3)-amul*aw1(2,3)
-              bw1(3)=bw1(3)-amul*bw1(2)
-          END IF
-
-          IF(aw1(3,3) /= 0.D0) THEN
-            div=1.D0/aw1(3,3)
-            bw1(3)=bw1(3)*div
-            aw1(3,3)=0.D0
-            !li=1
-              amul=aw1(1,3)
-              bw1(1)=bw1(1)-amul*bw1(3)
-            !li=2
-              amul=aw1(2,3)
-              bw1(2)=bw1(2)-amul*bw1(3)
-          END IF
+        call matsvels_solve( aw1, bw1 )
 !
         wg(ijkm) = bw1(1)
         ws(ijkm,2-1) = bw1(2)
@@ -1138,82 +912,7 @@
 !
       IF ( flip ) THEN
 
-          IF(au(2,2) < rlim) THEN
-
-              au(1,1)=au(1,1)+au(2,1)
-              au(2,1)=0.D0
-              au(1,2)=0.D0
-
-              au(2,2)=0.D0
-
-              au(3,3)=au(3,3)+au(2,3)
-              au(2,3)=0.D0
-              au(3,2)=0.D0
-
-              bu(2)=0.D0
-
-          END IF
-
-          IF(au(3,3) < rlim) THEN
-
-              au(1,1)=au(1,1)+au(3,1)
-              au(3,1)=0.D0
-              au(1,3)=0.D0
-
-              au(2,2)=au(2,2)+au(3,2)
-              au(3,2)=0.D0
-              au(2,3)=0.D0
-
-              au(3,3)=0.D0
-
-              bu(3)=0.D0
-
-          END IF
-
-          IF(au(1,1) /= 0.D0) THEN
-            div=1.D0/au(1,1)
-            au(1,2)=au(1,2)*div
-            au(1,3)=au(1,3)*div
-            bu(1)=bu(1)*div
-            au(1,1)=0.D0
-            !li=2
-              amul=au(2,1)
-              au(2,2)=au(2,2)-amul*au(1,2)
-              au(2,3)=au(2,3)-amul*au(1,3)
-              bu(2)=bu(2)-amul*bu(1)
-            !li=3
-              amul=au(3,1)
-              au(3,2)=au(3,2)-amul*au(1,2)
-              au(3,3)=au(3,3)-amul*au(1,3)
-              bu(3)=bu(3)-amul*bu(1)
-          END IF
-
-          IF(au(2,2) /= 0.D0) THEN
-            div=1.D0/au(2,2)
-            au(2,3)=au(2,3)*div
-            bu(2)=bu(2)*div
-            au(2,2)=0.D0
-            !li=1
-              amul=au(1,2)
-              au(1,3)=au(1,3)-amul*au(2,3)
-              bu(1)=bu(1)-amul*bu(2)
-            !li=3
-              amul=au(3,2)
-              au(3,3)=au(3,3)-amul*au(2,3)
-              bu(3)=bu(3)-amul*bu(2)
-          END IF
-
-          IF(au(3,3) /= 0.D0) THEN
-            div=1.D0/au(3,3)
-            bu(3)=bu(3)*div
-            au(3,3)=0.D0
-            !li=1
-              amul=au(1,3)
-              bu(1)=bu(1)-amul*bu(3)
-            !li=2
-              amul=au(2,3)
-              bu(2)=bu(2)-amul*bu(3)
-          END IF
+        call matsvels_solve( au, bu )
 !
         ug(ijk)=bu(1)
         us(ijk,1)=bu(2)
@@ -1242,86 +941,11 @@
 
       IF ( fljp ) THEN
 
-            IF(av(2,2) < rlim) THEN
-
-                av(1,1)=av(1,1)+av(2,1)
-                av(2,1)=0.D0
-                av(1,2)=0.D0
-
-                av(2,2)=0.D0
-
-                av(3,3)=av(3,3)+av(2,3)
-                av(2,3)=0.D0
-                av(3,2)=0.D0
-
-                bv(2)=0.D0
-
-            END IF
-
-            IF(av(3,3) < rlim) THEN
-
-                av(1,1)=av(1,1)+av(3,1)
-                av(3,1)=0.D0
-                av(1,3)=0.D0
-
-                av(2,2)=av(2,2)+av(3,2)
-                av(3,2)=0.D0
-                av(2,3)=0.D0
-
-                av(3,3)=0.D0
-
-                bv(3)=0.D0
-
-            END IF
-  
-            IF(av(1,1) /= 0.D0) THEN 
-              div=1.D0/av(1,1)
-              av(1,2)=av(1,2)*div
-              av(1,3)=av(1,3)*div
-              bv(1)=bv(1)*div
-              av(1,1)=0.D0
-              !li=2
-                amul=av(2,1)
-                av(2,2)=av(2,2)-amul*av(1,2)
-                av(2,3)=av(2,3)-amul*av(1,3)
-                bv(2)=bv(2)-amul*bv(1)
-              !li=3
-                amul=av(3,1)
-                av(3,2)=av(3,2)-amul*av(1,2)
-                av(3,3)=av(3,3)-amul*av(1,3)
-                bv(3)=bv(3)-amul*bv(1)
-            END IF
-
-            IF(av(2,2) /= 0.D0) THEN 
-              div=1.D0/av(2,2)
-              av(2,3)=av(2,3)*div
-              bv(2)=bv(2)*div
-              av(2,2)=0.D0
-              !li=1
-                amul=av(1,2)
-                av(1,3)=av(1,3)-amul*av(2,3)
-                bv(1)=bv(1)-amul*bv(2)
-              !li=3
-                amul=av(3,2)
-                av(3,3)=av(3,3)-amul*av(2,3)
-                bv(3)=bv(3)-amul*bv(2)
-            END IF
-
-            IF(av(3,3) /= 0.D0) THEN 
-              div=1.D0/av(3,3)
-              bv(3)=bv(3)*div
-              av(3,3)=0.D0
-              !li=1
-                amul=av(1,3)
-                bv(1)=bv(1)-amul*bv(3)
-              !li=2
-                amul=av(2,3)
-                bv(2)=bv(2)-amul*bv(3)
-            END IF
+         call matsvels_solve( av, bv )
 !
-          vg(ijk)  = bv(1)
-          vs(ijk,1)= bv(2)
-          vs(ijk,2)= bv(3)
+         vg(ijk)  = bv(1)
+         vs(ijk,1)= bv(2)
+         vs(ijk,2)= bv(3)
 !
       END IF
 !
@@ -1345,88 +969,7 @@
 
       IF ( flkp ) THEN
 
-          IF(aw(2,2) < rlim) THEN
-
-              aw(1,1)=aw(1,1)+aw(2,1)
-              aw(2,1)=0.D0
-              aw(1,2)=0.D0
-
-              aw(2,2)=0.D0
-
-              aw(3,3)=aw(3,3)+aw(2,3)
-              aw(2,3)=0.D0
-              aw(3,2)=0.D0
-
-              bw(2)=0.D0
-
-          END IF
-
-          IF(aw(3,3) < rlim) THEN
-
-              aw(1,1)=aw(1,1)+aw(3,1)
-              aw(3,1)=0.D0
-              aw(1,3)=0.D0
-
-              aw(2,2)=aw(2,2)+aw(3,2)
-              aw(3,2)=0.D0
-              aw(2,3)=0.D0
-
-              aw(3,3)=0.D0
-
-              bw(3)=0.D0
-
-          END IF
-
-          IF(aw(1,1) /= 0.D0) THEN 
-
-            div=1.D0/aw(1,1)
-            aw(1,2)=aw(1,2)*div
-            aw(1,3)=aw(1,3)*div
-            bw(1)=bw(1)*div
-            aw(1,1)=0.D0
-            !li=2
-              amul=aw(2,1)
-              aw(2,2)=aw(2,2)-amul*aw(1,2)
-              aw(2,3)=aw(2,3)-amul*aw(1,3)
-              bw(2)=bw(2)-amul*bw(1)
-            !li=3
-              amul=aw(3,1)
-              aw(3,2)=aw(3,2)-amul*aw(1,2)
-              aw(3,3)=aw(3,3)-amul*aw(1,3)
-              bw(3)=bw(3)-amul*bw(1)
-
-          END IF
-
-          IF(aw(2,2) /= 0.D0) THEN 
-
-            div=1.D0/aw(2,2)
-            aw(2,3)=aw(2,3)*div
-            bw(2)=bw(2)*div
-            aw(2,2)=0.D0
-            !li=1
-              amul=aw(1,2)
-              aw(1,3)=aw(1,3)-amul*aw(2,3)
-              bw(1)=bw(1)-amul*bw(2)
-            !li=3
-              amul=aw(3,2)
-              aw(3,3)=aw(3,3)-amul*aw(2,3)
-              bw(3)=bw(3)-amul*bw(2)
-
-          END IF
-
-          IF(aw(3,3) /= 0.D0) THEN 
-
-            div=1.D0/aw(3,3)
-            bw(3)  = bw(3)*div
-            aw(3,3)=0.D0
-            !li=1
-              amul=aw(1,3)
-              bw(1)=bw(1)-amul*bw(3)
-            !li=2
-              amul=aw(2,3)
-              bw(2)=bw(2)-amul*bw(3)
-
-          END IF
+        call matsvels_solve( aw, bw )
 !
         wg(ijk)   = bw(1)
         ws(ijk,1) = bw(2)
@@ -1435,8 +978,310 @@
       END IF
 !
       RETURN
-      END SUBROUTINE matsvels_3phase
 
+END SUBROUTINE matsvels_3phase
+
+
+SUBROUTINE matsvels_solve( a, b )
+
+  real*8 :: a(3,3), b(3)
+  ! real*8 :: rlim = 1.0d-8
+  real*8 :: d, x1, x2, amul
+
+  IF( a(2,2) < rlim ) THEN
+
+    a(1,1) = a(1,1) + a(2,1)
+    a(3,3) = a(3,3) + a(3,2)
+
+    IF( a(3,3) < rlim ) THEN
+
+      a(1,1) = a(1,1) + a(3,1)
+      a(2,2) = a(2,2) + a(3,2)
+
+      IF( a(1,1) /= 0 ) THEN
+
+        !write(6,*) 'c111 ok'
+
+        b(1) = b(1) / a(1,1)
+        b(2) = 0.D0
+        b(3) = 0.D0
+
+      ELSE
+
+        !write(6,*) 'c112 ok'
+
+        b(1) = b(1)
+        b(2) = 0.D0
+        b(3) = 0.D0
+
+      END IF
+
+    ELSE
+
+      IF( a(1,1) /= 0 ) THEN
+
+        !write(6,*) 'c121 ok'  
+
+        d      = 1.D0 / a(1,1)
+        a(1,3) = a(1,3) * d
+        b(1)   = b(1)   * d
+        ! a(1,1) = 0.D0
+        amul   = a(3,1)
+        a(3,3) = a(3,3) - amul * a(1,3)
+        b(3)   = b(3)   - amul * b(1)
+
+        d      = 1.D0 / a(3,3)
+        b(3)   = b(3) * d
+        ! a(3,3) = 0.D0
+        amul   = a(1,3)
+        b(1)   = b(1) - amul * b(3)
+
+        b(2)   = 0.0d0
+
+        !d = ( a(1,1) * a(3,3) - a(1,3) * a(3,1) )
+        !d = 1.0d0 / d
+        !x1 = (  a(3,3) * b(1) - a(3,1) * b(3) ) * d
+        !x2 = ( -a(1,3) * b(1) + a(1,1) * b(3) ) * d
+        !b(1) = x1
+        !b(2) = 0.0d0
+        !b(3) = x2
+        
+      ELSE
+
+        !write(6,*) 'c122 ok'
+
+        d      = 1.D0 / a(3,3)
+        b(3)   = b(3) * d
+        ! a(3,3) = 0.D0
+        amul   = a(1,3)
+        b(1)   = b(1) - amul * b(3)
+
+        b(2)   = 0.0d0
+
+      END IF
+
+    END IF
+
+  ELSE IF ( a(3,3) < rlim ) THEN
+
+    a(1,1) = a(1,1) + a(3,1)
+    a(2,2) = a(2,2) + a(3,2)
+
+    IF( a(1,1) /= 0 ) THEN
+
+        !write(6,*) 'c21 ok'
+
+        d      = 1.D0 / a(1,1)
+        a(1,2) = a(1,2) * d
+        b(1)   = b(1)   * d
+        ! a(1,1) = 0.D0
+        amul   = a(2,1)
+        a(2,2) = a(2,2) - amul * a(1,2)
+        b(2)   = b(2)   - amul * b(1)
+
+        d      = 1.D0/a(2,2)
+        b(2)   = b(2)*d
+        ! a(2,2) = 0.D0
+        amul   = a(1,2)
+        b(1)   = b(1)-amul*b(2)
+
+
+        !d = ( a(1,1) * a(2,2) - a(1,2) * a(2,1) )
+        !d = 1.0d0 / d
+        !x1 = (  a(2,2) * b(1) - a(2,1) * b(2) ) * d
+        !x2 = ( -a(1,2) * b(1) + a(1,1) * b(2) ) * d
+        !b(1) = x1
+        !b(2) = x2
+
+        b(3) = 0.0d0
+
+    ELSE
+
+        !write(6,*) 'c22 ok'
+
+        d      = 1.D0 / a(2,2)
+        b(2)   = b(2) * d
+        ! a(2,2) = 0.D0
+        amul   = a(1,2)
+        b(1)   = b(1) - amul * b(2)
+
+        b(3) = 0.0d0
+
+    END IF
+
+  ELSE
+
+    IF( a(1,1) /= 0.D0 ) THEN
+
+        !write(6,*) 'c31'
+
+        d      = 1.D0 / a(1,1)
+        a(1,2) = a(1,2) * d
+        a(1,3) = a(1,3) * d
+        b(1)   = b(1)   * d
+        ! a(1,1) = 0.D0
+        amul   = a(2,1)
+        a(2,2) = a(2,2) - amul * a(1,2)
+        a(2,3) = a(2,3) - amul * a(1,3)
+        b(2)   = b(2)   - amul * b(1)
+        amul   = a(3,1)
+        a(3,2) = a(3,2) - amul * a(1,2)
+        a(3,3) = a(3,3) - amul * a(1,3)
+        b(3)   = b(3)   - amul * b(1)
+
+        d      = 1.D0 / a(2,2)
+        a(2,3) = a(2,3) * d
+        b(2)   = b(2)   * d
+        ! a(2,2) = 0.D0
+        amul   = a(1,2)
+        a(1,3) = a(1,3) - amul * a(2,3)
+        b(1)   = b(1)   - amul * b(2)
+        amul   = a(3,2)
+        a(3,3) = a(3,3) - amul * a(2,3)
+        b(3)   = b(3)   - amul * b(2)
+
+        d      = 1.D0 / a(3,3)
+        b(3)   = b(3) * d
+        ! a(3,3) = 0.D0
+        amul   = a(1,3)
+        b(1)   = b(1) - amul * b(3)
+        amul   = a(2,3)
+        b(2)   = b(2) - amul * b(3)
+
+    ELSE
+
+        !write(6,*) 'c32'
+
+        !d = ( a(2,2) * a(3,3) - a(2,3) * a(3,2) )
+        !d = 1.0d0 / d
+        !x1 = (  a(3,3) * b(2) - a(3,2) * b(3) ) * d
+        !x2 = ( -a(2,3) * b(2) + a(2,2) * b(3) ) * d
+        !b(1) = 0.0d0
+        !b(2) = x1
+        !b(3) = x2
+
+        d      = 1.D0 / a(2,2)
+        a(2,3) = a(2,3) * d
+        b(2)   = b(2)   * d
+        ! a(2,2) = 0.D0
+        amul   = a(1,2)
+        a(1,3) = a(1,3) - amul * a(2,3)
+        b(1)   = b(1)   - amul * b(2)
+        amul   = a(3,2)
+        a(3,3) = a(3,3) - amul * a(2,3)
+        b(3)   = b(3)   - amul * b(2)
+
+        d      = 1.D0 / a(3,3)
+        b(3)   = b(3) * d
+        ! a(3,3) = 0.D0
+        amul   = a(1,3)
+        b(1)   = b(1) - amul * b(3)
+        amul   = a(2,3)
+        b(2)   = b(2) - amul * b(3)
+
+    END IF
+
+  END IF
+
+END SUBROUTINE matsvels_solve
+
+
+
+SUBROUTINE matsvels_solve_old( a, b )
+
+  real*8 :: a(3,3), b(3)
+  !real*8 :: rlim = 1.0d-8
+  real*8 :: div, amul
+
+  IF( a(2,2) < rlim ) THEN
+
+              write(6,*) 'if1'
+
+              a(1,1) = a(1,1) + a(2,1)
+              a(2,1) = 0.D0
+              a(1,2) = 0.D0
+
+              a(2,2) = 0.D0
+
+              a(3,3) = a(3,3) + a(2,3)
+              a(2,3) = 0.D0
+              a(3,2) = 0.D0
+
+              b(2) = 0.D0
+
+  END IF
+
+
+  IF( a(3,3) < rlim ) THEN
+
+              write(6,*) 'if2'
+
+              a(1,1) = a(1,1) + a(3,1)
+              a(3,1) = 0.D0
+              a(1,3) = 0.D0
+
+              a(2,2) = a(2,2) + a(3,2)
+              a(3,2) = 0.D0
+              a(2,3) = 0.D0
+
+              a(3,3) = 0.D0
+
+              b(3) = 0.D0
+
+  END IF
+
+          IF( a(1,1) /= 0.D0 ) THEN
+
+            write(6,*) 'if3'
+
+            div = 1.D0 / a(1,1)
+            a(1,2) = a(1,2) * div
+            a(1,3) = a(1,3) * div
+            b(1)   = b(1)   * div
+            a(1,1) = 0.D0
+            !li=2
+              amul = a(2,1)
+              a(2,2) = a(2,2) - amul * a(1,2)
+              a(2,3) = a(2,3) - amul * a(1,3)
+              b(2)   = b(2)   - amul * b(1)
+            !li=3
+              amul = a(3,1)
+              a(3,2) = a(3,2) - amul * a(1,2)
+              a(3,3) = a(3,3) - amul * a(1,3)
+              b(3)   = b(3)   - amul * b(1)
+
+          END IF
+
+          IF( a(2,2) /= 0.D0 ) THEN
+            write(6,*) 'if4'
+            div=1.D0/a(2,2)
+            a(2,3)=a(2,3)*div
+            b(2)=b(2)*div
+            a(2,2)=0.D0
+            !li=1
+              amul=a(1,2)
+              a(1,3)=a(1,3)-amul*a(2,3)
+              b(1)=b(1)-amul*b(2)
+            !li=3
+              amul=a(3,2)
+              a(3,3)=a(3,3)-amul*a(2,3)
+              b(3)=b(3)-amul*b(2)
+          END IF
+
+          IF( a(3,3) /= 0.D0 ) THEN
+            write(6,*) 'if5'
+            div=1.D0/a(3,3)
+            b(3)=b(3)*div
+            a(3,3)=0.D0
+            !li=1
+              amul=a(1,3)
+              b(1)=b(1)-amul*b(3)
+            !li=2
+              amul=a(2,3)
+              b(2)=b(2)-amul*b(3)
+          END IF
+
+END SUBROUTINE matsvels_solve_old
 
 !------------------------------------------------------------------------
       END MODULE phases_matrix
