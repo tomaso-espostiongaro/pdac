@@ -195,7 +195,7 @@
 
       REAL*8 :: ygcsum
       INTEGER :: ijk, imesh, i,j,k, is, ig, n
-      REAL*8 :: fact_r, alpha, beta, ra
+      REAL*8 :: fact_r, alpha, beta, ra, dex, dey, angle, angle4
 
       IF (job_type == '2D') RETURN
       
@@ -258,9 +258,20 @@
           IF (wrat > 1.D0) THEN
 
             beta = 1.D0 / (wrat - 1.D0)
-            ra = DSQRT((x(i)-xvent)**2 + (y(j)-yvent)**2)
+            dey = y(j)-yvent
+            dex = x(i)-xvent
+            ra = DSQRT(dex**2 + dey**2)
+            IF (dey /= 0.D0 ) THEN
+              angle = ATAN2(dey,dex)
+            ELSE IF (dex >= 0.D0) THEN
+              angle = 0.D0
+            ELSE IF (dex < 0.D0) THEN
+              angle = 4.D0 * ATAN(1.D0)
+            END IF
+            angle4 = angle*4.D0
             ra = MIN(ra / radius, 1.D0)
             fact_r = wrat * (1.D0 - ra ** beta)
+            fact_r = fact_r - 0.1 * COS(angle4)
 
             CALL correct_vent_profile(ijk,fact_r)
 
@@ -367,7 +378,7 @@
       INTEGER :: is, n
       REAL*8 :: switch, growth_factor
       
-      IF (iali == 1 .OR. wrat > 1.D0) RETURN
+      IF (wrat > 1.D0) RETURN
       
       ! ... Determine whether the inlet cell is on/off
       ! 
