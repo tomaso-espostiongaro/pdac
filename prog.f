@@ -10,6 +10,7 @@
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
       USE gas_solid_temperature, ONLY: sieg, siegn, sies, siesn, ts, tg
       USE grid, ONLY: ncint, myijk, fl_l
+      USE heat_capacity, ONLY: cp, ck
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE io_restart, ONLY: tapewr
       USE iterative_solver, ONLY: iter
@@ -25,7 +26,6 @@
       USE turbulence, ONLY: sgsg, sgss
       USE gas_solid_viscosity, ONLY: viscon, mug, kapg
       USE gas_components, ONLY: ygas
-      USE heat_capacity, ONLY: ck, cp
       USE environment, ONLY: cpclock, timing
       USE control_flags, ONLY: job_type
 !
@@ -36,7 +36,7 @@
       INTEGER :: ijk
       INTEGER :: ig, rk
       REAL*8 :: tdump1, tpri
-      REAL*8 :: s0, s1, s2, s3, s4, s5, s6, s7, s8, s9
+      REAL*8 :: s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10
       REAL*8 :: timbdry, timout, timrestart, timtilde, timiter, &
                 timygas, timtem, timtot, dt0, tsgsg
 !
@@ -155,26 +155,35 @@
 !
 ! ... Compute Turbulent viscosity from Smagorinsky LES model
 !
-         IF (iturb .GE. 1)  CALL sgsg
-         IF (iss .GE. 1)    CALL sgss
-!
-              IF( timing ) s5 = cpclock()
+         IF (iturb >= 1)  CALL sgsg
+         IF (iss >= 1)    CALL sgss
 ! 
 ! ... Store gas and particle momentum densities at time n*dt
 !
          CALL euvel
 !
+              IF( timing ) s5 = cpclock()
+
+              timbdry = timbdry + (s2 - s1)
+              timout = timout + (s3 - s2)
+              timrestart = timrestart + (s4 - s3)
+              tsgsg = tsgsg + (s5 - s4)
+
+!
 ! ... Start the Runge-Kutta iteration
 !
          dt0 = dt
          DO rk = 1, rungekut
+!
+                IF( timing ) s5 = cpclock()
+!
            dt = dt0/(rungekut+1-rk)
 !
 ! ... Momentum fluxes, gas-particle drag, particle-particle interaction
 !
            CALL tilde
 
-              IF( timing ) s6 = cpclock()
+                IF( timing ) s6 = cpclock()
 !
 ! ... Iterative solver for momentum-mass pressure coupling
 ! ... and explicit solver for interphase coupling
@@ -194,6 +203,14 @@
 !
            CALL htilde
            CALL ftem
+!
+                IF( timing ) s9 = cpclock()
+
+                timtilde = timtilde + (s6 - s5)
+                timiter = timiter + (s7 - s6)
+                timygas = timygas + (s8 - s7)
+                timtem = timtem + (s9 - s8)
+
          END DO
 !
 ! ... End the Runge-Kutta iteration
@@ -201,25 +218,14 @@
          dt = dt0
          time = time + dt
 
-              IF( timing ) s9 = cpclock()
-!
-              timbdry = timbdry + (s2 - s1)
-              timout = timout + (s3 - s2)
-              timrestart = timrestart + (s4 - s3)
-              tsgsg = tsgsg + (s5 - s4)
-              timtilde = timtilde + (s6 - s5)
-              timiter = timiter + (s7 - s6)
-              timygas = timygas + (s8 - s7)
-              timtem = timtem + (s9 - s8)
-
 !------------------------------------------
       END DO time_sweep
 !------------------------------------------
 
-              IF( timing ) s9 = cpclock()
+              IF( timing ) s10 = cpclock()
 
               IF( timing ) THEN
-                timtot = (s9 -s0) / 1000.0d0
+                timtot = (s10 -s0) / 1000.0d0
                 timbdry = timbdry / 1000.0d0
                 timout = timout / 1000.0d0
                 timrestart = timrestart / 1000.0d0

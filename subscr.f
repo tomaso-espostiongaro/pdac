@@ -58,6 +58,13 @@
         REAL*8 :: bb
       END TYPE stencil
 !
+      INTERFACE nb
+        MODULE PROCEDURE nb_rank1, nb_rank2
+      END INTERFACE
+      INTERFACE rnb
+        MODULE PROCEDURE rnb_rank1, rnb_rank2
+      END INTERFACE
+!
       SAVE
 
 !-----------------------------------------------------------------------
@@ -166,71 +173,68 @@
     END SUBROUTINE
 
 !-----------------------------------------------------------------------
-
-      FUNCTION nb( array, ijk )
+      FUNCTION nb_rank1( array, ijk )
 
       IMPLICIT NONE 
 !
-      TYPE(stencil) :: nb
+      TYPE(stencil) :: nb_rank1
       REAL*8, INTENT(IN) :: array(:)
       INTEGER, INTENT(IN) :: ijk
 !
       IF( job_type_flag == 2 ) THEN
 
-        nb%c  = array(ijk)
-        nb%e  = array(ijr)
-        nb%n  = array(ijt)
-        nb%w  = array(ijl)
-        nb%s  = array(ijb)
-        nb%en  = array(ijtr)
-        nb%wn  = array(ijtl)
-        nb%es  = array(ijbr)
-        nb%ws  = array(ijbl)
-        nb%ee  = array(ijrr)
-        nb%nn  = array(ijtt)
-        nb%ww  = array(ijll)
-        nb%ss  = array(ijbb)
+        nb_rank1%c  = array(ijk)
+        nb_rank1%e  = array(ijr)
+        nb_rank1%n  = array(ijt)
+        nb_rank1%w  = array(ijl)
+        nb_rank1%s  = array(ijb)
+        nb_rank1%en  = array(ijtr)
+        nb_rank1%wn  = array(ijtl)
+        nb_rank1%es  = array(ijbr)
+        nb_rank1%ws  = array(ijbl)
+        nb_rank1%ee  = array(ijrr)
+        nb_rank1%nn  = array(ijtt)
+        nb_rank1%ww  = array(ijll)
+        nb_rank1%ss  = array(ijbb)
 
       ELSE IF( job_type_flag == 3 ) THEN
 
-        nb%c = array( ijk )
-        nb%e = array( ijke )
-        nb%w = array( ijkw )
-        nb%ee = array( ijkee )
-        nb%ww = array( ijkww )
-        nb%n = array( ijkn )
-        nb%en = array( ijken )
-        nb%wn = array( ijkwn )
-        nb%s = array( ijks )
-        nb%es = array( ijkes )
-        nb%ws = array( ijkws )
-        nb%nn = array( ijknn )
-        nb%ss = array( ijkss )
-        nb%t = array( ijkt )
-        nb%et = array( ijket )
-        nb%wt = array( ijkwt )
-        nb%nt = array( ijknt )
-        nb%st = array( ijkst )
-        nb%b = array( ijkb )
-        nb%eb = array( ijkeb )
-        nb%wb = array( ijkwb )
-        nb%nb = array( ijknb )
-        nb%sb = array( ijksb )
-        nb%tt = array( ijktt )
-        nb%bb = array( ijkbb )
+        nb_rank1%c = array( ijk )
+        nb_rank1%e = array( ijke )
+        nb_rank1%w = array( ijkw )
+        nb_rank1%ee = array( ijkee )
+        nb_rank1%ww = array( ijkww )
+        nb_rank1%n = array( ijkn )
+        nb_rank1%en = array( ijken )
+        nb_rank1%wn = array( ijkwn )
+        nb_rank1%s = array( ijks )
+        nb_rank1%es = array( ijkes )
+        nb_rank1%ws = array( ijkws )
+        nb_rank1%nn = array( ijknn )
+        nb_rank1%ss = array( ijkss )
+        nb_rank1%t = array( ijkt )
+        nb_rank1%et = array( ijket )
+        nb_rank1%wt = array( ijkwt )
+        nb_rank1%nt = array( ijknt )
+        nb_rank1%st = array( ijkst )
+        nb_rank1%b = array( ijkb )
+        nb_rank1%eb = array( ijkeb )
+        nb_rank1%wb = array( ijkwb )
+        nb_rank1%nb = array( ijknb )
+        nb_rank1%sb = array( ijksb )
+        nb_rank1%tt = array( ijktt )
+        nb_rank1%bb = array( ijkbb )
 
       END IF
 
       RETURN
-      END FUNCTION nb
-
+      END FUNCTION nb_rank1
 !-----------------------------------------------------------------------
-
-      FUNCTION rnb(array,ijk)
+      FUNCTION rnb_rank1(array,ijk)
       USE dimensions
       IMPLICIT NONE 
 !
-      TYPE(stencil) :: rnb
+      TYPE(stencil) :: rnb_rank1
       REAL*8, INTENT(IN) :: array(:)
       INTEGER, INTENT(IN) :: ijk
       INTEGER :: i,j,k,imesh
@@ -242,23 +246,23 @@
         i  = MOD( ( imesh - 1 ), nr) + 1
         j  = ( imesh - 1 ) / nr + 1
 !
-        rnb%c  = array(ijk)
-        rnb%e  = array(ipj)
-        rnb%n  = array(ijp)
-        rnb%w  = array(imj)
-        rnb%s  = array(ijm)
-        rnb%en  = array(ipjp)
-        rnb%wn  = array(imjp)
-        rnb%es  = array(ipjm)
-        rnb%ws  = array(imjm)
-        rnb%ee  = array(ippj)
-        IF (i == (nr-1))  rnb%ee  = array(ipj)
-        rnb%nn  = array(ijpp)
-        IF (j == (nz-1))  rnb%nn  = array(ijp)
-        rnb%ww  = array(immj)
-        IF (i == 2)  rnb%ww  = array(imj)
-        rnb%ss  = array(ijmm)
-        IF (j == (2))  rnb%ss  = array(ijm)
+        rnb_rank1%c  = array(ijk)
+        rnb_rank1%e  = array(ipj)
+        rnb_rank1%n  = array(ijp)
+        rnb_rank1%w  = array(imj)
+        rnb_rank1%s  = array(ijm)
+        rnb_rank1%en  = array(ipjp)
+        rnb_rank1%wn  = array(imjp)
+        rnb_rank1%es  = array(ipjm)
+        rnb_rank1%ws  = array(imjm)
+        rnb_rank1%ee  = array(ippj)
+        IF (i == (nr-1))  rnb_rank1%ee  = array(ipj)
+        rnb_rank1%nn  = array(ijpp)
+        IF (j == (nz-1))  rnb_rank1%nn  = array(ijp)
+        rnb_rank1%ww  = array(immj)
+        IF (i == 2)  rnb_rank1%ww  = array(imj)
+        rnb_rank1%ss  = array(ijmm)
+        IF (j == (2))  rnb_rank1%ss  = array(ijm)
 
       ELSE IF( job_type_flag == 3 ) THEN
 
@@ -266,44 +270,178 @@
          j = MOD( ijk - 1, nx*ny ) / nx + 1
          k = ( ijk - 1 ) / ( nx*ny ) + 1
 
-         rnb%c = array( ijk )
-         rnb%e = array( ipjk )
-         rnb%w = array( imjk )
-         rnb%ee = array( ippjk )
-         rnb%ww = array( immjk )
-         rnb%n = array( ijpk )
-         rnb%en = array( ipjpk )
-         rnb%wn = array( imjpk )
-         rnb%s = array( ijmk )
-         rnb%es = array( ipjmk )
-         rnb%ws = array( imjmk )
-         rnb%nn = array( ijppk )
-         rnb%ss = array( ijmmk )
-         rnb%t = array( ijkp )
-         rnb%et = array( ipjkp )
-         rnb%wt = array( imjkp )
-         rnb%nt = array( ijpkp )
-         rnb%st = array( ijmkp )
-         rnb%b = array( ijkm )
-         rnb%eb = array( ipjkm )
-         rnb%wb = array( imjkm )
-         rnb%nb = array( ijpkm )
-         rnb%sb = array( ijmkm )
-         rnb%tt = array( ijkpp )
-         rnb%bb = array( ijkmm )
+         rnb_rank1%c = array( ijk )
+         rnb_rank1%e = array( ipjk )
+         rnb_rank1%w = array( imjk )
+         rnb_rank1%ee = array( ippjk )
+         rnb_rank1%ww = array( immjk )
+         rnb_rank1%n = array( ijpk )
+         rnb_rank1%en = array( ipjpk )
+         rnb_rank1%wn = array( imjpk )
+         rnb_rank1%s = array( ijmk )
+         rnb_rank1%es = array( ipjmk )
+         rnb_rank1%ws = array( imjmk )
+         rnb_rank1%nn = array( ijppk )
+         rnb_rank1%ss = array( ijmmk )
+         rnb_rank1%t = array( ijkp )
+         rnb_rank1%et = array( ipjkp )
+         rnb_rank1%wt = array( imjkp )
+         rnb_rank1%nt = array( ijpkp )
+         rnb_rank1%st = array( ijmkp )
+         rnb_rank1%b = array( ijkm )
+         rnb_rank1%eb = array( ipjkm )
+         rnb_rank1%wb = array( imjkm )
+         rnb_rank1%nb = array( ijpkm )
+         rnb_rank1%sb = array( ijmkm )
+         rnb_rank1%tt = array( ijkpp )
+         rnb_rank1%bb = array( ijkmm )
 
-         IF (i == (nx-1))  rnb%ee  = array(ipjk)
-         IF (i == 2)       rnb%ww  = array(imjk)
-         IF (j == (ny-1))  rnb%nn  = array(ijpk)
-         IF (j == 2)       rnb%ss  = array(ijmk)
-         IF (k == (nz-1))  rnb%tt  = array(ijkp)
-         IF (k == 2)       rnb%bb  = array(ijkm)
+         IF (i == (nx-1))  rnb_rank1%ee  = array(ipjk)
+         IF (i == 2)       rnb_rank1%ww  = array(imjk)
+         IF (j == (ny-1))  rnb_rank1%nn  = array(ijpk)
+         IF (j == 2)       rnb_rank1%ss  = array(ijmk)
+         IF (k == (nz-1))  rnb_rank1%tt  = array(ijkp)
+         IF (k == 2)       rnb_rank1%bb  = array(ijkm)
 
       END IF
 
       RETURN
-      END FUNCTION rnb
-
+      END FUNCTION rnb_rank1
 !-----------------------------------------------------------------------
+      FUNCTION nb_rank2( array, is, ijk )
 
+      IMPLICIT NONE 
+!
+      TYPE(stencil) :: nb_rank2
+      REAL*8, INTENT(IN) :: array(:,:)
+      INTEGER, INTENT(IN) :: is, ijk
+!
+      IF( job_type_flag == 2 ) THEN
+
+        nb_rank2%c  = array(is, ijk)
+        nb_rank2%e  = array(is, ijr)
+        nb_rank2%n  = array(is, ijt)
+        nb_rank2%w  = array(is, ijl)
+        nb_rank2%s  = array(is, ijb)
+        nb_rank2%en  = array(is, ijtr)
+        nb_rank2%wn  = array(is, ijtl)
+        nb_rank2%es  = array(is, ijbr)
+        nb_rank2%ws  = array(is, ijbl)
+        nb_rank2%ee  = array(is, ijrr)
+        nb_rank2%nn  = array(is, ijtt)
+        nb_rank2%ww  = array(is, ijll)
+        nb_rank2%ss  = array(is, ijbb)
+
+      ELSE IF( job_type_flag == 3 ) THEN
+
+        nb_rank2%c = array( is, ijk )
+        nb_rank2%e = array( is, ijke )
+        nb_rank2%w = array( is, ijkw )
+        nb_rank2%ee = array( is, ijkee )
+        nb_rank2%ww = array( is, ijkww )
+        nb_rank2%n = array( is, ijkn )
+        nb_rank2%en = array( is, ijken )
+        nb_rank2%wn = array( is, ijkwn )
+        nb_rank2%s = array( is, ijks )
+        nb_rank2%es = array( is, ijkes )
+        nb_rank2%ws = array( is, ijkws )
+        nb_rank2%nn = array( is, ijknn )
+        nb_rank2%ss = array( is, ijkss )
+        nb_rank2%t = array( is, ijkt )
+        nb_rank2%et = array( is, ijket )
+        nb_rank2%wt = array( is, ijkwt )
+        nb_rank2%nt = array( is, ijknt )
+        nb_rank2%st = array( is, ijkst )
+        nb_rank2%b = array( is, ijkb )
+        nb_rank2%eb = array( is, ijkeb )
+        nb_rank2%wb = array( is, ijkwb )
+        nb_rank2%nb = array( is, ijknb )
+        nb_rank2%sb = array( is, ijksb )
+        nb_rank2%tt = array( is, ijktt )
+        nb_rank2%bb = array( is, ijkbb )
+
+      END IF
+
+      RETURN
+      END FUNCTION nb_rank2
+!-----------------------------------------------------------------------
+      FUNCTION rnb_rank2(array, is, ijk)
+      USE dimensions
+      IMPLICIT NONE 
+!
+      TYPE(stencil) :: rnb_rank2
+      REAL*8, INTENT(IN) :: array(:, :)
+      INTEGER, INTENT(IN) :: is, ijk
+      INTEGER :: i,j,k,imesh
+!
+      imesh = myijk( ip0_jp0_kp0_, ijk)
+
+      IF( job_type_flag == 2 ) THEN
+
+        i  = MOD( ( imesh - 1 ), nr) + 1
+        j  = ( imesh - 1 ) / nr + 1
+!
+        rnb_rank2%c  = array(is, ijk)
+        rnb_rank2%e  = array(is, ipj)
+        rnb_rank2%n  = array(is, ijp)
+        rnb_rank2%w  = array(is, imj)
+        rnb_rank2%s  = array(is, ijm)
+        rnb_rank2%en  = array(is, ipjp)
+        rnb_rank2%wn  = array(is, imjp)
+        rnb_rank2%es  = array(is, ipjm)
+        rnb_rank2%ws  = array(is, imjm)
+        rnb_rank2%ee  = array(is, ippj)
+        IF (i == (nr-1))  rnb_rank2%ee  = array(is, ipj)
+        rnb_rank2%nn  = array(is, ijpp)
+        IF (j == (nz-1))  rnb_rank2%nn  = array(is, ijp)
+        rnb_rank2%ww  = array(is, immj)
+        IF (i == 2)  rnb_rank2%ww  = array(is, imj)
+        rnb_rank2%ss  = array(is, ijmm)
+        IF (j == (2))  rnb_rank2%ss  = array(is, ijm)
+
+      ELSE IF( job_type_flag == 3 ) THEN
+
+         i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
+         j = MOD( ijk - 1, nx*ny ) / nx + 1
+         k = ( ijk - 1 ) / ( nx*ny ) + 1
+
+         rnb_rank2%c = array( is, ijk )
+         rnb_rank2%e = array( is, ipjk )
+         rnb_rank2%w = array( is, imjk )
+         rnb_rank2%ee = array( is, ippjk )
+         rnb_rank2%ww = array( is, immjk )
+         rnb_rank2%n = array( is, ijpk )
+         rnb_rank2%en = array( is, ipjpk )
+         rnb_rank2%wn = array( is, imjpk )
+         rnb_rank2%s = array( is, ijmk )
+         rnb_rank2%es = array( is, ipjmk )
+         rnb_rank2%ws = array( is, imjmk )
+         rnb_rank2%nn = array( is, ijppk )
+         rnb_rank2%ss = array( is, ijmmk )
+         rnb_rank2%t = array( is, ijkp )
+         rnb_rank2%et = array( is, ipjkp )
+         rnb_rank2%wt = array( is, imjkp )
+         rnb_rank2%nt = array( is, ijpkp )
+         rnb_rank2%st = array( is, ijmkp )
+         rnb_rank2%b = array( is, ijkm )
+         rnb_rank2%eb = array( is, ipjkm )
+         rnb_rank2%wb = array( is, imjkm )
+         rnb_rank2%nb = array( is, ijpkm )
+         rnb_rank2%sb = array( is, ijmkm )
+         rnb_rank2%tt = array( is, ijkpp )
+         rnb_rank2%bb = array( is, ijkmm )
+
+         IF (i == (nx-1))  rnb_rank2%ee  = array(is, ipjk)
+         IF (i == 2)       rnb_rank2%ww  = array(is, imjk)
+         IF (j == (ny-1))  rnb_rank2%nn  = array(is, ijpk)
+         IF (j == 2)       rnb_rank2%ss  = array(is, ijmk)
+         IF (k == (nz-1))  rnb_rank2%tt  = array(is, ijkp)
+         IF (k == 2)       rnb_rank2%bb  = array(is, ijkm)
+
+      END IF
+
+      RETURN
+      END FUNCTION rnb_rank2
+!-----------------------------------------------------------------------
       END MODULE set_indexes
+!-----------------------------------------------------------------------

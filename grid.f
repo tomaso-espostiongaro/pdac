@@ -327,6 +327,9 @@
           IF ( fl(nz*nr - 1) == 4 .AND. fl((nz-1)*nr) == 4) THEN
             fl(nz*nr) = 4
           END IF
+          IF ( fl(nz*nr - 1) == 6 .AND. fl((nz-1)*nr) == 6) THEN
+            fl(nz*nr) = 6
+          END IF
 
         END IF
 !

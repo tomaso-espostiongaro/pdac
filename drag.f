@@ -48,10 +48,9 @@
 !----------------------------------------------------------------------
       SUBROUTINE inter(appu,appw,kpgv,us,usm,ws,wsm,rlk)
 !----------------------------------------------------------------------
-! ... This routine computes particle-particle drag coefficient
+! ... This routine computes the interphase terms
 !
       USE dimensions
-      USE particles_constants, ONLY: phi, epsl, dkf, epsu, dk, rl, inrl, philim
       USE time_parameters, ONLY: dt
       IMPLICIT NONE
 !
@@ -59,9 +58,10 @@
       REAL*8, INTENT(IN) :: kpgv(:) 
       REAL*8, INTENT(IN) :: us(:),usm(:),ws(:),wsm(:),rlk(:)
 !
-      INTEGER :: k, ks, kk, k1, k2
-      REAL*8 :: xbar, epkl, ep2, epsum, sumx, sumy, effe, con
-      REAL*8 :: ep1, fac, restc, dw, du
+      INTEGER :: k, ks, kk
+      REAL*8  :: sumx, sumy
+      REAL*8 :: con
+      REAL*8 :: du, dw
 !
 !..............................................................
 ! ... (legend)
@@ -71,8 +71,6 @@
 !     wsm(k) == ws(k,ijm)
 !..............................................................
 !
-      fac=1.D0
-      restc=1.D0
 !
       ks=0
       DO k=1,nphase
@@ -84,43 +82,17 @@
           DO kk=1,k
               ks=ks+1
             IF(kk.EQ.1)THEN
-              appu(ks)=-kpgv(k-1)*dt
-              appw(ks)=-kpgv(k-1)*dt
+              appu(ks)= - kpgv(k-1) * dt
+              appw(ks)= - kpgv(k-1) * dt
             ELSEIF(kk.EQ.k)THEN
               appu(ks)=0.D0
               appw(ks)=0.D0
             ELSE
+              CALL ppdrag(con,us,usm,ws,wsm,rlk,k,kk)
               dw=DABS(ws(k-1)-ws(kk-1) + wsm(k-1)-wsm(kk-1))*0.5D0
               du=DABS(us(k-1)-us(kk-1) + usm(k-1)-usm(kk-1))*0.5D0
-              IF(dk(k-1).GE.dk(kk-1)) THEN
-                k1=k-1
-                k2=kk-1
-              ELSE
-                k1=kk-1
-                k2=k-1
-              ENDIF
-              ep1=rlk(k1)*inrl(k1)
-              ep2=rlk(k2)*inrl(k2)
-              epsum=ep1+ep2
-              IF(ep1.GT.0.D0.AND.ep2.gt.0.D0) THEN
-                xbar=ep1/epsum
-                IF(xbar.LE.philim(k-1,kk-1)) THEN
-                  epkl=epsl(k-1,kk-1)*xbar/phi(k1)+phi(k2)
-                ELSE
-                  epkl=epsu(k-1,kk-1)*(1.D0-xbar)+phi(k1)
-                ENDIF
-!
-! for Nakamura & Capes correlation effe=1.5
-!                effe=1.5D0
-                effe=(3.D0*epkl**(1.D0/3.D0)+epsum**(1.D0/3.D0))/    &
-                     (2.D0*(epkl**(1.D0/3.D0)-epsum**(1.D0/3.D0)))
-!
-                con=fac*(1.D0+restc)*rlk(k-1)*rlk(kk-1)*dkf(k-1,kk-1)*dt*effe
-              ELSE
-                con=0.D0
-              ENDIF
-              appu(ks)=-con*du
-              appw(ks)=-con*dw
+              appu(ks)= - (con*du) * dt
+              appw(ks)= - (con*dw) * dt
             ENDIF
           END DO
         ENDIF
@@ -195,6 +167,57 @@
       drag = drag * rlk(k) * ep * inrl(k)
       CONTINUE
 !
+      RETURN
+      END SUBROUTINE
+!----------------------------------------------------------------------
+      SUBROUTINE ppdrag(ppdr,us,usm,ws,wsm,rlk,k,kk)
+!
+! ... This routine computes particle-particle drag coefficient
+!
+      USE dimensions
+      USE particles_constants, ONLY: phi, epsl, dkf, epsu, dk, rl, inrl, philim
+      USE time_parameters, ONLY: dt
+      IMPLICIT NONE
+!
+      REAL*8, INTENT(OUT) :: ppdr
+      REAL*8, INTENT(IN) :: us(:),usm(:),ws(:),wsm(:),rlk(:)
+      INTEGER, INTENT(IN) :: k, kk
+!
+      REAL*8 :: ep1, ep2, epsum
+      REAL*8 :: xbar, epkl, effe
+      REAL*8 :: fac, restc
+      INTEGER :: k1, k2
+!
+      fac=1.D0
+      restc=1.D0
+!
+      IF(dk(k-1).GE.dk(kk-1)) THEN
+        k1=k-1
+        k2=kk-1
+      ELSE
+        k1=kk-1
+        k2=k-1
+      ENDIF
+      ep1=rlk(k1)*inrl(k1)
+      ep2=rlk(k2)*inrl(k2)
+      epsum=ep1+ep2
+      IF(ep1.GT.0.D0.AND.ep2.gt.0.D0) THEN
+        xbar=ep1/epsum
+        IF(xbar.LE.philim(k-1,kk-1)) THEN
+          epkl=epsl(k-1,kk-1)*xbar/phi(k1)+phi(k2)
+        ELSE
+          epkl=epsu(k-1,kk-1)*(1.D0-xbar)+phi(k1)
+        ENDIF
+!
+! ... for Nakamura & Capes correlation effe=1.5
+        effe=1.5D0
+        effe=(3.D0*epkl**(1.D0/3.D0)+epsum**(1.D0/3.D0))/ &
+             (2.D0*(epkl**(1.D0/3.D0)-epsum**(1.D0/3.D0)))
+
+        ppdr=fac*(1.D0+restc)*rlk(k-1)*rlk(kk-1)*dkf(k-1,kk-1)*effe
+      ELSE
+        ppdr=0.D0
+      ENDIF
       RETURN
       END SUBROUTINE
 !------------------------------------------------------------------------

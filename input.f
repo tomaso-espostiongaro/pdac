@@ -62,7 +62,7 @@
 
       USE atmosphere, ONLY: w0, u0, p0, temp0, us0, ws0, ep0, epsmx0, gravx, gravz
       USE eulerian_flux, ONLY: beta, muscl
-      USE gas_constants, ONLY: phij, ckg, mmug, mmugs, mmugek, gmw
+      USE gas_constants, ONLY: default_gas
       USE grid, ONLY: dx, dy, dz, dr, itc, mesh_partition
       USE iterative_solver, ONLY: inmax, maxout, omega
       USE output_dump, ONLY: nfil, outp
@@ -87,7 +87,7 @@
 
       NAMELIST / control / run_name, job_type, restart_mode, time, tstop, dt, lpr, tpr, &
         tdump, nfil, irex, iss, iturb, modturbo, cmut, rlim, gravx, gravz, &
-        ngas
+        ngas, default_gas
 !
       NAMELIST / mesh / nr, nx, ny, nz, itc, iuni, dr0, dx0, dy0, dz0, &
         mesh_partition
@@ -124,6 +124,7 @@
       gravx = 0.0d0
       gravz = -981.0d0
       ngas = 7
+      default_gas = 6
 
 ! ... Mesh
 
@@ -186,6 +187,7 @@
       CALL bcast_real(gravx,1,root)
       CALL bcast_real(gravz,1,root)
       CALL bcast_integer(ngas,1,root)
+      CALL bcast_integer(default_gas,1,root)
 
       SELECT CASE ( TRIM(restart_mode) )
         CASE ('from_scratch', 'default')

@@ -81,8 +81,7 @@
         ta=356.65D0-2.0D-5*za
         pa=39.8372D0*((356.65D0-za*2.0D-5)/214.65D0)**cost7
       ELSE
-        WRITE(8,*) 'altitude out of range'
-        STOP
+        CALL error('atm','altitude out of range',1)
       ENDIF
 !
       RETURN

@@ -99,7 +99,7 @@
         xgc(:, ijk) = gc_molar_fraction(:, imesh)
 !
         ck(:,ijk) = solid_heat_capacity(:,imesh)
-        cp(:,ijk) =gc_heat_capacity(:,imesh)
+        cp(:,ijk) = gc_heat_capacity(:,imesh)
         cg(ijk) = gas_heat_capacity(imesh)
         smag(ijk) = smag_factor(imesh)
         mus(:,ijk) = particle_viscosity(:,imesh)

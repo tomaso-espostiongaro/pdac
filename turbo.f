@@ -56,19 +56,16 @@
 ! ... MODIFICARE_X3D ( fino fine file )
 
 !----------------------------------------------------------------------
-
-       SUBROUTINE turbulence_setup( zrough )
+       SUBROUTINE turbulence_setup
 
 ! ... sets the Smagorinsky turbulence length scale
 !
         USE dimensions, ONLY: nr, nz, no, nx, ny
         USE grid, ONLY: iob
         USE grid, ONLY: dz, dr, zb, rb, dx, dy
-        USE roughness_module, ONLY: roughness
+        USE roughness_module, ONLY: zrough
         USE control_flags, ONLY: job_type
 !
-        TYPE (roughness), INTENT(IN) :: zrough
-
         INTEGER :: i, j, k, i1, i2, j2, n, ijk
         REAL*8  :: sl, sgsl0, zsgsl, zrou, sgslb
         REAL*8 :: delt
@@ -76,31 +73,25 @@
         INTEGER, DIMENSION(:), ALLOCATABLE :: jt, it
         REAL*8,  DIMENSION(:), ALLOCATABLE :: zbt
 !
-!
-        ALLOCATE( jt( MAX(nr,1) ), it( MAX(nr,1) ), zbt( MAX(nr,1) ) )
-
-        IF (iturb .EQ. 2) THEN
-
+        IF( iturb == 2 ) THEN
+          ALLOCATE( jt( MAX(nr,1) ), it( MAX(nr,1) ), zbt( MAX(nr,1) ) )
           IF( job_type == '2D' ) THEN
-
+! ... define topographic profile function zbt(i)
             it = 0; jt = 0
             zbt = 0.D0
             DO n=1,no
-             IF( iob(n)%typ == 3 ) THEN
-               it( iob(n)%rlo : iob(n)%rhi ) = 1
-               jt(i)  = iob(n)%zhi
-               zbt(i) = zb( iob(n)%zhi )
-             ENDIF
+              IF( iob(n)%typ == 3 ) THEN
+                it(iob(n)%rlo : iob(n)%rhi) = 1
+                jt(iob(n)%rlo : iob(n)%rhi)  = iob(n)%zhi
+                zbt(iob(n)%rlo : iob(n)%rhi) = zb( iob(n)%zhi )
+              ENDIF
             END DO
-
           END IF
-
-        ENDIF
+        END IF
 !
         IF( job_type == '2D' ) THEN
 
           DO j = 2, (nz-1)
-
             DO i = 2, (nr-1) 
 
               ijk = i+(j-1)*nr
@@ -112,7 +103,7 @@
                 sl = cmut * delt
 
               ELSE IF ( iturb == 2 ) THEN
-!
+
                 IF( j <= jt(i) ) THEN
 
                   sl = 0.D0
@@ -154,15 +145,12 @@
               smag_factor(ijk) = sl**2
 !
             END DO
-
           END DO
 
         ELSE IF( job_type == '3D' ) THEN
 
           DO k = 1, nz
-
             DO j = 1, ny
-
               DO i = 1, nx
 
                 ijk = i + (j-1)*nx + (k-1)*nx*ny
@@ -183,16 +171,14 @@
                 smag_factor(ijk) = sl**2
 
               END DO
-
             END DO
-
           END DO
 
         END IF
+        IF( iturb == 2 ) DEALLOCATE(jt, it, zbt)
 
-        DEALLOCATE(jt, it, zbt)
-
-       END  SUBROUTINE 
+      RETURN
+      END  SUBROUTINE turbulence_setup
 
 !----------------------------------------------------------------------
       SUBROUTINE sgsg

@@ -16,7 +16,7 @@
       USE dimensions
       USE eos_gas, ONLY: bounds_eosg, local_bounds_eosg
       USE gas_constants, ONLY: phij, ckg, mmug, mmugs, mmugek, gmw , &
-     &    bounds_gas_constants
+     &    bounds_gas_constants, present_gas
       USE gas_solid_density, ONLY: bounds_density, &
      &    local_bounds_density
       USE gas_solid_velocity, ONLY: bounds_velocity, &
@@ -29,7 +29,7 @@
      &    bounds_blbody, bounds_grid
       USE io_restart, ONLY: taperd, tapebc, tapewr
       USE iterative_solver, ONLY: inmax, maxout, omega
-      USE output_dump, ONLY: nfil, outp, recover
+      USE output_dump, ONLY: nfil, recover, outp
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
      &    mpime, root
       USE particles_constants, ONLY: rl, inrl, kap, &
@@ -44,8 +44,7 @@
       USE heat_capacity, ONLY: bounds_hcapgs, local_bounds_hcapgs
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut
-      USE turbulence, ONLY: iturb, cmut, iss, bounds_turbo, &
-     &                      local_bounds_turbo, modturbo
+      USE turbulence, ONLY: bounds_turbo, local_bounds_turbo
       USE environment, ONLY: cpclock, timing
       USE input_module
       USE control_flags, ONLY: job_type
@@ -91,9 +90,6 @@
 ! ... Read Input file
 !
       CALL input(5)
-
-! ... set dimensions ...
-      timestart = time
 
 ! ... allocation of arrays ...(dependence on nr, nz)
       CALL bounds_grid
@@ -181,6 +177,10 @@
 
       ygc0(1:ngas) = initial_gasconc(1:ngas)
 !
+      DO ig = 1, ngas
+        present_gas(ig) = (ygc0(ig) /= 0.D0 .OR. ANY(ygcob(ig,:) /= 0.D0 ) )
+      END DO
+!
       dk(1:nsolid) = diameter(1:nsolid)
       rl(1:nsolid) = density(1:nsolid)
       phis(1:nsolid) = sphericity(1:nsolid)
@@ -198,6 +198,9 @@
       ELSE IF (itd >= 3) THEN
         CALL recover
       END IF
+
+! ... set dimensions ...
+      timestart = time
 !
 ! ... Set boundary flags
 !
@@ -206,11 +209,10 @@
 !
 ! ... Domain decomposition for parallelization 
 !
-      
       CALL partition
       IF(timing) s2 = cpclock()
 !
-! ... Setting ghost cells
+! ... Setting ghost cells for parallel data exchange
 !
       CALL ghost
       IF(timing) s3 = cpclock()
@@ -223,12 +225,10 @@
       CALL local_bounds_viscosity
       CALL local_bounds_hcapgs
       CALL local_bounds_turbo
-
 !
 ! ... Set initial conditions
 !
       CALL setup
-
 !
 ! ... Distribute inital data among processes
 !

@@ -30,7 +30,7 @@
       USE dimensions
       USE eos_gas, ONLY: mas, mole, cnvertg, gc_molar_fraction, gc_mass_fraction
       USE eos_solid, ONLY: cnverts
-      USE gas_constants, ONLY: gmw, rgas
+      USE gas_constants, ONLY: gmw, rgas, default_gas, present_gas
       USE gas_solid_density, ONLY: gas_bulk_density, solid_bulk_density
       USE gas_solid_velocity, ONLY: gas_velocity_r, gas_velocity_z, &
           gas_velocity_x, gas_velocity_y
@@ -51,7 +51,6 @@
       INTEGER :: i, j, k, ijk, j1, j2, i1, i2, ikpr, kpr, ij, n
       INTEGER :: ig, is, imesh
       REAL*8 :: zrif, prif, trif
-      REAL*8 :: entemp
 !
       CALL grid_setup(zzero)
       CALL setc
@@ -85,7 +84,7 @@
 !
 ! ... Set velocity profiles
 !
-              IF(fl(ij).EQ.1 .OR. fl(ij).EQ.4) THEN
+              IF(fl(ij) == 1 .OR. fl(ij) == 4 .OR. fl(ij) == 6) THEN
                gas_velocity_r(ij)=u0
                gas_velocity_z(ij)=w0
                DO is=1,nsolid
@@ -125,7 +124,7 @@
 !
 ! ... Set velocity profiles
 !
-                IF( fl(ijk) == 1 .OR. fl(ijk) == 4 ) THEN
+                IF( fl(ijk) == 1 .OR. fl(ijk) == 4 .OR. fl(ijk) == 6 ) THEN
                   gas_velocity_x(ijk)=u0
                   gas_velocity_y(ijk)=v0
                   gas_velocity_z(ijk)=w0
@@ -221,15 +220,25 @@
 !
       ELSE IF (itd >= 3) THEN 
 
-        void_fraction = 0.D0
-        gc_molar_fraction(6,:) = 1.D0 -  gc_molar_fraction(5,:)
         DO imesh = 1, ntot
-          DO is=1,nsolid
-            void_fraction(imesh) = 1.D0 - solid_bulk_density(is,imesh)*inrl(is)
+
+          void_fraction(imesh) = 1.D0
+          gc_molar_fraction(default_gas,imesh) = 1.D0 
+          DO ig = 1, ngas
+            IF (ig /= default_gas) THEN
+              gc_molar_fraction(default_gas,imesh) = &
+              gc_molar_fraction(default_gas,imesh) - gc_molar_fraction(ig,imesh)
+            END IF
           END DO
+          DO is=1,nsolid
+            void_fraction(imesh) = &
+            void_fraction(imesh) - solid_bulk_density(is,imesh)*inrl(is)
+          END DO
+
           CALL mas(gc_mass_fraction(:,imesh), gc_molar_fraction(:,imesh)) 
           CALL cnvertg(imesh)
           CALL cnverts(imesh)
+
         END DO
 !
       END IF

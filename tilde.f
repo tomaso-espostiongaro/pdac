@@ -104,6 +104,7 @@
       USE grid, ONLY: dz, dr
       USE grid, ONLY: inr, inrb, indr, indz
       USE momentum_transfer, ONLY: kdrags, inter
+      USE nondim_numbers, ONLY: drag_ratio, richardson, ratio, rich, print_numbers
       USE particles_constants, ONLY: phi, epsl, dkf, epsu, dk, rl, inrl, philim
       USE pressure_epsilon, ONLY: ep
       USE time_parameters, ONLY: dt
@@ -121,20 +122,22 @@
 !
       INTEGER :: i, j, is, imesh
       INTEGER :: ij
+      INTEGER :: k, kk, ks
       REAL*8 :: drp, dzp, indrp, indzp
       REAL*8 :: ugfx, ugfz, wgfx, wgfz
       REAL*8 :: ulfx, ulfz, wlfx, wlfz
+      TYPE(stencil) :: u, w, dens
 !
       ALLOCATE(gvisx(ncint), gvisz(ncint))
       ALLOCATE(pvisx(nsolid, ncint), pvisz(nsolid, ncint))
       gvisx = 0.D0; gvisz = 0.D0
       pvisx = 0.D0; pvisz = 0.D0
 
-      IF (iturb .LT. 1) THEN
+      IF (iturb == 0) THEN
         CALL data_exchange(ug)
         CALL data_exchange(wg)
       END IF
-      IF (iss .LT. 1) THEN
+      IF (iss == 0) THEN
         CALL data_exchange(us)
         CALL data_exchange(ws)
       END IF
@@ -199,7 +202,14 @@
       kpgv = 0.0D0
       appu = 0.0D0
       appw = 0.0D0
-! 
+!
+! ... Allocate and initialize non-dimensional numbers
+!
+      ALLOCATE(ratio(nsolid,ncint))
+      ALLOCATE(rich(ncint))
+      ratio = 0.D0
+      rich  = 0.D0
+!
 ! ... Compute fluxes on right and top sides of a cell
 ! ... in the whole computational domain.
 !
@@ -207,16 +217,18 @@
         imesh = myijk( ip0_jp0_kp0_, ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)
-          CALL fu_rt(ugfr(ij), ugft(ij), nb(rgp,ij),             &
-                     rnb(ug,ij), rnb(wg,ij), ij)
-          CALL fw_rt(wgfr(ij), wgft(ij), nb(rgp,ij),             &
-                     rnb(ug,ij), rnb(wg,ij), ij)
+          dens = nb(rgp,ij)
+          u    = rnb(ug,ij)
+          w    = rnb(wg,ij)
+          CALL fu_rt(ugfr(ij), ugft(ij), dens, u, w , ij)
+          CALL fw_rt(wgfr(ij), wgft(ij), dens, u, w , ij)
 !
           DO is = 1, nsolid
-            CALL fu_rt(ulfr(is,ij), ulft(is,ij), nb(rlk(is,:),ij),  &
-                       rnb(us(is,:),ij), rnb(ws(is,:),ij), ij)
-            CALL fw_rt(wlfr(is,ij), wlft(is,ij), nb(rlk(is,:),ij),  &
-                       rnb(us(is,:),ij), rnb(ws(is,:),ij), ij)
+            dens = nb(rlk,is,ij)
+            u    = rnb(us,is,ij)
+            w    = rnb(ws,is,ij)
+            CALL fu_rt(ulfr(is,ij), ulft(is,ij), dens, u, w , ij)
+            CALL fw_rt(wlfr(is,ij), wlft(is,ij), dens, u, w , ij)
           END DO
         END IF         
       END DO
@@ -253,8 +265,11 @@
           wgfl(ij) = wgfr(imj) 
           wgfb(ij) = wgft(ijm)
 !
-          CALL fu_lb(ugfl(ij), ugfb(ij), nb(rgp,ij), rnb(ug,ij), rnb(wg,ij), ij)
-          CALL fw_lb(wgfl(ij), wgfb(ij), nb(rgp,ij), rnb(ug,ij), rnb(wg,ij), ij)
+          dens = nb(rgp,ij)
+          u    = rnb(ug,ij)
+          w    = rnb(wg,ij)
+          CALL fu_lb(ugfl(ij), ugfb(ij), dens, u, w, ij)
+          CALL fw_lb(wgfl(ij), wgfb(ij), dens, u, w, ij) 
 !
 ! ... compute the flux balance in the radial (x)
 ! ... and vertical (z) directions, for the gas phase
@@ -289,10 +304,11 @@
             wlfl(is,ij) = wlfr(is,imj)
             wlfb(is,ij) = wlft(is,ijm)
 !
-            CALL fu_lb(ulfl(is,ij), ulfb(is,ij), nb(rlk(is,:),ij),      &
-     &           rnb(us(is,:),ij), rnb(ws(is,:),ij), ij)
-            CALL fw_lb(wlfl(is,ij), wlfb(is,ij), nb(rlk(is,:),ij),      &
-     &           rnb(us(is,:),ij), rnb(ws(is,:),ij), ij)
+            dens = nb(rlk,is,ij)
+            u    = rnb(us,is,ij)
+            w    = rnb(ws,is,ij)
+            CALL fu_lb(ulfl(is,ij), ulfb(is,ij), dens, u, w, ij)
+            CALL fw_lb(wlfl(is,ij), wlfb(is,ij), dens, u, w, ij)
 !
 ! ... compute explicit (tilde) terms in the momentum equation (particles)
 ! 
@@ -322,11 +338,17 @@
      &                wg(ij), wg(ijm), us(:,ij), us(:,imj),                 &
      &                ws(:,ij), ws(:,ijm), ep(ij),                          &
      &                rog(ij), rgp(ij), rlk(:,ij), mug(ij))                  
-          CALL inter(appu(:,ij), appw(:,ij), kpgv(:,ij),                    &
+          CALL inter(appu(:,ij), appw(:,ij), kpgv(:,ij),             &
      &               us(:,ij), us(:,imj), ws(:,ij), ws(:,ijm), rlk(:,ij))
 !
+          CALL drag_ratio(appu(:,ij),appw(:,ij),kpgv(:,ij),ij)
+          CALL richardson(rgp(ij),rlk(:,ij),ug(ij),wg(ij),us(:,ij),ws(:,ij),ij)
+!
         END IF
+!
       END DO
+!
+      CALL print_numbers
 !
       DEALLOCATE(ugfr, ugft)
       DEALLOCATE(ugfl, ugfb)
@@ -341,6 +363,8 @@
       DEALLOCATE(pvisx, pvisz)
 !
       DEALLOCATE(kpgv)
+      DEALLOCATE(ratio)
+      DEALLOCATE(rich)
 !
       CALL data_exchange(appu)
       CALL data_exchange(appw)

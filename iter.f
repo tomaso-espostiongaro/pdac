@@ -29,6 +29,7 @@
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
       USE grid, ONLY: fl_l
       USE grid, ONLY: myijk, ncint, ncdom, data_exchange
+      USE heat_capacity, ONLY: cp
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE tilde_momentum, ONLY: appu, appw
       USE parallel, ONLY: mpime
@@ -38,7 +39,7 @@
       USE set_indexes
       USE tilde_momentum, ONLY: rug, rwg, rus, rws
       USE time_parameters, ONLY: time, dt, timestart, tpr
-      USE heat_capacity, ONLY: cp
+      USE output_dump, ONLY: outp_test_fluxes
 !
       IMPLICIT NONE
 !
@@ -54,6 +55,7 @@
       INTEGER :: nit, loop, mustit, kros
       LOGICAL, ALLOCATABLE :: converge(:)
       LOGICAL :: first
+      TYPE(stencil) :: u, w, dens
 !
       ALLOCATE(conv(ncint), abeta(ncint))
       conv = 0.0D0
@@ -84,7 +86,7 @@
 !
       DO ij = 1, ncint
         imesh = myijk( ip0_jp0_kp0_, ij)
-        IF(fl_l(ij).EQ.1) THEN
+        IF (fl_l(ij) == 1) THEN
           CALL subscr(ij)
           CALL matsa(ij, ep(ij), ep(ijr), ep(ijt),            &
                      p(ij), p(ijr), p(ijt), rlk(:,ij),        &
@@ -103,14 +105,18 @@
 ! ... equation.
 !
       DO ij = 1, ncint
-        IF(fl_l(ij).EQ.1) THEN
+        IF (fl_l(ij) == 1) THEN
           CALL subscr(ij)
           imesh = myijk( ip0_jp0_kp0_, ij)
           i = MOD( ( imesh - 1 ), nr) + 1
+          dens = nb(rgp,ij)
+          u    = rnb(ug,ij)
+          w    = rnb(wg,ij)
           CALL masfg(rgfr(imj), rgft(ijm), rgfr(ij),rgft(ij), &
-                      rnb(ug,ij),rnb(wg,ij),nb(rgp,ij),i)
+                      u, w, dens, i)
         END IF
       END DO
+!      CALL outp_test_fluxes(rgfr(:), rgft(:))
 !
 ! ... Start external iterative sweep.
 !
@@ -164,7 +170,7 @@
 ! ... to compute particle volumetric fractions.
 !
 
-              IF(DABS(dg).LE.conv(ij)) THEN
+              IF(DABS(dg) <= conv(ij)) THEN
                 converge(ij) = .TRUE.
                 rlx = 0.D0
                 DO is = 1, nsolid
@@ -172,12 +178,12 @@
                   rlkz = (rlft(is,ij) - rlft(is,ijm)) * indz(j)
                   rlk(is, ij) = rlkn(is, ij) - dt * (rlkx + rlkz)
 !                  - dt * (r1(ij)+r2(ij)+r3(ij)+r4(ij)+r5(ij))
-                  IF( rlk(is,ij) .LT. 0.D0 ) rlk(is,ij) = 0.D0
+                  IF( rlk(is,ij) < 0.D0 ) rlk(is,ij) = 0.D0
                   rlx = rlx + rlk(is, ij) * inrl(is)
                 END DO
                 epx=rlx
-                IF(epx.GT.1.D0) THEN
-                  WRITE(8,*) 'warning: mass is not conserved'
+                IF(epx > 1.D0) THEN
+                  WRITE(8,*) 'warning1: mass is not conserved'
                   WRITE(8,*) 'time,i,j,epst',time,i,j,epx
                   CALL error('iter', 'warning: mass is not conserved',1)
                 ENDIF
@@ -203,7 +209,7 @@
 ! ... after calculation of particle velocities 
 ! ... and particle volumetric fractions ...
 !
-                IF( .NOT. ( first .AND. (nit.EQ.1) ) ) THEN
+                IF( .NOT. ( first .AND. (nit == 1) ) ) THEN
                   CALL padjust(p(ij), kros, d3, p3, omega, abeta(ij))
                 END IF
                 first = .FALSE.
@@ -237,27 +243,27 @@
                            us(:,imj), ws(:,ijm), ij) 
 !
 ! ... Put the new biassed velocities into the Particle Mass Balance
-! ... equation
-!
-                DO is=1, nsolid
-                CALL masfs(rlfr(is,imj), rlft(is,ijm), rlfr(is,ij),rlft(is,ij), &
-                           rnb(us(is,:),ij),rnb(ws(is,:),ij),nb(rlk(is,:),ij),i)
-                END DO
+! ... equation ...
 !
 ! ... and compute the corrected particle densities.
 !
                 rlx=0.D0
                 DO is=1,nsolid
+                  dens = nb(rlk,is,ij)
+                  u    = rnb(us,is,ij)
+                  w    = rnb(ws,is,ij)
+                  CALL masfs(rlfr(is,imj), rlft(is,ijm), rlfr(is,ij),rlft(is,ij), u, w, dens, i)
+!
                   rlkx = (rlfr(is,ij)-rlfr(is,imj)) * inr(i) * indr(i)
                   rlkz = (rlft(is,ij)-rlft(is,ijm)) * indz(j)
                   rlk(is,ij) = rlkn(is,ij) - dt * (rlkx + rlkz)
 !                             - dt * (r1(ij)+r2(ij)+r3(ij)+r4(ij)+r5(ij))
-                  IF(rlk(is,ij).LT.0.D0) rlk(is,ij)=0.D0
+                  IF (rlk(is,ij) < 0.D0) rlk(is,ij)=0.D0
                   rlx=rlx+rlk(is,ij)*inrl(is)
                 END DO
                 epx=rlx
-                IF(epx.GT.1.D0) THEN
-                  WRITE(8,*) 'warning: mass is not conserved'
+                IF(epx > 1.D0) THEN
+                  WRITE(8,*) 'warning2: mass is not conserved'
                   WRITE(8,*) 'time,i,j,epst',time,i,j,epx
                   CALL error('iter', 'warning: mass is not conserved',1)
                 ENDIF
@@ -270,9 +276,12 @@
 ! ... Calculate the new value of the residual
 ! ... (at least one internal iteration must be done).
 !
-                IF(DABS(dg) .GT. conv(ij)) THEN
-                   CALL masfg(rgfr(imj), rgft(ijm), rgfr(ij),rgft(ij),   &
-                              rnb(ug,ij),rnb(wg,ij),nb(rgp,ij),i)
+                IF(DABS(dg) > conv(ij)) THEN
+                   dens = nb(rgp,ij)
+                   u    = rnb(ug,ij)
+                   w    = rnb(wg,ij)
+                   CALL masfg(rgfr(imj), rgft(ijm), rgfr(ij),rgft(ij), &
+                               u, w, dens, i)
                    dgx = (rgfr(ij)-rgfr(imj))*inr(i)*indr(i)
                    dgz = (rgft(ij)-rgft(ijm))*indz(j)
                    dg = rgp(ij) - rgpn(ij) + dt * (dgx+dgz)
@@ -282,14 +291,14 @@
 ! ... continue the internal sweep until the maximum number (inmax) 
 ! ... of inner iteration is reached.
 !
-                   IF ((DABS(dg).GT.conv(ij) .OR. DABS(dg).GE.DABS(dgorig))) THEN
-                     IF(nit.EQ.1.AND.loop.EQ.0) dgorig=dg
+                   IF ((DABS(dg) > conv(ij) .OR. DABS(dg) >= DABS(dgorig))) THEN
+                     IF(nit == 1 .AND. loop == 0) dgorig=dg
                      d3=dg
                      loop=loop+1
 ! ... steepen the Newton's slope (accelerate)
-                     IF(kros.LT.2.AND.loop.EQ.inmax) abeta(ij)=0.5D0*DBLE(inmax)*abeta(ij)
+                     IF(kros < 2 .AND. loop == inmax) abeta(ij)=0.5D0*DBLE(inmax)*abeta(ij)
 ! ... new inner iteration
-                     IF(loop .LT. inmax) THEN
+                     IF(loop < inmax) THEN
                        GOTO 10
                      END IF
                    END IF
@@ -313,16 +322,16 @@
 !********************************************************************
 ! ... check the convergence parameters and the history
 !
-      IF (MOD((time-timestart),tpr) <= dt) THEN
-        IF (nit == 1) THEN
-          WRITE(6,500) mpime, time
-          WRITE(6,501)
-        END IF
-        WRITE(6,502) nit, ALL(converge)
- 500    FORMAT('proc: ', I3, ' time: ', F8.3)
- 501    FORMAT('iteration # :  convergence')
- 502    FORMAT(I3,13X,L1)
-      END IF
+!      IF (MOD((time-timestart),tpr) <= dt) THEN
+!        IF (nit == 1) THEN
+!          WRITE(6,500) mpime, time
+!          WRITE(6,501)
+!        END IF
+!        WRITE(6,502) nit, ALL(converge)
+! 500    FORMAT('proc: ', I3, ' time: ', F8.3)
+! 501    FORMAT('iteration # :  convergence')
+! 502    FORMAT(I3,13X,L1)
+!      END IF
 !*******************************************************************
 !
 ! ... mustit equals zero when convergence is reached 
@@ -343,7 +352,7 @@
 ! ... If convergence is not reached in some cell
 ! ... start a new external sweep.
 !
-       IF(MOD(nit,1000).EQ.0) omega=omega*0.9D0
+       IF(MOD(nit,1000) == 0) omega=omega*0.9D0
 !
       END DO sor_loop
 
@@ -368,7 +377,7 @@
  700    FORMAT('max number of iterations reached at time: ', F8.3)
 !*******************************************************************
 
-        CALL error( ' iter ', 'max number of iters exceeded ', 1)
+!        CALL error( ' iter ', 'max number of iters exceeded ', 1)
         omega=omega0
       END IF
 !
@@ -392,19 +401,19 @@
 
           IF(kros.NE.3) THEN
 
-            IF(d3.GT.0.D0) THEN
+            IF(d3 > 0.D0) THEN
               d1=d3
               p1=p3
-              IF(kros.EQ.-1) kros=0
-              IF(kros.EQ.1) kros=2
+              IF(kros == -1) kros=0
+              IF(kros == 1) kros=2
             ELSE
               d2=d3
               p2=p3
-              IF(kros.EQ.-1) kros=1
-              IF(kros.EQ.0) kros=2
+              IF(kros == -1) kros=1
+              IF(kros == 0) kros=2
             END IF
 
-            IF(kros.EQ.2) THEN
+            IF(kros == 2) THEN
 ! ... Use secant method once when the sign of dg changes
               p = (d1*p2-d2*p1) / (d1-d2)
               abeta = (p1-p2) / (d1-d2)
@@ -417,7 +426,7 @@
 ! ... with Under/Over-Relaxation ...
               dp =  dp * omega
 ! ... and a constrain on the maximum  correction.
-              IF(-dp*dsign(1.D0,d3).GT.2.5D-1*p3) THEN
+              IF(-dp*dsign(1.D0,d3) > 2.5D-1*p3) THEN
                 dp=-2.5D-1*dsign(1.D0,d3)*p3
               END IF 
               p = p + dp
@@ -427,7 +436,7 @@
           ELSE
 ! ... Use two-sided secant method
             p = newp(d1, d2, d3, p1, p2, p3)
-            IF(d3.GT.0.D0) THEN
+            IF(d3 > 0.D0) THEN
               d1=d3
               p1=p3
             ELSE
@@ -454,16 +463,16 @@
         pa = (d1*p3 - d3*p1) / (d1 - d3)
       END IF
 
-      IF( d1*d3 .LE. 0.D0) THEN
+      IF( d1*d3 <= 0.D0) THEN
         IF (d2 .NE. d3) THEN
           pb = (d2*p3 - d3*p2) / (d2 - d3)
         ELSE
           pb = 0.5D0 * (p1 + p3)
         END IF 
-        IF(pb .LT. p3 .OR. pb .GT. p1) pb = 0.5D0 * (p1 + p3)
+        IF(pb < p3 .OR. pb > p1) pb = 0.5D0 * (p1 + p3)
       ELSE
-        IF(d1 .EQ. d3) pa = 0.5D0 * (p2 + p3)
-        IF(pa .LT. p2 .OR. pa .GT. p3) pa = 0.5D0 * (p2 + p3)
+        IF(d1 == d3) pa = 0.5D0 * (p2 + p3)
+        IF(pa < p2 .OR. pa > p3) pa = 0.5D0 * (p2 + p3)
         pb = (d2*p3 - d3*p2) / (d2-d3)
       END IF
 !
@@ -521,25 +530,25 @@
           nflt=fl_l(ijp)
           nflb=fl_l(ijm)
 
-          IF( (nflr .NE. 1) .AND. (nflr .ne. 4) ) THEN
+          IF( (nflr /= 1) .AND. (nflr /= 4) .AND. (nflr /= 6) ) THEN
             rbright = 0.D0
           ELSE
             rbright = ( dr(i+1)*ep(ij)+dr(i)*ep(ijr))*indrp*indrp*2.D0
           END IF
 
-          IF( (nfll .NE. 1) .AND. (nfll .ne. 4) ) THEN
+          IF( (nfll /= 1) .AND. (nfll /= 4) .AND. (nfll /= 6) ) THEN
             rbleft = 0.D0
           ELSE
             rbleft = ( dr(i-1)*ep(ij)+dr(i)*ep(ijl) )*indrm*indrm*2.D0 
           END IF
 
-          IF( (nflt .NE. 1) .AND. (nflt .ne. 4) ) THEN 
+          IF( (nflt /= 1) .AND. (nflt /= 4) .AND. (nflt /= 6) ) THEN 
             rbtop = 0.0D0
           ELSE
             rbtop = ( dz(j+1)*ep(ij)+dz(j)*ep(ijt) )*indzp*indzp*2.D0 
           END IF
 
-          IF( (nflb .NE. 1) .AND. (nflb .ne. 4) ) THEN
+          IF( (nflb /= 1) .AND. (nflb /= 4) .AND. (nflb /= 6) ) THEN
             rbbot=0.D0
           ELSE
             rbbot = ( dz(j-1)*ep(ij)+dz(j)*ep(ijb) )*indzm*indzm*2.D0

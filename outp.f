@@ -12,6 +12,7 @@
 !
       USE dimensions, ONLY: nr, nz, nsolid
       USE eos_gas, ONLY: gc_molar_fraction
+      USE gas_constants, ONLY: present_gas, default_gas
       USE gas_solid_density, ONLY: solid_bulk_density
       USE gas_solid_velocity, ONLY: gas_velocity_r, gas_velocity_z
       USE gas_solid_velocity, ONLY: solid_velocity_r, solid_velocity_z
@@ -88,17 +89,16 @@
         WRITE(3,550)(gas_temperature(ijl),ijl=ij1,ij2)
       END DO
 !
-!pdac------------
-! define loop parameters
-      DO ig=5,5
-!pdac------------
-        WRITE(3,562) ig
-        DO j=1,nz
-          ij1=1+(nz-j)*nr
-          ij2=nr+(nz-j)*nr
-          WRITE(3,550)(gc_molar_fraction(ig,ijl),ijl=ij1,ij2)
-         END DO
-       END DO
+      DO ig=1,ngas
+        IF( present_gas(ig) .AND. (ig /= default_gas) ) THEN
+          WRITE(3,562) ig
+          DO j=1,nz
+            ij1=1+(nz-j)*nr
+            ij2=nr+(nz-j)*nr
+            WRITE(3,550)(gc_molar_fraction(ig,ijl),ijl=ij1,ij2)
+          END DO
+        END IF
+      END DO
 !
       DO is=1,nsolid
 !
@@ -125,7 +125,7 @@
 !
       END DO
 
-      IF (modturbo .GT. 1) THEN
+      IF (modturbo > 1) THEN
         WRITE(3,555)
         DO j=1,nz
           ij1=1+(nz-j)*nr
@@ -151,7 +151,8 @@
  547  FORMAT(1x,///,1x,'@@@ TIME = ',G11.4)
  548  FORMAT(1x,//,1x,'P',/)
  549  FORMAT(1x,//,1x,'EPS',i1,/)
- 550  FORMAT(1x,10(1x,g14.6e3))
+! 550  FORMAT(1x,10(1x,g14.6e3))
+ 550  FORMAT(1x,10(1x,g12.6))
  552  FORMAT(1x,//,1x,'UG',/)
  553  FORMAT(1x,//,1x,'VG',/)
  556  FORMAT(1x,//,1x,'UP',I1,/)
@@ -169,6 +170,7 @@
 !
       USE dimensions, ONLY: nr, nz, nsolid
       USE eos_gas, ONLY: gc_molar_fraction
+      USE gas_constants, ONLY: present_gas, default_gas
       USE gas_solid_density, ONLY: solid_bulk_density
       USE gas_solid_velocity, ONLY: gas_velocity_r, gas_velocity_z
       USE gas_solid_velocity, ONLY: solid_velocity_r, solid_velocity_z
@@ -219,14 +221,14 @@
         DO j=1,nz
           ij1=1+(nz-j)*nr
           ij2=nr+(nz-j)*nr
-          READ(3,650)(gas_velocity_r(ijl),ijl=ij1,ij2)
+          READ(3,650)(gas_velocity_z(ijl),ijl=ij1,ij2)
         END DO
 !
         READ(3,640)
         DO j=1,nz
           ij1=1+(nz-j)*nr
           ij2=nr+(nz-j)*nr
-          READ(3,650)(gas_velocity_z(ijl),ijl=ij1,ij2)
+          READ(3,650)(gas_velocity_r(ijl),ijl=ij1,ij2)
         END DO
 !
           READ(3,640)
@@ -236,32 +238,31 @@
           READ(3,650)(gas_temperature(ijl),ijl=ij1,ij2)
         END DO
 !
-!pdac------------
-! define loop parameters
-        DO ig=5,5
-!pdac------------
-          READ(3,640)
-          DO j=1,nz
-            ij1=1+(nz-j)*nr
-            ij2=nr+(nz-j)*nr
-            READ(3,650)(gc_molar_fraction(ig,ijl),ijl=ij1,ij2)
-           END DO
-         END DO
+        DO ig=1,ngas
+          IF( present_gas(ig) .AND. (ig /= default_gas) ) THEN
+            READ(3,640)
+            DO j=1,nz
+              ij1=1+(nz-j)*nr
+              ij2=nr+(nz-j)*nr
+              READ(3,650)(gc_molar_fraction(ig,ijl),ijl=ij1,ij2)
+            END DO
+          END IF
+        END DO
 !
         DO is=1,nsolid
-!
-            READ(3,640)
-          DO j=1,nz
-            ij1=1+(nz-j)*nr 
-            ij2=nr+(nz-j)*nr
-            READ(3,650)(solid_velocity_r(is,ijl),ijl=ij1,ij2)
-          END DO
 !
           READ(3,640)
           DO  j=1,nz
             ij1=1+(nz-j)*nr
             ij2=nr+(nz-j)*nr
             READ(3,650)(solid_velocity_z(is,ijl),ijl=ij1,ij2)
+          END DO
+!
+            READ(3,640)
+          DO j=1,nz
+            ij1=1+(nz-j)*nr 
+            ij2=nr+(nz-j)*nr
+            READ(3,650)(solid_velocity_r(is,ijl),ijl=ij1,ij2)
           END DO
 !
           READ(3,640)
@@ -273,7 +274,7 @@
 !
         END DO
 
-        IF (modturbo .GT. 1) THEN
+        IF (modturbo > 1) THEN
           READ(3,640)
           DO j=1,nz
             ij1=1+(nz-j)*nr
@@ -284,15 +285,110 @@
 !
       CLOSE (3)
       END IF
+
+      CALL bcast_real(gas_pressure,SIZE(gas_pressure),root)
+      CALL bcast_real(solid_bulk_density,SIZE(solid_bulk_density),root)
+      CALL bcast_real(gas_velocity_r,SIZE(gas_velocity_r),root)
+      CALL bcast_real(gas_velocity_z,SIZE(gas_velocity_z),root)
+      CALL bcast_real(gas_temperature,SIZE(gas_temperature),root)
+      CALL bcast_real(gc_molar_fraction,SIZE(gc_molar_fraction),root)
+      CALL bcast_real(solid_velocity_r,SIZE(solid_velocity_r),root)
+      CALL bcast_real(solid_velocity_z,SIZE(solid_velocity_z),root)
+      CALL bcast_real(solid_temperature,SIZE(solid_temperature),root)
 !
       RETURN
 
  647  FORMAT(1x,///,1x,'@@@ TIME = ',G11.4)
  640  FORMAT(///)
- 650  FORMAT(1x,10(1x,g14.6e3))
+ 650  FORMAT(1x,10(1x,g12.6))
+! 650  FORMAT(1x,10(1x,g14.6e3))
 !
      END SUBROUTINE recover
 
+!-----------------------------------------------------------------------------------
+      SUBROUTINE outp_test_fluxes(rgfr, rgft)
+!
+      USE dimensions, ONLY: nr, nz, nsolid
+      USE tilde_momentum, ONLY: rug, rwg, rus, rws
+      USE tilde_energy, ONLY: rhg, rhk
+      USE parallel, ONLY: nproc, mpime, root, group
+      USE particles_constants, ONLY: rl, inrl
+      USE time_parameters, ONLY: time
+!
+      IMPLICIT NONE
+!
+      REAL*8, INTENT(IN) :: rgfr(:), rgft(:)
+!
+      INTEGER :: ij2, ij1, is, j
+      INTEGER :: ijl
+      INTEGER :: ig
+!
+! ... MODIFICARE_X3D
+!
+      IF( mpime .EQ. root ) THEN
+
+      OPEN(UNIT=3,FILE='OUTPUT_TEST_FLUXES')
+!
+      WRITE(3,547) time
+!
+      WRITE(3,100)
+      DO j=1,nz
+        ij1=1+(nz-j)*nr
+        ij2=nr+(nz-j)*nr
+        WRITE(3,550)(rug(ijl),ijl=ij1,ij2)
+      END DO
+!
+      WRITE(3,101)
+      DO j=1,nz
+        ij1=1+(nz-j)*nr
+        ij2=nr+(nz-j)*nr
+        WRITE(3,550)(rwg(ijl),ijl=ij1,ij2)
+      END DO
+!
+      DO is=1,nsolid
+        WRITE(3,102)is 
+        DO j=1,nz
+          ij1=1+(nz-j)*nr
+          ij2=nr+(nz-j)*nr
+          WRITE(3,550)(rus(is,ijl)*inrl(is),ijl=ij1,ij2)
+        END DO
+        WRITE(3,103)is 
+        DO j=1,nz
+          ij1=1+(nz-j)*nr
+          ij2=nr+(nz-j)*nr
+          WRITE(3,550)(rws(is,ijl)*inrl(is),ijl=ij1,ij2)
+        END DO
+      END DO
+!
+      WRITE(3,106)
+      DO j=1,nz
+        ij1=1+(nz-j)*nr
+        ij2=nr+(nz-j)*nr
+        WRITE(3,550)((rgfr(ijl)-rgfr(ijl-1)),ijl=ij1,ij2)
+      END DO
+!
+      WRITE(3,107)
+      DO j=1,nz
+        ij1=1+(nz-j)*nr
+        ij2=nr+(nz-j)*nr
+        WRITE(3,550)((rgft(ijl)-rgft(ijl-nr)),ijl=ij1,ij2)
+      END DO
+!
+      CLOSE (3)
+      END IF
+!
+      RETURN
+
+ 547  FORMAT(1x,///,1x,'@@@ TIME = ',G11.4)
+ 550  FORMAT(1x,10(1x,g14.6e3))
+ 100  FORMAT(1x,//,1x,'RUG',/)
+ 101  FORMAT(1x,//,1x,'RWG',/)
+ 102  FORMAT(1x,//,1x,'RUS',I1,/)
+ 103  FORMAT(1x,//,1x,'RWS',I1,/)
+ 106  FORMAT(1x,//,1x,'MASFX',/)
+ 107  FORMAT(1x,//,1x,'MASFZ',/)
+!
+      END SUBROUTINE outp_test_fluxes
 !----------------------------------------------------------------------
       END MODULE output_dump
 !----------------------------------------------------------------------

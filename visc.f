@@ -54,78 +54,70 @@
 !
       USE dimensions
       USE gas_constants, ONLY: ckg, phij, mmugs, mmugek, mmug, gmw
+      USE gas_constants, ONLY: present_gas
       IMPLICIT NONE
 !
       REAL*8, INTENT(IN) :: xgc(:), tg
       REAL*8, INTENT(OUT) :: mu, kap
 !
-      REAL*8 :: bb, aa, cc, sum, c2, tst, om, tr, c1 
+      REAL*8 :: bb, aa, cc, sum, om, c1, c2 
+      REAL*8 :: tst, tr, t1, t2, t3
       INTEGER :: ig, jg
 !
 ! ... Temperature Dependent Viscosity (Reid)
 !
-!pdac------------
-!      DO ig=1,ngas
-      DO ig=5,6
-!pdac------------
-        tst=tg/mmugek(ig)
-        om=1.16145D0*tst**(-0.14874D0)+ 0.52487D0*DEXP(-0.77320D0*tst)+  &
-     &        2.16178D0*DEXP(-2.43787D0*tst)
-        mmug(ig)=26.69D0*(gmw(ig)*tg)**0.5D0/(mmugs(ig)**2*om)
+      DO ig=1,ngas
+        IF (present_gas(ig) ) THEN
+          tst=tg/mmugek(ig)
+          om=1.16145D0*tst**(-0.14874D0)+ 0.52487D0*DEXP(-0.77320D0*tst)+  &
+              2.16178D0*DEXP(-2.43787D0*tst)
+          mmug(ig)=26.69D0*(gmw(ig)*tg)**0.5D0/(mmugs(ig)**2*om)
+        END IF
       END DO
 !
 ! ... Temperature Dependent Conductivity (Wassilijewa)
 !
+      t1=tg
+      t2=tg**2
+      t3=tg**3
       tr=tg/132.5D0
-!pdac------------
-!      ckg(1)=-3.273D-4+9.966D-5*tg-3.743D-8*tg**2+9.732D-12*tg**3
-!      ckg(2)=3.919D-4+9.816D-5*tg-5.067D-8*tg**2+1.504D-11*tg**3
-!      ckg(3)=-7.215D-3+8.015D-5*tg+5.477D-9*tg**2-1.053D-11*tg**3
-!      ckg(4)=8.099D-3+6.689D-4*tg-4.158D-7*tg**2+1.562D-10*tg**3
-!pdac------------
-      ckg(5)=7.341D-3-1.013D-5*tg+1.801D-7*tg**2-9.100D-11*tg**3
-      ckg(6)=25.9778D-3*(0.2395D0*tr+6.4977D-3*tr**0.5D0+1.D0      &
-     &      -1.92615D0*tr**(-1.D0)+2.00383D0*tr**(-2.D0)           &
-     &      -1.07553D0*tr**(-3.D0)+0.229414D0*tr**(-4.D0))
-!pdac------------
-!      ckg(7)=-8.086D-3+6.344D-5*tg-1.382D-8*tg**2+2.303D-12*tg**3
-!pdac------------
-!
-!pdac------------
-!      DO ig=1,ngas
-!      DO jg=1,ngas
-      DO ig=5,6
-      DO jg=5,6
-!pdac------------
-        aa=gmw(ig)/gmw(jg)
-        bb=mmug(ig)/mmug(jg)
-        cc=1.D0+DSQRT(bb)*aa**(-0.25D0)
-        phij(ig,jg)=cc**2/DSQRT(8.D0*(1.D0+aa))
-      END DO
+
+      ckg(1) = -3.273D-4 + 9.966D-5*t1 - 3.743D-8*t2 + 9.732D-12*t3
+      ckg(2) = 3.919D-4 + 9.816D-5*t1 - 5.067D-8*t2 + 1.504D-11*t3
+      ckg(3) = -7.215D-3 + 8.015D-5*t1 + 5.477D-9*t2 - 1.053D-11*t3
+      ckg(4) = 8.099D-3 + 6.689D-4*t1 - 4.158D-7*t2 + 1.562D-10*t3
+      ckg(5) = 7.341D-3 - 1.013D-5*t1 + 1.801D-7*t2 - 9.100D-11*t3
+      ckg(6) = 25.9778D-3*(0.2395D0*tr+6.4977D-3*tr**0.5D0+1.D0       &
+               -1.92615D0*tr**(-1.D0)+2.00383D0*tr**(-2.D0)           &
+               -1.07553D0*tr**(-3.D0)+0.229414D0*tr**(-4.D0))
+      ckg(7) = -8.086D-3 + 6.344D-5*t1 - 1.382D-8*t2 + 2.303D-12*t3
+
+      DO ig=1,ngas
+        IF (present_gas(ig)) THEN
+          DO jg=1,ngas
+            IF (present_gas(jg)) THEN
+              aa=gmw(ig)/gmw(jg)
+              bb=mmug(ig)/mmug(jg)
+              cc=1.D0+DSQRT(bb)*aa**(-0.25D0)
+              phij(ig,jg)=cc**2/DSQRT(8.D0*(1.D0+aa))
+            END IF
+          END DO
+        END IF
       END DO
 !
       c1=0.D0
       c2=0.D0
-!pdac------------
-!      DO ig=1,ngas
-      DO ig=5,6
-!pdac------------
-        sum=0.D0
-!pdac------------
-!        DO jg=1,ngas
-        DO jg=5,6
-!pdac------------
-          sum=sum+xgc(jg)*phij(ig,jg)
-        END DO
-!
+      DO ig=1,ngas
+        IF (present_gas(ig)) THEN
+          sum=0.D0
+          DO jg=1,ngas
+            sum=sum+xgc(jg)*phij(ig,jg)
+          END DO
 ! ... Mixture Viscosity (Wilke)
-!
-        c1 = c1+xgc(ig) * mmug(ig) /sum     
-!
+          c1 = c1 + xgc(ig) * mmug(ig) /sum     
 ! ... Mixture Conductivity (Mason and Saxema)
-!
-        c2 = c2+xgc(ig) * ckg(ig) /sum       
-                                             !
+          c2 = c2 + xgc(ig) * ckg(ig) /sum       
+        END IF
       END DO
 !
       mu = c1*1.D-6
@@ -142,6 +134,7 @@
       USE grid, ONLY: ncint
       USE gas_solid_velocity, ONLY: ug, wg
       USE grid, ONLY: data_exchange
+      USE nondim_numbers, ONLY: mut2mu
       USE pressure_epsilon, ONLY: ep
       USE turbulence, ONLY: mugt, iturb
       IMPLICIT NONE
@@ -151,6 +144,8 @@
       CALL data_exchange(mugt)
 !
       IF (iturb .GE. 1) THEN
+        IF(.NOT.ALLOCATED(mut2mu)) ALLOCATE(mut2mu(ncint))
+        mut2mu = mugt / mug
         mugt = mug + mugt
       ELSE
         mugt = mug

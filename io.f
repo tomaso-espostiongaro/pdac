@@ -60,8 +60,8 @@
 ! ... store the final values of the constitutive parameters to be set up
 !
         WRITE(9) (gas_heat_capacity(ij),ij=1,ntot)
-        WRITE(9) ((gc_heat_capacity(k,ij),k=1,nsolid),ij=1,ntot)
-        WRITE(9) ((solid_heat_capacity(ig,ij),ig=1,ngas),ij=1,ntot)
+        WRITE(9) ((solid_heat_capacity(k,ij),k=1,nsolid),ij=1,ntot)
+        WRITE(9) ((gc_heat_capacity(ig,ij),ig=1,ngas),ij=1,ntot)
 !
         CLOSE(9)
 ! 
@@ -106,7 +106,7 @@
       
       IF( mpime .EQ. root ) THEN
 !
-! ... read the final values of the main physical variables 
+! ... read the values of the main physical variables 
 ! 
         READ(9) (gas_pressure(ij),ij=1,ntot)
         READ(9) ((solid_bulk_density(k,ij),k=1,nsolid),ij=1,ntot) 
@@ -124,11 +124,11 @@
         READ(9) ((gc_bulk_density(ig,ij),ig=1,ngas),ij=1,ntot)
         READ(9) ((gc_molar_fraction(ig,ij),ig=1,ngas),ij=1,ntot)
 !
-! ... read the final values of the constitutive parameters
+! ... read the values of the constitutive parameters
 !
         READ(9) (gas_heat_capacity(ij),ij=1,ntot)
-        READ(9) ((gc_heat_capacity(k,ij),k=1,nsolid),ij=1,ntot)
-        READ(9) ((solid_heat_capacity(ig,ij),ig=1,ngas),ij=1,ntot)
+        READ(9) ((solid_heat_capacity(k,ij),k=1,nsolid),ij=1,ntot)
+        READ(9) ((gc_heat_capacity(ig,ij),ig=1,ngas),ij=1,ntot)
 !
         CLOSE (9)
       END IF

@@ -15,7 +15,7 @@
       INTEGER, INTENT(IN) :: iheat, itemp
       REAL*8, INTENT(INOUT) :: tk
       REAL*8, INTENT(IN) ::  cps, siek
-      REAL*8 :: ck
+      REAL*8, INTENT(OUT) :: ck
       IF(iheat.GT.0) CALL hcaps(ck, cps, tk)
       IF(itemp.GT.0) THEN
         tk = tzero + (siek-hzeros) / ck

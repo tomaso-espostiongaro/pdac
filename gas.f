@@ -9,9 +9,11 @@
 !
         REAL*8, DIMENSION(:), ALLOCATABLE :: ckg, mmug, mmugs, mmugek, gmw
         REAL*8, DIMENSION(:,:), ALLOCATABLE :: phij
+        LOGICAL, DIMENSION(:), ALLOCATABLE :: present_gas
 !
         REAL*8 :: gammaair, gamn, c_joule, c_erg, rgas
         REAL*8 :: tzero, hzerog, hzeros
+        INTEGER :: default_gas
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
@@ -21,6 +23,7 @@
 !
       ALLOCATE(phij(ngas,ngas))
       ALLOCATE(ckg(ngas), mmug(ngas), mmugs(ngas), mmugek(ngas), gmw(ngas))
+      ALLOCATE(present_gas(ngas))
 !
       phij   = 0.D0
       ckg    = 0.D0

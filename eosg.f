@@ -50,7 +50,7 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE mole(xgc, ygc)
+      SUBROUTINE mole(xg, yg)
 !
 ! ... computes molar fractions
 !
@@ -58,22 +58,23 @@
       USE gas_constants, ONLY: gmw
       IMPLICIT NONE
 !
-      REAL*8, INTENT(IN) :: ygc(:)
-      REAL*8, INTENT(OUT) :: xgc(:)
+      REAL*8, INTENT(IN) :: yg(:)
+      REAL*8, INTENT(OUT) :: xg(:)
       INTEGER :: ig
       REAL*8 :: mol
 !
       mol = 0.D0
       DO ig=1,ngas
-        mol = mol + ygc(ig)/gmw(ig)
+        mol = mol + yg(ig)/gmw(ig)
       END DO
       DO ig=1,ngas
-        xgc(ig)=ygc(ig)/gmw(ig)/mol
+        xg(ig)=yg(ig)/gmw(ig)/mol
       END DO
+
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE mole
 !----------------------------------------------------------------------
-      SUBROUTINE mas(ygc, xgc)
+      SUBROUTINE mas(yg, xg)
 !
 ! ... computes mass fractions
 !
@@ -81,37 +82,40 @@
       USE gas_constants, ONLY: gmw
       IMPLICIT NONE
 !
-      REAL*8, INTENT(IN) :: xgc(:)
-      REAL*8, INTENT(OUT) :: ygc(:)
+      REAL*8, INTENT(IN) :: xg(:)
+      REAL*8, INTENT(OUT) :: yg(:)
       INTEGER :: ig
       REAL*8 :: mass
 !
       mass = 0.D0
       DO ig=1,ngas
-        mass = mass + xgc(ig)*gmw(ig)
+        mass = mass + xg(ig)*gmw(ig)
       END DO
       DO ig=1,ngas
-        ygc(ig)=xgc(ig)*gmw(ig)/mass
+        yg(ig)=xg(ig)*gmw(ig)/mass
+        IF (mass == 0.D0) CALL error('mas','gas mass = 0',1)
       END DO
+
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE mas
 !----------------------------------------------------------------------
-      SUBROUTINE eosg(rags, rog, cp, cg, tg, ygc, xgc, sieg, p, itemp, &
+      SUBROUTINE eosg(rags, rog, cpgc, cgas, tg, yg, xg, sieg, p, itemp, &
                       irhog, isound, imesh)
 !
 ! ... updates gas density with new pressure
 !
       USE dimensions
+      USE grid, ONLY: fl
       USE gas_constants, ONLY: gmw, c_erg, rgas, tzero, hzerog, gammaair
       USE heat_capacity, ONLY:  hcapg
       USE time_parameters, ONLY: time
       IMPLICIT NONE
 !
       INTEGER, INTENT(IN) :: imesh
-      REAL*8, INTENT(IN) :: ygc(:), xgc(:), sieg, p
+      REAL*8, INTENT(IN) :: yg(:), xg(:), sieg, p
       REAL*8, INTENT(OUT) :: rog, rags
+      REAL*8, INTENT(OUT) :: cpgc(:), cgas
       REAL*8, INTENT(INOUT) :: tg
-      REAL*8 :: cp(:), cg
       INTEGER :: itemp, irhog, isound
 !
       REAL*8 :: tgnn, mg, hc, ratmin
@@ -121,43 +125,44 @@
       PARAMETER( nlmax = 2000) 
       PARAMETER( ratmin = 1.D-8) 
 !
-!
-      IF(itemp.GT.0) THEN
+      IF (fl(imesh) == 1) THEN
+        IF(itemp > 0) THEN
 !
 ! ... iterative inversion of the enthalpy-temperature law
 ! ... (the gas thermal capacity depends on the temperature cg=cg(T) )
-        tg0=tg
-        sieg0=sieg
-        DO ii = 1, nlmax
-          tgnn = tg
-          CALL hcapg(cp(:), tg)
-          hc=0.D0
-          DO ig=1,ngas
-            hc=c_erg*cp(ig)*ygc(ig)+hc
+          tg0=tg
+          sieg0=sieg
+          DO ii = 1, nlmax
+           tgnn = tg
+            CALL hcapg(cpgc(:), tg)
+            hc=0.D0
+            DO ig=1,ngas
+              hc=c_erg*cpgc(ig)*yg(ig)+hc
+            END DO
+            cgas = hc
+            tg = tzero+(sieg-hzerog)/cgas
+            IF (DABS((tgnn-tg)/tgnn) <= ratmin) GOTO 223
           END DO
-          cg = hc
-          tg = tzero+(sieg-hzerog)/cg
-          IF (DABS((tgnn-tg)/tgnn).LE.ratmin) GOTO 223
-        END DO
-        WRITE(8,*) 'max number of iteration reached in eosg'
-        WRITE(8,*) 'time:',time, 'cell:',imesh
-        WRITE(8,*) 'temperature:',tg0, 'enthalpy:',sieg0
-        CALL error( ' eosg ', ' max number of iteration reached in eosg ', 1 )
-  223   CONTINUE
-      ENDIF
+          WRITE(8,*) 'max number of iteration reached in eosg'
+          WRITE(8,*) 'time:',time, 'cell:',imesh
+          WRITE(8,*) 'temperature:',tg0, 'enthalpy:',sieg0
+          CALL error( ' eosg ', ' max number of iteration reached in eosg ', 1 )
+  223     CONTINUE
+        ENDIF
 !
-      IF(irhog.GT.0) THEN
-        mg=0.D0
-        DO ig=1,ngas
-          mg = mg + xgc(ig) * gmw(ig)
-        END DO
-        rog = p/(rgas*tg)*mg
-      ENDIF
+        IF(irhog > 0) THEN
+          mg=0.D0
+          DO ig=1,ngas
+            mg = mg + xg(ig) * gmw(ig)
+          END DO
+          rog = p/(rgas*tg)*mg
+        ENDIF
 !
-      IF(isound.GT.0) rags = rog/p/gammaair
+        IF(isound.GT.0) rags = rog/p/gammaair
+      END IF
 !
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE eosg
 !----------------------------------------------------------------------
       SUBROUTINE cnvertg(imesh)
 !
@@ -182,7 +187,7 @@
         mg = mg + gc_molar_fraction(ig,imesh) * gmw(ig)
       END DO
 
-! ... gas density (equation of state)
+! ... gas density (from equation of state)
 !
       gas_density(imesh) = gas_pressure(imesh) / (rgas*gas_temperature(imesh)) * mg
       gas_bulk_density(imesh) = gas_density(imesh) * void_fraction(imesh)
@@ -194,16 +199,18 @@
 !
 ! compute heat capacity (constant volume) for gas mixture
 !
-      CALL hcapg(gc_heat_capacity(:,imesh),gas_temperature(imesh))
+      CALL hcapg(gc_heat_capacity(:,imesh), gas_temperature(imesh))
+
       hc = 0.D0
       DO ig=1,ngas
         hc = hc + c_erg*gc_heat_capacity(ig,imesh)*gc_mass_fraction(ig,imesh)
       END DO 
-
       gas_heat_capacity(imesh) = hc
-      gas_enthalpy(imesh)=(gas_temperature(imesh)-tzero)*gas_heat_capacity(imesh)+hzerog
+
+      gas_enthalpy(imesh) = (gas_temperature(imesh)-tzero) * gas_heat_capacity(imesh) + hzerog
 !
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE cnvertg
 !----------------------------------------------------------------------
       END MODULE eos_gas
+!----------------------------------------------------------------------

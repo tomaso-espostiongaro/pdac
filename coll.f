@@ -66,6 +66,7 @@
 !
       DO ijk = 1, ncint
         imesh = myijk( ip0_jp0_kp0_, ijk)
+!
         gas_pressure(imesh) = p(ijk)
         solid_bulk_density(:,imesh) = rlk(:,ijk)
         gas_enthalpy(imesh) = sieg(ijk)

@@ -44,6 +44,8 @@
       REAL*8 :: drc, dzc, ugb, wgb
       INTEGER :: is, m, l, is1, i, j, imesh
       INTEGER :: ij
+      TYPE(stencil) :: u, w, dens, enth
+      TYPE(stencil) :: eps, temp, kap
 !
       ALLOCATE(rhg(ncint))
       ALLOCATE(rhk(nsolid,ncint))
@@ -70,7 +72,7 @@
       rhg = 0.0D0
       rhk = 0.0D0      
 !
-      IF (iturb .GE. 1) THEN
+      IF (iturb >= 1) THEN
         kapgt = kapgt + kapg
       ELSE
         kapgt = kapg
@@ -89,13 +91,19 @@
 !
 ! ... convective radial fluxes (gas)
 !
-          CALL fsc_rt(egfr(ij), egft(ij), nb(sieg,ij),        &
-               nb(rgp,ij), rnb(ug,ij), rnb(wg,ij), ij)
+          enth  = nb(sieg,ij)
+          dens  = nb(rgp,ij)
+          u     = rnb(ug,ij)
+          w     = rnb(wg,ij)
+          CALL fsc_rt(egfr(ij), egft(ij), enth, dens, u, w, ij)
 !
 ! ... diffusive radial fluxes (gas)
 !
+          eps  = nb(ep,ij)
+          temp = nb(tg,ij)
+          kap  = nb(kapgt,ij)
           CALL hotcg(hfgr(ij), hfgt(ij), hfgl(ij), hfgb(ij),  &
-               nb(ep,ij), nb(tg,ij), nb(kapgt,ij), ij)
+               eps, temp, kap, ij)
 !
           egfr(ij) = egfr(ij) - hfgr(ij)
           egft(ij) = egft(ij) - hfgt(ij)
@@ -104,13 +112,18 @@
 !
 ! ... convective radial fluxes (particles)
 !
-            CALL fsc_rt(elfr(is, ij), elft(is, ij), nb(sies(is,:),ij),     &
-               nb(rlk(is,:),ij), rnb(us(is,:),ij), rnb(ws(is,:),ij),ij)
+            enth  = nb(sies,is,ij)
+            dens  = nb(rlk,is,ij)
+            u     = rnb(us,is,ij)
+            w     = rnb(ws,is,ij)
+            CALL fsc_rt(elfr(is, ij), elft(is, ij), enth, dens, u, w, ij)
 !
 ! ... diffusive radial fluxes (particles)
 !
+            dens = nb(rlk,is,ij)
+            temp = nb(ts,is,ij)
             CALL hotck(hflr(is,ij), hflt(is,ij), hfll(is,ij), hflb(is,ij),  &
-                 nb(rlk(is,:),ij), nb(ts(is,:),ij), ij, is)
+                 dens, temp, ij, is)
 !
           elfr(is, ij) = elfr(is, ij) - hflr(is, ij)
           elft(is, ij) = elft(is, ij) - hflt(is, ij)
@@ -140,13 +153,19 @@
 !
 ! ... convective vertical fluxes (gas)
 !
-          CALL fsc_lb(egfl(ij), egfb(ij), nb(sieg,ij),          &
-               nb(rgp,ij), rnb(ug,ij), rnb(wg,ij), ij)
+          enth  = nb(sieg,ij)
+          dens  = nb(rgp,ij)
+          u     = rnb(ug,ij)
+          w     = rnb(wg,ij)
+          CALL fsc_lb(egfl(ij), egfb(ij), enth, dens, u, w, ij)
 !
-! ... diffusive vertical fluxes (gas)
+! ... diffusive vertical fluxes (gas) (WHY COMPUTED AGAIN???)
 !
-          CALL hotcg(hfgr(ij), hfgt(ij), hfgl(ij), hfgb(ij),    &
-               nb(ep,ij), nb(tg,ij), nb(kapgt,ij), ij)
+          eps  = nb(ep,ij)
+          temp = nb(tg,ij)
+          kap  = nb(kapgt,ij)
+          CALL hotcg(hfgr(ij), hfgt(ij), hfgl(ij), hfgb(ij),  &
+               eps, temp, kap, ij)
 !
             egfl(ij) = egfl(ij) - hfgl(ij)
             egfb(ij) = egfb(ij) - hfgb(ij)
@@ -165,13 +184,18 @@
 !
 ! ... convective vertical fluxes (particles)
 !
-            CALL fsc_lb(elfl(is, ij), elfb(is, ij), nb(sies(is,:),ij),      &
-               nb(rlk(is,:),ij), rnb(us(is,:),ij), rnb(ws(is,:),ij),ij)
+            enth  = nb(sies,is,ij)
+            dens  = nb(rlk,is,ij)
+            u     = rnb(us,is,ij)
+            w     = rnb(ws,is,ij)
+            CALL fsc_lb(elfl(is, ij), elfb(is, ij), enth, dens, u, w, ij)
 !
-! ... diffusive vertical fluxes (particles)
+! ... diffusive vertical fluxes (particles) (WHY COMPUTED AGAIN???)
 !
-            CALL hotck(hflr(is,ij), hflt(is,ij), hfll(is,ij), hflb(is,ij),   &
-                 nb(rlk(is,:),ij), nb(ts(is,:),ij), ij, is)
+            dens = nb(rlk,is,ij)
+            temp = nb(ts,is,ij)
+            CALL hotck(hflr(is,ij), hflt(is,ij), hfll(is,ij), hflb(is,ij),  &
+                 dens, temp, ij, is)
 !
           elfl(is, ij) = elfl(is, ij) - hfll(is, ij)
           elfb(is, ij) = elfb(is, ij) - hflb(is, ij)
