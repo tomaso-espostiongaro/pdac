@@ -10,8 +10,11 @@
       REAL*8 :: wind_x
       REAL*8 :: wind_y
       REAL*8 :: wind_z
-      REAL*8 :: p_ground
+      !
+      ! ... Pressure and temperature at sea level
+      REAL*8 :: p_ground  
       REAL*8 :: t_ground
+
       REAL*8 :: void_fraction
       REAL*8 :: atm_ygc(max_ngas)
 
@@ -129,7 +132,7 @@
         IF (l>1) THEN
           zbot = layer(l-1)%ztop
         ELSE
-          zbot = zzero
+          zbot = 0.D0
         END IF
         ztop = layer(l)%ztop
         gradt = layer(l)%gradt
@@ -179,12 +182,22 @@
       REAL*8 :: gradt
       INTEGER :: k, l
 !
-      l = 1
+! ... First layer
+!
+      IF( zzero <= layer(1)%ztop ) THEN
+        l = 1
+      ELSE
+        DO l = 2, num_layers
+          IF( zzero > layer(l-1)%ztop ) EXIT
+        END DO
+      END IF
 
       DO k = 1, nz
 
         za = zb(k) + 0.5D0*(dz(1)-dz(k))
 
+        IF (za < 0.D0) &
+          WRITE(6,*) ' Row ',k, ' lays below the sea level; z = ', za
         IF (za <= 0.D0 .OR. .NOT.stratification) THEN
           ta = t_ground
           pa = p_ground
