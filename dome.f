@@ -7,7 +7,7 @@
 
       ! ... flags
       !
-      INTEGER :: idome
+      INTEGER :: idome, idw
 
       REAL*8 :: xdome, ydome, zdome, dome_volume, dome_radius
       REAL*8 :: temperature, overpressure
@@ -332,7 +332,7 @@
             !
             ! ... Add the hydrostatic pressure due to dome mass
             !
-            p(ijk)  = p(ijk) + p_hydro
+            IF (idw >= 1)  p(ijk)  = p(ijk) + p_hydro
             !
             DO ig = 1, ngas
               ygc(ijk,ig) = dome_ygc(gas_type(ig))

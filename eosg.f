@@ -163,7 +163,7 @@
       REAL*8, INTENT(OUT) :: cpgc(:), cgas
       REAL*8, INTENT(INOUT) :: tg
       INTEGER, INTENT(IN) :: ijk
-      INTEGER, INTENT(INOUT) :: info
+      INTEGER, INTENT(OUT) :: info
 !
       REAL*8 :: tgnn, mg, ratmin
       REAL*8 :: tg0, sieg0, cgas0

@@ -95,7 +95,7 @@
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
       USE domain_decomposition, ONLY: mesh_partition
       USE dome_conditions, ONLY: xdome, ydome, dome_volume, temperature, particle_fraction, overpressure, &
-          idome, gas_flux, permeability, dome_gasvisc
+          idome, gas_flux, permeability, dome_gasvisc, idw
       USE enthalpy_matrix, ONLY: flim
       USE eos_gas, ONLY: update_eosg
       USE flux_limiters, ONLY: beta, muscl
@@ -160,7 +160,7 @@
         vent_O2, vent_N2, vent_CO2, vent_H2, vent_H2O, vent_Air, vent_SO2
 
       NAMELIST / dome / xdome, ydome, dome_volume, temperature, particle_fraction, idome, overpressure, &
-                        gas_flux, permeability, dome_gasvisc
+                        gas_flux, permeability, dome_gasvisc, idw
 
       NAMELIST / atmosphere / wind_x, wind_y, wind_z, p_ground, t_ground, &
         void_fraction, max_packing, atm_O2, atm_N2, atm_CO2, atm_H2, atm_H2O, &
@@ -310,6 +310,7 @@
 ! ... Dome
 
       idome = 0               ! Flag for automatic dome conditions
+      idw = 0                 ! Flag for adding dome hydrostatic pressure
       xdome = 0.0             ! UTM longitude of the dome center
       ydome = 0.0             ! UTM latitude of the dome center
       dome_volume = 0.0        ! total volume of exploded mass
@@ -558,6 +559,7 @@
       IF(mpime == root) READ(iunit, dome) 
 
       CALL bcast_integer(idome,1,root)
+      CALL bcast_integer(idw,1,root)
       CALL bcast_real(xdome,1,root)
       CALL bcast_real(ydome,1,root)
       CALL bcast_real(dome_volume,1,root)
@@ -927,6 +929,7 @@
 
           CALL iotk_write_begin( iuni_nml, "dome" )
             CALL iotk_write_dat( iuni_nml, "idome", idome )
+            CALL iotk_write_dat( iuni_nml, "idw", idw )
             CALL iotk_write_dat( iuni_nml, "xdome", xdome )
             CALL iotk_write_dat( iuni_nml, "ydome", ydome )
             CALL iotk_write_dat( iuni_nml, "dome_volume", dome_volume )
