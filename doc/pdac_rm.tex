@@ -38,29 +38,29 @@
 \begin{document}
 
 % EXPLORIS header
-\input{Exploris_head}
+\input{Exploris_3.1_head}
 
 % initial pages for the guide - title, TOC, etc.
 \input{pdac_beginref}
 
-% Introduction
+% Model Equations
 \input{pdac_model}
 
-% Getting started
+% Discretized equations
 \newpage
 \input{pdac_fv}
 
-% Input and output files
+% Algorithm 
 \newpage
 \input{pdac_flow}
 
-% Input simulation parameters
-\newpage
-\input{pdac_ref}
-
-% Sample configuration files
+% Parallelization
 \newpage
 \input{pdac_par}
+
+% Reference
+\newpage
+\input{pdac_ref}
 
 \newpage
 \addtocontents{toc}{\contentsline {section}{References}{\thepage}}
