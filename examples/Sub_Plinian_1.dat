@@ -79,6 +79,9 @@
   vent_Air = 0.D0,
 /
 
+&dome
+/
+
 &atmosphere
 /
 

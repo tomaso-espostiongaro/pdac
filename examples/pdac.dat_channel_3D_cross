@@ -33,6 +33,9 @@
 &inlet
 /
 
+&dome
+/
+
 &atmosphere
   wind_z = 20.0
 /

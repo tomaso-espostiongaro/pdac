@@ -5,7 +5,7 @@
  time =  0.00,
  tstop = 1000.0,
  dt    = 0.01,
- tpr   = 5.0,
+ tpr   = 10.0,
  tdump = 50.0,
  formatted_output = .TRUE.,
  max_seconds = 1.D10,
@@ -50,9 +50,16 @@
 &inlet
 /
 
+&dome
+/
+
 &atmosphere
   p_ground = 1.D5,
-  t_ground = 298.D0
+  t_ground = 298.D0,
+  troposphere_grad = -7.D-3,
+  tropopause_z = 19.D3,
+  lower_stratosphere_grad = 1.8D-3,
+  upper_stratosphere_grad = 2.8D-3
 /
 
 &particles
@@ -74,7 +81,9 @@
   inmax = 8,
   maxout = 500,
   omega = 1.2D0,
-  update_eosg = .FALSE.
+  update_eosg = .FALSE.,
+  implicit_fluxes = .FALSE.,
+  implicit_enthalpy = .FALSE.
 /
 
 'ROUGHNESS'

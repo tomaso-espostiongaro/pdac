@@ -35,6 +35,9 @@
 &inlet
 /
 
+&dome
+/
+
 &atmosphere
   p_ground = 1.D0
 /
