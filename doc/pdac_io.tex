@@ -7,9 +7,9 @@ so that all interaction you have with the program is through textual files.
 The I/O files are always red and written in the running directory,
 i.e. the directory from which \PDAC\ has been run.
 The level of verbosity, controlling the amount of information written
-by the program during the execution, can be set before starting a run.
-Note that a too high level of verbosity for very long-lasting simulations
-could cause the program to stop.
+by the program during the execution, can be set before starting a run
+(please note that a too high level of verbosity for very long-lasting 
+simulations could cause the program to stop for file-system problems).
 
 \subsection{\PDAC\ input file formats}
 \label{section:input_files}
@@ -57,51 +57,29 @@ simulation, their default values and the range of variability.
 Several sample \PDAC\ parameter files are shown in Sect. 
 \ref{section:input_sample}.\\
 
-The layout of \FIL{pdac.dat} file is as follow:
+The layout of \FIL{pdac.dat} file is as follows:
 
 \begin{verbatim}
-
-&control
+&namelist1
   control_parameters1 = control_value1,
   control_parameters2 = control_value2,
   ...
 /
 
-&model
-  model_parameters1 = model_value1,
-  model_parameters2 = model_value2,
+&namelist2
+  control_parameters1 = control_value1,
+  control_parameters2 = control_value2,
   ...
 /
-
-&mesh
-  mesh_parameters1 = mesh_value1,
-  mesh_parameters2 = mesh_value2,
   ...
-/
 
-&particles
-  particles_parameters1 = particles_value1,
-  particles_parameters2 = particles_value2,
+'CARD1'
+card1_parameters
+
+'CARD2'
+card2_parameters
+
   ...
-/
-
-&numeric
-  numeric_parameters1 = numeric_value1,
-  numeric_parameters2 = numeric_value2,
-  ...
-/
-
-'ROUGHNESS'
-roughness_parameters
-
-'MESH'
-nonuniform_mesh_distances
-
-'FIXED_FLOWS'
-fixed_flows_parameters
-
-'INITIAL_CONDITIONS'
-initial_conditions_parameters
 
 \end{verbatim}
 
@@ -124,17 +102,16 @@ separated by a comma:
 keyword  = value_1, value_2, value_3,
 \end{verbatim}
 
-Note that the namelists ( \&control, \&model, \&mesh, \&particles and \&numeric )
-and the cards ( \OBJ{'ROUGHNESS'}, \OBJ{'MESH'}, \OBJ{'FIXED\_FLOWS'} and \OBJ{'INITIAL\_CONDITIONS'} )
-should appear in exactly this order. 
+Note that the namelists and the cards should appear in exactly the order
+specified (see Sect. \ref{section:input_par}). 
 Parameters lines in the namelists are optional, if a parameter is omitted
-it will take a default values (see Sect. \ref{section:input_par} ).
+it will take a default values (see Sect. \ref{section:input_par}).
 On the contrary parameter lines in the cards are not optional and
 should always be present.
-Commet are allowed in the namelist using the "!" character to identify 
-that what follows is a comment. Commet are not allowed within the cards
-parameter, but you could insert free text (not including cards and namelists names)
-between different namelists and cards.
+Comments are allowed in the namelist using the "!" character to identify 
+that what follows is a comment. Comment are not allowed within the cards
+parameter, but you could insert free text (not including cards and namelists 
+names) between different namelists and cards.
 Parameters within cards are in general distributed on more lines depending
 on the simulation parameters. The layout of the input parameters 
 within each cards is described in details in Sect. \ref{section:input_par}.

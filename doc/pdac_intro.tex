@@ -86,19 +86,19 @@ are easily specified in the input file.
 
 \end{itemize}
 
-\subsection{New features in version \PDACVERSION}
+\subsection{New features in version \PASTPDACVERSION}
 
 The numerical code \PDAC\ is based on previous numerical codes developed
 by Dobran et al. (1993), Neri and Macedonio (1996) and Neri et al. (2003)
 for the multiphase flow simulation of collapsing volcanic columns. We based
-the present release \PDACVERSION\ on the Neri et al. (2003) model (considered 
+the release \PASTPDACVERSION\ on the Neri et al. (2003) model (considered 
 here as version 1.0). If you are interested in knowing more about
 the history of \PDAC\, consult the \PDAC\ web site at 
 \PDACURL\ or contact the development team at 
 \PDACADDRESS\
 
 \subsubsection*{New modular structure}
-The present release \PDACVERSION\ of \PDAC\ has been fully rewritten in 
+The release \PASTPDACVERSION\ of \PDAC\ has been fully rewritten in 
 Fortran90 by adopting a modular approach. Dynamic allocation of memory
 allows the use of a precompiled \PDAC\ code. In addition the more readable 
 source code will help the programmers to mantain and develop \PDAC\ more easily.
@@ -160,13 +160,51 @@ relations can be easily controlled from the input files.
 A slef-explanatory Input file is now available. Pre-processing of OUTPUT files
 is also introduced. Binary or ascii formatted output files can be selected.
 
+\subsection{New features in version \PDACVERSION}
+
+\subsubsection*{Extension to 3D}
+Model equations have been rewritten in 3D Cartesian formulation. The
+finite-volumes discretization schemes and the skeleton of the solution
+algorithm have been mantained and the solution procedures have been extended
+to 3D rectilinear, non-uniform, cartesian mesh.
+New grid-decomposition schemes suited to 3D meshes have been devised, while
+mantaining the low-level parallelization strategy used in 2D.
+The old 2D Cartesian and cylindrical code has been nested into the 3D routines.
+
+\subsubsection*{Parallel optimization}
+Detailed benchmarks have been carried out on several (High Performance 
+Computing (HPC) platforms to asses the efficiency of different 
+domain-decomposition schemes with different mesh sizes. A low-level
+profiling on the code and sub-routines performances has been carried out
+to evaluate the bottle-necks in the run execution.
+Optimized routines have been implemented for different parameter configurations.
+The different levels of optimization can be selected from input.
+
+\subsection*{Automatic grid generation}
+New procedures for the definition of a non-uniform rectilinear mesh
+have been implemented. Mesh parameters (cell size increase rate, domain
+size, resolution, etc.) are set from input.
+
+\subsubsection*{Integration of a 3D topography and UTM geo-referencing}
+New routines for the integration of a real volcano topography from a 
+standard ASCII Digital Elevation Model (DEM) have been integrated in the
+setup procedures. These include interpolation, filtering, averaging
+functions. The georeferencing of the computational mesh based on the 
+UTM coordinates of the volcanic vent has been introduced.
+
+\subsubsection*{New boundary conditions}
+New boundary conditions for the free in-outflow boundaries and for the
+topography have been implemented. The topographic (no-slip) boundary
+conditions have been introduced by adopting an extension to multiphase
+compressible flows of the {\em immersed boundaries} technique.
+
 \subsection{User feedback}
 
 If you have problems installing or running \PDAC\ after
 reading this document, please send a
 complete description of the problem by email to \PDACADDRESS.
 If you discover and fix a problem not described in this manual we would
-appreciate if you would tell us about this as well, so we can alert
+appreciate if you would tell us about this as well, so that we can alert
 other users and incorporate the correction into the public distribution.
 \prettypar
 We are interested in making \PDAC\ more useful to the volcanological
@@ -179,10 +217,11 @@ in your work.
 The formulation of the high-order numerical schemes, for both spatial
 and temporal discretizations, has been developed in collaboration with
 Maria Vittoria Salvetti (Dip.to di Ingegneria Aerospaziale, Universit\`a 
-di Pisa) and Fran\c{c}ois Beux (Scuola Normale Superiore, Pisa). We also
-credit Maria Vittoria Salvetti for the formulation of the turbulence model
-implemented in \PDAC\ in the framework of the Large Eddy Simulation
-(LES) approach.
+di Pisa) and Fran\c{c}ois Beux (Scuola Normale Superiore, Pisa). The 
+immersed boundaries technique has been implemented in collaboration with
+Mattia De'Michieli Vitturi (Dip.to di Matematica, Universit\`a di Pisa). 
+We also credit Maria Vittoria Salvetti for the formulation of the turbulence 
+Large Eddy Simulation (LES) model and Sara Barsotti for the implementation.
 
 \subsection{Acknowledgments}
 

@@ -7,7 +7,7 @@ global variables to be used by different program routines. They are
 used instead of the {\em deprecated} {\tt COMMON} block of Fortran77, improving
 the compile-time controls, the portability, and the data-flow control.
 
-Other modules refer to an independent block of the algorithm, and then contain
+Other modules refer to an independent block of the algorithm, and therefore contain
 variable definitions, constants, procedures that are needed only
 within the scope of the module (variables that can be declared as {\tt PRIVATE}). 
 These include, for example, the module for boundary conditions, computation 
@@ -32,25 +32,33 @@ Variables declarations are indicated in {\tt typewriter} font in tables,
 with the array dimensions as arguments, whereas subroutines and functions
 are presented by using the {\em emphasized} font.\\[5mm]
 %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% A R R A Y   F I L T E R S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+{\large {\bf array\_filters}} (arrfil.f)\\[5mm]
+\begin{itemize}
+\item {\em interp} interpolate the values of an array on a different mesh
+\item{\em filter} filter out high frequency modes by successively subsampling, averaging and interpolating
+\end{itemize}
+%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% A T M O S P H E R E %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 {\large {\bf atmosphere}} (atmosphere.f)\\[5mm]
 \begin{tabular}{|p{6cm}|p{6cm}|} \hline
 VARIABLE & MEANING\\\hline
-\tt u0         & initial gas velocity in the atmosphere ($r(x)$ component)\\\hline
-\tt v0         & $y$ component\\\hline
-\tt w0         & $z$ component\\\hline
-\tt us0        & initial particles velocity in the atmosphere ($r(x)$ component)\\ \hline
-\tt vs0        & $y$ component\\\hline
-\tt ws0        & $z$ component\\\hline
-\tt p0         & pressure at ground level at $t=0$\\ \hline
-\tt temp0      & temperature at ground level at $t=0$\\ \hline
-\tt ep0        & initial particle volumetric fraction in the atmosphere\\\hline
-\tt epsmx0     & maximum packing volumetric fraction \\\hline
+\tt wind\_x         & initial gas velocity in the atmosphere ($r(x)$ component)\\\hline
+\tt wind\_y         & $y$ component\\\hline
+\tt wind\_z         & $z$ component\\\hline
+\tt p\_ground         & pressure at ground level at $t=0$\\ \hline
+\tt t\_ground         & temperature at ground level at $t=0$\\ \hline
+\tt void\_fraction    & initial particle volumetric fraction in the atmosphere\\\hline
+\tt max\_packing      & maximum packing volumetric fraction \\\hline
+\tt atm\_ygc          & initial concentration of the different gas species in the atmosphere \\\hline
 \tt gravx, gravy, gravz & $r$(or $x$), $y$ and $z$ components of gravitational acceleration\\ \hline
+\tt layer             & name and properties of each atmospheric layer\\ \hline
 \end{tabular}\\
 
 \begin{itemize}
+\item {\em check\_atmosphere} control that atmospheric stratification is consistent
 \item {\em set\_atmosphere} set the empirical coefficients defining the different atmospheric layers
 \item {\em compute\_profile} compute the vertical stratification of the atmosphere by using
  and hydrostatic approximation
@@ -59,11 +67,30 @@ VARIABLE & MEANING\\\hline
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% B O U N D A R Y   C O N D I T I O N S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 {\large {\bf boundary\_conditions}} (bdry.f)\\
+\begin{itemize}
+\item {\em boundary} computes boundary conditions by checking the {\em flag} type at every neighbours 
+of fluid cells. 
+\item {\em ent\_inout} computes the free inflow/outflow conditions for East, North, and Top boundaries
+\item {\em wsb\_inout} computes the free inflow/outflow conditions for West, South, and Bottom boundaries
+\item {\em velint} computes the forced velocities in the immersed boundaries from (bi)linear interpolations 
+\end{itemize}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% B L U N T   B O D Y %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+{\large {\bf blunt\_body}} (blunt.f)\\[5mm]
+\begin{tabular}{|p{6cm}|p{6cm}|}\hline
+VARIABLE  & MEANING\\\hline
+\tt nblu  & array defining the blunt bodies \\\hline
+\tt ibl   & flag for the blunt body computation\\\hline
+\tt fdrag & drag force acting on each element of the body surface\\\hline
+\tt flift & lift force acting on each element of the body surface\\\hline
+\tt pd    & dynamic pressure on the blunt body\\\hline
+\tt surfp & data type storing the pressure and the surface properties to compute the actions.\\\hline
+\end{tabular}\\
 
 \begin{itemize}
-\item {\em boundary} computes boundary conditions by checking every cells neighbours 
-\item {\em inoutflow} computes the free inflow/outflow conditions for East, North, and Top boundaries
-\item {\em outinflow} computes the free inflow/outflow conditions for West, South, and Bottom boundaries
+\item {\em setblunt} identifies the blocks where the action is computed 
+\item {\em bluntb} computes the normal and the tangential flow actions on the blocks
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% C O N T R O L   F L A G S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -72,10 +99,11 @@ VARIABLE & MEANING\\\hline
 \begin{tabular}{|p{6cm}|p{6cm}|}\hline
 VARIABLE & MEANING\\\hline
 \tt  job\_type    & job type (2D or 3D) \\\hline
-\tt  nfil         & number of the first OUTPUT file \\\hline
 \tt  lpr          & level of verbosity \\\hline
-\tt  itp          & read topography from a file \\\hline
-\tt  immb         & flag for immersed boundaries \\\hline
+\tt  imr          & check mass residuals \\\hline
+\tt  implicit\_fluxes   & (logical) compute the convective fluxes at each iteration \\\hline
+\tt  implicit\_enthalpy & (logical) compute the enthalpy at each iteration \\\hline
+\tt  run                & (logical) flag for running\\\hline
 \end{tabular}\\[5mm]
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% D O M A I N   D E C O M P O S I T I O N  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -103,11 +131,14 @@ prescribed strategy, and builds up the processors map (i.e., a function that
 processor it owns and the local index in the processor sub-domain and viceversa);
 \item{\em ghost}, given the processor map, identifies each processor boundaries 
 (ghost cells) and
-allocates the buffers to be sent or received in the communication calls;\\
+allocates the buffers to be sent or received in the communication calls;
 \item{\em data\_exchange} invokes MPI send-receive calls to exchange communication 
  buffers
 \item{\em data\_collect} collect local data from processors to build up global arrays
 \item{\em data\_distribute} scatter global arrays among processors
+\item{\em meshinds} gives the global index, and the indexes {\em (i,j,k)} from local index
+\item{\em local\_forcing} assign forcing points to processors
+\item{\em fill\_cells} Compute weight coefficients to account for fluxes through immersed boundaries
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% G A S   S O L I D   D E N S I T Y %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -136,6 +167,10 @@ VARIABLE & MEANING\\\hline
 \tt  ngas   & number of gas components\\\hline
 \tt  nphase & number of phases\\\hline
 \tt  nroughx = 2 & number of different roughness zones\\\hline
+\tt  max\_nsolid = 10 & Maximum number of solid phases\\\hline
+\tt  max\_ngas = 7 & Maximum number of gas species \\\hline
+\tt  max\_nblock = 512 & Maximum number of fixed-flow blocks\\\hline
+\tt  max\_size = 512 & Maximum cell number in each direction\\\hline
 \end{tabular}\\[5mm]
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% M O M E N T U M   T R A N S F E R %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -154,16 +189,15 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 \tt cg(ncint)          & $(C_{P_g})_{ijk}^n=\sum\limits_{kg=1}^{\tt ngas}(C_{P_{kg}})_{ijk}^n$ &  gas specific heat at constant $P$\\\hline
 \tt ygc(ngas,ncint)    & $(y_i)_{ijk}^n$&  mass fraction of gas species $i$\\ \hline
 \tt xgc(ngas,ncint)    & $(\chi_i)_{ijk}^n$&  molar fraction of gas species $i$\\ \hline
-\tt rgpgc(ngas,ncdom)  & $(y_{i}\epsilon_g\rho_g)_{ijk}$& bulk density of gas species $i$ \\ \hline
-\tt rgpgcn(ngas,ncint) & $(y_{i}\epsilon_g\rho_g)_{ijk}^{n}$& bulk density of gas species $i$ at time $n$ \\ \hline
+\tt update\_eosg       & & (logical) flag for updating the equation of state\\ \hline
 \end{tabular}\\
 
 \begin{itemize}
-\item {\em mole} computes the molar fraction of gas components from mass fraction;\\
-\item {\em mas} computes the mass fraction of gas components from molar fraction;\\
-\item {\em csound} computes the squared adiabatic gas speed of sound;\\
+\item {\em mole} computes the molar fraction of gas components from mass fraction;
+\item {\em mas} computes the mass fraction of gas components from molar fraction;
+\item {\em csound} computes the squared adiabatic gas speed of sound;
 \item  {\em thermal\_eosg} computes the mixture gas density from pressure and temperature 
-using the equation of state;\\
+using the equation of state;
 \item  {\em caloric\_eosg} computes the temperature using enthalpy;
 \end{itemize}
 %
@@ -171,15 +205,15 @@ using the equation of state;\\
 %
 {\large{\bf eos\_solid}} (eosl.f)\\
 \begin{itemize}
-\item {\em caloric\_eosl} computes solid temperatures from enthalpies;\\
+\item {\em caloric\_eosl} computes solid temperatures from enthalpies;
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% C O N V E C T I V E   M A S S   F L U X E S %%%%%%%%%%%%%%%%%%%%%%%%
 %
 {\large{\bf convective\_mass\_fluxes}} (flux\_m.f)\\
 \begin{itemize}
-\item {\em masf} computes the mass fluxes of gas and particles by using donor-cell scheme;\\
-\item {\em fmas} computes the mass fluxes of gas and particles by using muscl schemes;\\
+\item {\em masf} computes the mass fluxes of gas and particles by using donor-cell scheme;
+\item {\em fmas} computes the mass fluxes of gas and particles by using muscl schemes;
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% C O N V E C T I V E   F L U X E S   S C %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -187,28 +221,33 @@ using the equation of state;\\
 {\large{\bf convective\_fluxes\_sc}} (flux\_sc.f)\\
 \begin{itemize}
 \item {\em fsc} computes the convective fluxes of gas and particles enthalpy (or any other scalar field)
- by using muscl schemes;\\
+ by using First Order Upwind;
+\item {\em muscl\_fsc} computes the convective fluxes of gas and particles enthalpy (or any other scalar field)
+ by using muscl schemes;
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% C O N V E C T I V E   F L U X E S   U %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 {\large{\bf convective\_fluxes\_u}} (flux\_u.f)\\
 \begin{itemize}
-\item {\em flu} computes the x(r)-momentum fluxes of gas and particles by using muscl schemes;\\
+\item {\em flu} computes the x(r)-momentum fluxes of gas and particles by using First Order Upwind;
+\item {\em muscl\_flu} computes the x(r)-momentum fluxes of gas and particles by using muscl schemes;
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% C O N V E C T I V E   F L U X E S   V %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 {\large{\bf convective\_fluxes\_v}} (flux\_v.f)\\
 \begin{itemize}
-\item {\em flv} computes the y-momentum fluxes of gas and particles by using muscl schemes;\\
+\item {\em flv} computes the y-momentum fluxes of gas and particles by using First Order Upwind;
+\item {\em muscl\_flv} computes the y-momentum fluxes of gas and particles by using muscl schemes;
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% C O N V E C T I V E   F L U X E S   W %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 {\large{\bf convective\_fluxes\_w}} (flux\_w.f)\\
 \begin{itemize}
-\item {\em flw} computes the z-momentum fluxes of gas and particles by using muscl schemes;\\
+\item {\em flw} computes the z-momentum fluxes of gas and particles by using First Order Upwind;
+\item {\em muscl\_flw} computes the z-momentum fluxes of gas and particles by using muscl schemes;
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% E N T H A L P Y   M A T R I X %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -220,10 +259,11 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 of enthalpies \\ \hline
 \tt at(nphase,nphase) & $({\bf A_H})_{i+\frac{1}{2},j}$ & phase matrix of enthalpies\\\hline
 \tt hv               & $(Q_s)_{ijk}^n$ & gas-particles temperature exchange coefficient\\\hline
+\tt flim             &                 & multiphase limit for enthalpy equations system\\\hline
 \end{tabular}\\
 \begin{itemize}
-\item{\em ftem} computes the elements of the enthalpies phases matrix\\
-\item{\em invdm} inverts the matrix\\
+\item{\em ftem} computes the elements of the enthalpies phases matrix;
+\item{\em invdm} inverts the multiphase matrix;
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% G A S   C O N S T A N T S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -238,6 +278,7 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 \tt  gmw(ngas)    & $m_g$    & molecular weight of gas components\\\hline
 \tt  phij(:,:)    & $\phi_{i,j}$ & weight function for the mixture mean viscosity/conductivity\\\hline
 \tt  present\_gas(ngas)  & & logical control  \\\hline
+\tt  gas\_type(ngas)  & & gas type corresponding to a specified species  \\\hline
 \tt  gammaair         & $\gamma$ & air adiabatic constant \\\hline
 \tt  c\_joule, c\_erg & & conversion factors (calories/joules, calories/erg) \\\hline
 \tt  rgas             & $R$ & universal gas constant \\\hline
@@ -262,11 +303,36 @@ VARIABLE & MEANING\\\hline
 \tt indx(nx) & inverse of cells $x$-dimension\\ \hline
 \tt indy(ny) & inverse of cells $y$-dimension\\ \hline
 \tt indz(nz) & inverse of cells $z$-dimension\\ \hline
+\tt iob       & specification of fixed-flow block corners\\ \hline
+\tt west      & flag of cells on the west boundary\\ \hline
+\tt east      & flag of cells on the east boundary\\ \hline
+\tt south     & flag of cells on the south boundary\\ \hline
+\tt north     & flag of cells on the north boundary\\ \hline
+\tt bottom    & flag of cells on the bottom boundary\\ \hline
+\tt top       & flag of cells on the top boundary\\ \hline
 \tt itc       & input flag for cylindrical or cartesian coordinates\\ \hline
+\tt zzero     & ground quota for atmospheric stratification \\ \hline
+\tt grigen    & input flag for automatic grid generation\\ \hline
+\tt maxbeta    & input flag for automatic grid generation\\ \hline
+\tt domain\_x    & input flag for automatic grid generation\\ \hline
+\tt domain\_y    & input flag for automatic grid generation\\ \hline
+\tt domain\_z    & input flag for automatic grid generation\\ \hline
+\tt dxmin, dxmax & minimum and maximum cell sizes in x(r) direction \\ \hline
+\tt dymin, dymax & minimum and maximum cell sizes in y direction  \\ \hline
+\tt dzmin, dzmax & minimum and maximum cell sizes in z direction  \\ \hline
+\tt n0x    & number of cells with minimum size in x(r) direction \\ \hline
+\tt n0y    & number of cells with minimum size in y direction \\ \hline
+\tt n0z    & number of cells with minimum size in z direction\\ \hline
+\tt alpha\_x    & relative position of the mesh refinement on the x(r) axis \\ \hline
+\tt alpha\_y    & relative position of the mesh refinement on the y axis\\ \hline
+\tt alpha\_z    & relative position of the mesh refinement on the z axis \\ \hline
+\tt center\_x    & UTM x coordinate (longitude) of the mesh center \\ \hline
+\tt center\_y    & UTM y coordinate (latitude) of the mesh center \\ \hline
 \end{tabular}\\[5mm]
 \begin{itemize}
-\item{\em grid\_setup} computes the dimensions of the physical domain\\
-\item{\em flic} assigns a type flag to each cell\\
+\item{\em grid\_setup} computes the dimensions of the physical domain;
+\item{\em flic} assigns a type flag to each cell;
+\item{\em generate\_grid} automatically generates the mesh with the specified input parameters;
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% S P E C I F I C   H E A T   M O D U L E %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -278,8 +344,8 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 \tt ck(ncl,ncint) & $(C_s)^n_{ijk}$ & thermal capacity of particle class $s$\\\hline
 \end{tabular}\\
 \begin{itemize}
-\item{\em hcapg} computes thermal capacities of gas components 
-\item{\em hcaps} computes thermal capacities of particles 
+\item{\em hcapg} computes thermal capacities of gas components ;
+\item{\em hcaps} computes thermal capacities of particles ;
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% D I F F U S I V E   F L U X E S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -312,7 +378,7 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 \begin{itemize}
 \item{\em htilde} computes the explicit (tilde) terms in the enthalpy transport equation for gas and particles; 
 convective fluxes are calculated by using the upwinding technique ({\em convective\_fluxes\_sc} module); 
-diffusive fluxes are computed by central differencing ({\em heat\_diffusion} module)\\
+diffusive fluxes are computed by central differencing ({\em heat\_diffusion} module);
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% H E A T   T R A N S F E R %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -322,25 +388,74 @@ diffusive fluxes are computed by central differencing ({\em heat\_diffusion} mod
 \item{\em hvs} computes the gas-particles interphase heat transfer coefficient.
 \end{itemize}
 %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% I M M E R S E D   B O U N D A R I E S %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+{\large{\bf immersed\_boundaries}} (immb.f) \\[5mm]
+\begin{tabular}{|p{6cm}|p{6cm}|}\hline
+VARIABLE & MEANING\\\hline
+\tt immb & flag for activating the immersed boundaries \\ \hline
+\tt forcing\_point & data type of the forcing points \\ \hline
+\tt fptx & array of the forcing points for the component x of the velocity  \\ \hline
+\tt fpty & array of the forcing points for the component y of the velocity  \\ \hline
+\tt fptz & array of the forcing points for the component z of the velocity  \\ \hline
+\tt topo\_c & 2D topographic profile interpolated on the cell centers  \\ \hline
+\tt topo\_x & 2D topographic profile interpolated on the cell east boundary  \\ \hline
+\tt topo2d\_c & 3D topography interpolated on the cell centers  \\ \hline
+\tt topo2d\_x & 3D topography interpolated on the cell east boundary  \\ \hline
+\tt topo2d\_y & 3D topography interpolated on the cell north boundary  \\ \hline
+\tt numx & array for mapping the forcing points x  \\ \hline
+\tt numy & array for mapping the forcing points y  \\ \hline
+\tt numz & array for mapping the forcing points z  \\ \hline
+\tt bd & integer weight function for the flux correction in the immersed bounds.  \\ \hline
+\tt bdr & real weight function for the flux correction in the immersed bounds. \\ \hline
+\tt vf & approximate volume of the fluid in the immersed cells \\ \hline
+\end{tabular}
+\begin{itemize}
+\item{\em set\_forcing} identify forcing points;
+\item{\em ext\_forcing2d} for each external f.p. set the coordinates and the interpolation parameters;
+\item{\em forcing2d} for each internal f.p. set the coordinates and the interpolation parameters;
+\item{\em ext\_forcing3d} same procedure in 3D;
+\item{\em forcing3d} same procedure in 3D;
+\item{\em faces} compute the flux weight functions on each face of the immersed cells;
+\end{itemize}
+%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% I N D I J K   M O D U L E %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 {\large{\bf indijk\_module}} (indijk.f) \\
 \begin{itemize}
-\item{\em indijk\_setup} sets the numeration order and the position of the stencil elements in 3D
+\item{\em indijk\_setup} sets the numeration order and the position of the stencil elements in 3D;
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% I N P U T   M O D U L E %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
+{\large{\bf input\_modult}} (input.f)\\
+\begin{itemize}
+\item{\em input} Read the input file, set the default input parameters, writes an XML file of input data ;
+\item{\em initc} Initialize some input parameters from ``human readable'' to compact format;
+\end{itemize}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% I N T E R P O L A T E   F I E L D S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+{\large{\bf interpolate\_fields}} (interp.f)\\
+\begin{itemize}
+\item{\em interpolate\_x} interpolate the stencil of a field defined on the cell centers onto the east faces ;
+\item{\em interpolate\_y}  interpolate the stencil of a field defined on the cell centers onto the north faces;
+\item{\em interpolate\_z}  interpolate the stencil of a field defined on the cell centers onto the top faces;
+\end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% I 0  R E S T A R T %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-{\large{\bf io\_restart}} (io.f)\\
+{\large{\bf io\_restart}} (io.f)\\[5mm]
+\begin{tabular}{|p{6cm}|p{6cm}|}\hline
+VARIABLE & MEANING\\\hline
+\tt nfil & number of the first output file \\ \hline
+\tt max\_seconds & maximum duration of the run \\ \hline
+\end{tabular}
 \begin{itemize}
-\item{\em tapewr} writes the restart file
-\item{\em taperd} reads the restart file
-\item{\em tapebc} calls the MPI BroadCast function to distribute data among processors
-\item{\em write\_array} collects data from different processors and write output file
-\item{\em read\_array}  reads output or restart file and distributes data among processors
+\item{\em tapewr} writes the restart file;
+\item{\em taperd} reads the restart file;
+\item{\em write\_array} collects data from different processors and write output file;
+\item{\em read\_array}  reads output or restart file and distributes data among processors;
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% I T E R A T I V E   S O L V E R %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -359,6 +474,7 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 \tt abeta(ncint) & $\left(\frac{dD_g}{dP}\right)_{ijk}$ & derivative of the mass residual for the Newton solver\\\hline
 \tt omega & $\omega$ & overrelaxation parameter \\\hline
 \tt inmax, maxout && maximum number of inner and outer iteration\\\hline
+\tt optimization && level of optimization\\\hline
 \end{tabular}\\
 \begin{itemize}
 \item{\em iter} is the iterative kernel of the solution algorithm;
@@ -374,10 +490,11 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 VARIABLE &  MEANING\\\hline
 \tt  muscl    & activate muscl procedure for upwinding \\\hline
 \tt  beta     & upwinding coefficient \\\hline
-\tt  lim\_type & type of limiters \\\hline
+\tt  lv & limiter for the momentum equation\\\hline
+\tt  lm & limiter for the continuity equation\\\hline
 \end{tabular}\\
 \begin{itemize}
-\item{\em limiter} compute the value of flux limiter by including different high order upwinding schemes
+\item{\em limiter} compute the value of flux limiter by including different high order upwinding schemes;
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% P H A S E S   M A T R I X %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -392,18 +509,26 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 \tt rlim && lowest limit for particle concentration \\\hline
 \end{tabular}\\
 \begin{itemize}
-\item{\em assemble\_all\_matrix} computes all matrix elements\\
-\item{\em assemble\_matrix} computes only RIGHT and TOP matrix elements\\
-\item{\em solve\_all\_velocities} inverts the phase matrix using Newton method\\
-\item{\em solve\_velocities} inverts the reduced phase matrix using Newton's method\\
+\item{\em assemble\_all\_matrix} computes all matrix elements;
+\item{\em assemble\_matrix} computes only RIGHT and TOP matrix elements;
+\item{\em solve\_all\_velocities} inverts the phase matrix using Newton method;
+\item{\em solve\_velocities} inverts the reduced phase matrix using Newton's method;
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% O U T P U T   D U M P %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-{\large{\bf output\_dump}} (outp.f)\\
+{\large{\bf output\_dump}} (outp.f)\\[5mm]
+\begin{tabular}{|p{6cm}|p{6cm}|}\hline
+VARIABLE &  MEANING\\\hline
+\tt  formatted\_output  & write formatted/unformatted output \\\hline
+\tt  deltaz  & distance from the ground where hazard variables are sampled \\\hline
+\tt  imap  & flag for writing out maps of hazard variables \\\hline
+\end{tabular}
 \begin{itemize}
 \item{\em outp} dumps output variables by using the {\em write\_array} procedure defined in the {\em io\_restart}
- module
+ module;
+\item{\em outp\_map} write out a map of hazard variables by interpolating fields at a given distance from the ground ;
+\item{\em outp\_recover} read the {\em nfil} output file to restart an interrupted run;
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% P A R T I C L E S   C O N S T A N T S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -428,6 +553,13 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 \item{\em particles\_constants\_set} sets the correlation coefficients for particle-particle drag.
 \end{itemize}
 %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% P D A C %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+{\large{\bf pdac}} (pdac.f)\\[5mm]
+\begin{itemize}
+\item {\em pdac} is the main program. Contains variables for timing the job execution.
+\end{itemize}
+%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% P R E S S U R E   E P S I L O N %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 {\large{\bf pressure\_epsilon}} (press.f)\\[5mm]
@@ -438,6 +570,13 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 \tt p(ncdom) & $P_{ijk}$ &  gas pressure\\\hline
 \end{tabular}\\[5mm]
 %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% P R O G %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+{\large{\bf prog}} (prog.f)\\[5mm]
+\begin{itemize}
+\item {\em prog} contains the time-advancement loop. Contains variables for timing the job execution.
+\end{itemize}
+%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% R E A C T I O N S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 {\large{\bf reactions}} (reactions.f)\\[5mm]
@@ -447,6 +586,14 @@ VARIABLE & MEANING\\\hline
 \tt r1, r2, r3, r4, r5 & mass rate of phase change or reaction\\\hline
 \tt h1, h2, h3, h4, h5 & enthalpy of phase change or reaction\\\hline
 \end{tabular}\\[5mm]
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% C H E C K   R E S I D U A L S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+{\large{\bf check\_residuals}} (residuals.f)\\
+\begin{itemize}
+\item {\em print\_mass\_residuals} Compute and print the residuals of all mass conservation equations;
+\item {\em compute\_mass\_flow\_rate} Compute and print the mass flow rate;
+\end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% R O U G H N E S S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -476,10 +623,14 @@ VARIABLE & MEANING\\\hline
 \tt ygc0(ngas) & gas components mass fraction in atmospheric air\\\hline
 \tt ygcob(ngas,nnso) & gas components mass fraction at specified fluid cells\\\hline
 \tt zzero & height above sea level of the first cell\\\hline
+\tt density\_specified & specify density instead of temperature in input\\\hline
 \end{tabular}\\
 \begin{itemize}
-\item {\em setup} sets initial conditions.
-\item {\em setc} sets useful constants
+\item {\em setpar} sets physical parameters, atmospheric stratification and gas species;
+\item {\em setup} sets initial conditions;
+\item {\em cnvert} compute derived thermodynamic quantities from initial conditions;
+\item {\em specified\_flow} set input conditions in  boundary cells where the flow is sepcified (flag = 5);
+\item {\em setc} sets useful constants;
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% S E T   I N D E X E S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -492,9 +643,9 @@ VARIABLE & MEANING \\ \hline
 \tt stencil & The stencil of a field computed on a cell includes all neighbours values needed for Finite Volumes calculation of convective and diffusive fluxes \\\hline
 \end{tabular}\\
 \begin{itemize}
-\item{\em subscr} assigns indexes to neighbour cells, using arrays {\tt myij} and {\tt myinds} defined in the {\em domain\_decomposition} module\\
-\item{\em nb} assemble the computational stencil of a field around a mesh point by considering boundary conditions
-\item{\em rnb} assemble the computational stencil of a field around a mesh point
+\item{\em subscr} assigns indexes to neighbour cells, using arrays {\tt myij} and {\tt myinds} defined in the {\em domain\_decomposition} module;
+\item{\em nb} assemble the computational stencil of a field around a mesh point by considering boundary conditions;
+\item{\em rnb} assemble the computational stencil of a field around a mesh point;
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% G A S   S O L I D   T E M P E R A T U R E %%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -547,7 +698,7 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 \end{tabular}\\
 {\tt sup} = {\tt ((nphase)$^2$+(nphase))/2}
 \begin{itemize}
-\item{\em fieldn} stores all independent fields at time $n\cdot dt$ for explicit time-integration
+\item{\em fieldn} stores all independent fields at time $n\cdot dt$ for explicit time-integration;
 \item{\em tilde} computes the explicit (tilde) terms in the momentum transport equation for gas and particles; fluxes are calculated with the donor-cell differencing technique through calls to the routines in the {\em eulerian\_fluxes} module.
 \end{itemize}
 %
@@ -558,12 +709,49 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 VARIABLE & MEANING\\\hline
 \tt itd & input flag for restart \\\hline
 \tt rungekut & order of Runge-Kutta explicit time integration (number of RK iterations) \\\hline
+\tt sweep & number of time iteration \\\hline
 \tt time & start time and incremental time\\\hline
 \tt tdump & time interval for output dumps \\\hline
 \tt tpr & time interval for restart file dumps \\\hline
 \tt tstop & maximum time \\\hline 
 \tt dt & time step \\\hline
+\tt timestart & starting time \\\hline
+\tt tau & time needed to increase the input velocity up to its input value \\\hline
 \end{tabular}\\[5mm]
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% V O L C A N O   T O P O G R A P H Y %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+{\large{\bf volcano\_topography}} (subscr.f)\\[5mm]
+\begin{tabular}{|p{6cm}|p{6cm}|}\hline
+VARIABLE & MEANING \\ \hline
+\tt vdem & standard ASCII DEM header\\\hline
+\tt next, nextx, nexty & arrays that identify the DEM points with respect to the computational mesh\\\hline
+\tt ord & array giving the index of the last cell center laying below a 2D topographic profile\\\hline
+\tt ord2d & array giving the index of the last cell center laying below a 3D topography\\\hline
+\tt dist & the distance of each cell center from the topography\\\hline
+\tt xtop & x coordinates of each DEM element \\\hline
+\tt ytop & y coordinates of each DEM element \\\hline
+\tt ztop & z coordinates of each DEM element (2D) \\\hline
+\tt ztop2D & z coordinates of each DEM element (3D) \\\hline
+\tt itp & flag for reading the topography from file\\\hline
+\tt cellsize & resolution of the DEM on the computational mesh\\\hline
+\tt filtersize & resolution of the low-pass filter\\\hline
+\tt nocrater & flag for flattening the crater\\\hline
+\tt rim\_quota & quota a.s.l. where the crater is cut\\\hline
+\tt dem\_file & name of the file containing the DEM of the topography\\\hline
+\end{tabular}
+\begin{itemize}
+\item{import\_topography} Read the topography, interpolate on the mesh, compute UTM coordinates;
+\item{read\_2Dprofile} Read the 2D topographic profile;
+\item{read\_dem\_ascii} Read the standard ASCII DEM file;
+\item{resize\_dem} crop the DEM to fit the computational domain and change the resolution;
+\item{average\_dem} compute the radial average of the topography function around the vent;
+\item{flatten\_dem} flatten the DEM around the vent;
+\item{compute\_UTM\_coordinates} translate the computational mesh on the volcano UTM coordinates;
+\item{set\_profile} interpolate the DEM on the mesh, translate vertically the mesh;
+\item{write\_profile} write out the implicit profile and deallocate arrays;
+\item{set\_flag3} set the flag=3 in all cells laying below the topography;
+\end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% T U R B U L E N C E %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -588,6 +776,46 @@ or dynamic Smagorinsky models.
 \item{\em sgss} computes solid turbulent viscosity.
 \item{\em strain2d} computes strain tensor in 2d (cartesian and cylindrical)
 \item{\em strain3d} computes strain tensor in 3d
+\end{itemize}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% V E N T   C O N D I T I O N S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+{\large{\bf vent\_conditions}} (vent.f)\\[5mm]
+\begin{tabular}{|p{6cm}|p{6cm}|}\hline
+VARIABLE & MEANING \\ \hline
+\tt ivent & flag to impose inlet conditions on a 3D circular vent \\\hline
+\tt irand & select a random switch on inlet cells\\\hline
+\tt iali & select anti-aliasing flux correction at the vent\\\hline
+\tt ipro & impose a given flow profile at the vent from an external file\\\hline
+\tt xvent, yvent & longitude and latitude of the volcanic vent\\\hline
+\tt vent\_radius & radius of the vent\\\hline
+\tt base\_radius & The radius of the base of the crater\\\hline
+\tt crater\_radius & The external radius of the crater\\\hline
+\tt u\_gas & Inlet gas velocity x\\\hline
+\tt v\_gas & Inlet gas velocity y\\\hline
+\tt w\_gas & Inlet (averaged) gas velocity z\\\hline
+\tt wrat & Ratio between the maximum and the averaged vertical gas veloctiy\\\hline
+\tt p\_gas & Pressure at the vent\\\hline
+\tt t\_gas & Temperature at the vent\\\hline
+\tt u\_solid & Inlet solid velocity x\\\hline
+\tt v\_solid & Inlet solid velocity y\\\hline
+\tt w\_solid & Inlet (averaged) solid velocity z\\\hline
+\tt ep\_solid & Averaged particle fraction\\\hline
+\tt t\_solid & Particle temperature\\\hline
+\tt vent\_ygc & gas concentrations at the vent\\\hline
+\tt seed & random seed \\\hline
+\tt rad\_file & name of the file with the radial flow profile\\\hline
+\tt vcell & data type storing the type and fraction of vent cells\\\hline
+\end{tabular}
+\begin{itemize}
+\item {locate\_vent} Identify the vent cells on the topography;
+\item {set\_ventc} Set vent conditions into vent cells accordingly to the imposed flow conditions and the cell fractions;
+\item {read\_radial\_profile} Read the radial flow profile from an external file ;
+\item {correct\_vent\_density} Correct the mass flow rate in the partially filled cells;
+\item {correct\_vent\_profile} Correct the vertical velocity profile at the vent;
+\item {update\_ventc} Change the vent conditions in time;
+\item {update\_inlet\_cells} Change randomly the inlet cells to balance the mass-flow-rate;
+\item {random\_switch} Switch on/off the inlet cells accordingly to their fluid fraction.
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% G A S   S O L I D   V E L O C I T Y %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -619,9 +847,9 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 \tt pvisz(ncint)& $(\nabla_z\cdot{\bf T}_s)_{ijk}$&  $z$ gradient of viscous stress tensor (particles)\\\hline
 \end{tabular}\\
 \begin{itemize}
-\item{\em viscon}  computes temperature-dependent conductivity and viscosity
-\item{\em viscg} computes the viscous stress tensor of gas
-\item{\em viscs} computes the viscous stress tensor of particles
+\item{\em viscon}  computes temperature-dependent conductivity and viscosity;
+\item{\em viscg} computes the viscous stress tensor of gas;
+\item{\em viscs} computes the viscous stress tensor of particles.
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% G A S   C O M P O N E N T S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
