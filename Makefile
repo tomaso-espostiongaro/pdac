@@ -19,6 +19,9 @@ pdac.x: $(FOBJS) pdac.o comm/comm.a
 postp.x: $(FOBJS) $(PPFOBJS) comm/comm.a
 	$(LINKER) -o postp.x $(MPFFLAGS) $(LINKFLAGS) $(FOBJS) $(PPFOBJS) comm/comm.a $(LIBS)
 
+tstcomm.x: testcommlib.o comm/comm.a
+	$(LINKER) -o tstcomm.x $(MPFFLAGS) $(LINKFLAGS) testcommlib.o comm/comm.a $(LIBS)
+
 clean:
 	rm -f *.o *.mod *.a core core.* *.stb
 	(cd comm; make clean)
