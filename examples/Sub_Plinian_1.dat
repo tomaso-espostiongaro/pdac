@@ -64,7 +64,7 @@
   iali  = 0,
   irand = 1,
   wrat = 1.3D0,
-  radius = 50.0,
+  crater_radius = 50.0,
   u_gas = 0.D0,
   v_gas = 0.D0,
   w_gas = 120.D0,
