@@ -32,6 +32,7 @@
       USE time_parameters, ONLY: rungekut, sweep
       USE turbulence_model, ONLY: iturb, iss
       USE turbulence_model, ONLY: sgsg, sgss
+      USE parallel, ONLY: mpime, root
 !
       IMPLICIT NONE
 !
