@@ -4,8 +4,8 @@
 \subsection{\PDAC\ input namelists}
 \label{section:namelists}
 
-\subsubsection{{\tt control} namelist}
-The {\tt control} namelist contains the parameters that control the program
+\subsubsection{\OBJ{control} namelist}
+The \OBJ{control} namelist contains the parameters that control the program
 flow, such as the start mode, the initial and final time, the output printing.
 
 \begin{itemize}
@@ -32,7 +32,7 @@ Otherwise, initial conditions are set up from input data in {\tt pdac.dat}}
 
 \item
 \PDACCONFWDEF{tstop}{end time}{double real}{100.0}
-{Time (in seconds) at wich the simulation stops}
+{Time (in seconds) at which the simulation stops}
 
 \item
 \PDACCONFWDEF{dt}{time step}{double real}{0.01}
@@ -60,29 +60,25 @@ in {\tt pdac.log}, {\tt pdac.err}, {\tt pdac.tst} files}
 \PDACCONFWDEF{max\_seconds}{maximum CPU time}{any real value}{20000.0}
 {Maximum duration of a simulation (in seconds). If time exceeds this value
 a restart file is written before the simulation is stopped (useful for
-scheduling). Default time is set for 6 hours simulations}
+scheduling). Default time is set to 6 hours}
 
 \item
-\PDACCONFWDEF{nfil}{number of first OUTPUT file}{any positive integer < 9999}{0}
+\PDACCONFWDEF{nfil}{number of first OUTPUT file}{any positive integer up to 9999}{0}
 {OUTPUT files are written with 4 digits extension ({\tt OUTPUT.XXXX}). 
 The output time can be recovered as $({\tt XXXX - nfil})* {\tt tpr}$ }
 
 \item
-\PDACCONF{old\_restart}{}{}
-{}
-
-\item
-\PDACCONFWDEF{formatted\_output}{flag for OUTPUT format}{{\tt .TRUE./.FALSE.}}{{\tt T}}
+\PDACCONFWDEF{formatted\_output}{flag for OUTPUT format}{T/F}{T}
 {Determine the format of output files: T - formatted ascii, 
 F - binary 4-bytes }
 
 \end{itemize}
 
-\subsubsection{{\tt model} namelist}
-The {\tt model} namelist is intended for all switches that can be selected
+\subsubsection{\OBJ{model} namelist}
+The \OBJ{model} namelist is intended for all switches that can be selected
 by the user to modify the model equations, either by neglecting some terms
-in the transport equations or by using different constitutive equations,
-or submodels.
+in the transport equations or by using different constitutive equations
+and submodels.
 
 \begin{itemize}
 
@@ -93,19 +89,19 @@ or submodels.
 \item
 \PDACCONFWDEF{gas\_viscosity}{gas diffusive transport}{{\tt T/F}}{{\tt T}}
 {T to solve the full set of model equations. F switches the diffusive
-transport terms off (viscous and turbulent term in momentum equation, thermal
-diffusivity in enthalpy equation). 
+transport terms off for the gas phase (viscous and turbulent term in momentum 
+equation, thermal diffusivity in enthalpy equation). 
 Gas viscosity is computed anyway to include the gas-particle drag and
 energy exchange terms.}
 
 \item
 \PDACCONFWDEF{part\_viscosity}{particle diffusive transport}{{\tt T/F}}{{\tt T}}
-{Switches the diffusive terms in the particle transport equations 
-(viscous term in the momentum equation and thermal conductivity).}
+{Switches on/off the diffusive terms in the particle transport equations 
+(viscous terms in the momentum equation and thermal conductivity).}
 
 \item
 \PDACCONFWDEF{iss}{turbulence model for particles}{0,1}{0}
-{1: computes a gas-analogous sub-grid-stress (turbulent viscosity)
+{1: computes a gas-analogous sub-grid stress (turbulent viscosity)
 for particles.}
 
 \item
@@ -113,82 +109,81 @@ for particles.}
 {The Coulombic repulsive model add a contribution to the diagonal part of
 the solid viscous stress due to the repulsive interaction of particles 
 at high concentrations. This term appears to be important for the solid
-equation to be well posed.}
+equation to be well-posed.}
 
 \item
 \PDACCONFWDEF{iturb}{turbulence model for gas}{0,1,2}{1}
 {0 - no gas turbulence model; 1 - Smagorinsky sub-grid stress model;
-2 - Smagorinsky sgs model with roughness closure at walls.}
+2 - Smagorinsky sgs model with roughness closure at the walls.}
 
 \item
 \PDACCONFWDEF{modturbo}{Subgrid-scale model for gas turbulence}{1,2}{1}
-{1 - Classical Smagrinsky model; 2 - Dynamic Samgorinsky model}
+{1 - Classical Smagrinsky model; 2 - Dynamic Smagorinsky model}
 
 \item
 \PDACCONFWDEF{cmut}{Smagorinsky constant}{usually between 0.1 and 0.4}{0.1}
-{The exact value cannot be predicted {\it a priori}. The use of dynamic
+{The exact value cannot be predicted {\it a priori}. The use of the dynamic
 Smagorinsky model (see above) makes the assignment of this constant
 non-necessary}
 
 \item
 \PDACCONFWDEF{rlim}{Multiphase limit}{very small real value}{$10^{-8}$}
-{Relied to particle concentrations: for small values the multiphase equations
-are solved in an approximate way. Often critical for convergence on the cloud 
-margins.}
+{It is related to minimum particle concentration for which multiphase flow
+equations are solved. Below this limit one-phase equations are solved
+(often critical for convergence on the cloud margins).}
 
 \item
 \PDACCONFWDEF{gravx}{acceleration along x}{any real}{0.0}
-{Can be used to simulated a physical constrain, such as a wall}
+{Body-force in x(r)-direction}
 
 \item
 \PDACCONFWDEF{gravy}{acceleration along y}{any real}{0.0}
-{Can be used to simulated a physical constrain, such as a wall}
+{Body-force in y-direction}
 
 \item
 \PDACCONFWDEF{gravz}{acceleration along z}{any real}{-9.81}
-{Usually the value of gravitational acceleration. Values different
-from the default value could be not consistent with the atmospheric
-stratification, leading to instabilities. A value of 0.0 suppresses
-atmospheric stratification}.
+{Body-force in z-direction (usually the value of the gravitational acceleration).
+Values different from the default value could not be consistent with the 
+atmospheric stratification, leading to instabilities. A value of 0.0 
+suppresses atmospheric stratification}.
 
 \item
 \PDACCONFWDEF{ngas}{number of gas components}{1 to 7}{2}
 {Seven gas species are defined, specifically: \\
 $ 1) O_2, 2) N_2, 3), CO_2, 4) H_2, 5) H_2O, 6) Air, 7) SO_2$. 
-The number of gas species must be consistent with
-the other input conditions, such as the ``inlet'' boundary condtions,
-otherwise the program will stop.}
+Only gas species that are specified at the inlet or in the
+atmosphere are considered by the model. The total number of gas 
+species specified by this flag must be therefore consistent with 
+input conditions, otherwise the program stops.}
 
 \item
-\PDACCONFWDEF{default\_gas}{gas species taken as default}{1 to 7}{6}
-{Since the sum of the mass fraction of the different gas species must
-close to 1.0, the {\tt default\_gas} is defined as the difference 
-between 1.0 and the sum of the other species. The default gas must
-be present.}
+\PDACCONFWDEF{density\_specified}{flag for specified flow conditions}{T/F}{F}
+{Setting this flag to T allows to specify gas density at the inlet instead of
+temperature. Gas temperature is then computed by using the perfect gas thermal
+equation of state.}
 
 \end{itemize}
 
-\subsubsection{{\tt mesh} namelist}
-Here all parameters concerning the spatial discretization must be
-selected. Remember that in \PDAC\ you are constrained to discretization 
+\subsubsection{\OBJ{mesh} namelist}
+Here all parameters concerning the spatial discretization of the computational
+domain must be selected. In \PDAC\ you are constrained to discretization 
 on a rectilinear (non-)uniform mesh. Cylindrical coordinates can be
 selected only in 2D.
 
 \begin{itemize}
 \item
 \PDACCONFWDEF{nx}{Number of cells in x(r)-direction}{up to 512}{100}
-{When cylindrical coordinates are selected in 2D, ``x'' is used instead 
- of ``r''. Includes the boundary ghost cells. The maximum number can be 
+{When 2D cylindrical coordinates are selected, ``x'' is used instead 
+ of ``r''. This number includes the boundary ghost cells. The maximum number can be 
  increased by modifying the max\_size parameter in the ``dimensions'' module}
 
 \item
 \PDACCONFWDEF{ny}{Number of cells in y-direction}{up to 512}{1}
-{Not used in 2D. Includes the boundary ghost cells. Idem.}
+{Not used in 2D. It includes the boundary ghost cells.}
 
 \item
 \PDACCONFWDEF{nz}{Number of cells in z-direction}{up to 512}{100}
-{z is the second space coordinate in 2D. Includes the boundary ghost cells.
-Idem. }
+{z is the second space coordinate in 2D. It includes the boundary ghost cells.}
 
 \item
 \PDACCONFWDEF{itc}{flag for cylindrical coordinates}{0,1}{0}
@@ -198,70 +193,71 @@ by modifying the discretized equations.}
 \item
 \PDACCONFWDEF{iuni}{flag for uniform mesh}{0,1}{0}
 {0 - non uniform mesh; 1 - uniform mesh, takes {\tt dx0, dy0, dz0} as the
-cells size in the three coordinate directions.}
+cells size in the two/three coordinate directions.}
 
 \item
 \PDACCONFWDEF{dx0}{cell sizes in x(r)-direction}{any real}{10.D0}
-{}
+{Uniform cell sizes along x(r)}
 
 \item
 \PDACCONFWDEF{dy0}{cell sizes in y-direction}{any real}{10.D0}
-{}
+{Uniform cell sizes along y}
 
 \item
 \PDACCONFWDEF{dz0}{cell sizes in z-direction}{any real}{10.D0}
-{}
+{Uniform cell sizes along z}
 
 \item
 \PDACCONFWDEF{origin\_x}{origin of the cartesian space}{any real}{0.0}
-{}
+{Origin of the x-axis}
 
 \item
 \PDACCONFWDEF{origin\_y}{origin of the cartesian space}{any real}{0.0}
-{}
+{Origin of the y-axis}
 
 \item
 \PDACCONFWDEF{origin\_z}{origin of the cartesian space}{any real}{0.0}
-{}
+{Origin of the z-axis}
 
 \item
 \PDACCONFWDEF{mesh\_partition}{domain decomposition criterion}{1,2,3}{1}
-{}
+{1 - Layers decomposition, 2 - 2D Blocks decomposition, 3 - 3D Blocks decomposition}
 
 \end{itemize}
 
-\subsubsection{{\tt particles} namelist}
-The number of solid phases and the physical properties of particles 
-composing each phase are specified. Note that the order in which 
-particle classes are specified will be the order of solid-phases array 
-storage, so that it must be consistent with initial conditions assignment.
+\subsubsection{\OBJ{particles} namelist}
+In this namelist the number of solid phases and the physical properties of the
+particles forming each phase are specified. Note that the order in which 
+particle classes are specified must be the order of the solid-phases array 
+storage, in order to be consistent with the initial conditions assignement.
 
 \begin{itemize}
 
 \item
-\PDACCONFWDEF{nsolid}{number of solid phases}{up to 10}
-{Maximum number can be increased by modifying the max\_nsolid parameter
-in the ``dimensions'' module.}{2}
+\PDACCONFWDEF{nsolid}{number of solid phases}{up to 10}{2}
+{The number of solid phases considered in the multiphase equations.
+The maximum number can be increased by modifying the max\_nsolid parameter
+in the ``dimensions'' module.}
 
 \item
-\PDACCONFWDEF{diameter}{effective diameter particles (in microns)}{real}
-{The model works well for particle diameters smaller than few millimeters}{100 microns}
+\PDACCONFWDEF{diameter}{effective diameter particles (in microns)}{real}{100 microns}
+{The model works well for particle diameters smaller than few millimeters}
 
 \item
-\PDACCONFWDEF{density}{microscopic particle density}{real}
-{Depends on materials and porosity}{2700. Kg / m$^3$}
+\PDACCONFWDEF{density}{microscopic particle density}{real}{2700 Kg/m$^3$}
+{Depends on materials and porosity}
 
 \item
-\PDACCONFWDEF{sphericity}{particle sphericity}{0.5 to 1.0}
-{Partially accounts for particle shapes}{1.0}
+\PDACCONFWDEF{sphericity}{particle sphericity}{0.5 to 1.0}{1.0}
+{Partially accounts for particle shapes}
 
 \item
-\PDACCONFWDEF{viscosity}{Empirical viscosity coefficient}{0.5 to 2.0}
-{Largest values apply to coarse particles}{0.5 [Pa s]}
+\PDACCONFWDEF{viscosity}{Empirical viscosity coefficient}{0.5 to 2.0}{0.5[Pa s]}
+{Largest values apply to coarse particles}
 
 \item
-\PDACCONFWDEF{specific\_heat}{solid specific heat}{ral}
-{Depends on materials}{1.2D3 [ Joule / ( Kelvin * Kg ) ]}
+\PDACCONFWDEF{specific\_heat}{solid specific heat}{real}{1.2D3 [J/(K Kg)]}
+{Depends on materials}
 
 \item
 \PDACCONFWDEF{thermal\_conductivity}{solid thermal conductivity for Fourier law}{real}{2.D0}
@@ -269,9 +265,9 @@ in the ``dimensions'' module.}{2}
 
 \end{itemize}
 
-\subsubsection{{\tt numeric} namelist}
+\subsubsection{\OBJ{numeric} namelist}
 By modifying these parameters, you can modify the way \PDAC\ solves the 
-model equations. We recommend the non-expert user to avoid modifying the
+model equations. We recommend non-expert users to avoid modifying the
 default values.
 
 \begin{itemize}
@@ -280,35 +276,35 @@ default values.
 \PDACCONFWDEF{rungekut}{order of Runge-Kutta explicit integration}{1,2,3}{1}
 {The low-storage Runge-Kutta algorithm is used for explicit time integration.
 The coefficients used in the RK integration are well suited only up to the
-third order. High order temporal integration is recommended for 
-convergence and stability when high order spatial discretization schemes 
-are used}
+third-order. High-order temporal integration is recommended for 
+convergence and stability when high-order spatial discretization schemes 
+are used.}
 
 \item
 \PDACCONFWDEF{beta}{degree of upwinding}{0.0 to 1.0}{0.25}
-{When High Order spatial discretization schemes are used, and the MUSCL 
+{When High Order spatial discretization schemes are used and the MUSCL 
 beta-scheme (both limited or unlimited) is selected, the degree of upwinding
-can be chosen: beta=0.0 corresponds to a completely centered schemes:
-beta=1.0 corresponds to a completely upwinded method. The accuracy depends
-on the exact value: for beta=0.25 and beta=0.33 the formal third order
+can be chosen: \OBJ{beta}=0.0 corresponds to a completely centered schemes:
+\OBJ{beta}=1.0 corresponds to a completely upwinded method. The accuracy depends
+on the exact value: for \OBJ{beta}=0.25 and \OBJ{beta}=0.33 the formal third-order
 is achieved.}
 
 \item
 \PDACCONFWDEF{muscl}{flag for MUSCL technique}{0,1}{0}
-{The MUSCL technique extends the first order discretization
-scheme to higher orders by reconstructing the flux profile more accurately.
-0 - uses first order upwind; 1 - uses MUSCL technique.}
+{The MUSCL technique extends the first-order discretization
+scheme to high-orders by reconstructing the flux profile more accurately.
+0 - uses first-order upwind; 1 - uses MUSCL technique.}
 
 \item
 \PDACCONFWDEF{lim\_type}{limiter type}{0,1,2,3,4}{0}
 {Select the type of MUSCL reconstruction and the limiter:\\
-0 - beta scheme unlimited; 1 - VanLeer limiter; 2 - minmod limiter;
+0 - beta scheme unlimited; 1 - Van Leer limiter; 2 - Minmod limiter;
 3 - Superbee limiter; 4 - beta limited.}
 
 \item
 \PDACCONFWDEF{inmax}{maximum number of inner iterations}{integer (small)}{8}
-{The exact value does not affect strongly the convergence but can slow
-the simulation down. Optimal value is set by default.}
+{The exact value does not affect strongly the convergence but can slow down
+the simulation. Optimal value is set by default.}
 
 \item
 \PDACCONFWDEF{maxout}{maximum number of Gauss-Siedel iterations for convergence}{integer (large)}{5000}
@@ -316,41 +312,41 @@ the simulation down. Optimal value is set by default.}
 
 \item
 \PDACCONFWDEF{omega}{over/under-relaxation parameter}{0.0 to 2.0}{1.0}
-{Values between 0.0 and 1.0 underrelax the iterative procedure, whereas
+{Values between 0.0 and 1.0 under-relax the iterative procedure, whereas
 values above 1.0 overrelax.}
 
 \item
 \PDACCONFWDEF{implicit\_fluxes}{flag for implicit computation of fluxes}{{\tt T/F}}{F}
-{By selecting T, convective fluxes are computed (at the first or second order, 
-depending on flag {\tt muscl}) within the iterative solver. This modification
-in principle could relax the CFL constraint on the time step but significantly
-slows down the computation.}
+{By selecting T, convective fluxes are computed (at the first or second-order, 
+depending on flag \OBJ{muscl}) within the iterative solver. This modification
+significantly slows down the computation but could relax the CFL constraint
+so that larger time-steps can be used.}
 
 \item
 \PDACCONFWDEF{implicit\_enthalpy}{flag for implicit computation of enthalpies}
 {{\tt T/F}}{F}
-{Selecting the implicit solution of enthalpies enchance the level of coupling
-between the momentum and enthalpy equations. The convective part of the 
-enthalpy equations can be nevertheless left out from the iterative solver
-by opportunely selecting the flag implicit\_fluxes. The performance loss
+{Selecting the implicit solution of enthalpies enhances the level of coupling
+between the momentum and enthalpy equations. Nevertheless the convective part 
+of the enthalpy equations can be left out from the iterative solver
+by opportunely selecting the flag \OBJ{implicit\_fluxes}. The performance loss
 in any case is significant.}
 \end{itemize}
 
 \subsection{\PDAC\ input cards}
 \label{section:cards}
-\subsubsection{{\tt ROUGHNESS} card}
+\subsubsection{\OBJ{'ROUGHNESS'} card}
 
-The {\tt ROUGHNESS} card is now obsolete in 3D, but is mantained for 2D 
+The \OBJ{'ROUGHNESS'} card is only valid for 2D 
 simulations (in 3D it will be replaced by the roughness matrix). In this
 card three elements must be specified:
 \begin{itemize}
 \item
 \PDACCONF{ir}{number of rough zones}{1,2}
-{The code allows the specification of one or two rough regions, characterized
+{The code allows the specification of one or two roughness regions, characterized
 by different roughness lengths.}
 
 \item
-\PDACCONF{zrough(:)}{roughness length (in metres)}{real}
+\PDACCONF{zrough(:)}{roughness length}{real}
 {Specify one roughness length for each rough region. Typical values for ground
 ranges from few centimeters to some metres.}
 
@@ -360,23 +356,24 @@ ranges from few centimeters to some metres.}
 
 \end{itemize}
 
-\subsubsection{{\tt MESH} card}
+\subsubsection{\OBJ{'MESH'} card}
 
-The {\tt MESH} card contains the two (in 2D) or three (in 3D) arrays of cell 
+The \OBJ{'MESH'} card contains the two (in 2D) or three (in 3D) arrays of cell 
 sizes specified for a non-uniform rectilinear mesh. 
 
 \begin{itemize}
 \item
-\PDACCONF{dx(1:nx)}{cell sizes in x(r)-direction}{real}
-{}
+\PDACCONF{dx(1:nx)}{Array of the cell sizes in x(r)-direction}{real}
+{Array of the cell sizes in x(r)-direction.}
 
 \item
-\PDACCONF{dy(1:ny)}{cell sizes in y-direction}{real}
-{Not present in 2D.}
+\PDACCONF{dy(1:ny)}{Array of the cell sizes in y-direction}{real}
+{Array of the cell sizes in y-direction.
+Not present in 2D.}
 
 \item
-\PDACCONF{dz(1:nz)}{cell sizes in z-direction}{real}
-{}
+\PDACCONF{dz(1:nz)}{Array of the cell sizes in z-direction}{real}
+{Array of the cell sizes in z-direction.}
 \end{itemize}
 
 Array elements can be separated by commas, tabs, blanks or lay on different
@@ -384,11 +381,11 @@ lines.  When uniform mesh is selected by {\tt iuni=1} parameter in the
 {\tt mesh} namelist, the card can be empty (but the card 
 name must always be present in the input file).
 
-\subsubsection{{\tt FIXED\_FLOWS} card}
+\subsubsection{\OBJ{'FIXED\_FLOWS'} card}
 
-The {\tt FIXED\_FLOWS} card is designed to specify boundary conditions. Its
-name is due to the possibility to assign within this card any region of
-specified flow conditions (e.g. for inlet flow). B.c. are imposed in 
+The \OBJ{'FIXED\_FLOWS'} card is designed to specify boundary conditions (b.cs.).
+Its name is due to the possibility to assign within this card any region with
+specified flow conditions (e.g. for inlet flow). B.cs. are imposed in 
 mesh region determined by rectangular blocks. The number of blocks is the
 first parameter specified in the card
 
@@ -418,8 +415,8 @@ $ i_{min}, i_{max}, (j_{min}, j_{max}), k_{min}, k_{max}$ }
 
 \end{itemize}
 
-Blocks are used also to specify ``blocking cells'' (e.g. to 
-represent the topography). When the block type is equal to 5 (specified
+Blocks are used also to specify ``blocking cells'' (e.g. 
+the volcano topography). When the block type is equal to 5 (specified
 flow), inlet conditions must be specified as follows:\\
 
 First line:
@@ -427,23 +424,20 @@ First line:
 \begin{itemize}
 \item
 \PDACCONF{fixed\_vgas\_x}{gas velocity component along x}{real}
-{Inlet gas velocity. Note that CFL condition (see above for {\tt dt}) 
+{Inlet gas velocity along x(r)-direction. Note that CFL condition (see above for \OBJ{dt}) 
 must be satisfied for every component.}
 
 \item
 \PDACCONF{fixed\_vgas\_y}{gas velocity component along y}{real}
-{Inlet gas velocity (not present in 2D!).
-Note that CFL condition (see above for {\tt dt}) 
-must be satisfied for every component.}
+{Inlet gas velocity along x(r)-direction (not present in 2D!).}
 
 \item
 \PDACCONF{fixed\_vgas\_z}{gas velocity component along z}{real}
-{Inlet gas velocity. Note that CFL condition (see above for {\tt dt}) 
-must be satisfied for every component.}
+{Inlet gas velocity along z-direction.}
 
 \item
 \PDACCONF{fixed\_pressure}{pressure at inlet}{real}
-{The thermodynamic pressure}
+{The thermodynamic pressure of the gas phase.}
 
 \item
 \PDACCONF{fixed\_gaseps}{inlet gas volumetric fraction}{ $\le 1.0$}
@@ -460,21 +454,17 @@ Further {\tt nsolid} lines:
 \begin{itemize}
 \item
 \PDACCONF{fixed\_vpart\_x}{particle velocity along x}{real}
-{Inlet particle velocity.
-Note that CFL condition (see above for {\tt dt}) 
+{Inlet particle velocity along x(r)-direction.
+Note that CFL condition (see above for \OBJ{tt}) 
 must be satisfied for every component.}
 
 \item
 \PDACCONF{fixed\_vpart\_y}{particle velocity along y}{real}
-{Inlet particle velocity (not present in 2D!).
-Note that CFL condition (see above for {\tt dt}) 
-must be satisfied for every component.}
+{Inlet particle velocity along y-direction(not present in 2D!).}
 
 \item
 \PDACCONF{fixed\_vpart\_z}{particle velocity along z}{real}
-{Inlet particle velocity.
-Note that CFL condition (see above for {\tt dt}) 
-must be satisfied for every component.}
+{Inlet particle velocity along z-direction.}
 
 \item
 \PDACCONF{fixed\_parteps}{particle volumetric fraction}{ $\le 1.0$}
@@ -492,16 +482,16 @@ Last line:
 
 \item
 \PDACCONF{fixed\_gasconc(1:7)}{concentration of each gas species at inlet}{$\le 1.0$}
-{The mass fraction (concentration) of each one of the seven gas species must be
+{The mass fraction (concentration) of each of the seven gas species must be
 specified. The closure relation for the total mass fraction must be satisfied.
 If this constrain is not satisfied, the {\tt default\_gas} mass fraction is
 automatically corrected.}
 
 \end{itemize}
 
-\subsubsection{{\tt INITIAL\_CONDITIONS} card}
+\subsubsection{\OBJ{'INITIAL\_CONDITIONS'} card}
 
-The {\tt INITIAL\_CONDITIONS} card specifies the ambient conditions at 
+The \OBJ{'INITIAL\_CONDITIONS'} card specifies the ambient conditions at 
 the beginning of the simulation in all the computational cells of
 type 1 (fluid cells).
 
@@ -510,25 +500,22 @@ First line:
 \begin{itemize}
 \item
 \PDACCONF{initial\_vgas\_x}{gas velocity component along x}{real}
-{Initial gas velocity. Can be used for cross-winds Note that CFL condition (see above for {\tt dt}) 
+{Initial gas velocity along x(r)-direction. Can be used for cross-winds. 
+Please note that the CFL condition (see above for \OBJ{dt}) 
 must be satisfied for every component.}
 
 \item
 \PDACCONF{initial\_vgas\_y}{gas velocity component along y}{real}
-{Inlet gas velocity. Can be used for cross-winds (not present in 2D!).
-Note that CFL condition (see above for {\tt dt}) 
-must be satisfied for every component.}
+{Inlet gas velocity along y-direction (not present in 2D!).}
 
 \item
 \PDACCONF{initial\_vgas\_z}{gas velocity component along z}{real}
-{Inlet gas velocity. Can be used for cross-winds.
-Note that CFL condition (see above for {\tt dt}) 
-must be satisfied for every component.}
+{Inlet gas velocity along z-direction.}
 
 \item
 \PDACCONF{initial\_pressure}{pressure at inlet}{real}
-{The thermodynamic pressure in the domain (if gravity is switched off) or
-at the ground (if atmosphere is stratified, values different from 1 atmosphere
+{This corresponds to the thermodynamic ambient pressure (if gravity is switched off) 
+or the pressure at the ground (if atmosphere is stratified, values different from 1 atmosphere
 lead to a WARNING message).}
 
 \item
@@ -538,7 +525,10 @@ lead to a WARNING message).}
 
 \item
 \PDACCONF{initial\_temperature}{inlet gas temperature}{ a positive real }
-{No constraint is imposed on gas temperature, but the range of validity
+{This corresponds to the ambient temperature (if gravity is switched off) 
+or the temperature at the ground (if atmosphere is stratified, values different from 288.15K
+lead to a WARNING message).
+No constraint is imposed on gas temperature, but the range of validity
 of the equation of state must be check. Particles are supposed to be in thermal
 equilibrium with gas.}
 \end{itemize}
@@ -547,21 +537,17 @@ Further {\tt nsolid} lines:
 \begin{itemize}
 \item
 \PDACCONF{initial\_vpart\_x}{particle velocity along x}{real}
-{Initial particle velocity.
-Note that CFL condition (see above for {\tt dt}) 
+{Initial particle velocity along x(r)-direction.
+Note that CFL condition (see above for \OBJ{dt}) 
 must be satisfied for every component.}
 
 \item
 \PDACCONF{initial\_vpart\_y}{particle velocity along y}{real}
-{Initial particle velocity (not present in 2D!).
-Note that CFL condition (see above for {\tt dt}) 
-must be satisfied for every component.}
+{Initial particle velocity along y-direction (not present in 2D!).}
 
 \item
 \PDACCONF{initial\_vpart\_z}{particle velocity along z}{real}
-{Initial particle velocity.
-Note that CFL condition (see above for {\tt dt}) 
-must be satisfied for every component.}
+{Initial particle velocity along z-direction.}
 
 \end{itemize}
 
@@ -571,7 +557,7 @@ Last line:
 
 \item
 \PDACCONF{initial\_gasconc(1:7)}{concentration of each gas species in atmosphere}{$\le 1.0$}
-{The mass fraction (concentration) of each one of the seven gas species must be
+{The mass fraction (concentration) of each of the seven gas species must be
 specified. The closure relation for the total mass fraction must be satisfied.
 If this constrain is not satisfied, the {\tt default\_gas} mass fraction is
 automatically corrected.}

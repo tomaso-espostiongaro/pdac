@@ -1,16 +1,21 @@
 \section{Sample configuration files}
 \label{section:input_sample}
-This section contains some simple example \PDAC\ configuration files to serve
+This section contains some examples of \PDAC\ configuration files to be used
 as templates.
 \prettypar
 \subsection{2D axisymmetric Plinian column}
 \begin{itemize}
-\item one (50 $\mu m$) particle class
+\item one particle phase (50 $\mu m$ diameter, $1500 Kg/m^3$ density)
 \item no topographic profile specified
 \item Smagorinsky turbulence model with $C_S=0.33$
-\item high order (ultraquick scheme) discretization of convective fluxes
+\item high-order (Ultraquick scheme) discretization of convective fluxes
 \item non-uniform mesh with minimum cell size of 30m and maximum cell size
       of 200 m in both radial and vertical directions
+\item vent conditions specified in cells (2,1) and (3,1): gas and particle
+      vertical velocity $w = 110 m/s$, Pressure balanced ($1atm$), $0.1\%$
+      particle fraction, equal gas and particle temperature ($T=900 K$).
+      Water vapour is injected at the vent.
+\item initial conditions correspond to the standard atmosphere
 \end{itemize}
 
 \begin{verbatim}
@@ -128,7 +133,7 @@ as templates.
 5, 2  , 3  , 1  , 1
 0.0, 110., 1.01325D5, 0.999, 900.0
 0.0, 110., 0.001, 900.0
-0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0  
+0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0  
 3, 4  , 100, 1  , 1
 2, 1  , 1  , 1  , 200
 6, 100, 100, 2  , 200
@@ -146,12 +151,13 @@ The Sod problem is the numerical analogous to the laboratory shock-tube
 experiment, and it is used to check numerical discretization schemes on 
 the standard 1D Riemann problem.
 \begin{itemize}
-\item pseudo-one-dimensional (transverse direction has one computational cell)
-\item cartesian regular mesh
-\item one inviscid gas species
-\item particle phase is dummy (volumetric fraction is set to zero)
-\item gravity force is neglected
-\item density is specified as initial condition instead of temperature
+\item Pseudo-one-dimensional (transverse direction has one computational cell and two boundary cells)
+\item Cartesian regular mesh
+\item One inviscid gas species
+\item Particle phase is dummy (volumetric fraction is set to zero). Please note that
+      it is not allowed to set {\tt nsolid = 0}, otherwise the program stops.
+\item Gravity force is neglected
+\item Density is specified as initial condition instead of temperature
 \end{itemize}
 
 \begin{verbatim}
@@ -251,7 +257,7 @@ These are described by topographic blocks in the {\tt FIXED FLOW} card.
 
 \begin{verbatim}
 &control
- run_name = 'LL_w2_t950_A'
+ run_name = 'LL_w2_t950_A' ! ( Todesco et al. Bull.Volcanol. (2002) )
  job_type = '2D',
  restart_mode = 'from_scratch',
  time =  0.00,
@@ -470,7 +476,7 @@ These are described by topographic blocks in the {\tt FIXED FLOW} card.
 \subsection{3D simulation of a volcanic column}
 \begin{itemize}
 \item fully 3D simulation on a non-uniform cartesian mesh
-\item non topography specified
+\item no topography specified
 \end{itemize}
 
 \begin{verbatim}
@@ -585,10 +591,10 @@ These are described by topographic blocks in the {\tt FIXED FLOW} card.
 0.0, 0.0, 110.00, 1.01325D5, 0.999, 900.0
 0.0, 0.0, 110.00, 0.001, 900.0
 0.D0, 0.D0, 0.D0, 0.D0, 1.D0, 0.D0, 0.D0
-6, 1  , 1  , 1  , 100, 2  , 100
-6, 100, 100, 1  , 100, 2  , 100
-6, 1  , 100, 1  , 1  , 2  , 100
-6, 1  , 100, 100, 100, 2  , 100
+4, 1  , 1  , 1  , 100, 2  , 100
+4, 100, 100, 1  , 100, 2  , 100
+4, 1  , 100, 1  , 1  , 2  , 100
+4, 1  , 100, 100, 100, 2  , 100
 4, 1  , 100, 1  , 100, 100, 100
 
 'INITIAL_CONDITIONS'

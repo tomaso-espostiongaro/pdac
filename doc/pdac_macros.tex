@@ -10,10 +10,14 @@
 
 \newcommand{\PDAC} {PDAC}
 \newcommand{\PDACNAME} {Pyroclastic Dispersal Analysis Code}
-\newcommand{\PDACDATE} {\today}
-\newcommand{\PDACAUTHORS} {
- A.~Neri, T.~Esposti Ongaro, C.~Cavazzoni }
+%\newcommand{\PDACDATE} {\today}
+\newcommand{\PDACDATE} {January 2004}
+\newcommand{\RMAUTHORS} {
+ A.~Neri, T.~Esposti Ongaro, C.~Cavazzoni, G.~Erbacci and G.~Macedonio }
+\newcommand{\UGAUTHORS} {
+T.~Esposti Ongaro, C.~Cavazzoni and A.~Neri }
 \newcommand{\PDACVERSION} {2.0}
+\newcommand{\PDACNOTES} {\sc (Restricted Draft: Do Not Release or Cite)}
 \newcommand{\PDACADDRESS} {\underline{pdac@pi.ingv.it}}
 \newcommand{\PDACURL} {\underline{http://www.pi.ingv.it/PDAC}}
 % title of PDAC paper
@@ -26,7 +30,13 @@ for the 3D simulation of pyroclastic dispersal dynamics}
 %
 
 % name of class or object in program
-\newcommand{\OBJ}[1] {{\bf\tt#1}}
+\newcommand{\OBJ}[1] {{\tt#1}}
+
+% name of file
+\newcommand{\FIL}[1] {{\it #1}}
+
+% name of directory
+\newcommand{\DIR}[1] {$<${\it #1}$>$}
 
 % function arguments
 \newcommand{\FA}[2] {{\rm{\bf#1}\ {\it#2}}}
@@ -51,12 +61,12 @@ for the 3D simulation of pyroclastic dispersal dynamics}
 \newcommand{\UGTITLE} {User's Guide}
 \newcommand{\RMTITLE} {Reference Manual}
 \newcommand{\UGDESC} {
-The \PDAC\ (\PDACNAME)\ {\em\UGTITLE\/} describes how to run and use the 
+This {\em\UGTITLE\/} describes how to run and use the 
 various features of the \PDACNAME\ \PDAC.  
-This guide includes the capabilities of the program, how 
+This guide includes a description of the capabilities of the program, how 
 to use these capabilities, the necessary input files and 
-formats, and how to run the program both on uniprocessor 
-machines and in parallel.}
+formats, and how to run the program on both uniprocessor 
+and parallel machines.}
 
 \newcommand{\RMDESC} {
 The \PDAC\ (\PDACNAME)\ {\em\RMTITLE\/} is intended for the user who wants
