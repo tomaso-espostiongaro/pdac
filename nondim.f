@@ -6,22 +6,22 @@
       IMPLICIT NONE
       SAVE
 !
-      REAL*8, ALLOCATABLE :: ratio(:,:)   ! Gas-Particle / Particle-Particle ratio !
-      REAL*8, ALLOCATABLE :: rich(:)      ! Richardson number
-      REAL*8, ALLOCATABLE :: mut2mu(:)    ! Turbulent/Molecular viscosity
+      REAL*8, ALLOCATABLE :: rich(:)        ! Richardson number
+      REAL*8, ALLOCATABLE :: mut2mu(:)      ! Turbulent/Molecular viscosity
+      REAL*8, ALLOCATABLE :: gas2pp(:,:)    ! Gas-Particle/Particle-Particle
+      REAL*8, ALLOCATABLE :: drag2grav(:,:) ! Gravity/Gas-Particle
 !------------------------------------------------------------------------
       CONTAINS
 !------------------------------------------------------------------------
-      SUBROUTINE drag_ratio(appu,appw,kpgv,ijk)
+      SUBROUTINE drag_ratio(appu,appw,kpgv,rlk,ijk)
 ! ... compute the ratio between gas-particle drag and the sum of particle-particle 
 ! ... drag coefficients for each solid phase
 !
       USE time_parameters, ONLY: time, dt
-      USE gas_solid_density, ONLY : rlk
       IMPLICIT NONE
 
       REAL*8,  INTENT(IN) :: appu(:), appw(:)
-      REAL*8,  INTENT(IN) :: kpgv(:)
+      REAL*8,  INTENT(IN) :: kpgv(:), rlk(:)
       INTEGER, INTENT(IN) :: ijk
       INTEGER :: is, n, ks, ks1
       REAL*8 :: gasdrag, ppdrag, ppx, ppy
@@ -34,8 +34,8 @@
         ppx  = appu(ks) + appu(ks1)
         ppy  = appw(ks) + appw(ks1)
         ppdrag  = DSQRT( ppx**2 + ppy**2 ) 
-        ratio(is,ijk) = ppdrag / gasdrag
-        IF ( rlk(is,ijk) == 0.D0 ) ratio(is,ijk) = 0.D0
+        gas2pp(is,ijk) = ppdrag / gasdrag
+        IF ( rlk(is) == 0.D0 ) gas2pp(is,ijk) = 0.D0
         IF ( (ppdrag < 0.D0) .OR. (gasdrag < 0.D0) ) THEN
           CALL error('drag_ratio','control gasdrag and ppdrag',1)
         END IF
@@ -43,39 +43,69 @@
 !
       RETURN
       END SUBROUTINE drag_ratio
+!------------------------------------------------------------------------
+      SUBROUTINE grav_ratio(kpgv, rlk, wpart, wgas, ijk)
+! ... compute the ratio between gas-particle drag and the sum of particle-particle 
+! ... drag coefficients for each solid phase
+!
+      USE atmosphere, ONLY: gravz
+      USE time_parameters, ONLY: time, dt
+      IMPLICIT NONE
+
+      REAL*8,  INTENT(IN) :: kpgv(:)
+      REAL*8,  INTENT(IN) :: rlk(:), wpart(:)
+      REAL*8,  INTENT(IN) :: wgas
+      INTEGER, INTENT(IN) :: ijk
+      INTEGER :: is, n, ks, ks1
+      REAL*8 :: gravterm, dragterm
+!
+      DO is = 1, nsolid
+        gravterm = - gravz * rlk(is)
+        dragterm = kpgv(is) * DABS(wpart(is) - wgas)
+        drag2grav(is,ijk) = dragterm / gravterm
+        IF ( rlk(is) == 0.D0 ) drag2grav(is,ijk) = 0.D0
+      END DO
+!
+      RETURN
+      END SUBROUTINE grav_ratio
 !----------------------------------------------------------------------
-      SUBROUTINE richardson(rgp,rlk,ug,wg,uk,wk,ijk,ijpk)
+      SUBROUTINE richardson(p,rgp,rhog,rlk,ug,wg,uk,wk,ijk,ijpk)
 !
         USE atmosphere, ONLY : gravz, atm
-        USE gas_constants, ONLY: gmw, rgas
+        USE gas_constants, ONLY: gmw, rgas, gammaair, gamn
         USE particles_constants, ONLY: inrl
         USE grid, ONLY: myijk, zb, dz
         USE indijk_module, ONLY: ip0_jp0_kp0_
         IMPLICIT NONE
 !
+        REAL*8,  INTENT(IN) :: p(:)
         REAL*8,  INTENT(IN) :: rgp(:)
+        REAL*8,  INTENT(IN) :: rhog
         REAL*8,  INTENT(IN) :: rlk(:,:)
         REAL*8,  INTENT(IN) :: ug,wg
         REAL*8,  INTENT(IN) :: uk(:),wk(:)
         INTEGER, INTENT(IN) :: ijk, ijpk
 !
         INTEGER :: j, imesh, is
-        REAL*8 :: rhom, rhom1, um, wm
+        REAL*8 :: rhok, rhom, rhom1, um, wm
+        REAL*8 :: p0, p1
         REAL*8 :: rhorif, prif, trif
         REAL*8 :: zrif
-        REAL*8 :: epsk
+        REAL*8 :: epsk, ingam, factor
 !
         imesh = myijk( ip0_jp0_kp0_, ijk)
         j = ( imesh - 1 ) / nr + 1
-        zrif=zb(j)+0.5D0*(dz(1)-dz(j))
 
+        zrif=zb(j)+0.5D0*(dz(1)-dz(j))
         CALL atm(zrif,prif,trif)
         rhorif = prif*gmw(6)/(rgas*trif)
 
-        epsk = 0.D0
+        p0 = p(ijk)
+        p1 = p(ijpk)
         rich(ijk) = 0.D0
-        rhom = rgp(ijk) 
-        rhom1 = rgp(ijpk) 
+        epsk = 0.D0
+        rhom = 0.D0
+        rhom1 = 0.D0
         um   = rgp(ijk) * ug
         wm   = rgp(ijk) * wg
         DO is = 1, nsolid
@@ -85,11 +115,18 @@
           um = um + rlk(is,ijk) * uk(is)
           wm = wm + rlk(is,ijk) * wk(is)
         END DO
+        rhok = rhom
+        rhom = rhom + rgp(ijk) 
+        rhom1 = rhom1 + rgp(ijpk) 
         um = um / rhom
         wm = wm / rhom
-
-        IF (epsk > 1E-6 ) THEN
-          rich(ijk) = ((rhom - rhom1) * gravz * dz(j))/(rhom*(um**2+wm**2))
+ 
+        ingam = 1.D0 / gammaair
+        factor = p0**ingam/(rhog+rhok)/gamn
+        IF (epsk > 1E-8 ) THEN
+          rich(ijk) = factor * (p1**gamn - p0**gamn) - gravz * 0.5*(dz(j)+dz(j+1))
+          rich(ijk) = rich(ijk) / (um**2+wm**2)
+          rich(ijk) = - ( rhom - rhom1 ) * gravz * dz(j) / ( rhom*(um**2+wm**2) )
         ELSE 
           rich(ijk) = 0.D0
         END IF
@@ -116,7 +153,7 @@
         WRITE(3,550)(rich(ijl),ijl=ij1,ij2)
       END DO
 
-      WRITE(3,103)
+      WRITE(3,102)
       DO j=1,nz
         ij1=1+(nz-j)*nr
         ij2=nr+(nz-j)*nr
@@ -124,11 +161,20 @@
       END DO
 
       DO is = 1, nsolid
-        WRITE(3,102)is
+        WRITE(3,103)is
         DO j=1,nz
           ij1=1+(nz-j)*nr
           ij2=nr+(nz-j)*nr
-          WRITE(3,550)(ratio(is,ijl),ijl=ij1,ij2)
+          WRITE(3,550)(gas2pp(is,ijl),ijl=ij1,ij2)
+        END DO
+      END DO
+
+      DO is = 1, nsolid
+        WRITE(3,104)is
+        DO j=1,nz
+          ij1=1+(nz-j)*nr
+          ij2=nr+(nz-j)*nr
+          WRITE(3,550)(drag2grav(is,ijl),ijl=ij1,ij2)
         END DO
       END DO
 
@@ -137,8 +183,9 @@
  547  FORMAT(1x,///,1x,'@@@ TIME = ',G11.4)
  550  FORMAT(1x,10(1x,g14.6e3))
  101  FORMAT(1x,//,1x,'RICHARDSON',/)
- 103  FORMAT(1x,//,1x,'MUGT/MUG',/)
- 102  FORMAT(1x,//,1x,'DRAG/PP',I1,/)
+ 102  FORMAT(1x,//,1x,'MUGT/MUG',/)
+ 103  FORMAT(1x,//,1x,'DRAG/PP',I1,/)
+ 104  FORMAT(1x,//,1x,'GRAV/DRAG',I1,/)
       END SUBROUTINE
 !
 !----------------------------------------------------------------------

@@ -136,7 +136,7 @@
 ! ... transport equation 
               mg=0.D0
               DO ig=1,ngas
-                mg = mg + xgc(ig) * gmw(ig)
+                mg = mg + xgc(ig,ij) * gmw(ig)
               END DO
               rm1nn=ep1nn*mg/(rgas*t1nn)
 !
@@ -304,7 +304,7 @@
 !
               mg=0.D0
               DO ig=1,ngas
-                mg = mg + xgc(ig) * gmw(ig)
+                mg = mg + xgc(ig,ij) * gmw(ig)
               END DO
               rm1nn = ep1nn*mg/(rgas*t1nn)
               p1nn = (1.D0/rm1nn) * &
@@ -482,7 +482,7 @@
 ! ... Use gas velocity for mixture.
               mg=0.D0
               DO ig=1,ngas
-                mg = mg + xgc(ig) * gmw(ig)
+                mg = mg + xgc(ig,ij) * gmw(ig)
               END DO
               rm1nn=ep1nn*mg/(rgas*t1nn)
               p1nn=(1.D0/rm1nn)*(-rm1knn+rm1n-dt/dz1*(rm1n*wcn-rm0n*wc1n))
@@ -624,117 +624,13 @@
 !-----------------------------------------------------------------------
       END SUBROUTINE boundary
 !-----------------------------------------------------------------------
-
-
-!-----------------------------------------------------------------------
-      SUBROUTINE fboundary(fug, fwg)
-!-----------------------------------------------------------------------
-! ... This routine computes boundary conditions for filtered velocities
-!
-      USE grid, ONLY: fl_l, ncint
-      USE set_indexes
-!
-      IMPLICIT NONE
-      REAL*8, INTENT(INOUT), DIMENSION(:) :: fug, fwg
-      INTEGER :: ij
-      INTEGER :: n2, nflr, nflt, nfll, nflb
-      INTEGER :: nflbr, nfltr, nfllt, nfllb
-!
-      DO ij = 1, ncint
-        IF (fl_l(ij) .EQ. 1) THEN
-          CALL subscr(ij)
-!
-          nflr=fl_l(ipj)
-          nflt=fl_l(ijp)
-          nflb=fl_l(ijm)
-          nfll=fl_l(imj)
-          nfltr=fl_l(ipjp)
-          nfllt=fl_l(imjp)
-          nflbr=fl_l(ipjm)
-          nfllb=fl_l(imjm)
-!
-! ***** right boundary conditions
-!
-          IF( nflr.NE.1 .AND. nfltr.NE.1 ) THEN
-            n2 = ipj
-            SELECT CASE (nflr) 
-            CASE (2) 
-              fwg(n2)=fwg(ij)
-            CASE (3)
-              fwg(n2)=-fwg(ij)
-            CASE (4)
-              fug(n2) = fug(ij)
-              fwg(n2) = fwg(ij)
-            CASE DEFAULT
-              CONTINUE
-            END SELECT
-          END IF
-!
-! ***** top boundary conditions
-!
-          IF (nflt .NE. 1 .AND. nfltr .NE. 1) THEN 
-            n2 = ijp
-            SELECT CASE (nflt)
-            CASE (2)
-              fug(n2)=fug(ij)
-            CASE (3)
-              fug(n2)=-fug(ij)
-            CASE (4)
-              fwg(n2) = fwg(ij) 
-              fug(n2) = fug(ij)
-            CASE DEFAULT
-              CONTINUE
-            END SELECT
-          END IF
-!
-! ***** left boundary conditions
-!
-          IF(nfll.NE.1.AND.nfllt.NE.1) THEN
-            n2 = imj
-            SELECT CASE (nfll)
-            CASE (2)
-              fwg(n2)=fwg(ij)
-            CASE (3)
-              fwg(n2)=-fwg(ij)
-            CASE (4)
-              fwg(n2) = fwg(ij) 
-              fug(n2) = fug(ij)
-            CASE DEFAULT
-              CONTINUE
-            END SELECT
-          END IF
-!
-! ***** bottom boundary conditions
-!
-          IF(nflb.NE.1.AND.nflbr.NE.1) THEN
-            n2 = ijm
-            SELECT CASE (nflb)
-            CASE (2)
-              fug(n2)=fug(ij)
-            CASE (3)
-              fug(n2)=-fug(ij)
-            CASE DEFAULT
-              CONTINUE
-            END SELECT
-          END IF
-!
-        END IF
-      END DO
-!
-      RETURN
-!-----------------------------------------------------------------------
-      END SUBROUTINE fboundary
-!-----------------------------------------------------------------------
-
-
-!-----------------------------------------------------------------------
       SUBROUTINE boundary3d
 !-----------------------------------------------------------------------
-! ... This routine computes boundary conditions 
+! ... This routine computes (x,y,z) boundary conditions 
 !
       USE atmosphere, ONLY: gravx, gravz, atm
       USE dimensions
-      USE eos_gas, ONLY: rgpgc
+      USE eos_gas, ONLY: rgpgc, xgc
       USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: sieg, tg, sies, ts
@@ -763,6 +659,7 @@
       REAL*8 :: eps, epc, epcn, ep1nn, epnn
       REAL*8 :: t1nn, tc1n, tcn, t1n, t0n, t2n, tgnn
       REAL*8 :: dz1, dzc, dx1, dxc, dy1, dyc
+      REAL*8 :: mg
 
       INTEGER :: ijk, i, j, k, imesh, ig, is
       INTEGER :: n2
@@ -780,8 +677,7 @@
 
             CALL subscr(ijk)
 !
-
-            ! ***** East boundary conditions ***** !
+! ***** East boundary conditions ***** !
 !
             n2 = ipjk
 
@@ -807,7 +703,7 @@
 
             CASE (4)
 !
-              ! ... definitions
+! ... definitions
 
               dxc = ( dx( nx ) + dx( nx-1 ) ) * 0.5D0
               dx1 = dx( nx-1 )
@@ -815,7 +711,7 @@
               uc1n = ug( imjk )
               ucn  = ug( ijk  )
 !
-              ! ... interpolation of mid-point values
+! ... interpolation of mid-point values
 
               u1n = ( ug( imjk ) + ug( ijk ) ) * 0.5D0
               u2n = ( ug( n2   ) + ug( ijk ) ) * 0.5D0
@@ -827,23 +723,25 @@
               t2n  = tg( n2 )
 
 !
-              IF( ug( ijk ) > 0.D0 ) THEN
+              IF( ucn > 0.D0 ) THEN
 
-                ! ...  OUTFLOW ...
+! ...  OUTFLOW ...
 !
-                ! ...  Non-reflecting boundary conditions
-
-                u2     = ug( n2 )
-                u2nn   = u2 - dt / dx(nx) * (u2*u2 - u2n*ucn)
-                ug(n2) = u2nn
-                ucnn   = ucn - dt / dxc * (u2n*ucn - u1n*uc1n)
-
-                ! MODIFICARE X3D ....  IF(j == .EQ.2) ug(ipjm)=-ug(n2) ! 
-
-                t1nn = t1n - dt/dx1 * (ucn*t1n - uc1n*t0n)
+! ...  Extrapolations
+!               ucnn = u1n
+!               ug(n2) = u2n
 !
-                ! ... calculation of the gas volumetric fraction at time (n+1)dt
-                ! ... from the mass balance equation of solids in cell (ijk)
+! ...  Non-reflecting boundary conditions
+
+                ug(n2) = ug(n2) - ucn*dt/dx(nx) * (ug(n2) - ug(ijk))
+                ucnn = ucn * ( 1 - dt/dx(nx-1) * (ug(ijk) - ug(imjk)) )
+
+! MODIFICARE X3D ....  IF(j == .EQ.2) ug(ipjm)=-ug(n2) ! 
+
+                t1nn = tc1n
+!
+! ... calculation of the gas volumetric fraction at time (n+1)dt
+! ... from the mass balance equation of solids in cell (ijk)
 
                 epc = 0.D0
                 DO is = 1, nsolid
@@ -853,16 +751,10 @@
                 END DO
                 ep1nn = 1.D0 - epc
 !
-                ! ... calculation of the mixture density and fluid pressure 
-                ! ... from a mass balance equation for the mixture.
-                ! ... Use gas velocity for mixture.
+! ... calculation of the mixture density 
+! ... from a mass balance equation for the mixture.
+! ... Use gas velocity for mixture.
 
-                rm1nn = ep1nn * gmw(6) / (rgas*t1nn)
-                rm1knn= 0.D0
-                DO is = 1, nsolid
-                  rm1knn = rm1knn + rlk(is,ijk) 
-                END DO
-!
                 rm2n=0.D0
                 rm1n=0.D0
                 rm0n=0.D0
@@ -871,39 +763,54 @@
                   rm1n=rm1n+rlk(is,ijk)
                   rm0n=rm0n+rlk(is,imjk)
                 END DO
-                rm2n=rm2n+p(n2)*ep(n2)*gmw(6)/(rgas*tg(n2))
-                rm1n=rm1n+p(ijk)*ep(ijk)*gmw(6)/(rgas*tg(ijk))
-                rm0n=rm0n+p(imjk)*ep(imjk)*gmw(6)/(rgas*tg(imjk))
-!
+                rm1knn = rm1n
+                rm2n = rm2n + rgp(n2)
+                rm1n = rm1n + rgp(ijk)
+                rm0n = rm0n + rgp(imjk)
                 rmcn=(rm2n+rm1n)*0.5D0
                 rmc1n=(rm1n+rm0n)*0.5D0
 !
                 rmcnn = rmcn-dt/dxc*(u2n*rmcn-u1n*rmc1n)
 !
+! ... Calculation of fluid pressure from the gas equation of state and 
+! ... the mixture density transport equation
+!
+                mg=0.D0
+                DO ig=1,ngas
+                  mg = mg + xgc(ig,ijk) * gmw(ig)
+                END DO
+                rm1nn=ep1nn*mg/(rgas*t1nn)
+                
                 p1nn = (1.D0/rm1nn) * ( - rm1knn + rm1n - dt/dx1 * ( rm1n*ucn - rm0n*uc1n ) )
                 IF (epc < 1.0D-8) p1nn = p(ijk)
 !
-                ! ... Calculation of the advanced-time fluid pressure from Momentum balance
-                ! ... equation of the mixture
+! ... Calculation of the advanced-time fluid pressure from Momentum balance
+! ... equation of the mixture
 
                 p(n2) = -rmcnn*ucnn + rmcn*ucn - dt/dxc * ( u2n*ucn*rmcn - u1n*uc1n*rmc1n) 
-                p(n2) = p(n2)/(dt/dxc) +p1nn
+                p(n2) = p(n2)/(dt/dxc) + p1nn
 !
-                epnn = ep(n2) - dt/dx(nx) * (ug(n2)*ep(n2) - ug(ijk)*ep(ijk))
-                ep(n2) = epnn
-                tgnn = tg(n2) - dt/dx(nx) * (ug(n2)*tg(n2) - ug(ijk)*tg(ijk))
-                tg(n2) = tgnn
-                sieg(n2)=sieg(ijk)
+                ep(n2) = ep(ijk)
+                tg(n2) = tg(ijk)
+                DO ig=1,ngas
+                   rgpgc(ig,n2) = rgpgc(ig,n2) - &
+                                  ucn * dt/dx(nx) * (rgpgc(ig,n2) - rgpgc(ig,ijk))
+                END DO
 !
-                ! ... Correct non-physical pressure
-                IF (p(n2) < 0.0D0) p(n2) = p(ijk)
+! ... Correct non-physical pressure
+                IF (p(n2) <= 0.0D0) p(n2) = p(ijk)
 !
-              ELSE IF ( ug(ijk) <  0.D0 ) THEN
+              ELSE IF ( ucn <  0.D0 ) THEN
 
-                ! ... INFLOW ...
+! ... INFLOW ...
 !
-                ug(n2) = ug(ijk)
-                ug2    = ug(n2)
+! ... Extrapolation
+
+!                ug(n2) = ug(ijk)
+
+! ... Non-reflecting b.c.
+                
+                ug(n2) = ug(n2) - ucn*dt/dx(nx) * (0.D0 - u2n)
 !
                 zrif=zb(k)+0.5D0*(dz(1)-dz(k))
                 CALL atm(zrif,prif,trif)
@@ -911,14 +818,17 @@
                 cost=prif/(rhorif**gammaair)
                 costc=(gammaair*cost**(1.D0/gammaair))/(gammaair-1.D0)
 !
-                ! ... Adiabatic inflow
+! ... Adiabatic inflow
  
                 p(n2)=(prif**gamn-(ug2**2)/(2.D0*costc))**(1.D0/gamn)
 !
                 ep(n2) = 1.D0
                 tg(n2) = trif
+                DO ig=1,ngas
+                  rgpgc(ig,n2) = rgpgc(ig,ijk)
+                END DO
 
-                ! ... Correct non-physical pressure
+! ... Correct non-physical pressure
 
                 IF ( p(n2) < 0.0D0 ) p(n2) = prif
 !
@@ -928,15 +838,16 @@
                 p(n2)    = p(ijk)
                 ep(n2)   = ep(ijk)
                 tg(n2)   = tg(ijk)
-                sieg(n2) = sieg(ijk)
+                DO ig=1,ngas
+                  rgpgc(ig,n2) = rgpgc(ig,ijk)
+                END DO
 
               ENDIF
 !
-              ! ... Set primary variables
+! ... Set primary variables
 !
-              ! .. IF(nfltr.EQ.3) ug(ipjp) = -ug(n2)
-              ! .. IF(nfltr.EQ.4) wg(n2) = wg(ijk)
-
+              ! ... IF(nfltr.EQ.3) ug(ipjp) = -ug(n2)
+              ! ... IF(nfltr.EQ.4) wg(n2) = wg(ijk)
               DO is = 1, nsolid
                 ! .. IF(nfltr.EQ.4) ws(is,n2)=ws(is,ijk)
                 IF( us(is,ijk) >= 0.D0 ) THEN
@@ -948,10 +859,7 @@
                 ENDIF
               END DO
 
-              DO ig = 1, ngas
-                rgpgc(ig,n2) = rgpgc(ig,ijk)
-              END DO
-
+              sieg(n2) = sieg(ijk)
               DO is = 1, nsolid
                 sies(is,n2) = sies(is,ijk)
               END DO
@@ -963,7 +871,7 @@
             END SELECT
 
 !
-            ! ***** West boundary conditions ***** !
+! ***** West boundary conditions ***** !
 !
 
             n2 = imjk
@@ -990,14 +898,14 @@
 
             CASE (4)
 !
-              ! ... definitions
+! ... definitions
 
               dx1 = dx(i)
               dxc = (dx(i)+dx(i-1))*0.5D0
               uc1n = ug(ijk)
               ucn  = ug(n2)
 !
-              ! ... interpolation of mid-point values
+! ... interpolation of mid-point values
 
               u1n  = (uc1n+ucn)*0.5D0
               epcn = (ep(ijk)+ep(n2))*0.5D0
@@ -1008,37 +916,22 @@
 !
               u2n = ucn - (uc1n-ucn)/dx1 * 0.5*dx(i-1)
 !
-              ! ... OUTFLOW ...
+! ... OUTFLOW ...
 
-              IF( ug(ijk) <= 0.D0 ) THEN
+              IF( uc1n < 0.D0 ) THEN
 !
-                ! ... Non-reflecting boundary condition
+! ... Extrapolations
+                ucnn = u1n
+                t1nn = tc1n
+! 
+! ... Non-reflecting boundary condition
 !
-                ug(n2) = ucn - dt/dxc * (u1n*uc1n - u2n*ucn)                
-                ucnn = ug(n2)
+                ug(n2) = ug(n2) - uc1n*dt/dx1 * (ug(ijk) - ug(n2))
 !
-                t1nn = t1n - dt/dx1 * (uc1n*t0n - ucn*t1n)
+! ... MODIFICAREX3D IF(j.EQ.2) ug(imjmk) = - ug(n2)
 !
-                ! ... Mixture Density at time (n)dt
-
-                rm2n=0.D0
-                rm1n=0.D0
-                rm0n=0.D0
-                DO is=1,nsolid
-                  rm2n=rm2n+rlk(is,n2)
-                  rm1n=rm1n+rlk(is,ijk)
-                  rm0n=rm0n+rlk(is,ipjk)
-                END DO
-                rm1knn = rm1n
-                rm2n=rm2n+p(n2)*ep(n2)*gmw(6)/(rgas*tg(n2))
-                rm1n=rm1n+p(ijk)*ep(ijk)*gmw(6)/(rgas*tg(ijk))
-                rm0n=rm0n+p(ipjk)*ep(ipjk)*gmw(6)/(rgas*tg(ipjk))
-!
-                rmcn=(rm2n+rm1n)*0.5D0
-                rmc1n=(rm1n+rm0n)*0.5D0
-!
-                ! ... calculation of the gas volumetric fraction at time (n+1)dt
-                ! ... from the mass balance equation of solids in cell (ijk)
+! ... calculation of the gas volumetric fraction at time (n+1)dt
+! ... from the mass balance equation of solids in cell (ijk)
 
                 epc = 0.D0
                 DO is = 1, nsolid
@@ -1048,36 +941,55 @@
                 END DO
                 ep1nn=1.D0-epc
 !
-                ! ... calculation of the mixture density and fluid pressure 
-                ! ... from a mass balance equation for the mixture.
-                ! ... Use gas velocity for mixture.
+! ... Mixture Density at time (n)dt
+                rm2n=0.D0
+                rm1n=0.D0
+                rm0n=0.D0
+                DO is=1,nsolid
+                  rm2n=rm2n+rlk(is,n2)
+                  rm1n=rm1n+rlk(is,ijk)
+                  rm0n=rm0n+rlk(is,ipjk)
+                END DO
+                rm1knn = rm1n
+                rm2n = rm2n + rgp(n2)
+                rm1n = rm1n + rgp(ijk)
+                rm0n = rm0n + rgp(ipjk)
 !
-                ! ... Mixture Density at time (n+1)dt
-
+                rmcn=(rm2n+rm1n)*0.5D0
+                rmc1n=(rm1n+rm0n)*0.5D0
+!
                 rmcnn = rmcn - dt/dxc * (u1n*rmc1n-u2n*rmcn)
 !
-                ! ... Pressure at time (n+1)dt
-
-                rm1nn = ep1nn*gmw(6)/(rgas*t1nn)
+! ... calculation of fluid pressure 
+! ... from a mass balance equation for the mixture.
+! ... Use gas velocity for mixture.
+!
+                mg=0.D0
+                DO ig=1,ngas
+                  mg = mg + xgc(ig,ijk) * gmw(ig)
+                END DO
+                rm1nn = ep1nn*mg/(rgas*t1nn)
                 p1nn = (1.D0/rm1nn) * &
                        (-rm1knn+rm1n-dt/dx1*(uc1n*rm0n-rm1n*ucn))
-                IF (epc .LT. 1.0D-8) p1nn = p(ijk)
+                IF (epc < 1.0D-8) p1nn = p(ijk)
 !
-                ! ... Calculation of the advanced-time fluid pressure from Momentum balance
-                ! ... equation of the mixture
+! ... Calculation of the advanced-time fluid pressure from Momentum balance
+! ... equation of the mixture
 
                 p(n2) = -rmcnn*ucnn + rmcn*ucn - dt/dxc *     &
                          ( u1n*uc1n*rmc1n - u2n*ucn*rmcn) + dt/dxc * p1nn
                 p(n2)=p(n2)/(dt/dxc)
 !
-                epnn = ep(n2) - u2n*dt/dx(1) * (ep(ijk) -ep(n2))
-                ep(n2) = epnn
-                tgnn = tg(n2) - u2n*dt/dx(1) * (tg(ijk) - tg(n2))
-                tg(n2) = tgnn
+! ... Correct non-physical pressure
+                IF (p(n2) <= 0.0D0) p(n2) = p(ijk)
+                ep(n2) = ep(ijk)
+                tg(n2) = tg(ijk)
+                DO ig=1,ngas
+                  rgpgc(ig,n2) = rgpgc(ig,n2) - &
+                                 uc1n * dt/dx(1) * (rgpgc(ig,ijk) - rgpgc(ig,n2))
+                END DO
 !
-                sieg(n2)=sieg(ijk)
-!
-                ! ... extrapolation of the temperature and solid fraction to time (n+1)dt
+! ... extrapolation of the temperature and solid fraction to time (n+1)dt
 
                 DO is=1,nsolid
                   ! IF(nfllt.EQ.4) ws(is,n2)=ws(is,ijk)
@@ -1085,35 +997,38 @@
                   us(is,n2)=us(is,ijk)
                 END DO
 
-              ELSE IF( ug(ijk) > 0.D0 ) THEN
+              ELSE IF( uc1n > 0.D0 ) THEN
 
-                ! ... INFLOW ...
+! ... INFLOW ...
 !
-                ug(n2) = ug(ijk)
-                ug2    = ug(ijk)
+                ug(n2) = ug(n2) - uc1n*dt/dx1 * (u1n - 0.D0)
+
                 zrif = zb(k)+0.5D0*(dz(1)-dz(k))
                 CALL atm(zrif,prif,trif)
                 rhorif = prif*gmw(6)/(rgas*trif)
                 cost = prif/(rhorif**gammaair)
                 costc = (gammaair*cost**(1.D0/gammaair))/(gammaair-1.D0)
 !
-                ! ... Adiabatic inflow
+! ... Adiabatic inflow
 
                 p(n2)=(prif**gamn-(ug2**2)/(2.D0*costc))**(1.D0/gamn)
 !
-                ! ... Correct non-physical pressure
+! ... Correct non-physical pressure
 
                 IF ( p(n2) < 0.0D0 ) p(n2) = prif
 !
                 ep(n2) = 1.D0
                 tg(n2) = trif
+                DO ig=1,ngas
+                  rgpgc(ig,n2) = rgpgc(ig,ijk)
+                END DO
 
               ENDIF
 !
-              ! ... Set primary variables
+! .... Set primary variables
 !
-              ! .. IF(nfllt.EQ.4) wg(n2)=wg(ijk)
-              ! .. IF(nfllt.EQ.3) ug(ipjp) = -ug(n2)
+              ! ... IF(nfllt.EQ.4) wg(n2)=wg(ijk)
+              ! ... IF(nfllt.EQ.3) ug(ipjp) = -ug(n2)
               DO is=1,nsolid
                 ! .. IF(nfllt.EQ.4) ws(is,n2)=ws(is,ijk)
                 IF( us(is,ijk) >= 0.D0 ) THEN
@@ -1125,10 +1040,7 @@
                 ENDIF
               END DO
 !
-              DO ig=1,ngas
-                rgpgc(ig,n2)=rgpgc(ig,ijk)
-              END DO
-!
+              sieg(n2) = sieg(ijk)
               DO is=1,nsolid
                 sies(is,n2)=sies(is,ijk)
               END DO
@@ -1139,8 +1051,69 @@
 
             END SELECT
 !
+! ***** north boundary conditions ***** !
 !
-            ! ***** top boundary conditions ***** !
+!
+            n2 = ijpk
+
+            SELECT CASE (  fl_l( n2 ) )
+
+            CASE (2)
+
+              ug( n2 ) = ug( ijk )
+              wg( n2 ) = wg( ijk )
+              DO is = 1, nsolid
+                us(is,n2) = us(is,ijk)
+                ws(is,n2) = ws(is,ijk)
+              END DO 
+
+            CASE (3)
+
+              ug(n2) = -ug(ijk)
+              wg(n2) = -wg(ijk)
+              DO is = 1, nsolid
+                 us(is,n2) = -ws(is,ijk)
+                 ws(is,n2) = -ws(is,ijk)
+              END DO 
+
+            CASE DEFAULT
+
+              CONTINUE
+
+            END SELECT
+!
+! ***** south boundary conditions ***** !
+!
+!
+            n2 = ijmk
+
+            SELECT CASE (  fl_l( n2 ) )
+
+            CASE (2)
+
+              ug( n2 ) = ug( ijk )
+              wg( n2 ) = wg( ijk )
+              DO is = 1, nsolid
+                us(is,n2) = us(is,ijk)
+                ws(is,n2) = ws(is,ijk)
+              END DO 
+
+            CASE (3)
+
+              ug(n2) = -ug(ijk)
+              wg(n2) = -wg(ijk)
+              DO is = 1, nsolid
+                 us(is,n2) = -us(is,ijk)
+                 ws(is,n2) = -ws(is,ijk)
+              END DO 
+
+            CASE DEFAULT
+
+              CONTINUE
+
+            END SELECT
+!
+! ***** top boundary conditions ***** !
 !
 
             n2 = ijkp
@@ -1177,7 +1150,7 @@
 
             CASE (4)
 !
-              ! ... definitions and linear interpolations
+! ... definitions and linear interpolations
 
               dzc=(dz(nz)+dz(nz-1))*0.5D0
               dz1=dz(nz-1)
@@ -1193,21 +1166,22 @@
               t1n  = tg( ijk )
               t0n  = tg( ijkm )
 !
-              ! ... OUTFLOW ...
+! ... OUTFLOW ...
 
-              IF( wg( ijk ) > 0.D0) THEN
+              IF( wcn > 0.D0) THEN
 !
-                ! ... Non-reflecting boundary condition 
+! ... Extrapolations
+!                wg(n2) = w2n
+!                wcnn = w1n
+                t1nn = tc1n
+
+! ... Non-reflecting boundary condition 
 !
-                w2    = wg(n2)
-                w2nn   = w2 - dt/dz(nz) * (w2*w2 - w2n*wcn)
-                wg(n2) = w2nn
-                wcnn   = wcn - dt/dzc * (w2n*wcn - w1n*wc1n)
+                wg(n2) = wg(n2) - wcn*dt/dz(nz) * (wg(n2) - wg(ijk))
+                wcnn   = wcn * ( 1 - dt/dz(nz-1) * (wg(ijk) - wg(ijkm)) )
 !
-                t1nn = t1n - dt/dz1 * (wcn*t1n - wc1n*t0n)
-!
-                ! ... calculation of gas volumetric fraction at time (n+1)dt
-                ! ... from the mass balance equation of solids, in cell (ijk)
+! ... calculation of gas volumetric fraction at time (n+1)dt
+! ... from the mass balance equation of solids, in cell (ijk)
 
                 epc = 0.D0
                 DO is = 1, nsolid
@@ -1217,15 +1191,8 @@
                 END DO 
                 ep1nn = 1.D0 - epc
 !
-                ! ... calculation of mixture density and fluid pressure at time (n+1)dt
-                ! ... from the mixture mass balance equation in cell (ijk)
-                ! ... Use gas velocity for mixture.
+! ... calculation of mixture density at time (n+1)dt
 
-                rm1nn  = ep1nn*gmw(6)/(rgas*t1nn)
-                rm1knn = 0.D0
-                DO is = 1, nsolid
-                  rm1knn = rm1knn + rlk(is,ijk) 
-                END DO 
                 rm2n=0.D0
                 rm1n=0.D0
                 rm0n=0.D0
@@ -1234,6 +1201,7 @@
                   rm1n=rm1n+rlk(is,ijk)
                   rm0n=rm0n+rlk(is,ijkm)
                 END DO 
+                rm1knn = rm1n
                 rm2n=rm2n+p(n2)*ep(n2)*gmw(6)/(rgas*tg(n2))
                 rm1n=rm1n+p(ijk)*ep(ijk)*gmw(6)/(rgas*tg(ijk))
                 rm0n=rm0n+p(ijkm)*ep(ijkm)*gmw(6)/(rgas*tg(ijkm))
@@ -1242,45 +1210,65 @@
 !
                 rmcnn=rmcn-dt/dzc*(w2n*rmcn-w1n*rmc1n)
 !
+! ... Calculation of the fluid pressure from a mass balance equation 
+! ... for the mixture.
+                mg=0.D0
+                DO ig=1,ngas
+                  mg = mg + xgc(ig,ijk) * gmw(ig)
+                END DO
+                rm1nn=ep1nn*mg/(rgas*t1nn)
+
                 p1nn=(1.D0/rm1nn)*(-rm1knn+rm1n-dt/dz1*(rm1n*wcn-rm0n*wc1n))
                 IF (epc < 1.0D-8) p1nn = p(ijk)
 !
-                ! ... Calculation of the advanced-time fluid pressure from Momentum balance
-                ! ... equation of the mixture
+! ... Calculation of the advanced-time fluid pressure from Momentum balance
+! ... equation of the mixture
 ! 
                 pnn2=p(n2)
 !
                 p(n2) = -rmcnn*wcnn + rmcn*wcn-dt/dzc*(w2n*wcn*rmcn-w1n*wc1n*rmc1n) + &
                        dt*p1nn/dzc+gravz*dt*rmcn
                 p(n2) = p(n2)/(dt/dzc)
+
                 ep(n2) = ep(ijk)
-                tg(n2) = 2.D0*tg(ijk)-tg(ijkm)
-                sieg(n2) = sieg(ijk)
+                tg(n2) = tg(ijk)
+                DO ig=1,ngas
+                  rgpgc(ig,n2) = rgpgc(ig,n2) - &
+                                 wcn*dt/dz(nz) * (rgpgc(ig,n2) - rgpgc(ig,ijk))
+                END DO
 !
-                ! ... (Correct non-physical pressure)
+! ... (Correct non-physical pressure)
 
                 IF( p(n2) <= 0.D0 ) p(n2) = pnn2
 !
-              ELSEIF( wg(ijk) < 0.D0 ) THEN
+              ELSEIF( wcn < 0.D0 ) THEN
 
-                ! ... INFLOW ...
+! ... INFLOW ...
 !
                 wg2=wg(ijk)
-                wg(n2) = wg2
+
+! ... Extrapolation
+!                wg(n2) = wg2
 !
-                t1nn = t1n - w1n*dt/dz1 * (t2n - t1n)
+! ... Non-reflecting b.c.
+                wg(n2) = wg(n2) - wcn*dt/dz(nz) * (0.D0 - w2n)
 !
                 zrif=zb(nz)+0.5D0*(dz(1)-dz(nz))
                 CALL atm(zrif,prif,trif)
                 rhorif=prif*gmw(6)/(rgas*trif)
                 cost=prif/(rhorif**gammaair)
                 costc=(gammaair*cost**(1.D0/gammaair))/(gammaair-1.D0)
+!
                 ep(n2)=1.D0
                 tg(n2)=trif
+                DO ig=1,ngas
+                  rgpgc(ig,n2) = rgpgc(ig,ijk)
+                END DO
+
                 pnn2=p(n2)
                 p(n2)=(prif**gamn-(wg2**2/2.D0)/costc)**(1.D0/gamn)
 !
-                ! ... (Correct non-physical pressure)
+! ... (Correct non-physical pressure)
 
                 IF( p(n2) < 0.D0 ) p(n2)=pnn2
 !
@@ -1290,11 +1278,13 @@
                 p(n2)  = p(ijk)
                 ep(n2) = ep(ijk)
                 tg(n2) = tg(ijk)
-                sieg(n2)=sieg(ijk)
+                DO ig=1,ngas
+                  rgpgc(ig,n2) = rgpgc(ig,ijk)
+                END DO
 
               ENDIF
 !
-              ! ... set upper corners velocities
+! ... set upper corners velocities
 !
               IF ( k == (nz-1) ) THEN
                 IF( ( i == (nx-1) ) .AND. ( j == (ny-1) ) ) THEN
@@ -1325,10 +1315,7 @@
                 ! ENDIF
               END DO 
 
-              DO ig=1,ngas
-                rgpgc(ig,n2)=rgpgc(ig,ijk)
-              END DO 
-             
+              sieg(n2) = sieg(ijk)
               DO is=1,nsolid
                 sies(is,n2)=sies(is,ijk)
                 ts(is,n2)=ts(is,ijk)
@@ -1344,7 +1331,7 @@
             END SELECT
 
 !
-            ! ***** bottom boundary conditions ***** !
+! ***** bottom boundary conditions ***** !
 !
 !
             n2 = ijkm
@@ -1385,104 +1372,11 @@
             END SELECT
 !
         END IF
-
       END DO
 !
       RETURN
 !-----------------------------------------------------------------------
       END SUBROUTINE boundary3d
-!-----------------------------------------------------------------------
-
-
-!-----------------------------------------------------------------------
-      SUBROUTINE fboundary3d(fug, fwg)
-!-----------------------------------------------------------------------
-! ... This routine computes boundary conditions for filtered velocities
-!
-      USE grid, ONLY: fl_l, ncint
-      USE set_indexes, ONLY: subscr, ipjk,  imjk,  ippjk,  immjk,  ijpk,  &
-        ipjpk,  imjpk,  ijmk,  ipjmk,  imjmk,  ijppk,  ijmmk,  ijkp,  ipjkp,  &
-        imjkp,  ijpkp,  ijmkp,  ijkm,  ipjkm,  imjkm,  ijpkm,  ijmkm,  ijkpp,  ijkmm
-!
-      IMPLICIT NONE
-      REAL*8, INTENT(INOUT), DIMENSION(:) :: fug, fwg
-      INTEGER :: ijk
-      INTEGER :: n2, nflr, nflt, nfll, nflb
-      INTEGER :: nflbr, nfltr, nfllt, nfllb
-!
-      DO ijk = 1, ncint
-
-        IF ( fl_l(ijk) == 1 ) THEN
-
-          CALL subscr(ijk)
-!
-          ! ***** East boundary conditions ***** !
-!
-          n2 = ipjk
-          SELECT CASE ( fl_l( n2 ) ) 
-          CASE (2) 
-            fwg(n2)=fwg(ijk)
-          CASE (3)
-            fwg(n2)=-fwg(ijk)
-          CASE (4)
-            fug(n2) = fug(ijk)
-            fwg(n2) = fwg(ijk)
-          CASE DEFAULT
-            CONTINUE
-          END SELECT
-!
-          ! ***** top boundary conditions ***** !
-!
-          n2 = ijkp
-          SELECT CASE ( fl_l( n2 ) )
-          CASE (2)
-            fug(n2)=fug(ijk)
-          CASE (3)
-            fug(n2)=-fug(ijk)
-          CASE (4)
-            fwg(n2) = fwg(ijk) 
-            fug(n2) = fug(ijk)
-          CASE DEFAULT
-            CONTINUE
-          END SELECT
-!
-          ! ***** West boundary conditions ***** !
-!
-          n2 = imjk
-          SELECT CASE ( fl_l( n2 ) )
-          CASE (2)
-            fwg(n2)=fwg(ijk)
-          CASE (3)
-            fwg(n2)=-fwg(ijk)
-          CASE (4)
-            fwg(n2) = fwg(ijk) 
-            fug(n2) = fug(ijk)
-          CASE DEFAULT
-            CONTINUE
-          END SELECT
-!
-          ! ***** bottom boundary conditions ***** !
-!
-          n2 = ijkm
-          SELECT CASE ( fl_l( n2 ) )
-          CASE (2)
-            fug(n2)=fug(ijk)
-          CASE (3)
-            fug(n2)=-fug(ijk)
-          CASE DEFAULT
-            CONTINUE
-          END SELECT
-!
-        END IF
-
-      END DO
-!
-      RETURN
-!-----------------------------------------------------------------------
-      END SUBROUTINE fboundary3d
-!-----------------------------------------------------------------------
-
-
 !-----------------------------------------------------------------------
       END MODULE boundary_conditions
 !-----------------------------------------------------------------------

@@ -4,27 +4,26 @@
       USE boundary_conditions, ONLY: boundary, boundary3d
       USE dimensions
       USE eos_gas, ONLY: mole, eosg, rags
-      USE eos_gas, ONLY: ygc, rgpgc, rgpgcn, xgc, cg
+      USE eos_gas, ONLY: ygc, rgpgc, xgc, cg
       USE eos_solid, ONLY: eosl
       USE enthalpy_matrix, ONLY: ftem
-      USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
-      USE gas_solid_temperature, ONLY: sieg, siegn, sies, siesn, ts, tg
+      USE gas_solid_density, ONLY: rog, rgp, rlk
+      USE gas_solid_temperature, ONLY: sieg, sies, ts, tg
       USE grid, ONLY: ncint, myijk, fl_l
       USE heat_capacity, ONLY: cp, ck
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE io_restart, ONLY: tapewr
       USE iterative_solver, ONLY: iter
-      USE output_dump, ONLY: outp
+      USE output_dump, ONLY: outp_2d, outp_bin
       USE particles_constants, ONLY: cps
-      USE pressure_epsilon, ONLY: p, pn, ep
+      USE pressure_epsilon, ONLY: p, ep
       USE reactions, ONLY: rexion, irex
       USE tilde_energy, ONLY: htilde
-      USE tilde_momentum, ONLY: tilde, euvel
+      USE tilde_momentum, ONLY: tilde, fieldn
       USE time_parameters, ONLY: time, tpr, tdump, tstop, dt, itd
       USE time_parameters, ONLY: rungekut
       USE turbulence, ONLY: iturb, iss
       USE turbulence, ONLY: sgsg, sgss
-      USE gas_solid_viscosity, ONLY: viscon, mug, kapg
       USE gas_components, ONLY: ygas
       USE environment, ONLY: cpclock, timing
       USE control_flags, ONLY: job_type
@@ -111,17 +110,27 @@
 !
 ! ... Write OUTPUT file
 !
-       IF(time+0.1D0*dt.GE.tpri) THEN
-         CALL collect
-         CALL outp
-         tpri=tpri+tpr
-       ENDIF
+       IF( job_type == '2D' ) THEN
+         IF(time+0.1D0*dt >= tpri) THEN
+           CALL collect
+           CALL outp_2d
+           tpri=tpri+tpr
+         ENDIF
+       ELSE IF( job_type == '3D' ) THEN
+         IF(time+0.1D0*dt >= tpri) THEN
+           CALL collect
+           CALL outp_bin
+           tpri=tpri+tpr
+         ENDIF
+       ELSE
+         CALL error(' prog ',' wrong job_type ',1)
+       END IF
 
               IF( timing ) s3 = cpclock()
 !
 ! ... Write RESTART file
 !
-       IF (time+0.1D0*dt.GT.tdump1) THEN
+       IF (time+0.1D0*dt > tdump1) THEN
          CALL collect
          CALL tapewr
          tdump1=tdump1+tdump
@@ -130,37 +139,18 @@
               IF( timing ) s4 = cpclock()
 !
 !------------------------------------------------------------ 
-       IF (time + 0.1D0*dt .GE. tstop)     EXIT time_sweep
+       IF (time + 0.1D0*dt >= tstop)     EXIT time_sweep
 !------------------------------------------------------------ 
-!
-       DO ijk = 1, ncint
-!
-! ... Store fields at time n*dt
-!
-           pn(ijk) = p(ijk)
-           rgpn(ijk) = rgp(ijk)
-           siegn(ijk) = sieg(ijk)
-           DO is=1,nsolid
-             rlkn(is,ijk) = rlk(is,ijk)
-             siesn(is,ijk) = sies(is,ijk)
-           END DO
-           DO ig=1,ngas
-             rgpgcn(ig,ijk) = rgpgc(ig,ijk)
-           END DO
-!
-! ... Compute the temperature-dependent gas viscosity and th. conductivity
 ! 
-           CALL viscon(mug(ijk), kapg(ijk), xgc(:,ijk), tg(ijk))
-       END DO
+! ... Store all independent fields at time n*dt 
+! ... for explicit time integration
 !
-! ... Compute Turbulent viscosity from Smagorinsky LES model
+       CALL fieldn
 !
-         IF (iturb >= 1)  CALL sgsg
-         IF (iss >= 1)    CALL sgss
-! 
-! ... Store gas and particle momentum densities at time n*dt
+! ... Compute Turbulent viscosity from Smagorinsky sub-grid-stress model
 !
-         CALL euvel
+       IF (iturb >= 1)  CALL sgsg
+       IF (iss >= 1)    CALL sgss
 !
               IF( timing ) s5 = cpclock()
 
@@ -168,9 +158,8 @@
               timout = timout + (s3 - s2)
               timrestart = timrestart + (s4 - s3)
               tsgsg = tsgsg + (s5 - s4)
-
 !
-! ... Start the Runge-Kutta iteration
+! ... Start the explicit Runge-Kutta iteration
 !
          dt0 = dt
          DO rk = 1, rungekut
@@ -189,12 +178,12 @@
 ! ... and explicit solver for interphase coupling
 !
            CALL iter
-
+!
                 IF( timing ) s7 = cpclock()
 ! 
 ! ... Solve the explicit transport equation of gas species
 !
-           IF (irex .GE. 2) CALL rexion
+           IF (irex > 2) CALL rexion
            CALL ygas
 
                 IF( timing ) s8 = cpclock()

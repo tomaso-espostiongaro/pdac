@@ -6,8 +6,7 @@
 !----------------------------------------------------------------------
       CONTAINS
 !--------------------------------------------------------------------
-      SUBROUTINE hvs(hv, rlk, rog, ep, ug, ugm, us, usm,       &
-                     wg, wgm, ws, wsm, mug, kapg, cg, k)
+      SUBROUTINE hvs(hv, rlk, rog, ep, du, dv, dw, mug, kapg, cg, k)
 !
       USE dimensions
       USE particles_constants, ONLY: rl, inrl, dk 
@@ -16,27 +15,24 @@
       INTEGER, INTENT(IN) :: k
       REAL*8, INTENT(IN) :: rlk, rog, ep
       REAL*8, INTENT(IN) :: mug, kapg, cg
-      REAL*8, INTENT(IN) :: ug, ugm, us, usm 
-      REAL*8, INTENT(IN) :: wg, wgm, ws, wsm 
+      REAL*8, INTENT(IN) :: du, dv, dw
       REAL*8, INTENT(OUT) :: hv
 !
-      REAL*8 :: reynum, pranum, eps, du, dw, vrel
+      REAL*8 :: reynum, pranum, eps, vrel
       REAL*8 :: asurf
 !
 !pe-------------
-      IF(rlk .LE. 0.D0) THEN
+      IF(rlk <= 0.D0) THEN
         hv = 0.D0
         RETURN
       ENDIF
 !pe-------------
       asurf = rlk * inrl(k) * (6.D0/dk(k))
-      du = 0.5D0*((ug+ugm)-(us+usm))
-      dw = 0.5D0*((wg+wgm)-(ws+wsm))
-      vrel = DSQRT(du**2+dw**2)
+      vrel = DSQRT(du**2.D0+dv**2.D0+dw**2.D0)
       reynum = dk(k) * vrel * rog / mug
       pranum = cg * mug / kapg
 !
-! generalized gunn's correlation for n particles
+! generalized Gunn's correlation for n particles
 !
       eps = rlk * inrl(k)
       hv = ((2.D0 + 5.D0 * eps**2.D0)*                                &
@@ -44,7 +40,7 @@
              (0.13D0 + 1.2D0 * eps**2.D0) * reynum**0.7D0 *           &
               pranum**(1.D0/3.D0)) * kapg * asurf/dk(k)
 !
-! gunn's correlation
+! Gunn's correlation
 !
 !      hv = ((7.D0 - 10.D0 * ep + 5.D0 * ep**2.D0) *                  &
 !           (1.D0 + 0.7D0 * reynum**0.2 * pranum**(1.D0/3.D0)) +      &
@@ -52,7 +48,7 @@
 !           reynum**0.7D0 * pranum**(1.D0/3.D0)) * kapg *             &
 !           asurf/dk(k)
 !
-! zabrodsky's correlations
+! Zabrodsky's correlations
 !
 !      IF (ep .LE. 0.8D0) THEN
 !        IF (reynum .LE. 200.D0) THEN
@@ -79,3 +75,4 @@
       END SUBROUTINE
 !----------------------------------------------------------------------
       END MODULE heat_transfer
+!----------------------------------------------------------------------

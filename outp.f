@@ -8,7 +8,7 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE outp
+      SUBROUTINE outp_2d
 !
       USE dimensions, ONLY: nr, nz, nsolid
       USE eos_gas, ONLY: gc_molar_fraction
@@ -22,6 +22,7 @@
       USE pressure_epsilon, ONLY: gas_pressure
       USE time_parameters, ONLY: time
       USE turbulence, ONLY: smag_coeff, modturbo
+      USE control_flags, ONLY: job_type
 !
       IMPLICIT NONE
 !
@@ -163,10 +164,10 @@
 
  555  FORMAT(1x,//,1x,'CDYN',/)
 !
-      END SUBROUTINE outp
+      END SUBROUTINE outp_2d
 
 !----------------------------------------------------------------------
-     SUBROUTINE recover
+     SUBROUTINE recover_2d
 !
       USE dimensions, ONLY: nr, nz, nsolid
       USE eos_gas, ONLY: gc_molar_fraction
@@ -303,14 +304,14 @@
  650  FORMAT(1x,10(1x,g12.6))
 ! 650  FORMAT(1x,10(1x,g14.6e3))
 !
-     END SUBROUTINE recover
+     END SUBROUTINE recover_2d
 
 !-----------------------------------------------------------------------------------
       SUBROUTINE outp_test_fluxes(rgfr, rgft)
 !
       USE dimensions, ONLY: nr, nz, nsolid
       USE tilde_momentum, ONLY: rug, rwg, rus, rws
-      USE tilde_energy, ONLY: rhg, rhk
+      USE tilde_energy, ONLY: rhg, rhs
       USE parallel, ONLY: nproc, mpime, root, group
       USE particles_constants, ONLY: rl, inrl
       USE time_parameters, ONLY: time
@@ -390,5 +391,77 @@
 !
       END SUBROUTINE outp_test_fluxes
 !----------------------------------------------------------------------
+      SUBROUTINE outp_bin
+!
+      USE dimensions, ONLY: nr, nz, nsolid
+      USE eos_gas, ONLY: gc_molar_fraction
+      USE gas_constants, ONLY: present_gas, default_gas
+      USE gas_solid_density, ONLY: solid_bulk_density
+      USE gas_solid_velocity, ONLY: gas_velocity_r, gas_velocity_x, &
+                                    gas_velocity_y, gas_velocity_z
+      USE gas_solid_velocity, ONLY: solid_velocity_r, solid_velocity_x, &
+                                    solid_velocity_y, solid_velocity_z
+      USE gas_solid_temperature, ONLY: gas_temperature, solid_temperature
+      USE parallel, ONLY: nproc, mpime, root, group
+      USE particles_constants, ONLY: rl, inrl
+      USE pressure_epsilon, ONLY: gas_pressure
+      USE time_parameters, ONLY: time
+      USE turbulence, ONLY: smag_coeff, modturbo
+      USE control_flags, ONLY: job_type
+!
+      IMPLICIT NONE
+!
+      CHARACTER :: filnam*11
+      CHARACTER*4 :: letter
+!
+      INTEGER :: ig,is
+!
+      nfil=nfil+1
+      filnam='output.'//letter(nfil)
+
+      IF( mpime .EQ. root ) THEN
+
+        OPEN(UNIT=12,FORM='UNFORMATTED',FILE=filnam)
+!
+        WRITE(12) REAL(time,4)
+!
+        WRITE(12) REAL(gas_pressure,4)
+        IF (job_type == '2D') THEN
+          WRITE(12) REAL(gas_velocity_r,4)
+          WRITE(12) REAL(gas_velocity_z,4)
+        ELSE IF (job_type == '3D') THEN
+          WRITE(12) REAL(gas_velocity_x,4)
+          WRITE(12) REAL(gas_velocity_y,4)
+          WRITE(12) REAL(gas_velocity_z,4)
+        ELSE
+          CALL error('outp_bin','Unknown job type',1)
+        END IF
+        WRITE(12) REAL(gas_temperature,4)
+!
+        DO ig=1,ngas
+          IF( present_gas(ig) .AND. (ig /= default_gas) ) THEN
+            WRITE(12) REAL(gc_molar_fraction(ig,:),4)
+          END IF
+        END DO
+!
+        DO is=1,nsolid
+          WRITE(12) REAL(solid_bulk_density(is,:)*inrl(is),4)
+          IF (job_type == '2D') THEN
+            WRITE(12) REAL(solid_velocity_r(is,:),4)
+            WRITE(12) REAL(solid_velocity_z(is,:),4)
+          ELSE IF (job_type == '3D') THEN
+            WRITE(12) REAL(solid_velocity_x(is,:),4)
+            WRITE(12) REAL(solid_velocity_y(is,:),4)
+            WRITE(12) REAL(solid_velocity_z(is,:),4)
+          END IF
+          WRITE(12) REAL(solid_temperature(is,:),4)
+        END DO
+
+        CLOSE (12)
+      END IF
+!
+      RETURN
+      END SUBROUTINE outp_bin
+!-----------------------------------------------------------------------
       END MODULE output_dump
 !----------------------------------------------------------------------

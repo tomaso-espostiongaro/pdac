@@ -2,7 +2,6 @@
       MODULE turbulence
 !----------------------------------------------------------------------
 !
-      USE gas_solid_velocity, ONLY: ug,wg 
       USE grid, ONLY: fl_l, myijk,  ncint, ncdom, data_exchange
       USE environment, ONLY: timing, cpclock
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -52,9 +51,6 @@
       scoeff = 0.0D0
       RETURN
       END SUBROUTINE
-
-! ... MODIFICARE_X3D ( fino fine file )
-
 !----------------------------------------------------------------------
        SUBROUTINE turbulence_setup
 
@@ -93,27 +89,16 @@
 
           DO j = 2, (nz-1)
             DO i = 2, (nr-1) 
-
               ijk = i+(j-1)*nr
-
               delt = DSQRT( dz(j)*dr(i) )
-
               IF ( iturb == 1 ) THEN
-
                 sl = cmut * delt
-
               ELSE IF ( iturb == 2 ) THEN
-
                 IF( j <= jt(i) ) THEN
-
                   sl = 0.D0
-
                 ELSE
-
                   sgsl0 = cmut * delt
-
                   IF( it(i) == 1 ) THEN
-
                     zsgsl = zb(j)-zbt(i)-dz(j)*0.5D0
                     IF( zrough%ir == 1 ) THEN
                       zrou = zrough%r(1)
@@ -126,21 +111,16 @@
                     ENDIF
                     sgslb=0.4D0*(zsgsl+zrou)
 !
-                    ! ... use the smallest between the smag length and the roughness length
+! ... use the smallest between the smag length and the roughness length
 
                     sl = dmin1(sgsl0,sgslb)
-  
                   ELSE
-
                     sl = sgsl0
-
                   ENDIF
-
                 ENDIF
-
               ENDIF
 !
-              ! ... Squared turbulence length scale is used into Smagorinsky model
+! ... Squared turbulence length scale is used into Smagorinsky model
 
               smag_factor(ijk) = sl**2
 !
@@ -152,21 +132,14 @@
           DO k = 1, nz
             DO j = 1, ny
               DO i = 1, nx
-
                 ijk = i + (j-1)*nx + (k-1)*nx*ny
                 delt = ( dz(k)*dy(j)*dx(i) )**(1.0d0/3.0d0)
-
                 IF ( iturb == 1 ) THEN
-
                   sl = cmut * delt
-
                 ELSE IF ( iturb == 2 ) THEN
-
                   CALL error( ' turbo_setup ' , ' undefined 3D roughness ', 1 )
-
                 END IF
-
-                ! ... Squared turbulence length scale is used into Smagorinsky model
+! ... Squared turbulence length scale is used into Smagorinsky model
 
                 smag_factor(ijk) = sl**2
 
@@ -184,163 +157,463 @@
       SUBROUTINE sgsg
 
 ! ... Sub Grid Stress (Gas)
-! ... compute dynamic C , dynamic turbulent viscosity and 
+! ... compute (dynamic) Smagorinsky coefficient , turbulent viscosity and 
 ! ... turbulent conductivity in the center of the cell.
 
-      USE boundary_conditions, ONLY: fboundary
-      USE dimensions, ONLY: nr
+      USE control_flags, ONLY: job_type
+      USE dimensions, ONLY: nx, ny, nz
       USE eos_gas, ONLY: cg
       USE gas_solid_density, ONLY: rog
-      USE set_indexes, ONLY: subscr
-      USE grid, ONLY: dr, dz 
+      USE gas_solid_velocity, ONLY: ug,vg,wg 
+      USE set_indexes, ONLY: subscr, rnb
+      USE grid, ONLY: dx, dy, dz 
       IMPLICIT NONE
 !
-      REAL*8 ,DIMENSION(:), ALLOCATABLE :: modsr, sr1, sr2, sr12 
-      REAL*8 ,DIMENSION(:), ALLOCATABLE :: p1, p2, p12 
-      REAL*8, DIMENSION(:), ALLOCATABLE :: fug, fwg, fu2g, fw2g, fuwg
-!
-      REAL*8 :: fsr1, fsr2, fsr12, fmodsr
-      REAL*8 :: fp1, fp2, fp12
-      REAL*8 :: l1, l2, l12, m1, m2, m12, l1d, l2d
+      REAL*8, DIMENSION(:), ALLOCATABLE :: modsr, p11, p12, p22, p13, p23, p33  
+      REAL*8, DIMENSION(:), ALLOCATABLE :: fug, fvg, fwg, fu2g, fv2g, fw2g,    &
+                                           fuvg, fuwg, fvwg
+      REAL*8 :: sr11, sr12, sr22, sr13, sr23, sr33  
+      REAL*8 :: fmodsr, fsr11, fsr12, fsr22, fsr13, fsr23, fsr33
+      REAL*8 :: fp11, fp12, fp22, fp13, fp23, fp33
+      REAL*8 :: l11, l12, l22, l13, l23, l33, m11, m12, m22, m13, m23, m33 
+      REAL*8 :: l1d, l2d, l3d
       REAL*8 :: cdyn 
       REAL*8 :: num, den
       REAL*8 :: delt
-      INTEGER  :: i, j, ij, imesh  
+      INTEGER  :: i, j, k, ijk, imesh  
 !
       ALLOCATE(modsr(ncdom));     modsr = 0.0D0
-      ALLOCATE(sr1(ncdom))  ;     sr1 = 0.0D0
-      ALLOCATE(sr2(ncdom))  ;     sr2 = 0.0D0
-      ALLOCATE(sr12(ncdom)) ;     sr12 = 0.0D0
-      ALLOCATE(p1(ncdom))   ;     p1 = 0.0D0
-      ALLOCATE(p2(ncdom))   ;     p2 = 0.0D0
-      ALLOCATE(p12(ncdom))  ;     p12 = 0.0D0
-!
-      CALL data_exchange(ug)
-      CALL data_exchange(wg)
-!
-      DO ij = 1, ncint
-        IF(fl_l(ij).EQ.1) THEN
-          CALL subscr(ij)
-          CALL strain(ug, wg, ij, modsr(ij), sr1(ij), sr2(ij), sr12(ij), p1(ij), p2(ij), p12(ij))
-        END IF
-      END DO
-!
-      IF (modturbo .EQ. 2) THEN
+      IF (modturbo == 2) THEN
+        IF (job_type == '2D') CALL error('sgsg',  &
+                    'Dynamic Smagorinsky model applies only to 3D', 1 ) 
+        ALLOCATE(p11(ncdom))  ;     p11 = 0.0D0
+        ALLOCATE(p12(ncdom))  ;     p12 = 0.0D0
+        ALLOCATE(p22(ncdom))  ;     p22 = 0.0D0
+        ALLOCATE(p13(ncdom))  ;     p13 = 0.0D0
+        ALLOCATE(p23(ncdom))  ;     p23 = 0.0D0
+        ALLOCATE(p33(ncdom))  ;     p33 = 0.0D0
         ALLOCATE(fug(ncdom))  ;     fug = 0.0D0
+        ALLOCATE(fvg(ncdom))  ;     fvg = 0.0D0
         ALLOCATE(fwg(ncdom))  ;     fwg = 0.0D0
         ALLOCATE(fu2g(ncdom)) ;     fu2g = 0.0D0
+        ALLOCATE(fv2g(ncdom)) ;     fv2g = 0.0D0
         ALLOCATE(fw2g(ncdom)) ;     fw2g = 0.0D0
+        ALLOCATE(fuvg(ncdom)) ;     fuvg = 0.0D0
         ALLOCATE(fuwg(ncdom)) ;     fuwg = 0.0D0
+        ALLOCATE(fvwg(ncdom)) ;     fvwg = 0.0D0
+      END IF
+!
+      CALL data_exchange(ug)
+      CALL data_exchange(vg)
+      CALL data_exchange(wg)
+!
+      IF (modturbo == 2) THEN
+        DO ijk = 1, ncint
+          IF(fl_l(ijk) == 1) THEN
+            CALL subscr(ijk)
+!
+! ... compute the modulus and components of the strain rate tensor
+!
+            CALL straing(ijk, ug, vg, wg, modsr(ijk), sr11,sr12,sr22,sr13,sr23,sr33)
+!	  
+            p11(ijk) = modsr(ijk) * sr11
+  	    p12(ijk) = modsr(ijk) * sr22
+	    p22(ijk) = modsr(ijk) * sr22
+	    p13(ijk) = modsr(ijk) * sr13
+	    p23(ijk) = modsr(ijk) * sr23
+	    p33(ijk) = modsr(ijk) * sr33
 !
 ! ... compute filtered velocities
 !
-        CALL vel_hat(fug, fwg, fu2g, fw2g, fuwg)        
+            CALL vel_hat(ijk, fug(ijk), fvg(ijk), fwg(ijk),      &
+	                      fu2g(ijk), fv2g(ijk), fw2g(ijk),   &
+	                      fuvg(ijk), fuwg(ijk), fvwg(ijk) )        
+          END IF
+        END DO
 !
-        CALL fboundary(fug, fwg)
-!
-        CALL data_exchange(p1)
-        CALL data_exchange(p2)
+        CALL data_exchange(p11)
         CALL data_exchange(p12)
+        CALL data_exchange(p22)
+        CALL data_exchange(p13)
+        CALL data_exchange(p23)
+        CALL data_exchange(p33)
         CALL data_exchange(fug)
+        CALL data_exchange(fvg)
         CALL data_exchange(fwg)
         CALL data_exchange(fu2g)
+        CALL data_exchange(fv2g)
         CALL data_exchange(fw2g)
+        CALL data_exchange(fuvg)
         CALL data_exchange(fuwg)
-      END IF
+        CALL data_exchange(fvwg)
+      END IF  
 !
-       DO ij = 1, ncint
-        IF(fl_l(ij).EQ.1) THEN
-          CALL subscr(ij)
-          imesh = myijk( ip0_jp0_kp0_, ij)
-          j = ( imesh - 1 ) / nr + 1
-          i = MOD( ( imesh - 1 ), nr) + 1
+      DO ijk = 1, ncint
+        IF(fl_l(ijk) == 1) THEN
+          CALL subscr(ijk)
+          imesh = myijk( ip0_jp0_kp0_, ijk)
+          i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
+          j = MOD( ijk - 1, nx*ny ) / nx + 1
+          k = ( ijk - 1 ) / ( nx*ny ) + 1
 !
-! ... Dynamic computation of the Smagorinsky length scale (Germano et al., 1990)
+          IF(modturbo == 1) THEN
+	  
+	     IF (job_type == '2D') THEN
+               CALL strain2d(ug, wg, ijk, modsr(ijk))
+	     ELSE IF (job_type == '3D') THEN
+               CALL straing(ijk, ug, vg, wg, modsr(ijk), sr11,sr12,sr22,sr13,sr23,sr33)
+	     END IF
+
+          ELSE IF(modturbo == 2) THEN
 !
-          IF(modturbo.EQ.2) THEN
-             delt = DSQRT(dz(j)*dr(i))
-             CALL strain(fug, fwg, ij, fmodsr, fsr1, fsr2, fsr12)
+! ... Dynamic computation of the Smagorinsky length scale (Germano et al., 1991)
 !
-             fp1  = filter(p1,ij)
-             fp2  = filter(p2,ij)
-             fp12 = filter(p12,ij)   
+             CALL straing(ijk, fug, fvg, fwg, fmodsr, fsr11, fsr12, fsr22, &
+	                 fsr13, fsr23, fsr33)
+!
+             fp11 = filter_3d(rnb(p11,ijk))
+             fp12 = filter_3d(rnb(p12,ijk))   
+             fp22 = filter_3d(rnb(p22,ijk))
+             fp13 = filter_3d(rnb(p13,ijk))
+             fp23 = filter_3d(rnb(p23,ijk))
+             fp33 = filter_3d(rnb(p33,ijk))
 !         
-             l1  = fug(ij)**2 - fu2g(ij)
-             l2  = fwg(ij)**2 - fw2g(ij)
-             l12 = fug(ij)*fwg(ij) - fuwg(ij)
+             l11  = fug(ijk)**2 - fu2g(ijk)
+             l12  = fug(ijk)*fvg(ijk) - fuvg(ijk)
+             l22  = fvg(ijk)**2 - fv2g(ijk)
+             l13  = fug(ijk)*fwg(ijk) - fuwg(ijk)
+             l23  = fvg(ijk)*fwg(ijk) - fvwg(ijk)
+             l33  = fwg(ijk)**2 - fw2g(ijk)
 !
-!             l1d = 0.5D0*l1 - 0.5D0*l2
-!             l2d = 0.5D0*l2 - 0.5D0*l1  
+!             l1d = l11 - 0.5D0*(l11+l22+l33)
+!             l2d = l22 - 0.5D0*(l11+l22+l33)  
+!             l3d = l33 - 0.5D0*(l11+l22+l33)  
 !
-             m1  = (4.D0*fmodsr*fsr1 - fp1)
-             m2  = (4.D0*fmodsr*fsr2 - fp2)
+             m11 = (4.D0*fmodsr*fsr11 - fp11)
              m12 = (4.D0*fmodsr*fsr12 - fp12)
+             m22 = (4.D0*fmodsr*fsr22 - fp22)
+             m13 = (4.D0*fmodsr*fsr13 - fp13)
+             m23 = (4.D0*fmodsr*fsr23 - fp23)
+             m33 = (4.D0*fmodsr*fsr33 - fp33)
 !              
-! ... min-square calculation
+             delt = ( dz(k)*dy(j)*dx(i) )**(1.0d0/3.0d0)
 !
-             num = l1*m1 + l2*m2 + 2*l12*m12
-             den = delt**2.D0*( m1**2.D0 + m2**2.D0 + 2.D0*m12**2.D0)
+             num = l11*m11 + l22*m22 + l33*m33 + &
+	           2.D0*l12*m12 + 2.D0*l13*m13 + 2.D0*l23*m23
+
+             den = delt**2.D0*( m11**2.D0 + m22**2.D0 + m33**2.D0 + &
+	                        2.D0*m12**2.D0 + 2.D0*m13**2.D0 + 2.D0*m23**2.D0 )
 !
-             IF(den.EQ.0.0D0) THEN
+             IF(den == 0.0D0) THEN
               cdyn = 0.0D0
               ELSE 
               cdyn = 0.5D0*num/den 
              END IF
-             smag(ij) = cdyn * (delt**2.D0)
+!
+             smag(ijk) = cdyn * (delt**2.D0)
           END IF
 !
 ! ... Smagorinsky turbulent viscosity
 !
-          mugt(ij) = rog(ij) * smag(ij) * modsr(ij)
-          IF(mugt(ij).LT.0.0D0) mugt(ij) = 0.0D0
+          mugt(ijk) = rog(ijk) * smag(ijk) * modsr(ijk)
+          IF(mugt(ijk) < 0.0D0) mugt(ijk) = 0.0D0
 !
-          scoeff(ij) = cdyn
-!-turb-heat*********************
+          scoeff(ijk) = cdyn
+!
+! ... Turbulent heat conductivity
+!
           pranumt=0.5
-          kapgt(ij)=mugt(ij)*cg(ij)/pranumt
-!-turb-heat**********************
-
-        ELSE
-          mugt(ij)  = 0.D0
-          kapgt(ij) = 0.D0
+          kapgt(ijk)=mugt(ijk)*cg(ijk)/pranumt
+!
+        ELSE IF (fl_l(ijk) /= 1) THEN
+          mugt(ijk)  = 0.D0
+          kapgt(ijk) = 0.D0
         END IF
-       END DO
+      END DO
 !                          
       DEALLOCATE(modsr)
-      DEALLOCATE(sr1)
-      DEALLOCATE(sr2)
-      DEALLOCATE(sr12)
-      DEALLOCATE(p1)
-      DEALLOCATE(p2)
-      DEALLOCATE(p12)
-      IF (modturbo .EQ. 2) THEN
+      IF (modturbo == 2) THEN
+        DEALLOCATE(p11)
+        DEALLOCATE(p12)
+        DEALLOCATE(p22)
+        DEALLOCATE(p13)
+        DEALLOCATE(p23)
+        DEALLOCATE(p33)
         DEALLOCATE(fug)
+        DEALLOCATE(fvg)
         DEALLOCATE(fwg)
         DEALLOCATE(fu2g)
+        DEALLOCATE(fv2g)
         DEALLOCATE(fw2g)
+        DEALLOCATE(fuvg)
         DEALLOCATE(fuwg)
+        DEALLOCATE(fvwg)
       END IF
 
       RETURN 
       END SUBROUTINE sgsg
 !----------------------------------------------------------------------
-      SUBROUTINE strain(u, w, ij, modsr, sr1, sr2, sr12, p1, p2, p12 )
+      SUBROUTINE vel_hat(ijk, fu, fv, fw, fu2, fv2, fw2, fuv, fuw, fvw) 
+!
+! ... Compute the filtered components of the velocity in the cell centers
+! ... Values in the cell centers are computed through the 'sumstencil' interface 
+! ... Cross terms (uv, uw, vw) are computed through the 'prodstencil' interface
+! ... (in set_indexes module)
+
+      USE set_indexes
+      USE gas_solid_velocity, ONLY: ug,vg,wg 
+      IMPLICIT NONE
+ 
+      INTEGER, INTENT(IN) :: ijk
+      REAL*8, INTENT(OUT) :: fu, fv, fw, fu2, fv2, fw2, fuv, fuw, fvw
+      TYPE(stencil) :: u, v, w, u2, v2, w2, uv, uw, vw
+!
+      u = 0.5D0 * (rnb(ug,ijk) + rnb(ug,imjk))
+      v = 0.5D0 * (rnb(vg,ijk) + rnb(vg,ijmk))
+      w = 0.5D0 * (rnb(wg,ijk) + rnb(wg,ijkm))
+      u2 = u * u
+      v2 = v * v
+      w2 = w * w
+      uv = u * v
+      uw = u * w
+      vw = v * w
+      fu  = filter_3d(u)
+      fv  = filter_3d(v)
+      fw  = filter_3d(w)
+      fu2 = filter_3d(u2)
+      fv2 = filter_3d(v2)
+      fw2 = filter_3d(w2)
+      fuv = filter_3d(uv)
+      fuw = filter_3d(uw)
+      fvw = filter_3d(vw)
+!
+      RETURN
+      END SUBROUTINE vel_hat
+!----------------------------------------------------------------------
+      REAL*8 FUNCTION filter_x(q)
+      USE set_indexes
+!
+      TYPE(stencil),  INTENT(IN) :: q
+!
+      filter_x = 0.25D0 * ( q%w + 2.D0 * q%c + q%e )
+!
+      END FUNCTION filter_x
+!----------------------------------------------------------------------
+      REAL*8 FUNCTION filter_y(q)
+      USE set_indexes
+!
+      TYPE(stencil),  INTENT(IN) :: q
+!
+      filter_y = 0.25D0 * ( q%s + 2.D0 * q%c + q%n )
+!
+      END FUNCTION filter_y
+!----------------------------------------------------------------------
+      REAL*8 FUNCTION filter_z(q)
+      USE set_indexes
+!
+      TYPE(stencil),  INTENT(IN) :: q
+!
+      filter_z = 0.25D0 * ( q%b + 2.D0 * q%c + q%t )
+!
+      END FUNCTION filter_z
+!----------------------------------------------------------------------
+      REAL*8 FUNCTION filter_3d(field)
+      USE set_indexes
+!
+! ... 3d filter is made by linear combination of 1d filters
+!
+      TYPE(stencil),  INTENT(IN) :: field
+      REAL*8 :: fx, fy, fz
+!
+      fx = filter_x(field)
+      fy = filter_y(field)
+      fz = filter_z(field)
+!
+      filter_3d = 1.D0/3.D0 * (fx + fy + fz)
+!
+      END FUNCTION filter_3d
+!----------------------------------------------------------------------
+      SUBROUTINE sgss
+!
+      USE dimensions
+      USE gas_solid_density, ONLY: rlk
+      USE gas_solid_velocity, ONLY: us, vs, ws
+      USE grid, ONLY: itc
+      USE particles_constants, ONLY: rl, inrl, dk, cmus
+      USE set_indexes
+      USE control_flags, ONLY: job_type
+      IMPLICIT NONE
+!
+      INTEGER :: ijk, is, imesh
+      REAL*8 :: modsr, sr11,sr12,sr22,sr13,sr23,sr33
+!
+      CALL data_exchange(us)
+      CALL data_exchange(vs)
+      CALL data_exchange(ws)
+!
+      DO ijk = 1, ncint
+        imesh = myijk( ip0_jp0_kp0_, ijk)
+        IF(fl_l(ijk).EQ.1) THEN
+         CALL subscr(ijk)
+!
+         DO is=1,nsolid
+           IF (job_type == '2D') THEN
+             CALL strains2d(us, ws, ijk, is, modsr)
+           ELSE IF (job_type == '3D') THEN
+             CALL strains(ijk, is, us, vs, ws, modsr, sr11,sr12,sr22,sr13,sr23,sr33)
+           END IF
+!
+           must(is,ijk) = 0.5*DSQRT(2.D0) * cmus(is) * rl(is) * dk(is)**2 *   &
+     &                 10.D0**(3.98D0*rlk(is,ijk)*inrl(is)-1.69D0) * modsr
+         END DO
+        END IF
+      END DO
+!
+      RETURN
+      END SUBROUTINE
+!-----------------------------------------------------------------------
+      SUBROUTINE straing(ijk, u, v, w, modsr, sr11, sr12, sr22, sr13, sr23, sr33)
+!
+! ... here computes the components of the gas strain rate tensor and its module.
+
+      USE dimensions, ONLY: nx, ny, nz   
+      USE grid, ONLY: dx, dy, dz, indx, indy, indz
+      USE set_indexes
+      IMPLICIT NONE
+
+      INTEGER, INTENT(IN)  :: ijk
+      REAL*8, INTENT(IN), DIMENSION(:) :: u, v, w
+      REAL*8, INTENT(OUT) :: modsr
+      REAL*8, INTENT(OUT) :: sr11, sr12, sr22, sr13, sr23, sr33
+!
+      REAL*8 :: w1, w2, w3, u1, u2, u3, v1, v2, v3
+      REAL*8 :: um1, um2, vm1, vm2, wm1, wm2 
+      REAL*8 :: dxp, dyp, dzp, dxm, dym, dzm
+      REAL*8 :: uzp, uzm, uyp, uym, vxp, vxm, vzp, vzm, wxp, wxm, wyp, wym 
+      INTEGER :: i, j, k, imesh 
+!
+      imesh = myijk( ip0_jp0_kp0_, ijk)
+      i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
+      j = MOD( ijk - 1, nx*ny ) / nx + 1
+      k = ( ijk - 1 ) / ( nx*ny ) + 1
+!
+      dxp=dx(i)+dx(i+1)
+      dxm=dx(i)+dx(i-1)
+      dyp=dy(j)+dy(j+1)
+      dym=dy(j)+dy(j-1)
+      dzp=dz(k)+dz(k+1)
+      dzm=dz(k)+dz(k-1)
+!
+! ... Compute velocity gradients in the cell centers.
+! ... Cross terms (non-diagonal) in the strain tensor are obtained
+! ... by interpolating the values found on the staggered grid.
+!
+      sr11 = (u(ijk)-u(imjk))*indx(i)
+      sr22 = (v(ijk)-v(ijmk))*indy(j)
+      sr33 = (w(ijk)-w(ijkm))*indz(k)
+!
+      uzp=0.5D0*(u(ijkp)+u(imjkp))
+      uzm=0.5D0*(u(ijkm)+u(imjkm))
+      uyp=0.5D0*(u(ijpk)+u(imjpk))
+      uym=0.5D0*(u(ijmk)+u(imjmk))
+      vxp=0.5D0*(v(ipjk)+v(ipjmk))
+      vxm=0.5D0*(v(imjk)+v(imjmk))
+      vzp=0.5D0*(v(ijkp)+v(ijmkp))
+      vzm=0.5D0*(v(ijkm)+v(ijmkm))
+      wxp=0.5D0*(w(ipjk)+w(ipjkm))
+      wxm=0.5D0*(w(imjk)+w(imjkm))
+      wyp=0.5D0*(w(ijpk)+w(ijpkm))
+      wym=0.5D0*(w(ijmk)+w(ijmkm))
+	
+      sr12 = (uyp - uym) / (dyp+dym) + (vxp - vxm) / (dxp+dxm)
+      sr13 = (uzp - uzm) / (dzp+dzm) + (wxp - wxm) / (dxp+dxm)
+      sr23 = (vzp + vzm) / (dzp+dzm) + (wyp - wym) / (dyp+dym)
+!        
+      modsr = DSQRT(2.D0 * (sr11**2.D0 + sr22**2.D0 + sr33**2.D0 +             &
+	                   2.D0*sr12**2.D0 + 2.D0*sr13**2.D0 + 2.D0*sr23**2.D0) )
+!
+      RETURN
+      END SUBROUTINE straing
+!-----------------------------------------------------------------------
+      SUBROUTINE strains(ijk, is, u, v, w, modsr, sr11, sr12, sr22, sr13, sr23, sr33)
+!
+! ... here computes the components of the particle strain rate tensor and its module.
+
+      USE dimensions, ONLY: nx, ny, nz   
+      USE grid, ONLY: dx, dy, dz, indx, indy, indz
+      USE set_indexes
+      IMPLICIT NONE
+
+      INTEGER,INTENT(IN)  :: ijk, is
+      REAL*8, INTENT(IN), DIMENSION(:,:) :: u, v, w
+      REAL*8, INTENT(OUT) :: modsr
+      REAL*8, INTENT(OUT) :: sr11, sr12, sr22, sr13, sr23, sr33
+!
+      REAL*8 :: w1, w2, w3, u1, u2, u3, v1, v2, v3
+      REAL*8 :: um1, um2, vm1, vm2, wm1, wm2 
+      REAL*8 :: dxp, dyp, dzp, dxm, dym, dzm
+      REAL*8 :: uzp, uzm, uyp, uym, vxp, vxm, vzp, vzm, wxp, wxm, wyp, wym 
+      INTEGER :: i, j, k, imesh 
+!
+        imesh = myijk( ip0_jp0_kp0_, ijk)
+        i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
+        j = MOD( ijk - 1, nx*ny ) / nx + 1
+        k = ( ijk - 1 ) / ( nx*ny ) + 1
+
+        dxp=dx(i)+dx(i+1)
+        dxm=dx(i)+dx(i-1)
+        dyp=dy(j)+dy(j+1)
+        dym=dy(j)+dy(j-1)
+        dzp=dz(k)+dz(k+1)
+        dzm=dz(k)+dz(k-1)
+!
+! ... Compute velocity gradients in the cell centers.
+! ... Cross terms (non-diagonal) in the strain tensor are obtained
+! ... by interpolating the values found on the staggered grid.
+!
+        sr11 = (u(is,ijk)-u(is,imjk))*indx(i)
+        sr22 = (v(is,ijk)-v(is,ijmk))*indy(j)
+        sr33 = (w(is,ijk)-w(is,ijkm))*indz(k)
+!
+        uzp=0.5D0*(u(is,ijkp)+u(is,imjkp))
+        uzm=0.5D0*(u(is,ijkm)+u(is,imjkm))
+        uyp=0.5D0*(u(is,ijpk)+u(is,imjpk))
+       	uym=0.5D0*(u(is,ijmk)+u(is,imjmk))
+  	vxp=0.5D0*(v(is,ipjk)+v(is,ipjmk))
+  	vxm=0.5D0*(v(is,imjk)+v(is,imjmk))
+  	vzp=0.5D0*(v(is,ijkp)+v(is,ijmkp))
+	vzm=0.5D0*(v(is,ijkm)+v(is,ijmkm))
+	wxp=0.5D0*(w(is,ipjk)+w(is,ipjkm))
+	wxm=0.5D0*(w(is,imjk)+w(is,imjkm))
+	wyp=0.5D0*(w(is,ijpk)+w(is,ijpkm))
+	wym=0.5D0*(w(is,ijmk)+w(is,ijmkm))
+	
+        sr12 = (uyp - uym) / (dyp+dym) + (vxp - vxm) / (dxp+dxm)
+        sr13 = (uzp - uzm) / (dzp+dzm) + (wxp - wxm) / (dxp+dxm)
+        sr23 = (vzp + vzm) / (dzp+dzm) + (wyp - wym) / (dyp+dym)
+!        
+        modsr = DSQRT(2.D0 * (sr11**2.D0 + sr22**2.D0 + sr33**2.D0 +             &
+	                   2.D0*sr12**2.D0 + 2.D0*sr13**2.D0 + 2.D0*sr23**2.D0) )
+!
+      RETURN
+      END SUBROUTINE strains
+!---------------------------------------------------------------------
+      SUBROUTINE strain2d(u, w, ij, modsr)
 !
 ! ... here computes the components of the strain rate tensor and its module.
-! ... and the components of the function pij(=modsr*srij)
 
       USE dimensions, ONLY: nr    
       USE grid, ONLY:dr, dz, indr, indz,itc,inr 
       USE set_indexes
       IMPLICIT NONE
 
+      INTEGER, INTENT(IN)  :: ij
       REAL*8, INTENT(IN), DIMENSION(:) :: u, w
-      INTEGER,INTENT(IN)  :: ij
-      REAL*8, INTENT(OUT) :: modsr, sr1, sr2, sr12
-      REAL*8, OPTIONAL, INTENT(OUT) :: p1, p2, p12
+      REAL*8, INTENT(OUT) :: modsr
 !
       REAL*8 :: w1, w2, w3, u1, u2, u3, um1, um2, wm1, wm2 
       REAL*8 :: drp, dzm, drm, dzp, indrp, indzm, indrm, indzp
+      REAL*8 :: sr1, sr2, sr12
       REAL*8 :: d33
       INTEGER :: i, j, imesh 
 !
@@ -386,148 +659,73 @@
 
         sr12 =((um2-um1)*indz(j)+(wm2-wm1)*indr(i))*0.5D0
 !        
-        modsr = DSQRT(2 * (sr1**2 + sr2**2 + 2*sr12**2) )
+        modsr = DSQRT(2 * (sr1**2 + sr2**2 + 2*sr12**2 + d33**2) )
+!
+      RETURN
+      END SUBROUTINE
+!---------------------------------------------------------------------
+      SUBROUTINE strains2d(u, w, ij, is, modsr)
+!
+! ... here computes the components of the strain rate tensor and its module.
 
-        IF (PRESENT(p1)) THEN 
-          p1  =  modsr * sr1
-          p2  =  modsr * sr2
-          p12 =  modsr * sr12
-        END IF
-!
-      RETURN
-      END SUBROUTINE
-!----------------------------------------------------------------------
-      SUBROUTINE vel_hat(fug, fwg, fu2g, fw2g, fuwg) 
-!
-!... the filtered components of the velocity are calculated...
-!... before filtering the product of the components of the velocity we 
-!... have defined the function u_per_w(ij)(next subroutine)...
-
-      USE set_indexes, ONLY: subscr
-      IMPLICIT NONE
- 
-      REAL*8, DIMENSION(:), ALLOCATABLE :: uwg, u2g, w2g
-      REAL*8, INTENT(OUT), DIMENSION(:) :: fug, fwg, fu2g, fw2g, fuwg
-      INTEGER :: i, j, ij
-    
-      ALLOCATE(uwg(ncdom)) 
-      ALLOCATE(u2g(ncdom)) 
-      ALLOCATE(w2g(ncdom)) 
-      uwg = 0.0D0
-      u2g = 0.0D0
-      w2g = 0.0D0
-!
-      CALL u_per_w(uwg) 
-      u2g = ug * ug
-      w2g = wg * wg
-!
-      CALL data_exchange(uwg)
-!
-       DO ij = 1, ncint
-         IF (fl_l(ij) .EQ. 1) THEN 
-          CALL subscr(ij)
-          fug(ij)  = filter(ug,ij)
-          fwg(ij)  = filter(wg,ij)
-          fu2g(ij) = filter(u2g,ij)
-          fw2g(ij) = filter(w2g,ij)
-          fuwg(ij) = filter(uwg,ij)     
-         END IF 
-       END DO 
-!
-      DEALLOCATE(uwg)
-      DEALLOCATE(u2g)
-      DEALLOCATE(w2g)
-! 
-      RETURN
-      END SUBROUTINE
-!----------------------------------------------------------------------
-      SUBROUTINE u_per_w(uwg)
-      USE set_indexes
-! 
-      IMPLICIT NONE
-      INTEGER :: ij
-      REAL*8, INTENT(OUT) :: uwg(:)
-!
-      DO ij = 1, ncint
-        IF(fl_l(ij) .EQ. 1) THEN
-          CALL subscr(ij)
-          uwg(ij)=(0.5D0*(ug(ij)+ug(imj)))*(0.5D0*(wg(ij)+wg(ijm)))
-        ELSE
-          uwg(ij) = ug(ij)*wg(ij)
-        END IF
-      END DO   
-      RETURN
-      END SUBROUTINE
-!----------------------------------------------------------------------
-       FUNCTION filter(t,ij)
-       USE set_indexes, ONLY: imj, ipj, ijm, ijp
-!
-       REAL*8,INTENT(IN),DIMENSION(:):: t
-       INTEGER,INTENT(IN):: ij
-       REAL*8 :: filter
-!
-       filter = (0.125)*(t(imj)+t(ipj)+t(ijm)+t(ijp))+0.5D0*t(ij)
-!
-       END FUNCTION filter
-!----------------------------------------------------------------------
-      SUBROUTINE sgss
-!
-      USE dimensions
-      USE gas_solid_density, ONLY: rlk
-      USE gas_solid_velocity, ONLY: us, ws
-      USE grid, ONLY: itc, dz, dr, r, rb, indz, indr, inr, inrb
-      USE particles_constants, ONLY: rl, inrl, dk, cmus
+      USE dimensions, ONLY: nr    
+      USE grid, ONLY:dr, dz, indr, indz,itc,inr 
       USE set_indexes
       IMPLICIT NONE
+
+      INTEGER, INTENT(IN)  :: ij, is
+      REAL*8, INTENT(IN), DIMENSION(:,:) :: u, w
+      REAL*8, INTENT(OUT) :: modsr
 !
-      REAL*8 :: w1, w2, w3, u1, u2, u3, wm1, wm2, um1, um2
-      REAL*8 :: d12, d11, d22, d33
-      REAL*8 :: drp, dzm, drm, dzp, indrp, indzm, indrm, indzp 
-      INTEGER :: ij
-      INTEGER :: i, j, is, imesh
+      REAL*8 :: w1, w2, w3, u1, u2, u3, um1, um2, wm1, wm2 
+      REAL*8 :: drp, dzm, drm, dzp, indrp, indzm, indrm, indzp
+      REAL*8 :: sr1, sr2, sr12
+      REAL*8 :: d33
+      INTEGER :: i, j, imesh 
 !
-      CALL data_exchange(us)
-      CALL data_exchange(ws)
-!
-      d33=0.D0
-      DO ij = 1, ncint
         imesh = myijk( ip0_jp0_kp0_, ij)
-        IF(fl_l(ij).EQ.1) THEN
-         CALL subscr(ij)
-         j = ( imesh - 1 ) / nr + 1
-         i = MOD( ( imesh - 1 ), nr) + 1
+        j = ( imesh - 1 ) / nr + 1
+        i = MOD( ( imesh - 1 ), nr) + 1
+
+        drp=dr(i)+dr(i+1)
+        drm=dr(i)+dr(i-1)
+        dzp=dz(j)+dz(j+1)
+        dzm=dz(j)+dz(j-1)
+        indrp=1.D0/drp
+        indrm=1.D0/drm
+        indzp=1.D0/dzp
+        indzm=1.D0/dzm
 !
-         drp=dr(i)+dr(i+1)
-         drm=dr(i)+dr(i-1)
-         dzp=dz(j)+dz(j+1)
-         dzm=dz(j)+dz(j-1)
+! ... Compute velocity gradients in the center of the cell.
+! ... Cross terms (non-diagonal) in the strain tensor are obtained
+! ... by interpolating the values found on the staggered grids.
 !
-         indrp=1.D0/drp
-         indrm=1.D0/drm
-         indzp=1.D0/dzp
-         indzm=1.D0/dzm
-!         
-         DO is=1,nsolid
-           d11=2.D0*(us(is,ij)-us(is,imj))*indr(i)
-           d22=2.D0*(ws(is,ij)-ws(is,ijm))*indz(j)
-           IF(itc.EQ.1)d33=(us(is,ij)+us(is,imj))*inr(i)
-           u3=0.5D0*(us(is,ijp)+us(is,imjp))
-           u2=0.5D0*(us(is,ij)+us(is,imj))
-           u1=0.5D0*(us(is,ijm)+us(is,imjm))
-           w3=0.5D0*(ws(is,ipj)+ws(is,ipjm))
-           w2=0.5D0*(ws(is,ij)+ws(is,ijm))
-           w1=0.5D0*(ws(is,imj)+ws(is,imjm))
-           um2=u2+(u3-u2)*dz(j)*indzp
-           um1=u1+(u2-u1)*dz(j-1)*indzm
-           wm2=w2+(w3-w2)*dr(i)*indrp
-           wm1=w1+(w2-w1)*dr(i-1)*indrm
-           d12=(um2-um1)*indz(j)+(wm2-wm1)*indr(i)
-           must(is,ij) = cmus(is)*0.7071D0*rl(is)*dk(is)**2 *            &
-     &                 10.D0**(3.98D0*rlk(is,ij)*inrl(is)-1.69D0) *   &
-     &                 DSQRT(d11*d11+d22*d22+d33*d33+2.0D0*d12*d12)
-         END DO
+        sr1 = (u(is,ij)-u(is,imj))*indr(i)
+        sr2 = (w(is,ij)-w(is,ijm))*indz(j)
+!
+        
+! ... extra-term for cylindrical coordinates
+!
+        IF(itc.EQ.1) THEN
+          d33 = (u(is,ij)+u(is,imj))*inr(i)
+        ELSE
+          d33 = 0.D0
         END IF
-      END DO
+!
+        u3=0.5D0*(u(is,ijp)+u(is,imjp))
+        u2=0.5D0*(u(is,ij)+u(is,imj))
+        u1=0.5D0*(u(is,ijm)+u(is,imjm))
+        w3=0.5D0*(w(is,ipj)+w(is,ipjm))
+        w2=0.5D0*(w(is,ij)+w(is,ijm))
+        w1=0.5D0*(w(is,imj)+w(is,imjm))
+        um2=u2+(u3-u2)*dz(j)*indzp
+        um1=u1+(u2-u1)*dz(j-1)*indzm
+        wm2=w2+(w3-w2)*dr(i)*indrp
+        wm1=w1+(w2-w1)*dr(i-1)*indrm
+
+        sr12 =((um2-um1)*indz(j)+(wm2-wm1)*indr(i))*0.5D0
+!        
+        modsr = DSQRT(2 * (sr1**2 + sr2**2 + 2*sr12**2 + d33**2) )
 !
       RETURN
       END SUBROUTINE

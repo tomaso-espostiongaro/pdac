@@ -13,17 +13,17 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE hrex(ij,hrexg,hrexs)
+      SUBROUTINE hrex(ijk,hrexg,hrexs)
 !
       USE dimensions
       USE time_parameters, ONLY: dt
       IMPLICIT NONE
 
       REAL*8 :: hrexg, hrexs
-      INTEGER, INTENT(IN) :: ij
+      INTEGER, INTENT(IN) :: ijk
 !
-      hrexs = dt * ( r1(ij)*h1 + r2(ij)*h2 + r3(ij)*h3 + r4(ij)*h4)
-      hrexg = dt * (r5(ij)*h5)
+      hrexs = dt * ( r1(ijk)*h1 + r2(ijk)*h2 + r3(ijk)*h3 + r4(ijk)*h4)
+      hrexg = dt * (r5(ijk)*h5)
 !
       RETURN
       END SUBROUTINE
@@ -37,19 +37,19 @@
       USE indijk_module, ONLY: ip0_jp0_kp0_
       IMPLICIT NONE
 !
-      INTEGER :: ij
+      INTEGER :: ijk
       INTEGER :: imesh
 !
       ALLOCATE(r1(ncdom), r2(ncdom), r3(ncdom), r4(ncdom), r5(ncdom))
 !
-      DO ij = 1, ncint
-          imesh = myijk( ip0_jp0_kp0_, ij)
-          IF(fl_l(ij).EQ.1) THEN
-            r1(ij)=0.D0
-            r2(ij)=0.D0
-            r3(ij)=0.D0
-            r4(ij)=0.D0
-            r5(ij)=0.D0
+      DO ijk = 1, ncint
+          imesh = myijk( ip0_jp0_kp0_, ijk)
+          IF(fl_l(ijk) == 1) THEN
+            r1(ijk)=0.D0
+            r2(ijk)=0.D0
+            r3(ijk)=0.D0
+            r4(ijk)=0.D0
+            r5(ijk)=0.D0
           END IF
       END DO
 !

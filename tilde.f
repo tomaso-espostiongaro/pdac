@@ -4,298 +4,339 @@
       IMPLICIT NONE
       SAVE
 !
-      REAL*8, DIMENSION(:),   ALLOCATABLE :: rug, rwg
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: rus, rws
-      REAL*8, DIMENSION(:),   ALLOCATABLE :: rugn, rwgn
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: rusn, rwsn
+      REAL*8, DIMENSION(:),   ALLOCATABLE :: rug, rvg, rwg
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: rus, rvs, rws
+      REAL*8, DIMENSION(:),   ALLOCATABLE :: rugn, rvgn, rwgn
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: rusn, rvsn, rwsn
 !
-      REAL*8, ALLOCATABLE :: ugfr(:), ugft(:)
-      REAL*8, ALLOCATABLE :: ugfl(:), ugfb(:)
-      REAL*8, ALLOCATABLE :: wgfr(:), wgft(:)
-      REAL*8, ALLOCATABLE :: wgfl(:), wgfb(:)
+      REAL*8, ALLOCATABLE :: ugfe(:), ugfn(:), ugft(:)
+      REAL*8, ALLOCATABLE :: vgfe(:), vgfn(:), vgft(:)
+      REAL*8, ALLOCATABLE :: wgfe(:), wgfn(:), wgft(:)
 !
-      REAL*8, ALLOCATABLE :: ulfr(:,:), ulft(:,:)
-      REAL*8, ALLOCATABLE :: ulfl(:,:), ulfb(:,:)
-      REAL*8, ALLOCATABLE :: wlfr(:,:), wlft(:,:)
-      REAL*8, ALLOCATABLE :: wlfl(:,:), wlfb(:,:)
+      REAL*8, ALLOCATABLE :: usfe(:,:), usfn(:,:), usft(:,:)
+      REAL*8, ALLOCATABLE :: vsfe(:,:), vsfn(:,:), vsft(:,:)
+      REAL*8, ALLOCATABLE :: wsfe(:,:), wsfn(:,:), wsft(:,:)
 !
       REAL*8, DIMENSION(:,:), ALLOCATABLE  :: kpgv
-      REAL*8, DIMENSION(:,:), ALLOCATABLE  :: appu, appw
+      REAL*8, DIMENSION(:,:), ALLOCATABLE  :: appu, appv, appw
 !
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-
-! ... MODIFICARE_X3D
-
-
+      SUBROUTINE fieldn
 !----------------------------------------------------------------------
-      SUBROUTINE euvel
-!----------------------------------------------------------------------
-! .. This routine computes explicitly gas and particles momenta at time ndt
+! ... Compute explicitly and store all fields at time ndt
 !
       USE dimensions
-      USE gas_solid_density, ONLY: rgp, rlk
-      USE gas_solid_velocity, ONLY: ug, wg, us, ws
-      USE grid, ONLY: dz, dr, fl_l
-      USE grid, ONLY: inr, inrb, indr, indz
+      USE eos_gas, ONLY: rgpgc, rgpgcn, xgc
+      USE gas_solid_density, ONLY: rgp, rgpn, rlk, rlkn
+      USE gas_solid_temperature, ONLY: sieg, siegn, sies, siesn, tg
+      USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
+      USE gas_solid_viscosity, ONLY: viscon, mug, kapg
+      USE grid, ONLY: dz, dy, dx, fl_l
+      USE grid, ONLY: indx, indy, indz
       USE grid, ONLY: ncint, myijk, ncdom, data_exchange
       USE indijk_module, ONLY: ip0_jp0_kp0_
+      USE pressure_epsilon, ONLY: p, pn
       USE set_indexes
 !
       IMPLICIT NONE
       SAVE
 !
-      REAL*8 :: drp, dzp, indrp, indzp
-      REAL*8 :: rgp_e, rgp_n, rlk_e, rlk_n
-      INTEGER :: is, i, j, ij, imesh
+      REAL*8 :: dxp, dyp, dzp, indxp, indyp, indzp
+      REAL*8 :: rgp_e, rgp_n, rgp_t, rlk_e, rlk_n, rlk_t
+      INTEGER :: i, j, k, ijk, imesh, is, ig
 !
       IF (ALLOCATED(rugn)) DEALLOCATE(rugn)
+      IF (ALLOCATED(rvgn)) DEALLOCATE(rvgn)
       IF (ALLOCATED(rwgn)) DEALLOCATE(rwgn)
       IF (ALLOCATED(rusn)) DEALLOCATE(rusn)
+      IF (ALLOCATED(rvsn)) DEALLOCATE(rvsn)
       IF (ALLOCATED(rwsn)) DEALLOCATE(rwsn)
-      ALLOCATE( rugn(ncint),  rwgn(ncint))
-      ALLOCATE( rusn(nsolid,ncint),  rwsn(nsolid,ncint))
-      rugn = 0.0
-      rwgn = 0.0
-      rusn = 0.0
-      rwsn = 0.0
+      ALLOCATE( rugn(ncint),  rvgn(ncint), rwgn(ncint))
+      ALLOCATE( rusn(nsolid,ncint), rvsn(nsolid,ncint), rwsn(nsolid,ncint))
+      rugn = 0.D0; rvgn = 0.D0; rwgn = 0.D0
+      rusn = 0.D0; rvsn = 0.D0; rwsn = 0.D0
 !
       CALL data_exchange(rgp)
       CALL data_exchange(rlk)
 !
-      DO ij = 1, ncint
-       imesh = myijk( ip0_jp0_kp0_,ij)
-       IF(fl_l(ij).EQ.1) THEN
-         CALL subscr(ij)
-         j = ( imesh - 1 ) / nr + 1
-         i = MOD( ( imesh - 1 ), nr) + 1
+      DO ijk = 1, ncint
+       imesh = myijk( ip0_jp0_kp0_,ijk)
+       IF(fl_l(ijk) == 1) THEN
+         CALL subscr(ijk)
+         i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
+         j = MOD( imesh - 1, nx*ny ) / nx + 1
+         k = ( imesh - 1 ) / ( nx*ny ) + 1
 !
-         drp=dr(i)+dr(i+1)
-         dzp=dz(j)+dz(j+1)
-         indrp=1.D0/drp
+         dxp=dx(i)+dx(i+1)
+         dyp=dy(j)+dy(j+1)
+         dzp=dz(k)+dz(k+1)
+         indxp=1.D0/dxp
+         indyp=1.D0/dyp
          indzp=1.D0/dzp
 !
-         rgp_e = (dr(i+1)*rgp(ij)+dr(i)*rgp(ijr))*indrp
-         rgp_n = (dz(j+1)*rgp(ij)+dz(j)*rgp(ijt))*indzp
-         rugn(ij) = rgp_e * ug(ij)
-         rwgn(ij) = rgp_n * wg(ij)
+         rgp_e = (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke))*indxp
+         rgp_n = (dy(j+1)*rgp(ijk)+dy(j)*rgp(ijkn))*indyp
+         rgp_t = (dz(k+1)*rgp(ijk)+dz(k)*rgp(ijkt))*indzp
 !
-         DO is=1, nsolid
-          rlk_e = (rlk(is,ij)*dr(i+1)+rlk(is,ijr)*dr(i))*indrp
-          rlk_n = (rlk(is,ij)*dz(j+1)+rlk(is,ijt)*dz(j))*indzp
-          rusn(is,ij) = rlk_e * us(is,ij)
-          rwsn(is,ij) = rlk_n * ws(is,ij)
+         rugn(ijk)  = rgp_e * ug(ijk)
+         rvgn(ijk)  = rgp_n * vg(ijk)
+         rwgn(ijk)  = rgp_t * wg(ijk)
+!
+         pn(ijk)    = p(ijk)
+         rgpn(ijk)  = rgp(ijk)
+         siegn(ijk) = sieg(ijk)
+         DO ig=1,ngas
+           rgpgcn(ig,ijk) = rgpgc(ig,ijk)
          END DO
-        END IF
+!
+         DO is = 1, nsolid
+          rlk_e = (rlk(is,ijk)*dx(i+1)+rlk(is,ijke)*dx(i))*indxp
+          rlk_n = (rlk(is,ijk)*dy(j+1)+rlk(is,ijkn)*dy(j))*indyp
+          rlk_t = (rlk(is,ijk)*dz(k+1)+rlk(is,ijkt)*dz(k))*indzp
+!
+          rusn(is,ijk)  = rlk_e * us(is,ijk)
+          rvsn(is,ijk)  = rlk_n * vs(is,ijk)
+          rwsn(is,ijk)  = rlk_t * ws(is,ijk)
+!
+          rlkn(is,ijk)  = rlk(is,ijk)
+          siesn(is,ijk) = sies(is,ijk)
+         END DO
+!
+! ... Compute the temperature-dependent gas viscosity and th. conductivity
+!
+         CALL viscon(mug(ijk), kapg(ijk), xgc(:,ijk), tg(ijk))
+!	
+       END IF
       END DO
 !
       RETURN
-      END SUBROUTINE euvel
+      END SUBROUTINE fieldn
 !----------------------------------------------------------------------
       SUBROUTINE tilde
 !
-      USE atmosphere, ONLY: gravx, gravz
+      USE atmosphere, ONLY: gravz
       USE grid, ONLY: fl_l
       USE dimensions
-      USE eulerian_flux, ONLY: fu_lb, fu_rt, fw_lb, fw_rt
+      USE convective_fluxes, ONLY: flu, flv, flw
       USE gas_solid_density, ONLY: rog, rgp, rlk
-      USE gas_solid_velocity, ONLY: ug, wg, us, ws
-      USE grid, ONLY: dz, dr
-      USE grid, ONLY: inr, inrb, indr, indz
+      USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
+      USE grid, ONLY: dx, dy, dz
+      USE grid, ONLY: indx, indy, indz
       USE momentum_transfer, ONLY: kdrags, inter
-      USE nondim_numbers, ONLY: drag_ratio, richardson, ratio, rich, mut2mu, &
-                                print_numbers
-      USE particles_constants, ONLY: phi, epsl, dkf, epsu, dk, rl, inrl, philim
-      USE pressure_epsilon, ONLY: ep
+      USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: dt
       USE turbulence, ONLY: iss, iturb
       USE gas_solid_viscosity, ONLY: viscg, viscs
       USE gas_solid_viscosity, ONLY: mug
-      USE gas_solid_viscosity, ONLY: gvisx, gvisz, pvisx, pvisz
+      USE gas_solid_viscosity, ONLY: gvisx, gvisy, gvisz, pvisx, pvisy, pvisz
       USE grid, ONLY: ncint, myijk, ncdom, data_exchange
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE parallel, ONLY: mpime
       USE set_indexes
 !
       IMPLICIT NONE
       SAVE
 !
-      INTEGER :: i, j, is, imesh
-      INTEGER :: ij
-      INTEGER :: k, kk, ks
-      REAL*8 :: drp, dzp, indrp, indzp
-      REAL*8 :: ugfx, ugfz, wgfx, wgfz
-      REAL*8 :: ulfx, ulfz, wlfx, wlfz
-      TYPE(stencil) :: u, w, dens
+      INTEGER :: i, j, k, is, imesh
+      INTEGER :: ijk
+      REAL*8 :: dxp, dyp, dzp, indxp, indyp, indzp
+      REAL*8 :: ugfw, ugfs, ugfb, vgfw, vgfs, vgfb, wgfw, wgfs, wgfb
+      REAL*8 :: ugfx, ugfy, ugfz, vgfx, vgfy, vgfz, wgfx, wgfy, wgfz
+      REAL*8 :: usfw, usfs, usfb, vsfw, vsfs, vsfb, wsfw, wsfs, wsfb
+      REAL*8 :: usfx, usfy, usfz, vsfx, vsfy, vsfz, wsfx, wsfy, wsfz
+      REAL*8 :: dugs, dvgs, dwgs
+      TYPE(stencil) :: u, v, w, dens
 !
-      ALLOCATE(gvisx(ncint), gvisz(ncint))
-      ALLOCATE(pvisx(nsolid, ncint), pvisz(nsolid, ncint))
-      gvisx = 0.D0; gvisz = 0.D0
-      pvisx = 0.D0; pvisz = 0.D0
+      ALLOCATE(gvisx(ncint), gvisy(ncint), gvisz(ncint))
+      ALLOCATE(pvisx(nsolid, ncint), pvisy(nsolid,ncint), pvisz(nsolid, ncint))
+      gvisx = 0.D0; gvisy = 0.D0; gvisz = 0.D0
+      pvisx = 0.D0; pvisy = 0.D0; pvisz = 0.D0
 
       IF (iturb == 0) THEN
         CALL data_exchange(ug)
+        CALL data_exchange(vg)
         CALL data_exchange(wg)
       END IF
       IF (iss == 0) THEN
         CALL data_exchange(us)
+        CALL data_exchange(vs)
         CALL data_exchange(ws)
       END IF
       CALL data_exchange(ep)
-      CALL data_exchange(rgp)
-      CALL data_exchange(rlk)
 !
-! ... Calculate gvisx gvisz (gas viscous stress tensor).
-!
-      ALLOCATE(mut2mu(ncint))
-      mut2mu  = 0.D0
+! ... Calculate gvisx, gvisy and gvisz (gas viscous stress tensor).
 !
       CALL viscg        
 !
-! ... Calculate pvisx pvisz (particles viscous stress tensor).
+! ... Calculate pvisx, pvisy and pvisz (particles viscous stress tensor).
 !
-      DO is=1,nsolid
-        CALL viscs(is)   
-      END DO
+      CALL viscs
 !
 ! ... Allocate and initialize local arrays (gas).
 !
-      ALLOCATE( rug(ncdom),  rwg(ncdom))
-      ALLOCATE(ugfr(ncdom), ugft(ncdom))
-      ALLOCATE(ugfl(ncdom), ugfb(ncdom))
-      ALLOCATE(wgfr(ncdom), wgft(ncdom))
-      ALLOCATE(wgfl(ncdom), wgfb(ncdom))
+      ALLOCATE(rug(ncdom),  rvg(ncdom),  rwg(ncdom))
+      ALLOCATE(ugfe(ncdom), ugfn(ncdom), ugft(ncdom))
+      ALLOCATE(vgfe(ncdom), vgfn(ncdom), vgft(ncdom))
+      ALLOCATE(wgfe(ncdom), wgfn(ncdom), wgft(ncdom))
 
       rug = 0.0D0
+      rvg = 0.0D0
       rwg = 0.0D0
-      ugfr = 0.0D0
-      ugft = 0.0D0
-      ugfl = 0.0D0
-      ugfb = 0.0D0
-      wgfr = 0.0D0
-      wgft = 0.0D0
-      wgfl = 0.0D0
-      wgfb = 0.0D0
+      ugfe = 0.0D0; ugfn = 0.0D0; ugft = 0.0D0
+      ugfw = 0.0D0; ugfs = 0.0D0; ugfb = 0.0D0
+      vgfe = 0.0D0; vgfn = 0.0D0; vgft = 0.0D0
+      vgfw = 0.0D0; vgfs = 0.0D0; vgfb = 0.0D0
+      wgfe = 0.0D0; wgfn = 0.0D0; wgft = 0.0D0
+      wgfw = 0.0D0; wgfs = 0.0D0; wgfb = 0.0D0
 !
 ! ... Allocate and initialize local arrays (particles).
 !
-      ALLOCATE(rus(nsolid, ncdom), rws(nsolid, ncdom) )
-      ALLOCATE(ulfr(nsolid, ncdom), ulft(nsolid, ncdom))
-      ALLOCATE(ulfl(nsolid, ncdom), ulfb(nsolid, ncdom))
-      ALLOCATE(wlfr(nsolid, ncdom), wlft(nsolid, ncdom))
-      ALLOCATE(wlfl(nsolid, ncdom), wlfb(nsolid, ncdom))
+      ALLOCATE(rus(nsolid,ncdom),  rvs(nsolid,ncdom),  rws(nsolid,ncdom))
+      ALLOCATE(usfe(nsolid,ncdom), usfn(nsolid,ncdom), usft(nsolid,ncdom))
+      ALLOCATE(vsfe(nsolid,ncdom), vsfn(nsolid,ncdom), vsft(nsolid,ncdom))
+      ALLOCATE(wsfe(nsolid,ncdom), wsfn(nsolid,ncdom), wsft(nsolid,ncdom))
 
-      rus  = 0.0D0
-      rws  = 0.0D0
-      ulfr = 0.0D0
-      ulft = 0.0D0
-      ulfl = 0.0D0
-      ulfb = 0.0D0
-      wlfr = 0.0D0
-      wlft = 0.0D0
-      wlfl = 0.0D0
-      wlfb = 0.0D0
+      rus = 0.0D0
+      rvs = 0.0D0
+      rws = 0.0D0
+      usfe = 0.0D0; usfn = 0.0D0; usft = 0.0D0
+      usfw = 0.0D0; usfs = 0.0D0; usfb = 0.0D0
+      vsfe = 0.0D0; vsfn = 0.0D0; vsft = 0.0D0
+      vsfw = 0.0D0; vsfs = 0.0D0; vsfb = 0.0D0
+      wsfe = 0.0D0; wsfn = 0.0D0; wsft = 0.0D0
+      wsfw = 0.0D0; wsfs = 0.0D0; wsfb = 0.0D0
 !
 ! ... Allocate and initialize interphase terms.
 !
       ALLOCATE(kpgv(nsolid,ncint))
       ALLOCATE(appu(((nsolid+1)**2+(nsolid+1))/2, ncdom),   &
+               appv(((nsolid+1)**2+(nsolid+1))/2, ncdom),   &
                appw(((nsolid+1)**2+(nsolid+1))/2, ncdom))
 
       kpgv = 0.0D0
       appu = 0.0D0
+      appv = 0.0D0
       appw = 0.0D0
 !
-! ... Allocate and initialize non-dimensional numbers
-!
-      ALLOCATE(ratio(nsolid,ncint))
-      ALLOCATE(rich(ncint))
-      ratio = 0.D0
-      rich  = 0.D0
-!
-! ... Compute fluxes on right and top sides of a cell
+! ... Compute fluxes on east, north and top sides of a cell
 ! ... in the whole computational domain.
 !
-      DO ij = 1, ncint
-        imesh = myijk( ip0_jp0_kp0_, ij)
-        IF(fl_l(ij).EQ.1) THEN
-          CALL subscr(ij)
-          dens = nb(rgp,ij)
-          u    = rnb(ug,ij)
-          w    = rnb(wg,ij)
-          CALL fu_rt(ugfr(ij), ugft(ij), dens, u, w , ij)
-          CALL fw_rt(wgfr(ij), wgft(ij), dens, u, w , ij)
+      DO ijk = 1, ncint
+        imesh = myijk( ip0_jp0_kp0_, ijk)
+        IF(fl_l(ijk) == 1) THEN
+          CALL subscr(ijk)
+          dens = nb(rgp,ijk)
+          u    = rnb(ug,ijk)
+          v    = rnb(vg,ijk)
+          w    = rnb(wg,ijk)
+!
+          CALL flu(ugfe(ijk), ugfn(ijk), ugft(ijk),                        &
+                  ugfe(imjk), ugfn(imjk), ugft(imjk), dens, u, v, w, ijk)
+          CALL flv(vgfe(ijk), vgfn(ijk), vgft(ijk),                        &
+                  vgfe(ijmk), vgfn(ijmk), vgft(ijmk), dens, u, v, w, ijk)
+          CALL flw(wgfe(ijk), wgfn(ijk), wgft(ijk),                        &
+                  wgfe(ijkm), wgfn(ijkm), wgft(ijkm), dens, u, v, w, ijk)
 !
           DO is = 1, nsolid
-            dens = nb(rlk,is,ij)
-            u    = rnb(us,is,ij)
-            w    = rnb(ws,is,ij)
-            CALL fu_rt(ulfr(is,ij), ulft(is,ij), dens, u, w , ij)
-            CALL fw_rt(wlfr(is,ij), wlft(is,ij), dens, u, w , ij)
+            dens = nb(rlk,is,ijk)
+            u    = rnb(us,is,ijk)
+            v    = rnb(vs,is,ijk)
+            w    = rnb(ws,is,ijk)
+!
+            CALL flu(usfe(is,ijk), usfn(is,ijk), usft(is,ijk),           &
+                    usfe(is,imjk), usfn(is,imjk), usft(is,imjk),        &
+                    dens, u, v, w, ijk)
+            CALL flv(vsfe(is,ijk), vsfn(is,ijk), vsft(is,ijk),           &
+                    vsfe(is,ijmk), vsfn(is,ijmk), vsft(is,ijmk),        &
+                    dens, u, v, w, ijk)
+            CALL flw(wsfe(is,ijk), wsfn(is,ijk), wsft(is,ijk),           &
+                    wsfe(is,ijkm), wsfn(is,ijkm), wsft(is,ijkm),        &
+                    dens, u, v, w, ijk)
+!
           END DO
         END IF         
       END DO
 !
-      CALL data_exchange(ugfr)
+      CALL data_exchange(ugfe)
+      CALL data_exchange(ugfn)
       CALL data_exchange(ugft)
-      CALL data_exchange(wgfr)
+      CALL data_exchange(vgfe)
+      CALL data_exchange(vgfn)
+      CALL data_exchange(vgft)
+      CALL data_exchange(wgfe)
+      CALL data_exchange(wgfn)
       CALL data_exchange(wgft)
-      CALL data_exchange(ulfr)
-      CALL data_exchange(ulft)
-      CALL data_exchange(wlfr)
-      CALL data_exchange(wlft)
+
+      CALL data_exchange(usfe)
+      CALL data_exchange(usfn)
+      CALL data_exchange(usft)
+      CALL data_exchange(vsfe)
+      CALL data_exchange(vsfn)
+      CALL data_exchange(vsft)
+      CALL data_exchange(wsfe)
+      CALL data_exchange(wsfn)
+      CALL data_exchange(wsft)
 !
-! ... fluxes on left and bottom sides keep values 
-! ... of right and top fluxes from neighbouring (left and bottom) cells.
-! ... On boundaries, fluxes on left and bottom sides must be calculated
+! ... fluxes on west, south and bottom sides keep values 
+! ... of east, north and top fluxes from neighbouring cells.
 !
-      DO ij = 1, ncint
-        imesh = myijk( ip0_jp0_kp0_, ij)
-        IF(fl_l(ij).EQ.1) THEN
-          CALL subscr(ij)
-          j = ( imesh - 1 ) / nr + 1
-          i = MOD( ( imesh - 1 ), nr) + 1
+      DO ijk = 1, ncint
+        imesh = myijk( ip0_jp0_kp0_, ijk)
+        IF(fl_l(ijk) == 1) THEN
+          i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
+          j = MOD( imesh - 1, nx*ny ) / nx + 1
+          k = ( imesh - 1 ) / ( nx*ny ) + 1
+          CALL subscr(ijk)
 !
-          drp=dr(i)+dr(i+1)
-          dzp=dz(j)+dz(j+1)
-          indrp=1.D0/drp
+          dxp=dx(i)+dx(i+1)
+          dyp=dy(j)+dy(j+1)
+          dzp=dz(k)+dz(k+1)
+          indxp=1.D0/dxp
+          indyp=1.D0/dyp
           indzp=1.D0/dzp
 !
-! ... left and bottom fluxes (gas)
+! ... west, south and bottom fluxes (gas)
 !
-          ugfl(ij) = ugfr(imj)
-          ugfb(ij) = ugft(ijm)
-          wgfl(ij) = wgfr(imj) 
-          wgfb(ij) = wgft(ijm)
-!
-          dens = nb(rgp,ij)
-          u    = rnb(ug,ij)
-          w    = rnb(wg,ij)
-          CALL fu_lb(ugfl(ij), ugfb(ij), dens, u, w, ij)
-          CALL fw_lb(wgfl(ij), wgfb(ij), dens, u, w, ij) 
-!
-! ... compute the flux balance in the radial (x)
-! ... and vertical (z) directions, for the gas phase
-!
-          ugfx = ugfr(ij) - ugfl(ij)
-          ugfz = ugft(ij) - ugfb(ij)
-          wgfx = wgfr(ij) - wgfl(ij)
-          wgfz = wgft(ij) - wgfb(ij)
+          ugfw = ugfe(imjk)
+          ugfs = ugfn(ijmk)
+          ugfb = ugft(ijkm)
+          vgfw = vgfe(imjk)
+          vgfs = vgfn(ijmk)
+          vgfb = vgft(ijkm)
+          wgfw = wgfe(imjk)
+          wgfs = wgfn(ijmk)
+          wgfb = wgft(ijkm)
 !
 ! ... compute explicit (tilde) terms in the momentum equation (gas)
 ! 
-          rug(ij) = rugn(ij)                                         &
-     &      + dt * (dr(i+1)*rgp(ij)+dr(i)*rgp(ijr))*indrp * gravx    &
-     &      - dt * inrb(i) * indrp * 2.D0 * ugfx                     &
-     &      - dt * indz(j) * ugfz                                    &
-     &      + dt * gvisx(ij)                  
-
-          rwg(ij) = rwgn(ij)                                         &
-     &      + dt * (dz(j+1)*rgp(ij)+dz(j)*rgp(ijt))*indzp * gravz    &
-     &      - dt * inr(i) * indr(i) * wgfx                           &
-     &      - dt * indzp * 2.D0 * wgfz                               &
-     &      + dt * gvisz(ij)
+          ugfx = ugfe(ijk) - ugfw
+          ugfy = ugfn(ijk) - ugfs
+          ugfz = ugft(ijk) - ugfb
+!
+          rug(ijk) = rugn(ijk) + dt * gvisx(ijk)                     &
+     &      - dt * indxp * 2.D0 * ugfx                               &
+     &      - dt * indy(j) * ugfy                                    &
+     &      - dt * indz(k) * ugfz   
+!
+          vgfx = vgfe(ijk) - vgfw
+          vgfy = vgfn(ijk) - vgfs
+          vgfz = vgft(ijk) - vgfb
+!
+          rvg(ijk) = rvgn(ijk) + dt * gvisy(ijk)                     &
+     &      - dt * indx(i) * vgfx                                    &
+     &      - dt * indyp * 2.D0 * vgfy                               &
+     &      - dt * indz(k) * vgfz    
+!
+          wgfx = wgfe(ijk) - wgfw
+          wgfy = wgfn(ijk) - wgfs
+          wgfz = wgft(ijk) - wgfb
+!
+          rwg(ijk) = rwgn(ijk) + dt * gvisz(ijk)                     &
+     &      + dt * (dz(k+1)*rgp(ijk)+dz(k)*rgp(ijkt))*indzp * gravz    &
+     &      - dt * indx(i) * wgfx                                    &
+     &      - dt * indy(j) * wgfy                                    &
+     &      - dt * indzp * 2.D0 * wgfz
 !
 ! ... same procedure carried out for particulate phases
 !
@@ -303,80 +344,85 @@
 !
 ! ... left and bottom fluxes (particles)
 ! 
-            ulfl(is,ij) = ulfr(is,imj)
-            ulfb(is,ij) = ulft(is,ijm)
-            wlfl(is,ij) = wlfr(is,imj)
-            wlfb(is,ij) = wlft(is,ijm)
-!
-            dens = nb(rlk,is,ij)
-            u    = rnb(us,is,ij)
-            w    = rnb(ws,is,ij)
-            CALL fu_lb(ulfl(is,ij), ulfb(is,ij), dens, u, w, ij)
-            CALL fw_lb(wlfl(is,ij), wlfb(is,ij), dens, u, w, ij)
+            usfw = usfe(is,imjk)
+            usfs = usfn(is,ijmk)
+            usfb = usft(is,ijkm)
+            vsfw = vsfe(is,imjk)
+            vsfs = vsfn(is,ijmk)
+            vsfb = vsft(is,ijkm)
+            wsfw = wsfe(is,imjk)
+            wsfs = wsfn(is,ijmk)
+            wsfb = wsft(is,ijkm)
 !
 ! ... compute explicit (tilde) terms in the momentum equation (particles)
 ! 
-              ulfx = ulfr(is,ij) - ulfl(is,ij)
-              ulfz = ulft(is,ij) - ulfb(is,ij)
+              usfx = usfe(is,ijk) - usfw
+              usfy = usfn(is,ijk) - usfs
+              usfz = usft(is,ijk) - usfb
+!
+              rus(is,ijk) = rusn(is,ijk) + dt*pvisx(is,ijk)              &
+     &         - dt*indxp*2.D0*usfx                                      &
+     &         - dt*indy(j)*usfy                                         &
+     &         - dt*indz(k)*usfz                           
+!
+              vsfx = vsfe(is,ijk) - vsfw
+              vsfy = vsfn(is,ijk) - vsfs
+              vsfz = vsft(is,ijk) - vsfb
+!
+              rvs(is,ijk) = rvsn(is,ijk) + dt*pvisy(is,ijk)              &
+     &         - dt*indx(i)* vsfx                                        &
+     &         - dt*indyp*2.D0* vsfy                                     &
+     &         - dt*indz(k)* vsfz                             
+!
+              wsfx = wsfe(is,ijk) - wsfw
+              wsfy = wsfn(is,ijk) - wsfs
+              wsfz = wsft(is,ijk) - wsfb
+!
+              rws(is,ijk) = rwsn(is,ijk) + dt*pvisz(is,ijk)              &
+     &         + dt*(rlk(is,ijk)*dz(k+1)+rlk(is,ijkt)*dz(k))*indzp*gravz &
+     &         - dt*indx(i)* wsfx                                        &
+     &         - dt*indy(j)* wsfy                                        &
+     &         - dt*indzp*2.D0* wsfz                          
+!
+! ... Compute the gas-particle drag coefficients
+!
+            dugs = ( (ug(ijk)-us(is,ijk)) + (ug(imjk)-us(imjk,is)) ) * 0.5D0
+            dvgs = ( (vg(ijk)-vs(is,ijk)) + (vg(ijmk)-vs(ijmk,is)) ) * 0.5D0
+            dwgs = ( (wg(ijk)-ws(is,ijk)) + (wg(ijkm)-ws(ijkm,is)) ) * 0.5D0
 
-              rus(is,ij) = rusn(is,ij)                                 &
-     &         + dt*(rlk(is,ij)*dr(i+1)+rlk(is,ijr)*dr(i))*indrp*gravx &
-     &         - dt*inrb(i)*indrp*2.D0*ulfx                          &
-     &         - dt*indz(j)*ulfz                                     &
-     &         + dt*pvisx(is,ij)
-
-              wlfx = wlfr(is,ij) - wlfl(is,ij)
-              wlfz = wlft(is,ij) - wlfb(is,ij)
-
-              rws(is,ij) = rwsn(is,ij)                                 &
-     &         + dt*(rlk(is,ij)*dz(j+1)+rlk(is,ijt)*dz(j))*indzp*gravz &
-     &         - dt*inr(i)*indr(i)* wlfx                             &
-     &         - dt*indzp*2.D0* wlfz                                 &
-     &         + dt*pvisz(is,ij)    
+            CALL kdrags(kpgv(is,ijk), dugs, dvgs, dwgs, ep(ijk),         &
+                        rog(ijk), rgp(ijk), rlk(is,ijk), mug(ijk), is)                  
 
           END DO 
 !
-! ... Compute interphase coefficients
+! ... Compute the particle-particle coefficients and the interphase matrix
 !
-          CALL kdrags(kpgv(:,ij), ug(ij), ug(imj),                          &
-     &                wg(ij), wg(ijm), us(:,ij), us(:,imj),                 &
-     &                ws(:,ij), ws(:,ijm), ep(ij),                          &
-     &                rog(ij), rgp(ij), rlk(:,ij), mug(ij))                  
-          CALL inter(appu(:,ij), appw(:,ij), kpgv(:,ij),             &
-     &               us(:,ij), us(:,imj), ws(:,ij), ws(:,ijm), rlk(:,ij))
-!
-          CALL drag_ratio(appu(:,ij),appw(:,ij),kpgv(:,ij),ij)
-          CALL richardson(rgp(:),rlk(:,:),ug(ij),wg(ij),us(:,ij),ws(:,ij),&
-                          ij,ijp)
+          CALL inter(appu(:,ijk), appv(:,ijk), appw(:,ijk), kpgv(:,ijk),    &
+     &               us, vs, ws, rlk, ijk)
 !
         END IF
-!
       END DO
 !
-!      CALL print_numbers
+      DEALLOCATE(ugfe, ugfn, ugft)
+      DEALLOCATE(vgfe, vgfn, vgft)
+      DEALLOCATE(wgfe, wgfn, wgft)
+      DEALLOCATE(gvisx, gvisy, gvisz)
 !
-      DEALLOCATE(ugfr, ugft)
-      DEALLOCATE(ugfl, ugfb)
-      DEALLOCATE(wgfr, wgft)
-      DEALLOCATE(wgfl, wgfb)
-      DEALLOCATE(gvisx, gvisz)
-!
-      DEALLOCATE(ulfr, ulft)
-      DEALLOCATE(ulfl, ulfb)
-      DEALLOCATE(wlfr, wlft)
-      DEALLOCATE(wlfl, wlfb)
-      DEALLOCATE(pvisx, pvisz)
+      DEALLOCATE(usfe, usfn, usft)
+      DEALLOCATE(vsfe, vsfn, vsft)
+      DEALLOCATE(wsfe, wsfn, wsft)
+      DEALLOCATE(pvisx, pvisy, pvisz)
 !
       DEALLOCATE(kpgv)
-      DEALLOCATE(ratio)
-      DEALLOCATE(rich)
-      DEALLOCATE(mut2mu)
 !
       CALL data_exchange(appu)
+      CALL data_exchange(appv)
       CALL data_exchange(appw)
       CALL data_exchange(rug)
+      CALL data_exchange(rvg)
       CALL data_exchange(rwg)
       CALL data_exchange(rus)
+      CALL data_exchange(rvs)
       CALL data_exchange(rws)
 !
       RETURN

@@ -1,5 +1,5 @@
 !**************************************************************
-! PROGRAM: pdac2d (pyroclastic dispersion analysis code, 2d)
+! PROGRAM: pdac (pyroclastic dispersion analysis code)
 ! description: parallel multiphase and multicomponent fluid dynamic code
 !              for the simulation of pyroclastic dispersion
 !              processes
@@ -9,7 +9,7 @@
 ! parallelized by: T. Esposti Ongaro, C. Cavazzoni, A. Neri
 !**************************************************************
 !
-      PROGRAM pdac2d
+      PROGRAM pdac
 
       USE atmosphere, ONLY: v0, u0, w0, p0, temp0, us0, vs0, ws0, &
      &                      ep0, epsmx0, gravx, gravz
@@ -28,7 +28,7 @@
      &    bounds_blbody, bounds_grid
       USE io_restart, ONLY: taperd, tapebc, tapewr
       USE iterative_solver, ONLY: inmax, maxout, omega
-      USE output_dump, ONLY: nfil, recover, outp
+      USE output_dump, ONLY: nfil, recover_2d
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
      &    mpime, root
       USE particles_constants, ONLY: rl, inrl, kap, &
@@ -195,7 +195,7 @@
         CALL taperd
         CALL tapebc
       ELSE IF (itd >= 3) THEN
-        CALL recover
+        CALL recover_2d
       END IF
 
 ! ... set dimensions ...
@@ -232,8 +232,6 @@
 ! ... Distribute inital data among processes
 !
       CALL distribute
-
-      IF (job_type == '3D') CALL error('main','3D routines not yet implemented',1)
 !
 ! ... Time advancement loop
 !
@@ -269,5 +267,5 @@
       STOP
 !
 !**************************************************************
-      END PROGRAM pdac2d
+      END PROGRAM pdac
 !**************************************************************

@@ -61,11 +61,11 @@
       SUBROUTINE input( iunit )
 
       USE atmosphere, ONLY: w0, u0, p0, temp0, us0, ws0, ep0, epsmx0, gravx, gravz
-      USE eulerian_flux, ONLY: beta, muscl
+      USE convective_fluxes, ONLY: beta, muscl
       USE gas_constants, ONLY: default_gas
       USE grid, ONLY: dx, dy, dz, dr, itc, mesh_partition
       USE iterative_solver, ONLY: inmax, maxout, omega
-      USE output_dump, ONLY: nfil, outp
+      USE output_dump, ONLY: nfil
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl, kap, &
      &     cmus, phis, cps, dk, nsolid

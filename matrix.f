@@ -1,14 +1,16 @@
 !--------------------------------------------------------------------
       MODULE phases_matrix
 !--------------------------------------------------------------------
-
       USE indijk_module
 
       IMPLICIT NONE
       SAVE
 
-      REAL*8, PRIVATE, DIMENSION(:),   ALLOCATABLE ::  bu1, bw1, bu, bw
-      REAL*8, PRIVATE, DIMENSION(:,:), ALLOCATABLE ::  au1, aw1, au, aw
+      REAL*8, PRIVATE, DIMENSION(:),   ALLOCATABLE ::  bu, bv, bw
+      REAL*8, PRIVATE, DIMENSION(:,:), ALLOCATABLE ::  au, av, aw
+      REAL*8, PRIVATE, DIMENSION(:),   ALLOCATABLE ::  bu1, bv1, bw1
+      REAL*8, PRIVATE, DIMENSION(:,:), ALLOCATABLE ::  au1, av1, aw1
+
       REAL*8 :: rlim
 !--------------------------------------------------------------------
       CONTAINS
@@ -17,521 +19,673 @@
       USE dimensions
       IMPLICIT NONE
 !
-      ALLOCATE(bu1(nphase), bw1(nphase), bu(nphase), bw(nphase))
-      ALLOCATE(au1(nphase,nphase), aw1(nphase,nphase),           &
-                au(nphase,nphase),  aw(nphase,nphase))
+      ALLOCATE(bu1(nphase), bv1(nphase), bw1(nphase))
+      ALLOCATE(bu(nphase), bv(nphase), bw(nphase))
+      ALLOCATE(au1(nphase,nphase), av1(nphase,nphase), aw1(nphase,nphase))
+      ALLOCATE(au(nphase,nphase), av(nphase,nphase), aw(nphase,nphase))
 !
-      au = 0.D0;   aw = 0.D0
-      au1 = 0.D0;  aw1 = 0.D0
-      bu = 0.D0;   bw = 0.D0
-      bu1 = 0.D0;  bw1 = 0.D0
+      au = 0.D0;   av = 0.D0;   aw = 0.D0
+      au1 = 0.D0;  av1 = 0.D0;  aw1 = 0.D0
+      bu = 0.D0;   bv = 0.D0;   bw = 0.D0
+      bu1 = 0.D0;  bv1 = 0.D0;  bw1 = 0.D0
 !
       RETURN
       END SUBROUTINE
-
-! ... MODIFICARE_X3D ( fino fine file )
-
 !--------------------------------------------------------------------
-      SUBROUTINE mats(ij, ep, epr, ept, epl, epb, p, pr, pt, pl, pb,  &
-        rlk, rlkr, rlkt, rlkl, rlkb, rgp, rgpr, rgpt, rgpl, rgpb)
+      SUBROUTINE mats(ijk)
 !
 ! ... Computes matrix elements to solve momentum-balance 
 ! ... linear system of coupled equations, in current cell and in
-! ... left and bottom cells 
+! ... west, south and bottom cells 
 !
       USE dimensions
-      USE grid, ONLY: dz, dr
-      USE grid, ONLY: myijk, myinds
-      USE grid, ONLY: r_, t_, l_, b_
-      USE tilde_momentum, ONLY: appu, appw
+      USE gas_solid_density, ONLY: rgp, rlk
+      USE grid, ONLY: dx, dy, dz
+      USE grid, ONLY: myijk
+      USE tilde_momentum, ONLY: appu, appv,  appw
       USE particles_constants, ONLY: rl, inrl
-      USE tilde_momentum, ONLY: rug, rwg, rus, rws
+      USE pressure_epsilon, ONLY: p, ep
+      USE set_indexes, ONLY: imjk, ijmk, ijkm
+      USE set_indexes, ONLY: ijke, ijkn, ijkt, ijkw, ijks, ijkb
+      USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
       USE time_parameters, ONLY: dt
 
       IMPLICIT NONE
 !
-      INTEGER, INTENT(IN) :: ij
+      INTEGER, INTENT(IN) :: ijk
 !
-      INTEGER :: ks, kk, ks1, k
-      INTEGER :: i,j,imesh
-      INTEGER :: ijm, imj, ijr, ijt, ijl, ijb
-      REAL*8 :: drp, dzp, dzm, drm, indrp, indzp, indzm, indrm
-      REAL*8 :: ep_w, ep_s, ep_e, ep_n
-      REAL*8 :: eps_w, eps_s, eps_e, eps_n
-      REAL*8, INTENT(IN) :: ep, epr, ept, epl, epb, p, pr, pt, pl, pb
-      REAL*8, INTENT(IN) :: rlk(:), rlkr(:), rlkt(:), rlkl(:), rlkb(:)
-      REAL*8, INTENT(IN) :: rgp, rgpr, rgpt, rgpl, rgpb
+      INTEGER :: ls, ll, ls1, l
+      INTEGER :: i,j,k,imesh,is
+      REAL*8 :: dxp, dyp, dzp, dxm, dym, dzm
+      REAL*8 :: indxp, indyp, indzp, indxm, indym, indzm
+      REAL*8 :: ep_w, ep_s, ep_b, ep_e, ep_n, ep_t
+      REAL*8 :: eps_w, eps_s, eps_b, eps_e, eps_n, eps_t
 !
-      imesh = myijk( ip0_jp0_kp0_, ij)
-      j  = ( imesh - 1 ) / nr + 1
-      i  = MOD( ( imesh - 1 ), nr) + 1
-      ijm = myijk( ip0_jm1_kp0_, ij)
-      imj = myijk( im1_jp0_kp0_, ij)
-      ijr = myinds(ip1_jp0_kp0_, ij)
-      ijt = myinds(ip0_jp1_kp0_, ij)
-      ijl = myinds(im1_jp0_kp0_, ij)
-      ijb = myinds(ip0_jm1_kp0_, ij)
+      imesh = myijk( ip0_jp0_kp0_, ijk)
+      i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
+      j = MOD( imesh - 1, nx*ny ) / nx + 1
+      k = ( imesh - 1 ) / ( nx*ny ) + 1
 !
-      drm=dr(i)+dr(i-1)
-      dzm=dz(j)+dz(j-1)
+      dxm=dx(i)+dx(i-1)
+      dym=dy(j)+dy(j-1)
+      dzm=dz(k)+dz(k-1)
 !
-      indrm=1.D0/drm
+      indxm=1.D0/dxm
+      indym=1.D0/dym
       indzm=1.D0/dzm
 !
 ! ... Backward ...
 !
-      DO k=1,nphase
+      DO l=1,nphase
 !
 ! ... Explicit terms in the linear system
 !
-        IF(k.EQ.1) THEN
-          ep_w = (dr(i)*epl + dr(i-1)*ep) * indrm
-          ep_s = (dz(j)*epb + dz(j-1)*ep) * indzm
-          bu1(1) = rug(imj)+ dt * indrm *2.D0* ep_w * (pl-p)
-          bw1(1) = rwg(ijm)+ dt * indzm *2.D0* ep_s * (pb-p)
+        IF (l == 1) THEN
+          ep_w = (dx(i)*ep(ijkw) + dx(i-1)*ep(ijk)) * indxm
+          ep_s = (dy(j)*ep(ijks) + dy(j-1)*ep(ijk)) * indym
+          ep_b = (dz(k)*ep(ijkb) + dz(k-1)*ep(ijk)) * indzm
+          bu1(1) = rug(imjk)+ dt * indxm *2.D0* ep_w * (p(ijkw)-p(ijk))
+          bv1(1) = rvg(ijmk)+ dt * indym *2.D0* ep_s * (p(ijks)-p(ijk))
+          bw1(1) = rwg(ijkm)+ dt * indzm *2.D0* ep_b * (p(ijkb)-p(ijk))
         ELSE
-          eps_w = (dr(i)*rlkl(k-1) + dr(i-1)*rlk(k-1)) * indrm * inrl(k-1)
-          eps_s = (dz(j)*rlkb(k-1) + dz(j-1)*rlk(k-1)) * indzm * inrl(k-1)
-          bu1(k) = rus(k-1,imj) + dt * indrm *2.D0* eps_w * (pl-p)
-          bw1(k) = rws(k-1,ijm) + dt * indzm *2.D0* eps_s * (pb-p)
+          eps_w = (dx(i)*rlk(l-1,ijkw) + dx(i-1)*rlk(l-1,ijk)) * indxm * inrl(l-1)
+          eps_s = (dy(j)*rlk(l-1,ijks) + dy(j-1)*rlk(l-1,ijk)) * indym * inrl(l-1)
+          eps_b = (dz(k)*rlk(l-1,ijkb) + dz(k-1)*rlk(l-1,ijk)) * indzm * inrl(l-1)
+          bu1(l) = rus(l-1,imjk) + dt * indxm *2.D0* eps_w * (p(ijkw)-p(ijk))
+          bv1(l) = rws(l-1,ijmk) + dt * indym *2.D0* eps_s * (p(ijks)-p(ijk))
+          bw1(l) = rws(l-1,ijkm) + dt * indzm *2.D0* eps_b * (p(ijkb)-p(ijk))
         ENDIF
 !
 ! ... Implicit terms in the linear system
 !
-! ... number of elements of appu, appv, already used in previous cycles
-! ... (= size of the upper triangular matrix of side k)
-        ks1=k*(k-1)/2
+! ... number of elements of appu, appv, appw, already used in previous cycles
+! ... (= size of the upper triangular matrix of side l)
+        ls1=l*(l-1)/2
 !
 ! ... Off-diagonal elements
-        DO kk=1,k
-          ks=ks1+kk
-          au1(k,kk)=(dr(i)*appu(ks,ijl)+appu(ks,ij)*dr(i-1))*indrm
-          au1(kk,k)=au1(k,kk)
-          aw1(k,kk)=(dz(j)*appw(ks,ijb)+dz(j-1)*appw(ks,ij))*indzm
-          aw1(kk,k)=aw1(k,kk)
+        DO ll=1,l
+          ls=ls1+ll
+          au1(l,ll)=(dx(i)*appu(ls,ijkw)+dx(i-1)*appu(ls,ijk))*indxm
+          au1(ll,l)=au1(l,ll)
+          av1(l,ll)=(dy(j)*appv(ls,ijks)+dy(j-1)*appv(ls,ijk))*indym
+          av1(ll,l)=av1(l,ll)
+          aw1(l,ll)=(dz(k)*appw(ls,ijkb)+dz(k-1)*appw(ls,ijk))*indzm
+          aw1(ll,l)=aw1(l,ll)
         END DO
 !
 ! ... Diagonal elements
-        IF(k.EQ.1) THEN
-          au1(1,1)=au1(1,1)+(dr(i)*rgpl+dr(i-1)*rgp)*indrm
-          aw1(1,1)=aw1(1,1)+(dz(j)*rgpb+dz(j-1)*rgp)*indzm
+        IF(l == 1) THEN
+          au1(1,1)=au1(1,1)+(dx(i)*rgp(ijkw)+dx(i-1)*rgp(ijk))*indxm
+          av1(1,1)=av1(1,1)+(dy(j)*rgp(ijks)+dy(j-1)*rgp(ijk))*indym
+          aw1(1,1)=aw1(1,1)+(dz(k)*rgp(ijkb)+dz(k-1)*rgp(ijk))*indzm
         ELSE
-          au1(k,k)=au1(k,k)+(dr(i)*rlkl(k-1)+dr(i-1)*rlk(k-1))*indrm
-          aw1(k,k)=aw1(k,k)+(rlkb(k-1)*dz(j)+dz(j-1)*rlk(k-1))*indzm
+          au1(l,l)=au1(l,l)+(dx(i)*rlk(l-1,ijkw)+dx(i-1)*rlk(l-1,ijk))*indxm
+          av1(l,l)=av1(l,l)+(dy(j)*rlk(l-1,ijks)+dy(j-1)*rlk(l-1,ijk))*indym
+          aw1(l,l)=aw1(l,l)+(dz(k)*rlk(l-1,ijkb)+dz(k-1)*rlk(l-1,ijk))*indzm
         ENDIF
       END DO
 !
 ! ... Forward ...
 !
-      drp=dr(i)+dr(i+1)
-      dzp=dz(j)+dz(j+1)
+      dxp=dx(i)+dx(i+1)
+      dyp=dy(j)+dy(j+1)
+      dzp=dz(k)+dz(k+1)
 !
-      indrp=1.D0/drp
+      indxp=1.D0/dxp
+      indyp=1.D0/dyp
       indzp=1.D0/dzp
 !
-      DO k=1,nphase
+      DO l=1,nphase
 !
 ! ... Explicit terms in the linear system
 !
-        IF(k.EQ.1) THEN
-          ep_e = (dr(i)*epr + dr(i+1)*ep) * indrp
-          ep_n = (dz(j)*ept + dz(j+1)*ep) * indzp
-          bu(1)  = rug(ij)+ dt * indrp *2.D0* ep_e * (p-pr)
-          bw(1)  = rwg(ij)+ dt * indzp *2.D0* ep_n * (p-pt)
+        IF(l == 1) THEN
+          ep_e = (dx(i)*ep(ijke) + dx(i+1)*ep(ijk)) * indxp
+          ep_n = (dy(j)*ep(ijkn) + dy(j+1)*ep(ijk)) * indyp
+          ep_t = (dz(k)*ep(ijkt) + dz(k+1)*ep(ijk)) * indzp
+          bu(1)  = rug(ijk)+ dt * indxp *2.D0* ep_e * (p(ijk)-p(ijke))
+          bv(1)  = rvg(ijk)+ dt * indyp *2.D0* ep_n * (p(ijk)-p(ijkn))
+          bw(1)  = rwg(ijk)+ dt * indzp *2.D0* ep_t * (p(ijk)-p(ijkt))
         ELSE
-          eps_e = (dr(i)*rlkr(k-1) + dr(i+1)*rlk(k-1)) * indrp * inrl(k-1)
-          eps_n = (dz(j)*rlkt(k-1) + dz(j+1)*rlk(k-1)) * indzp * inrl(k-1)
-          bu(k)  = rus(k-1,ij) + dt * indrp *2.D0* eps_e * (p-pr)
-          bw(k)  = rws(k-1,ij) + dt * indzp *2.D0* eps_n * (p-pt)
+          eps_e = (dx(i)*rlk(l-1,ijke) + dx(i+1)*rlk(l-1,ijk)) * indxp * inrl(l-1)
+          eps_n = (dy(j)*rlk(l-1,ijkn) + dy(j+1)*rlk(l-1,ijk)) * indyp * inrl(l-1)
+          eps_t = (dz(k)*rlk(l-1,ijkt) + dz(k+1)*rlk(l-1,ijk)) * indzp * inrl(l-1)
+          bu(l)  = rus(l-1,ijk) + dt * indxp *2.D0* eps_e * (p(ijk)-p(ijke))
+          bv(l)  = rvs(l-1,ijk) + dt * indyp *2.D0* eps_n * (p(ijk)-p(ijkn))
+          bw(l)  = rws(l-1,ijk) + dt * indzp *2.D0* eps_t * (p(ijk)-p(ijkt))
         ENDIF
 !
 ! ... Implicit terms in the linear system
 !
-! ... number of elements of appu, appv, already used in previous cycles
-! ... (= size of the upper triangular matrix of side k)
-        ks1=k*(k-1)/2
+! ... number of elements of appu, appv, appw already used in previous cycles
+! ... (= size of the upper triangular matrix of side l)
+        ls1=l*(l-1)/2
 !
 ! ... Off-Diagonal elements
-        DO kk=1,k
-          ks=ks1+kk
-          au(k,kk)=(dr(i)*appu(ks,ijr)+appu(ks,ij)*dr(i+1))*indrp
-          au(kk,k)=au(k,kk)
-          aw(k,kk)=(dz(j)*appw(ks,ijt)+dz(j+1)*appw(ks,ij))*indzp
-          aw(kk,k)=aw(k,kk)
+        DO ll=1,l
+          ls=ls1+ll
+          au(l,ll)=(dx(i)*appu(ls,ijke)+appu(ls,ijk)*dx(i+1))*indxp
+          au(ll,l)=au(l,ll)
+          av(l,ll)=(dy(j)*appv(ls,ijkn)+dy(j+1)*appv(ls,ijk))*indyp
+          av(ll,l)=av(l,ll)
+          aw(l,ll)=(dz(k)*appw(ls,ijkt)+dz(k+1)*appw(ls,ijk))*indzp
+          aw(ll,l)=aw(l,ll)
         END DO
 !
 ! ... Diagonal elements
-        IF(k.EQ.1) THEN
-          au(1,1)=au(1,1)+(dr(i)*rgpr+dr(i+1)*rgp)*indrp
-          aw(1,1)=aw(1,1)+(dz(j)*rgpt+dz(j+1)*rgp)*indzp
+        IF (l == 1) THEN
+          au(1,1)=au(1,1)+(dx(i)*rgp(ijke)+dx(i+1)*rgp(ijk))*indxp
+          av(1,1)=av(1,1)+(dy(j)*rgp(ijkn)+dy(j+1)*rgp(ijk))*indyp
+          aw(1,1)=aw(1,1)+(dz(k)*rgp(ijkt)+dz(k+1)*rgp(ijk))*indzp
         ELSE
-          au(k,k)=au(k,k)+(dr(i)*rlkr(k-1)+dr(i+1)*rlk(k-1))*indrp
-          aw(k,k)=aw(k,k)+(rlkt(k-1)*dz(j)+dz(j+1)*rlk(k-1))*indzp
+          au(l,l)=au(l,l)+(dx(i)*rlk(l-1,ijke)+dx(i+1)*rlk(l-1,ijk))*indxp
+          av(l,l)=av(l,l)+(dy(j)*rlk(l-1,ijkn)+dy(j+1)*rlk(l-1,ijk))*indyp
+          aw(l,l)=aw(l,l)+(dz(k)*rlk(l-1,ijkt)+dz(k+1)*rlk(l-1,ijk))*indzp
         ENDIF
       END DO
 !
       RETURN
       END SUBROUTINE
-!
 !----------------------------------------------------------------------
-      SUBROUTINE matsa(ij, ep, epr, ept, p, pr, pt, rlk, rlkr, rlkt, rgp, rgpr, rgpt)
+      SUBROUTINE mats2(ijk)
+!
+! ... Computes matrix elements to solve momentum-balance 
+! ... linear system of coupled equations in current cell
 !
       USE dimensions
-      USE grid, ONLY: dz, dr
-      USE grid, ONLY: myijk, myinds
-      USE grid, ONLY: r_, t_
-      USE tilde_momentum, ONLY: appu, appw
+      USE gas_solid_density, ONLY: rgp, rlk
+      USE grid, ONLY: dx, dy, dz
+      USE grid, ONLY: myijk
+      USE tilde_momentum, ONLY: appu, appv, appw
       USE particles_constants, ONLY: rl, inrl
-      USE tilde_momentum, ONLY: rug, rwg, rus, rws
+      USE pressure_epsilon, ONLY: p, ep
+      USE set_indexes, ONLY: ijke, ijkn, ijkt
+      USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
       USE time_parameters, ONLY: dt
 
       IMPLICIT NONE
 !
-      INTEGER, INTENT(IN) :: ij
-      REAL*8, INTENT(IN) :: ep, epr, ept, p, pr, pt
-      REAL*8, INTENT(IN) :: rlk(:), rlkr(:), rlkt(:)
-      REAL*8, INTENT(IN) :: rgp, rgpr, rgpt
-      INTEGER :: ks, kk, ks1, k
-      INTEGER :: imesh, i, j
-      INTEGER :: ijr, ijt
-      REAL*8 :: drp, dzp, indrp, indzp
-      REAL*8 :: ep_e, ep_n
-      REAL*8 :: eps_e, eps_n
+      INTEGER, INTENT(IN) :: ijk
 !
-      imesh = myijk( ip0_jp0_kp0_, ij)
-      j  = ( imesh - 1 ) / nr + 1
-      i  = MOD( ( imesh - 1 ), nr) + 1
-      ijr = myinds(ip1_jp0_kp0_, ij)
-      ijt = myinds(ip0_jp1_kp0_, ij)
+      INTEGER :: ls, ll, ls1, l
+      INTEGER :: i,j,k,imesh,is
+      REAL*8 :: dxp, dyp, dzp, indxp, indyp, indzp
+      REAL*8 :: ep_e, ep_n, ep_t
+      REAL*8 :: eps_e, eps_n, eps_t
+!
+      imesh = myijk( ip0_jp0_kp0_, ijk)
+      i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
+      j = MOD( imesh - 1, nx*ny ) / nx + 1
+      k = ( imesh - 1 ) / ( nx*ny ) + 1
 !
 ! ... Forward ...
 !
-      drp=dr(i)+dr(i+1)
-      dzp=dz(j)+dz(j+1)
+      dxp=dx(i)+dx(i+1)
+      dyp=dy(j)+dy(j+1)
+      dzp=dz(k)+dz(k+1)
 !
-      indrp=1.D0/drp
+      indxp=1.D0/dxp
+      indyp=1.D0/dyp
       indzp=1.D0/dzp
 !
-      DO k=1,nphase
+      DO l=1,nphase
 !
 ! ... Explicit terms in the linear system
 !
-        IF(k.EQ.1) THEN
-          ep_e = (dr(i)*epr + dr(i+1)*ep) * indrp                  
-          ep_n = (dz(j)*ept + dz(j+1)*ep) * indzp
-          bu(1)  = rug(ij)+ dt * indrp *2.D0* ep_e * (p-pr)
-          bw(1)  = rwg(ij)+ dt * indzp *2.D0* ep_n * (p-pt)
+        IF(l == 1) THEN
+          ep_e = (dx(i)*ep(ijke) + dx(i+1)*ep(ijk)) * indxp
+          ep_n = (dy(j)*ep(ijkn) + dy(j+1)*ep(ijk)) * indyp
+          ep_t = (dz(k)*ep(ijkt) + dz(k+1)*ep(ijk)) * indzp
+          bu(1)  = rug(ijk)+ dt * indxp *2.D0* ep_e * (p(ijk)-p(ijke))
+          bv(1)  = rvg(ijk)+ dt * indyp *2.D0* ep_n * (p(ijk)-p(ijkn))
+          bw(1)  = rwg(ijk)+ dt * indzp *2.D0* ep_t * (p(ijk)-p(ijkt))
         ELSE
-          eps_e = (dr(i)*rlkr(k-1) + dr(i+1)*rlk(k-1)) * indrp * inrl(k-1)
-          eps_n = (dz(j)*rlkt(k-1) + dz(j+1)*rlk(k-1)) * indzp * inrl(k-1)
-          bu(k)  = rus(k-1,ij) + dt * indrp *2.D0* eps_e * (p-pr)
-          bw(k)  = rws(k-1,ij) + dt * indzp *2.D0* eps_n * (p-pt)
+          eps_e = (dx(i)*rlk(l-1,ijke) + dx(i+1)*rlk(l-1,ijk)) * indxp * inrl(l-1)
+          eps_n = (dy(j)*rlk(l-1,ijkn) + dy(j+1)*rlk(l-1,ijk)) * indyp * inrl(l-1)
+          eps_t = (dz(k)*rlk(l-1,ijkt) + dz(k+1)*rlk(l-1,ijk)) * indzp * inrl(l-1)
+          bu(l)  = rus(l-1,ijk) + dt * indxp *2.D0* eps_e * (p(ijk)-p(ijke))
+          bv(l)  = rvs(l-1,ijk) + dt * indyp *2.D0* eps_n * (p(ijk)-p(ijkn))
+          bw(l)  = rws(l-1,ijk) + dt * indzp *2.D0* eps_t * (p(ijk)-p(ijkt))
         ENDIF
 !
 ! ... Implicit terms in the linear system
 !
-        ks1=k*(k-1)/2
-        DO kk=1,k
-          ks=ks1+kk
-          au(k,kk)=(dr(i)*appu(ks,ijr)+appu(ks,ij)*dr(i+1))*indrp
-          au(kk,k)=au(k,kk)
-          aw(k,kk)=(dz(j)*appw(ks,ijt)+dz(j+1)*appw(ks,ij))*indzp
-          aw(kk,k)=aw(k,kk)
+! ... number of elements of appu, appv, appw already used in previous cycles
+! ... (= size of the upper triangular matrix of side l)
+        ls1=l*(l-1)/2
+!
+! ... Off-Diagonal elements
+        DO ll=1,l
+          ls=ls1+ll
+          au(l,ll)=(dx(i)*appu(ls,ijke)+appu(ls,ijk)*dx(i+1))*indxp
+          au(ll,l)=au(l,ll)
+          av(l,ll)=(dy(j)*appv(ls,ijkn)+dy(j+1)*appv(ls,ijk))*indyp
+          av(ll,l)=av(l,ll)
+          aw(l,ll)=(dz(k)*appw(ls,ijkt)+dz(k+1)*appw(ls,ijk))*indzp
+          aw(ll,l)=aw(l,ll)
         END DO
-        IF(k.EQ.1) THEN
-          au(1,1)=au(1,1)+(dr(i)*rgpr+dr(i+1)*rgp)*indrp
-          aw(1,1)=aw(1,1)+(dz(j)*rgpt+dz(j+1)*rgp)*indzp
+!
+! ... Diagonal elements
+        IF (l == 1) THEN
+          au(1,1)=au(1,1)+(dx(i)*rgp(ijke)+dx(i+1)*rgp(ijk))*indxp
+          av(1,1)=av(1,1)+(dy(j)*rgp(ijkn)+dy(j+1)*rgp(ijk))*indyp
+          aw(1,1)=aw(1,1)+(dz(k)*rgp(ijkt)+dz(k+1)*rgp(ijk))*indzp
         ELSE
-          au(k,k)=au(k,k)+(dr(i)*rlkr(k-1)+dr(i+1)*rlk(k-1))*indrp
-          aw(k,k)=aw(k,k)+(rlkt(k-1)*dz(j)+dz(j+1)*rlk(k-1))*indzp
+          au(l,l)=au(l,l)+(dx(i)*rlk(l-1,ijke)+dx(i+1)*rlk(l-1,ijk))*indxp
+          av(l,l)=av(l,l)+(dy(j)*rlk(l-1,ijkn)+dy(j+1)*rlk(l-1,ijk))*indyp
+          aw(l,l)=aw(l,l)+(dz(k)*rlk(l-1,ijkt)+dz(k+1)*rlk(l-1,ijk))*indzp
         ENDIF
       END DO
 !
       RETURN
-      END SUBROUTINE
-!
+      END SUBROUTINE mats2
 !----------------------------------------------------------------------
-      SUBROUTINE velsk(ug, wg, us, ws, ugm, wgm, usm, wsm, ij)
+      SUBROUTINE velsk(ug, vg, wg, us, vs, ws, ugm, vgm, wgm, usm, vsm, wsm, ijk)
 !
       USE grid, ONLY: fl_l
       USE grid, ONLY: myijk
       USE dimensions
+      USE set_indexes, ONLY: imjk, ijmk, ijkm, ipjk, ijpk, ijkp
       IMPLICIT NONE
 !
-      REAL*8, INTENT(OUT) :: ug,wg,us(:),ws(:),ugm,wgm,usm(:),wsm(:)
-      INTEGER, INTENT(IN) :: ij
+      REAL*8, INTENT(OUT) :: ug,vg,wg,us(:),vs(:),ws(:)
+      REAL*8, INTENT(OUT) :: ugm,vgm,wgm,usm(:),vsm(:),wsm(:)
+      INTEGER, INTENT(IN) :: ijk
 !
-      INTEGER :: kk, kp1, k, kj, ki
-      INTEGER :: i,j,imesh
-      INTEGER :: imj, ijm, ipj, ijp
-      REAL*8 :: flt, flr, fll, div, amul, flb
+      INTEGER :: ll, lp1, l, lj, li
+      INTEGER :: i,j,k,imesh
+      INTEGER :: flw, fls, flb, fle, fln, flt
+      REAL*8 :: div, amul
 !
-      imesh = myijk( ip0_jp0_kp0_, ij)
-      j  = ( imesh - 1 ) / nr + 1
-      i  = MOD( ( imesh - 1 ), nr) + 1
+      imesh = myijk( ip0_jp0_kp0_, ijk)
+      i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
+      j = MOD( imesh - 1, nx*ny ) / nx + 1
+      k = ( imesh - 1 ) / ( nx*ny ) + 1
 !
 ! ... Use Gauss-Jordan method for matrix inversion
 !
-      imj = myijk( im1_jp0_kp0_, ij)
-      fll=fl_l(imj)
-      IF(.NOT.(fll.EQ.2.OR.fll.eq.3.or.fll.eq.5)) THEN
+      flw=fl_l(imjk)
+      IF (flw == 1 .OR. flw == 4) THEN
 
-        DO k=2,nphase
-          IF(au1(k,k).LT.rlim) THEN
-            DO kk=1,nphase
-              au1(kk,kk)=au1(kk,kk)+au1(k,kk)
-              au1(k,kk)=0.D0
-              au1(kk,k)=0.D0
+        DO l=2,nphase
+          IF(au1(l,l) < rlim) THEN
+            DO ll=1,nphase
+              au1(ll,ll)=au1(ll,ll)+au1(l,ll)
+              au1(l,ll)=0.D0
+              au1(ll,l)=0.D0
             END DO
-            bu1(k)=0.D0
+            bu1(l)=0.D0
           END IF
         END DO
 
-        DO k=1,nphase
-          IF(au1(k,k).NE.0.D0) THEN 
-            kp1=k+1
-            div=1.D0/au1(k,k)
-            DO kj=kp1,nphase
-              au1(k,kj)=au1(k,kj)*div
+        DO l=1,nphase
+          IF(au1(l,l) /= 0.D0) THEN 
+            lp1=l+1
+            div=1.D0/au1(l,l)
+            DO lj=lp1,nphase
+              au1(l,lj)=au1(l,lj)*div
             END DO
-            bu1(k)=bu1(k)*div
-            au1(k,k)=0.D0
-            DO ki=1,nphase
-              amul=au1(ki,k)
-              DO kj=kp1,nphase
-                au1(ki,kj)=au1(ki,kj)-amul*au1(k,kj)
+            bu1(l)=bu1(l)*div
+            au1(l,l)=0.D0
+            DO li=1,nphase
+              amul=au1(li,l)
+              DO lj=lp1,nphase
+                au1(li,lj)=au1(li,lj)-amul*au1(l,lj)
               END DO
-              bu1(ki)=bu1(ki)-amul*bu1(k)
+              bu1(li)=bu1(li)-amul*bu1(l)
             END DO
           END IF
         END DO
 !
         ugm=bu1(1)
-        DO k=2,nphase
-          usm(k-1)=bu1(k)
+        DO l=2,nphase
+          usm(l-1)=bu1(l)
         END DO
 
       END IF
 
-      ijm = myijk( ip0_jm1_kp0_, ij)
-      flb=fl_l(ijm)
-      IF(.NOT.(flb.EQ.2.OR.flb.eq.3.or.flb.eq.5)) THEN
+      fls=fl_l(ijmk)
+      IF (fls == 1 .OR. fls == 4) THEN
 
-        DO k=2,nphase
-          IF(aw1(k,k).LT.rlim) THEN
-            DO kk=1,nphase
-              aw1(kk,kk)=aw1(kk,kk)+aw1(k,kk)
-              aw1(k,kk)=0.D0
-              aw1(kk,k)=0.D0
+        DO l=2,nphase
+          IF(av1(l,l) < rlim) THEN
+            DO ll=1,nphase
+              av1(ll,ll)=av1(ll,ll)+av1(l,ll)
+              av1(l,ll)=0.D0
+              av1(ll,l)=0.D0
             END DO
-            bw1(k)=0.D0
+            bv1(l)=0.D0
           END IF
         END DO
 
-        DO k=1,nphase
-          IF(aw1(k,k).NE.0.D0) THEN
-            kp1=k+1
-            div=1.D0/aw1(k,k)
-            DO kj=kp1,nphase
-              aw1(k,kj)=aw1(k,kj)*div
+        DO l=1,nphase
+          IF(av1(l,l) /= 0.D0) THEN
+            lp1=l+1
+            div=1.D0/av1(l,l)
+            DO lj=lp1,nphase
+              av1(l,lj)=av1(l,lj)*div
             END DO
-            bw1(k)=bw1(k)*div
-            aw1(k,k)=0.D0
-            DO ki=1,nphase
-              amul=aw1(ki,k)
-              DO kj=kp1,nphase
-                aw1(ki,kj)=aw1(ki,kj)-amul*aw1(k,kj)
+            bv1(l)=bv1(l)*div
+            av1(l,l)=0.D0
+            DO li=1,nphase
+              amul=av1(li,l)
+              DO lj=lp1,nphase
+                av1(li,lj)=av1(li,lj)-amul*av1(l,lj)
               END DO
-              bw1(ki)=bw1(ki)-amul*bw1(k)
+              bv1(li)=bv1(li)-amul*bv1(l)
+            END DO
+          END IF
+        END DO
+!
+        vgm=bv1(1)
+        DO l=2, nphase
+          vsm(l-1)=bv1(l)
+        END DO
+!
+      END IF
+
+      flb=fl_l(ijkm)
+      IF (flb == 1 .OR. flb == 4) THEN
+
+        DO l=2,nphase
+          IF(aw1(l,l) < rlim) THEN
+            DO ll=1,nphase
+              aw1(ll,ll)=aw1(ll,ll)+aw1(l,ll)
+              aw1(l,ll)=0.D0
+              aw1(ll,l)=0.D0
+            END DO
+            bw1(l)=0.D0
+          END IF
+        END DO
+
+        DO l=1,nphase
+          IF(aw1(l,l) /= 0.D0) THEN
+            lp1=l+1
+            div=1.D0/aw1(l,l)
+            DO lj=lp1,nphase
+              aw1(l,lj)=aw1(l,lj)*div
+            END DO
+            bw1(l)=bw1(l)*div
+            aw1(l,l)=0.D0
+            DO li=1,nphase
+              amul=aw1(li,l)
+              DO lj=lp1,nphase
+                aw1(li,lj)=aw1(li,lj)-amul*aw1(l,lj)
+              END DO
+              bw1(li)=bw1(li)-amul*bw1(l)
             END DO
           END IF
         END DO
 !
         wgm=bw1(1)
-        DO k=2, nphase
-          wsm(k-1)=bw1(k)
+        DO l=2, nphase
+          wsm(l-1)=bw1(l)
         END DO
 !
       END IF
 
-      ipj = myijk( ip1_jp0_kp0_, ij)
-      flr=fl_l(ipj)
-      IF(.NOT.(flr.EQ.2.OR.flr.eq.3.or.flr.eq.5)) THEN
+      fle=fl_l(ipjk)
+      IF (fle == 1 .OR. fle == 4) THEN
 
-        DO k=2,nphase
-          IF(au(k,k).LT.rlim) THEN
-            DO kk=1,nphase
-              au(kk,kk)=au(kk,kk)+au(k,kk)
-              au(k,kk)=0.D0
-              au(kk,k)=0.D0
+        DO l=2,nphase
+          IF(au(l,l) < rlim) THEN
+            DO ll=1,nphase
+              au(ll,ll)=au(ll,ll)+au(l,ll)
+              au(l,ll)=0.D0
+              au(ll,l)=0.D0
             END DO
-            bu(k)=0.D0
+            bu(l)=0.D0
           END IF
         END DO
 
-        DO k=1,nphase
-          IF(au(k,k).NE.0.D0) THEN
-            kp1=k+1
-            div=1.D0/au(k,k)
-            DO kj=kp1,nphase
-              au(k,kj)=au(k,kj)*div
+        DO l=1,nphase
+          IF(au(l,l) /= 0.D0) THEN
+            lp1=l+1
+            div=1.D0/au(l,l)
+            DO lj=lp1,nphase
+              au(l,lj)=au(l,lj)*div
             END DO
-            bu(k)=bu(k)*div
-            au(k,k)=0.D0
-            DO ki=1,nphase
-              amul=au(ki,k)
-              DO kj=kp1,nphase
-                au(ki,kj)=au(ki,kj)-amul*au(k,kj)
+            bu(l)=bu(l)*div
+            au(l,l)=0.D0
+            DO li=1,nphase
+              amul=au(li,l)
+              DO lj=lp1,nphase
+                au(li,lj)=au(li,lj)-amul*au(l,lj)
               END DO
-              bu(ki)=bu(ki)-amul*bu(k)
+              bu(li)=bu(li)-amul*bu(l)
             END DO
           END IF
         END DO
 !
         ug=bu(1)
-        DO k=2,nphase
-          us(k-1)=bu(k)
+        DO l=2,nphase
+          us(l-1)=bu(l)
         END DO
 !
       END IF
 
-      ijp = myijk( ip0_jp1_kp0_, ij)
-      flt=fl_l(ijp)
-      IF(.NOT.(flt.EQ.2.OR.flt.eq.3.or.flt.eq.5)) THEN
-
-        DO k=2,nphase
-          IF(aw(k,k).LT.rlim) THEN
-            DO kk=1,nphase
-              aw(kk,kk)=aw(kk,kk)+aw(k,kk)
-              aw(k,kk)=0.D0
-              aw(kk,k)=0.D0
+      fln=fl_l(ijpk)
+      IF (fln == 1 .OR. fln == 4) THEN
+        DO l=2,nphase
+          IF(av(l,l) < rlim) THEN
+            DO ll=1,nphase
+              av(ll,ll)=av(ll,ll)+av(l,ll)
+              av(l,ll)=0.D0
+              av(ll,l)=0.D0
             END DO
-            bw(k)=0.D0
+            bv(l)=0.D0
           END IF
         END DO
 
-        DO k=1,nphase
-          IF(aw(k,k).NE.0.D0) THEN 
-            kp1=k+1
-            div=1.D0/aw(k,k)
-            DO kj=kp1,nphase
-              aw(k,kj)=aw(k,kj)*div
+        DO l=1,nphase
+          IF(av(l,l) /= 0.D0) THEN 
+            lp1=l+1
+            div=1.D0/av(l,l)
+            DO lj=lp1,nphase
+              av(l,lj)=av(l,lj)*div
             END DO
-            bw(k)=bw(k)*div
-            aw(k,k)=0.D0
-            DO ki=1,nphase
-              amul=aw(ki,k)
-              DO kj=kp1,nphase
-                aw(ki,kj)=aw(ki,kj)-amul*aw(k,kj)
+            bv(l)=bv(l)*div
+            av(l,l)=0.D0
+            DO li=1,nphase
+              amul=av(li,l)
+              DO lj=lp1,nphase
+                av(li,lj)=av(li,lj)-amul*av(l,lj)
               END DO 
-              bw(ki)=bw(ki)-amul*bw(k)
+              bv(li)=bv(li)-amul*bv(l)
+            END DO 
+          END IF
+        END DO
+!
+        vg=bv(1)
+        DO l=2,nphase
+          vs(l-1)=bv(l)
+        END DO
+!
+      END IF
+!
+
+      flt=fl_l(ijkp)
+      IF (flt == 1 .OR. flt == 4) THEN
+
+        DO l=2,nphase
+          IF(aw(l,l) < rlim) THEN
+            DO ll=1,nphase
+              aw(ll,ll)=aw(ll,ll)+aw(l,ll)
+              aw(l,ll)=0.D0
+              aw(ll,l)=0.D0
+            END DO
+            bw(l)=0.D0
+          END IF
+        END DO
+
+        DO l=1,nphase
+          IF(aw(l,l) /= 0.D0) THEN 
+            lp1=l+1
+            div=1.D0/aw(l,l)
+            DO lj=lp1,nphase
+              aw(l,lj)=aw(l,lj)*div
+            END DO
+            bw(l)=bw(l)*div
+            aw(l,l)=0.D0
+            DO li=1,nphase
+              amul=aw(li,l)
+              DO lj=lp1,nphase
+                aw(li,lj)=aw(li,lj)-amul*aw(l,lj)
+              END DO 
+              bw(li)=bw(li)-amul*bw(l)
             END DO 
           END IF
         END DO
 !
         wg=bw(1)
-        DO k=2,nphase
-          ws(k-1)=bw(k)
+        DO l=2,nphase
+          ws(l-1)=bw(l)
         END DO
 !
       END IF
 !
       RETURN
       END SUBROUTINE
-!
 !----------------------------------------------------------------------
-      SUBROUTINE velsk2(ug, wg, us, ws, ij)
+      SUBROUTINE velsk2(ug, vg, wg, us, vs, ws, ijk)
 !
       USE grid, ONLY: fl_l
       USE grid, ONLY: myijk
       USE dimensions
+      USE set_indexes, ONLY: ipjk, ijpk, ijkp
       IMPLICIT NONE
 !
-      REAL*8, INTENT(OUT) :: ug, wg, us(:), ws(:)
-      INTEGER, INTENT(IN) :: ij
-      INTEGER :: ipj, ijp
+      REAL*8, INTENT(OUT) :: ug, vg, wg, us(:), vs(:), ws(:)
+      INTEGER, INTENT(IN) :: ijk
 !
-      INTEGER :: kk, kp1, k, kj, ki
-      REAL*8 :: flt, flr, fll, div, amul, flb
+      INTEGER :: ll, lp1, l, lj, li
+      INTEGER :: i,j,k,imesh
+      INTEGER :: fle, fln, flt
+      REAL*8 :: div, amul
+!
+      imesh = myijk( ip0_jp0_kp0_, ijk)
+      i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
+      j = MOD( imesh - 1, nx*ny ) / nx + 1
+      k = ( imesh - 1 ) / ( nx*ny ) + 1
+!
+! ... Use Gauss-Jordan method for matrix inversion
+!
+      fle=fl_l(ipjk)
+      IF (fle == 1 .OR. fle == 4) THEN
 
-      ipj = myijk( ip1_jp0_kp0_, ij)
-      flr=fl_l(ipj)
-      IF(.NOT.(flr.EQ.2.OR.flr.eq.3.or.flr.eq.5)) THEN
-
-        DO k=2,nphase
-          IF(au(k,k).LT.rlim) THEN
-            DO kk=1,nphase
-              au(kk,kk)=au(kk,kk)+au(k,kk)
-              au(k,kk)=0.D0
-              au(kk,k)=0.D0
+        DO l=2,nphase
+          IF(au(l,l) < rlim) THEN
+            DO ll=1,nphase
+              au(ll,ll)=au(ll,ll)+au(l,ll)
+              au(l,ll)=0.D0
+              au(ll,l)=0.D0
             END DO
-            bu(k)=0.D0
+            bu(l)=0.D0
           END IF
         END DO
 
-        DO k=1,nphase
-          IF(au(k,k).NE.0.D0) THEN
-            kp1=k+1
-            div=1.D0/au(k,k)
-            DO kj=kp1,nphase
-              au(k,kj)=au(k,kj)*div
+        DO l=1,nphase
+          IF(au(l,l) /= 0.D0) THEN
+            lp1=l+1
+            div=1.D0/au(l,l)
+            DO lj=lp1,nphase
+              au(l,lj)=au(l,lj)*div
             END DO
-            bu(k)=bu(k)*div
-            au(k,k)=0.D0
-            DO ki=1,nphase
-              amul=au(ki,k)
-              DO kj=kp1,nphase
-                au(ki,kj)=au(ki,kj)-amul*au(k,kj)
+            bu(l)=bu(l)*div
+            au(l,l)=0.D0
+            DO li=1,nphase
+              amul=au(li,l)
+              DO lj=lp1,nphase
+                au(li,lj)=au(li,lj)-amul*au(l,lj)
               END DO
-              bu(ki)=bu(ki)-amul*bu(k)
+              bu(li)=bu(li)-amul*bu(l)
             END DO
           END IF
         END DO
 !
         ug=bu(1)
-        DO k=2,nphase
-          us(k-1)=bu(k)
+        DO l=2,nphase
+          us(l-1)=bu(l)
         END DO
 !
       END IF
 
-      ijp = myijk( ip0_jp1_kp0_, ij)
-      flt=fl_l(ijp)
-      IF(.NOT.(flt.EQ.2.OR.flt.eq.3.or.flt.eq.5)) THEN
-
-        DO k=2,nphase
-          IF(aw(k,k).LT.rlim) THEN
-            DO kk=1,nphase
-              aw(kk,kk)=aw(kk,kk)+aw(k,kk)
-              aw(k,kk)=0.D0
-              aw(kk,k)=0.D0
+      fln=fl_l(ijpk)
+      IF (fln == 1 .OR. fln == 4) THEN
+        DO l=2,nphase
+          IF(av(l,l) < rlim) THEN
+            DO ll=1,nphase
+              av(ll,ll)=av(ll,ll)+av(l,ll)
+              av(l,ll)=0.D0
+              av(ll,l)=0.D0
             END DO
-            bw(k)=0.D0
+            bv(l)=0.D0
           END IF
         END DO
 
-        DO k=1,nphase
-          IF(aw(k,k).NE.0.D0) THEN 
-            kp1=k+1
-            div=1.D0/aw(k,k)
-            DO kj=kp1,nphase
-              aw(k,kj)=aw(k,kj)*div
+        DO l=1,nphase
+          IF(av(l,l) /= 0.D0) THEN 
+            lp1=l+1
+            div=1.D0/av(l,l)
+            DO lj=lp1,nphase
+              av(l,lj)=av(l,lj)*div
             END DO
-            bw(k)=bw(k)*div
-            aw(k,k)=0.D0
-            DO ki=1,nphase
-              amul=aw(ki,k)
-              DO kj=kp1,nphase
-                aw(ki,kj)=aw(ki,kj)-amul*aw(k,kj)
+            bv(l)=bv(l)*div
+            av(l,l)=0.D0
+            DO li=1,nphase
+              amul=av(li,l)
+              DO lj=lp1,nphase
+                av(li,lj)=av(li,lj)-amul*av(l,lj)
               END DO 
-              bw(ki)=bw(ki)-amul*bw(k)
+              bv(li)=bv(li)-amul*bv(l)
+            END DO 
+          END IF
+        END DO
+!
+        vg=bv(1)
+        DO l=2,nphase
+          vs(l-1)=bv(l)
+        END DO
+!
+      END IF
+!
+
+      flt=fl_l(ijkp)
+      IF (flt == 1 .OR. flt == 4) THEN
+
+        DO l=2,nphase
+          IF(aw(l,l) < rlim) THEN
+            DO ll=1,nphase
+              aw(ll,ll)=aw(ll,ll)+aw(l,ll)
+              aw(l,ll)=0.D0
+              aw(ll,l)=0.D0
+            END DO
+            bw(l)=0.D0
+          END IF
+        END DO
+
+        DO l=1,nphase
+          IF(aw(l,l) /= 0.D0) THEN 
+            lp1=l+1
+            div=1.D0/aw(l,l)
+            DO lj=lp1,nphase
+              aw(l,lj)=aw(l,lj)*div
+            END DO
+            bw(l)=bw(l)*div
+            aw(l,l)=0.D0
+            DO li=1,nphase
+              amul=aw(li,l)
+              DO lj=lp1,nphase
+                aw(li,lj)=aw(li,lj)-amul*aw(l,lj)
+              END DO 
+              bw(li)=bw(li)-amul*bw(l)
             END DO 
           END IF
         END DO
 !
         wg=bw(1)
-        DO k=2,nphase
-          ws(k-1)=bw(k)
+        DO l=2,nphase
+          ws(l-1)=bw(l)
         END DO
 !
       END IF
