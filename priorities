@@ -1,0 +1,27 @@
+!!   Modification of the 3d BLOCK distribution to avoid large processor 
+     unbalancing of computational load
+
+!!   New Module to check the residuals of the model equations at each
+     iteration
+
+!    Refinement of the procedure for random perturbation of the inlet 
+     conditions to include "non-top-hat" velocity profiles
+
+!!!  Optimization procedure for atmospheric cells without particles 
+
+!!   Variable time-stepping
+
+!    Check runge-kutta coefficients for high-order schemes
+
+!!   Documentation for immersed boundaries and topography
+
+!    Revise documentation for sample input files
+
+
+Expected time needed for completion:
+!    : some hours
+!!   : a day
+!!!  : some days
+!!!! : a week or more
+*    : a PhD student :-)
+

@@ -380,8 +380,8 @@
           ! ... determine the initial random seed
           !
           seed = 0
-          !IF (mpime == root) seed = INT(cpclock())
-          !CALL bcast_integer(seed,1,root)
+          IF (mpime == root) seed = INT(cpclock())
+          CALL bcast_integer(seed,1,root)
         
         END IF
       END DO
@@ -566,16 +566,16 @@
       ! ... to a random function 'ran0' with a maximum intensity
       ! ... of 1%
       !
-      ug(ijk) = ug(ijk) * (1.D0 + 0.02D0 * (ran0(seed) - 0.5D0) )
+      ug(ijk) = ug(ijk) * (1.D0 + 0.01D0 * (ran0(seed) - 0.5D0) )
       IF (job_type == '3D')  &
-        vg(ijk) = vg(ijk) * (1.D0 + 0.02D0 * (ran0(seed) - 0.5D0) )
-      wg(ijk) = wg(ijk) * (1.D0 + 0.02D0 * (ran0(seed) -0.5D0) )
+        vg(ijk) = vg(ijk) * (1.D0 + 0.01D0 * (ran0(seed) - 0.5D0) )
+      wg(ijk) = wg(ijk) * (1.D0 + 0.01D0 * (ran0(seed) -0.5D0) )
       
       DO is = 1,nsolid
-        us(ijk,is) = us(ijk,is) * (1.D0 + 0.02D0 * (ran0(seed) -0.5D0) )
+        us(ijk,is) = us(ijk,is) * (1.D0 + 0.01D0 * (ran0(seed) -0.5D0) )
         IF (job_type == '3D') &
-          vs(ijk,is) = vs(ijk,is) * (1.D0 + 0.02D0 * (ran0(seed) -0.5D0) )
-        ws(ijk,is) = ws(ijk,is) * (1.D0 + 0.02D0 * (ran0(seed) -0.5D0) )
+          vs(ijk,is) = vs(ijk,is) * (1.D0 + 0.01D0 * (ran0(seed) -0.5D0) )
+        ws(ijk,is) = ws(ijk,is) * (1.D0 + 0.01D0 * (ran0(seed) -0.5D0) )
       END DO
 
       RETURN
