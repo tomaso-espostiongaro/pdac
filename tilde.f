@@ -165,7 +165,7 @@
       USE grid, ONLY: indx, indy, indz, inx, inxb
       USE momentum_transfer, ONLY: kdrags, inter
       USE pressure_epsilon, ONLY: ep, p
-      USE time_parameters, ONLY: dt
+      USE time_parameters, ONLY: dt, time
       USE turbulence_model, ONLY: iss, iturb
       USE gas_solid_viscosity, ONLY: viscg, viscs
       USE gas_solid_viscosity, ONLY: mug
@@ -537,7 +537,8 @@
         END IF
       END DO
 !
-      
+!      CALL test_fluxes
+!
       DEALLOCATE(ugfe, ugft)
       DEALLOCATE(wgfe, wgft)
       DEALLOCATE(gvisx, gvisz)
@@ -576,6 +577,90 @@
 
       RETURN
       END SUBROUTINE tilde
+!----------------------------------------------------------------------
+
+      SUBROUTINE test_fluxes
+!
+      USE control_flags, ONLY: job_type
+      USE dimensions, ONLY: nsolid
+      USE io_restart, ONLY: write_array
+      USE kinds
+      USE parallel, ONLY: nproc, mpime, root, group
+      USE time_parameters, ONLY: time
+!
+      IMPLICIT NONE
+!
+      CHARACTER :: filnam*11
+!
+      INTEGER :: ig,is
+      LOGICAL :: lform = .TRUE.
+!
+      filnam='output.test'
+
+      IF( mpime == root ) THEN
+
+        IF (lform) THEN
+          OPEN(UNIT=12,FILE=filnam)
+          WRITE(12,*) time
+        ELSE 
+          OPEN(UNIT=12,FORM='UNFORMATTED',FILE=filnam)
+          WRITE(12) REAL(time,4)
+        END IF
+ 
+      END IF
+!
+      IF (job_type == '2D') THEN
+        CALL write_array( 12, rug, sgl, lform )
+        CALL write_array( 12, rwg, sgl, lform )
+        CALL write_array( 12, ugfe, sgl, lform )
+        CALL write_array( 12, ugft, sgl, lform )
+        CALL write_array( 12, wgfe, sgl, lform )
+        CALL write_array( 12, wgft, sgl, lform )
+      ELSE IF (job_type == '3D') THEN
+        CALL write_array( 12, rug, sgl, lform )
+        CALL write_array( 12, rvg, sgl, lform )
+        CALL write_array( 12, rwg, sgl, lform )
+        CALL write_array( 12, ugfe, sgl, lform )
+        CALL write_array( 12, ugfn, sgl, lform )
+        CALL write_array( 12, ugft, sgl, lform )
+        CALL write_array( 12, vgfe, sgl, lform )
+        CALL write_array( 12, vgfn, sgl, lform )
+        CALL write_array( 12, vgft, sgl, lform )
+        CALL write_array( 12, wgfe, sgl, lform )
+        CALL write_array( 12, wgfn, sgl, lform )
+        CALL write_array( 12, wgft, sgl, lform )
+      END IF
+!
+      DO is = 1, nsolid
+        IF (job_type == '2D') THEN
+          CALL write_array( 12, rus(:,is), sgl, lform )
+          CALL write_array( 12, rws(:,is), sgl, lform )
+          CALL write_array( 12, usfe(:,is), sgl, lform )
+          CALL write_array( 12, usft(:,is), sgl, lform )
+          CALL write_array( 12, wsfe(:,is), sgl, lform )
+          CALL write_array( 12, wsft(:,is), sgl, lform )
+        ELSE IF (job_type == '3D') THEN
+          CALL write_array( 12, rus(:,is), sgl, lform )
+          CALL write_array( 12, rvs(:,is), sgl, lform )
+          CALL write_array( 12, rws(:,is), sgl, lform )
+          CALL write_array( 12, usfe(:,is), sgl, lform )
+          CALL write_array( 12, usfn(:,is), sgl, lform )
+          CALL write_array( 12, usft(:,is), sgl, lform )
+          CALL write_array( 12, vsfe(:,is), sgl, lform )
+          CALL write_array( 12, vsfn(:,is), sgl, lform )
+          CALL write_array( 12, vsft(:,is), sgl, lform )
+          CALL write_array( 12, wsfe(:,is), sgl, lform )
+          CALL write_array( 12, wsfn(:,is), sgl, lform )
+          CALL write_array( 12, wsft(:,is), sgl, lform )
+        END IF
+      END DO
+
+      IF( mpime == root ) THEN
+        CLOSE (12)
+      END IF
+!
+      RETURN
+      END SUBROUTINE test_fluxes
 !----------------------------------------------------------------------
       END MODULE tilde_momentum
 !----------------------------------------------------------------------

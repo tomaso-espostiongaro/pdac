@@ -261,9 +261,9 @@
 !
       dens_c = (dz(j+1) * dens%c + dz(j) * dens%t) * indzp
       dens_t = (dz(j+2) * dens%t + dz(j+1) * dens%tt) * indzpp
-      dens_e = (dz(j+1) * dens%e + dz(j) * dens%en) * indzp
+      dens_e = (dz(j+1) * dens%e + dz(j) * dens%et) * indzp
       dens_b = (dz(j)   * dens%b + dz(j-1) * dens%c) * indzm
-      dens_w = (dz(j+1) * dens%w + dz(j) * dens%wn) * indzp
+      dens_w = (dz(j+1) * dens%w + dz(j) * dens%wt) * indzp
 !
 ! ... an arbitrary choice !
 !
