@@ -30,8 +30,8 @@
       USE dimensions
       IMPLICIT NONE
 !
-      ALLOCATE(smag_factor(nr*nz))
-      ALLOCATE(smag_coeff(nr*nz))
+      ALLOCATE(smag_factor(ntot))
+      ALLOCATE(smag_coeff(ntot))
       smag_factor = 0.0D0
       smag_coeff = 0.0D0
       RETURN
@@ -53,12 +53,15 @@
       scoeff = 0.0D0
       RETURN
       END SUBROUTINE
+
+! ... MODIFICARE_X3D ( fino fine file )
+
 !----------------------------------------------------------------------
        SUBROUTINE turbulence_setup( zrough )
 ! ... sets the Smagorinsky turbulence length scale
 !
         USE dimensions, ONLY: nr, nz, no
-        USE grid, ONLY: iob, nso
+        USE grid, ONLY: iob
         USE grid, ONLY: dz, dr, zb, rb
         USE roughness_module, ONLY: roughness
 !
@@ -73,13 +76,10 @@
           it = 0; jt = 0
           zbt = 0.D0
           DO n=1,no
-           IF(nso(n).EQ.3) THEN
-             i1=iob(1,n)
-             i2=iob(2,n)
-             j2=iob(4,n)
-             it(i1:i2) = 1
-             jt(i)=j2
-             zbt(i)=zb(j2)
+           IF( iob(n)%typ == 3 ) THEN
+             it( iob(n)%rlo : iob(n)%rhi ) = 1
+             jt(i)  = iob(n)%zhi
+             zbt(i) = zb( iob(n)%zhi )
            ENDIF
           END DO
         ENDIF

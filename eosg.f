@@ -19,10 +19,10 @@
       USE dimensions
       IMPLICIT NONE
 !
-       ALLOCATE(gas_heat_capacity(nr*nz))
-       ALLOCATE(gc_mass_fraction(ngas,nr*nz),       &
-                gc_molar_fraction(ngas,nr*nz),      &
-                gc_bulk_density(ngas,nr*nz))
+       ALLOCATE(gas_heat_capacity(ntot))
+       ALLOCATE(gc_mass_fraction(ngas,ntot),       &
+                gc_molar_fraction(ngas,ntot),      &
+                gc_bulk_density(ngas,ntot))
 
        gas_heat_capacity     = 0.0d0
        gc_mass_fraction      = 0.0d0
@@ -74,7 +74,7 @@
       END SUBROUTINE
 !----------------------------------------------------------------------
       SUBROUTINE eosg(rags, rog, cp, cg, tg, ygc, xgc, sieg, p, itemp, &
-                      irhog, isound, ij)
+                      irhog, isound, imesh)
 !
 ! ... updates gas density with new pressure
 !
@@ -84,22 +84,19 @@
       USE time_parameters, ONLY: time
       IMPLICIT NONE
 !
-      INTEGER, INTENT(IN) :: ij
+      INTEGER, INTENT(IN) :: imesh
       REAL*8, INTENT(IN) :: ygc(:), xgc(:), sieg, p
       REAL*8, INTENT(OUT) :: rog, rags
       REAL*8, INTENT(INOUT) :: tg
       REAL*8 :: cp(:), cg
       INTEGER :: itemp, irhog, isound
 !
-      INTEGER :: i,j
       REAL*8 :: tgnn, mg, hc, ratmin
       INTEGER :: ii, nlmax
       INTEGER :: kg
       PARAMETER( nlmax = 2000) 
       PARAMETER( ratmin = 1.D-8) 
 !
-      j  = ( ij - 1 ) / nr + 1
-      i  = MOD( ( ij - 1 ), nr) + 1
 !
       IF(itemp.GT.0) THEN
 !
@@ -117,7 +114,7 @@
           IF (DABS((tgnn-tg)/tgnn).LE.ratmin) GOTO 223
         END DO
         WRITE(8,*) 'max number of iteration reached in eosg'
-        WRITE(8,*) 'time, i, j',time,i,j
+        WRITE(8,*) 'time, imesh ',time, imesh
         CALL error( ' eosg ', ' max number of iteration reached in eosg ', 1 )
   223   CONTINUE
       ENDIF
@@ -135,7 +132,7 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE cnvertg(ij)
+      SUBROUTINE cnvertg(imesh)
 !
 ! ... computes thermodynamic mean quantities
 !
@@ -149,23 +146,23 @@
 !
       IMPLICIT NONE
 !
-      INTEGER, INTENT(IN) :: ij
+      INTEGER, INTENT(IN) :: imesh
       INTEGER :: kg
 !
       REAL*8 :: mg, hc
 !
       mg = 0.D0
       DO kg = 1, ngas
-        mg = gc_molar_fraction(kg,ij) * gmw(kg) + mg
+        mg = gc_molar_fraction(kg,imesh) * gmw(kg) + mg
       END DO
 
 ! ... gas density (equation of state)
 !
-      gas_density(ij) = gas_pressure(ij) / (rgas*gas_temperature(ij)) * mg
-      gas_bulk_density(ij) = gas_density(ij) * void_fraction(ij)
+      gas_density(imesh) = gas_pressure(imesh) / (rgas*gas_temperature(imesh)) * mg
+      gas_bulk_density(imesh) = gas_density(imesh) * void_fraction(imesh)
 
       DO kg = 1, ngas
-        gc_bulk_density(kg,ij) = gc_mass_fraction(kg,ij) * gas_bulk_density(ij)
+        gc_bulk_density(kg,imesh) = gc_mass_fraction(kg,imesh) * gas_bulk_density(imesh)
       END DO
 
 !pdac---------------
@@ -175,14 +172,14 @@
 !
 ! compute heat capacity (constant volume) for gas mixture
 !
-      CALL hcapg(gc_heat_capacity(:,ij),gas_temperature(ij))
+      CALL hcapg(gc_heat_capacity(:,imesh),gas_temperature(imesh))
       hc = 0.D0
       DO kg=1,ngas
-        hc = c_erg*gc_heat_capacity(kg,ij)*gc_mass_fraction(kg,ij) + hc
+        hc = c_erg*gc_heat_capacity(kg,imesh)*gc_mass_fraction(kg,imesh) + hc
       END DO 
 
-      gas_heat_capacity(ij) = hc
-      gas_enthalpy(ij)=(gas_temperature(ij)-tzero)*gas_heat_capacity(ij)+hzerog
+      gas_heat_capacity(imesh) = hc
+      gas_enthalpy(imesh)=(gas_temperature(imesh)-tzero)*gas_heat_capacity(imesh)+hzerog
 !
       RETURN
       END SUBROUTINE

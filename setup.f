@@ -33,8 +33,8 @@
       USE gas_solid_velocity, ONLY: gas_velocity_r, gas_velocity_z
       USE gas_solid_velocity, ONLY: solid_velocity_r, solid_velocity_z
       USE gas_solid_temperature, ONLY: gas_temperature, solid_temperature
-      USE grid, ONLY: grid_setup, zb, dz, dr
-      USE grid, ONLY: fl, iob, nso
+      USE grid, ONLY: grid_setup, zb, dx, dy, dz, dr
+      USE grid, ONLY: fl, iob
       USE particles_constants, ONLY: rl
       USE pressure_epsilon, ONLY: gas_pressure, void_fraction
       USE time_parameters, ONLY: itd
@@ -43,13 +43,16 @@
       IMPLICIT NONE
 !
       INTEGER :: i, j, k, n, j1, j2, i1, i2, ikpr, kpr, ij
-      INTEGER :: kg
+      INTEGER :: kg, is, imesh
       REAL*8 :: zrif
 !
       CALL grid_setup(zzero)
       CALL setc
 !
+! ... MODIFICARE_X3D
+
       IF(itd.LE.1) THEN
+
 !
 ! ... Set initial ambient pressure and temperature within computational domain
 ! ... and boundary cells
@@ -66,9 +69,9 @@
             DO kg=1,ngas
               gc_mass_fraction(kg,ij)=ygc0(kg)
             END DO
-            DO k=1,nsolid
-              solid_bulk_density(k,ij)=rl(k)*(1.D0-ep0)/DBLE(nsolid)
-              solid_temperature(k,ij)=gas_temperature(ij)
+            DO is=1,nsolid
+              solid_bulk_density(is,ij)=rl(is)*(1.D0-ep0)/DBLE(nsolid)
+              solid_temperature(is,ij)=gas_temperature(ij)
             END DO
 !
 ! ... Set velocity profiles
@@ -88,14 +91,10 @@
 ! ... Set initial conditions in Boundary cells with imposed fluid flow
 !
         DO n=1,no
-          i1=iob(1,n)
-          i2=iob(2,n)
-          j1=iob(3,n)
-          j2=iob(4,n)
-          DO j=j1,j2
-          DO i=i1,i2
+          DO j = iob(n)%zlo, iob(n)%zhi 
+          DO i = iob(n)%rlo, iob(n)%rhi
             ij=i+(j-1)*nr
-            IF(nso(n).EQ.1 .OR. nso(n).EQ.5) THEN
+            IF( iob(n)%typ == 1 .OR. iob(n)%typ == 5 ) THEN
               gas_velocity_r(ij)=ugob(n)
               gas_velocity_z(ij)=vgob(n)
               gas_temperature(ij)=tgob(n)
@@ -104,11 +103,11 @@
               DO kg=1,ngas
                 gc_mass_fraction(kg,ij)=ygcob(kg,n)
               END DO
-              DO k=1,nsolid
-                solid_temperature(k,ij)=tpob(k,n)
-                solid_velocity_r(k,ij)=upob(k,n)
-                solid_velocity_z(k,ij)=vpob(k,n)
-                solid_bulk_density(k,ij)=epsob(k,n)*rl(k)
+              DO is=1,nsolid
+                solid_temperature(is,ij)=tpob(is,n)
+                solid_velocity_r(is,ij)=upob(is,n)
+                solid_velocity_z(is,ij)=vpob(is,n)
+                solid_bulk_density(is,ij)=epsob(is,n)*rl(is)
               END DO
             ENDIF
           END DO
@@ -117,13 +116,10 @@
 !
 ! ... Compute thermodynamic quantities
 !
-        DO  j=1,nz
-          DO i=1,nr
-           ij=i+(j-1)*nr
-           CALL mole(gc_molar_fraction(:,ij), gc_mass_fraction(:,ij))
-           CALL cnvertg(ij)
-           CALL cnverts(ij)
-          END DO
+        DO  imesh = 1, ntot
+         CALL mole(gc_molar_fraction(:,imesh), gc_mass_fraction(:,imesh))
+         CALL cnvertg(imesh)
+         CALL cnverts(imesh)
         END DO
 !
       END IF

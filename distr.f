@@ -8,9 +8,9 @@
       USE eos_gas, ONLY: rgpgc, ygc, xgc
       USE eos_gas, ONLY: gas_heat_capacity
       USE eos_gas, ONLY: cg
-      USE gas_solid_velocity, ONLY: gas_velocity_r, gas_velocity_z
-      USE gas_solid_velocity, ONLY: solid_velocity_r, solid_velocity_z
-      USE gas_solid_velocity, ONLY: ug, vg, uk, vk
+      USE gas_solid_velocity, ONLY: gas_velocity_r, gas_velocity_z, gas_velocity_x, gas_velocity_y
+      USE gas_solid_velocity, ONLY: solid_velocity_r, solid_velocity_z, solid_velocity_x, solid_velocity_y
+      USE gas_solid_velocity, ONLY: ug, vg, wg, uk, vk, wk
       USE gas_solid_density, ONLY: gas_bulk_density, solid_bulk_density, gas_density
       USE gas_solid_density, ONLY: rgp, rlk, rog
       USE gas_solid_temperature, ONLY: gas_enthalpy, gas_temperature
@@ -23,6 +23,7 @@
       USE heat_capacity, ONLY: gc_heat_capacity, solid_heat_capacity
       USE heat_capacity, ONLY: cp, ck
       USE turbulence, ONLY: smag, smag_factor
+      USE control_flags, ONLY: job_type
 !
       INTEGER :: ij, ij_l
       IMPLICIT NONE
@@ -38,6 +39,11 @@
         uk = 0.D0
         vk = 0.D0
         ygc = 0.D0
+
+        IF( job_type == '3D' ) THEN
+          wg = 0.D0
+          wk = 0.D0
+        END IF
 !
         rgp = 0.D0
         rog = 0.D0
@@ -61,11 +67,27 @@
         p(ij_l) = gas_pressure(ij)
         rlk(:,ij_l) = solid_bulk_density(:,ij)
         sieg(ij_l) = gas_enthalpy(ij)
-        ug(ij_l) = gas_velocity_r(ij)
-        vg(ij_l) = gas_velocity_z(ij)
+
+        IF( job_type == '2D' ) THEN
+          ug(ij_l) = gas_velocity_r(ij)
+          vg(ij_l) = gas_velocity_z(ij)
+        ELSE
+          ug(ij_l) = gas_velocity_x(ij)
+          vg(ij_l) = gas_velocity_y(ij)
+          wg(ij_l) = gas_velocity_z(ij)
+        END IF
+
         siek(:,ij_l) = solid_enthalpy(:,ij)
-        uk(:,ij_l) = solid_velocity_r(:,ij)
-        vk(:,ij_l) = solid_velocity_z(:,ij)
+
+        IF( job_type == '2D' ) THEN
+          uk(:,ij_l) = solid_velocity_r(:,ij)
+          vk(:,ij_l) = solid_velocity_z(:,ij)
+        ELSE
+          uk(:,ij_l) = solid_velocity_x(:,ij)
+          vk(:,ij_l) = solid_velocity_y(:,ij)
+          wk(:,ij_l) = solid_velocity_z(:,ij)
+        END IF
+
         ygc(:, ij_l) = gc_mass_fraction(:, ij)
 !
         rgp(ij_l) = gas_bulk_density(ij)

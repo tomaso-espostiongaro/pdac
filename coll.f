@@ -8,9 +8,9 @@
       USE eos_gas, ONLY: rgpgc, ygc, xgc
       USE eos_gas, ONLY: gas_heat_capacity
       USE eos_gas, ONLY: cg
-      USE gas_solid_velocity, ONLY: gas_velocity_r, gas_velocity_z
-      USE gas_solid_velocity, ONLY: solid_velocity_r, solid_velocity_z
-      USE gas_solid_velocity, ONLY: ug, vg, uk, vk
+      USE gas_solid_velocity, ONLY: gas_velocity_r, gas_velocity_z, gas_velocity_x, gas_velocity_y
+      USE gas_solid_velocity, ONLY: solid_velocity_r, solid_velocity_z, solid_velocity_x, solid_velocity_y
+      USE gas_solid_velocity, ONLY: ug, vg, wg, uk, vk, wk
       USE gas_solid_density, ONLY: gas_bulk_density, solid_bulk_density, gas_density
       USE gas_solid_density, ONLY: rgp, rlk, rog
       USE gas_solid_temperature, ONLY: gas_enthalpy, gas_temperature
@@ -21,16 +21,31 @@
       USE pressure_epsilon, ONLY: p, ep
       USE heat_capacity, ONLY: gc_heat_capacity, solid_heat_capacity
       USE heat_capacity, ONLY: cp, ck
+      USE control_flags, ONLY: job_type
 !
       USE turbulence, ONLY: scoeff, smag_coeff
+
+      IMPLICIT NONE
+
+      INTEGER :: imesh, ijk
 !
       gas_pressure                = 0.D0
       solid_bulk_density          = 0.D0
       gas_enthalpy                = 0.D0
-      gas_velocity_r              = 0.D0
+      IF( job_type == '2D' ) THEN
+        gas_velocity_r              = 0.D0
+      ELSE
+        gas_velocity_x              = 0.D0
+        gas_velocity_y              = 0.D0
+      END IF
       gas_velocity_z              = 0.D0
       solid_enthalpy              = 0.D0
-      solid_velocity_r            = 0.D0
+      IF( job_type == '2D' ) THEN
+        solid_velocity_r            = 0.D0
+      ELSE
+        solid_velocity_x            = 0.D0
+        solid_velocity_y            = 0.D0
+      END IF
       solid_velocity_z            = 0.D0
       gc_mass_fraction            = 0.D0
 !
@@ -48,41 +63,63 @@
 !
       smag_coeff                  = 0.D0
 !
-      DO ij_l = 1, nij_l
-        ij = myij(0,0,ij_l)
-        gas_pressure(ij) = p(ij_l)
-        solid_bulk_density(:,ij) = rlk(:,ij_l)
-        gas_enthalpy(ij) = sieg(ij_l)
-        gas_velocity_r(ij) = ug(ij_l)
-        gas_velocity_z(ij) = vg(ij_l)
-        solid_enthalpy(:,ij) = siek(:,ij_l)
-        solid_velocity_r(:,ij) = uk(:,ij_l)
-        solid_velocity_z(:,ij) = vk(:,ij_l)
-        gc_mass_fraction(:, ij) = ygc(:, ij_l)
+      DO ijk = 1, nij_l
+        imesh = myij(0,0,ijk)
+        gas_pressure(imesh) = p(ijk)
+        solid_bulk_density(:,imesh) = rlk(:,ijk)
+        gas_enthalpy(imesh) = sieg(ijk)
+        IF( job_type == '2D' ) THEN
+          gas_velocity_r(imesh) = ug(ijk)
+          gas_velocity_z(imesh) = vg(ijk)
+        ELSE
+          gas_velocity_x(imesh) = ug(ijk)
+          gas_velocity_y(imesh) = vg(ijk)
+          gas_velocity_z(imesh) = wg(ijk)
+        END IF
+        solid_enthalpy(:,imesh) = siek(:,ijk)
+        IF( job_type == '2D' ) THEN
+          solid_velocity_r(:,imesh) = uk(:,ijk)
+          solid_velocity_z(:,imesh) = vk(:,ijk)
+        ELSE
+          solid_velocity_x(:,imesh) = uk(:,ijk)
+          solid_velocity_y(:,imesh) = vk(:,ijk)
+          solid_velocity_z(:,imesh) = wk(:,ijk)
+        END IF
+        gc_mass_fraction(:, imesh) = ygc(:, ijk)
 !
-        gas_bulk_density(ij) = rgp(ij_l)
-        gas_density(ij) = rog(ij_l)
-        void_fraction(ij) = ep(ij_l)
-        gas_temperature(ij) = tg(ij_l)
-        solid_temperature(:,ij) = tk(:,ij_l)
-        gc_bulk_density(:, ij) = rgpgc(:, ij_l)
-        gc_molar_fraction(:, ij) = xgc(:, ij_l)
+        gas_bulk_density(imesh) = rgp(ijk)
+        gas_density(imesh) = rog(ijk)
+        void_fraction(imesh) = ep(ijk)
+        gas_temperature(imesh) = tg(ijk)
+        solid_temperature(:,imesh) = tk(:,ijk)
+        gc_bulk_density(:, imesh) = rgpgc(:, ijk)
+        gc_molar_fraction(:, imesh) = xgc(:, ijk)
 !
-        solid_heat_capacity(:,ij) = ck(:,ij_l)
-        gc_heat_capacity(:,ij) = cp(:,ij_l)
-        gas_heat_capacity(ij) = cg(ij_l)
+        solid_heat_capacity(:,imesh) = ck(:,ijk)
+        gc_heat_capacity(:,imesh) = cp(:,ijk)
+        gas_heat_capacity(imesh) = cg(ijk)
 !
-        smag_coeff(ij) = scoeff(ij_l)
+        smag_coeff(imesh) = scoeff(ijk)
         
       END DO
 !
       CALL parallel_sum_real(gas_pressure, SIZE(gas_pressure))
       CALL parallel_sum_real(solid_bulk_density, SIZE(solid_bulk_density))
       CALL parallel_sum_real(gas_enthalpy, SIZE(gas_enthalpy) )
-      CALL parallel_sum_real(gas_velocity_r, SIZE(gas_velocity_r) )
+      IF( job_type == '2D' ) THEN
+        CALL parallel_sum_real(gas_velocity_r, SIZE(gas_velocity_r) )
+      ELSE
+        CALL parallel_sum_real(gas_velocity_x, SIZE(gas_velocity_r) )
+        CALL parallel_sum_real(gas_velocity_y, SIZE(gas_velocity_r) )
+      END IF
       CALL parallel_sum_real(gas_velocity_z, SIZE(gas_velocity_z) )
       CALL parallel_sum_real(solid_enthalpy, SIZE(solid_enthalpy) )
-      CALL parallel_sum_real(solid_velocity_r, SIZE(solid_velocity_r) )
+      IF( job_type == '2D' ) THEN
+        CALL parallel_sum_real(solid_velocity_r, SIZE(solid_velocity_r) )
+      ELSE
+        CALL parallel_sum_real(solid_velocity_x, SIZE(solid_velocity_r) )
+        CALL parallel_sum_real(solid_velocity_y, SIZE(solid_velocity_r) )
+      END IF
       CALL parallel_sum_real(solid_velocity_z, SIZE(solid_velocity_z) )
       CALL parallel_sum_real(gc_mass_fraction, SIZE(gc_mass_fraction))
 !

@@ -15,8 +15,8 @@
       USE dimensions
       IMPLICIT NONE
 !
-      ALLOCATE(gas_enthalpy(nr*nz), gas_temperature(nr*nz))
-      ALLOCATE(solid_enthalpy(nsolid,nr*nz), solid_temperature(nsolid,nr*nz))
+      ALLOCATE(gas_enthalpy(ntot), gas_temperature(ntot))
+      ALLOCATE(solid_enthalpy(nsolid,ntot), solid_temperature(nsolid,ntot))
 !
       RETURN
       END SUBROUTINE

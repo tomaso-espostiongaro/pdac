@@ -24,7 +24,7 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE cnverts(ij)
+      SUBROUTINE cnverts(imesh)
 !
       USE dimensions
       USE gas_solid_density, ONLY: solid_bulk_density
@@ -36,9 +36,9 @@
 !
       IMPLICIT NONE
 !
-      INTEGER, INTENT(IN) :: ij
+      INTEGER, INTENT(IN) :: imesh
 !
-      INTEGER :: k
+      INTEGER :: is
 
 !pdac---------------
 ! control next statement
@@ -47,9 +47,9 @@
 !
 ! compute heat capacity (constant volume) for particles
 !
-      DO k = 1, nsolid
-        CALL hcaps(solid_heat_capacity(k,ij), cps(k), solid_temperature(k,ij))
-        solid_enthalpy(k,ij)=(solid_temperature(k,ij)-tzero)*solid_heat_capacity(k,ij)+hzeros
+      DO is = 1, nsolid
+        CALL hcaps(solid_heat_capacity(is,imesh), cps(is), solid_temperature(is,imesh))
+        solid_enthalpy(is,imesh)=(solid_temperature(is,imesh)-tzero)*solid_heat_capacity(is,imesh)+hzeros
       END DO
 !
       RETURN

@@ -2,7 +2,7 @@
    MODULE input_module
 !-----------------------------------------------------------------------------------------
 
-      USE dimensions, ONLY: max_nsolid, ngas, nroughx, max_size, max_nblock, max_ngas, nr, nz
+      USE dimensions, ONLY: max_nsolid, ngas, nroughx, max_size, max_nblock, max_ngas, nr, nz, nx, ny
 
       REAL*8 :: diameter(max_nsolid)
       REAL*8 :: density(max_nsolid)
@@ -10,7 +10,7 @@
       REAL*8 :: viscosity(max_nsolid)
       REAL*8 :: specific_heat(max_nsolid)
       REAL*8 :: thermal_conductivity(max_nsolid)
-      REAL*8 :: dr0, dz0
+      REAL*8 :: dr0, dz0, dx0, dy0
       CHARACTER(LEN=80) :: run_name
       CHARACTER(LEN=80) :: restart_mode
       INTEGER :: iuni
@@ -24,7 +24,7 @@
 ! ... FIXED_FLOWS
       INTEGER :: number_of_block
       INTEGER :: block_type(max_nblock)
-      INTEGER :: block_bounds(4,max_nblock)
+      INTEGER :: block_bounds(6,max_nblock)
       REAL*8 :: fixed_vgas_r(max_nblock)
       REAL*8 :: fixed_vgas_x(max_nblock)
       REAL*8 :: fixed_vgas_y(max_nblock)
@@ -63,8 +63,7 @@
       USE atmosphere, ONLY: v0, u0, p0, temp0, uk0, vk0, ep0, epsmx0, gravx, gravz
       USE eulerian_flux, ONLY: beta, muscl
       USE gas_constants, ONLY: phij, ckg, mmug, mmugs, mmugek, gmw
-      USE grid, ONLY: dz, dr, itc
-      USE grid, ONLY: nso, iob
+      USE grid, ONLY: dx, dy, dz, dr, itc
       USE iterative_solver, ONLY: inmax, maxout, omega
       USE output_dump, ONLY: nfil, outp
       USE parallel, ONLY: mpime, root
@@ -79,16 +78,17 @@
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut
       USE turbulence, ONLY: iturb, cmut, iss, modturbo
+      USE control_flags, ONLY: job_type
 !
       IMPLICIT NONE
  
       INTEGER, INTENT(IN) :: iunit
 
-      NAMELIST / control / run_name, restart_mode, time, tstop, dt, lpr, tpr, &
+      NAMELIST / control / run_name, job_type, restart_mode, time, tstop, dt, lpr, tpr, &
         tdump, nfil, irex, iss, iturb, modturbo, cmut, rlim, gravx, gravz, &
         ngas
 !
-      NAMELIST / mesh / nr, nz, itc, iuni, dr0, dz0
+      NAMELIST / mesh / nr, nx, ny, nz, itc, iuni, dr0, dx0, dy0, dz0
 !
       NAMELIST / particles / nsolid, diameter, density, sphericity, &
         viscosity, specific_heat, thermal_conductivity
@@ -104,6 +104,7 @@
 ! ... Control
 
       run_name = 'run2d'
+      job_type = '2D'
       restart_mode = 'from_scratch'
       time = 0.0d0
       tstop = 1.0d0
@@ -126,10 +127,14 @@
 
       nr = 100
       nz = 100
+      nx = 1
+      ny = 1
       itc = 0
       iuni = 0
       dr0  = 1000.0d0
       dz0  = 1000.0d0
+      dx0  = 1000.0d0
+      dy0  = 1000.0d0
       zzero = 0.0d0
 
 ! ... Particles
@@ -160,6 +165,7 @@
       END IF
 !
       CALL bcast_character(run_name,80,root)
+      CALL bcast_character(job_type,80,root)
       CALL bcast_character(restart_mode,80,root)
       CALL bcast_real(time,1,root)
       CALL bcast_real(tstop,1,root)
@@ -187,15 +193,30 @@
           CALL error(' input ',' unknown restart_mode '//TRIM(restart_mode), 1 )
       END SELECT
 
+      SELECT CASE ( TRIM(job_type) )
+        CASE ('2D', '2d' )
+          job_type = '2D'
+        CASE ('3D', '3d' )
+          job_type = '3D'
+          CALL error(' input ',' job_type = 3D not yet implemented ', 1 )
+        CASE DEFAULT
+          CALL error(' input ',' unknown job_type '//TRIM(job_type), 1 )
+      END SELECT
+
+
       IF(mpime .EQ. root) THEN
         READ(iunit, mesh) 
       END IF
 
       CALL bcast_integer(nr,1,root)
+      CALL bcast_integer(nx,1,root)
+      CALL bcast_integer(ny,1,root)
       CALL bcast_integer(nz,1,root)
       CALL bcast_integer(itc,1,root)
       CALL bcast_integer(iuni,1,root)
       CALL bcast_real(dr0,1,root)
+      CALL bcast_real(dx0,1,root)
+      CALL bcast_real(dy0,1,root)
       CALL bcast_real(dz0,1,root)
       CALL bcast_real(zzero,1,root)
 
@@ -259,10 +280,18 @@
           END IF
         END DO mesh_search
 
-        READ(5,*) (delta_r(i),i=1,nr)
-        READ(5,*) (delta_z(j),j=1,nz)
+        IF( job_type == '3D' ) THEN
+          READ(5,*) (delta_x(i),i=1,nx)
+          READ(5,*) (delta_y(j),j=1,ny)
+          READ(5,*) (delta_z(j),j=1,nz)
+        ELSE IF( job_type == '2D' ) THEN
+          READ(5,*) (delta_r(i),i=1,nr)
+          READ(5,*) (delta_z(j),j=1,nz)
+        END IF
         IF (iuni == 0) THEN
           delta_r = dr0
+          delta_x = dx0
+          delta_y = dy0
           delta_z = dz0
         ENDIF
 
@@ -276,9 +305,12 @@
         CALL error( ' input ', ' MESH card not found ', 1 )
       END IF
       CALL bcast_real(delta_r,nr,root)
+      CALL bcast_real(delta_x,nx,root)
+      CALL bcast_real(delta_y,ny,root)
       CALL bcast_real(delta_z,nz,root)
 
 
+! ... MODIFICARE_X3D
       tend = .FALSE.
       IF(mpime .EQ. root) THEN
         fixed_flows_search: DO
@@ -290,7 +322,7 @@
 
         READ(5,*) number_of_block
         DO n = 1, number_of_block
-          READ(5,*) block_type(n),(block_bounds(m,n),m=1,4)
+          READ(5,*) block_type(n),block_bounds(1,n), block_bounds(2,n), block_bounds(5,n), block_bounds(6,n)
           IF( block_type(n) == 1 .OR. block_type(n) == 5) THEN
             READ(5,*) fixed_vgas_r(n), fixed_vgas_z(n), fixed_pressure(n), fixed_gaseps(n), fixed_gastemp(n)
             READ(5,*) ( fixed_vpart_r(k,n), fixed_vpart_z(k,n), fixed_parteps(k,n), fixed_parttemp(k,n), k=1, nsolid)
@@ -331,8 +363,13 @@
           END IF
         END DO initial_conditions_search
 
-        READ(5,*) initial_vgas_r, initial_vgas_z, initial_pressure, initial_void_fraction, max_packing, initial_temperature
-        READ(5,*) initial_vpart_r, initial_vpart_z
+        IF( job_type == '3D' ) THEN
+          READ(5,*) initial_vgas_x, initial_vgas_y, initial_vgas_z, initial_pressure, initial_void_fraction, max_packing, initial_temperature
+          READ(5,*) initial_vpart_x, initial_vpart_y, initial_vpart_z
+        ELSE IF( job_type == '2D' ) THEN
+          READ(5,*) initial_vgas_r, initial_vgas_z, initial_pressure, initial_void_fraction, max_packing, initial_temperature
+          READ(5,*) initial_vpart_r, initial_vpart_z
+        ENDIF
         READ(5,*) (initial_gasconc(kg), kg=1, ngas)
 
         GOTO 410
@@ -345,12 +382,16 @@
         CALL error( ' input ', ' MESH card not found ', 1 )
       END IF
       CALL bcast_real(initial_vgas_r,1,root)
+      CALL bcast_real(initial_vgas_x,1,root)
+      CALL bcast_real(initial_vgas_y,1,root)
       CALL bcast_real(initial_vgas_z,1,root)
       CALL bcast_real(initial_pressure,1,root)
       CALL bcast_real(initial_void_fraction,1,root)
       CALL bcast_real(max_packing,1,root)
       CALL bcast_real(initial_temperature,1,root)
       CALL bcast_real(initial_vpart_r,1,root)
+      CALL bcast_real(initial_vpart_x,1,root)
+      CALL bcast_real(initial_vpart_y,1,root)
       CALL bcast_real(initial_vpart_z,1,root)
       CALL bcast_real(initial_gasconc, SIZE(initial_gasconc),root)
 

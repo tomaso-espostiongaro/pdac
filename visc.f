@@ -22,9 +22,9 @@
       USE dimensions
       IMPLICIT NONE
 !
-      ALLOCATE(particle_viscosity(nsolid,nr*nz))
-      ALLOCATE(gas_viscosity(nr*nz))
-      ALLOCATE(gas_thermal_conductivity(nr*nz))
+      ALLOCATE(particle_viscosity(nsolid,ntot))
+      ALLOCATE(gas_viscosity(ntot))
+      ALLOCATE(gas_thermal_conductivity(ntot))
       particle_viscosity = 0.0d0
       gas_viscosity = 0.0d0
       gas_thermal_conductivity = 0.0d0
@@ -60,18 +60,18 @@
       REAL*8, INTENT(OUT) :: mu, kap
 !
       REAL*8 :: bb, aa, cc, sum, c2, tst, om, tr, c1 
-      INTEGER :: ik, jk
+      INTEGER :: ig, jg
 !
 ! ... Temperature Dependent Viscosity (Reid)
 !
 !pdac------------
-!      DO ik=1,ngas
-      DO ik=5,6
+!      DO ig=1,ngas
+      DO ig=5,6
 !pdac------------
-        tst=tg/mmugek(ik)
+        tst=tg/mmugek(ig)
         om=1.16145D0*tst**(-0.14874D0)+ 0.52487D0*DEXP(-0.77320D0*tst)+  &
      &        2.16178D0*DEXP(-2.43787D0*tst)
-        mmug(ik)=26.69D0*(gmw(ik)*tg)**0.5D0/(mmugs(ik)**2*om)
+        mmug(ig)=26.69D0*(gmw(ig)*tg)**0.5D0/(mmugs(ig)**2*om)
       END DO
 !
 ! ... Temperature Dependent Conductivity (Wassilijewa)
@@ -93,39 +93,39 @@
 !pdac------------
 !
 !pdac------------
-!      DO ik=1,ngas
-!      DO jk=1,ngas
-      DO ik=5,6
-      DO jk=5,6
+!      DO ig=1,ngas
+!      DO jg=1,ngas
+      DO ig=5,6
+      DO jg=5,6
 !pdac------------
-        aa=gmw(ik)/gmw(jk)
-        bb=mmug(ik)/mmug(jk)
+        aa=gmw(ig)/gmw(jg)
+        bb=mmug(ig)/mmug(jg)
         cc=1.D0+DSQRT(bb)*aa**(-0.25D0)
-        phij(ik,jk)=cc**2/DSQRT(8.D0*(1.D0+aa))
+        phij(ig,jg)=cc**2/DSQRT(8.D0*(1.D0+aa))
       END DO
       END DO
 !
       c1=0.D0
       c2=0.D0
 !pdac------------
-!      DO ik=1,ngas
-      DO ik=5,6
+!      DO ig=1,ngas
+      DO ig=5,6
 !pdac------------
         sum=0.D0
 !pdac------------
-!        DO jk=1,ngas
-        DO jk=5,6
+!        DO jg=1,ngas
+        DO jg=5,6
 !pdac------------
-          sum=sum+xgc(jk)*phij(ik,jk)
+          sum=sum+xgc(jg)*phij(ig,jg)
         END DO
 !
 ! ... Mixture Viscosity (Wilke)
 !
-        c1 = c1+xgc(ik) * mmug(ik) /sum     
+        c1 = c1+xgc(ig) * mmug(ig) /sum     
 !
 ! ... Mixture Conductivity (Mason and Saxema)
 !
-        c2 = c2+xgc(ik) * ckg(ik) /sum       
+        c2 = c2+xgc(ig) * ckg(ig) /sum       
                                              !
       END DO
 !
@@ -163,8 +163,11 @@
 !
       RETURN
       END SUBROUTINE
+
+! ... MODIFICARE_X3D ( fino fine file )
+
 !----------------------------------------------------------------------
-      SUBROUTINE viscs(k)
+      SUBROUTINE viscs(is)
 !----------------------------------------------------------------------
 ! ... This routine computes the components of the viscous diffusion terms
 ! ... in particle momentum transport equations
@@ -180,7 +183,7 @@
       IMPLICIT NONE
 !
       REAL*8, ALLOCATABLE :: epk(:)
-      INTEGER, INTENT(IN) :: k 
+      INTEGER, INTENT(IN) :: is 
 !
       REAL*8 :: drp, dzp, indrp, indzp
       REAL*8 :: epsx, epsz, gepx, gepz
@@ -188,14 +191,14 @@
       LOGICAL :: repulsive_model
 !
       ALLOCATE(epk(nijx_l))
-      epk(:) = rlk(k,:)*inrl(k)
+      epk(:) = rlk(is,:)*inrl(is)
 !
       CALL data_exchange(mus)
 !
 ! ... Newtonian stress tensor
 !
-      CALL stress(pvisx(k,:), pvisz(k,:), mus(k,:), mus(k,:), epk(:), &
-                         uk(k,:), vk(k,:))
+      CALL stress(pvisx(is,:), pvisz(is,:), mus(is,:), mus(is,:), epk(:), &
+                         uk(is,:), vk(is,:))
 !
 ! ... Repulsive model (Gidaspow and Ettehadieh, 1983)
 !
@@ -216,17 +219,17 @@
 !
 ! ... Coulombic x-gradient
 !
-           epsx=(dr(i+1)*rlk(k,ij) + dr(i)*rlk(k,ijr)) * indrp * inrl(k)
+           epsx=(dr(i+1)*rlk(is,ij) + dr(i)*rlk(is,ijr)) * indrp * inrl(is)
            gepx=10.D0**(8.76D0*epsx-0.27D0)
-           pvisx(k,ij) = pvisx(k,ij) -  & 
-                         gepx*indrp*2.D0*(rlk(k,ijr)-rlk(k,ij))*inrl(k)
+           pvisx(is,ij) = pvisx(is,ij) -  & 
+                         gepx*indrp*2.D0*(rlk(is,ijr)-rlk(is,ij))*inrl(is)
 !
 ! ... Coulombic z-gradient
 !
-           epsz=(dz(j+1)*rlk(k,ij) + dz(j)*rlk(k,ijt)) * indzp * inrl(k)
+           epsz=(dz(j+1)*rlk(is,ij) + dz(j)*rlk(is,ijt)) * indzp * inrl(is)
            gepz=10.D0**(8.76D0*epsz-0.207D0)
-           pvisz(k,ij) = pvisz(k,ij) -  & 
-                         gepz*indzp*2.D0*(rlk(k,ijt)-rlk(k,ij))*inrl(k)
+           pvisz(is,ij) = pvisz(is,ij) -  & 
+                         gepz*indzp*2.D0*(rlk(is,ijt)-rlk(is,ij))*inrl(is)
          END IF
         END DO
       END IF
@@ -235,6 +238,7 @@
 !
       RETURN
       END SUBROUTINE
+
 !----------------------------------------------------------------------
       SUBROUTINE stress(visx, visz, mu, lambda, eps, u, v)
 !----------------------------------------------------------------------

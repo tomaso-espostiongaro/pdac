@@ -2,6 +2,7 @@
       MODULE dimensions
 !-----------------------------------------------------------------------
         INTEGER :: nr, nx, ny, nz
+        INTEGER :: ntot ! ntot = nr*nz or nx*ny*nz
         INTEGER :: no
         INTEGER :: nsolid
         INTEGER :: ngas

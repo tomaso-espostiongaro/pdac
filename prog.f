@@ -30,8 +30,8 @@
       IMPLICIT NONE
 !
       INTEGER :: irest
-      INTEGER :: i,j,k, imesh
-      INTEGER :: ij
+      INTEGER :: is, imesh
+      INTEGER :: ijk
       INTEGER :: kg, rk
       REAL*8 :: tdump1, tpri
       REAL*8 :: s0, s1, s2, s3, s4, s5, s6, s7, s8, s9
@@ -59,10 +59,10 @@
       time_sweep: DO
 !---------------------------------------
 !
-              IF( timing ) s1 = cpclock()
+       IF( timing ) s1 = cpclock()
 
        irest=irest+1
-       IF (itd.LE.1 .OR. irest .GT.1) THEN
+       IF ( (itd <= 1) .OR. (irest > 1) ) THEN
 !
 ! ... Compute Boundary Conditions
 !
@@ -71,31 +71,30 @@
 ! ... Compute derived fields from closure equations
 ! ... (must be dumped into restart file)
 !
-        DO ij = 1, nij_l
-           imesh = myij(0, 0, ij)
-           j = ( imesh - 1 ) / nr + 1
-           i = MOD( ( imesh - 1 ), nr) + 1
+        DO ijk = 1, nij_l
+
+           imesh = myij(0, 0, ijk)
 ! 
 ! ... Compute molar fractions of gas species
 !
-           CALL mole(xgc(:,ij), ygc(:,ij))
+           CALL mole(xgc(:,ijk), ygc(:,ijk))
 !
 ! ... Compute gas specific heat, density and temperature from gas Equation of State
 !
-           CALL eosg(rags, rog(ij), cp(:,ij), cg(ij),   &
-                     tg(ij), ygc(:,ij), xgc(:,ij),      &
-                     sieg(ij), p(ij), 1, 1, 0, imesh)
-           rgp(ij)=rog(ij)*ep(ij)
+           CALL eosg(rags, rog(ijk), cp(:,ijk), cg(ijk),   &
+                     tg(ijk), ygc(:,ijk), xgc(:,ijk),      &
+                     sieg(ijk), p(ijk), 1, 1, 0, imesh)
+           rgp(ijk)=rog(ijk)*ep(ijk)
 ! 
            DO kg=1,ngas
-             rgpgc(kg,ij)=ygc(kg,ij)*rgp(ij)
+             rgpgc(kg,ijk)=ygc(kg,ijk)*rgp(ijk)
            END DO
 ! 
 ! ... Compute particle specific heat and temperatures from Equation of State
 !
-           DO k=1,nsolid
+           DO is=1,nsolid
              IF (irex.GE.0) THEN
-               CALL eosl(tk(k,ij),ck(k,ij),cps(k),siek(k,ij),1,1)
+               CALL eosl(tk(is,ijk),ck(is,ijk),cps(is),siek(is,ijk),1,1)
              ENDIF
            END DO
         END DO
@@ -128,25 +127,25 @@
        IF (time + 0.1D0*dt .GE. tstop)     EXIT time_sweep
 !------------------------------------------------------------ 
 !
-       DO ij = 1, nij_l
+       DO ijk = 1, nij_l
 !
 ! ... Store fields at time n*dt
 !
-           pn(ij) = p(ij)
-           rgpn(ij) = rgp(ij)
-           IF(irex.GE.0) siegn(ij) = sieg(ij)
-           DO k=1,nsolid
-             rlkn(k,ij) = rlk(k,ij)
-             IF (irex.GE.0) siekn(k,ij) = siek(k,ij)
+           pn(ijk) = p(ijk)
+           rgpn(ijk) = rgp(ijk)
+           IF(irex.GE.0) siegn(ijk) = sieg(ijk)
+           DO is=1,nsolid
+             rlkn(is,ijk) = rlk(is,ijk)
+             IF (irex.GE.0) siekn(is,ijk) = siek(is,ijk)
            END DO
            DO kg=1,ngas
-             rgpgcn(kg,ij) = rgpgc(kg,ij)
+             rgpgcn(kg,ijk) = rgpgc(kg,ijk)
            END DO
 !
 ! ... Compute the temperature-dependent gas viscosity and th. conductivity
 ! 
            IF(irex.GE.0) THEN
-             CALL viscon(mug(ij), kapg(ij), xgc(:,ij), tg(ij))
+             CALL viscon(mug(ijk), kapg(ijk), xgc(:,ijk), tg(ijk))
            ENDIF
        END DO
 !

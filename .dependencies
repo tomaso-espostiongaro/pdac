@@ -4,14 +4,17 @@ atmosphere.o : dimensions.o gas.o
 bdry.o : atmosphere.o dens.o dimensions.o eosg.o gas.o grid.o parallel.o  \
     particles.o press.o reactions.o subscr.o temp.o time.o velocity.o 
 
-coll.o : dens.o eosg.o grid.o hcapgs.o press.o temp.o turbo.o velocity.o 
+coll.o : control_flags.o dens.o eosg.o grid.o hcapgs.o press.o temp.o turbo.o  \
+    velocity.o 
 
-dens.o : dimensions.o grid.o 
+control_flags.o : 
+
+dens.o : control_flags.o dimensions.o grid.o 
 
 dimensions.o : 
 
-distr.o : dens.o eosg.o grid.o hcapgs.o press.o temp.o turbo.o velocity.o  \
-    visc.o 
+distr.o : control_flags.o dens.o eosg.o grid.o hcapgs.o press.o temp.o  \
+    turbo.o velocity.o visc.o 
 
 drag.o : dimensions.o particles.o time.o 
 
@@ -29,7 +32,7 @@ ftem.o : dens.o dimensions.o eosg.o grid.o hcapgs.o htilde.o hvs.o  \
 
 gas.o : dimensions.o 
 
-grid.o : dimensions.o parallel.o types.o 
+grid.o : control_flags.o dimensions.o parallel.o types.o 
 
 hcapgs.o : dimensions.o gas.o grid.o 
 
@@ -40,9 +43,9 @@ htilde.o : dens.o dimensions.o fluxes.o grid.o hotc.o particles.o press.o  \
 
 hvs.o : dimensions.o particles.o 
 
-input.o : atmosphere.o dimensions.o fluxes.o gas.o grid.o iter.o matrix.o  \
-    outp.o parallel.o particles.o reactions.o roughness.o setup.o time.o  \
-    turbo.o 
+input.o : atmosphere.o control_flags.o dimensions.o fluxes.o gas.o grid.o  \
+    iter.o matrix.o outp.o parallel.o particles.o reactions.o roughness.o  \
+    setup.o time.o turbo.o 
 
 io.o : dens.o dimensions.o eosg.o hcapgs.o parallel.o press.o temp.o time.o  \
     velocity.o 
@@ -63,12 +66,12 @@ parallel.o :
 
 particles.o : dimensions.o 
 
-pdac2d.o : atmosphere.o dens.o dimensions.o environment.o eosg.o gas.o  \
-    grid.o hcapgs.o input.o io.o iter.o matrix.o outp.o parallel.o particles.o  \
-    press.o reactions.o roughness.o setup.o temp.o time.o turbo.o velocity.o  \
-    visc.o 
+pdac2d.o : atmosphere.o control_flags.o dens.o dimensions.o environment.o  \
+    eosg.o gas.o grid.o hcapgs.o input.o io.o iter.o matrix.o outp.o parallel.o  \
+    particles.o press.o reactions.o roughness.o setup.o temp.o time.o turbo.o  \
+    velocity.o visc.o 
 
-press.o : dimensions.o grid.o 
+press.o : control_flags.o dimensions.o grid.o 
 
 prog.o : bdry.o dens.o dimensions.o environment.o eosg.o eosl.o ftem.o grid.o  \
     hcapgs.o htilde.o io.o iter.o outp.o particles.o press.o reactions.o  \
@@ -100,7 +103,7 @@ turbo.o : bdry.o dens.o dimensions.o environment.o eosg.o grid.o particles.o  \
 
 types.o : 
 
-velocity.o : dimensions.o grid.o 
+velocity.o : control_flags.o dimensions.o grid.o 
 
 visc.o : dens.o dimensions.o gas.o grid.o particles.o press.o subscr.o  \
     turbo.o velocity.o 

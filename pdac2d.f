@@ -11,7 +11,7 @@
 !
       PROGRAM pdac2d
 
-      USE atmosphere, ONLY: v0, u0, p0, temp0, uk0, vk0, &
+      USE atmosphere, ONLY: v0, u0, w0, p0, temp0, uk0, vk0, wk0, &
      &                      ep0, epsmx0, gravx, gravz
       USE dimensions
       USE eos_gas, ONLY: bounds_eosg, local_bounds_eosg
@@ -24,8 +24,8 @@
       USE gas_solid_temperature, ONLY: bounds_temperature, &
      &    local_bounds_temperature
       USE gas_solid_viscosity, ONLY: bounds_viscosity, local_bounds_viscosity
-      USE grid, ONLY: dz, dr, itc
-      USE grid, ONLY: nso, iob, flic, partition, ghost, &
+      USE grid, ONLY: dx, dy, dz, dr, itc
+      USE grid, ONLY: iob, flic, partition, ghost, &
      &    bounds_blocks, bounds_grid
       USE io_restart, ONLY: taperd, tapebc
       USE iterative_solver, ONLY: inmax, maxout, omega
@@ -49,6 +49,7 @@
      &                      local_bounds_turbo, modturbo
       USE environment, ONLY: cpclock, timing
       USE input_module
+      USE control_flags, ONLY: job_type
 !
       IMPLICIT NONE
       CHARACTER(LEN=13) :: errnb
@@ -96,6 +97,8 @@
       CALL bounds_press_eps
 !
       dr(1:nr) = delta_r(1:nr)
+      dx(1:nx) = delta_x(1:nx)
+      dy(1:ny) = delta_y(1:ny)
       dz(1:nz) = delta_z(1:nz)
 
       no = number_of_block
@@ -117,8 +120,20 @@
       CALL bounds_velocity
       CALL bounds_viscosity
 
-      nso(1:no)   = block_type(1:no)
-      iob(:,1:no) = block_bounds(:,1:no)
+      iob(1:no)%typ = block_type(1:no)
+
+      IF( job_type == '2D' ) THEN
+        iob(1:no)%rlo = block_bounds(1,1:no)
+        iob(1:no)%rhi = block_bounds(2,1:no)
+      ELSE 
+        iob(1:no)%xlo = block_bounds(1,1:no)
+        iob(1:no)%xhi = block_bounds(2,1:no)
+        iob(1:no)%ylo = block_bounds(3,1:no)
+        iob(1:no)%yhi = block_bounds(4,1:no)
+      END IF
+      iob(1:no)%zlo = block_bounds(5,1:no)
+      iob(1:no)%zhi = block_bounds(6,1:no)
+
       ugob(1:no)  = fixed_vgas_r(1:no)
       vgob(1:no)  = fixed_vgas_z(1:no)
       pob(1:no)  = fixed_pressure(1:no)
@@ -130,14 +145,29 @@
       tpob(1:nsolid,1:no) = fixed_parttemp(1:nsolid,1:no)
       ygcob(1:ngas,1:no) = fixed_gasconc(1:ngas,1:no)
 
-      u0 = initial_vgas_r
-      v0 = initial_vgas_z
+      IF( job_type == '2D' ) THEN
+        u0 = initial_vgas_r
+        v0 = initial_vgas_z
+      ELSE
+        u0 = initial_vgas_x
+        v0 = initial_vgas_y
+        w0 = initial_vgas_z
+      END IF
+
       p0 = initial_pressure
       ep0 = initial_void_fraction
       epsmx0 = max_packing
       temp0 = initial_temperature
-      uk0 = initial_vpart_r
-      vk0 = initial_vpart_z
+
+      IF( job_type == '2D' ) THEN
+        uk0 = initial_vpart_r
+        vk0 = initial_vpart_z
+      ELSE
+        uk0 = initial_vpart_x
+        vk0 = initial_vpart_y
+        wk0 = initial_vpart_z
+      END IF
+
       ygc0(1:ngas) = initial_gasconc(1:ngas)
 !
       dk(1:nsolid) = diameter(1:nsolid)
@@ -221,10 +251,10 @@
           IF(no .NE. 0) THEN
            WRITE(6,252)
             DO  n=1,no
-              WRITE(6,254) nso(n),(iob(m,n),m=1,4)
+              WRITE(6,254) iob(n)%typ, iob(n)%rlo, iob(n)%rhi, iob(n)%zlo, iob(n)%zhi
 !pe------------------------------
 !            IF(nso(n).EQ.5) THEN 
-              IF(nso(n).EQ.1.OR.nso(n).eq.5) THEN 
+              IF( iob(n)%typ == 1 .OR. iob(n)%typ == 5) THEN 
 !pe------------------------------
                 WRITE(6,253) n,ugob(n),vgob(n),pob(n),epob(n)
                 WRITE(6,255) (k,upob(k,n),vpob(k,n), epsob(k,n),tpob(k,n),k=1,nsolid)

@@ -47,7 +47,9 @@
         REAL*8, DIMENSION(:), ALLOCATABLE :: r, rb, dr
         REAL*8, DIMENSION(:), ALLOCATABLE :: dx, dy, dz
         REAL*8, DIMENSION(:), ALLOCATABLE :: xb, yb, zb
-        REAL*8, DIMENSION(:), ALLOCATABLE :: inr, inrb, inzb, indr, indz
+        REAL*8, DIMENSION(:), ALLOCATABLE :: indx, indy, indz
+        REAL*8, DIMENSION(:), ALLOCATABLE :: inzb
+        REAL*8, DIMENSION(:), ALLOCATABLE :: inr, inrb, indr
 !
         INTEGER :: itc, part
         INTEGER :: nij_l, nije_l, nijx_l
@@ -55,11 +57,22 @@
         INTEGER, ALLOCATABLE :: myinds(:,:)
 
 !
-      INTEGER, DIMENSION(:,:), ALLOCATABLE :: iob
-      INTEGER, DIMENSION(:), ALLOCATABLE :: nso
-      INTEGER, DIMENSION(:), ALLOCATABLE :: fl
-!
-      INTEGER, DIMENSION(:), ALLOCATABLE :: fl_l
+        TYPE blocks
+          INTEGER :: xlo
+          INTEGER :: xhi
+          INTEGER :: ylo
+          INTEGER :: yhi
+          INTEGER :: zlo
+          INTEGER :: zhi
+          INTEGER :: rlo
+          INTEGER :: rhi
+          INTEGER :: typ
+        END TYPE
+
+        TYPE (blocks), ALLOCATABLE :: iob(:)
+
+        INTEGER, DIMENSION(:), ALLOCATABLE :: fl
+        INTEGER, DIMENSION(:), ALLOCATABLE :: fl_l
 !
         INTEGER :: countfl(5)
 
@@ -72,20 +85,32 @@
 !----------------------------------------------------------------------
       SUBROUTINE bounds_grid
       USE dimensions
+      USE control_flags, ONLY: job_type
       IMPLICIT NONE
 !
-       ALLOCATE(fl(nr*nz))
-       ALLOCATE(r(nr), rb(nr), zb(nz), dr(nr), dz(nz))
-       ALLOCATE(inr(nr), inrb(nr), inzb(nz), indr(nr), indz(nz))
+! ...   Set the appropriate total number of cells
+        IF( job_type == '2D' ) THEN
+          ntot = nr*nz
+        ELSE IF( job_type == '3D' ) THEN
+          ntot = nx*ny*nz
+        ELSE
+          CALL error( ' bounds_grid ', ' wrong job_type '//job_type, 1)
+        END IF
+
+        ALLOCATE(fl(ntot))
+        ALLOCATE(r(nr), rb(nr), dr(nr))
+        ALLOCATE(inr(nr), inrb(nr), indr(nr))
+        ALLOCATE(inzb(nz))
+        ALLOCATE(xb(nx), dx(nx), yb(ny), dy(ny), zb(nz), dz(nz))
+        ALLOCATE(indx(nx), indy(ny), indz(nz))
+
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
       SUBROUTINE bounds_blocks
       USE dimensions
       IMPLICIT NONE
-!
-       ALLOCATE(iob(4,no))
-       ALLOCATE(nso(no))
+        ALLOCATE(iob(no))
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------
@@ -94,6 +119,8 @@
           REAL*8, INTENT(IN) :: zzero
           REAL*8, PARAMETER :: VERYBIG = 1.0d+10
           INTEGER :: i, j
+
+! ...     Set "r" dimension
           IF(itc.EQ.0) THEN
             DO i=1,nr
               r(i)=1.D0
@@ -112,7 +139,6 @@
             inr(i)=1.D0/r(i)
           END DO  
 
-
           IF (rb(1) .EQ. 0.0D0) THEN
             inrb(1) = VERYBIG
           ELSE
@@ -127,6 +153,26 @@
             indr(i)=1.D0/dr(i)
           END DO  
 !
+! ...     Set "x" dimension
+          xb(1) = 0.0d0
+          DO j=1,(nx-1)
+            xb(j+1)=xb(j)+dx(j+1)
+          END DO
+          DO j=1,(nx-1)
+            indx(j)=1.D0/dx(j)
+          END DO 
+
+! ...     Set "y" dimension
+          yb(1) = 0.0d0
+          DO j=1,(ny-1)
+            yb(j+1)=yb(j)+dy(j+1)
+          END DO
+          DO j=1,(ny-1)
+            indy(j)=1.D0/dy(j)
+          END DO
+
+
+! ...     Set "z" dimension
           zb(1) = zzero
           DO j=1,(nz-1)
             zb(j+1)=zb(j)+dz(j+1)
@@ -146,23 +192,18 @@
           END DO  
 !
         END SUBROUTINE
+
 !----------------------------------------------------------------------
       SUBROUTINE flic
 !
       USE dimensions
       IMPLICIT NONE
 !
-      INTEGER :: i2, i1, j2, j1
       INTEGER :: i, j, ij, n, ijl
 !
-      DO j=1,nz
-        DO i=1,nr
-          ij=i+(j-1)*nr
-          fl(ij)=1
-        END DO
-      END DO
-
+      fl = 1
 !
+! ... MODIFICARE_X3D
 ! ... upper-right corner
 !
       IF (fl((nr-1)+(nz-1)*nr) == 4 .AND. fl(nr+(nz-2)*nr) == 4) THEN
@@ -171,25 +212,34 @@
 !
       IF(no.LE.0) RETURN
 !
-      DO n=1,no
-        i1=iob(1,n)
-        i2=iob(2,n)
-        j1=iob(3,n)
-        j2=iob(4,n)
-        DO j=j1,j2
-          DO i=i1,i2
+      DO n = 1, no
+        DO j = iob(n)%zlo, iob(n)%zhi 
+          DO i = iob(n)%rlo, iob(n)%rhi
             ij=i+(j-1)*nr
-            IF(nso(n).EQ.2) fl(ij)=2
-            IF(nso(n).EQ.3) fl(ij)=3
-            IF(nso(n).EQ.4) fl(ij)=4
-            IF(nso(n).EQ.5) fl(ij)=5
-            IF(nso(n).EQ.6) fl(ij)=6
-            IF(nso(n).EQ.7) fl(ij)=7
+            SELECT CASE ( iob(n)%typ )
+              CASE (2) 
+                fl(ij) = 2
+              CASE (3) 
+                fl(ij) = 3
+              CASE (4) 
+                fl(ij) = 4
+              CASE (5) 
+                fl(ij) = 5
+              CASE (6) 
+                fl(ij) = 6
+              CASE DEFAULT
+                fl(ij) = 1
+            END SELECT
           END DO
         END DO
       END DO
       END SUBROUTINE
+!
+!
 !----------------------------------------------------------------------
+
+! ... MODIFICARE_X3D (rivedere fino alla fine del file)
+
       SUBROUTINE partition
 ! ... a routine that subdivides a regular grid between (nproc) 
 ! ... processors, balancing the computational load 

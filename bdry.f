@@ -41,6 +41,8 @@
       INTEGER :: nflbr, nfltr, nfllt, nfllb
       INTEGER :: mm
 !
+! ... MODIFICARE_X3D (fino fine file )
+
       DO ij = 1, nij_l
         imesh = myij(0, 0, ij)
         j = ( imesh - 1 ) / nr + 1
