@@ -235,7 +235,6 @@
 !----------------------------------------------------------------------
       SUBROUTINE vertical_shift2d(topo)
       USE grid, ONLY: z, zb, dz, dzmin
-      USE grid, ONLY: iv, jv, kv
       IMPLICIT NONE
       REAL*8, INTENT(IN), DIMENSION(:) :: topo
       REAL*8 :: transl_z
@@ -256,17 +255,12 @@
       WRITE(17,*) zb
 
       CLOSE(17)
-!
-! ... define the ordinate of the vent
-!
-      kv = ord(iv)
 
       RETURN
       END SUBROUTINE vertical_shift2d
 !----------------------------------------------------------------------
       SUBROUTINE vertical_shift3d(topo2d)
       USE grid, ONLY: z, zb, dz, dzmin
-      USE grid, ONLY: iv, jv, kv
       IMPLICIT NONE
       REAL*8, INTENT(IN), DIMENSION(:,:) :: topo2d
       REAL*8 :: transl_z
@@ -287,10 +281,6 @@
       WRITE(17,*) zb
 
       CLOSE(17)
-!
-! ... define the ordinate of the vent
-!
-      kv = ord2d(iv,jv)
 
       RETURN
       END SUBROUTINE vertical_shift3d
@@ -600,6 +590,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE write_profile
       USE control_flags, ONLY: job_type
+      USE grid, ONLY: iv, jv, kv
 !
       IMPLICIT NONE
 !
@@ -609,6 +600,14 @@
         OPEN(UNIT=14,FILE='improfile.dat',STATUS='UNKNOWN')
         WRITE(14,*) dist
         CLOSE(14)
+      END IF
+!
+! ... define the ordinate of the vent
+!
+      IF( job_type == '2D') THEN
+        kv = ord(iv)
+      ELSE IF ( job_type == '3D') THEN
+        kv = ord2d(iv,jv)
       END IF
 !
 ! ... Deallocate all arrays in the topography module

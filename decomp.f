@@ -1103,7 +1103,6 @@
 !
 ! ... local flags, local arrays for forcing
 !
-
       ALLOCATE( flag(ncdom) )
       DO ijkl = 1, ncint
         ijk = myijk( ip0_jp0_kp0_, ijkl)

@@ -1,9 +1,9 @@
 &control
- run_name = 'SP1_Vesuvio',
+ run_name = 'LL_w2_t950_A'
  job_type = '3D',
  restart_mode = 'from_scratch', ! ( from_scratch | restart )
  time =  0.0D0,
- tstop = 200.0D0,
+ tstop = 100.0D0,
  dt    = 0.01D0,
  tpr   = 2.0D0,
  tdump = 10.0D0,
@@ -11,33 +11,35 @@
 /
 
 &model
+ iss   = 0,
+ repulsive_model = 1,
  iturb = 1,
  ngas = 2
 /
 
 &mesh
-  nx = 128,
-  ny = 128,
+  nx = 64,
+  ny = 64,
   nz = 128,
   itc = 0,
   iuni = 0,
   grigen = 1,
   center_x =  451632.D0,
   center_y = 4519267.D0,
-  domain_x = 12.D3,
-  domain_y = 12.D3,
-  domain_z = 8.D3,
+  domain_x = 6.D3,
+  domain_y = 6.D3,
+  domain_z = 6.D3,
   alpha_x = 0.5D0,
   alpha_y = 0.5D0,
   alpha_z = 0.0D0,
   dxmin = 10.D0,
-  dxmax = 200.D0,
+  dxmax = 100.D0,
   dymin = 10.D0,
-  dymax = 200.D0,
+  dymax = 100.D0,
   dzmin = 20.D0,
   dzmax = 200.D0,
-  n0x = 20,
-  n0y = 20,
+  n0x = 15,
+  n0y = 15,
   n0z = 50,
   maxbeta = 1.5D0
 /
@@ -46,27 +48,27 @@
   itp = 1,
   immb = 1,
   topography = 'topo.dat'
-  east   = 2,
-  west   = 2,
-  north  = 2,
-  south  = 2,
+  east   = 4,
+  west   = 4,
+  north  = 4,
+  south  = 4,
   top    = 6,
   bottom = 3
 /
 
 &inlet
   ivent = 1,
-  radius = 50.0,
+  radius = 57.5,
   u_gas = 0.D0,
   v_gas = 0.D0,
-  w_gas = 120.D0,
-  p_gas = 1.01325D5,
-  t_gas  = 1200.D0,
+  w_gas = 137.D0,
+  p_gas = 17.D5,
+  t_gas  = 1223.15D0,
   u_solid = 0.D0, 0.D0
   v_solid = 0.D0, 0.D0
-  w_solid = 120.D0, 120.D0
-  ep_solid = 0.005D0, 0.005D0
-  t_solid  = 1200.D0, 1200.D0
+  w_solid = 137.D0, 137.D0
+  ep_solid = 0.0245D0, 0.0686D0
+  t_solid  = 1223.15D0, 1223.15D0
   vent_H2O = 1.D0,
   vent_Air = 0.D0
 /
@@ -75,12 +77,12 @@
 /
 
 &particles
-  nsolid = 2,
-  diameter = 10., 200.
-  density = 2300., 2300.,
-  sphericity = 1.0, 1.0
-  viscosity = 0.5, 1.0
-  specific_heat = 1.2D3, 1.2D3
+  nsolid = 2, 
+  diameter = 30., 500.
+  density = 2800., 1000.,
+  sphericity = 1.0, 1.0,
+  viscosity = 0.5,  1.0,
+  specific_heat = 1.2D3, 1.2D3, 
   thermal_conductivity = 2.0D0, 2.0D0
 /
 
@@ -96,3 +98,4 @@
 
 'FIXED_FLOWS'
 0
+

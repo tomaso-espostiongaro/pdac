@@ -173,6 +173,7 @@
 ! ... and the indexes
 !
       CALL ghost
+      !CALL error(' ', ' ', 1)
 
       IF (timing) then
           s3 = cpclock()

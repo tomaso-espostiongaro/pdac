@@ -329,13 +329,6 @@
 		ENDIF 
 	ENDIF
 	
-		
-
-	DO l=1,n
-		WRITE(*,*) i,poly_p(l)%x,poly_p(l)%y
-	ENDDO
-
-
 	DO l=1,n
 		poly_p(n+l)%x=poly_p(l)%x
 		poly_p(n+l)%y=poly_p(l)%y
