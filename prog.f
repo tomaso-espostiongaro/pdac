@@ -16,7 +16,7 @@
       USE grid, ONLY: fl_l
       USE specific_heat_module, ONLY: cp, ck
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE io_restart, ONLY: tapewr
+      USE io_restart, ONLY: tapewr, max_seconds
       USE iterative_solver, ONLY: iter
       USE output_dump, ONLY: outp, shock_tube_out
       USE particles_constants, ONLY: cps
@@ -33,26 +33,62 @@
       IMPLICIT NONE
 !
       INTEGER :: irest
+      INTEGER :: info
       INTEGER :: is
       INTEGER :: ijk
       INTEGER :: ig, rk
+      INTEGER :: myrank
       REAL*8 :: tdump1, tpri
       REAL*8 :: s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10
+      REAL*8 :: t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10
+      REAL*8 :: p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10
       REAL*8 :: timbdry, timout, timrestart, timtilde, timiter, &
                 timygas, timtem, timtot, dt0, tsgsg
+      REAL*8 :: cputimbdry, cputimout, cputimrestart, cputimtilde, cputimiter, &
+                cputimygas, cputimtem, cputimtot, cputsgsg
+      REAL*8 :: mptimbdry, mptimout, mptimrestart, mptimtilde, mptimiter, &
+                mptimygas, mptimtem, mptimtot, mptsgsg   
+
+      LOGICAL :: stop_now
+
 !
-             IF( timing ) s0 = cpclock()
+             IF( timing ) then
+                s0 = cpclock()
+                call cpu_time(t0)
+                call MP_WALLTIME(p0,myrank)
+             END IF
 !
       timbdry = 0.0d0
       timout = 0.0d0
-      timrestart= 0.0d0
+      timrestart= 0.0d0 
+      tsgsg = 0.0D0
       timtilde= 0.0d0
       timiter= 0.0d0
       timygas= 0.0d0
       timtem= 0.0d0
       timtot= 0.0d0
+      
+      cputimbdry = 0.0d0
+      cputimout = 0.0d0
+      cputimrestart= 0.0d0
+      cputsgsg = 0.0D0
+      cputimtilde= 0.0d0
+      cputimiter= 0.0d0
+      cputimygas= 0.0d0
+      cputimtem= 0.0d0
+      cputimtot= 0.0d0
 
-      tsgsg = 0.0D0
+      mptimbdry = 0.0d0
+      mptimout = 0.0d0
+      mptimrestart= 0.0d0 
+      mptsgsg = 0.0D0
+      mptimtilde= 0.0d0
+      mptimiter= 0.0d0
+      mptimygas= 0.0d0
+      mptimtem= 0.0d0
+      mptimtot= 0.0d0
+      
+      
 
       tdump1=time+tdump
       tpri=time+tpr
@@ -62,7 +98,11 @@
       time_sweep: DO
 !---------------------------------------
 !
-       IF( timing ) s1 = cpclock()
+       IF( timing ) then
+           s1 = cpclock()
+           call cpu_time(t1)
+           call MP_WALLTIME(p1,myrank)
+       END IF
 
        WRITE(6,fmt="(/,'* Starting iteration ',I5,' * ')" ) irest
        WRITE(6,fmt="('  Simulated time = ',F12.5)" ) time
@@ -84,6 +124,7 @@
 ! ... Compute derived fields from closure equations
 ! ... (all these fields must be dumped into restart file)
 !
+         info = 0
          DO ijk = 1, ncint
 !
 ! ... Compute molar fractions of gas species
@@ -98,7 +139,7 @@
 ! ... from caloric Equation of State
 !
            CALL caloric_eosg(cp(:,ijk), cg(ijk), tg(ijk), ygc(:,ijk), &
-                             sieg(ijk), ijk)
+                             sieg(ijk), ijk, info)
 
            rgp(ijk)=rog(ijk)*ep(ijk)
 ! 
@@ -111,12 +152,22 @@
            DO is=1,nsolid
              CALL eosl(ts(ijk,is),ck(is,ijk),cps(is),sies(ijk,is))
            END DO
+
          END DO
+
+         CALL parallel_sum_integer( info, 1 )
+         IF( info /= 0 ) THEN
+           CALL error( ' prog ',' some cell does not converge in eosg ', info )
+         END IF 
 !
        END IF
 
-              IF( timing ) s2 = cpclock()
-!
+              IF( timing ) then
+                 s2 = cpclock()
+                 call cpu_time(t2)
+                 call MP_WALLTIME(p2,myrank)
+              END IF            
+! 
 ! ... Write OUTPUT file
 !
        IF(time+0.1D0*dt >= tpri) THEN
@@ -125,21 +176,36 @@
          tpri=tpri+tpr
        ENDIF
 
-              IF( timing ) s3 = cpclock()
+              IF( timing ) then
+                s3 = cpclock()
+                call cpu_time(t3)
+                call MP_WALLTIME(p3,myrank)
+             END IF
 !
 ! ... Write RESTART file
 !
-       IF (time+0.1D0*dt > tdump1) THEN
+       stop_now = ( elapsed_seconds() > max_seconds )
+
+       IF( stop_now ) THEN
+         WRITE(6,fmt="('  elapsed_seconds exceed max_second',/, &
+                     & '  program stopping')" )
+       END IF
+
+       IF ( ( time+0.1D0*dt > tdump1 ) .OR. stop_now ) THEN
          CALL tapewr
          tdump1=tdump1+tdump
        END IF
 
-              IF( timing ) s4 = cpclock()
+              IF( timing ) then
+                s4 = cpclock()
+                call cpu_time(t4)
+                call MP_WALLTIME(p4,myrank)
+              END IF 
 
        WRITE(6,fmt="('  walltime = ',F10.2)") elapsed_seconds()
 !
 !------------------------------------------------------------ 
-       IF (time + 0.1D0*dt >= tstop)     EXIT time_sweep
+       IF ( ( time + 0.1D0*dt >= tstop ) .OR. stop_now )     EXIT time_sweep
 !------------------------------------------------------------ 
 ! 
 ! ... Store all independent fields at time n*dt 
@@ -152,12 +218,26 @@
        IF (iturb >= 1)  CALL sgsg
        IF (iss >= 1)    CALL sgss
 !
-              IF( timing ) s5 = cpclock()
+              IF( timing ) then
+                 s5 = cpclock()
+                 call cpu_time(t5)
+                 call MP_WALLTIME(p5,myrank)
+              END IF
 
               timbdry = timbdry + (s2 - s1)
               timout = timout + (s3 - s2)
               timrestart = timrestart + (s4 - s3)
               tsgsg = tsgsg + (s5 - s4)
+             
+              cputimbdry = cputimbdry + (t2 - t1)
+              cputimout = cputimout + (t3 - t2) 
+              cputimrestart = cputimrestart + (t4 - t3)
+              cputsgsg = cputsgsg + (t5 - t4)
+          
+              mptimbdry = mptimbdry + (p2 - p1)
+              mptimout = mptimout + (p3 - p2)
+              mptimrestart = mptimrestart + (p4 - p3)
+              mptsgsg = mptsgsg + (p5 - p4)    
 !
          CALL allocate_fluxes
 !
@@ -166,7 +246,11 @@
          dt0 = dt
          runge_kutta: DO rk = 1, rungekut
 !
-                IF( timing ) s5 = cpclock()
+                IF( timing ) then 
+                    s5 = cpclock()
+                    call cpu_time(t5)
+                    call MP_WALLTIME(p5,myrank)
+                END IF
 !
            dt = dt0/(rungekut+1-rk)
 !
@@ -174,33 +258,60 @@
 !
            CALL tilde
 
-                IF( timing ) s6 = cpclock()
+                IF( timing )then
+                    s6 = cpclock()
+                    call cpu_time(t6)
+                    call MP_WALLTIME(p6,myrank)
+                END IF
 !
 ! ... Iterative solver for momentum-mass pressure coupling
 ! ... and explicit solver for interphase coupling
 !
            CALL iter
 !
-                IF( timing ) s7 = cpclock()
+                IF( timing ) then
+                    s7 = cpclock()
+                    call cpu_time(t7)
+                    call MP_WALLTIME(p7,myrank)
+                END IF
 !
 ! ... Solve the explicit transport equations for enthalpies
 !
            CALL htilde
            CALL ftem
 !
-                IF( timing ) s8 = cpclock()
+                IF( timing ) then
+                    s8 = cpclock()
+                    call cpu_time(t8)
+                    call MP_WALLTIME(p8,myrank)
+                END IF
 ! 
 ! ... Solve the explicit transport equation of gas species
 !
            IF (irex > 2) CALL rexion
            CALL ygas
 
-                IF( timing ) s9 = cpclock()
+                IF( timing ) then
+                    s9 = cpclock()
+                    call cpu_time(t9)
+                    call MP_WALLTIME(p9,myrank)
+                END IF
 
                 timtilde = timtilde + (s6 - s5)
                 timiter = timiter + (s7 - s6)
-                timygas = timtem + (s8 - s7)
-                timtem = timygas + (s9 - s8)
+                timtem = timtem + (s8 - s7)
+                timygas = timygas + (s9 - s8)
+               
+                cputimtilde = cputimtilde + (t6 - t5)
+                cputimiter = cputimiter + (t7 - t6)
+                cputimtem = cputimtem + (t8 - t7)
+                cputimygas = cputimygas + (t9 - t8)
+ 
+                mptimtilde = mptimtilde + (p6 - p5)
+                mptimiter = mptimiter + (p7 - p6)
+                mptimtem = mptimtem + (p8 - p7)
+                mptimygas = mptimygas + (p9 - p8)
+               
 
          END DO runge_kutta
 ! ... End the Runge-Kutta iteration
@@ -210,12 +321,20 @@
 !
 ! ... Advance time
          time = time + dt
+
+        CALL myflush( 6 )
 !
 !------------------------------------------
       END DO time_sweep
 !------------------------------------------
 
-              IF( timing ) s10 = cpclock()
+              IF( timing ) then
+                  s10 = cpclock()
+                  call cpu_time(t10)
+                  call MP_WALLTIME(p10,myrank)
+              END IF
+
+
 
               IF( timing ) THEN
                 timtot = (s10 -s0) / 1000.0d0
@@ -227,11 +346,27 @@
                 timiter = timiter / 1000.0d0
                 timygas = timygas / 1000.0d0
                 timtem = timtem / 1000.0d0
+
+                cputimtot = (t10 -t0) 
+                
+                mptimtot = (p10 -p0) 
+                
+                WRITE(7,995)'  WALL TIME computed calling SYSTEM_CLOCK (s)'
                 WRITE(7,900)'Bdry','Out','Restart','Dyn','Tilde','Iter','Ygas','Tem','Total'
                 WRITE(7,999) timbdry, timout, timrestart, tsgsg, timtilde, &
                              timiter, timygas, timtem, timtot
+                WRITE(7,*)' WALL TIME computed calling MP_WALLTIME (s)'
+                WRITE(7,900)'Bdry','Out','Restart','Dyn','Tilde','Iter','Ygas','Tem','Total'
+                WRITE(7,999) mptimbdry, mptimout, mptimrestart, mptsgsg, mptimtilde, &
+                             mptimiter, mptimygas, mptimtem, mptimtot
+                WRITE(7,*)' CPU TIME computed calling F95 CPU_TIME (s)'
+                WRITE(7,900)'Bdry','Out','Restart','Dyn','Tilde','Iter','Ygas','Tem','Total'
+                WRITE(7,999) cputimbdry, cputimout, cputimrestart, cputsgsg, cputimtilde, &
+                             cputimiter, cputimygas, cputimtem, cputimtot
+995      FORMAT(/,A45)                   
 900      FORMAT(9(1X,A10))
-999      FORMAT(9(1X,F10.2))
+999      FORMAT(9(1X,F10.2),/)
+
 
               END IF
 ! 

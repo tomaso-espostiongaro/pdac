@@ -55,7 +55,9 @@
       INTEGER :: inputunit, logunit, errorunit, testunit
       INTEGER :: ig
       REAL*8 :: s0, s1, s2, s3, s4, t0
+      REAL*8 :: pt0, pt1, pt2, pt3, pt4
       REAL*8 :: timtot, timprog, timdist, timsetup, timinit
+      REAL*8 :: mptimtot, mptimprog, mptimdist, mptimsetup, mptiminit
       LOGICAL :: debug = .FALSE.
 !
 ! ... initialize parallel environment
@@ -66,7 +68,10 @@
 !
       t0 = elapsed_seconds()
 
-      IF(timing) s0 = cpclock()
+      IF(timing) then
+         s0 = cpclock()
+         call MP_WALLTIME(pt0)
+      END IF
 
 ! ...  DATE AND TIME
       CALL date_and_time( values = mydate )
@@ -200,18 +205,30 @@
 ! ... Set cell-type flags
 !
       CALL flic
-      IF(timing) s1 = cpclock()
+
+        IF (timing) then
+            s1 = cpclock()
+            call MP_WALLTIME(pt1)
+        END IF   
 !
 ! ... Domain decomposition for parallelization 
 !
       CALL partition
-      IF(timing) s2 = cpclock()
+
+        IF (timing) then
+            s2 = cpclock()
+            call MP_WALLTIME(pt2)
+        END IF
 !
 ! ... Setting ghost cells for parallel data exchange
 ! ... and the indexes
 !
       CALL ghost
-      IF(timing) s3 = cpclock()
+
+        IF (timing) then
+            s3 = cpclock()
+            call MP_WALLTIME(pt3)
+        END IF
 !
       CALL allocate_velocity
       CALL allocate_momentum
@@ -241,18 +258,29 @@
 !
       CALL prog
 !
-      IF(timing ) THEN
-        s4 = cpclock()
-        timtot   = (s4 - s0)/1000.D0
-        timprog  = (s4 - s3)/1000.D0
-        timdist  = (s3 - s2)/1000.D0
-        timsetup = (s2 - s1)/1000.D0
-        timinit  = (s1 - s0)/1000.D0
-        WRITE(7,900) 'Init', 'Part', 'Ghost', 'Prog', 'Total'
-        WRITE(7,999) timinit, timsetup, timdist, timprog, timtot
-999     FORMAT(6(1X,F10.2))
-900     FORMAT(5(1X,A10))
-      END IF
+        IF (timing ) THEN
+          s4 = cpclock()
+          call MP_WALLTIME(pt4)
+          timtot     = (s4 - s0)/1000.D0
+          timprog    = (s4 - s3)/1000.D0
+          timdist    = (s3 - s2)/1000.D0
+          timsetup   = (s2 - s1)/1000.D0
+          timinit    = (s1 - s0)/1000.D0
+          mptimtot   = (pt4 - pt0)
+          mptimprog  = (pt4 - pt3)          
+          mptimdist  = (pt3 - pt2)
+          mptimsetup = (pt2 - pt1)         
+          mptiminit  = (pt1 - pt0)
+         
+          WRITE(7,*)' (From main) WALL TIME computed calling SYSTEM_CLOCK (s)'
+          WRITE(7,900) 'Init', 'Part', 'Ghost', 'Prog', 'Total'
+          WRITE(7,999) timinit, timsetup, timdist, timprog, timtot
+          WRITE(7,*)'             WALL TIME computed calling MP_WALLTIME (s)'
+          WRITE(7,900) 'Init', 'Part', 'Ghost', 'Prog', 'Total'
+          WRITE(7,999) mptiminit, mptimsetup, mptimdist, mptimprog, mptimtot
+999       FORMAT(5(1X,F10.2),/)
+900       FORMAT(5(1X,A10))
+        END IF
 
 ! ... terminate the IBM HW performance monitor session
 !      call f_hpmterminate( mpime )

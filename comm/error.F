@@ -33,14 +33,16 @@
       WRITE (8,100) mpime, a, b, n
 
 ! ... terminate the program
-!      CALL cpflush  ! flush output streams
+      CALL myflush( 6 )  ! flush output streams
 
-      OPEN(UNIT=15, FILE='CRASH', POSITION='append', STATUS='unknown')
-      WRITE (15,100) mpime, a, b, n
-      CLOSE(UNIT=15)
+      IF( mpime == 0 ) THEN
+        OPEN(UNIT=15, FILE='CRASH', POSITION='append', STATUS='unknown')
+        WRITE (15,100) mpime, a, b, n
+        CLOSE(UNIT=15)
+      END IF
 
 #if defined MPI
-      CALL mpi_finalize(ierr)
+      CALL mpi_finalize( ierr )
       IF ( ierr/=0 ) THEN
         CALL mpi_abort(mpi_comm_world, ierr)
       END IF

@@ -62,7 +62,7 @@
       USE grid, ONLY: dx, dy, dz, itc
       USE iterative_solver, ONLY: inmax, maxout, omega
       USE control_flags, ONLY: nfil
-      USE io_restart, ONLY: old_restart
+      USE io_restart, ONLY: old_restart, max_seconds
       USE output_dump, ONLY: formatted_output
 
       USE parallel, ONLY: mpime, root
@@ -85,7 +85,7 @@
 
       NAMELIST / control / run_name, job_type, restart_mode, time, tstop, dt, lpr, tpr, &
         tdump, nfil, irex, iss, iturb, modturbo, cmut, rlim, gravx, gravz, &
-        ngas, default_gas, formatted_output, old_restart
+        ngas, default_gas, formatted_output, old_restart, max_seconds
 !
       NAMELIST / mesh / nx, ny, nz, itc, iuni, dx0, dy0, dz0, &
         mesh_partition
@@ -125,6 +125,7 @@
       default_gas = 6   ! atmosphere 
       formatted_output = .TRUE.
       old_restart = .FALSE.
+      max_seconds = 20000.0
 
 ! ... Mesh
 

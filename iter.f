@@ -26,6 +26,7 @@
       USE domain_decomposition, ONLY: ncint, ncdom, data_exchange
       USE domain_decomposition, ONLY: myijk, meshinds
       USE enthalpy_matrix, ONLY: ftem
+      USE environment, ONLY: timing
       USE eos_gas, ONLY: thermal_eosg, xgc, cg
       USE gas_solid_temperature, ONLY: tg
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
@@ -63,6 +64,14 @@
       REAL*8 :: omega0
       REAL*8 :: d3, p3
 
+! IF (TIMING)
+      INTEGER :: itim
+      ! INTEGER :: st0,st1,ratc
+      REAL*8 :: st0,st1, cclock_wall
+      EXTERNAL cclock_wall
+      REAL*8 ::  timiter
+      REAL*8 ::  timconv(maxout)   
+!
       INTEGER :: nit, loop, mustit, kros
       LOGICAL, ALLOCATABLE :: converge(:)
       TYPE(stencil) :: u, v, w, dens
@@ -99,6 +108,7 @@
 ! ... to update velocity fields. New velocities are
 ! ... biassed by the wrong (old) pressure field.
 !
+
       DO ijk = 1, ncint
         IF (fl_l(ijk) == 1) THEN
           CALL subscr(ijk)
@@ -106,6 +116,7 @@
           CALL solve_velocities(ijk)
         END IF
       END DO
+
 ! 
 ! ... Exchange the updated velocities
 !
@@ -120,6 +131,7 @@
 !
 ! ... Compute the gas mass fluxes using the guessed velocities 
 !
+
       DO ijk = 1, ncint
         IF (fl_l(ijk) == 1) THEN
           CALL subscr(ijk)
@@ -147,6 +159,9 @@
 ! ... Start the HW performance monitor
 !      call f_hpmstart( 1, ' ITER ' )
 !
+! IF (TIMING) inizialize timconv
+      timconv=0.0d0
+!
       sor_loop: DO nit = 1, maxout
 !
 !         call f_hpmstart( 2, ' SWEEP ' )
@@ -162,15 +177,16 @@
            IF( fl_l(ijk) /= 1 ) converge(ijk) = .TRUE.
            IF( fl_l(ijk) == 1 ) THEN
 
-              CALL meshinds(ijk,imesh,i,j,k)
-              CALL subscr(ijk)
+              CALL meshinds( ijk, imesh, i, j, k )
+              CALL subscr( ijk )
 !
               ! ... Compute the residual of the mass balance 
               ! ... equation of the gas phase
 
+!
               CALL calc_res(dg)
               dgorig = dg
-!
+
               IF(DABS(dg) <= conv(ijk)) THEN
               
                 ! ... If the residual is lower then the prescribed limit
@@ -179,6 +195,7 @@
 
                 converge(ijk) = .TRUE.
 
+                ! ... Compute new ep(.)
                 CALL calc_eps
                 rgp(ijk) = ep(ijk) * rog(ijk)
 
@@ -187,6 +204,13 @@
                 ! ... If the residual is higher then the prescribed limit
                 ! ... start the inner (in-cell) iterative loop
                 ! ... to correct pressure and velocities.
+!
+!   *** TIMING (Convergence in the ijk cell) ***
+!
+                IF( timing ) THEN
+                   st0 = cclock_wall()
+                   ! call system_clock (st0,ratc)
+                END IF  
 !
                 d3 = dg
                 p3 = p(ijk)
@@ -242,10 +266,24 @@
                     EXIT inner_loop
                   END IF
                 END DO inner_loop
-!
+
+!   *** END TIMING (Convergence in the ijk cell) ***
+
+                 IF( timing ) THEN
+                   st1 = cclock_wall()
+                   ! call system_clock(st1,ratc)
+                 END IF
+
               END IF
 
-           END IF    
+   
+           END IF
+
+!IF (TIMING)
+             ! write(6,*)  nit, st1, st0
+             ! timconv(nit) = timconv(nit) + real(st1-st0)/ratc         
+             timconv(nit) = timconv(nit) + real(st1-st0)         
+    
          END DO mesh_loop
 !
 ! ... Update gas and particles enthalpy
@@ -305,6 +343,15 @@
        IF(MOD(nit,1000) == 0) omega=omega*0.9D0
 !
       END DO sor_loop
+
+! IF (TIMING)
+      timiter = 0.0d0
+      DO itim = 1, nit
+        timiter = timiter + timconv(itim)
+      END DO
+      WRITE(6,280)'Time for iterative solver: ',timiter
+ 280  FORMAT(2X,A27,F8.3) 
+
 !/////////////////////////////////////////////////////////////////////
 
 ! ... stop the HW performance monitor
@@ -314,7 +361,7 @@
 ! ... If the iterative sweep concluded without convergence
 ! ... report the number of cells where the procedure does not converge
 !
-      IF( mustit /= 0) THEN
+      IF( mustit /= 0 ) THEN
 !
         WRITE(6,700) nit, (time+dt)
         WRITE(6,*) 'convergence on proc ',mpime,' : ', ALL(converge)
@@ -401,7 +448,7 @@
 
         rlk( ijk, is) = rlkn( ijk,is ) - dt * (rlkx+rlky+rlkz)
 !        - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
-        IF( rlk(ijk,is) < 0.D0 ) rlk(ijk,is) = 0.D0
+        rlk(ijk,is) = MAX( 0.0d0, rlk(ijk,is) )
 
         rls = rls + rlk( ijk,is) * inrl(is)
 
@@ -547,7 +594,7 @@
       END SUBROUTINE iter
 !----------------------------------------------------------------------
       SUBROUTINE padjust(p, kros, d3, p3, omega, abeta)
-! ... Correct the pressure field to mimize the gas mass residual
+! ... Correct the pressure field to minimize the gas mass residual
 
         REAL*8 :: p, d3, p3, omega, abeta
         INTEGER :: kros

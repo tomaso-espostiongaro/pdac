@@ -128,7 +128,7 @@
       RETURN
       END SUBROUTINE thermal_eosg
 !----------------------------------------------------------------------
-      SUBROUTINE caloric_eosg(cpgc, cgas, tg, yg, sieg, ijk)
+      SUBROUTINE caloric_eosg(cpgc, cgas, tg, yg, sieg, ijk, info)
 !
 ! ... Iterative inversion of the enthalpy-temperature law
 ! ... (the gas thermal capacity depends on the temperature cg=cg(T) )
@@ -146,12 +146,13 @@
       REAL*8, INTENT(OUT) :: cpgc(:), cgas
       REAL*8, INTENT(INOUT) :: tg
       INTEGER, INTENT(IN) :: ijk
+      INTEGER, INTENT(INOUT) :: info
 !
       REAL*8 :: tgnn, mg, hc, ratmin
       REAL*8 :: tg0, sieg0, cgas0
       INTEGER :: ii, nlmax
       INTEGER :: ig
-      PARAMETER( nlmax = 2000) 
+      PARAMETER( nlmax = 4000) 
       PARAMETER( ratmin = 1.D-8) 
 
       IF (fl_l(ijk) == 1) THEN
@@ -174,7 +175,8 @@
           WRITE(8,*) 'time:', time, 'proc:', mpime, 'cell:', ijk 
           WRITE(8,*) 'temperature:',tg0, 'enthalpy:',sieg0
           WRITE(8,*) 'specific heat:',cgas0
-          CALL error( 'eosg', 'max number of iteration reached in eosg', 1)
+          info = info + 1
+          ! CALL error( 'eosg', 'max number of iteration reached in eosg', 1)
 !**********************************************************************
   223     CONTINUE
       END IF

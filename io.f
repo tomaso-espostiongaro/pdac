@@ -21,9 +21,12 @@
 
         LOGICAL :: old_restart = .FALSE.
 
+        REAL*8 :: max_seconds
+
         PUBLIC :: old_restart
         PUBLIC :: taperd, tapewr
         PUBLIC :: write_array, read_array
+        PUBLIC :: max_seconds
 
 !----------------------------------------------------------------------
         CONTAINS
