@@ -166,7 +166,6 @@
 ! ... Iterative solver for momentum-mass pressure coupling
 ! ... and explicit solver for interphase coupling
 !
-                     IF( job_type == '2D' ) CALL error('prog','2D routines not implemented!',1)
          
            CALL iter
 !

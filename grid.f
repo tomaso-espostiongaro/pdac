@@ -210,16 +210,22 @@
               indx(i)=1.D0/dx(i)
             END DO 
 !
-            DO j=1,(ny-1)
-              indy(j)=1.D0/dy(j)
-            END DO
-!
             DO k=1,(nz-1)
               indz(k)=1.D0/dz(k)
             END DO  
 !
+            IF (job_type == '3D') THEN
+              DO j=1,(ny-1)
+                indy(j)=1.D0/dy(j)
+              END DO
+            ELSE IF (job_type == '2D') THEN
+              DO j=1,(ny-1)
+                indy(j)=0.D0
+              END DO
+            END IF
+!
           RETURN 
-        END SUBROUTINE
+        END SUBROUTINE grid_setup
 !
 !----------------------------------------------------------------------
       SUBROUTINE meshinds(localindex,globalindex,i,j,k)
@@ -241,6 +247,17 @@
 
         IF (job_type == '3D') THEN
 
+!          nxy = nx * ny
+!          im1 = imesh - 1
+!          mdk = im1/nxy
+!          mj  = im1 - nxy * mdk
+!          mdj = mj/nx
+!          mi  = mj  -  nx * mdj
+!
+!          i   = mi  + 1      ! i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
+!          j   = mdj + 1      ! j = MOD( imesh - 1, nx*ny ) / nx + 1
+!          k   = mdk + 1      ! k = ( imesh - 1 ) / ( nx*ny ) + 1
+          
           k = ( globalindex - 1 ) / ( nx*ny ) + 1
           j = MOD( globalindex - 1, nx*ny) / nx + 1
           i = MOD( MOD( globalindex - 1, nx*ny ), nx ) + 1

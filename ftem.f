@@ -14,6 +14,7 @@
 ! ... This routine computes the matrix elements for the thermal 
 ! ... interphase coupling, and solves for the enthalpies
 !
+      USE control_flags, ONLY: job_type
       USE dimensions
       USE eos_gas, ONLY: cg
       USE gas_solid_density, ONLY: rgp, rgpn, rlk, rlkn, rog
@@ -50,7 +51,6 @@
       hrexs=0.D0
 !pdac------------
 !
-!
       DO ijk = 1, ncint
 
         IF(fl_l(ijk) == 1) THEN
@@ -67,8 +67,13 @@
 ! ... Compute gas-particle heat transfer coefficients
 !
             dugs = ( (ug(ijk)-us(ijk,is)) + (ug(imjk)-us(imjk,is)) ) * 0.5D0
-            dvgs = ( (vg(ijk)-vs(ijk,is)) + (vg(ijmk)-vs(ijmk,is)) ) * 0.5D0
             dwgs = ( (wg(ijk)-ws(ijk,is)) + (wg(ijkm)-ws(ijkm,is)) ) * 0.5D0
+
+            IF (job_type == '2D') THEN
+              dvgs = 0.D0
+            ELSE IF (job_type == '3D') THEN
+              dvgs = ( (vg(ijk)-vs(ijk,is)) + (vg(ijmk)-vs(ijmk,is)) ) * 0.5D0
+            END IF
 
             CALL hvs(hv, rlk(ijk,is), rog(ijk), ep(ijk), &
                      dugs, dvgs, dwgs, mug(ijk), kapg(ijk), cg(ijk), is)

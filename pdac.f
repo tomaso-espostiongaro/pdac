@@ -98,6 +98,8 @@
       dx(1:nx) = delta_x(1:nx)
       IF( job_type == '3D' ) THEN
         dy(1:ny) = delta_y(1:ny)
+      ELSE IF( job_type == '2D' ) THEN
+        dy(1:ny) = 0.D0
       END IF
       dz(1:nz) = delta_z(1:nz)
 
