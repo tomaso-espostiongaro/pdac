@@ -42,7 +42,7 @@
 !
         OPEN(UNIT=9,form='unformatted', FILE = restart_file)
 !
-        WRITE(9) time, nr, nx, ny, nz, nsolid
+        WRITE(9) time, nx, ny, nz, nsolid
 
       END IF
 !
@@ -173,7 +173,7 @@
       IMPLICIT NONE
 !
       INTEGER :: i, j, k, ijk, is
-      INTEGER :: nr_, nx_, ny_, nz_, nsolid_
+      INTEGER :: nx_, ny_, nz_, nsolid_
       INTEGER :: ig
       LOGICAL :: lform = .FALSE.
 
@@ -182,19 +182,16 @@
       IF( mpime .EQ. root ) THEN
 !
         OPEN(UNIT=9,form='unformatted',FILE='pdac.res')
-        READ(9) time, nr_, nx_, ny_, nz_, nsolid_
+        READ(9) time, nx_, ny_, nz_, nsolid_
 
       END IF
 
-      CALL bcast_integer(nr_, 1, root)
       CALL bcast_integer(nx_, 1, root)
       CALL bcast_integer(ny_, 1, root)
       CALL bcast_integer(nz_, 1, root)
       CALL bcast_integer(nsolid_, 1, root)
 
-      WRITE(6, fmt = "(I3,':','dimensions = ',8I6)" ) mpime, nr, nx, ny, nz, nr_, nx_, ny_, nz_
-      IF( nr_ /= nr ) &
-        CALL error(' taperd ',' inconsistent dimension nr ', nr_ )
+      WRITE(6, fmt = "(I3,':','dimensions = ',8I6)" ) mpime, nx, ny, nz, nx_, ny_, nz_
       IF( nx_ /= nx ) &
         CALL error(' taperd ',' inconsistent dimension nx ', nx_ )
       IF( ny_ /= ny ) &

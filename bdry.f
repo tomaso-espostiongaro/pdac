@@ -23,7 +23,7 @@
 ! ... (r,z) coordinates
 !
       USE gas_solid_velocity, ONLY: ug, wg, us, ws
-      USE grid, ONLY: rb, dr, r, inr, inrb
+      USE grid, ONLY: dx
       USE grid, ONLY: ncint, myijk
       USE grid, ONLY: fl_l
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -41,8 +41,8 @@
 
         imesh = myijk( ip0_jp0_kp0_, ij)
 
-        j = ( imesh - 1 ) / nr + 1
-        i = MOD( ( imesh - 1 ), nr) + 1
+        j = ( imesh - 1 ) / nx + 1
+        i = MOD( ( imesh - 1 ), nx) + 1
         IF(fl_l(ij) == 1) THEN
           CALL subscr(ij)
 !
@@ -71,8 +71,8 @@
 
           CASE (4)
 
-            d1 = dr(nr-1)
-            d2 = dr(nr)
+            d1 = dx(nx-1)
+            d2 = dx(nx)
             gravx = 0.D0
 !
 ! ... Compute the normal component of the velocities and scalar fields
@@ -115,8 +115,8 @@
 
           CASE (4)
 	    
-            d1 = dr(i)
-            d2 = dr(i-1)
+            d1 = dx(i)
+            d2 = dx(i-1)
 !
 ! ... Compute the normal component of the velocities and scalar fields
 !
@@ -151,7 +151,7 @@
             END DO
 
             IF (j .EQ. (nz-1)) THEN
-              IF(i .EQ. (nr-1)) THEN
+              IF(i .EQ. (nx-1)) THEN
                 ug(ipjkp) = ug(ipjk)
               ELSE IF(i .EQ. 2) THEN
                 ug(imjkp) = ug(imjk)
@@ -178,7 +178,7 @@
 ! ... set upper corners velocities
 !
             IF (j .EQ. (nz-1)) THEN
-              IF(i .EQ. (nr-1)) THEN
+              IF(i .EQ. (nx-1)) THEN
                 wg(ipjkp) = wg(n2)
                 ug(ipjkp) = ug(n2)
               ELSE IF(i .EQ. 2) THEN
@@ -213,7 +213,7 @@
               us(n2,is)=us(ij,is)
             END DO 
             IF (j .EQ. (2)) THEN
-              IF(i .EQ. (nr-1)) THEN
+              IF(i .EQ. (nx-1)) THEN
                 ug(ipjkm) = ug(ipjk)
               ELSE IF(i .EQ. 2) THEN
                 ug(imjkm) = ug(imjk)
@@ -523,7 +523,7 @@
 !
 !              IF(nfltr.EQ.4) ug(n2) = ug(ijk)
 !              IF(nfltr.EQ.4) us(n2,is)=us(ijk,is)
-!              IF(i .EQ. (nr-1) .AND. j .EQ. (nz-1)) THEN
+!              IF(i .EQ. (nx-1) .AND. j .EQ. (nz-1)) THEN
 !                ws(ipjp,is)=ws(n2,is)
 !                us(ipjp,is)=us(n2,is)
 !               ENDIF

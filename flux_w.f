@@ -219,7 +219,7 @@
 !
       USE dimensions
       USE grid, ONLY: myijk, fl_l
-      USE grid, ONLY: dr, rb, dz, indz
+      USE grid, ONLY: dx, xb, dz, indz
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: imjk, ijkm
       USE set_indexes, ONLY: stencil
@@ -235,24 +235,24 @@
       REAL*8 :: dens_c, dens_e, dens_t
       REAL*8 :: dens_w, dens_b
       REAL*8 :: dens_ee, dens_tt
-      REAL*8 :: drm, drp, drpp, indrpp, indrp, indrm
+      REAL*8 :: dxm, dxp, dxpp, indxpp, indxp, indxm
       REAL*8 :: dzp, indzp, dzm, indzm, dzpp, indzpp
       REAL*8 :: gradc, grade, gradw, gradt, gradb
 !
       imesh = myijk( ip0_jp0_kp0_, ij)
-      j = ( imesh - 1 ) / nr + 1
-      i = MOD( ( imesh - 1 ), nr) + 1
+      j = ( imesh - 1 ) / nx + 1
+      i = MOD( ( imesh - 1 ), nx) + 1
 !
-      drm=dr(i)+dr(i-1)
-      drp=dr(i)+dr(i+1)
-      drpp=dr(i+1)+dr(i+2)
+      dxm=dx(i)+dx(i-1)
+      dxp=dx(i)+dx(i+1)
+      dxpp=dx(i+1)+dx(i+2)
       dzm=dz(j)+dz(j-1)
       dzp=dz(j)+dz(j+1)
       dzpp=dz(j+1)+dz(j+2)
 
-      indrm=1.D0/drm
-      indrp=1.D0/drp
-      indrpp=1.D0/drpp
+      indxm=1.D0/dxm
+      indxp=1.D0/dxp
+      indxpp=1.D0/dxpp
       indzm=1.D0/dzm
       indzp=1.D0/dzp
       indzpp=1.D0/dzpp
@@ -276,8 +276,8 @@
 !
       IF( fl_l(imjk) /= 1 ) THEN
         cs = (u%wn * dz(j) + u%w * dz(j+1)) * indzp
-        IF ( cs >= 0.D0 ) fw = dens_w * w%w * cs * rb(i-1)
-        IF ( cs <  0.D0 ) fw = dens_c * w%c * cs * rb(i-1)
+        IF ( cs >= 0.D0 ) fw = dens_w * w%w * cs * xb(i-1)
+        IF ( cs <  0.D0 ) fw = dens_c * w%c * cs * xb(i-1)
       END IF
 !
 ! ... on Bottom volume bondary
@@ -292,9 +292,9 @@
 !
 ! ... on East volume boundary
 !
-      gradc = 2.D0 * indrp  * (dens_e * w%e   - dens_c * w%c)
-      gradw = 2.D0 * indrm  * (dens_c * w%c   - dens_w * w%w)
-      grade = 2.D0 * indrpp * (dens_ee * w%ee - dens_e * w%e)
+      gradc = 2.D0 * indxp  * (dens_e * w%e   - dens_c * w%c)
+      gradw = 2.D0 * indxm  * (dens_c * w%c   - dens_w * w%w)
+      grade = 2.D0 * indxpp * (dens_ee * w%ee - dens_e * w%e)
 !
       lim = 0.D0
       erre = 0.D0
@@ -304,20 +304,20 @@
       IF ( cs >= 0.D0 ) THEN
 	erre = gradw / gradc
         fou  = dens_c * w%c
-	incr = 0.5D0 * dr(i)
+	incr = 0.5D0 * dx(i)
       ELSE IF ( cs < 0.D0 ) THEN
 	erre = grade / gradc
         fou  = dens_e * w%e
-	incr = 0.5D0 * dr(i+1)
+	incr = 0.5D0 * dx(i+1)
       END IF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (i /= nr-1)) THEN
+      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (i /= nx-1)) THEN
         CALL limiters(lim,erre)
       END IF
 !
       upwnd = fou + lim * gradc * incr
 !
-      fe = upwnd * cs * rb(i)
+      fe = upwnd * cs * xb(i)
 !
 ! ... on Top volume boundary
 !

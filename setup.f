@@ -40,7 +40,7 @@
       USE gas_solid_temperature, ONLY: sieg
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
-      USE grid, ONLY: grid_setup, zb, dx, dy, dz, dr, myijk
+      USE grid, ONLY: grid_setup, zb, dz, myijk
       USE grid, ONLY: fl_l, iob, ncint, meshinds
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
@@ -120,7 +120,7 @@
               IF ( job_type == '2D' ) THEN
 
                 IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi  ) THEN
-                  IF ( i >= iob(n)%rlo .AND. i <= iob(n)%rhi  ) THEN
+                  IF ( i >= iob(n)%xlo .AND. i <= iob(n)%xhi  ) THEN
                     ug(ijk) = ugob(n)
                     wg(ijk) = wgob(n)
                     tg(ijk) = tgob(n)

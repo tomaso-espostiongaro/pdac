@@ -11,7 +11,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE outp_2d
 !
-      USE dimensions, ONLY: nr, nz, nsolid
+      USE dimensions, ONLY: nx, nz, nsolid
       USE eos_gas, ONLY: gc_molar_fraction
       USE gas_constants, ONLY: present_gas, default_gas
       USE gas_solid_density, ONLY: solid_bulk_density
@@ -48,38 +48,38 @@
 !
       WRITE(3,548)
       DO j=1,nz
-        ij1=1+(nz-j)*nr
-        ij2=nr+(nz-j)*nr
+        ij1=1+(nz-j)*nx
+        ij2=nx+(nz-j)*nx
         WRITE(3,550)(gas_pressure(ijl),ijl=ij1,ij2)
       END DO
 !
       DO is=1,nsolid
         WRITE(3,549)is 
         DO j=1,nz
-          ij1=1+(nz-j)*nr
-          ij2=nr+(nz-j)*nr
+          ij1=1+(nz-j)*nx
+          ij2=nx+(nz-j)*nx
           WRITE(3,550)(solid_bulk_density(ijl,is)*inrl(is),ijl=ij1,ij2)
         END DO
       END DO
 !
       WRITE(3,552)
       DO j=1,nz
-        ij1=1+(nz-j)*nr
-        ij2=nr+(nz-j)*nr
+        ij1=1+(nz-j)*nx
+        ij2=nx+(nz-j)*nx
         WRITE(3,550)(gas_velocity_r(ijl),ijl=ij1,ij2)
       END DO
 !
       WRITE(3,553)
       DO j=1,nz
-        ij1=1+(nz-j)*nr
-        ij2=nr+(nz-j)*nr
+        ij1=1+(nz-j)*nx
+        ij2=nx+(nz-j)*nx
         WRITE(3,550)(gas_velocity_z(ijl),ijl=ij1,ij2)
       END DO
 !
       WRITE(3,560)
       DO j=1,nz
-        ij1=1+(nz-j)*nr
-        ij2=nr+(nz-j)*nr
+        ij1=1+(nz-j)*nx
+        ij2=nx+(nz-j)*nx
         WRITE(3,550)(gas_temperature(ijl),ijl=ij1,ij2)
       END DO
 !
@@ -87,8 +87,8 @@
         IF( present_gas(ig) .AND. (ig /= default_gas) ) THEN
           WRITE(3,562) ig
           DO j=1,nz
-            ij1=1+(nz-j)*nr
-            ij2=nr+(nz-j)*nr
+            ij1=1+(nz-j)*nx
+            ij2=nx+(nz-j)*nx
             WRITE(3,550)(gc_molar_fraction(ig,ijl),ijl=ij1,ij2)
           END DO
         END IF
@@ -98,22 +98,22 @@
 !
         WRITE(3,556)is 
         DO j=1,nz
-          ij1=1+(nz-j)*nr 
-          ij2=nr+(nz-j)*nr
+          ij1=1+(nz-j)*nx 
+          ij2=nx+(nz-j)*nx
           WRITE(3,550)(solid_velocity_r(ijl,is),ijl=ij1,ij2)
         END DO
 !
         WRITE(3,557)is 
         DO  j=1,nz
-          ij1=1+(nz-j)*nr
-          ij2=nr+(nz-j)*nr
+          ij1=1+(nz-j)*nx
+          ij2=nx+(nz-j)*nx
           WRITE(3,550)(solid_velocity_z(ijl,is),ijl=ij1,ij2)
         END DO
 !
         WRITE(3,561)is 
         DO j=1,nz
-          ij1=1+(nz-j)*nr
-          ij2=nr+(nz-j)*nr
+          ij1=1+(nz-j)*nx
+          ij2=nx+(nz-j)*nx
           WRITE(3,550)(solid_temperature(ijl,is),ijl=ij1,ij2)
         END DO
 !
@@ -122,8 +122,8 @@
       IF (modturbo > 1) THEN
         WRITE(3,555)
         DO j=1,nz
-          ij1=1+(nz-j)*nr
-          ij2=nr+(nz-j)*nr
+          ij1=1+(nz-j)*nx
+          ij2=nx+(nz-j)*nx
           WRITE(3,550)(smag_coeff(ijl),ijl=ij1,ij2)
         END DO
       END IF
@@ -152,7 +152,7 @@
 !----------------------------------------------------------------------
      SUBROUTINE recover_2d
 !
-      USE dimensions, ONLY: nr, nz, nsolid
+      USE dimensions, ONLY: nx, nz, nsolid
       USE eos_gas, ONLY: gc_molar_fraction
       USE gas_constants, ONLY: present_gas, default_gas
       USE gas_solid_density, ONLY: solid_bulk_density
@@ -186,16 +186,16 @@
 !
         READ(3,640)
         DO j=1,nz
-          ij1=1+(nz-j)*nr
-          ij2=nr+(nz-j)*nr
+          ij1=1+(nz-j)*nx
+          ij2=nx+(nz-j)*nx
           READ(3,650)(gas_pressure(ijl),ijl=ij1,ij2)
         END DO
 !
         DO is=1,nsolid
           READ(3,640)
           DO j=1,nz
-            ij1=1+(nz-j)*nr
-            ij2=nr+(nz-j)*nr
+            ij1=1+(nz-j)*nx
+            ij2=nx+(nz-j)*nx
             READ(3,650)(solid_bulk_density(ijl,is),ijl=ij1,ij2)
           END DO
           solid_bulk_density(:,is) = solid_bulk_density(:,is)*rl(is)
@@ -203,22 +203,22 @@
 !
         READ(3,640)
         DO j=1,nz
-          ij1=1+(nz-j)*nr
-          ij2=nr+(nz-j)*nr
+          ij1=1+(nz-j)*nx
+          ij2=nx+(nz-j)*nx
           READ(3,650)(gas_velocity_z(ijl),ijl=ij1,ij2)
         END DO
 !
         READ(3,640)
         DO j=1,nz
-          ij1=1+(nz-j)*nr
-          ij2=nr+(nz-j)*nr
+          ij1=1+(nz-j)*nx
+          ij2=nx+(nz-j)*nx
           READ(3,650)(gas_velocity_r(ijl),ijl=ij1,ij2)
         END DO
 !
           READ(3,640)
         DO j=1,nz
-          ij1=1+(nz-j)*nr
-          ij2=nr+(nz-j)*nr
+          ij1=1+(nz-j)*nx
+          ij2=nx+(nz-j)*nx
           READ(3,650)(gas_temperature(ijl),ijl=ij1,ij2)
         END DO
 !
@@ -226,8 +226,8 @@
           IF( present_gas(ig) .AND. (ig /= default_gas) ) THEN
             READ(3,640)
             DO j=1,nz
-              ij1=1+(nz-j)*nr
-              ij2=nr+(nz-j)*nr
+              ij1=1+(nz-j)*nx
+              ij2=nx+(nz-j)*nx
               READ(3,650)(gc_molar_fraction(ig,ijl),ijl=ij1,ij2)
             END DO
           END IF
@@ -237,22 +237,22 @@
 !
           READ(3,640)
           DO  j=1,nz
-            ij1=1+(nz-j)*nr
-            ij2=nr+(nz-j)*nr
+            ij1=1+(nz-j)*nx
+            ij2=nx+(nz-j)*nx
             READ(3,650)(solid_velocity_z(ijl,is),ijl=ij1,ij2)
           END DO
 !
             READ(3,640)
           DO j=1,nz
-            ij1=1+(nz-j)*nr 
-            ij2=nr+(nz-j)*nr
+            ij1=1+(nz-j)*nx 
+            ij2=nx+(nz-j)*nx
             READ(3,650)(solid_velocity_r(ijl,is),ijl=ij1,ij2)
           END DO
 !
           READ(3,640)
           DO j=1,nz
-            ij1=1+(nz-j)*nr
-            ij2=nr+(nz-j)*nr
+            ij1=1+(nz-j)*nx
+            ij2=nx+(nz-j)*nx
             READ(3,650)(solid_temperature(ijl,is),ijl=ij1,ij2)
           END DO
 !
@@ -261,8 +261,8 @@
         IF (modturbo > 1) THEN
           READ(3,640)
           DO j=1,nz
-            ij1=1+(nz-j)*nr
-            ij2=nr+(nz-j)*nr
+            ij1=1+(nz-j)*nx
+            ij2=nx+(nz-j)*nx
             READ(3,650)(smag_coeff(ijl),ijl=ij1,ij2)
           END DO
         END IF

@@ -2,7 +2,7 @@
    MODULE input_module
 !----------------------------------------------------------------------
 
-      USE dimensions, ONLY: max_nsolid, ngas, nroughx, max_size, max_nblock, max_ngas, nr, nz, nx, ny
+      USE dimensions, ONLY: max_nsolid, ngas, nroughx, max_size, max_nblock, max_ngas, nz, nx, ny
 
       REAL*8 :: diameter(max_nsolid)
       REAL*8 :: density(max_nsolid)
@@ -10,13 +10,12 @@
       REAL*8 :: viscosity(max_nsolid)
       REAL*8 :: specific_heat(max_nsolid)
       REAL*8 :: thermal_conductivity(max_nsolid)
-      REAL*8 :: dr0, dz0, dx0, dy0
+      REAL*8 :: dz0, dx0, dy0
       CHARACTER(LEN=80) :: run_name
       CHARACTER(LEN=80) :: restart_mode
       INTEGER :: iuni
 
 ! ... MESH
-      REAL*8 :: delta_r(max_size)
       REAL*8 :: delta_x(max_size)
       REAL*8 :: delta_y(max_size)
       REAL*8 :: delta_z(max_size)
@@ -25,14 +24,12 @@
       INTEGER :: number_of_block
       INTEGER :: block_type(max_nblock)
       INTEGER :: block_bounds(6,max_nblock)
-      REAL*8 :: fixed_vgas_r(max_nblock)
       REAL*8 :: fixed_vgas_x(max_nblock)
       REAL*8 :: fixed_vgas_y(max_nblock)
       REAL*8 :: fixed_vgas_z(max_nblock)
       REAL*8 :: fixed_pressure(max_nblock)
       REAL*8 :: fixed_gaseps(max_nblock)
       REAL*8 :: fixed_gastemp(max_nblock)
-      REAL*8 :: fixed_vpart_r(max_nsolid, max_nblock)
       REAL*8 :: fixed_vpart_x(max_nsolid, max_nblock)
       REAL*8 :: fixed_vpart_y(max_nsolid, max_nblock)
       REAL*8 :: fixed_vpart_z(max_nsolid, max_nblock)
@@ -41,7 +38,6 @@
       REAL*8 :: fixed_gasconc(max_ngas, max_nblock)
 
 ! ... INITIAL_CONDITIONS
-      REAL*8 :: initial_vgas_r
       REAL*8 :: initial_vgas_x
       REAL*8 :: initial_vgas_y
       REAL*8 :: initial_vgas_z
@@ -49,8 +45,7 @@
       REAL*8 :: initial_void_fraction   
       REAL*8 :: max_packing          ! maximum particle packing (volumetric fraction ~0.67)
       REAL*8 :: initial_temperature
-      REAL*8 :: initial_vpart_r      ! initial particle velocities (radial, x, y and z)
-      REAL*8 :: initial_vpart_x
+      REAL*8 :: initial_vpart_x      ! initial particle velocities (x, y and z)
       REAL*8 :: initial_vpart_y
       REAL*8 :: initial_vpart_z
       REAL*8 :: initial_gasconc(max_ngas) ! initial gas concentration (for each specie)
@@ -63,7 +58,7 @@
       USE atmosphere, ONLY: w0, u0, p0, temp0, us0, ws0, ep0, epsmx0, gravx, gravz
       USE flux_limiters, ONLY: beta, muscl
       USE gas_constants, ONLY: default_gas
-      USE grid, ONLY: dx, dy, dz, dr, itc, mesh_partition
+      USE grid, ONLY: dx, dy, dz, itc, mesh_partition
       USE iterative_solver, ONLY: inmax, maxout, omega
       USE output_dump, ONLY: nfil
       USE parallel, ONLY: mpime, root
@@ -88,7 +83,7 @@
         tdump, nfil, irex, iss, iturb, modturbo, cmut, rlim, gravx, gravz, &
         ngas, default_gas
 !
-      NAMELIST / mesh / nr, nx, ny, nz, itc, iuni, dr0, dx0, dy0, dz0, &
+      NAMELIST / mesh / nx, ny, nz, itc, iuni, dx0, dy0, dz0, &
         mesh_partition
 !
       NAMELIST / particles / nsolid, diameter, density, sphericity, &
@@ -127,14 +122,12 @@
 
 ! ... Mesh
 
-      nr = 100
+      nx = 100
       nz = 100
-      nx = 1
       ny = 1
       itc = 0
       mesh_partition = 1
       iuni = 1
-      dr0  = 10.D0
       dz0  = 10.D0
       dx0  = 10.D0
       dy0  = 10.D0
@@ -215,13 +208,11 @@
         READ(iunit, mesh) 
       END IF
 
-      CALL bcast_integer(nr,1,root)
       CALL bcast_integer(nx,1,root)
       CALL bcast_integer(ny,1,root)
       CALL bcast_integer(nz,1,root)
       CALL bcast_integer(itc,1,root)
       CALL bcast_integer(iuni,1,root)
-      CALL bcast_real(dr0,1,root)
       CALL bcast_real(dx0,1,root)
       CALL bcast_real(dy0,1,root)
       CALL bcast_real(dz0,1,root)
@@ -287,16 +278,13 @@
           END IF
         END DO mesh_search
 
-        IF( job_type == '2D' ) THEN
-          READ(5,*) (delta_r(i),i=1,nr)
-        ELSE IF( job_type == '3D' ) THEN
-          READ(5,*) (delta_x(i),i=1,nx)
+        READ(5,*) (delta_x(i),i=1,nx)
+        IF( job_type == '3D' ) THEN
           READ(5,*) (delta_y(j),j=1,ny)
         END IF
         READ(5,*) (delta_z(k),k=1,nz)
 
         IF (iuni == 0) THEN
-          delta_r = dr0
           delta_x = dx0
           delta_y = dy0
           delta_z = dz0
@@ -311,7 +299,6 @@
       IF( tend ) THEN
         CALL error( ' input ', ' MESH card not found ', 1 )
       END IF
-      CALL bcast_real(delta_r,nr,root)
       CALL bcast_real(delta_x,nx,root)
       CALL bcast_real(delta_y,ny,root)
       CALL bcast_real(delta_z,nz,root)
@@ -330,8 +317,8 @@
           DO n = 1, number_of_block
             READ(5,*) block_type(n),block_bounds(1,n), block_bounds(2,n), block_bounds(5,n), block_bounds(6,n)
             IF( block_type(n) == 1 .OR. block_type(n) == 5) THEN
-              READ(5,*) fixed_vgas_r(n), fixed_vgas_z(n), fixed_pressure(n), fixed_gaseps(n), fixed_gastemp(n)
-              READ(5,*) ( fixed_vpart_r(k,n), fixed_vpart_z(k,n), fixed_parteps(k,n), fixed_parttemp(k,n), k=1, nsolid)
+              READ(5,*) fixed_vgas_x(n), fixed_vgas_z(n), fixed_pressure(n), fixed_gaseps(n), fixed_gastemp(n)
+              READ(5,*) ( fixed_vpart_x(k,n), fixed_vpart_z(k,n), fixed_parteps(k,n), fixed_parttemp(k,n), k=1, nsolid)
               READ(5,*) ( fixed_gasconc(ig,n), ig=1, ngas )
             ENDIF
           END DO
@@ -364,14 +351,12 @@
       CALL bcast_integer(number_of_block, 1, root)
       CALL bcast_integer(block_type, SIZE(block_type), root)
       CALL bcast_integer(block_bounds, SIZE(block_bounds), root)
-      CALL bcast_real(fixed_vgas_r, SIZE(fixed_vgas_r), root)
       CALL bcast_real(fixed_vgas_x, SIZE(fixed_vgas_x), root)
       CALL bcast_real(fixed_vgas_y, SIZE(fixed_vgas_y), root)
       CALL bcast_real(fixed_vgas_z, SIZE(fixed_vgas_z), root)
       CALL bcast_real(fixed_pressure, SIZE(fixed_pressure), root)
       CALL bcast_real(fixed_gaseps, SIZE(fixed_gaseps), root)
       CALL bcast_real(fixed_gastemp, SIZE(fixed_gastemp), root)
-      CALL bcast_real(fixed_vpart_r, SIZE(fixed_vpart_r), root)
       CALL bcast_real(fixed_vpart_x, SIZE(fixed_vpart_x), root)
       CALL bcast_real(fixed_vpart_y, SIZE(fixed_vpart_y), root)
       CALL bcast_real(fixed_vpart_z, SIZE(fixed_vpart_z), root)
@@ -390,9 +375,9 @@
         END DO initial_conditions_search
 
         IF( job_type == '2D' ) THEN
-          READ(5,*) initial_vgas_r, initial_vgas_z, initial_pressure, initial_void_fraction, max_packing, &
+          READ(5,*) initial_vgas_x, initial_vgas_z, initial_pressure, initial_void_fraction, max_packing, &
             initial_temperature
-          READ(5,*) initial_vpart_r, initial_vpart_z
+          READ(5,*) initial_vpart_x, initial_vpart_z
         ELSE IF( job_type == '3D' ) THEN
           READ(5,*) initial_vgas_x, initial_vgas_y, initial_vgas_z, initial_pressure, initial_void_fraction, &
             max_packing, initial_temperature
@@ -411,7 +396,6 @@
       IF( tend ) THEN
         CALL error( ' input ', ' INITIAL_CONDITIONS card not found ', 1 )
       END IF
-      CALL bcast_real(initial_vgas_r,1,root)
       CALL bcast_real(initial_vgas_x,1,root)
       CALL bcast_real(initial_vgas_y,1,root)
       CALL bcast_real(initial_vgas_z,1,root)
@@ -419,7 +403,6 @@
       CALL bcast_real(initial_void_fraction,1,root)
       CALL bcast_real(max_packing,1,root)
       CALL bcast_real(initial_temperature,1,root)
-      CALL bcast_real(initial_vpart_r,1,root)
       CALL bcast_real(initial_vpart_x,1,root)
       CALL bcast_real(initial_vpart_y,1,root)
       CALL bcast_real(initial_vpart_z,1,root)

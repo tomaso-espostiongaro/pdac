@@ -94,7 +94,7 @@
         REAL*8 :: epsk, ingam, factor
 !
         imesh = myijk( ip0_jp0_kp0_, ijk)
-        j = ( imesh - 1 ) / nr + 1
+        j = ( imesh - 1 ) / nx + 1
 
         zrif=zb(j)+0.5D0*(dz(1)-dz(j))
         CALL atm(zrif,prif,trif)
@@ -148,23 +148,23 @@
 
       WRITE(3,101)
       DO j=1,nz
-        ij1=1+(nz-j)*nr
-        ij2=nr+(nz-j)*nr
+        ij1=1+(nz-j)*nx
+        ij2=nx+(nz-j)*nx
         WRITE(3,550)(rich(ijl),ijl=ij1,ij2)
       END DO
 
       WRITE(3,102)
       DO j=1,nz
-        ij1=1+(nz-j)*nr
-        ij2=nr+(nz-j)*nr
+        ij1=1+(nz-j)*nx
+        ij2=nx+(nz-j)*nx
         WRITE(3,550)(mut2mu(ijl),ijl=ij1,ij2)
       END DO
 
       DO is = 1, nsolid
         WRITE(3,103)is
         DO j=1,nz
-          ij1=1+(nz-j)*nr
-          ij2=nr+(nz-j)*nr
+          ij1=1+(nz-j)*nx
+          ij2=nx+(nz-j)*nx
           WRITE(3,550)(gas2pp(is,ijl),ijl=ij1,ij2)
         END DO
       END DO
@@ -172,8 +172,8 @@
       DO is = 1, nsolid
         WRITE(3,104)is
         DO j=1,nz
-          ij1=1+(nz-j)*nr
-          ij2=nr+(nz-j)*nr
+          ij1=1+(nz-j)*nx
+          ij2=nx+(nz-j)*nx
           WRITE(3,550)(drag2grav(is,ijl),ijl=ij1,ij2)
         END DO
       END DO

@@ -223,7 +223,7 @@
       USE dimensions
       USE grid, ONLY: myijk, fl_l
       USE grid, ONLY: dz
-      USE grid, ONLY: dr, indr, r
+      USE grid, ONLY: dx, indx, x
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: imjk, ijkm
       USE set_indexes, ONLY: stencil
@@ -239,35 +239,35 @@
       REAL*8 :: dens_c, dens_e, dens_t
       REAL*8 :: dens_w, dens_b
       REAL*8 :: dens_ee, dens_tt
-      REAL*8 :: drm, drp, drpp, indrpp, indrp, indrm
+      REAL*8 :: dxm, dxp, dxpp, indxpp, indxp, indxm
       REAL*8 :: dzp, indzp, dzm, indzm, dzpp, indzpp
       REAL*8 :: gradc, grade, gradw, gradb, gradt
 !
       imesh = myijk( ip0_jp0_kp0_, ij)
-      j = ( imesh - 1 ) / nr + 1
-      i = MOD( ( imesh - 1 ), nr) + 1
+      j = ( imesh - 1 ) / nx + 1
+      i = MOD( ( imesh - 1 ), nx) + 1
 !
-      drm=dr(i)+dr(i-1)
-      drp=dr(i)+dr(i+1)
-      drpp=dr(i+1)+dr(i+2)
+      dxm=dx(i)+dx(i-1)
+      dxp=dx(i)+dx(i+1)
+      dxpp=dx(i+1)+dx(i+2)
       dzm=dz(j)+dz(j-1)
       dzp=dz(j)+dz(j+1)
       dzpp=dz(j+1)+dz(j+2)
 
-      indrm=1.D0/drm
-      indrp=1.D0/drp
-      indrpp=1.D0/drpp
+      indxm=1.D0/dxm
+      indxp=1.D0/dxp
+      indxpp=1.D0/dxpp
       indzm=1.D0/dzm
       indzp=1.D0/dzp
       indzpp=1.D0/dzpp
 !       
 ! ... Compute linearly interpolated values of density on the staggered grid
 !
-      dens_c = (dr(i+1) * dens%c + dr(i) * dens%e) * indrp
-      dens_e = (dr(i+2) * dens%e + dr(i+1) * dens%ee) * indrpp
-      dens_t = (dr(i+1) * dens%t + dr(i) * dens%et) * indrp
-      dens_w = (dr(i)   * dens%w + dr(i-1) * dens%c) * indrm
-      dens_b = (dr(i+1) * dens%b + dr(i) * dens%eb) * indrp
+      dens_c = (dx(i+1) * dens%c + dx(i) * dens%e) * indxp
+      dens_e = (dx(i+2) * dens%e + dx(i+1) * dens%ee) * indxpp
+      dens_t = (dx(i+1) * dens%t + dx(i) * dens%et) * indxp
+      dens_w = (dx(i)   * dens%w + dx(i-1) * dens%c) * indxm
+      dens_b = (dx(i+1) * dens%b + dx(i) * dens%eb) * indxp
 !
 ! ... an arbitrary choice !
 !
@@ -280,14 +280,14 @@
 !
       IF( fl_l(imjk) /= 1 ) THEN
         cs = 0.5D0*(u%c + u%w)
-        IF ( cs >= 0.D0 ) fw = dens_w * u%w * cs * r(i)
-        IF ( cs <  0.D0 ) fw = dens_c * u%c * cs * r(i)
+        IF ( cs >= 0.D0 ) fw = dens_w * u%w * cs * x(i)
+        IF ( cs <  0.D0 ) fw = dens_c * u%c * cs * x(i)
       END IF
 !
 ! ... on Bottom volume bondary
 !
       IF( fl_l(ijkm) /= 1 ) THEN
-        cs = (dr(i+1) * w%b + dr(i) * w%eb) * indrp
+        cs = (dx(i+1) * w%b + dx(i) * w%eb) * indxp
         IF ( cs >= 0.D0 ) fb = dens_b * u%b * cs
         IF ( cs <  0.D0 ) fb = dens_c * u%c * cs
       END IF
@@ -296,32 +296,32 @@
 !
 ! ... on East volume boundary
 !
-      gradc = (indr(i+1) * (dens_e * u%e   - dens_c * u%c))
-      gradw = (indr(i)   * (dens_c * u%c   - dens_w * u%w))
-      grade = (indr(i+2) * (dens_ee * u%ee - dens_e * u%e))
+      gradc = (indx(i+1) * (dens_e * u%e   - dens_c * u%c))
+      gradw = (indx(i)   * (dens_c * u%c   - dens_w * u%w))
+      grade = (indx(i+2) * (dens_ee * u%ee - dens_e * u%e))
 !
       lim = 0.D0
       erre = 0.D0
 !
       cs = 0.5D0 * (u%c + u%e)
-      cn = cs * dt * indr(i+1)
+      cn = cs * dt * indx(i+1)
       IF ( cs >= 0.D0 ) THEN
         erre = gradw / gradc
         fou  = dens_c * u%c 
-        incr = 0.5D0 * dr(i+1)
+        incr = 0.5D0 * dx(i+1)
       ELSE IF ( cs < 0.D0 ) THEN
         erre = grade / gradc
         fou  = dens_e * u%e
-        incr = 0.5D0 * dr(i+1)
+        incr = 0.5D0 * dx(i+1)
       END IF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (i /= nr-1)) THEN
+      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (i /= nx-1)) THEN
         CALL limiters(lim,erre)
       END IF
 !
       upwnd = fou + lim * gradc * incr
 !
-      fe = upwnd * cs * r(i+1)
+      fe = upwnd * cs * x(i+1)
 !
 ! ... on Top volume boundary
 !
@@ -332,7 +332,7 @@
       lim = 0.D0
       erre = 0.D0
 !
-      cs = (dr(i+1) * w%c + dr(i) * w%e) * indrp
+      cs = (dx(i+1) * w%c + dx(i) * w%e) * indxp
       cn = cs * dt * 2.0 * indzp
       IF (cs >= 0.D0) THEN
         erre = gradb / gradc 

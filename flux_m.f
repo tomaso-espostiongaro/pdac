@@ -346,7 +346,7 @@
 !
       USE dimensions
       USE grid, ONLY: myijk
-      USE grid, ONLY: rb
+      USE grid, ONLY: xb
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: stencil
 !
@@ -358,16 +358,16 @@
       INTEGER :: i,j,imesh
 !
       imesh = myijk( ip0_jp0_kp0_, ij)
-      j = ( imesh - 1 ) / nr + 1
-      i = MOD( ( imesh - 1 ), nr) + 1
+      j = ( imesh - 1 ) / nx + 1
+      i = MOD( ( imesh - 1 ), nx) + 1
 !
 !
 ! ... West, Bottom fluxes
 !
       IF (u%w >= 0.D0) THEN
-        fw = u%w * dens%w * rb(i-1)
+        fw = u%w * dens%w * xb(i-1)
       ELSE
-        fw = u%w * dens%c * rb(i-1)
+        fw = u%w * dens%c * xb(i-1)
       ENDIF
 
       IF (w%b >= 0.D0) THEN
@@ -379,9 +379,9 @@
 ! ... East, Top fluxes
 !
       IF (u%c >= 0.D0) THEN
-        fe = u%c * dens%c * rb(i)
+        fe = u%c * dens%c * xb(i)
       ELSE
-        fe = u%c * dens%e * rb(i)
+        fe = u%c * dens%e * xb(i)
       ENDIF
 
       IF (w%c >= 0.D0) THEN
@@ -397,7 +397,7 @@
 !
       USE dimensions
       USE grid, ONLY: myijk, fl_l
-      USE grid, ONLY: dr, rb, dz
+      USE grid, ONLY: dx, xb, dz
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt
@@ -408,27 +408,27 @@
       INTEGER, INTENT(IN) :: ij
 !
       INTEGER :: i,j,imesh
-      REAL*8 :: drmm, drm, drp, drpp, indrpp, indrp, indrm, indrmm
+      REAL*8 :: dxmm, dxm, dxp, dxpp, indxpp, indxp, indxm, indxmm
       REAL*8 :: dzmm, dzm, dzp, dzpp, indzpp, indzp, indzm, indzmm
       REAL*8 :: gradc, grade, gradw, gradt, gradb
 !
       imesh = myijk( ip0_jp0_kp0_, ij)
-      j = ( imesh - 1 ) / nr + 1
-      i = MOD( ( imesh - 1 ), nr) + 1
+      j = ( imesh - 1 ) / nx + 1
+      i = MOD( ( imesh - 1 ), nx) + 1
 !
-      drmm=dr(i-1)+dr(i-2)
-      drm=dr(i)+dr(i-1)
-      drp=dr(i)+dr(i+1)
-      drpp=dr(i+1)+dr(i+2)
+      dxmm=dx(i-1)+dx(i-2)
+      dxm=dx(i)+dx(i-1)
+      dxp=dx(i)+dx(i+1)
+      dxpp=dx(i+1)+dx(i+2)
       dzmm=dz(j-1)+dz(j-2)
       dzm=dz(j)+dz(j-1)
       dzp=dz(j)+dz(j+1)
       dzpp=dz(j+1)+dz(j+2)
 
-      indrmm=1.D0/drmm
-      indrm=1.D0/drm
-      indrp=1.D0/drp
-      indrpp=1.D0/drpp
+      indxmm=1.D0/dxmm
+      indxm=1.D0/dxm
+      indxp=1.D0/dxp
+      indxpp=1.D0/dxpp
       indzmm=1.D0/dzmm
       indzm=1.D0/dzm
       indzp=1.D0/dzp
@@ -438,23 +438,23 @@
 !
 ! ... on West volume boundary
 !
-      gradc = 2.D0 * indrm * (dens%c - dens%w)
-      gradw = 2.D0 * indrmm * (dens%w - dens%ww)
-      grade = 2.D0 * indrp * (dens%e - dens%c)
+      gradc = 2.D0 * indxm * (dens%c - dens%w)
+      gradw = 2.D0 * indxmm * (dens%w - dens%ww)
+      grade = 2.D0 * indxp * (dens%e - dens%c)
 !
       lim = 0.D0
       erre = 0.D0
 !
       cs = u%w
-      cn = cs * dt * 2.D0 * indrm
+      cn = cs * dt * 2.D0 * indxm
       IF (cs >= 0.D0) THEN
 	erre = gradw / gradc
         fou  = dens%w 
-	incr = 0.5D0 * dr(i-1)
+	incr = 0.5D0 * dx(i-1)
       ELSE IF (cs < 0.D0) THEN
 	erre = grade / gradc
         fou  = dens%c 
-	incr = 0.5D0 * dr(i)
+	incr = 0.5D0 * dx(i)
       ENDIF
 !
       IF ((muscl /= 0) .AND. (gradc /= 0.D0)) THEN
@@ -463,42 +463,42 @@
 !
       upwnd = fou + lim * gradc * incr
 !
-      centrd = (dr(i)*dens%w+dr(i-1)*dens%c)*indrm
+      centrd = (dx(i)*dens%w+dx(i-1)*dens%c)*indxm
       upc_w = upwnd / centrd
 !
-      fw = upwnd * cs * rb(i-1)
+      fw = upwnd * cs * xb(i-1)
 !
 ! ... on East volume boundary
 !
       gradw = gradc
       gradc = grade
-      grade = 2.D0 * indrpp * (dens%ee - dens%e)
+      grade = 2.D0 * indxpp * (dens%ee - dens%e)
 !
       lim = 0.D0
       erre = 0.D0
 !
       cs = u%c
-      cn = cs * dt * 2.0 * indrp
+      cn = cs * dt * 2.0 * indxp
       IF (cs >= 0.D0) THEN
 	erre = gradw / gradc
         fou  = dens%c 
-	incr = 0.5D0 * dr(i)
+	incr = 0.5D0 * dx(i)
       ELSE IF (cs < 0.D0) THEN
 	erre = grade / gradc
         fou  = dens%e 
-	incr = 0.5D0 * dr(i+1)
+	incr = 0.5D0 * dx(i+1)
       ENDIF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (i /= nr-1)) THEN
+      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (i /= nx-1)) THEN
         CALL limiters(lim,erre)
       END IF
 !
       upwnd = fou + lim * gradc * incr
 !
-      centrd = (dr(i)*dens%e+dr(i+1)*dens%c)*indrp
+      centrd = (dx(i)*dens%e+dx(i+1)*dens%c)*indxp
       upc_e = upwnd / centrd
 !
-      fe = upwnd * cs * rb(i)
+      fe = upwnd * cs * xb(i)
 !
 ! ... on Bottom volume boundary
 !

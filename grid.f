@@ -66,11 +66,10 @@
         !        each process that it is computed to obtain the same 
         !        computational load on each process.
 !
-        REAL*8, DIMENSION(:), ALLOCATABLE :: r, rb, dr
         REAL*8, DIMENSION(:), ALLOCATABLE :: dx, dy, dz
-        REAL*8, DIMENSION(:), ALLOCATABLE :: zb
         REAL*8, DIMENSION(:), ALLOCATABLE :: indx, indy, indz
-        REAL*8, DIMENSION(:), ALLOCATABLE :: inr, inrb, indr
+        REAL*8, DIMENSION(:), ALLOCATABLE :: x, xb, zb
+        REAL*8, DIMENSION(:), ALLOCATABLE :: inx, inxb
 !
         INTEGER :: itc, mesh_partition
 
@@ -90,8 +89,6 @@
           INTEGER :: yhi
           INTEGER :: zlo
           INTEGER :: zhi
-          INTEGER :: rlo
-          INTEGER :: rhi
           INTEGER :: typ
         END TYPE
 !
@@ -134,19 +131,18 @@
 ! ...   and the coordinate system
 
         IF( job_type == '2D' ) THEN
-          ntot = nr*nz
-          ALLOCATE( r(nr), rb(nr), dr(nr) )
-          ALLOCATE( inr(nr), inrb(nr), indr(nr) ) 
+          ntot = nx*nz
         ELSE IF( job_type == '3D' ) THEN
           ntot = nx*ny*nz
-          ALLOCATE( dx(nx), dy(ny) ) 
-          ALLOCATE( indx(nx), indy(ny) )
         ELSE
           CALL error( ' allocate_grid ', ' wrong job_type '//job_type, 1)
         END IF
 
-        ALLOCATE( zb(nz), dz(nz) )
-        ALLOCATE( indz(nz) )
+        ALLOCATE( dx(nx), dy(ny), dz(nz) ) 
+        ALLOCATE( indx(nx), indy(ny), indz(nz) )
+        ALLOCATE( x(nx), xb(nx) )
+        ALLOCATE( inx(nx), inxb(nx) )
+        ALLOCATE( zb(nz) )
         ALLOCATE( fl(ntot) )
 
         RETURN
@@ -171,62 +167,44 @@
           REAL*8, INTENT(IN) :: zzero
           REAL*8, PARAMETER :: VERYBIG = 1.0d+10
           INTEGER :: i, j, k
-
-          IF( job_type == '2D' ) THEN
 !
-! ...       ONLY FOR CYLINDRICAL COORDINATES
+! ... Set "x" and "xb" absolute coordinate
+! ... (only for cylindrical coordinates)
 !
-! ...       Set "r" dimension
-            IF(itc == 0) THEN
-              DO i=1,nr
-                r(i)=1.D0
-                rb(i)=1.D0
+            IF((itc == 0) .OR. (job_type == '3D')) THEN
+              x(:) = 1.D0
+              xb(:) = 1.D0
+              inx(:) = 1.D0
+              inxb(:) = 1.D0
+            ELSE IF ((itc == 1) .AND. (job_type == '2D')) THEN
+              xb(1)=0.D0
+              x(1)=-0.5D0*dx(1)+xb(1)
+              DO i=2,nx
+                xb(i)=(xb(i-1)+dx(i))
+                x(i)=(xb(i)-0.5D0*dx(i))
               END DO
-            ELSE IF (itc == 1) THEN
-              rb(1)=0.D0
-              r(1)=-0.5D0*dr(1)+rb(1)
-              DO i=2,nr
-                rb(i)=(rb(i-1)+dr(i))
-                r(i)=(rb(i)-0.5D0*dr(i))
-              END DO
+              IF (xb(1) == 0.0D0) THEN
+                inxb(1) = VERYBIG
+              ELSE
+                inxb(1) = 1.0D0/xb(1)
+              END IF
+              DO i=2,nx
+                inxb(i)=1.D0/xb(i)
+              END DO  
+              DO i=1,nx
+                inx(i)=1.D0/x(i)
+              END DO  
             END IF
 !
-            IF (rb(1) == 0.0D0) THEN
-              inrb(1) = VERYBIG
-            ELSE
-              inrb(1) = 1.0D0/rb(1)
-            END IF
-            IF (itc == 0) inrb(1)=1.D0
-            DO i=2,nr
-              inrb(i)=1.D0/rb(i)
-            END DO  
+! ... Set "z" dimension
+! ... (useful to set atmospheric conditions)
 !
-            DO i=1,nr
-              inr(i)=1.D0/r(i)
-            END DO  
-            DO i=1,nr
-              indr(i)=1.D0/dr(i)
-            END DO  
-!
-! ...       Set "z" dimension
             zb(1) = zzero
             DO k=1,(nz-1)
               zb(k+1)=zb(k)+dz(k+1)
             END DO
 !
-            DO k=1,(nz-1)
-              indz(k)=1.D0/dz(k)
-            END DO  
-
-          ELSE IF( job_type == '3D' ) THEN
-!
-! ...       CARTESIAN COORDINATES
-! 
-! ...       Set "z" dimension
-            zb(1) = zzero
-            DO k=1,(nz-1)
-              zb(k+1)=zb(k)+dz(k+1)
-            END DO
+! ... inverse of the cell sizes
 !
             DO i=1,(nx-1)
               indx(i)=1.D0/dx(i)
@@ -239,12 +217,6 @@
             DO k=1,(nz-1)
               indz(k)=1.D0/dz(k)
             END DO  
-  
-          ELSE
-    
-            CALL error(' grid_setup ', ' unknow job_type '//job_type, 1 )
-
-          END IF
 !
           RETURN 
         END SUBROUTINE
@@ -275,8 +247,8 @@
 
         ELSE IF (job_type == '2D') THEN
 
-          k = ( globalindex - 1 ) / nr + 1
-          i = MOD( ( globalindex - 1 ), nr) + 1
+          k = ( globalindex - 1 ) / nx + 1
+          i = MOD( ( globalindex - 1 ), nx) + 1
 
         ELSE 
 
@@ -306,8 +278,8 @@
 
           DO n = 1, no
             DO k = iob(n)%zlo, iob(n)%zhi 
-              DO i = iob(n)%rlo, iob(n)%rhi
-                ijk = i + (k-1) * nr
+              DO i = iob(n)%xlo, iob(n)%xhi
+                ijk = i + (k-1) * nx
                 SELECT CASE ( iob(n)%typ )
                   CASE (2) 
                     fl(ijk) = 2
@@ -354,8 +326,8 @@
 !
         IF( job_type == '2D' ) THEN
 
-          IF ( fl(nz*nr - 1) == 4 .AND. fl((nz-1)*nr) == 4) THEN
-            fl(nz*nr) = 4
+          IF ( fl(nz*nx - 1) == 4 .AND. fl((nz-1)*nx) == 4) THEN
+            fl(nz*nx) = 4
           END IF
 
         END IF
@@ -476,13 +448,13 @@
       IF( job_type == '2D' ) THEN
 
         lay_map(0,1) = 1
-        lay_map(nproc-1,2) = nr*nz
+        lay_map(nproc-1,2) = nx*nz
         ipe = 0
 
         DO j = 1, nz
-          DO i = 1, nr
+          DO i = 1, nx
 
-            ijk = i + (j-1) * nr
+            ijk = i + (j-1) * nx
   
             IF ( fl(ijk) == 1 ) THEN
               icnt_ipe = icnt_ipe + 1
@@ -491,7 +463,7 @@
 
             nctot(ipe) = nctot(ipe) + 1
 
-            IF ( ( icnt_ipe == ncfl1(ipe) ) .AND. ( i /= (nr-1) ) ) THEN
+            IF ( ( icnt_ipe == ncfl1(ipe) ) .AND. ( i /= (nx-1) ) ) THEN
               icnt_ipe = 0
               IF( icnt < countfl(1) ) THEN
                 lay_map(ipe,2) = ijk
@@ -590,19 +562,19 @@
 !
         area  = DBLE(countfl(1)/nproc)
         side  = DSQRT(area)
-        nbx    = NINT(nr/side)
+        nbx    = NINT(nx/side)
 ! ... compute the number of layers nby 
         nby    = NINT(countfl(1)/nbx/side**2)     
         IF (nbx .EQ. 0) nbx = 1
         IF (nby .EQ. 0) nby = 1
         DO WHILE (nbx*nby .LT. nproc)
-         IF (INT(nr/nbx) .GT. INT(nz/nby)) THEN
+         IF (INT(nx/nbx) .GT. INT(nz/nby)) THEN
            nbx = nbx + 1
          ELSE
            nby = nby + 1
          END IF
         END DO
-        size_x = INT(nr/nbx)
+        size_x = INT(nx/nbx)
         rest = nbx*nby - nproc
 !
         ALLOCATE(lay_map(1:nby,2))
@@ -658,10 +630,10 @@
         layer = 1
         ipe = 0
         lay_map(1,1) = 1
-        lay_map(nby,2) = nr*nz
+        lay_map(nby,2) = nx*nz
         DO j = 1, nz
-        DO i = 1, nr
-          ij = i + (j-1)*nr
+        DO i = 1, nx
+          ij = i + (j-1)*nx
 !
           IF ( fl(ij) .EQ. 1 ) THEN
             icnt_layer = icnt_layer + 1
@@ -686,13 +658,13 @@
       ipe = -1
       DO layer = 1, nby
         ij2 = lay_map(layer,2)
-        j2  = ( ij2 - 1 ) / nr + 1
-        i2  = MOD( ( ij2 - 1 ), nr) + 1
-        IF (i2 .LT. nr/2) j2 = j2-1
+        j2  = ( ij2 - 1 ) / nx + 1
+        i2  = MOD( ( ij2 - 1 ), nx) + 1
+        IF (i2 .LT. nx/2) j2 = j2-1
         IF (layer .LT. nby) THEN
-          lay_map(layer,2) = j2 * nr
+          lay_map(layer,2) = j2 * nx
         ELSE
-          lay_map(layer,2) = nz * nr
+          lay_map(layer,2) = nz * nx
         END IF
         IF (layer .GT. 1) THEN 
           lay_map(layer,1) = lay_map(layer-1,2) + 1
@@ -701,11 +673,11 @@
         END IF
         ij1 = lay_map(layer,1)
         ij2 = lay_map(layer,2)
-        j1  = ( ij1 - 1 ) / nr + 1
-        i1  = MOD( ( ij1 - 1 ), nr) + 1
-        j2  = ( ij2 - 1 ) / nr + 1
-        i2  = MOD( ( ij2 - 1 ), nr) + 1
-        IF (i1.NE.1 .OR. i2.NE.nr) WRITE(8,*)'error in layer',layer
+        j1  = ( ij1 - 1 ) / nx + 1
+        i1  = MOD( ( ij1 - 1 ), nx) + 1
+        j2  = ( ij2 - 1 ) / nx + 1
+        i2  = MOD( ( ij2 - 1 ), nx) + 1
+        IF (i1.NE.1 .OR. i2.NE.nx) WRITE(8,*)'error in layer',layer
 !
 ! ...   updates the number of cells with fl=1 into layers
 !
@@ -726,13 +698,13 @@
           proc_map(ipe)%colsw(2) = j1
           DO WHILE (ncfl1(ipe) .LT. bl1)
             DO j = j1, j2
-              ij = i + (j-1)*nr
+              ij = i + (j-1)*nx
               IF (fl(ij) .EQ. 1) ncfl1(ipe) = ncfl1(ipe) + 1
             END DO  
             i = i+1
           END DO
           proc_map(ipe)%colne(1) = i-1
-          IF (nbl .EQ. nbl_lay(layer)) proc_map(ipe)%colne(1) = nr 
+          IF (nbl .EQ. nbl_lay(layer)) proc_map(ipe)%colne(1) = nx 
           proc_map(ipe)%colne(2) = j2
 !
 ! ...     updates the number of cells with fl=1 into blocks
@@ -741,7 +713,7 @@
           ncfl1(ipe) = 0
           DO j = proc_map(ipe)%colsw(2), proc_map(ipe)%colne(2)
           DO i = proc_map(ipe)%colsw(1), proc_map(ipe)%colne(1)
-            ij = i + (j-1)*nr
+            ij = i + (j-1)*nx
             nctot(ipe) = nctot(ipe) + 1
             IF (fl(ij) .EQ. 1) ncfl1(ipe) = ncfl1(ipe) + 1
           END DO
@@ -812,7 +784,7 @@
         IF( job_type == '2D' ) THEN
           DO k = k1, k2
             DO i = i1, i2
-              ijk = i + (k-1) * nr
+              ijk = i + (k-1) * nx
               IF ( fl(ijk) == 1 ) THEN
                 ncext = ncext + cell_neighbours(ijk, mpime, nset)
               END IF
@@ -886,7 +858,7 @@
         IF( job_type == '2D' ) THEN
           DO k = k1, k2
             DO i = i1, i2
-              ijk = i + (k-1) * nr
+              ijk = i + (k-1) * nx
               IF ( fl(ijk) == 1 ) THEN
                 icnt = icnt + cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
               END IF
@@ -1087,8 +1059,8 @@
 
         IF( job_type == '2D' ) THEN
 
-          k = ( ijk - 1 ) / nr + 1
-          i = MOD( ( ijk - 1 ), nr) + 1
+          k = ( ijk - 1 ) / nx + 1
+          i = MOD( ( ijk - 1 ), nx) + 1
 
         ELSE IF( job_type == '3D' ) THEN
 
@@ -1145,7 +1117,7 @@
             i2 = proc_map(mpime)%colne(1)
             i = MOD( ( ijkl - 1 ), (i2-i1+1)) + i1
             k = ( ijkl - 1 ) / (i2-i1+1) + k1
-            cell_l2g = i + (k-1) * nr
+            cell_l2g = i + (k-1) * nx
 
           ELSE IF( job_type == '3D' ) THEN
 
@@ -1198,8 +1170,8 @@
 
           IF( job_type == '2D' ) THEN
 
-            k = ( ijk - 1 ) / nr + 1
-            i = MOD( ( ijk - 1 ), nr) + 1
+            k = ( ijk - 1 ) / nx + 1
+            i = MOD( ( ijk - 1 ), nx) + 1
             k1 = proc_map(mpime)%colsw(2)
             i1 = proc_map(mpime)%colsw(1)
             i2 = proc_map(mpime)%colne(1)
@@ -1275,8 +1247,8 @@
 
         IF( job_type == '2D' ) THEN
 
-          k = ( ijk - 1 ) / nr + 1
-          i = MOD( ( ijk - 1 ), nr) + 1
+          k = ( ijk - 1 ) / nx + 1
+          i = MOD( ( ijk - 1 ), nx) + 1
         
 ! ...     loop over the first neighbouring cells
           DO im = -2, 2
@@ -1286,10 +1258,10 @@
                   ii = im
                   kk = km 
                   IF( ( i == 2    ) .AND. ( ii == -2 ) ) ii = -1
-                  IF( ( i == nr-1 ) .AND. ( ii == +2 ) ) ii = +1
+                  IF( ( i == nx-1 ) .AND. ( ii == +2 ) ) ii = +1
                   IF( ( k == 2    ) .AND. ( kk == -2 ) ) kk = -1
                   IF( ( k == nz-1 ) .AND. ( kk == +2 ) ) kk = +1
-                  ijke = ijk + ii + kk * nr
+                  ijke = ijk + ii + kk * nx
                   ipe =  cell_owner(ijke) 
                   IF( ipe /= mpime) THEN
 ! ...               the cell ijke is not local, count and register its position
@@ -1543,9 +1515,9 @@
 
           IF( job_type == '2D' ) THEN
 
-            k  = ( imesh - 1 ) / nr + 1
-            i  = MOD( ( imesh - 1 ), nr) + 1
-            IF( (i .GE. 2) .AND. (i .LE. (nr-1)) .AND.   &
+            k  = ( imesh - 1 ) / nx + 1
+            i  = MOD( ( imesh - 1 ), nx) + 1
+            IF( (i .GE. 2) .AND. (i .LE. (nx-1)) .AND.   &
                 (k .GE. 2) .AND. (k .LE. (nz-1))      ) THEN
 !
               ijkm  = myijk( ip0_jp0_km1_, ijk)
@@ -1602,7 +1574,7 @@
 ! ... Second neighbours are not available on boundaries
 !
               ijkee = ippjk
-              IF(i == (nr-1)) ijkee = ijke
+              IF(i == (nx-1)) ijkee = ijke
               IF( (fl_l(ippjk) == 2) .OR. (fl_l(ippjk) == 3) ) ijkee = ipjk
 
               ijktt = ijkpp

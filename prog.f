@@ -22,7 +22,7 @@
       USE pressure_epsilon, ONLY: p, ep
       USE reactions, ONLY: rexion, irex
       USE tilde_energy, ONLY: htilde
-      USE tilde_momentum, ONLY: tilde3D, tilde2D, fieldn
+      USE tilde_momentum, ONLY: tilde, fieldn
       USE time_parameters, ONLY: time, tpr, tdump, tstop, dt, itd
       USE time_parameters, ONLY: rungekut
       USE turbulence_model, ONLY: iturb, iss
@@ -159,11 +159,7 @@
 !
 ! ... Momentum fluxes, gas-particle drag, particle-particle interaction
 !
-           IF( job_type == '2D' ) THEN
-             CALL tilde2D
-           ELSE IF( job_type == '3D' ) THEN
-             CALL tilde3D
-           END IF
+           CALL tilde
 
                 IF( timing ) s6 = cpclock()
 !

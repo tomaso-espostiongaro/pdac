@@ -47,9 +47,9 @@
 ! ... and the roughness length
 ! ... (2D/3D-Compliant, except roughness model)
 !
-        USE dimensions, ONLY: nr, nz, no, nx, ny
+        USE dimensions, ONLY: nz, no, nx, ny
         USE grid, ONLY: iob, myijk, meshinds
-        USE grid, ONLY: dz, dr, zb, rb, dx, dy
+        USE grid, ONLY: dz, zb, xb, dx, dy
         USE roughness_module, ONLY: zrough
         USE control_flags, ONLY: job_type
         USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -64,14 +64,14 @@
 ! ... define topographic profile function zbt
         IF( iturb == 2 ) THEN
           IF( job_type == '2D' ) THEN
-            ALLOCATE( kt(nr), it(nr), zbt(nr) )
+            ALLOCATE( kt(nx), it(nx), zbt(nx) )
             it = 0; kt = 0
             zbt = 0.D0
             DO n=1,no
               IF( iob(n)%typ == 3 ) THEN
-                it(iob(n)%rlo : iob(n)%rhi) = 1
-                kt(iob(n)%rlo : iob(n)%rhi)  = iob(n)%zhi
-                zbt(iob(n)%rlo : iob(n)%rhi) = zb( iob(n)%zhi )
+                it(iob(n)%xlo : iob(n)%xhi) = 1
+                kt(iob(n)%xlo : iob(n)%xhi)  = iob(n)%zhi
+                zbt(iob(n)%xlo : iob(n)%xhi) = zb( iob(n)%zhi )
               ENDIF
             END DO
           ELSE IF( job_type == '3D' ) THEN
@@ -82,9 +82,9 @@
         IF( job_type == '2D' ) THEN
 
           DO k = 2, (nz-1)
-            DO i = 2, (nr-1) 
-              ijk = i + (k-1) * nr
-              delt = DSQRT( dz(k)*dr(i) )
+            DO i = 2, (nx-1) 
+              ijk = i + (k-1) * nx
+              delt = DSQRT( dz(k)*dx(i) )
 
               IF ( iturb == 1 ) THEN
                 sl = cmut * delt
@@ -98,7 +98,7 @@
                     IF( zrough%ir == 1 ) THEN
                       zrou = zrough%r(1)
                     ELSE IF( zrough%ir == 2 ) THEN
-                      IF( rb(i) <= zrough%roucha ) THEN
+                      IF( xb(i) <= zrough%roucha ) THEN
                         zrou = zrough%r(1)
                       ELSE
                         zrou = zrough%r(2)
@@ -559,8 +559,8 @@
 !
 ! ... here computes the components of the strain rate tensor and its module.
 
-      USE dimensions, ONLY: nr    
-      USE grid, ONLY:dr, dz, indr, indz,itc,inr 
+      USE dimensions, ONLY: nx    
+      USE grid, ONLY:dx, dz, indx, indz,itc,inx 
       USE set_indexes, ONLY: imjk, ijkm, ijkp, imjkp, imjkm, ipjk, ipjkm 
       IMPLICIT NONE
 
@@ -569,21 +569,21 @@
       REAL*8, INTENT(OUT) :: modsr
 !
       REAL*8 :: w1, w2, w3, u1, u2, u3, um1, um2, wm1, wm2 
-      REAL*8 :: drp, dzm, drm, dzp, indrp, indzm, indrm, indzp
+      REAL*8 :: dxp, dzm, dxm, dzp, indxp, indzm, indxm, indzp
       REAL*8 :: sr1, sr2, sr12
       REAL*8 :: d33
       INTEGER :: i, j, imesh 
 !
         imesh = myijk( ip0_jp0_kp0_, ij)
-        j = ( imesh - 1 ) / nr + 1
-        i = MOD( ( imesh - 1 ), nr) + 1
+        j = ( imesh - 1 ) / nx + 1
+        i = MOD( ( imesh - 1 ), nx) + 1
 
-        drp=dr(i)+dr(i+1)
-        drm=dr(i)+dr(i-1)
+        dxp=dx(i)+dx(i+1)
+        dxm=dx(i)+dx(i-1)
         dzp=dz(j)+dz(j+1)
         dzm=dz(j)+dz(j-1)
-        indrp=1.D0/drp
-        indrm=1.D0/drm
+        indxp=1.D0/dxp
+        indxm=1.D0/dxm
         indzp=1.D0/dzp
         indzm=1.D0/dzm
 !
@@ -591,13 +591,13 @@
 ! ... Cross terms (non-diagonal) in the strain tensor are obtained
 ! ... by interpolating the values found on the staggered grids.
 !
-        sr1 = (u(ij)-u(imjk))*indr(i)
+        sr1 = (u(ij)-u(imjk))*indx(i)
         sr2 = (w(ij)-w(ijkm))*indz(j)
         
 ! ... extra-term for cylindrical coordinates
 !
         IF(itc == 1) THEN
-          d33 = (u(ij)+u(imjk))*inr(i)
+          d33 = (u(ij)+u(imjk))*inx(i)
         ELSE
           d33 = 0.D0
         END IF
@@ -610,10 +610,10 @@
         w1=0.5D0*(w(imjk)+w(imjkm))
         um2=u2+(u3-u2)*dz(j)*indzp
         um1=u1+(u2-u1)*dz(j-1)*indzm
-        wm2=w2+(w3-w2)*dr(i)*indrp
-        wm1=w1+(w2-w1)*dr(i-1)*indrm
+        wm2=w2+(w3-w2)*dx(i)*indxp
+        wm1=w1+(w2-w1)*dx(i-1)*indxm
 
-        sr12 =((um2-um1)*indz(j)+(wm2-wm1)*indr(i))*0.5D0
+        sr12 =((um2-um1)*indz(j)+(wm2-wm1)*indx(i))*0.5D0
 !        
         modsr = DSQRT(2.D0 * (sr1**2.D0 + sr2**2.D0 + 2.D0 * sr12**2.D0 +   &
                               d33**2.D0) )

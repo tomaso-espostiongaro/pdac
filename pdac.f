@@ -21,7 +21,7 @@
       USE gas_solid_velocity, ONLY: allocate_velocity
       USE gas_solid_temperature, ONLY: allocate_temperature
       USE gas_solid_viscosity, ONLY: allocate_viscosity
-      USE grid, ONLY: dx, dy, dz, dr, itc
+      USE grid, ONLY: dx, dy, dz, itc
       USE grid, ONLY: iob, flic, partition, ghost, &
      &    allocate_blbody, allocate_grid
       USE io_restart, ONLY: taperd, tapewr
@@ -95,10 +95,8 @@
 ! ... allocation of arrays ...(dependence on nr, nx,ny,nz)
       CALL allocate_grid
 !
-      IF( job_type == '2D' ) THEN
-        dr(1:nr) = delta_r(1:nr)
-      ELSE IF( job_type == '3D' ) THEN
-        dx(1:nx) = delta_x(1:nx)
+      dx(1:nx) = delta_x(1:nx)
+      IF( job_type == '3D' ) THEN
         dy(1:ny) = delta_y(1:ny)
       END IF
       dz(1:nz) = delta_z(1:nz)
@@ -117,32 +115,25 @@
 
       iob(1:no)%typ = block_type(1:no)
 
-      IF( job_type == '2D' ) THEN
-        iob(1:no)%rlo = block_bounds(1,1:no)
-        iob(1:no)%rhi = block_bounds(2,1:no)
-      ELSE IF ( job_type == '3D' ) THEN
-        iob(1:no)%xlo = block_bounds(1,1:no)
-        iob(1:no)%xhi = block_bounds(2,1:no)
+      iob(1:no)%xlo = block_bounds(1,1:no)
+      iob(1:no)%xhi = block_bounds(2,1:no)
+      IF ( job_type == '3D' ) THEN
         iob(1:no)%ylo = block_bounds(3,1:no)
         iob(1:no)%yhi = block_bounds(4,1:no)
       END IF
       iob(1:no)%zlo = block_bounds(5,1:no)
       iob(1:no)%zhi = block_bounds(6,1:no)
 
-      IF( job_type == '2D' ) THEN
-        ugob(1:no)  = fixed_vgas_r(1:no)
-      ELSE
-        ugob(1:no)  = fixed_vgas_x(1:no)
+      ugob(1:no)  = fixed_vgas_x(1:no)
+      IF( job_type == '3D' ) THEN
         vgob(1:no)  = fixed_vgas_y(1:no)
       END IF
       wgob(1:no)  = fixed_vgas_z(1:no)
       pob(1:no)  = fixed_pressure(1:no)
       epob(1:no)  = fixed_gaseps(1:no)
       tgob(1:no)  = fixed_gastemp(1:no)
-      IF( job_type == '2D' ) THEN
-        upob(1:nsolid,1:no) = fixed_vpart_r(1:nsolid,1:no)
-      ELSE
-        upob(1:nsolid,1:no) = fixed_vpart_x(1:nsolid,1:no)
+      upob(1:nsolid,1:no) = fixed_vpart_x(1:nsolid,1:no)
+      IF( job_type == '3D' ) THEN
         vpob(1:nsolid,1:no) = fixed_vpart_y(1:nsolid,1:no)
       END IF
       wpob(1:nsolid,1:no) = fixed_vpart_z(1:nsolid,1:no)
@@ -150,10 +141,8 @@
       tpob(1:nsolid,1:no) = fixed_parttemp(1:nsolid,1:no)
       ygcob(1:ngas,1:no) = fixed_gasconc(1:ngas,1:no)
 
-      IF( job_type == '2D' ) THEN
-        u0 = initial_vgas_r
-      ELSE
-        u0 = initial_vgas_x
+      u0 = initial_vgas_x
+      IF( job_type == '3D' ) THEN
         v0 = initial_vgas_y
       END IF
       w0 = initial_vgas_z
@@ -163,10 +152,8 @@
       epsmx0 = max_packing
       temp0 = initial_temperature
 
-      IF( job_type == '2D' ) THEN
-        us0 = initial_vpart_r
-      ELSE
-        us0 = initial_vpart_x
+      us0 = initial_vpart_x
+      IF( job_type == '3D' ) THEN
         vs0 = initial_vpart_y
       END IF
       ws0 = initial_vpart_z
