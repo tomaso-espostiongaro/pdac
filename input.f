@@ -87,7 +87,7 @@
 !-----------------------------------------------------------------------
       SUBROUTINE input( iunit )
 
-      USE atmospheric_conditions, ONLY: gravx, gravy, gravz
+      USE atmospheric_conditions, ONLY: gravx, gravy, gravz, stratification
       USE atmospheric_conditions, ONLY: wind_x, wind_y, wind_z, &
           p_ground, t_ground, void_fraction, max_packing
       USE blunt_body, ONLY: ibl, nblu
@@ -168,7 +168,7 @@
         lower_stratosphere_grad, upper_stratosphere_grad, ozone_layer_grad, &
         lower_mesosphere_grad, upper_mesosphere_grad, troposphere_z, &
         tropopause_z, lower_stratosphere_z, upper_stratosphere_z, &
-        ozone_layer_z, lower_mesosphere_z, upper_mesosphere_z
+        ozone_layer_z, lower_mesosphere_z, upper_mesosphere_z, stratification
 
       NAMELIST / particles / nsolid, diameter, density, sphericity, &
         viscosity, specific_heat, thermal_conductivity
@@ -331,6 +331,7 @@
       wind_x = 0.D0            ! wind velocity x
       wind_y = 0.D0            ! wind velocity y
       wind_z = 0.D0            ! wind velocity z
+      stratification = .TRUE.  ! set atmospheric stratification
       p_ground  = 1.01325D5    ! atmospheric pressure at ground level
       t_ground  = 288.15D0     ! atmospheric temperature at ground level
       void_fraction = 1.D0     ! void fraction
@@ -573,6 +574,7 @@
       CALL bcast_real(wind_x,1,root)
       CALL bcast_real(wind_y,1,root)
       CALL bcast_real(wind_z,1,root)
+      CALL bcast_logical(stratification,1,root)
       CALL bcast_real(p_ground,1,root)
       CALL bcast_real(t_ground,1,root)
       CALL bcast_real(void_fraction,1,root)
@@ -964,6 +966,7 @@
             CALL iotk_write_dat( iuni_nml, "wind_x", wind_x )
             CALL iotk_write_dat( iuni_nml, "wind_y", wind_y )
             CALL iotk_write_dat( iuni_nml, "wind_z", wind_z )
+            CALL iotk_write_dat( iuni_nml, "stratification", stratification )
             CALL iotk_write_dat( iuni_nml, "p_ground", p_ground )
             CALL iotk_write_dat( iuni_nml, "t_ground", t_ground )
             CALL iotk_write_dat( iuni_nml, "void_fraction", void_fraction )

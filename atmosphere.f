@@ -23,6 +23,8 @@
       REAL*8 :: gravx, gravy, gravz
       REAL*8, ALLOCATABLE :: p_atm(:), t_atm(:)
 
+      ! ... Flag for temperature stratification
+      !
       LOGICAL :: stratification
 
       TYPE atmospheric_layer
@@ -46,7 +48,6 @@
 
       IMPLICIT NONE
 
-      stratification = .TRUE.
       IF (gravz == 0.0) THEN
          stratification = .FALSE.
       ELSE IF (gravz /= -9.81D0) THEN
@@ -57,7 +58,7 @@
       END IF
       IF( mpime == root ) THEN
         WRITE(logunit,*) 
-        WRITE(logunit,*) 'Atmospheric stratification: ', stratification
+        WRITE(logunit,*) 'Temperature stratification: ', stratification
         WRITE(logunit,*) 'Gravity: ', gravz
       END IF
 !
@@ -156,42 +157,47 @@
           IF( zzero > layer(l-1)%ztop ) EXIT
         END DO
       END IF
-
+!
+! ... Loop vertically over mesh layers
+!
       DO k = 1, nz
-
         za = zb(k) + 0.5D0*(dz(1)-dz(k))
-
-        IF ( ( za < 0.D0 ) .AND. ( mpime == root ) ) THEN
-          WRITE(errorunit,*) 'WARNING! from atmospheric profile:'
-          WRITE(errorunit,*) ' Row ',k, ' lays below the sea level; z = ', za
-        END IF
-        IF (za <= 0.D0 .OR. .NOT.stratification) THEN
+!
+        IF (za > 0.D0) THEN
+          IF (.NOT.stratification) THEN
+            zbot = zzero
+            pbot = p_ground
+            tbot = t_ground
+            gradt = 0.D0
+          ELSE
+            IF (za > layer(l)%ztop) l=l+1
+            IF (l==1) THEN
+              zbot = zzero
+              pbot = p_ground
+              tbot = t_ground
+            ELSE IF (l>1) THEN
+              zbot = layer(l-1)%ztop
+              pbot = layer(l-1)%ptop
+              tbot = layer(l-1)%ttop
+            ELSE IF (l > num_layers) THEN
+              CALL error('atm','altitude out of range',1)
+            END IF
+            gradt = layer(l)%gradt
+          END IF
+          !
+          ! ... Temperature is assumed to vary linearly
+          ! ... Pressure is computed by assuming hydrostatic equilibrium
+          !
+          CALL hydrostatic(zbot, za, gradt, tbot, pbot, ta, pa)
+!
+        ELSE IF (za <= 0.D0) THEN
+          IF ( mpime == root ) THEN
+            WRITE(errorunit,*) 'WARNING! from atmospheric profile:'
+            WRITE(errorunit,*) ' Row ',k, ' lays below the sea level; z = ', za
+          END IF
           ta = t_ground
           pa = p_ground
-          GOTO 100
-        ELSE IF (za > layer(l)%ztop) THEN
-          l = l + 1
         END IF
-
-        IF (l > num_layers) CALL error('atm','altitude out of range',1)
-
-        IF (l>1) THEN
-          zbot = layer(l-1)%ztop
-          pbot = layer(l-1)%ptop
-          tbot = layer(l-1)%ttop
-        ELSE
-          zbot = 0.D0
-          pbot = p_ground
-          tbot = t_ground
-        END IF
-        gradt = layer(l)%gradt
-!
-! ... Temperature is assumed to vary linearly
-! ... Pressure is computed by assuming hydrostatic equilibrium
-!
-        CALL hydrostatic(zbot, za, gradt, tbot, pbot, ta, pa)
-
- 100    CONTINUE
 !
 ! ... Store the cell values of atmospheric pressure and temperature 
 !
@@ -209,6 +215,7 @@
 ! ... using the thermal equation of state to express the 
 ! ... density as a function of P(z) and T(z) and
 ! ... by assuming that T(z) = T0 + gradt * (z-z0)
+! ... If gravity is ZERO, the pressure is constant.
 !
       USE gas_constants, ONLY: gmw,rgas
 

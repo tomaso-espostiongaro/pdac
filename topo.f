@@ -554,7 +554,8 @@
 
         IF( mpime == root ) THEN
           WRITE(logunit,*) 'Translating mesh vertically'
-          WRITE(logunit,*) 'Minimum topographic quota: ', transl_z
+          WRITE(logunit,*) 'Minimum topographic quota: ', MINVAL(topo)
+          WRITE(logunit,*) 'Translation: ', transl_z
         END IF
         z  = z  + transl_z
         zb = zb + transl_z
@@ -569,9 +570,8 @@
             ijk = i + (k-1) * nx
             dist(ijk) = z(k) - topo(i)
           END DO
-          IF (lpr > 1 .AND. mpime == root) &
-            WRITE(testunit,*) i, ord(i)
         END DO
+        kv = ord(iv)
         !
         DEALLOCATE(topo)
         !

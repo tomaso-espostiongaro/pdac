@@ -68,17 +68,26 @@
 !
       IF (itp >= 1) CALL read_implicit_profile
 !
+! ... Set physical parameters and useful constants
+!
       CALL setpar
 
 ! ... Read Input files
 !
       CALL postin( postunit )
-
+!
+! ... Split OUTPUT files, downsize, crop, etc.
+!
       !CALL filter
-
+!
+! ... Write input files for visualization tools
+!
       CALL write_avs_files
       CALL write_xml_files
-
+!
+! ... Compute derived fields from the primary OUTPUT fields;
+! ... map hazard variables at a given height above ground
+!
       CALL process
 !
       CLOSE(inputunit)

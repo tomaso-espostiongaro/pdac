@@ -1,7 +1,5 @@
 include Machine
 
-all: comm.a pdac.x postp.x
-
 FOBJS= arrfil.o atmosphere.o blunt.o bdry.o control.o decomp.o dens.o \
 dimensions.o dome.o drag.o environment.o eosg.o eosl.o ftem.o \
 flux_u.o flux_v.o flux_w.o flux_sc.o flux_m.o gas.o grid.o \
@@ -12,6 +10,8 @@ residuals.o roughness.o sampling.o setup.o subscr.o temp.o tilde.o time.o topo.o
 turbo.o types.o velocity.o vent.o visc.o ygas.o iotk_module.o io_files.o
 
 PPFOBJS = derived.o filter.o process.o postin.o postout.o postp.o
+
+all: comm.a pdac.x postp.x
 
 pdac.x: $(FOBJS) pdac.o comm/comm.a
 	$(LINKER) -o pdac.x $(MPFFLAGS) $(LINKFLAGS) $(FOBJS) pdac.o comm/comm.a $(LIBS)

@@ -27,7 +27,10 @@
       CONTAINS
 !----------------------------------------------------------------------
       SUBROUTINE allocate_main_fields
-
+!
+! ... These are the "more interesting" fields that can be derived
+! ... from the primary OUTPUT fields produced by PDAC.
+!
       IMPLICIT NONE
 
       ALLOCATE(p(ntot), ug(ntot), vg(ntot), wg(ntot), tg(ntot))
@@ -43,7 +46,9 @@
       END SUBROUTINE allocate_main_fields
 !----------------------------------------------------------------------
       SUBROUTINE read_output( tn )
-
+!
+! ... Read THe PDAC Output files
+!
       USE io_files, ONLY: outpunit
 !
       IMPLICIT NONE
@@ -66,10 +71,10 @@
       iunit = 50
 
       IF (lform) THEN
-        OPEN( UNIT=outpunit, FILE=filnam, STATUS='OLD')
+        OPEN( UNIT=outpunit, FILE=filnam, STATUS='UNKNOWN')
         READ(outpunit,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
       ELSE 
-        OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam, STATUS='OLD')
+        OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam, STATUS='UNKNOWN')
         READ (outpunit) stime
       END IF
 
@@ -138,6 +143,9 @@
       END SUBROUTINE read_output
 !-----------------------------------------------------------------------
       SUBROUTINE process
+! 
+! ... Compute the derived fields
+!
       USE derived_fields
       USE io_files, ONLY: tempunit
       USE grid, ONLY: z
@@ -171,16 +179,19 @@
 !
       DO tn = first_out, last_out, incr_out
 
-        filnam = 'log10epst.'//lettera(tn)
-        OPEN(tempunit,FILE=filnam, STATUS='NEW', FORM='UNFORMATTED')
         WRITE(logunit,fmt="(/,'* Starting post-processing ',I5,' * ')" ) tn
+
+        ! ... Read PDAC output file
+        !
         CALL read_output ( tn )
 
+        ! ... Derived fields are computed as a function of
+        ! ... primary fields and other derived fields
+        !
         rm = rhom(eps,p,tg,xgc)
         rg = rhog(p,tg,xgc)
         bd = rgp(eps,p,tg,xgc)
         m  = mg(xgc)
-
         um = velm(ug,us,eps,p,tg,xgc)
         IF (job_type == '3D') vm = velm(vg,vs,eps,p,tg,xgc)
         wm = velm(wg,ws,eps,p,tg,xgc)
@@ -191,16 +202,20 @@
         epstot = epst(eps)
         lepstot = leps(epstot)
 
-        CALL write_array( tempunit, pd, lform )
+        ! ... Write out fields of interest
+        !
+        filnam = 'log10epst.'//lettera(tn)
+        OPEN(tempunit,FILE=filnam, STATUS='NEW', FORM='UNFORMATTED')
+        CALL write_array( tempunit, lepstot, lform )
         CLOSE(tempunit)
-
+        !
         filnam = 'tg.'//lettera(tn)
         OPEN(tempunit,FILE=filnam, STATUS='NEW', FORM='UNFORMATTED')
-        WRITE(logunit,fmt="(/,'* Starting post-processing ',I5,' * ')" ) tn
-
         CALL write_array( tempunit, tg, lform )
         CLOSE(tempunit)
 
+        ! ... Print the map of any interesting variable above ground
+        !
         IF (imap > 0) CALL write_map(tn,rm)
 
       END DO
@@ -254,6 +269,8 @@
                 alpha = deltaz - z(k-1)
                 alpha = alpha / (z(k) - z(k-1)) 
                 map = alpha * array(ijk) + (1.D0-alpha) * array(ijk)
+                ! ... Map the maximum value reached at any given position in
+                ! ... time
                 array_map(i,j) = MAX(map, array_map(i,j))
                 !array_map(i,j) = map
                 EXIT search
@@ -262,7 +279,9 @@
           !
         END DO
       END DO
-
+!
+! ... Print out the map and the new 2D DEM file
+!
       OPEN(UNIT=tempunit,FILE=filnam)
       DO j = 1, ny
           WRITE(tempunit,122) (array_map(i,j), i=1, nx)
