@@ -39,7 +39,7 @@
       USE gas_solid_velocity, ONLY: ug, wg, us, ws
       USE grid, ONLY: dz, dr, fl_l
       USE grid, ONLY: inr, inrb, indr, indz
-      USE grid, ONLY: nij_l, myijk, nijx_l, data_exchange
+      USE grid, ONLY: nij_l, myijk, ncdom, data_exchange
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes
 !
@@ -111,7 +111,7 @@
       USE gas_solid_viscosity, ONLY: viscg, viscs
       USE gas_solid_viscosity, ONLY: mug
       USE gas_solid_viscosity, ONLY: gvisx, gvisz, pvisx, pvisz
-      USE grid, ONLY: nij_l, myijk, nijx_l, data_exchange
+      USE grid, ONLY: nij_l, myijk, ncdom, data_exchange
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE parallel, ONLY: mpime
       USE set_indexes
@@ -154,11 +154,11 @@
 !
 ! ... Allocate and initialize local arrays (gas).
 !
-      ALLOCATE( rug(nijx_l),  rwg(nijx_l))
-      ALLOCATE(ugfr(nijx_l), ugft(nijx_l))
-      ALLOCATE(ugfl(nijx_l), ugfb(nijx_l))
-      ALLOCATE(wgfr(nijx_l), wgft(nijx_l))
-      ALLOCATE(wgfl(nijx_l), wgfb(nijx_l))
+      ALLOCATE( rug(ncdom),  rwg(ncdom))
+      ALLOCATE(ugfr(ncdom), ugft(ncdom))
+      ALLOCATE(ugfl(ncdom), ugfb(ncdom))
+      ALLOCATE(wgfr(ncdom), wgft(ncdom))
+      ALLOCATE(wgfl(ncdom), wgfb(ncdom))
 
       rug = 0.0D0
       rwg = 0.0D0
@@ -173,11 +173,11 @@
 !
 ! ... Allocate and initialize local arrays (particles).
 !
-      ALLOCATE(rus(nsolid, nijx_l), rws(nsolid, nijx_l) )
-      ALLOCATE(ulfr(nsolid, nijx_l), ulft(nsolid, nijx_l))
-      ALLOCATE(ulfl(nsolid, nijx_l), ulfb(nsolid, nijx_l))
-      ALLOCATE(wlfr(nsolid, nijx_l), wlft(nsolid, nijx_l))
-      ALLOCATE(wlfl(nsolid, nijx_l), wlfb(nsolid, nijx_l))
+      ALLOCATE(rus(nsolid, ncdom), rws(nsolid, ncdom) )
+      ALLOCATE(ulfr(nsolid, ncdom), ulft(nsolid, ncdom))
+      ALLOCATE(ulfl(nsolid, ncdom), ulfb(nsolid, ncdom))
+      ALLOCATE(wlfr(nsolid, ncdom), wlft(nsolid, ncdom))
+      ALLOCATE(wlfl(nsolid, ncdom), wlfb(nsolid, ncdom))
 
       rus  = 0.0D0
       rws  = 0.0D0
@@ -193,8 +193,8 @@
 ! ... Allocate and initialize interphase terms.
 !
       ALLOCATE(kpgv(nsolid,nij_l))
-      ALLOCATE(appu(((nsolid+1)**2+(nsolid+1))/2, nijx_l),   &
-               appw(((nsolid+1)**2+(nsolid+1))/2, nijx_l))
+      ALLOCATE(appu(((nsolid+1)**2+(nsolid+1))/2, ncdom),   &
+               appw(((nsolid+1)**2+(nsolid+1))/2, ncdom))
 
       kpgv = 0.0D0
       appu = 0.0D0

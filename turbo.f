@@ -3,7 +3,7 @@
 !----------------------------------------------------------------------
 !
       USE gas_solid_velocity, ONLY: ug,wg 
-      USE grid, ONLY: fl_l, myijk,  nij_l, nijx_l, data_exchange
+      USE grid, ONLY: fl_l, myijk,  nij_l, ncdom, data_exchange
       USE environment, ONLY: timing, cpclock
       USE indijk_module, ONLY: ip0_jp0_kp0_
 
@@ -45,9 +45,9 @@
 !
       ALLOCATE(smag(nij_l))
       ALLOCATE(scoeff(nij_l))
-      ALLOCATE(mugt(nijx_l))
-      ALLOCATE(must(nsolid, nijx_l))
-      ALLOCATE(kapgt(nijx_l))
+      ALLOCATE(mugt(ncdom))
+      ALLOCATE(must(nsolid, ncdom))
+      ALLOCATE(kapgt(ncdom))
       smag = 0.0D0
       kapgt = 0.0D0
       mugt  = 0.0D0
@@ -154,13 +154,13 @@
       REAL*8 :: delt
       INTEGER  :: i, j, ij, imesh  
 !
-      ALLOCATE(modsr(nijx_l));     modsr = 0.0D0
-      ALLOCATE(sr1(nijx_l))  ;     sr1 = 0.0D0
-      ALLOCATE(sr2(nijx_l))  ;     sr2 = 0.0D0
-      ALLOCATE(sr12(nijx_l)) ;     sr12 = 0.0D0
-      ALLOCATE(p1(nijx_l))   ;     p1 = 0.0D0
-      ALLOCATE(p2(nijx_l))   ;     p2 = 0.0D0
-      ALLOCATE(p12(nijx_l))  ;     p12 = 0.0D0
+      ALLOCATE(modsr(ncdom));     modsr = 0.0D0
+      ALLOCATE(sr1(ncdom))  ;     sr1 = 0.0D0
+      ALLOCATE(sr2(ncdom))  ;     sr2 = 0.0D0
+      ALLOCATE(sr12(ncdom)) ;     sr12 = 0.0D0
+      ALLOCATE(p1(ncdom))   ;     p1 = 0.0D0
+      ALLOCATE(p2(ncdom))   ;     p2 = 0.0D0
+      ALLOCATE(p12(ncdom))  ;     p12 = 0.0D0
 !
       CALL data_exchange(ug)
       CALL data_exchange(wg)
@@ -173,11 +173,11 @@
       END DO
 !
       IF (modturbo .EQ. 2) THEN
-        ALLOCATE(fug(nijx_l))  ;     fug = 0.0D0
-        ALLOCATE(fwg(nijx_l))  ;     fwg = 0.0D0
-        ALLOCATE(fu2g(nijx_l)) ;     fu2g = 0.0D0
-        ALLOCATE(fw2g(nijx_l)) ;     fw2g = 0.0D0
-        ALLOCATE(fuwg(nijx_l)) ;     fuwg = 0.0D0
+        ALLOCATE(fug(ncdom))  ;     fug = 0.0D0
+        ALLOCATE(fwg(ncdom))  ;     fwg = 0.0D0
+        ALLOCATE(fu2g(ncdom)) ;     fu2g = 0.0D0
+        ALLOCATE(fw2g(ncdom)) ;     fw2g = 0.0D0
+        ALLOCATE(fuwg(ncdom)) ;     fuwg = 0.0D0
 !
 ! ... compute filtered velocities
 !
@@ -357,9 +357,9 @@
       REAL*8, INTENT(OUT), DIMENSION(:) :: fug, fwg, fu2g, fw2g, fuwg
       INTEGER :: i, j, ij
     
-      ALLOCATE(uwg(nijx_l)) 
-      ALLOCATE(u2g(nijx_l)) 
-      ALLOCATE(w2g(nijx_l)) 
+      ALLOCATE(uwg(ncdom)) 
+      ALLOCATE(u2g(ncdom)) 
+      ALLOCATE(w2g(ncdom)) 
       uwg = 0.0D0
       u2g = 0.0D0
       w2g = 0.0D0

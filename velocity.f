@@ -45,18 +45,18 @@
       SUBROUTINE local_bounds_velocity
       USE dimensions
       USE control_flags, ONLY: job_type
-      USE grid, ONLY: nijx_l
+      USE grid, ONLY: ncdom
       IMPLICIT NONE
 !
-      ALLOCATE(ug(nijx_l), wg(nijx_l))
-      ALLOCATE(us(nsolid, nijx_l), ws(nsolid, nijx_l))
+      ALLOCATE(ug(ncdom), wg(ncdom))
+      ALLOCATE(us(nsolid, ncdom), ws(nsolid, ncdom))
       ug = 0.0d0
       wg = 0.0d0
       us = 0.0d0
       ws = 0.0d0
       IF( job_type == '3D' ) THEN
-        ALLOCATE( vg(nijx_l) )
-        ALLOCATE( vs(nsolid, nijx_l) )
+        ALLOCATE( vg(ncdom) )
+        ALLOCATE( vs(nsolid, ncdom) )
         vg = 0.0d0
         vs = 0.0d0
       END IF

@@ -1,4 +1,5 @@
 MODULE indijk_module
+
   INTEGER, PARAMETER :: ip0_jp0_kp0_ =   1
   INTEGER, PARAMETER :: ip1_jp0_kp0_ =   2
   INTEGER, PARAMETER :: im1_jp0_kp0_ =   3
@@ -25,9 +26,26 @@ MODULE indijk_module
   INTEGER, PARAMETER :: ip0_jp0_kp2_ =  24
   INTEGER, PARAMETER :: ip0_jp0_km2_ =  25
 
-  INTEGER, PARAMETER :: nijk_        =  25
+! Stencil Dimension
+!
+  INTEGER, PARAMETER :: nstdim = 25
 
   INTEGER :: indijk(-2:2,-2:2,-2:2)
+
+
+  INTEGER, PARAMETER :: bb_ = 1
+  INTEGER, PARAMETER :: bl_ = 2
+  INTEGER, PARAMETER :: b_  = 3
+  INTEGER, PARAMETER :: br_ = 4
+  INTEGER, PARAMETER :: ll_ = 5
+  INTEGER, PARAMETER :: l_  = 6
+  INTEGER, PARAMETER :: r_  = 7
+  INTEGER, PARAMETER :: rr_ = 8
+  INTEGER, PARAMETER :: tl_ = 9
+  INTEGER, PARAMETER :: t_  = 10
+  INTEGER, PARAMETER :: tr_ = 11
+  INTEGER, PARAMETER :: tt_ = 12
+
 
 CONTAINS
 

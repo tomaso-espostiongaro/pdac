@@ -28,7 +28,7 @@
       USE eulerian_flux, ONLY: masfg, masfs
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
       USE grid, ONLY: fl_l
-      USE grid, ONLY: myijk, nij_l, nijx_l, data_exchange
+      USE grid, ONLY: myijk, nij_l, ncdom, data_exchange
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE tilde_momentum, ONLY: appu, appw
       USE particles_constants, ONLY: rl, inrl
@@ -71,8 +71,8 @@
 !
 ! ... Allocate and initialize local mass fluxes.
 !
-      ALLOCATE( rgfr( nijx_l ), rgft( nijx_l ))
-      ALLOCATE( rlfr( nsolid, nijx_l ), rlft( nsolid, nijx_l ))
+      ALLOCATE( rgfr( ncdom ), rgft( ncdom ))
+      ALLOCATE( rlfr( nsolid, ncdom ), rlft( nsolid, ncdom ))
       rgfr = 0.0D0
       rgft = 0.0D0
       rlfr = 0.0D0

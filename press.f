@@ -26,10 +26,10 @@
 !----------------------------------------------------------------------
       SUBROUTINE local_bounds_press_eps
       USE dimensions
-      USE grid, ONLY: nijx_l
+      USE grid, ONLY: ncdom
       IMPLICIT NONE
 !
-      ALLOCATE( ep( nijx_l ), p( nijx_l ), pn( nijx_l ))
+      ALLOCATE( ep( ncdom ), p( ncdom ), pn( ncdom ))
       ep = 0.0d0
       p  = 0.0d0
       pn = 0.0d0

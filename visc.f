@@ -33,12 +33,12 @@
 !----------------------------------------------------------------------
       SUBROUTINE local_bounds_viscosity
       USE dimensions
-      USE grid, ONLY : nijx_l
+      USE grid, ONLY : ncdom
       IMPLICIT NONE
 !
-      ALLOCATE(mus(nsolid, nijx_l))
-      ALLOCATE(mug(nijx_l))
-      ALLOCATE(kapg(nijx_l))
+      ALLOCATE(mus(nsolid, ncdom))
+      ALLOCATE(mug(ncdom))
+      ALLOCATE(kapg(ncdom))
 
       mus = 0.d0
       mug = 0.0d0
@@ -173,7 +173,7 @@
 ! ... in particle momentum transport equations
 !
       USE dimensions
-      USE grid, ONLY: fl_l, nij_l, nijx_l, data_exchange
+      USE grid, ONLY: fl_l, nij_l, ncdom, data_exchange
       USE grid, ONLY: dz, dr
       USE gas_solid_density, ONLY: rlk
       USE gas_solid_velocity, ONLY:  us, ws
@@ -192,7 +192,7 @@
       INTEGER :: imesh, i, j, ij
       LOGICAL :: repulsive_model
 !
-      ALLOCATE(eps(nijx_l))
+      ALLOCATE(eps(ncdom))
       eps(:) = rlk(is,:)*inrl(is)
 !
       CALL data_exchange(mus)

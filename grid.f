@@ -8,21 +8,6 @@
         SAVE
 !
 !
-!*******MX3D : vedi figura
-!
-        INTEGER, PARAMETER :: bb_ = 1
-        INTEGER, PARAMETER :: bl_ = 2
-        INTEGER, PARAMETER :: b_  = 3
-        INTEGER, PARAMETER :: br_ = 4
-        INTEGER, PARAMETER :: ll_ = 5
-        INTEGER, PARAMETER :: l_  = 6
-        INTEGER, PARAMETER :: r_  = 7
-        INTEGER, PARAMETER :: rr_ = 8
-        INTEGER, PARAMETER :: tl_ = 9
-        INTEGER, PARAMETER :: t_  = 10
-        INTEGER, PARAMETER :: tr_ = 11
-        INTEGER, PARAMETER :: tt_ = 12
-
 !
         TYPE rcv_map_type
           INTEGER :: nrcv              ! How Many Cells I Have to Receive
@@ -54,13 +39,10 @@
         TYPE (snd_map_type), ALLOCATABLE :: snd_map(:)
         TYPE (cells_map_type), ALLOCATABLE :: proc_map(:)
 !
-!*******MX3D da rivedere nomi
-        INTEGER, ALLOCATABLE :: nij1(:), n1(:), diff(:)
-        INTEGER, ALLOCATABLE :: nij(:)
-!
-!  nij -> ncell
-!  nij1 -> ncell1
-!  n1   -> nbalanced??
+        INTEGER, ALLOCATABLE :: ncell(:)  ! number of cell (balanced)
+        INTEGER, ALLOCATABLE :: nctot(:)  ! number of cell (unbalanced)
+        INTEGER, ALLOCATABLE :: ncdif(:)  ! 
+        INTEGER, ALLOCATABLE :: ncfl1(:)  ! number of cell with fl=1
 !
         REAL*8, DIMENSION(:), ALLOCATABLE :: r, rb, dr
         REAL*8, DIMENSION(:), ALLOCATABLE :: dx, dy, dz
@@ -70,19 +52,15 @@
 !
         INTEGER :: itc, mesh_partition
 
-!*******MX3D solo cambiare nome
-        INTEGER :: nij_l, nije_l, nijx_l
+!       nij_l (ncint) number of local cells, 
+!       ncext         number of external (ghost) cells, 
+!       ncdom         sum of the previous two
 !
-! nij_l  -> nijk  -> ncint
-! nije_l -> nijke -> ncext
-! nijx_l -> nijkx -> ncdom
-
+        INTEGER :: nij_l, ncext, ncdom  
+!
         INTEGER, ALLOCATABLE :: myijk(:,:)
-!
-!*******MX3D  OK! cambiare dimensione
         INTEGER, ALLOCATABLE :: myinds(:,:)
 !
-! myinds -> myinds
 !
 
         TYPE blbody
@@ -280,25 +258,29 @@
       INTEGER, ALLOCATABLE :: red(:), green(:), blue(:)
       INTEGER :: localdim
 !
+!
       ALLOCATE(red(nr*nz),green(nr*nz),blue(nr*nz))
-      IF (ALLOCATED(nij)) DEALLOCATE(nij)
-      IF (ALLOCATED(nij1)) DEALLOCATE(nij1)
-      IF (ALLOCATED(n1)) DEALLOCATE(n1)
-      IF (ALLOCATED(diff)) DEALLOCATE(diff)
-      ALLOCATE(nij(0:nproc-1))
-      ALLOCATE(nij1(0:nproc-1))
-      ALLOCATE(n1(0:nproc-1))
-      ALLOCATE(diff(0:nproc-1))
-      nij = 0
-      nij1 = 0
-      n1 = 0
-      diff = 0
+
+      IF (ALLOCATED(nctot)) DEALLOCATE(nctot)
+      IF (ALLOCATED(ncell)) DEALLOCATE(ncell)
+      IF (ALLOCATED(ncfl1)) DEALLOCATE(ncfl1)
+      IF (ALLOCATED(ncdif)) DEALLOCATE(ncdif)
+
+      ALLOCATE(nctot(0:nproc-1))
+      ALLOCATE(ncfl1(0:nproc-1))
+      ALLOCATE(ncell(0:nproc-1))
+      ALLOCATE(ncdif(0:nproc-1))
+
+      nctot = 0
+      ncfl1 = 0
+      ncell = 0
+      ncdif = 0
+
+!
 ! ... here count the flags
 !
-!*****MX3D ok
-!
       DO i = 1, SIZE(countfl)
-        countfl(i) = COUNT((fl.EQ.i))
+        countfl(i) = COUNT( (fl == i) )
       END DO
       WRITE(7,'(a13,5i7)') ' # countfl ', countfl
 !
@@ -314,28 +296,28 @@
       proc_map(0:nproc-1)%type = mesh_partition
 
       IF ( proc_map(0)%type == 1 ) THEN
-        CALL layers
+        CALL layers( ncfl1, nctot )
       ELSE IF ( proc_map(0)%type == 2 ) THEN
-        CALL blocks
+        CALL blocks( ncfl1, nctot )
       ELSE
         CALL error(' partition ',' partition type not yet implemented ',proc_map(0)%type)
       END IF
 !
-! ... n1 is the balanced number of cells to each processor:
+! ... ncell is the balanced number of cells to each processor:
 ! 
 !
 !*****MX3D ok
 !
       DO ipe = 0, nproc - 1
-        n1(ipe) = localdim(countfl(1), nproc, ipe)
-        diff(ipe) = nij1(ipe) - n1(ipe)
+        ncell(ipe) = localdim(countfl(1), nproc, ipe)
+        ncdif(ipe) = ncfl1(ipe) - ncell(ipe)
       END DO
 !
         WRITE(7,*) '---  partition  -----'
         WRITE(7,*) '  '
       DO ipe = 0, nproc - 1
-        WRITE(7,*) ' # nij( ',ipe, ' )', nij(ipe)
-        WRITE(7,*) ' # nij1( ',ipe, ' )', nij1(ipe),' -', n1(ipe),' =', diff(ipe)
+        WRITE(7,*) ' # nctot( ',ipe, ' )', nctot(ipe)
+        WRITE(7,*) ' # ncfl1( ',ipe, ' )', ncfl1(ipe),' -', ncell(ipe),' =', ncdif(ipe)
       END DO
         WRITE(7,*) '  '
 !
@@ -368,16 +350,22 @@
       DEALLOCATE(red,green,blue)
       RETURN
       END SUBROUTINE 
+!
 ! ------------------------------------------------------------------------
-      SUBROUTINE layers
+!
+      SUBROUTINE layers( ncfl1, nctot )
 ! 
 ! ... partition N.1 (layers)
 ! ... decomposes the domain into N horizontal layers
 !
       USE dimensions
       USE parallel, ONLY: nproc
+!
       IMPLICIT NONE
       SAVE
+!
+      INTEGER :: ncfl1(:)
+      INTEGER :: nctot(:)
 !
       INTEGER :: i, j, ij
       INTEGER :: icnt, icnt_ipe, ipe
@@ -386,11 +374,11 @@
 !
       ALLOCATE(lay_map(0:nproc-1,2))
 !
-      nij1 = 0
-      nij  = 0
+      ncfl1 = 0
+      nctot = 0
 !
       DO ipe = 0, nproc - 1
-       nij1(ipe) = localdim(countfl(1), nproc, ipe)
+       ncfl1(ipe) = localdim(countfl(1), nproc, ipe)
       END DO
 !
       lay_map(0,1) = 1
@@ -402,16 +390,16 @@
        DO i = 1, nr
           ij = i + (j-1)*nr
 
-          IF ( fl(ij) .EQ. 1 ) THEN
+          IF ( fl(ij) == 1 ) THEN
             icnt_ipe = icnt_ipe + 1
             icnt     = icnt     + 1
           END IF
 
-          nij(ipe) = nij(ipe) + 1
+          nctot(ipe) = nctot(ipe) + 1
 
-          IF ( icnt_ipe .EQ. nij1(ipe) .AND. i .NE. (nr-1) ) THEN
+          IF ( ( icnt_ipe == ncfl1(ipe) ) .AND. ( i /= (nr-1) ) ) THEN
             icnt_ipe = 0
-            IF( icnt .LT. countfl(1) ) THEN
+            IF( icnt < countfl(1) ) THEN
               lay_map(ipe,2) = ij
               ipe = ipe + 1
               lay_map(ipe,1) = ij+1
@@ -433,14 +421,18 @@
 ! ------------------------------------------------------------------------
 
 !*****MX3D da rivedere
-      SUBROUTINE blocks
+      SUBROUTINE blocks( ncfl1, nctot )
 !
 ! ... partition N.2 (blocks)
 !
       USE dimensions
       USE parallel, ONLY: nproc
+!
       IMPLICIT NONE
       SAVE
+!
+      INTEGER :: ncfl1(:)
+      INTEGER :: nctot(:)
 !
       INTEGER :: i, j, ij
       INTEGER :: i1, i2, j1, j2, ij1, ij2
@@ -452,7 +444,7 @@
       INTEGER :: localdim
 !
       INTEGER, ALLOCATABLE :: lay_map(:,:)
-      INTEGER, ALLOCATABLE :: nij_lay(:), nbl_lay(:), nij1_lay(:)
+      INTEGER, ALLOCATABLE :: nctot_lay(:), nbl_lay(:), ncfl1_lay(:)
 
 !
       REAL*8 side, area
@@ -482,22 +474,22 @@
           proc_map(i)%colne(:) = 0
         END DO
 !
-        IF (ALLOCATED(nij_lay)) DEALLOCATE(nij_lay)
-        IF (ALLOCATED(nij1_lay)) DEALLOCATE(nij1_lay)
+        IF (ALLOCATED(nctot_lay)) DEALLOCATE(nctot_lay)
+        IF (ALLOCATED(ncfl1_lay)) DEALLOCATE(ncfl1_lay)
         IF (ALLOCATED(nbl_lay)) DEALLOCATE(nbl_lay)
-        ALLOCATE(nij_lay(1:nby), nij1_lay(1:nby), nbl_lay(1:nby))
+        ALLOCATE(nctot_lay(1:nby), ncfl1_lay(1:nby), nbl_lay(1:nby))
 !
-        nij_lay = 0
-        nij1_lay = 0
+        nctot_lay = 0
+        ncfl1_lay = 0
         nbl_lay = 0
 !
 ! ... distribute cells among layers proportionally
 ! ... to the number of blocks (processors) contained
-! ... (compute nij1_lay(layer))
+! ... (compute ncfl1_lay(layer))
 !
         IF (rest .EQ. 0) THEN
           DO layer = 1, nby
-           nij1_lay(layer) = localdim(countfl(1),nby,layer)
+           ncfl1_lay(layer) = localdim(countfl(1),nby,layer)
            nbl_lay(layer) = nbx
           END DO
         ELSE
@@ -519,7 +511,7 @@
           END IF
           DO layer = 1, nby
             fact = DBLE(countfl(1)/nproc*nbl_lay(layer))
-            nij1_lay(layer) = NINT(fact)
+            ncfl1_lay(layer) = NINT(fact)
           END DO
         END IF
 !
@@ -538,9 +530,9 @@
             icnt     = icnt     + 1
           END IF
 
-          nij_lay(layer) = nij_lay(layer) + 1
+          nctot_lay(layer) = nctot_lay(layer) + 1
 
-         IF ( icnt_layer .EQ. nij1_lay(layer) ) THEN
+         IF ( icnt_layer .EQ. ncfl1_lay(layer) ) THEN
             icnt_layer = 0
             IF(layer .LT. nby) THEN
               lay_map(layer,2) = ij
@@ -579,25 +571,25 @@
 !
 ! ...   updates the number of cells with fl=1 into layers
 !
-        nij_lay(layer)  = 0
-        nij1_lay(layer) = 0
+        nctot_lay(layer)  = 0
+        ncfl1_lay(layer) = 0
         DO ij = ij1, ij2
-          nij_lay(layer) = nij_lay(layer) + 1
-          IF (fl(ij) .EQ. 1) nij1_lay(layer) = nij1_lay(layer) + 1 
+          nctot_lay(layer) = nctot_lay(layer) + 1
+          IF (fl(ij) .EQ. 1) ncfl1_lay(layer) = ncfl1_lay(layer) + 1 
         END DO
 !
 ! ...   build block maps        
 !
-        bl1 = INT(nij1_lay(layer)/nbl_lay(layer))
+        bl1 = INT(ncfl1_lay(layer)/nbl_lay(layer))
         i = i1
         DO nbl = 1, nbl_lay(layer) 
           ipe = ipe + 1
           proc_map(ipe)%colsw(1) = i
           proc_map(ipe)%colsw(2) = j1
-          DO WHILE (nij1(ipe) .LT. bl1)
+          DO WHILE (ncfl1(ipe) .LT. bl1)
             DO j = j1, j2
               ij = i + (j-1)*nr
-              IF (fl(ij) .EQ. 1) nij1(ipe) = nij1(ipe) + 1
+              IF (fl(ij) .EQ. 1) ncfl1(ipe) = ncfl1(ipe) + 1
             END DO  
             i = i+1
           END DO
@@ -607,13 +599,13 @@
 !
 ! ...     updates the number of cells with fl=1 into blocks
 !
-          nij(ipe)  = 0
-          nij1(ipe) = 0
+          nctot(ipe)  = 0
+          ncfl1(ipe) = 0
           DO j = proc_map(ipe)%colsw(2), proc_map(ipe)%colne(2)
           DO i = proc_map(ipe)%colsw(1), proc_map(ipe)%colne(1)
             ij = i + (j-1)*nr
-            nij(ipe) = nij(ipe) + 1
-            IF (fl(ij) .EQ. 1) nij1(ipe) = nij1(ipe) + 1
+            nctot(ipe) = nctot(ipe) + 1
+            IF (fl(ij) .EQ. 1) ncfl1(ipe) = ncfl1(ipe) + 1
           END DO
           END DO
           WRITE(7,*)'proc_map(',ipe,'):',proc_map(ipe)%colsw(:),proc_map(ipe)%colne(:)
@@ -666,11 +658,11 @@
 !*****MX3D: il loop sulle celle interne va fatto con le nuove maps
 !
       nset   = 0
-      nije_l = 0
+      ncext = 0
       IF ( proc_map(mpime)%type == 1 ) THEN
         DO ij = proc_map(mpime)%lay(1), proc_map(mpime)%lay(2)
           IF ( fl(ij) .EQ. 1 ) THEN
-            nije_l = nije_l + cell_neighbours(ij, mpime, nset)
+            ncext = ncext + cell_neighbours(ij, mpime, nset)
           END IF
         END DO
       ELSE IF ( proc_map(mpime)%type == 2 ) THEN
@@ -682,7 +674,7 @@
          DO i = i1, i2
           ij = i + nr*(j-1)
           IF (fl(ij).EQ.1) THEN
-            nije_l = nije_l + cell_neighbours(ij, mpime, nset)
+            ncext = ncext + cell_neighbours(ij, mpime, nset)
           END IF
          END DO
         END DO
@@ -703,15 +695,15 @@
       END DO
 
 ! ... number of local cells
-      nij_l = nij(mpime)
+      nij_l = nctot(mpime)
 !
-! ... allocate the indexes matrix
+! ... allocate stencil array indexes
 !
-      ALLOCATE(myijk( nijk_ , nij_l))
+      ALLOCATE( myijk( nstdim , nij_l ) )
+      ALLOCATE( myinds( nstdim, nij_l ) )
 !
-!*****MX3D : cambia myinds(25,:)
+! ... set up indexes
 !
-      ALLOCATE(myinds(12,nij_l))
       myijk   = 0
       myinds  = 0
       CALL indijk_setup()
@@ -772,10 +764,10 @@
 
 ! ... number cells required to update the physical quantities:
 ! ... sum of the local and their neighbouring cells
-      nije_l = SUM( nrcv ) 
-      nijx_l = nij_l + nije_l
-      WRITE(7,* ) ' # nije_l ', nije_l
-      WRITE(7,* ) ' # nijx_l ', nijx_l
+      ncext = SUM( nrcv ) 
+      ncdom = nij_l + ncext
+      WRITE(7,* ) ' # ncext ', ncext
+      WRITE(7,* ) ' # ncdom ', ncdom
 
 !
 !*****MX3D : ok
@@ -896,7 +888,7 @@
 !
 !*****MX3D : ok
 !
-      ALLOCATE(fl_l(nijx_l))
+      ALLOCATE(fl_l(ncdom))
       DO ijl = 1, nij_l
         ij = myijk( ip0_jp0_kp0_, ijl)
         fl_l(ijl) = fl(ij)
@@ -1470,7 +1462,7 @@
         INTEGER, ALLOCATABLE :: itest(:)
         INTEGER :: ijl
         
-        ALLOCATE( itest(nijx_l) )
+        ALLOCATE( itest(ncdom) )
 
         itest = 0
         DO ijl = 1, nij_l
@@ -1480,7 +1472,7 @@
         CALL data_exchange(itest)
          
         WRITE(7,*)   ' index received ' 
-        WRITE(7,310) itest( nij_l + 1 : nijx_l ) 
+        WRITE(7,310) itest( nij_l + 1 : ncdom ) 
  310    FORMAT(10i8)
         
         DEALLOCATE( itest )

@@ -34,12 +34,12 @@
 !----------------------------------------------------------------------
       SUBROUTINE local_bounds_eosg
       USE dimensions
-      USE grid, ONLY: nijx_l, nij_l
+      USE grid, ONLY: ncdom, nij_l
       IMPLICIT NONE
 !
        ALLOCATE(cg(nij_l))
        ALLOCATE(ygc(ngas,nij_l),xgc(ngas,nij_l),             &
-                rgpgc(ngas,nijx_l), rgpgcn(ngas,nij_l))
+                rgpgc(ngas,ncdom), rgpgcn(ngas,nij_l))
 !
       cg     = 0.D0
       ygc    = 0.D0

@@ -30,7 +30,7 @@
       USE gas_solid_viscosity, ONLY: kapg
       USE grid, ONLY: r, rb, dr, zb, dz, inr, indr, indz 
       USE grid, ONLY: fl_l
-      USE grid, ONLY: nij_l, nijx_l, myijk, data_exchange
+      USE grid, ONLY: nij_l, ncdom, myijk, data_exchange
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE heat_diffusion, ONLY: hotcg, hotck
       USE particles_constants, ONLY: inrl
@@ -48,15 +48,15 @@
       ALLOCATE(rhg(nij_l))
       ALLOCATE(rhk(nsolid,nij_l))
 !
-      ALLOCATE(egfr(nijx_l), egft(nijx_l))
-      ALLOCATE(egfl(nijx_l), egfb(nijx_l))
-      ALLOCATE(elfr(nsolid,nijx_l), elft(nsolid,nijx_l))
-      ALLOCATE(elfl(nsolid,nijx_l), elfb(nsolid,nijx_l))
+      ALLOCATE(egfr(ncdom), egft(ncdom))
+      ALLOCATE(egfl(ncdom), egfb(ncdom))
+      ALLOCATE(elfr(nsolid,ncdom), elft(nsolid,ncdom))
+      ALLOCATE(elfl(nsolid,ncdom), elfb(nsolid,ncdom))
 !
-      ALLOCATE(hfgr(nijx_l), hfgt(nijx_l))
-      ALLOCATE(hfgl(nijx_l), hfgb(nijx_l))
-      ALLOCATE(hflr(nsolid,nijx_l), hflt(nsolid,nijx_l))
-      ALLOCATE(hfll(nsolid,nijx_l), hflb(nsolid,nijx_l))
+      ALLOCATE(hfgr(ncdom), hfgt(ncdom))
+      ALLOCATE(hfgl(ncdom), hfgb(ncdom))
+      ALLOCATE(hflr(nsolid,ncdom), hflt(nsolid,ncdom))
+      ALLOCATE(hfll(nsolid,ncdom), hflb(nsolid,ncdom))
 !
       egfr = 0.0D0;  hfgr = 0.0D0
       egft = 0.0D0;  hfgt = 0.0D0
