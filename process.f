@@ -191,12 +191,6 @@
 
         CALL write_array( checkunit, lepstot, lform )
 
-!        i = 40
-!        DO k = 1, 40
-!          ijk = i + (k-1) * 200
-!          WRITE(17,*) z(k), um(ijk), rm(ijk), tg(ijk)
-!        END DO
-
       END DO
 !
       DEALLOCATE(rm)

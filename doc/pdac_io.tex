@@ -260,7 +260,9 @@ compute derived quantities of physical interest.
 \subsubsection{Post-processing input files}
 
 The pre-processing tool must read the input file \FIL{pdac.dat} and an
-input file \FIL{pp.dat}, containing the parameters that control the post-processing
+input file \FIL{pp.dat}, containing the parameters that control the post-processing.
+Some examples of these input files can be found in the \DIR{EXPLORIS/examples} directory
+in the repository.
 
 \subsubsection{Post-processing output files}
 
@@ -280,18 +282,6 @@ A list of all files produced by the post-processing is the following:
 \item \FIL{pdac.xml}  \\
       this file contains all the information contained in \FIL{pdac.dat}
       written using an XML compliant format
-
-\item \FIL{pdac.grx} \\
-      this file contains the list of cell centers (excluding border cells) 
-      in x-direction
-
-\item \FIL{pdac.gry} \\
-      this file contains the list of cell centers (excluding border cells) 
-      in y-direction
-
-\item \FIL{pdac.grz} \\
-      this file contains the list of cell centers (excluding border cells) 
-      in z-direction
 
 \item \FIL{filter.pgas.nnnn} \\
       these files contain the gas pressure field 
@@ -336,7 +326,6 @@ for the gas phase
 \item \FIL{filter.wsSS.nnnn} \\
       these files contain the particles velocity fields in z-direction
       for all solid phases (SS run from 01 to nsolid)
-
 
 \end{itemize}
 

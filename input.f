@@ -6,7 +6,7 @@
       USE io_files, ONLY: logunit
 
       PRIVATE
-      PUBLIC :: input, initc, number_of_block
+      PUBLIC :: input, initc, number_of_block, run_name
       REAL*8 :: diameter(max_nsolid)
       REAL*8 :: density(max_nsolid)
       REAL*8 :: sphericity(max_nsolid)

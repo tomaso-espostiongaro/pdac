@@ -30,8 +30,6 @@ eosg.o : decomp.o dimensions.o gas.o grid.o hcapgs.o immb.o io_files.o  \
 
 eosl.o : decomp.o dimensions.o gas.o hcapgs.o io_files.o parallel.o 
 
-filter.o : outp.o 
-
 flux_m.o : decomp.o dimensions.o grid.o indijk.o limiters.o subscr.o time.o 
 
 flux_sc.o : decomp.o dimensions.o grid.o indijk.o limiters.o subscr.o time.o 
