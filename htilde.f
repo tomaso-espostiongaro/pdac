@@ -27,7 +27,7 @@
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: sieg, sies, tg, ts
       USE gas_solid_viscosity, ONLY: kapg
-      USE grid, ONLY: dx, dy, dz, indx, indy, indz
+      USE grid, ONLY: dx, dy, dz, indx, indy, indz, inx
       USE grid, ONLY: fl_l, meshinds
       USE grid, ONLY: ncint, ncdom, myijk, data_exchange
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -224,8 +224,8 @@
             egfy = egfn(ijk) - egfs
           END IF
 
-          flx = dt * indx(i) * egfx +   &
-                dt * indy(j) * egfy +   &
+          flx = dt * indx(i) * egfx * inx(i) +   &
+                dt * indy(j) * egfy          +   &
                 dt * indz(k) * egfz
 !
           indxc = 1.D0/(dx(i)+(dx(i+1)+dx(i-1))*0.5D0)
@@ -272,8 +272,8 @@
              esfy = esfn(ijk, is) - esfs
            END IF
 !
-            flx = dt * indx(i) * esfx  +  &
-                  dt * indy(j) * esfy  +  &
+            flx = dt * indx(i) * esfx * inx(i) +  &
+                  dt * indy(j) * esfy          +  &
                   dt * indz(k) * esfz
 !
             rhs(ijk,is) = - flx

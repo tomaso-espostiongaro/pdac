@@ -13,7 +13,7 @@
 !
       USE grid, ONLY: fl_l
       USE grid, ONLY: myijk
-      USE grid, ONLY: dx, dy, dz
+      USE grid, ONLY: dx, dy, dz, xb
       USE dimensions
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       IMPLICIT NONE
@@ -39,7 +39,7 @@
         kmw = ( dx(i-1) * kapgt%c + dx(i) * kapgt%w ) * indxm
         epmw = ( dx(i-1) *ep%c + dx(i) * ep%w ) * indxm
 !
-        hgfw = kmw * epmw * (tg%c-tg%w) * indxm * 2.D0
+        hgfw = kmw * epmw * (tg%c-tg%w) * indxm * 2.D0 * xb(i-1)
       END IF
 !
       IF (fl_l(ijmk) /= 1) THEN
@@ -65,7 +65,7 @@
       kme =  ( dx(i+1) * kapgt%c + dx(i) * kapgt%e ) * indxp
       epme = ( dx(i+1) * ep%c + dx(i) * ep%e ) * indxp
 !
-      hgfe = kme * epme * (tg%e-tg%c) * indxp * 2.D0
+      hgfe = kme * epme * (tg%e-tg%c) * indxp * 2.D0 * xb(i)
 !
       dyp = (dy(j)+dy(j+1))
       indyp = 1.D0/dyp

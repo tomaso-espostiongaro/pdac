@@ -462,7 +462,7 @@
       RETURN
       END SUBROUTINE stress3D
 !----------------------------------------------------------------------
-      SUBROUTINE stress2d(visx, visz, mu, lambda, eps, u, w)
+      SUBROUTINE stress2D(visx, visz, mu, lambda, eps, u, w)
 !----------------------------------------------------------------------
 ! ... This routine computes the components of the 
 ! ... 2D cylindrical and cartesian viscous stress tensor

@@ -16,7 +16,7 @@
       USE eos_gas, ONLY: rgpgc, rgpgcn, ygc
       USE gas_constants, ONLY: default_gas
       USE gas_solid_velocity, ONLY: ug, vg, wg
-      USE grid, ONLY: dx, dy, dz, indx, indy, indz
+      USE grid, ONLY: dx, dy, dz, indx, indy, indz, inx
       USE grid, ONLY: ncint, ncdom, myijk, data_exchange
       USE grid, ONLY: fl_l, meshinds
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -99,7 +99,7 @@
            END IF
 
 	   rgpgc(ijk,ig) = rgpgcn(ijk,ig)                  &
-	                 - dt * indx(i) * yfx              &
+	                 - dt * indx(i) * yfx * inx(i)     &
 	                 - dt * indy(j) * yfy              &
 	                 - dt * indz(k) * yfz
  

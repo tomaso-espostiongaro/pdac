@@ -149,7 +149,6 @@
       SUBROUTINE tilde
 !
       USE atmosphere, ONLY: gravz
-      USE grid, ONLY: fl_l
       USE dimensions
       USE convective_fluxes_u, ONLY: flu
       USE convective_fluxes_v, ONLY: flv
@@ -158,8 +157,8 @@
       USE gas_solid_density, ONLY: rog, rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: dx, dy, dz
-      USE grid, ONLY: indx, indy, indz
-      USE grid, ONLY: meshinds
+      USE grid, ONLY: indx, indy, indz, inx, inxb
+      USE grid, ONLY: fl_l, meshinds
       USE momentum_transfer, ONLY: kdrags, inter
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: dt
@@ -420,20 +419,20 @@
 ! ... compute explicit (tilde) terms in the momentum equation (gas)
 ! 
           dxp=dx(i)+dx(i+1)
+          dyp=dy(j)+dy(j+1)
           dzp=dz(k)+dz(k+1)
           indxp=1.D0/dxp
           indzp=1.D0/dzp
-          dyp=dy(j)+dy(j+1)
           indyp=1.D0/dyp
 !
           rug(ijk) = rugn(ijk) + dt * gvisx(ijk)                     &
-     &      - dt * indxp * 2.D0 * ugfx                               &
+     &      - dt * indxp * 2.D0 * ugfx * inxb(i)                     &
      &      - dt * indy(j) * ugfy                                    &
      &      - dt * indz(k) * ugfz   
 !
           rwg(ijk) = rwgn(ijk) + dt * gvisz(ijk)                     &
      &      + dt * (dz(k+1)*rgp(ijk)+dz(k)*rgp(ijkt))*indzp * gravz    &
-     &      - dt * indx(i) * wgfx                                    &
+     &      - dt * indx(i) * wgfx * inx(i)                           &
      &      - dt * indy(j) * wgfy                                    &
      &      - dt * indzp * 2.D0 * wgfz
 !
@@ -489,13 +488,13 @@
 ! ... compute explicit (tilde) terms in the momentum equation (particles)
 ! 
               rus(ijk,is) = rusn(ijk,is) + dt*pvisx(ijk,is)              &
-     &         - dt*indxp*2.D0* usfx                                      &
+     &         - dt*indxp*2.D0* usfx * inxb(i)                            &
      &         - dt*indy(j)* usfy                                         &
      &         - dt*indz(k)* usfz                           
 !
               rws(ijk,is) = rwsn(ijk,is) + dt*pvisz(ijk,is)              &
      &         + dt*(rlk(ijk,is)*dz(k+1)+rlk(ijkt,is)*dz(k))*indzp*gravz &
-     &         - dt*indx(i)* wsfx                                        &
+     &         - dt*indx(i)* wsfx * inx(i)                               &
      &         - dt*indy(j)* wsfy                                        &
      &         - dt*indzp*2.D0* wsfz                          
 !

@@ -1,7 +1,7 @@
 !----------------------------------------------------------------------
       MODULE iterative_solver
 !----------------------------------------------------------------------
-      USE grid, ONLY: dx, dy, dz, indx, indy, indz
+      USE grid, ONLY: dx, dy, dz, indx, indy, indz, inx
       IMPLICIT NONE
 !
       REAL*8, DIMENSION(:),   ALLOCATABLE :: rgfe, rgfn, rgft
@@ -389,7 +389,7 @@
       rls = 0.D0
 
       DO is = 1, nsolid
-        rlkx = (rsfe(ijk,is) - rsfe(imjk,is)) * indx(i)
+        rlkx = (rsfe(ijk,is) - rsfe(imjk,is)) * indx(i) * inx(i)
         rlkz = (rsft(ijk,is) - rsft(ijkm,is)) * indz(k)
         IF (job_type == '3D') rlky = (rsfn(ijk,is) - rsfn(ijmk,is)) * indy(j)
 
@@ -458,7 +458,7 @@
       resy = 0.D0
       resz = 0.D0
 !
-      resx = (rgfe(ijk) - rgfe(imjk)) * indx(i)
+      resx = (rgfe(ijk) - rgfe(imjk)) * indx(i) * inx(i)
       resz = (rgft(ijk) - rgft(ijkm)) * indz(k)
       IF (job_type == '3D') resy = (rgfn(ijk) - rgfn(ijmk)) * indy(j)
 !
@@ -671,6 +671,15 @@
             END IF
 
           END IF
+
+          iepx = (  iep_e + iep_w ) * indx(i) * inx(i) 
+          iepz = (  iep_t + iep_b ) * indz(i)
+	  IF (job_type == '2D') THEN
+            iepy = 0.D0
+	  ELSE IF (job_type == '3D') THEN
+            iepy = indy(i) * (  iep_n + iep_s )
+          END IF
+
 !
 ! ... Inverse of the squared sound velocity
 !
@@ -680,14 +689,6 @@
 !
 ! ... rbeta = dD_g/dP
 !
-          iepx = indx(i) * (  iep_e + iep_w )
-          iepz = indz(i) * (  iep_t + iep_b )
-	  IF (job_type == '2D') THEN
-            iepy = 0.D0
-	  ELSE IF (job_type == '3D') THEN
-            iepy = indy(i) * (  iep_n + iep_s )
-          END IF
-
           rbeta = ep(ijk) * rags + dt**2.D0 * (iepx+iepy+iepz)
 !
           abt = 1.D0 / rbeta
