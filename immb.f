@@ -68,7 +68,7 @@
       USE volcano_topography, ONLY: interpolate_2d, interpolate_dem
       USE volcano_topography, ONLY: ord, next
       USE volcano_topography, ONLY: ord2d, nextx, nexty
-      USE grid, ONLY: z, x, xb, y, yb, z, zb
+      USE grid, ONLY: x, xb, y, yb, z, zb
 
       IMPLICIT NONE
       INTEGER :: p, np
