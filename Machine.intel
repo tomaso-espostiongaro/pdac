@@ -9,6 +9,7 @@ CPPFLAGS= -fpp $(MACROS)
 CFLAGS= -O2 $(MACROS)
 LINKFLAGS=
 LIBS= 
+ARFLAGS=rv
 #----------------------------------------
 # scalar compiler
 #FC=xlf

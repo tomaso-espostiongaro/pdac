@@ -22,6 +22,7 @@ HPMLIB=
 LINKFLAGS= -bmaxdata:0x70000000 $(IPAFLG) 
 LINKFLAGS=
 LIBS= $(OMPILIB) $(HPMLIB)
+ARFLAGS=rv
 #LIBS=
 #----------------------------------------
 # scalar compiler

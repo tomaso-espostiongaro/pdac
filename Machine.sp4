@@ -21,6 +21,8 @@ PREPROCESSING = -qsuffix=cpp=f -I $(HPMHOME)/include/
 PREPROCESSING = -qsuffix=cpp=f 
 PREPROCESSINGF = -qsuffix=cpp=F
 
+ARFLAGS=rv
+
 #----------------------------------------
 
 IPAFLG= -qipa -qipa=inline -qipa=list

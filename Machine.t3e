@@ -13,6 +13,7 @@ PREPROCESSING =
 LINKFLAGS= -eA
 LIBS=
 LIBS= -lapp
+ARFLAGS=rv
 #----------------------------------------
 # scalar compiler
 #FC=xlf

@@ -6,6 +6,7 @@ CPPFLAGS= -WF,$(MACROS)
 LINKFLAGS= 
 LIBS=
 FREEFORM= -Mfree
+ARFLAGS=rv
 #----------------------------------------
 FFLAGS= -O2 -fastsse -tp athlonxp $(CPPFLAGS)
 CC=gcc

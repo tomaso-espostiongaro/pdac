@@ -13,6 +13,7 @@ FREEFORM= -Mfreeform
 MODULES= -I ./
 LINKFLAGS= 
 LIBS=
+ARFLAGS=rv
 #----------------------------------------
 # scalar compiler
 FC=pgf90

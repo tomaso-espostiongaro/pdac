@@ -11,6 +11,7 @@ FREEFORM= -freeform
 MODULES= -I ./
 LINKFLAGS= 
 LIBS= -lmpi
+ARFLAGS=rv
 #----------------------------------------
 # scalar compiler
 FC=f90
