@@ -13,12 +13,12 @@ ARFLAGS=rv
 #----------------------------------------
 # scalar compiler
 #FC=xlf
-FC=ifc
+FC=ifort
 # parallel compiler
-MPFC=ifc
+MPFC=ifort
 #----------------------------------------
 # ... linker
-LINKER= ifc
+LINKER= ifort
 
 .SUFFIXES:
 .SUFFIXES:.F .o .f .c

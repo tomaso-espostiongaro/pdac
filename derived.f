@@ -197,9 +197,17 @@
       REAL, DIMENSION(SIZE(tg)) :: cm
       REAL, DIMENSION(SIZE(rgp)) :: fact, y
 
-      y = rgp / rhom
-      fact = y + (1.0 - y) * rhog / rl(1)
-      cm = SQRT(rgas * tg / mg / y ) * fact
+!
+! ... Mixture sound speed (Wallis, 1969)
+!
+!      y = rgp / rhom
+!      fact = y + (1.0 - y) * rhog / rl(1)
+!      cm = SQRT(gammaair * rgas * tg / mg / y ) * fact
+!
+! ... limit for particle density >> gas density
+!
+      cm = rhog / (rhom - rgp) * (gammaair * rgas * tg / mg)
+      cm = cm / rgp * rhog
       
       RETURN
       END FUNCTION cm

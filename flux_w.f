@@ -46,7 +46,7 @@
 !
       REAL*8 :: dxm, dxp, dxpp, indxpp, indxp, indxm
       REAL*8 :: dym, dyp, dypp, indypp, indyp, indym
-      REAL*8 :: dzp, indzp, dzm, indzm, dzpp, indzpp
+      REAL*8 :: dzp, indzp, dzm, indzm
       REAL*8 :: gradc, grade, gradw, gradn, grads, gradt, gradb
 !
       INTEGER :: ip2, jp2, kp2
@@ -111,10 +111,10 @@
       !cn = cs * dt * 2.0 * indyp
       IF (cs >= 0.D0) THEN
         IF (gradc /= 0) erre = grads / gradc
-	incr = 0.5D0 * dy(j)
+        incr = 0.5D0 * dy(j)
       ELSE IF (cs < 0.D0) THEN
         IF (gradc /= 0) erre = gradn / gradc
-	incr = 0.5D0 * dy(j+1)
+        incr = 0.5D0 * dy(j+1)
       END IF
 !
       CALL limiters(lim,erre)
@@ -135,11 +135,11 @@
       cs = 0.5D0 * ( w%c + w%t )
       !cn = cs * dt * indz(k+1)
       IF (cs >= 0.D0) THEN
-	IF (gradc /= 0) erre = gradb / gradc
-	incr = 0.5D0 * dz(k+1)
+        IF (gradc /= 0) erre = gradb / gradc
+        incr = 0.5D0 * dz(k+1)
       ELSE IF (cs < 0.D0) THEN
         IF (gradc /= 0) erre = gradt / gradc
-	incr = 0.5D0 * dz(k+1)
+        incr = 0.5D0 * dz(k+1)
       END IF 
 !
       CALL limiters(lim,erre)
@@ -265,11 +265,11 @@
       cs = indzp * (u%c * dz(k+1) + u%t * dz(k))
       !cn = cs * dt * 2.D0 * indzp
       IF ( cs >= 0.D0 ) THEN
-	IF (gradc /= 0.D0) erre = gradw / gradc
-	incr = 0.5D0 * dx(i)
+        IF (gradc /= 0.D0) erre = gradw / gradc
+        incr = 0.5D0 * dx(i)
       ELSE IF ( cs < 0.D0 ) THEN
-	IF (gradc /= 0.D0) erre = grade / gradc
-	incr = 0.5D0 * dx(i+1)
+        IF (gradc /= 0.D0) erre = grade / gradc
+        incr = 0.5D0 * dx(i+1)
       END IF
 !
       CALL limiters(lim,erre)
@@ -290,11 +290,11 @@
       cs = 0.5D0 * ( w%t + w%c )
       !cn = cs * dt * indz(k+1)
       IF (cs >= 0.D0) THEN
-	IF (gradc /= 0.D0) erre = gradb / gradc
-	incr = 0.5D0 * dz(k+1)
+        IF (gradc /= 0.D0) erre = gradb / gradc
+        incr = 0.5D0 * dz(k+1)
       ELSE IF (cs < 0.D0) THEN
-	IF (gradc /= 0.D0) erre = gradt / gradc
-	incr = 0.5D0 * dz(k+1)
+        IF (gradc /= 0.D0) erre = gradt / gradc
+        incr = 0.5D0 * dz(k+1)
       END IF 
 !
       CALL limiters(lim,erre)
