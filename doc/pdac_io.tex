@@ -63,6 +63,12 @@ The layout of pdac.dat file is as follow:
   ...
 /
 
+&model
+  model_parameters1 = model_value1,
+  model_parameters2 = model_value2,
+  ...
+/
+
 &mesh
   mesh_parameters1 = mesh_value1,
   mesh_parameters2 = mesh_value2,
@@ -114,7 +120,7 @@ separated by a comma:
 keyword  = value_1, value_2, value_3,
 \end{verbatim}
 
-Note that the namelists ( \&control, \&mesh, \&particles and \&numeric )
+Note that the namelists ( \&control, \&model, \&mesh, \&particles and \&numeric )
 and the cards ( 'ROUGHNESS', 'MESH', 'FIXED\_FLOWS' and 'INITIAL\_CONDITIONS' )
 should appear in exactly this order. 
 Parameters lines in the namelists are optional, if a parameter is omitted
