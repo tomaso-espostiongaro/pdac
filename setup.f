@@ -181,7 +181,7 @@
             IF ( job_type == '2D' ) THEN
 
               READ(17,*) x1,x2,z1,z2
-              IF ( (z2-z1) /= (iob(n)%zhi - iob(n)%zlo)  )                     &
+              IF ( (z2-z1) /= (iob(n)%zhi - iob(n)%zlo) .OR. (x1/=x2) )          &
                 CALL error('setup','Error in input profile, block:', n)
 
               DO ijk = 1, ncint
@@ -190,7 +190,7 @@
  
                 IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi ) THEN
                   IF ( i >= iob(n)%xlo .AND. i <= iob(n)%xhi  ) THEN
-                    IF ( i == iob(n)%xlo )                                          &
+                    IF ( i == iob(n)%xlo )                                         &
                     READ(17,*) ugpr,wgpr,ppr,eppr,tgpr,                            &
                               (uppr(is),wppr(is),epspr(is),tppr(is), is=1,nsolid), &
                               (ygcpr(ig), ig = 1,ngas)

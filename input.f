@@ -128,7 +128,7 @@
       ny = 1
       itc = 0
       mesh_partition = 1
-      iuni = 1
+      iuni = 0
       dz0  = 10.D0
       dx0  = 10.D0
       dy0  = 10.D0
@@ -279,13 +279,13 @@
           END IF
         END DO mesh_search
 
-        READ(5,*) (delta_x(i),i=1,nx)
-        IF( job_type == '3D' ) THEN
-          READ(5,*) (delta_y(j),j=1,ny)
-        END IF
-        READ(5,*) (delta_z(k),k=1,nz)
-
         IF (iuni == 0) THEN
+          READ(5,*) (delta_x(i),i=1,nx)
+          IF( job_type == '3D' ) THEN
+            READ(5,*) (delta_y(j),j=1,ny)
+          END IF
+          READ(5,*) (delta_z(k),k=1,nz)
+        ELSE IF (iuni == 1) THEN
           delta_x = dx0
           delta_y = dy0
           delta_z = dz0
