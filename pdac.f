@@ -53,7 +53,7 @@
       CHARACTER(LEN=8) :: inputfile, logfile, errorfile, testfile
       CHARACTER(LEN=3) :: procnum
 !
-      INTEGER :: n, m, i, j, k
+      INTEGER :: inputunit
       INTEGER :: ig
       REAL*8 :: s0, s1, s2, s3, s4
       REAL*8 :: timtot, timprog, timdist, timsetup, timinit
@@ -70,6 +70,7 @@
 !
 ! ... I/O files
 !
+      inputunit = 5
       inputfile = 'pdac.dat'
       logfile = 'pdac.log'
       testfile = 'pdac.tst'
@@ -77,7 +78,7 @@
       errnb = errorfile//procnum(mpime)
       testnb = testfile//procnum(mpime)
       IF(mpime .EQ. root) THEN
-        OPEN(UNIT=5, FILE=inputfile, STATUS='UNKNOWN')
+        OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN')
         OPEN(UNIT=6, FILE=logfile, STATUS='UNKNOWN')
         OPEN(UNIT=7, FILE=testfile, STATUS='UNKNOWN')
         OPEN(UNIT=8, FILE=errorfile, STATUS='UNKNOWN')
@@ -88,9 +89,9 @@
 !
 ! ... Read Input file
 !
-      CALL input(5)
+      CALL input(inputunit)
 
-! ... allocation of arrays ...(dependence on nr, nz)
+! ... allocation of arrays ...(dependence on nr, nx,ny,nz)
       CALL bounds_grid
       CALL bounds_press_eps
 !
@@ -198,10 +199,10 @@
         CALL recover_2d
       END IF
 
-! ... set dimensions ...
+! ... set start time
       timestart = time
 !
-! ... Set boundary flags
+! ... Set cell-type flags
 !
       CALL flic
       IF(timing) s1 = cpclock()
@@ -212,6 +213,7 @@
       IF(timing) s2 = cpclock()
 !
 ! ... Setting ghost cells for parallel data exchange
+! ... and the indexes
 !
       CALL ghost
       IF(timing) s3 = cpclock()

@@ -608,7 +608,7 @@
       REAL*8 :: prif, pnn2, p1nn
       REAL*8 :: zrif, trif, rhorif, cost, costc
       REAL*8 :: rmcn, rmcnn, rmmn, rm1nn, rm1knn, rm2n, rm1n, rm0n
-      REAL*8 :: u1n, u2n, ucnn
+      REAL*8 :: u1n, u2n, ucnn, upnn
       REAL*8 :: eps, epc, epcn, ep1nn, epnn
       REAL*8 :: tcn, tmn, t1nn, t1n, t0n, t2n
       REAL*8 :: mg
@@ -641,7 +641,8 @@
 !
 ! ...  Non-reflecting boundary conditions
 
-        upn = upn - ucn*dt/d2 * (upn - ucn)
+        upnn = upn - ucn*dt/d2 * (upn - ucn)
+        upn = upnn
         ucnn = ucn * ( 1 - dt/d1 * (ucn - umn) )
 
 ! MODIFICARE X3D ....  IF(j == .EQ.2) ug(ipjm)=-ug(n2) ! 
@@ -719,7 +720,8 @@
 
 ! ... Non-reflecting b.c.
                 
-        upn = upn - ucn*dt/d2 * (0.D0 - u2n)
+        upnn = upn - ucn*dt/d2 * (0.D0 - u2n)
+        upn = upnn
 !
         zrif=zb(k)+0.5D0*(dz(1)-dz(k))
         CALL atm(zrif,prif,trif)

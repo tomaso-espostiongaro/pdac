@@ -158,7 +158,7 @@
               loop =  0
               kros = -1
 !
-! ... Compute the resudual of the Mass Balance equation of the gas phase
+! ... Compute the residual of the Mass Balance equation of the gas phase
 ! ... using guessed velocities and pressure.
 !
               dgx = (rgfe(ijk) - rgfe(imjk)) * indx(i)
@@ -179,6 +179,7 @@
                 converge(ijk) = .TRUE.
                 rls = 0.D0
                 DO is = 1, nsolid
+
                   rlkx = (rsfe(is,ijk) - rsfe(is,imjk)) * indx(i)
                   rlky = (rsfn(is,ijk) - rsfn(is,ijmk)) * indy(j)
                   rlkz = (rsft(is,ijk) - rsft(is,ijkm)) * indz(k)

@@ -127,6 +127,10 @@
 !
       gradp = (1.D0 - beta) * gradc + beta * gradw
       gradm= (1.D0 - beta) * gradc + beta * grade
+      IF (i == (nx-1)) THEN
+        gradp = 0.D0
+        gradm = 0.D0
+      END IF
 
       cs = 0.5D0 * (u%c + u%e)
       cn = cs * dt * indx(i+1)
@@ -146,6 +150,10 @@
 !
       gradp = (1.D0 - beta) * gradc + beta * grads
       gradm = (1.D0 - beta) * gradc + beta * gradn
+      IF (j == (ny-1)) THEN
+        gradp = 0.D0
+        gradm = 0.D0
+      END IF
 
       cs = (dx(i+1) * v%c + dx(i) * v%e) * indxp
       cn = cs * dt * 2.0 * indyp
@@ -165,6 +173,10 @@
 !
       gradp = (1.D0 - beta) * gradc + beta * gradb
       gradm = (1.D0 - beta) * gradc + beta * gradt
+      IF (k == (nz-1)) THEN
+        gradp = 0.D0
+        gradm = 0.D0
+      END IF
 
       cs = (dx(i+1) * w%c + dx(i) * w%e) * indxp
       cn = cs * dt * 2.0 * indzp
@@ -282,6 +294,10 @@
 !
       gradp = (1.D0 - beta) * gradc + beta * gradw
       gradm= (1.D0 - beta) * gradc + beta * grade
+      IF (i == (nx-1)) THEN
+        gradp = 0.D0
+        gradm = 0.D0
+      END IF
 
       cs = indyp * (u%c * dy(j+1) + u%n * dy(j))
       cn = cs * dt * 2.D0 * indxp
@@ -301,6 +317,10 @@
 !
       gradp = (1.D0 - beta) * gradc + beta * grads
       gradm = (1.D0 - beta) * gradc + beta * gradn
+      IF (j == (ny-1)) THEN
+        gradp = 0.D0
+        gradm = 0.D0
+      END IF
 
       cs = 0.5D0 * ( v%n + v%c )
       cn = cs * dt * indy(j+1)
@@ -320,6 +340,10 @@
 !
       gradp = (1.D0 - beta) * gradc + beta * gradb
       gradm = (1.D0 - beta) * gradc + beta * gradt
+      IF (k == (nz-1)) THEN
+        gradp = 0.D0
+        gradm = 0.D0
+      END IF
 
       cs = (dy(j+1) * w%c + dy(j) * w%n) * indyp
       cn = cs * dt * 2.0 * indzp
@@ -434,6 +458,10 @@
 !
       gradp = (1.0 - beta) * gradc + beta * gradw
       gradm = (1.0 - beta) * gradc + beta * grade
+      IF (i == (nx-1)) THEN
+        gradp = 0.D0
+        gradm = 0.D0
+      END IF
 
       cs = (dz(k+1)*u%c+dz(k)*u%t)*indzp
       cn = cs * dt * 2.0 * indxp
@@ -453,6 +481,10 @@
 !
       gradp = (1.0 - beta) * gradc + beta * grads
       gradm = (1.0 - beta) * gradc + beta * gradn
+      IF (j == (ny-1)) THEN
+        gradp = 0.D0
+        gradm = 0.D0
+      END IF
 
       cs = (dz(k+1)*v%c+dz(k)*v%t)*indzp
       cn = cs * dt * 2.0 * indyp
@@ -472,6 +504,10 @@
 !
       gradp = (1.0 - beta) * gradc + beta * gradb
       gradm = (1.0 - beta) * gradc + beta * gradt
+      IF (k == (nz-1)) THEN
+        gradp = 0.D0
+        gradm = 0.D0
+      END IF
 
       cs = 0.5D0*(w%c+w%t)
       cn = cs * dt * indz(k+1)
@@ -578,6 +614,10 @@
 
       gradp = (1.D0 - beta) * gradc + beta * gradw
       gradm = (1.D0 - beta) * gradc + beta * grade
+      IF (i == (nx-1)) THEN
+        gradp = 0.D0
+        gradm = 0.D0
+      END IF
 
       cs = u%c
       cn = cs * dt * 2.0 * indxp
@@ -597,6 +637,10 @@
 
       gradp = (1.D0 - beta) * gradc + beta * grads
       gradm = (1.D0 - beta) * gradc + beta * gradn
+      IF (j == (ny-1)) THEN
+        gradp = 0.D0
+        gradm = 0.D0
+      END IF
 
       cs = v%c
       cn = cs * dt * 2.0 * indyp
@@ -616,6 +660,10 @@
 
       gradp = (1.D0 - beta) * gradc + beta * gradb
       gradm = (1.D0 - beta) * gradc + beta * gradt
+      IF (k == (nz-1)) THEN
+        gradp = 0.D0
+        gradm = 0.D0
+      END IF
 
       cs = w%c
       cn = cs * dt * 2.0 * indzp

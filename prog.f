@@ -76,7 +76,7 @@
          END IF
 !
 ! ... Compute derived fields from closure equations
-! ... (must be dumped into restart file)
+! ... (all these fields must be dumped into restart file)
 !
         DO ijk = 1, ncint
 
@@ -119,8 +119,8 @@
        ELSE IF( job_type == '3D' ) THEN
          IF(time+0.1D0*dt >= tpri) THEN
            CALL collect
-!           CALL outp_bin
-           CALL outp_3d
+           CALL outp_bin
+!           CALL outp_3d
            tpri=tpri+tpr
          ENDIF
        ELSE
