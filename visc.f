@@ -147,7 +147,7 @@
       USE turbulence, ONLY: mugt
       IMPLICIT NONE
 !
-      INTEGER :: ij_g, i, j
+      INTEGER :: imesh, i, j
       INTEGER :: ij
       REAL*8 :: ugm1, vgm2, vgm1, ugm2, d1c, gmum, t0, vmu12 
       REAL*8 :: vmu1, vdu, vmu11, vmu21, vmu22, vmu2
@@ -158,11 +158,11 @@
       mugt = mugt + mug
       
       DO ij = 1, nij_l
-        ij_g = myij(0, 0, ij)
+        imesh = myij(0, 0, ij)
         IF(fl_l(ij).EQ.1) THEN
          CALL subscl(ij) 
-         j = ( ij_g - 1 ) / nr + 1
-         i = MOD( ( ij_g - 1 ), nr) + 1
+         j = ( imesh - 1 ) / nr + 1
+         i = MOD( ( imesh - 1 ), nr) + 1
 !
          drp=(dr(i)+dr(i+1))
          drm=(dr(i)+dr(i-1))
@@ -245,7 +245,7 @@
 !
       INTEGER, INTENT(IN) :: k 
 !
-      INTEGER :: j, i, ij_g
+      INTEGER :: j, i, imesh
       INTEGER :: ij
       REAL*8 :: ukm1, vkm2, vkm1, ukm2, d1c, gmum, t0 
       REAL*8 :: tauc1, vmu11, vmu12, vmu1, vmu2, tauc2, vmu21, vmu22 
@@ -254,11 +254,11 @@
       REAL*8 :: drp, dzm, drm, dzp, indrp, indzm, indrm, indzp 
 !
       DO ij = 1, nij_l
-        ij_g = myij(0, 0, ij)
+        imesh = myij(0, 0, ij)
         IF(fl_l(ij).EQ.1) THEN
          CALL subscl(ij)
-         j = ( ij_g - 1 ) / nr + 1
-         i = MOD( ( ij_g - 1 ), nr) + 1
+         j = ( imesh - 1 ) / nr + 1
+         i = MOD( ( imesh - 1 ), nr) + 1
 !
          drp=(dr(i)+dr(i+1))
          drm=(dr(i)+dr(i-1))

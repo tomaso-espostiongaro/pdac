@@ -37,14 +37,14 @@
 !
       TYPE(stencil), INTENT(IN) :: dens, u, v
       INTEGER, INTENT(IN) :: ij
-      INTEGER :: i, ij_g
+      INTEGER :: i, imesh
       INTEGER :: imj, ijm
 !
       REAL*8 :: dens_e, dens_w, dens_se
       REAL*8 :: drm, drp, indrp, indrm
 !
-      ij_g = myij( 0, 0, ij)
-      i  = MOD( ( ij_g - 1 ), nr) + 1
+      imesh = myij( 0, 0, ij)
+      i  = MOD( ( imesh - 1 ), nr) + 1
 !
       drp=dr(i)+dr(i+1)
       drm=dr(i)+dr(i-1)
@@ -90,15 +90,15 @@
       REAL*8, INTENT(OUT) :: fr, ft
       TYPE(stencil), INTENT(IN) :: dens, u, v
       INTEGER, INTENT(IN) :: ij
-      INTEGER :: i,j,ij_g
+      INTEGER :: i,j,imesh
 !
       REAL*8 :: dens_e, dens_ee, dens_ne
       REAL*8 :: drp, drpp, indrpp, indrp
       REAL*8 :: dzp, indzp
 !
-      ij_g = myij( 0, 0, ij)
-      i  = MOD( ( ij_g - 1 ), nr) + 1
-      j  = ( ij_g - 1 ) / nr + 1
+      imesh = myij( 0, 0, ij)
+      i  = MOD( ( imesh - 1 ), nr) + 1
+      j  = ( imesh - 1 ) / nr + 1
 !
       drp=dr(i)+dr(i+1)
       drpp=dr(i+1)+dr(i+2)
@@ -151,14 +151,14 @@
       TYPE(stencil), INTENT(IN) :: dens, u, v
       INTEGER, INTENT(IN) :: ij
 !
-      INTEGER :: i,j, ij_g
+      INTEGER :: i,j, imesh
       INTEGER :: ijm, imj
       REAL*8 :: dzm, dzp, indzm, indzp
       REAL*8 :: dens_n, dens_s, dens_wn
 !
-      ij_g = myij( 0, 0, ij)
-      j  = ( ij_g - 1 ) / nr + 1
-      i  = MOD( ( ij_g - 1 ), nr) + 1
+      imesh = myij( 0, 0, ij)
+      j  = ( imesh - 1 ) / nr + 1
+      i  = MOD( ( imesh - 1 ), nr) + 1
 !
 ! ... Compute linearly interpolated values of density
 ! ... where not available.
@@ -202,13 +202,13 @@
       REAL*8, INTENT(OUT) :: fr, ft
       TYPE(stencil), INTENT(IN) :: dens, u, v
 !
-      INTEGER :: i,j, ij_g
+      INTEGER :: i,j, imesh
       REAL*8 :: dzp, dzpp, indzpp, indzp
       REAL*8 :: dens_n, dens_nn, dens_en
 !
-      ij_g = myij( 0, 0, ij)
-      j  = ( ij_g - 1 ) / nr + 1
-      i  = MOD( ( ij_g - 1 ), nr) + 1
+      imesh = myij( 0, 0, ij)
+      j  = ( imesh - 1 ) / nr + 1
+      i  = MOD( ( imesh - 1 ), nr) + 1
 !
 ! ... values of density interpolated at cell boundaries
         dens_n = (dz(j+1) * dens%c + dz(j) * dens%n) * indzp
@@ -258,16 +258,16 @@
       TYPE(stencil), INTENT(IN) :: dens, field, u, v
       INTEGER, INTENT(IN) :: ij
 !
-      INTEGER :: i,j, ij_g
+      INTEGER :: i,j, imesh
       INTEGER :: imj, ijm
       REAL*8  :: drp, drm, drmm, dzp, dzm, dzmm
       REAL*8  :: indrp, indrm, indrmm, indzp, indzm, indzmm
 !
-      ij_g = myij( 0, 0, ij)
+      imesh = myij( 0, 0, ij)
       imj = myij(-1, 0, ij)
       ijm = myij( 0,-1, ij)
-      i  = MOD( ( ij_g - 1 ), nr) + 1
-      j  = ( ij_g - 1 ) / nr + 1
+      i  = MOD( ( imesh - 1 ), nr) + 1
+      j  = ( imesh - 1 ) / nr + 1
 !
 ! ... on left volume boundary
 !
@@ -306,13 +306,13 @@
       TYPE(stencil), INTENT(IN) :: dens, field, u, v
       INTEGER, INTENT(IN) :: ij
 !
-      INTEGER :: i,j,ij_g
+      INTEGER :: i,j,imesh
       REAL*8  :: drp, dzp
       REAL*8  :: indrp, indzp 
 !
-      ij_g = myij( 0, 0, ij)
-      i  = MOD( ( ij_g - 1 ), nr) + 1
-      j  = ( ij_g - 1 ) / nr + 1
+      imesh = myij( 0, 0, ij)
+      i  = MOD( ( imesh - 1 ), nr) + 1
+      j  = ( imesh - 1 ) / nr + 1
 !
         drp = (dr(i) + dr(i+1))
         dzp = (dz(j) + dz(j+1))

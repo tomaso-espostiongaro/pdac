@@ -31,7 +31,7 @@
       IMPLICIT NONE
 !
       INTEGER :: irest
-      INTEGER :: i,j,k, ij_g
+      INTEGER :: i,j,k, imesh
       INTEGER :: ij
       INTEGER :: kg, rk
       REAL*8 :: tdump1, tpri
@@ -73,10 +73,10 @@
 ! ... (must be dumped into restart file)
 !
         DO ij = 1, nij_l
-         ij_g = myij(0, 0, ij)
+         imesh = myij(0, 0, ij)
          IF(fl_l(ij).EQ.1) THEN
-           j = ( ij_g - 1 ) / nr + 1
-           i = MOD( ( ij_g - 1 ), nr) + 1
+           j = ( imesh - 1 ) / nr + 1
+           i = MOD( ( imesh - 1 ), nr) + 1
 ! 
 ! ... Compute molar fractions of gas species
 !
@@ -86,7 +86,7 @@
 !
            CALL eosg(rags, rog(ij), cp(:,ij), cg(ij),   &
                      tg(ij), ygc(:,ij), xgc(:,ij),      &
-                     sieg(ij), p(ij), 1, 1, 0, ij_g)
+                     sieg(ij), p(ij), 1, 1, 0, imesh)
            rgp(ij)=rog(ij)*ep(ij)
 ! 
            DO kg=1,ngas

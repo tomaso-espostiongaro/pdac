@@ -40,7 +40,7 @@
 !
       REAL*8 :: c3, hrexs, hrexg, c2, upxy, c1
       REAL*8 :: drc, dzc, ugb, vgb
-      INTEGER :: k, m, l, k1, i, j, ij_g
+      INTEGER :: k, m, l, k1, i, j, imesh
       INTEGER :: ij
 !
       ALLOCATE(rhg(nij_l))
@@ -75,7 +75,7 @@
       CALL data_exchange(kapgt)
 !
       DO ij = 1, nij_l
-        ij_g = myij(0, 0, ij)
+        imesh = myij(0, 0, ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscl(ij)
           CALL fsc_rt(egfr(ij), egft(ij), nb(sieg,ij),        &
@@ -109,11 +109,11 @@
 ! ... on boundaries, fluxes on left and bottom sides must be calculated
 !
       DO ij = 1, nij_l
-        ij_g = myij(0, 0, ij)
+        imesh = myij(0, 0, ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscl(ij)
-          j = ( ij_g - 1 ) / nr + 1
-          i = MOD( ( ij_g - 1 ), nr) + 1
+          j = ( imesh - 1 ) / nr + 1
+          i = MOD( ( imesh - 1 ), nr) + 1
 ! 
           egfl(ij) = egfr(imj)
           egfb(ij) = egft(ijm)

@@ -145,7 +145,7 @@
       REAL*8 :: l1, l2, l12, m1, m2, m12, l1d, l2d
       REAL*8 :: cdy 
       REAL*8 :: num, den
-      INTEGER  :: i, j, ij, ij_g  
+      INTEGER  :: i, j, ij, imesh  
 !
       ALLOCATE(modsr(nijx_l))
       ALLOCATE(sr1(nijx_l))
@@ -189,11 +189,11 @@
        CALL data_exchange(fuvg)
 !
        DO ij = 1, nij_l
-        ij_g = myij(0,0,ij)
+        imesh = myij(0,0,ij)
         IF(fl_l(ij).EQ.1) THEN
         CALL subscl(ij)
-         j = ( ij_g - 1 ) / nr + 1
-         i = MOD( ( ij_g - 1 ), nr) + 1
+         j = ( imesh - 1 ) / nr + 1
+         i = MOD( ( imesh - 1 ), nr) + 1
          delta(ij) = DSQRT(dz(j)*dr(i))
 !
 !...here it is possible to choose between the classic or dynamic Smagorinsky...
@@ -272,14 +272,14 @@
       REAL*8 :: d33
       REAL*8, INTENT(OUT), DIMENSION(:) :: modsr, sr1, sr2, sr12
       REAL*8, INTENT(OUT), DIMENSION(:) :: p1, p2, p12
-      INTEGER :: i, j, ij, ij_g 
+      INTEGER :: i, j, ij, imesh 
 !
       DO ij = 1, nij_l
-       ij_g = myij(0,0,ij)
+       imesh = myij(0,0,ij)
        IF(fl_l(ij).EQ.1) THEN
         CALL subscl(ij)
-        j = ( ij_g - 1 ) / nr + 1
-        i = MOD( ( ij_g - 1 ), nr) + 1
+        j = ( imesh - 1 ) / nr + 1
+        i = MOD( ( imesh - 1 ), nr) + 1
 
         drp=dr(i)+dr(i+1)
         drm=dr(i)+dr(i-1)
@@ -384,11 +384,11 @@
       REAL*8 :: v1, v2, v3, u1, u2, u3, um1,um2, vm1, vm2  
       REAL*8 :: drp, dzm, drm, dzp, indrp, indzm, indrm, indzp       
       REAL*8 :: d33
-      INTEGER :: ij_g, i, j
-      ij_g = myij(0,0,ij)
+      INTEGER :: imesh, i, j
+      imesh = myij(0,0,ij)
       CALL subscl(ij)
-      j = ( ij_g - 1 ) / nr + 1
-      i = MOD( ( ij_g - 1 ), nr) + 1
+      j = ( imesh - 1 ) / nr + 1
+      i = MOD( ( imesh - 1 ), nr) + 1
 !
       drp=dr(i)+dr(i+1)
       drm=dr(i)+dr(i-1)
@@ -496,18 +496,18 @@
       REAL*8 :: d12, d11, d22, d33
       REAL*8 :: drp, dzm, drm, dzp, indrp, indzm, indrm, indzp 
       INTEGER :: ij
-      INTEGER :: i, j, k, ij_g
+      INTEGER :: i, j, k, imesh
 !
       CALL data_exchange(uk)
       CALL data_exchange(vk)
 !
       d33=0.D0
       DO ij = 1, nij_l
-        ij_g = myij(0, 0, ij)
+        imesh = myij(0, 0, ij)
         IF(fl_l(ij).EQ.1) THEN
          CALL subscl(ij)
-         j = ( ij_g - 1 ) / nr + 1
-         i = MOD( ( ij_g - 1 ), nr) + 1
+         j = ( imesh - 1 ) / nr + 1
+         i = MOD( ( imesh - 1 ), nr) + 1
 !
          drp=dr(i)+dr(i+1)
          drm=dr(i)+dr(i-1)

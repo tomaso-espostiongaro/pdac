@@ -23,12 +23,12 @@
       REAL*8 :: indrp3, indzp3, indzm3, indrm3
       REAL*8 :: kml, kmb, kmr, kmt
       REAL*8 :: epml, epmb, epmr, epmt
-      INTEGER :: i,j,ij_g
+      INTEGER :: i,j,imesh
       INTEGER :: imj, ijm, ipj, ijp
 !
-      ij_g = myij( 0, 0, ij)
-      j  = ( ij_g - 1 ) / nr + 1
-      i  = MOD( ( ij_g - 1 ), nr) + 1
+      imesh = myij( 0, 0, ij)
+      j  = ( imesh - 1 ) / nr + 1
+      i  = MOD( ( imesh - 1 ), nr) + 1
 !
        imj = myij(-1, 0, ij)
        IF (fl_l(imj) .NE. 1) THEN
@@ -87,12 +87,12 @@
       REAL*8 :: drp2, dzp2, dzm2, drm2
       REAL*8 :: indrp2, indzp2, indzm2, indrm2
       REAL*8 :: rlkml, rlkmb, rlkmr, rlkmt
-      INTEGER :: i, j, ij_g
+      INTEGER :: i, j, imesh
       INTEGER :: imj, ijm, ipj, ijp
 !
-      ij_g = myij( 0, 0, ij)
-      j  = ( ij_g - 1 ) / nr + 1
-      i  = MOD( ( ij_g - 1 ), nr) + 1
+      imesh = myij( 0, 0, ij)
+      j  = ( imesh - 1 ) / nr + 1
+      i  = MOD( ( imesh - 1 ), nr) + 1
 !
       imj = myij(-1, 0, ij)
       IF (fl_l(imj) .NE. 1) THEN

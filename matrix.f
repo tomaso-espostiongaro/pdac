@@ -41,7 +41,7 @@
       INTEGER, INTENT(IN) :: ij
 !
       INTEGER :: ks, kk, ks1, k
-      INTEGER :: i,j,ij_g
+      INTEGER :: i,j,imesh
       INTEGER :: ijm, imj, ijr, ijt, ijl, ijb
       REAL*8 :: drp, dzp, dzm, drm, indrp, indzp, indzm, indrm
       REAL*8 :: ep_w, ep_s, ep_e, ep_n
@@ -50,9 +50,9 @@
       REAL*8, INTENT(IN) :: rlk(:), rlkr(:), rlkt(:), rlkl(:), rlkb(:)
       REAL*8, INTENT(IN) :: rgp, rgpr, rgpt, rgpl, rgpb
 !
-      ij_g = myij(0, 0, ij)
-      j  = ( ij_g - 1 ) / nr + 1
-      i  = MOD( ( ij_g - 1 ), nr) + 1
+      imesh = myij(0, 0, ij)
+      j  = ( imesh - 1 ) / nr + 1
+      i  = MOD( ( imesh - 1 ), nr) + 1
       ijm = myij( 0,-1, ij)
       imj = myij(-1, 0, ij)
       ijr = myinds(r_, ij)
@@ -168,15 +168,15 @@
       REAL*8, INTENT(IN) :: rlk(:), rlkr(:), rlkt(:)
       REAL*8, INTENT(IN) :: rgp, rgpr, rgpt
       INTEGER :: ks, kk, ks1, k
-      INTEGER :: ij_g, i, j
+      INTEGER :: imesh, i, j
       INTEGER :: ijr, ijt
       REAL*8 :: drp, dzp, indrp, indzp
       REAL*8 :: ep_e, ep_n
       REAL*8 :: epk_e, epk_n
 !
-      ij_g = myij( 0, 0, ij)
-      j  = ( ij_g - 1 ) / nr + 1
-      i  = MOD( ( ij_g - 1 ), nr) + 1
+      imesh = myij( 0, 0, ij)
+      j  = ( imesh - 1 ) / nr + 1
+      i  = MOD( ( imesh - 1 ), nr) + 1
       ijr = myinds(r_, ij)
       ijt = myinds(t_, ij)
 !
@@ -238,13 +238,13 @@
       INTEGER, INTENT(IN) :: ij
 !
       INTEGER :: kk, kp1, k, kj, ki
-      INTEGER :: i,j,ij_g
+      INTEGER :: i,j,imesh
       INTEGER :: imj, ijm, ipj, ijp
       REAL*8 :: flt, flr, fll, div, amul, flb
 !
-      ij_g = myij( 0, 0, ij)
-      j  = ( ij_g - 1 ) / nr + 1
-      i  = MOD( ( ij_g - 1 ), nr) + 1
+      imesh = myij( 0, 0, ij)
+      j  = ( imesh - 1 ) / nr + 1
+      i  = MOD( ( imesh - 1 ), nr) + 1
 !
 ! ... Use Gauss-Jordan method for matrix inversion
 !

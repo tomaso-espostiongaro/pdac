@@ -35,7 +35,7 @@
 !
       REAL*8 :: c3, hrexs, hrexg, c2, upxy, c1
       REAL*8 :: drc, dzc
-      INTEGER :: k, m, l, k1, i, j, ij_g
+      INTEGER :: k, m, l, k1
       INTEGER :: ij
 !
       ALLOCATE(at(nphase, nphase))
@@ -50,7 +50,6 @@
 !
 !
       DO ij = 1, nij_l
-        ij_g = myij(0, 0, ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscl(ij)
 !

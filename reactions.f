@@ -34,12 +34,12 @@
       IMPLICIT NONE
 !
       INTEGER :: ij
-      INTEGER :: ij_g
+      INTEGER :: imesh
 !
       ALLOCATE(r1(nijx_l), r2(nijx_l), r3(nijx_l), r4(nijx_l), r5(nijx_l))
 !
       DO ij = 1, nij_l
-          ij_g = myij(0, 0, ij)
+          imesh = myij(0, 0, ij)
           IF(fl_l(ij).EQ.1) THEN
             r1(ij)=0.D0
             r2(ij)=0.D0

@@ -20,18 +20,18 @@
       IMPLICIT NONE
 !
       REAL*8 :: cs(7), cs0
-      INTEGER :: i, j, ij_g
+      INTEGER :: i, j, imesh
       INTEGER :: ij
       INTEGER :: kg
 !
       CALL data_exchange(rgpgc)
 !
       DO ij = 1, nij_l
-       ij_g = myij(0, 0, ij)
+       imesh = myij(0, 0, ij)
        IF(fl_l(ij).EQ.1) THEN
         CALL subscl(ij)
-        j  = ( ij_g - 1 ) / nr + 1
-        i  = MOD( ( ij_g - 1 ), nr) + 1
+        j  = ( imesh - 1 ) / nr + 1
+        i  = MOD( ( imesh - 1 ), nr) + 1
 !
         DO kg=1,ngas
           cs(kg)=rgpgcn(kg,ij)

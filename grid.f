@@ -1089,12 +1089,12 @@
         INTEGER :: nflr, nflt, nfll, nflb
         INTEGER :: nfltr, nfltl, nflbr, nflbl
         INTEGER :: nflrr, nfltt, nflll, nflbb
-        INTEGER :: i, j, ij, ij_g
+        INTEGER :: i, j, ij, imesh
 !
         DO ij = 1, nij_l 
-          ij_g = myij(0, 0, ij)
-          j  = ( ij_g - 1 ) / nr + 1
-          i  = MOD( ( ij_g - 1 ), nr) + 1
+          imesh = myij(0, 0, ij)
+          j  = ( imesh - 1 ) / nr + 1
+          i  = MOD( ( imesh - 1 ), nr) + 1
           IF( (i .GE. 2) .AND. (i .LE. (nr-1)) .AND.   &
               (j .GE. 2) .AND. (j .LE. (nz-1))      ) THEN
 !

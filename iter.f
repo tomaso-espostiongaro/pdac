@@ -40,7 +40,7 @@
 !#include "f_hpm.h" 
 !
 !
-      INTEGER :: i, j , k, ij, ij_g
+      INTEGER :: i, j , k, ij, imesh
       REAL*8 :: rlkx, rlx, dgorig, epx, rlkz
       REAL*8 :: omega0, dgz, dgx
       REAL*8  :: d3, p3
@@ -88,7 +88,7 @@
 ! ... biassed by the wrong pressure field.
 !
       DO ij = 1, nij_l
-        ij_g = myij(0, 0, ij)
+        imesh = myij(0, 0, ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscl(ij)
           CALL matsa(ij, ep(ij), ep(ijr), ep(ijt),            &
@@ -110,8 +110,8 @@
       DO ij = 1, nij_l
         IF(fl_l(ij).EQ.1) THEN
           CALL subscl(ij)
-          ij_g = myij(0, 0, ij)
-          i = MOD( ( ij_g - 1 ), nr) + 1
+          imesh = myij(0, 0, ij)
+          i = MOD( ( imesh - 1 ), nr) + 1
           CALL masfg(rgfr(imj), rgft(ijm), rgfr(ij),rgft(ij), &
                       rnb(ug,ij),rnb(vg,ij),nb(rgp,ij),i)
         END IF
@@ -138,9 +138,9 @@
          DO ij = 1, nij_l
            avloop(ij) = avloop(ij) + 1
 
-           ij_g = myij(0, 0, ij)
-           j  = ( ij_g - 1 ) / nr + 1
-           i  = MOD( ( ij_g - 1 ), nr) + 1
+           imesh = myij(0, 0, ij)
+           j  = ( imesh - 1 ) / nr + 1
+           i  = MOD( ( imesh - 1 ), nr) + 1
            
             CALL subscl(ij)
 
@@ -213,7 +213,7 @@
 !
                 CALL eosg(rags,rog(ij),cp(:,ij),cg(ij),      &    
                           tg(ij),ygc(:,ij), xgc(:,ij),       &
-                          sieg(ij), p(ij), 0, 1, 0, ij_g)
+                          sieg(ij), p(ij), 0, 1, 0, imesh)
 
                 rgp(ij) = ep(ij) * rog(ij)
 
@@ -352,9 +352,9 @@
  500      FORMAT('time =', F8.3)
       END IF
       DO ij=1,nij_l
-           ij_g = myij(0, 0, ij)
-           j  = ( ij_g - 1 ) / nr + 1
-           i  = MOD( ( ij_g - 1 ), nr) + 1
+           imesh = myij(0, 0, ij)
+           j  = ( imesh - 1 ) / nr + 1
+           i  = MOD( ( imesh - 1 ), nr) + 1
         IF (avloop(ij) .GT. 5*avlp) THEN
           WRITE(7,*) 'Averaged nb. of inner loop', avlp
           WRITE(7,*) 'in (i,j)=',i,j,' avloop=',avloop(ij)
@@ -488,16 +488,16 @@
       REAL*8 :: gam, csound
        
       INTEGER :: nflb, nflt, nfll, nflr
-      INTEGER :: i, j, ij_g
+      INTEGER :: i, j, imesh
       INTEGER, INTENT(IN) :: ij
       REAL*8, INTENT(OUT) :: cnv, abt
 !
       REAL*8, PARAMETER :: delg=1.D-8
 !
-          ij_g = myij(0, 0, ij)
+          imesh = myij(0, 0, ij)
           CALL subscl(ij)
-          j  = ( ij_g - 1 ) / nr + 1
-          i  = MOD( ( ij_g - 1 ), nr) + 1
+          j  = ( imesh - 1 ) / nr + 1
+          i  = MOD( ( imesh - 1 ), nr) + 1
 
           drp=dr(i)+dr(i+1)
           drm=dr(i)+dr(i-1)

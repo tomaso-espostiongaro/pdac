@@ -32,16 +32,16 @@
        t1nn, tc1n, tcn                        
       REAL*8 :: dz1, dzc, dr1, drc, indrc
 
-      INTEGER :: i, j, ij_g, k, kg
+      INTEGER :: i, j, imesh, k, kg
       INTEGER :: n2, nflr, nflt, nfll, nflb
       INTEGER :: nflbr, nfltr, nfllt, nfllb
       INTEGER :: ij
       INTEGER :: mm
 !
       DO ij = 1, nij_l
-        ij_g = myij(0, 0, ij)
-        j = ( ij_g - 1 ) / nr + 1
-        i = MOD( ( ij_g - 1 ), nr) + 1
+        imesh = myij(0, 0, ij)
+        j = ( imesh - 1 ) / nr + 1
+        i = MOD( ( imesh - 1 ), nr) + 1
         IF(fl_l(ij).EQ.1) THEN
           CALL subscl(ij)
 !
@@ -62,7 +62,7 @@
             IF (ipj .GT. nij_l .AND. time .EQ. dt) THEN
              WRITE(8,*) 'right bdry'
              WRITE(8,*) 'warning: boundary cell not belonging to proc', mpime
-             WRITE(8,*) 'ij, i, j, ij_g', ij, i, j, ij_g
+             WRITE(8,*) 'ij, i, j, imesh', ij, i, j, imesh
             END IF
             SELECT CASE (nflr) 
 
@@ -217,8 +217,8 @@
             n2 = ijp
             IF (ijp .GT. nij_l .AND. time .EQ. dt) THEN
              WRITE(8,*) 'top bdry'
-       WRITE(8,*) 'warning: boundary cell not belonging to proc', mpime
-             WRITE(8,*) 'ij, i, j, ij_g', ij, i, j, ij_g
+             WRITE(8,*) 'warning: boundary cell not belonging to proc', mpime
+             WRITE(8,*) 'ij, i, j, imesh', ij, i, j, imesh
             END IF
 
             SELECT CASE (nflt)
@@ -393,7 +393,7 @@
             IF (imj .GT. nij_l .AND. time .EQ. dt) THEN
              WRITE(8,*) 'left bdry'
        WRITE(8,*) 'warning: boundary cell not belonging to proc', mpime
-             WRITE(8,*) 'ij, i, j, ij_g', ij, i, j, ij_g
+             WRITE(8,*) 'ij, i, j, imesh', ij, i, j, imesh
             END IF
             SELECT CASE (nfll)
             CASE (2)
@@ -529,7 +529,7 @@
             IF (ijm .GT. nij_l .AND. time .EQ. dt) THEN
              WRITE(8,*) 'bottom bdry'
              WRITE(8,*) 'warning: boundary cell not belonging to proc', mpime
-             WRITE(8,*) 'ij, i, j, ij_g', ij, i, j, ij_g
+             WRITE(8,*) 'ij, i, j, imesh', ij, i, j, imesh
             END IF
             SELECT CASE (nflb)
             CASE (2)

@@ -42,7 +42,7 @@
 !
       REAL*8 :: drp, dzp, indrp, indzp
       REAL*8 :: rgp_e, rgp_n, rlk_e, rlk_n
-      INTEGER :: k, i, j, ij, ij_g
+      INTEGER :: k, i, j, ij, imesh
 !
       IF (ALLOCATED(rugn)) DEALLOCATE(rugn)
       IF (ALLOCATED(rvgn)) DEALLOCATE(rvgn)
@@ -59,11 +59,11 @@
       CALL data_exchange(rlk)
 !
       DO ij = 1, nij_l
-       ij_g = myij(0,0,ij)
+       imesh = myij(0,0,ij)
        IF(fl_l(ij).EQ.1) THEN
          CALL subscl(ij)
-         j = ( ij_g - 1 ) / nr + 1
-         i = MOD( ( ij_g - 1 ), nr) + 1
+         j = ( imesh - 1 ) / nr + 1
+         i = MOD( ( imesh - 1 ), nr) + 1
 !
          drp=dr(i)+dr(i+1)
          dzp=dz(j)+dz(j+1)
@@ -112,7 +112,7 @@
       IMPLICIT NONE
       SAVE
 !
-      INTEGER :: i, j, k, ij_g
+      INTEGER :: i, j, k, imesh
       INTEGER :: ij
       REAL*8 :: drp, dzp, indrp, indzp, epsz, epsx, gepz, gepx
       REAL*8 :: ugfx, ugfy, vgfx, vgfy
@@ -199,7 +199,7 @@
 ! ... in the whole computational domain.
 !
       DO ij = 1, nij_l
-        ij_g = myij(0,0,ij)
+        imesh = myij(0,0,ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscl(ij)
           CALL fu_rt(ugfr(ij), ugft(ij), nb(rgp,ij),             &
@@ -230,11 +230,11 @@
 ! ... On boundaries, fluxes on left and bottom sides must be calculated
 !
       DO ij = 1, nij_l
-        ij_g = myij(0,0,ij)
+        imesh = myij(0,0,ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscl(ij)
-          j = ( ij_g - 1 ) / nr + 1
-          i = MOD( ( ij_g - 1 ), nr) + 1
+          j = ( imesh - 1 ) / nr + 1
+          i = MOD( ( imesh - 1 ), nr) + 1
 !
           drp=dr(i)+dr(i+1)
           dzp=dz(j)+dz(j+1)
