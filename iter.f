@@ -414,8 +414,8 @@
 
       DEALLOCATE(conv)
       DEALLOCATE(abeta)
-
       DEALLOCATE(converge)
+      IF( ALLOCATED( amats ) )  DEALLOCATE( amats )
 !
       RETURN
       END SUBROUTINE iter
