@@ -19,7 +19,6 @@
         IMPLICIT NONE
         PRIVATE
 
-        LOGICAL :: old_restart = .FALSE.
         LOGICAL :: dump_all = .FALSE.
 
         REAL*8 :: max_seconds
@@ -28,7 +27,6 @@
            MODULE PROCEDURE read_array_dpara, read_array_sserial
         END INTERFACE
 
-        PUBLIC :: old_restart
         PUBLIC :: taperd, tapewr
         PUBLIC :: write_array, read_array
         PUBLIC :: max_seconds
@@ -203,7 +201,7 @@
         CALL error(' taperd ',' inconsistent dimension nz ', nz_ )
       IF( nsolid_ /= nsolid ) &
         CALL error(' taperd ',' inconsistent dimension nsolid ', nsolid_ )
-      IF( ngas_ /= ngas .AND. .NOT. old_restart ) &
+      IF( ngas_ /= ngas ) &
         CALL error(' taperd ',' inconsistent dimension ngas ', ngas_ )
 
       !

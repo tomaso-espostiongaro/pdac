@@ -16,6 +16,7 @@
       PROGRAM pdac
 
       USE control_flags, ONLY: itp
+      USE blunt_body, ONLY: set_blunt
       USE dimensions
       USE domain_decomposition, ONLY: partition, ghost
       USE eos_gas, ONLY: allocate_eosg
@@ -94,6 +95,7 @@
         IF( .NOT. debug ) OPEN(UNIT=logunit,   FILE=logfile,   STATUS='UNKNOWN')
         OPEN(UNIT=testunit,  FILE=testfile,  STATUS='UNKNOWN')
         OPEN(UNIT=errorunit, FILE=errorfile, STATUS='UNKNOWN')
+        OPEN(15,FILE='body.dat')
       ELSE
         IF( .NOT. debug ) OPEN(UNIT=logunit,   FILE=lognb,   STATUS='UNKNOWN')
         OPEN(UNIT=testunit,  FILE=testnb,    STATUS='UNKNOWN')
@@ -169,6 +171,8 @@
           s3 = cpclock()
           call MP_WALLTIME(pt3,mpime)
       END IF
+!
+      CALL set_blunt
 !
 ! ... Attention!: all further operations are executed
 ! ... by each processor on local data
@@ -251,10 +255,11 @@
 110   FORMAT( ' This run ended at ', I2, ':', I2, ':', I2, 3X, 'day ', I2, &
               ' month ', I2, ' year ', I4 )
 !
-      CLOSE(5)
-      IF( .NOT. debug ) CLOSE(6)
-      CLOSE(7)
-      CLOSE(8)
+      CLOSE(inputunit)
+      IF( .NOT. debug ) CLOSE(logunit)
+      CLOSE(errorunit)
+      CLOSE(testunit)
+      CLOSE(15)
 !
 ! ... Finalize parallel environment
 !

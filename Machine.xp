@@ -2,7 +2,7 @@
 #MACROS= -D__MPI
 MACROS= -D__SCALAR
 #----------------------------------------
-CPPFLAGS= -WF,$(MACROS)
+CPPFLAGS= $(MACROS)
 LINKFLAGS= 
 LIBS=
 FREEFORM= -Mfree
@@ -17,8 +17,8 @@ LINKER=pgf90
 .SUFFIXES:.F
 
 .F.o:
-	$(CPP) $(CPPFLAGS) $*.F $*.F90
-	$(MPFC) -c $(MPFFLAGS) $(MODULES) $*.F90 -o $*.o
+	$(CPP) $(CPPFLAGS) $*.F
+	$(MPFC) -c $(MPFFLAGS) $(MODULES) $*.F -o $*.o
 	touch $*.o
 
 .f.o:

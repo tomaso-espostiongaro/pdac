@@ -79,6 +79,7 @@
       USE atmospheric_conditions, ONLY: gravx, gravy, gravz
       USE atmospheric_conditions, ONLY: wind_x, wind_y, wind_z, &
           p_ground, t_ground, void_fraction, max_packing
+      USE blunt_body, ONLY: ibl, nblu
       USE control_flags, ONLY: nfil, job_type, lpr, immb, itp
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
       USE domain_decomposition, ONLY: mesh_partition
@@ -93,7 +94,7 @@
           u_gas, v_gas, w_gas, p_gas, t_gas,                          &
           u_solid, v_solid, w_solid,  ep_solid, t_solid
       USE iterative_solver, ONLY: inmax, maxout, omega
-      USE io_restart, ONLY: old_restart, max_seconds
+      USE io_restart, ONLY: max_seconds
       USE output_dump, ONLY: formatted_output
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl, kap, &
@@ -113,7 +114,7 @@
 
       NAMELIST / control / run_name, job_type, restart_mode,       &
         time, tstop, dt, lpr, tpr, tdump, nfil,                    &
-        formatted_output, old_restart, max_seconds
+        formatted_output, max_seconds
 
       NAMELIST / model / irex, gas_viscosity, part_viscosity,      &
         iss, repulsive_model, iturb, modturbo, cmut, rlim,         &
@@ -125,7 +126,7 @@
         origin_x, origin_y, origin_z, mesh_partition
 
       NAMELIST / boundaries / west, east, south, north, bottom, top, &
-        itp, topography, immb
+        itp, topography, immb, ibl
       
       NAMELIST / inlet / ivent, xvent, yvent, radius, u_gas, v_gas, w_gas,  &
         p_gas, t_gas, u_solid, v_solid, w_solid, ep_solid, t_solid, &
@@ -164,7 +165,6 @@
       tdump = 20.0D0    ! write restart every tdump seconds of simulated time
       nfil = 0          ! output file index
       formatted_output = .TRUE.
-      old_restart = .FALSE.
       max_seconds = 20000.0
 
 ! ... Model
@@ -212,6 +212,7 @@
       itp   = 0               ! itp = 1 => read topography from file
       topography = 'topo.dat' ! file containing the topographic profile
       immb  = 0               ! 1: use immersed boundaries
+      ibl  = 0                ! 1: compute drag and lift on blocks
 
 ! ... Inlet
 
@@ -319,7 +320,6 @@
             CALL iotk_write_dat( iuni_nml, "tpr", tpr )
             CALL iotk_write_dat( iuni_nml, "tdump", tdump )
             CALL iotk_write_dat( iuni_nml, "nfil", irex )
-            CALL iotk_write_dat( iuni_nml, "old_restart", old_restart )
             CALL iotk_write_dat( iuni_nml, "max_seconds", max_seconds )
           CALL iotk_write_end( iuni_nml, "control" )
         END IF
@@ -336,7 +336,6 @@
       CALL bcast_real(tdump,1,root)
       CALL bcast_integer(nfil,1,root)
       CALL bcast_logical(formatted_output,1,root)
-      CALL bcast_logical(old_restart,1,root)
       CALL bcast_real(max_seconds,1,root)
 
       SELECT CASE ( TRIM(restart_mode) )
@@ -458,6 +457,7 @@
               WRITE( iuni_nml, * ) topography
             CALL iotk_write_end( iuni_nml, "topography" )
             CALL iotk_write_dat( iuni_nml, "immb", immb )
+            CALL iotk_write_dat( iuni_nml, "ibl", ibl )
           CALL iotk_write_end( iuni_nml, "boundaries" )
         END IF
       END IF
@@ -471,6 +471,7 @@
       CALL bcast_integer(itp,1,root)
       CALL bcast_character(topography,80,root)
       CALL bcast_integer(immb,1,root)
+      CALL bcast_integer(ibl,1,root)
 !
 ! ... Inlet Namelist ................................................
 !
@@ -775,6 +776,7 @@
         END DO fixed_flows_search
 
         READ(5,*) number_of_block
+        IF (ibl >= 1) READ(5,*) nblu(1:number_of_block)
 
         IF (job_type == '2D') THEN
 
@@ -856,6 +858,7 @@
 
       CALL bcast_integer(number_of_block, 1, root)
       IF (number_of_block > 0) THEN
+        CALL bcast_integer(nblu, SIZE(nblu), root)
         CALL bcast_integer(block_type, SIZE(block_type), root)
         CALL bcast_integer(block_bounds, SIZE(block_bounds), root)
         CALL bcast_real(fixed_vgas_x, SIZE(fixed_vgas_x), root)
