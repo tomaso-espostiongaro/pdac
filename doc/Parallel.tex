@@ -1,0 +1,229 @@
+\section{Parallel Implementation}
+%
+The parallelization strategy adopted in PDAC2D is based on a domain decomposition
+of the real space grid using a SIMDA (Single Instruction Multiple Data) paradigm
+within a message passing scheme. This technique consists in the decomposition
+of the numerical mesh among N processors. Each processor solve the whole set of
+the model equations (Single Program) on its local data (Multiple Data),
+that are not accessible to other processors.
+
+%
+The details of the parallel implementation of PDAC2D are
+presented following the main logical steps:
+\begin{enumerate}
+\item domain decomposition
+\item construction of processors maps
+\item setting of indexes
+\item construction of the receive maps and send maps
+\item communication interfaces
+\end{enumerate}
+% 
+\subsection{Domain decomposition}
+The computational domain
+is discretized into a structured rectilinear mesh, so that the total number
+of cells is given by the number of rows times the number of columns.
+The parallelization strategy is based on the distribution of the 
+computational cells among processors.
+Solid obstacles or topographic reliefs on a structured rectilinear mesh are 
+approximated by introducing {\em blocking cells}, where solid boundary 
+conditions are specified and fluid flow is not computed.
+In the case of a large number of blocking cells, a regular domain decomposition
+would result into ad unbalanced load\\
+\newpage
+Cells are subdivided into five classes:
+\begin{itemize}
+\item fluid cells, where all the model equations are solved according to the described solution precedure (flag = 1);
+\item axial cells (flag = 2) and solid walls (flag = 3), where the velocity 
+field is imposed according with the assumed boundary conditions; 
+\item atmospheric boundary cells (flag = 4), where free in/out-flow 
+condition are accounted for by solving a reduced set of differential 
+equations, specifically the transport mass and momentum balance equations 
+for the mixture;
+\item specified fluid cells (flag = 5), where the pressure, temperature, 
+volume fraction and velocity fields are specified for each phase.
+\end{itemize}
+
+The domain decomposition algorithm assignes a computational weight to each type 
+of cells and subdivides the computational domain
+among $N$ processors so that each sub-domain has the same total weight.\\
+A weight of 1 is assigned to fluid cells (flag = 1),
+while a weight of 0 is assigned to the other types (flag = 2,3,4,5). 
+The domain decomposition algorithm then subdivides the domain so that each processor
+has the same number of cells of type 1, following these main steps:.\\
+\begin{enumerate}
+\item Counts the number of each cell type, and subdivides the number $F1$ of ``flag-type 1''
+cells among the number of processors $N$.
+\item {\bf Layers:} the mesh is decomposed into horizontal layers with equal total number
+$f1$ of ``flag-type 1'' cells (Fig.~\ref{fig:Ves_part}, left). The procedure simply sweeps across
+the grid from bottom to top and counts the number of computational cells in each row from
+left to right (main sweep). Cells are assigned to a single process until the correct number 
+of sub-domain cells $f1$ is reached, then the process rank is increased until every 
+process has an equal number of computational cells.
+\item {\bf Blocks:} tries to subdivide the mesh into blocks with a shape factor near one
+(approximately squared) (Fig.~\ref{fig:Ves_part}, right). The procedure determines the best number
+$n_y$ of vertical layers and the number of processor blocks within each layer.
+\begin{enumerate}
+\item computes $\displaystyle n_x = INT\left(\frac{ndi}{\sqrt(F1/N)}\right)$, where $ndi$ is the
+number of grid cells in the $x$ direction;
+\item compute the number of layers $n_y$ so that $n_x \times n_y \ge N$;
+\item if $n_x \times n_y = N$ each layer will be subdivided into $n_x$ blocks, and each layer
+will have the same number $f1$ of computational cells. If $n_x \times n_y > N$, the first 
+layer will be subdivided into $MOD(N,n_x)$ blocks. Each block is then assigned to 
+a process. Since each process must have the same number of computational cells, the number
+of blocks of each layer determines the total number of cells within the layer. The vertical
+decomposition into layers can now be performed proceeding across the grid following the
+main sweep;
+\item finally, each layer is subdivided vertically into the previously computed number
+of blocks. 
+\end{enumerate}
+\end{enumerate}
+The number of interporcessor boundary cells growths approximately as $\sqrt{N}$ in the blocks
+decomposition and as $N$ in the layers decomposition.\\
+
+%
+\begin{figure}[htb]
+\setlength{\unitlength}{1mm}
+\begin{center}
+\begin{minipage}{6cm}
+\centerline{\psfig{figure=./4blocchi.ps,height=4.5 cm,angle=0}}
+\end{minipage}
+\begin{minipage}{6cm}
+\centerline{\psfig{figure=./4layers.ps,height=4.5 cm,angle=0}}
+\end{minipage}
+\end{center}
+\caption{Example of domain decompositions with balanced distribution of
+the fluid cells in four blocks (left) or four layers (right).
+The domain is axisymmetric so that the figure represents a poloidal
+half-plane with the simmetry axis on the left hand-side boundary and
+the volcano topography at the bottom. In these figures the cells are represented
+with a uniform size so that the areas of the computational sub-domains
+are equal.\label{fig:Ves_part}}
+\end{figure}
+%
+
+Communication between processors allows the exchange of the flow variables
+at the boundaries between sub-domains and the convergence of the solution
+in the global domain (it is worth noting that the
+boundary data exchange is required at each iteration of the point-by-point
+procedure solving the implicit algebraic system of PDE).
+Boundary values of neighbour processors are allocated in a virtual
+frame surrounding the processor sub-domain (ghost-cells). This technique
+enables the reduction of the communication time with a relatively low cost
+in terms of memory occupance.
+In the next sections, a more detailed explanation of the implementation of communication
+routines is presented.
+%
+\subsection{Processor-maps}
+A processor-map is a function that, for each index in the main grid, returns the rank
+of the processor that owns the corresponding cell, and the index that identifies the
+cell in the local sub-domain.
+
+In PDAC2D any domain decomposition could be in principle implemented, provided that a 
+simple enough proc-map can be designed.
+For layers, the processor map is simply given by a couple of integers,
+representing the indexes of the first and the last cells of the layer, following
+the main sweep 1D arrangement.  Each process can thus recover
+the informations on the domain decomposition if it knows all processor maps.\\
+For blocks one needs the 2D coordinates (two indexes) of the left-bottom and
+top-right corner of the sub-domains.
+
+The processors map allows a fast and memory-cheap way to define the relations
+between the global index, the number of processor and the local index 
+within the sub-domain, for a given cell.\\
+%
+\subsection{Mesh Indexes}
+Cells within a sub-domain are ordered as in the main sweep, from bottom to top and
+from left to right. {\tt nij\_l} is the (local) number of cells in a subdomain.
+As a first step, each processor counts the total number of external ghost cells
+needed during a computational cycle (the identification of the ``owner'' is 
+possible thanks to processor maps). If {\tt nije\_l} is the total number of these 
+cells, it must allocate an array of dimension {\tt nije\_l} to store the data received
+from its neighbours. Ghost cells are appended to the local arrays, as represented
+in Fig.~\ref{fig:myij}, and the {\tt myij} and {\tt myinds} arrays are implemented,
+ to store and access values allocated in the ghost cells and to promptly
+identify cells neighbours when needed for computation.\\
+The array {\tt myij} is built as a matrix with rank=3 and size 
+$nb \times {\tt nij\_l}$ where $nb$ is the number of neighbour cells 
+needed for computation and {\tt nij\_l} is the dimension of each processor
+sub-domain.\\
+The first index of the matrix runs over the neighbour order in the $r$ or $x$ 
+direction, the second index runs over the neighbour order in the $z$ or $y$ 
+direction, the third index runs over the cell of the processor sub-domain.
+The array dimensions are thus {\tt myij(-2:2,-2:2,nij\_l)}.\\ 
+When computation proceeds, in a loop over the computational
+cell of one processor's sub-domain:
+\begin{enumerate}
+\item ${\tt myij}(0,0,ijl)$ gives the GLOBAL index (the index running 
+      over the main grid) corresponding to the LOCAL index $ijl$;
+\item ${\tt myij}(n,m,ijl)$ gives the LOCAL index that identifies the neighbour
+      cell shifted by $n$ and $m$ positions in $r$ (or $x$) direction 
+      and in the $z$ (or $y$) direction, respectively, with respect to $ijl$. 
+\item As already pointed out, the only values corresponding to
+      second neighbours that are used in the code are those represented as
+      {\tt myij($\pm$2,0,ijl)} and {\tt myij(0,$\pm$2,ijl)}. Those not used
+      are set to 0.
+\end{enumerate}
+
+On boundaries, the number and type of neighbour cells that must be considered
+in the computation is different from the internal cells. The array
+{\tt myinds} duplicates the array {\tt myij} (although it has a different notation)
+in the internal cells and considers boundary conditions on boundaries.\\ 
+%
+\subsection{Receive and Send-maps}
+%
+Once indexes have been set, every processor build a map of the ghost cells
+to ask to the neighbour processors. The {\tt receive\_map} is 
+defined as a new variable type from which each processor can obtain the following informations:
+\begin{enumerate}
+\item the number of elements he must receive from a given neighbour processor;
+\item the GLOBAL indexes of all these elements;
+\item the LOCAL indexes to be assigned to these elements.
+\end{enumerate}
+Each processor allocates the {\tt receive\_map} as an array with an entry for every 
+external processors. It then scatters the array to send a request to other 
+processes for those indexes contained in the receive-map.\\
+After each processor has received the request from the others,
+it sets out the relative send\_maps. The {\tt send\_map} is defined as a new variable
+type, containing the following elements:
+\begin{enumerate}
+\item the number of elements he must send to a given neighbour processor;
+\item the GLOBAL indexes of these elements;
+\item the LOCAL indexes of these elements in my sub-domain.
+\end{enumerate}
+Each processor allocates an array of send\_maps with an entry for each external processor.
+%
+\subsection{Data exchange}
+%
+Buffers for the standard blocking {\em send-receive} MPI procedure are filled 
+accordingly to the {\tt send\_map} and {\tt receive\_map} for each processor.\\
+The processors are put in increasing order from 0 to $N-1$, with processor
+0 following processor $N-1$ and preceeding processor 2. 
+The {\tt data\_exchange} requires $N-1$ communication step: at the first step the generic 
+processor $P$ sends data to $P+1$ and receives data form $P-N+1$;
+at the second step it sends data to $P+2$ and receives from $P-N+2$; 
+at the $(N-1)$th step it send data to $P+N-1=P-1$ and receives data from $P-N+(N-1)=P+1$.\\ 
+In fig. \ref{fig:data-exchange} the communication scheme is sketched for $N=5$.\\
+\begin{figure}[h]
+\centerline{\psfig{figure=./exchange.eps,height=5cm}}
+\caption{\label{fig:data-exchange} Communication steps in {\tt data\_exchange} for 5 processors}
+\end{figure}
+\par
+%
+\subsection{Communication Interfaces}
+%
+\subsubsection{Data exchange}
+%
+The {\tt data\_exchange} interface is set so that each processor exchanges
+data with others calling the {\em send-receive} MPI routine.\\ 
+Once the communication scheme is set, the {\tt data\_exchange} interface 
+is completely transparent, providing a direct way to store and access values 
+allocated in the ghost-cells,and allowing the user to somehow forget the 
+nature of the communication itself. 
+The call to the data exchange procedure is overloaded, so that it can be used
+for any variable type.  When a variable ({\em array}) is
+ updated, if its value must be exchanged at boundaries the communication is invoked by
+simply calling:
+\begin{displaymath}
+\tt CALL \quad data\_exchange({\em array})
+\end{displaymath}
+\clearpage%

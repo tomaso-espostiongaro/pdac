@@ -1,0 +1,6 @@
+rm -f *aux
+rm -f *log
+rm -f *dvi
+rm -f *toc
+rm -f *bbl
+rm -f *blg
