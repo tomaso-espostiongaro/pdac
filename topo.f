@@ -212,7 +212,7 @@
       USE grid, ONLY: center_x, center_y
       IMPLICIT NONE
       INTEGER :: i, j, icenter, jcenter, distance, m
-      INTEGER :: dms, max_distance
+      INTEGER :: dms
       REAL*8, ALLOCATABLE :: av_quota(:)
       INTEGER, ALLOCATABLE :: nk(:)
 !
@@ -222,29 +222,39 @@
       av_quota = 0.D0
       nk       = 0
 !
+      ! ... Find the topographic element much closer
+      ! ... to the vent center
+      !
       DO i = 1, vdem%nx
         IF (xtop(i) <= center_x) icenter = i
       END DO
       DO j = 1, vdem%ny
         IF (ytop(j) <= center_y) jcenter = j
       END DO
+!      
+      ! ... The vent center must coincide with the
+      ! ... topographic element
+      !
       center_x = xtop(icenter)
       center_y = ytop(jcenter)
 !
-      max_distance = 0
+      ! ... Average the topography over axisymmetrix layers
+      !
       DO j = 1, vdem%ny
         DO i = 1, vdem%nx
           distance = (i - icenter)**2 + (j - jcenter)**2
           av_quota(distance) = av_quota(distance) + ztop2d(i,j)
           nk(distance) = nk(distance) + 1
-          IF (distance > max_distance) max_distance = distance
         END DO
       END DO
-      !
+!
       DO m = 1, dms
         IF( nk(m) > 0 ) av_quota(m) = av_quota(m) / nk(m)
       END DO
 !      
+      ! ... Assign the new averaged values to the
+      ! ... topographic arrays
+      !
       DO j = 1, vdem%ny
         DO i = 1, vdem%nx
           distance = (i - icenter)**2 + (j - jcenter)**2
@@ -313,7 +323,7 @@
         ! ... Translate vertically the mesh to minimize the
         ! ... number of topographic cells
         !
-        transl_z = MINVAL(topo)
+        transl_z = MINVAL(topo) 
         IF( mpime == root ) THEN
           WRITE(6,*) 'Translating mesh vertically'
           WRITE(6,*) 'Minimum topographic quota: ', transl_z

@@ -93,11 +93,15 @@
 ! ... Modify the topography at the base of the crater to
 ! ... flatten the profile around the vent
 !
-      base_radius = MAX(1.5D0*radius, base_radius)
+      IF( base_radius < 2.0D0*radius ) THEN
+              base_radius = 2.0D0*radius
+              WRITE(8,*) 'WARNING! control the crater base!'
+      END IF
+!      
       DO j = 1, vdem%ny
         DO i = 1, vdem%nx
           IF( (xtop(i)-xvent)**2 + (ytop(j)-yvent)**2 <= base_radius**2 ) THEN
-            ztop2d(i,j) = zb(kv)
+            ztop2d(i,j) = zb(quota)
           END IF
         END DO
       END DO

@@ -71,14 +71,12 @@
 !
 ! ... Update inlet cells for non-stationnary boundary conditions
 !
-        IF (flag(ijk) == 5) THEN
-
-                IF (irand >= 1) CALL update_inlet_cell(ijk)
-
-        ELSE IF (flag(ijk) == 8) THEN
-
-                IF (irand >= 1) CALL update_ventc(ijk,imesh,sweep)
-
+        IF (irand >= 1) THEN
+          IF (flag(ijk) == 5) THEN
+            CALL update_inlet_cell(ijk)
+          ELSE IF (flag(ijk) == 8) THEN
+            CALL update_ventc(ijk,imesh,sweep)
+          END IF
         END IF
 !
 ! ... In fluid cells and immersed boundaries, update the 
