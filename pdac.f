@@ -223,8 +223,6 @@
 !
 ! ... Time advancement loop
 !
-      CALL error('main','debug',1)
-      
       CALL prog
 !
         IF (timing ) THEN
