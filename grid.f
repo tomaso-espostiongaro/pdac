@@ -63,7 +63,7 @@
       REAL*8 :: alpha_x, alpha_y, alpha_z
 !
 ! ... coordinates of the mesh 'center'
-      REAL*8 :: center_x, center_y, center_z
+      REAL*8 :: center_x, center_y
 !
 ! ... flag for increasing cell sizes: 1-constant rate; 2-constant slope
       INTEGER :: grigen

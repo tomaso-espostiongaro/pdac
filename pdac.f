@@ -147,15 +147,15 @@
 ! ... Read topography file 
 !
       IF (itp >= 1)  CALL read_topo
- 
-! ... Define volcanic vent position on 3D topography
-!
-!      IF (ivent >= 1) CALL locate_vent
 
 ! ... Import the topography on the computational mesh 
 ! ... and set immersed boundary parameters
 !
       IF (itp >= 1) CALL import_topo
+ 
+! ... Define volcanic vent position on the 3D topography
+!
+      IF (ivent >= 1) CALL locate_vent
 !
 ! ... Domain decomposition for parallelization 
 !
@@ -223,6 +223,8 @@
 !
 ! ... Time advancement loop
 !
+      CALL error('main','debug',1)
+      
       CALL prog
 !
         IF (timing ) THEN

@@ -11,24 +11,23 @@
 ! ... The UTM map number is lost.
 ! ... 'nx' and 'ny' are the number of pixel in x and y directions
 ! ... 'xcorner' is the distance in metres from the reference meridian
-! ...             of the lowerleft corner + 500,000m !
+! ...             of the upperleft corner + 500,000m !
 ! ... 'ycorner' is the distance in metres from the equator of the
-! ...             lowerleft corner
+! ...             upperleft corner
 ! ... 'cellsize'  is the cell spacing in metres
 ! ... 'nodata_value' is the value assigned to missing data 
 ! ... 'elev'      is the elevation (in centimetres)
 !
-      TYPE dem_ascii
+      TYPE dem_header
         INTEGER :: nx      
         INTEGER :: ny      
         REAL*8  :: xcorner  
         REAL*8  :: ycorner  
         REAL*8  :: cellsize   
         REAL*8  :: nodata_value
-        REAL*8, ALLOCATABLE :: z(:,:) 
-      END TYPE dem_ascii
+      END TYPE dem_header
 
-      TYPE(dem_ascii) :: vdem
+      TYPE(dem_header) :: vdem
 !
 ! ... coordinates of the input mesh
 !
@@ -55,7 +54,7 @@
 
 ! ... input topography points
 !
-      REAL*8, ALLOCATABLE :: xtop(:), ytop(:), ztop(:) 
+      REAL*8, ALLOCATABLE :: xtop(:), ytop(:), ztop(:), ztop2d(:,:)
       INTEGER :: noditop, noditopx, noditopy
 !
       SAVE
@@ -137,7 +136,7 @@
       READ(3,*) vdem%cellsize
       READ(3,*) vdem%nodata_value
 !
-      ALLOCATE(vdem%z(vdem%nx,vdem%ny))
+      ALLOCATE(ztop2d(vdem%nx,vdem%ny))
 !
       ALLOCATE(xtop(vdem%nx))
       ALLOCATE(ytop(vdem%ny))
@@ -154,7 +153,7 @@
           READ(3,*) elevation
           elevation = elevation / 100.D0 ! elevation in metres
 
-          vdem%z(i,j) = elevation
+          ztop2d(i,j) = elevation
 
         END DO
 
@@ -205,6 +204,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE vertical_shift(topo2d)
       USE grid, ONLY: z, zb, dz
+      USE grid, ONLY: iv, jv, kv
       IMPLICIT NONE
       REAL*8, INTENT(IN), DIMENSION(:,:) :: topo2d
       REAL*8 :: transl_z
@@ -225,6 +225,10 @@
       WRITE(17,*) zb
 
       CLOSE(17)
+!
+! ... define the ordinate of the vent
+!
+      kv = ord2d(iv,jv)
 
       RETURN
       END SUBROUTINE vertical_shift
@@ -394,11 +398,11 @@
 	      dist2y = ytop(nexty(j)) - cy(j)
 	      beta   = dist1y/(dist1y+dist2y)
 
-              tp1    = alpha * vdem%z(nextx(i),nexty(j))   + &
-                       (1.D0 - alpha) * vdem%z(nextx(i)-1,nexty(j))
+              tp1    = alpha * ztop2d(nextx(i),nexty(j))   + &
+                       (1.D0 - alpha) * ztop2d(nextx(i)-1,nexty(j))
 
-              tp2    = alpha * vdem%z(nextx(i),nexty(j)-1) + &
-                       (1.D0 - alpha) * vdem%z(nextx(i)-1,nexty(j)-1)
+              tp2    = alpha * ztop2d(nextx(i),nexty(j)-1) + &
+                       (1.D0 - alpha) * ztop2d(nextx(i)-1,nexty(j)-1)
 
               topo2d(i,j) = beta * tp1 + (1.D0 - beta) * tp2
 

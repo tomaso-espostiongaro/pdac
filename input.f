@@ -80,7 +80,7 @@
       USE grid, ONLY: west, east, south, north, bottom, top, topography
       USE grid, ONLY: domain_x, domain_y, domain_z, n0x, n0y, n0z
       USE grid, ONLY: alpha_x, alpha_y, alpha_z
-      USE grid, ONLY: center_x, center_y, center_z
+      USE grid, ONLY: center_x, center_y
       USE grid, ONLY: dxmin, dxmax, dymin, dymax, dzmin, dzmax
       USE grid, ONLY: maxbeta, grigen
       USE initial_conditions, ONLY: density_specified
@@ -115,7 +115,7 @@
       NAMELIST / pp / first_out, last_out, incr_out
 
       NAMELIST / mesh / nx, ny, nz, itc, iuni, dx0, dy0, dz0, zzero, &
-        center_x, center_y, center_z, alpha_x, alpha_y, alpha_z,  &
+        center_x, center_y, alpha_x, alpha_y, alpha_z,  &
         dxmin, dxmax, dymin, dymax, dzmin, dzmax, n0x, n0y, n0z,     &
         domain_x, domain_y, domain_z, maxbeta, grigen, mesh_partition
 
@@ -206,7 +206,6 @@
       alpha_z  = 0.0D0        !  default z coo. of the mesh center
       center_x  = 0.D0        !  default x coo. of the mesh center
       center_y  = 0.D0        !  default y coo. of the mesh center
-      center_z  = 0.D0        !  default z coo. of the mesh center
       domain_x  = 10.D3       !  domain size in metres
       domain_y  = 10.D3       !  domain size in metres
       domain_z  = 10.D3       !  domain size in metres
@@ -378,7 +377,6 @@
       CALL bcast_real(alpha_z,1,root)
       CALL bcast_real(center_x,1,root)
       CALL bcast_real(center_y,1,root)
-      CALL bcast_real(center_z,1,root)
       CALL bcast_real(domain_x,1,root)
       CALL bcast_real(domain_y,1,root)
       CALL bcast_real(domain_z,1,root)

@@ -3,7 +3,7 @@
 !----------------------------------------------------------------------
       USE dimensions, ONLY: nx, ny, nz, ntot, ntr
       USE parallel, ONLY: mpime, root
-      USE volcano_topography, ONLY: xtop, ytop, ztop
+      USE volcano_topography, ONLY: xtop, ytop, ztop, ztop2d
       USE volcano_topography, ONLY: cx, cy, cz
 
       IMPLICIT NONE
@@ -16,8 +16,11 @@
 !
 ! ... Parameters identifying a forcing point: (i,j,k) are the 
 ! ... (x,y,z) discrete coordinates, (int) is the type of interpolation
-! ... to be done (-10= extrap z -3=lin sx/top, -2=linsx, -1=bilsx, 
-! ... 0=lintop, 1=bildx, 2=lindx, 3=lin dx/top, 10=extrap x), 
+! ... to be done:
+! ... In 2D: -10= extrap z -3=lin sx/top, -2=linsx, -1=bilsx, 
+! ...        0=lintop, 1=bildx, 2=lindx, 3=lin dx/top, 10=extrap x), 
+! ... In 3D: the interpolation is defined by the number of neighbours
+! ...        and identified by the binary numbers form 0 to 255
 ! ... (nsl) are the coordinates of the noslip point
 !
       TYPE forcing_point
@@ -69,9 +72,8 @@
       INTEGER :: p, nfpx, nfpz
       INTEGER :: i,j,k,ijk
 !
-      ALLOCATE(dist(ntot))
-!
-! ... interpolate topography on cell centers and write the
+! ... Import the topography from standard ascii formats.
+! ... Interpolate topography on cell centers and write the
 ! ... implicit profile
 !
       IF (job_type == '2D') THEN
@@ -108,6 +110,7 @@
 !
       END IF
 
+      ALLOCATE(dist(ntot))
       IF (mpime == root) THEN
         OPEN(UNIT=14,FILE='improfile.dat',STATUS='UNKNOWN')
         
@@ -125,44 +128,69 @@
 
         CLOSE(14)
       END IF
+
+      ! ... Set flags for the topography
+      !
+      CALL set_flag3
+! 
+! ... If Immersed Boundaries are used, identify the forcing points
+! ... and set interpolation parameters
 !
-      IF( job_type == '3D') CALL error('immb','3D immersed b. not &
-                                     & yet implemented',1)
       IF (immb >= 1) THEN
-!
-! ... These logical arrays are exported and scattered among
-! ... processors after domain decomposition
-!
+        !
+        ! ... Allocate the logical arrays that are used to 
+        ! ... identify the forcing points
+        !
         ALLOCATE(forcex(ntot))
         IF (job_type == '3D') ALLOCATE(forcey(ntot))
         ALLOCATE(forcez(ntot))
 !
-! ... Interpolate topography on staggered points
-! ... If immersed boundary technique is used, locate forcing points
-! ... and set interpolation parameters
+        IF (job_type == '2D') THEN
+          !
+          ! ... interpolate the topography on x-staggered mesh
+          !
+          CALL grid_locations(1,0,0)
+          CALL interpolate_2d(topo_x,forcex)
+          nfpx = COUNT(forcex)
+          ALLOCATE(fptx(nfpx))
+          !
+          ! ... interpolate the topography on z-staggered mesh
+          !
+          CALL grid_locations(0,0,1)
+          CALL interpolate_2d(topo_c,forcez)
+          nfpz = COUNT(forcez)
+          ALLOCATE(fptz(nfpz))
+          !
+          ! ... Forcing along x
+          CALL forcing(fptx,topo_x)
+          !
+          ! ... Forcing along z
+          CALL forcing(fptz,topo_c)
+
+        ELSE IF (job_type == '3D') THEN
+          !
+          ! ... interpolate the topography on x-staggered mesh
+          !
+          CALL grid_locations(1,0,0)
+          CALL interpolate_dem(topo2d_x)
+          !
+          ! ... interpolate the topography on y-staggered mesh
+          !
+          CALL grid_locations(0,1,0)
+          CALL interpolate_dem(topo2d_y)
+          !
+          ! ... interpolate the topography on z-staggered mesh
+          !
+          CALL grid_locations(0,0,1)
+          CALL interpolate_dem(topo2d_c)
+
+          CALL error('immb','3D immersed b. not yet implemented',1)
+
+        END IF
 !
         !
-        ! ... interpolate the topography on x-staggered mesh
-        CALL grid_locations(1,0,0)
-        CALL interpolate_2d(topo_x,forcex)
-        nfpx = COUNT(forcex)
-        ALLOCATE(fptx(nfpx))
+        ! ... Merge forcing points subsets
         !
-        ! ... Forcing along x
-        CALL forcing(fptx,topo_x)
-! 
-        !
-        ! ... interpolate the topography on z-staggered mesh
-        CALL grid_locations(0,0,1)
-        CALL interpolate_2d(topo_c,forcez)
-        nfpz = COUNT(forcez)
-        ALLOCATE(fptz(nfpz))
-        !
-        ! ... Forcing along z
-        CALL forcing(fptz,topo_c)
-!
-! ... Merge forcing points subsets
-!
         nfp = COUNT( forcex .OR. forcez )
         ALLOCATE (forx (nfp) )
         ALLOCATE (forz (nfp) )
@@ -176,7 +204,7 @@
         CALL interpolate_2d(topo_c)
         forz(1:nfpz) = fptz(1:nfpz)
         CALL extrafz(forz, nfpz, topo_c)
-
+!
         IF (mpime == root) THEN
           OPEN(UNIT=15,FILE='forx.dat',STATUS='UNKNOWN')
           OPEN(UNIT=16,FILE='forz.dat',STATUS='UNKNOWN')
@@ -193,17 +221,19 @@
         DEALLOCATE(fptz)
 
       END IF
-! 
-! ... Set flags to identify the topography (where transport equations
-! ... are not solved )
 !
-      CALL grid_locations(0,0,0)
-      CALL interpolate_2d(topo_c)
-      CALL set_flag3(topo_c)
+      IF (job_type == '2D') THEN
+        DEALLOCATE (next, ord)
+        DEALLOCATE (xtop, ztop)
+      ELSE IF (job_type == '3D') THEN
+        DEALLOCATE(nextx)
+        DEALLOCATE(nexty)
+        DEALLOCATE(ord2d)
+        DEALLOCATE (xtop, ytop, ztop2d)
+      END IF
 !
-      DEALLOCATE (xtop, ztop)
+      DEALLOCATE (dist)
       DEALLOCATE (cx, cy, cz)
-      DEALLOCATE (next, ord, dist)
 !
       RETURN
       END SUBROUTINE import_topo
@@ -587,56 +617,44 @@
       RETURN
       END SUBROUTINE extrafz
 !----------------------------------------------------------------------
-      SUBROUTINE set_flag3(topo)
+      SUBROUTINE set_flag3
 !
 ! ... Set cell-flag = 3 in those cells belonging to the topography
 ! ... where forcing is not applied. Values of fields in these cells
 ! ... are set to zero when initialized or kept undefined
 !
-      USE control_flags, ONLY: lpr, immb
+      USE control_flags, ONLY: lpr, job_type
       USE grid, ONLY: fl, z
       IMPLICIT NONE
 
-      REAL*8, DIMENSION(:), INTENT(IN) :: topo
-      INTEGER :: i, k, ijk
-      LOGICAL :: undg
+      INTEGER :: i, j, k, ijk
 !
-! ... If immersed boundaries are used, set flag = 3 below forcing points
-! ... otherwise set flag = 3 when topography is above the cell center
-! ... (Assumes topography on domain bottom!)
-!
-      IF (immb >= 1) THEN
+      IF( job_type == '2D') THEN
         DO i=2, nx-1
           DO k = 1, nz
             ijk = i + (k-1) * nx
-            IF ((.NOT.forcex(ijk)).AND.(.NOT.forcez(ijk))) THEN
+            IF (topo_c(i) > z(k)) THEN
               fl(ijk) = 3
             ELSE
               EXIT
             END IF
           END DO
         END DO
-      ELSE IF (immb < 1) THEN
-        DO i=2, nx-1
-          DO k = 1, nz
-            ijk = i + (k-1) * nx
-            IF (topo(i) > z(k)) THEN
-              fl(ijk) = 3
-            ELSE
-              EXIT
-            END IF
+      ELSE IF( job_type == '3D') THEN
+        DO j=2, ny-1
+          DO i=2, nx-1
+            DO k = 1, nz
+              ijk = i + (j-1) * nx + (k-1) * nx * ny
+              IF (topo2d_c(i) > z(k)) THEN
+                fl(ijk) = 3
+              ELSE
+                EXIT
+              END IF
+            END DO
           END DO
         END DO
       END IF
 !
-      IF (lpr > 1 .AND. (mpime == root)) THEN
-        DO k = nz, 1, -1
-          WRITE(6,11) (fl(i + (k-1) * nx), i=1,nx)
-        END DO
-      END IF
-                                                                               
- 11   FORMAT(80(I1))
-
       END SUBROUTINE set_flag3
 !----------------------------------------------------------------------
       END MODULE immersed_boundaries

@@ -28,6 +28,7 @@
       USE dimensions, ONLY: nx, ny, nz
       USE grid, ONLY: x, y, z, fl, xb, yb, zb
       USE grid, ONLY: bottom, kv
+      USE grid, ONLY: center_x, center_y
 
       IMPLICIT NONE
       
@@ -38,8 +39,14 @@
       
       IF( job_type == '2D') RETURN
 !
+      xvent = center_x
+      yvent = center_y
+!
       WRITE(6,*) 'Vent conditions imposed in cells: '
-!      
+!
+! ... define the rectangle containing the vent
+! ... 'nvt' is the number of vent cells
+!
       DO i = 2, nx
         IF (xb(i-1) <= (xvent-radius)) iwest = i
         IF (xb(i-1) < (xvent+radius)) ieast = i
@@ -77,7 +84,8 @@
             fl(ijk) = bottom
           END IF
           !
-          WRITE(6,*) nv, ijk, i, j, k, vcell(nv)%frac, fl(ijk)
+          WRITE(6,10) nv, ijk, i, j, k, vcell(nv)%frac, fl(ijk)
+ 10       FORMAT(I3,I7,3(I3),F6.3,I2)
 !
 ! ... fluid cells above the vent
 !
@@ -152,8 +160,6 @@
             ygc(ngas,ijk) = 1.D0 - SUM( ygc(1:ngas-1,ijk) )
           END IF
           
-          WRITE(6,*) i,j,k, alpha
-          WRITE(6,*) p(ijk), ep(ijk), rlk(ijk,:)
         END IF
       END DO
 

@@ -846,6 +846,7 @@
         DO ijkl = 1, ncint
           ijk = myijk( ip0_jp0_kp0_, ijkl)
           forced(ijkl) = ( forcex(ijk) .OR. forcez(ijk) )
+          IF(forced(ijkl)) flag(ijkl) = 1
         END DO
         DEALLOCATE (forcex)
         DEALLOCATE (forcez)
