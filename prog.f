@@ -383,9 +383,9 @@
 !        cptimtot  = ( t13 - t0 ) 
 !        mptimtot   = ( p13 - p0 ) 
                 
-        WRITE(testunit,*) '  WALL TIME computed calling SYSTEM_CLOCK (s)'
-        WRITE(testunit,900) 'Bdry','Dyn','Tilde','Iter','Ygas','Tem','Out','Restart','Total'
-        WRITE(testunit,999) timbdry,  timturbo, timtilde, timiter, timygas, timtem, &
+        WRITE(logunit,*) '  WALL TIME computed calling SYSTEM_CLOCK (s)'
+        WRITE(logunit,900) 'Bdry','Dyn','Tilde','Iter','Ygas','Tem','Out','Restart','Total'
+        WRITE(logunit,999) timbdry,  timturbo, timtilde, timiter, timygas, timtem, &
                      timout, timres, timtot
 
 995     FORMAT(/,A45)                   

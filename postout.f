@@ -352,7 +352,7 @@
       IF (formatted_output) THEN
         filetype = 'ascii'
       ELSE
-        filetype = 'unformatted'
+        filetype = 'binary'
       END IF
 
 ! ... Total number of scalar fields
@@ -461,7 +461,7 @@
             !
             ! Gas pressure
             !
-            skip = skip_time
+            skip = skip_time + 4  ! skip the time field and the record marker
             attr = ' '
             CALL iotk_write_attr( attr, "name", "P" )
             CALL iotk_write_begin( iunxml, "scalar", attr )
