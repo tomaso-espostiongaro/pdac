@@ -54,7 +54,7 @@
       INTEGER :: icenter, jcenter
 !
       ! ... Input parameters
-      INTEGER :: itp, iavv
+      INTEGER :: itp, iavv, ismt
       REAL*8 :: cellsize, filtersize
       REAL*8 :: rim_quota
       LOGICAL :: nocrater
@@ -236,7 +236,7 @@
 !
       USE grid, ONLY: domain_x, domain_y, dxmax, dymax, dxmin, dymin
       USE grid, ONLY: center_x, center_y, alpha_x, alpha_y
-      USE array_filters, ONLY: interp, mean_filter
+      USE array_filters, ONLY: interp, mean_filter, gaussian_filter
       IMPLICIT NONE
       INTEGER :: noditopx, noditopy
       INTEGER :: nodidemx, nodidemy
@@ -324,7 +324,13 @@
       center_x = xtop(icenter)
       center_y = ytop(jcenter)
 !
-      IF (filtersize >= cellsize) CALL mean_filter(xtop,ytop,ztop2d,filtersize)
+      IF (filtersize >= cellsize) THEN
+         IF (ismt == 1) THEN
+                 CALL mean_filter(xtop,ytop,ztop2d,filtersize)
+         ELSE IF (ismt == 2) THEN
+                 CALL gaussian_filter(xtop,ytop,ztop2d,cellsize,filtersize)
+         END IF
+      END IF
 
       DEALLOCATE(ntx)
       DEALLOCATE(nty)

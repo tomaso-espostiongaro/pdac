@@ -128,7 +128,7 @@
      &                            timestart, rungekut, tau
       USE turbulence_model, ONLY: iturb, cmut, iss, modturbo
       USE volcano_topography, ONLY: itp, iavv, cellsize, filtersize, &
-                         dem_file, nocrater, rim_quota
+                         dem_file, nocrater, rim_quota, ismt
 !
       IMPLICIT NONE
  
@@ -151,7 +151,7 @@
         immb, ibl
 
       NAMELIST / topography / dem_file, itp, iavv, nocrater, &
-        rim_quota, filtersize, cellsize
+        rim_quota, filtersize, cellsize, ismt
       
       NAMELIST / inlet / ivent, iali, irand, ipro, rad_file, wrat, &
         crater_radius, &
@@ -269,6 +269,7 @@
 
       dem_file = 'topo.dat' ! file containing the topographic profile
       itp   = 0               ! itp = 1 => read topography from file
+      ismt   = 1               ! 1 = median filter; 2 = gaussian filter
       iavv   = 0              ! iavv = 1 => average volcano topography
       nocrater = .FALSE. ! flatten the crater
       rim_quota = 1000.D0     ! index of the rim quota 
@@ -508,6 +509,7 @@
 
       CALL bcast_character(dem_file,80,root)
       CALL bcast_integer(itp,1,root)
+      CALL bcast_integer(ismt,1,root)
       CALL bcast_integer(iavv,1,root)
       CALL bcast_logical(nocrater,1,root)
       CALL bcast_real(rim_quota,1,root)
@@ -906,6 +908,7 @@
               WRITE( iuni_nml, * ) dem_file
             CALL iotk_write_end( iuni_nml, "dem_file" )
             CALL iotk_write_dat( iuni_nml, "itp", itp )
+            CALL iotk_write_dat( iuni_nml, "ismt", ismt )
             CALL iotk_write_dat( iuni_nml, "iavv", iavv )
             CALL iotk_write_dat( iuni_nml, "nocrater", nocrater )
             CALL iotk_write_dat( iuni_nml, "rim_quota", rim_quota )

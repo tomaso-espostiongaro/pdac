@@ -9,6 +9,9 @@
       INTERFACE mean_filter
         MODULE PROCEDURE mean_filter_1d, mean_filter_2d
       END INTERFACE mean_filter
+      INTERFACE gaussian_filter
+        MODULE PROCEDURE gaussian_filter_2d
+      END INTERFACE gaussian_filter
 !
       SAVE
 !----------------------------------------------------------------------
@@ -191,126 +194,69 @@
       END SUBROUTINE mean_filter_2d
 !----------------------------------------------------------------------
 ! ... Filter out high frequency modes by applying a Gaussian filter
+! ... of sigma standard deviation (cutoff wave-length)
 ! ... WARNING!: It can be applied only to evenly-spaced arrays!
 !
-      SUBROUTINE gaussian_filter_2d(x1,y1,f1,window)
+      SUBROUTINE gaussian_filter_2d(x1,y1,f1,delta,sigma)
 
       IMPLICIT NONE
       REAL*8, INTENT(INOUT), DIMENSION(:) :: x1, y1
       REAL*8, INTENT(INOUT), DIMENSION(:,:) :: f1
-      REAL*8, INTENT(IN) :: window
-      REAL*8, ALLOCATABLE, DIMENSION(:) :: x2, y2
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: f2
-      INTEGER, ALLOCATABLE :: dmx(:), dmy(:)
-      INTEGER, ALLOCATABLE :: dcx(:,:), dcy(:,:)
+      REAL*8, INTENT(IN) :: delta, sigma
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: g, old_f1
+      REAL*8 :: pi, twopi
+      REAL*8 :: fact, rat, summa
+      INTEGER :: i, j, l, m, lmax, mmax, ssize
       INTEGER :: nsmx, nsmy
-      INTEGER :: i,j,cx,cy,c
-      INTEGER :: counterx, countery, cnt
 
-      counterx = SIZE(x1)
-      countery = SIZE(y1)
-      nsmx     = (x1(counterx)-x1(1))/window + 1
-      nsmy     = (y1(countery)-y1(1))/window + 1
-
-      ! ... 'x2' is a uniform subsample of 'x1'
-      ! ... 'f2' is an average of 'f1' at 'x2' locations 
-      ! ... dcx and dcy are the extrema of the interval 
-      ! ... taken for the average around each mesh point.
-      ! ... dmx and dmy are dummies!
+      nsmx = SIZE(x1)
+      nsmy = SIZE(y1)
+      ALLOCATE(old_f1(nsmx,nsmy))
+      old_f1 = f1
+!
+! ... Build the Gaussian convolution kernel (g(l,m))
+!
+      pi       = 4.D0 * ATAN(1.D0)
+      twopi    = 2.D0 * pi
+      fact     = 0.5D0 * delta**2 / sigma**2
+      
+      ! ... number of cells within the kernel
       !
-      ALLOCATE( x2(nsmx), y2(nsmy), f2(nsmx,nsmy) )
-      ALLOCATE( dmx(counterx), dmy(counterx)  )
-      ALLOCATE( dcx(nsmx,2), dcy(nsmy,2)  )
-
-      ! ... Initialize the new set coordinates
-      ! ... to their limit values
+      lmax     = 3.D0 * sigma / delta
+      mmax     = lmax
       !
-      x2 = 0.D0; y2 = 0.D0; f2 = 0.D0
-      dcx(:,1) = counterx; dcy(:,1) = countery 
-      dcx(:,2) = 0; dcy(:,2) = 0
-
-      ! ... Uniformly Subsample and smooth the x-y function 
-      ! ... of the quota. 'window' is the size of the window
-      ! ... used for subsampling
-      !
-      ! ... Coordinates of the subsampled set
-      !
-      x2(1) = x1(1)
-      y2(1) = y1(1)
-      !
-      DO i = 2, nsmx-1
-        x2(i) = x2(i-1) + window
-      END DO
-      DO j = 2, nsmy-1
-        y2(j) = y2(j-1) + window
-      END DO
-      !
-      x2(nsmx) = x1(counterx)
-      y2(nsmy) = y1(countery)
-!      
-      ! ... Initialize the new elevation function
-      ! ... on boundaries
-      !
-      f2(1,1) = f1(1,1)
-      f2(nsmx,nsmy) = f1(counterx,countery)
-      f2(1,nsmy) = f1(1,countery)
-      f2(nsmx,1) = f1(counterx,1)
-
-      ! ... 1D average on boundaries
-      !
-      DO i = 2, nsmx-1
-        cnt = 0
-        DO c = 1, counterx
-          IF (DABS(x1(c)-x2(i)) <= window ) THEN
-                  f2(i,1) = f2(i,1) + f1(c,1)
-                  f2(i,nsmy) = f2(i,nsmy) + f1(c,countery)
-                  cnt = cnt + 1
-                  dcx(i,1) = MIN(c,dcx(i,1))
-                  dcx(i,2) = MAX(c,dcx(i,2))
-          END IF
+      ALLOCATE( g(-lmax:lmax,-mmax:mmax) )
+      summa = 0.D0
+      DO m = -mmax, mmax
+        DO l = -lmax, lmax
+          rat = (l**2 + m**2) * fact
+          g(l,m) = fact/pi * EXP(-rat)
+          !WRITE(*,*) l, m, g(l,m)
+          summa = summa + g(l,m)
         END DO
-        f2(i,1) = f2(i,1) / cnt
-        f2(i,nsmy) = f2(i,nsmy) / cnt
       END DO
+      WRITE(*,*) 'gaussian filter integral: ', summa
       !
-      DO j = 2, nsmy-1
-        cnt = 0
-        DO c = 1, countery
-          IF (DABS(y1(c)-y2(j)) <= window ) THEN
-                  f2(1,j) = f2(1,j) + f1(1,c)
-                  f2(nsmx,j) = f2(nsmx,j) + f1(counterx,c)
-                  cnt = cnt + 1
-                  dcy(j,1) = MIN(c,dcy(j,1))
-                  dcy(j,2) = MAX(c,dcy(j,2))
-          END IF
-        END DO
-        f2(1,j) = f2(1,j) / cnt
-        f2(nsmx,j) = f2(nsmx,j) / cnt
-      END DO
+      ! ... Normalize
       !
-      ! ... 2D average 
-      !
-      DO j = 2, nsmy-1
-        DO i = 2, nsmx-1
-          cnt = 0
-          DO cy = dcy(j,1), dcy(j,2)
-            DO cx = dcx(i,1), dcx(i,2)
-              IF (DABS(y1(cy)-y2(j)) <= window   .AND. &
-                  DABS(x1(cx)-x2(i)) <= window ) THEN
-                      f2(i,j) = f2(i,j) + f1(cx,cy)
-                      cnt = cnt + 1
-              END IF
+      g(0,0) = g(0,0) + 1.D0 - summa
+!
+! ... 2D Filtering
+!
+      DO j = mmax+1, nsmy-mmax-1
+        DO i = lmax+1, nsmx-lmax-1
+          !
+          f1(i,j) = 0.D0
+          DO m = -mmax, mmax
+            DO l = -lmax, lmax
+               f1(i,j) = f1(i,j) + old_f1(i+l,j+m) * g(l,m)
             END DO
           END DO
-          f2(i,j) = f2(i,j) / cnt
+          !
         END DO
       END DO
 !
-      ! ... Linearly interpolate quotas on the original mesh
-      !
-      CALL interp_2d(x2, y2, f2, x1, y1, f1, dmx, dmy)
-
-      DEALLOCATE(y2, x2, f2, dmx, dmy)
+      DEALLOCATE(g,old_f1)
       RETURN
       END SUBROUTINE gaussian_filter_2d
 !----------------------------------------------------------------------
