@@ -185,46 +185,226 @@
       REAL*8 FUNCTION cell_fraction(i, j)
 !
 ! ... assign a weight to partially filled vent cells:
-! ... the weight is proportional to the number of corners
-! ... included within the vent
+! ... the weight is proportional to the area of the intersection of
+! ... the cell and the vent 
 !
       USE grid, ONLY: xb, yb, zb
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: i, j
-      REAL*8 :: dist2, alpha
-      INTEGER :: n
-      TYPE corner
-        REAL*8 :: x
-        REAL*8 :: y
-        INTEGER :: internal
-      END TYPE corner
-      TYPE(corner) :: cr(4) !(from west-south corner, clowckwise) 
 
-      cr(:)%internal = 0
+	TYPE polypoint
+		REAL*8 :: x
+		REAL*8 :: y
+		INTEGER :: side		!(0=corner, 1=W, 2=N, 3=E, 4=S)
+	END TYPE polypoint
+      TYPE(polypoint) :: poly_p(16) !intersection points of bound.cell and vent 
+								  !(from west-south corner, clowckwise)
+	INTEGER :: n,l
 
-      cr(1)%x = xb(i-1)
-      cr(1)%y = yb(j-1)
+	REAL*8 :: delta_sol,x_sol1,x_sol2,y_sol1,y_sol2
+	REAL*8 :: area_p
 
-      cr(2)%x = xb(i-1)
-      cr(2)%y = yb(j)
+	n=0
+	
+	
+	IF ( (xb(i-1)-xvent)**2 + (yb(j-1)-yvent)**2 <= radius**2 ) THEN
+		n=n+1
+		poly_p(n)%x=xb(i-1)
+		poly_p(n)%y=yb(j-1)
+		poly_p(n)%side=0
+	ENDIF
+	
+	
+	delta_sol=radius**2-(xb(i-1)-xvent)**2
+	
+	IF ( delta_sol > 0 ) THEN
+		y_sol1= yvent-SQRT (delta_sol)
+		y_sol2= yvent+SQRT (delta_sol)
+		IF ( (yb(j-1) < y_sol1).AND. (y_sol1 < yb(j)) ) THEN
+			n=n+1
+			poly_p(n)%x=xb(i-1)
+			poly_p(n)%y=y_sol1
+			poly_p(n)%side=1
+		ENDIF 
+		
+		IF ( (yb(j-1) < y_sol2) .AND. (y_sol2 < yb(j)) ) THEN
+			n=n+1
+			poly_p(n)%x=xb(i-1)
+			poly_p(n)%y=y_sol2
+			poly_p(n)%side=1
+		ENDIF 
+	ENDIF
 
-      cr(3)%x = xb(i)
-      cr(3)%y = yb(j)
+	IF ( (xb(i-1)-xvent)**2 + (yb(j)-yvent)**2 <= radius**2 ) THEN
+		n=n+1
+		poly_p(n)%x=xb(i-1)
+		poly_p(n)%y=yb(j)
+		poly_p(n)%side=0
+	ENDIF
+	
+	
 
-      cr(4)%x = xb(i)
-      cr(4)%y = yb(j-1)
+	delta_sol=radius**2-(yb(j)-yvent)**2
+	
+	IF ( delta_sol > 0 ) THEN
+		x_sol1= xvent-SQRT (delta_sol)
+		x_sol2= xvent+SQRT (delta_sol)
+	
+		IF ( (xb(i-1) < x_sol1).AND. (x_sol1 < xb(i)) ) THEN
+			n=n+1
+			poly_p(n)%x=x_sol1
+			poly_p(n)%y=yb(j)
+			poly_p(n)%side=2
+		ENDIF 
+		
+		IF ( (xb(i-1) < x_sol2) .AND. (x_sol2 < xb(i)) ) THEN
+			n=n+1
+			poly_p(n)%x=x_sol2
+			poly_p(n)%y=yb(j)
+			poly_p(n)%side=2
+		ENDIF 
+	ENDIF
 
-      alpha = 0.D0
-      DO n = 1, 4
-        dist2 = (cr(n)%x-xvent)**2 + (cr(n)%y-yvent)**2
-        IF(dist2 <= radius**2) cr(n)%internal = 1
-        alpha = alpha + cr(n)%internal
-      END DO
-!
-      cell_fraction = alpha * 0.25D0
-!
+	IF ( (xb(i)-xvent)**2 + (yb(j)-yvent)**2 <= radius**2 ) THEN
+		n=n+1
+		poly_p(n)%x=xb(i)
+		poly_p(n)%y=yb(j)
+		poly_p(n)%side=0
+	ENDIF
+
+
+
+	delta_sol=radius**2-(xb(i)-xvent)**2
+	
+	IF ( delta_sol > 0 ) THEN
+		y_sol1= yvent+SQRT (delta_sol)
+		y_sol2= yvent-SQRT (delta_sol)
+	
+		IF ( (yb(j-1) < y_sol1) .AND. (y_sol1 < yb(j)) ) THEN
+			n=n+1
+			poly_p(n)%x=xb(i)
+			poly_p(n)%y=y_sol1
+			poly_p(n)%side=3
+		ENDIF 
+		
+		IF ( (yb(j-1) < y_sol2) .AND. ( y_sol2 < yb(j) ) ) THEN
+			n=n+1
+			poly_p(n)%x=xb(i)
+			poly_p(n)%y=y_sol2
+			poly_p(n)%side=3
+		ENDIF 
+	ENDIF
+	
+	
+	IF ( (xb(i)-xvent)**2 + (yb(j-1)-yvent)**2 <= radius**2 ) THEN
+		n=n+1
+		poly_p(n)%x=xb(i)
+		poly_p(n)%y=yb(j-1)
+		poly_p(n)%side=0
+	ENDIF
+	
+	
+
+	delta_sol=radius**2-(yb(j-1)-yvent)**2
+
+	IF ( delta_sol > 0 ) THEN
+		x_sol1= xvent+SQRT (delta_sol)
+		x_sol2= xvent-SQRT (delta_sol)
+		IF ( (xb(i-1) < x_sol1).AND. (x_sol1 < xb(i)) ) THEN
+			n=n+1
+			poly_p(n)%x=x_sol1
+			poly_p(n)%y=yb(j-1)
+			poly_p(n)%side=4
+		ENDIF 
+		
+		IF ( (xb(i-1) < x_sol2) .AND. (x_sol2 < xb(i)) ) THEN
+			n=n+1
+			poly_p(n)%x=x_sol2
+			poly_p(n)%y=yb(j-1)
+			poly_p(n)%side=4
+		ENDIF 
+	ENDIF
+	
+		
+
+	DO l=1,n
+		WRITE(*,*) i,poly_p(l)%x,poly_p(l)%y
+	ENDDO
+
+
+	DO l=1,n
+		poly_p(n+l)%x=poly_p(l)%x
+		poly_p(n+l)%y=poly_p(l)%y
+		poly_p(n+l)%side=poly_p(l)%side
+	ENDDO
+
+	area_p=0.d0
+
+	DO l=1,n-2
+		area_p=area_p+areaT(poly_p(1)%x,poly_p(l+1)%x,poly_p(l+2)%x,   &
+			            poly_p(1)%y,poly_p(l+1)%y,poly_p(l+2)%y)
+	ENDDO
+	
+	DO l=1,n
+		IF  ( ( poly_p(l)%side*poly_p(l+1)%side > 0 ) .AND. &
+		      ( poly_p(l)%side /= poly_p(l+1)%side ) ) THEN
+			area_p = area_p + areaSEC(poly_p(l)%x,poly_p(l+1)%x,  &
+				poly_p(l)%y,poly_p(l+1)%y,xvent,yvent,radius) &
+			    - areaT(poly_p(l)%x,poly_p(l+1)%x,xvent,poly_p(l)%y, &
+				poly_p(l+1)%y,yvent)
+
+		ENDIF
+	ENDDO
+
+
+	cell_fraction= area_p / abs( (xb(i-1)-xb(i))*(yb(j-1)-yb(j)) ) 
+
+
+
+
       RETURN
+     
       END FUNCTION cell_fraction
 !-----------------------------------------------------------------------
+      REAL*8 FUNCTION areaT(x1,x2,x3,y1,y2,y3)
+
+! ... evaluate the area of a triangle
+
+	
+	REAL*8 :: x1,x2,x3,y1,y2,y3
+	REAL*8 :: p,a,b,c
+	
+	a=SQRT( (x1-x2)**2 + (y1-y2)**2 )
+	b=SQRT( (x1-x3)**2 + (y1-y3)**2 )
+	c=SQRT( (x3-x2)**2 + (y3-y2)**2 )
+	p= (a+b+c) / 2.d0
+	
+	areaT= SQRT ( p * (p-a) * (p-b) * (p-c) )
+	
+     RETURN
+
+	END FUNCTION areaT
+	
+!-----------------------------------------------------------------------
+	REAL*8 FUNCTION areaSEC(x1,x2,y1,y2,xC,yC,R)
+
+! ... evaluate the area of a sector of circle
+	
+	REAL*8 :: x1,x2,y1,y2,xC,yC,R
+	REAL*8 :: alpha1,alpha2,alpha
+	
+	alpha1= datan2( (y1-yC)/R , (x1-xC)/R )
+	alpha2= datan2( (y2-yC)/R , (x2-xC)/R )
+	
+	alpha= ABS (alpha1-alpha2)
+	IF ( alpha < 0 ) alpha = 2*3.14159265 - alpha
+	
+	areaSEC = 0.5*alpha*R**2
+
+	RETURN
+	
+	END FUNCTION areaSEC
+
+
       END MODULE vent_conditions
 !-----------------------------------------------------------------------
