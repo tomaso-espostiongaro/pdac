@@ -18,6 +18,7 @@
       USE postp_input, ONLY: postin
       USE postp_output, ONLY: write_avs_files, write_xml_files
       USE process_outp, ONLY: process
+      USE time_parameters, ONLY: itd
       USE volcano_topography, ONLY: itp
 !
       IMPLICIT NONE
@@ -44,6 +45,9 @@
 ! ... Read Input files 'pdac.dat'
 !
       CALL input( inputunit )
+!
+! ... By default, postp cannot read restart file ... 
+      itd = 1
 !
 ! ... set dimensions ...
 !

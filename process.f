@@ -18,6 +18,7 @@
       REAL, ALLOCATABLE, DIMENSION(:,:) :: xgc
       REAL, ALLOCATABLE, DIMENSION(:,:) :: eps, us, vs, ws, ts
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: array_map
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: array_map_max
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: topo2d
 
       INTEGER :: imap
@@ -38,8 +39,10 @@
                 ws(ntot,nsolid), ts(ntot,nsolid))
       ALLOCATE(xgc(ntot,ngas))
       ALLOCATE(array_map(nx,ny))
+      ALLOCATE(array_map_max(nx,ny))
       ALLOCATE(topo2d(nx,ny))
       array_map = 0.D0
+      array_map_max = 0.D0
       topo2d = -9999
 
       RETURN
@@ -194,10 +197,9 @@
         IF (job_type == '3D') vm = velm(vg,vs,eps,p,tg,xgc)
         wm = velm(wg,ws,eps,p,tg,xgc)
         mvm = vel(um,vm)
-        c  = cm(bd,rg,rm,m,tg)
-        mc = mach(mvm,c)
+!        c  = cm(bd,rg,rm,m,tg)
+!        mc = mach(mvm,c)
         pd = pdyn(rm,mvm)
-
         epstot = epst(eps)
         lepstot = leps(epstot)
 
@@ -224,7 +226,8 @@
         ! ... Print the map of any interesting variable above ground
         !
         IF (imap > 0) THEN
-                CALL write_map(tn,pd)
+                CALL write_map_max(tn,pd)
+                CALL write_map(tn,tg)
         END IF
 
       END DO
@@ -278,10 +281,9 @@
                 alpha = deltaz - z(k-1)
                 alpha = alpha / (z(k) - z(k-1)) 
                 map = alpha * array(ijk) + (1.D0-alpha) * array(ijk)
-                ! ... Map the maximum value reached at any given position in
-                ! ... time
-                array_map(i,j) = MAX(map, array_map(i,j))
-                !array_map(i,j) = map
+                ! ... Map the value reached at any given position at
+                ! ... given time
+                array_map(i,j) = map
                 EXIT search
             END IF
           END DO search
@@ -307,6 +309,61 @@
 
       RETURN
       END SUBROUTINE write_map
+!-----------------------------------------------------------------------
+      SUBROUTINE write_map_max(nfil,array)
+
+      USE control_flags, ONLY: job_type
+      USE dimensions, ONLY: nx, ny, nz
+      USE filter_outp, ONLY: improfile
+      USE grid, ONLY: z
+      USE io_files, ONLY: tempunit
+      IMPLICIT NONE
+      
+      REAL, INTENT(IN), DIMENSION(:) :: array
+      INTEGER, INTENT(IN) :: nfil
+      REAL*8 :: alpha, map, quota
+      INTEGER :: i, j, k, ijk, ijkm
+      CHARACTER( LEN = 4 ) :: lettera
+      CHARACTER( LEN = 12 ) :: filnam
+
+      IF (job_type == '2D') RETURN
+
+      filnam='map_max.'//lettera(nfil)
+
+      DO i = 1, nx
+        DO j = 1, ny
+          !
+          search: DO k = 1, nz
+            quota = improfile(i,j,k)
+            IF (quota >= deltaz) THEN
+                ijk  = i + (j-1) * nx + (k-1) * nx * ny
+                ijkm = i + (j-1) * nx + (k-2) * nx * ny
+                alpha = deltaz - z(k-1)
+                alpha = alpha / (z(k) - z(k-1)) 
+                map = alpha * array(ijk) + (1.D0-alpha) * array(ijk)
+                ! ... Map the maximum value reached at any given position in
+                ! ... time
+                array_map_max(i,j) = MAX(map, array_map_max(i,j))
+                EXIT search
+            END IF
+          END DO search
+          !
+        END DO
+      END DO
+!
+! ... Print out the map of maxima
+!
+      OPEN(UNIT=tempunit,FILE=filnam)
+      DO j = 1, ny
+          WRITE(tempunit,122) (array_map_max(i,j), i=1, nx)
+      END DO
+      CLOSE(tempunit)
+
+ 122  FORMAT(10(1x,G14.6E3))
+ 123  CONTINUE
+
+      RETURN
+      END SUBROUTINE write_map_max
 !-----------------------------------------------------------------------
       END MODULE process_outp
 !----------------------------------------------------------------------
