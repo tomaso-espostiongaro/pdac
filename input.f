@@ -20,10 +20,6 @@
       REAL*8 :: delta_y(max_size)
       REAL*8 :: delta_z(max_size)
 
-      REAL*8 :: origin_x
-      REAL*8 :: origin_y
-      REAL*8 :: origin_z
-
 ! ... FIXED_FLOWS
       INTEGER :: number_of_block
       INTEGER :: block_type(max_nblock)
@@ -83,13 +79,13 @@
       USE grid, ONLY: dx, dy, dz, itc, zzero
       USE grid, ONLY: west, east, south, north, bottom, top, topography
       USE grid, ONLY: domain_x, domain_y, domain_z, n0x, n0y, n0z
+      USE grid, ONLY: alpha_x, alpha_y, alpha_z
       USE grid, ONLY: center_x, center_y, center_z
       USE grid, ONLY: dxmin, dxmax, dymin, dymax, dzmin, dzmax
       USE grid, ONLY: maxbeta, grigen
       USE initial_conditions, ONLY: density_specified
-      USE vent_conditions, ONLY: ivent, xvent, yvent, radius,         &
-          u_gas, v_gas, w_gas, p_gas, t_gas,                          &
-          u_solid, v_solid, w_solid,  ep_solid, t_solid
+      USE vent_conditions, ONLY: ivent, u_gas, v_gas, w_gas, p_gas, t_gas, &
+          u_solid, v_solid, w_solid,  ep_solid, t_solid, radius
       USE iterative_solver, ONLY: inmax, maxout, omega
       USE io_restart, ONLY: max_seconds
       USE output_dump, ONLY: formatted_output
@@ -119,14 +115,14 @@
       NAMELIST / pp / first_out, last_out, incr_out
 
       NAMELIST / mesh / nx, ny, nz, itc, iuni, dx0, dy0, dz0, zzero, &
-        origin_x, origin_y, origin_z, center_x, center_y, center_z,  &
+        center_x, center_y, center_z, alpha_x, alpha_y, alpha_z,  &
         dxmin, dxmax, dymin, dymax, dzmin, dzmax, n0x, n0y, n0z,     &
         domain_x, domain_y, domain_z, maxbeta, grigen, mesh_partition
 
       NAMELIST / boundaries / west, east, south, north, bottom, top, &
         itp, topography, immb, ibl
       
-      NAMELIST / inlet / ivent, xvent, yvent, radius, u_gas, v_gas, w_gas,  &
+      NAMELIST / inlet / ivent, radius, u_gas, v_gas, w_gas,  &
         p_gas, t_gas, u_solid, v_solid, w_solid, ep_solid, t_solid, &
         vent_O2, vent_N2, vent_CO2, vent_H2, vent_H2O, vent_Air, vent_SO2
 
@@ -193,7 +189,7 @@
       n0z = 10                !  number of cell with minimum size
       itc = 0                 !  itc = 1 cylindrical coordinates are used
       grigen = 0              !  flag for grid generation 0 = no grid gen.
-      maxbeta = 0             !  maximum increase rate for non-uniform meshes
+      maxbeta = 2.0           !  maximum increase rate for non-uniform meshes
       mesh_partition = 1      !  type of partition
       iuni = 0                !  1 = uniform grid, 0 = non uniform grid
       dz0  = 20.D0            !  default cell z size in meters
@@ -205,9 +201,9 @@
       dxmax = 100.D0           !  default cell x maximum size in metres
       dymax = 100.D0           !  default cell y maximum size in metres
       dzmax = 100.D0           !  default cell z maximum size in metres
-      origin_x  = 0.D0        !  default x coo. of the system origin
-      origin_y  = 0.D0        !  default y coo. of the system origin
-      origin_z  = 0.D0        !  default z coo. of the system origin
+      alpha_x  = 0.5D0        !  default x coo. of the mesh center
+      alpha_y  = 0.5D0        !  default y coo. of the mesh center
+      alpha_z  = 0.0D0        !  default z coo. of the mesh center
       center_x  = 0.D0        !  default x coo. of the mesh center
       center_y  = 0.D0        !  default y coo. of the mesh center
       center_z  = 0.D0        !  default z coo. of the mesh center
@@ -232,8 +228,6 @@
 ! ... Inlet
 
       ivent = 0               ! 0: specify inlet blocks 1: circular vent
-      xvent = 0.D0            ! x-coord of the vent
-      yvent = 0.D0            ! y-coord of the vent
       radius = 100.D0         ! vent radius
       u_gas = 0.D0            ! gas velocity x
       v_gas = 0.D0            ! gas velocity y
@@ -379,9 +373,9 @@
       CALL bcast_real(dxmax,1,root)
       CALL bcast_real(dymax,1,root)
       CALL bcast_real(dzmax,1,root)
-      CALL bcast_real(origin_x,1,root)
-      CALL bcast_real(origin_y,1,root)
-      CALL bcast_real(origin_z,1,root)
+      CALL bcast_real(alpha_x,1,root)
+      CALL bcast_real(alpha_y,1,root)
+      CALL bcast_real(alpha_z,1,root)
       CALL bcast_real(center_x,1,root)
       CALL bcast_real(center_y,1,root)
       CALL bcast_real(center_z,1,root)
@@ -411,8 +405,6 @@
       IF(mpime == root) READ(iunit, inlet) 
 
       CALL bcast_integer(ivent,1,root)
-      CALL bcast_real(xvent,1,root)
-      CALL bcast_real(yvent,1,root)
       CALL bcast_real(radius,1,root)
       CALL bcast_real(u_gas,1,root)
       CALL bcast_real(v_gas,1,root)
@@ -698,9 +690,6 @@
             CALL iotk_write_dat( iuni_nml, "dx0", dx0 )
             CALL iotk_write_dat( iuni_nml, "dy0", dy0 )
             CALL iotk_write_dat( iuni_nml, "dz0", dz0 )
-            CALL iotk_write_dat( iuni_nml, "origin_x", origin_x )
-            CALL iotk_write_dat( iuni_nml, "origin_y", origin_y )
-            CALL iotk_write_dat( iuni_nml, "origin_z", origin_z )
             CALL iotk_write_dat( iuni_nml, "mesh_partition", mesh_partition )
           CALL iotk_write_end( iuni_nml, "mesh" )
 
@@ -721,8 +710,6 @@
 
           CALL iotk_write_begin( iuni_nml, "inlet" )
             CALL iotk_write_dat( iuni_nml, "ivent", ivent )
-            CALL iotk_write_dat( iuni_nml, "xvent", xvent )
-            CALL iotk_write_dat( iuni_nml, "yvent", yvent )
             CALL iotk_write_dat( iuni_nml, "radius", radius )
           CALL iotk_write_end( iuni_nml, "inlet" )
 

@@ -72,7 +72,7 @@
         CALL read_2Dprofile
       ELSE IF (job_type == '3D') THEN
         CALL read_dem_ascii
-        !CALL compute_UTM_coords
+        CALL compute_UTM_coords
       END IF
 !
       RETURN
@@ -140,7 +140,9 @@
       nr = vdem%nrows
       ALLOCATE( vdem%elev(nc*nr) )
 
-      READ(3,*) ( vdem%elev(p), p=1,nc*nr )
+      DO p = 1,nc*nr
+        READ(3,*) vdem%elev(p)
+      END DO
 !
       noditopx = vdem%ncols
       noditopy = vdem%nrows
@@ -164,22 +166,38 @@
       RETURN
       END SUBROUTINE read_dem_ascii
 !----------------------------------------------------------------------
-!      SUBROUTINE compute_UTM_coordinates
-!      IMPLICIT NONE
-!
-!      transl_x = xvent - x(iv)
-!      transl_y = yvent - y(jv)
-!      transl_z = zvent - z(kv)  !!!WARNING!!! controlla traslazione a.s.l. !!!
-!
-!      x  = x  - transl_x
-!      xb = xb - transl_x
-!      y  = y  - transl_y
-!      yb = yb - transl_y
-!      z  = z  - transl_z
-!      zb = zb - transl_z
-!      
-!      RETURN
-!      END SUBROUTINE compute_UTM_coordinates
+      SUBROUTINE compute_UTM_coords
+      USE grid, ONLY: center_x, center_y
+      USE grid, ONLY: x, y, z, xb, yb, zb
+      USE grid, ONLY: iv, jv, kv
+      IMPLICIT NONE
+
+      REAL*8 :: transl_x, transl_y, transl_z
+
+      WRITE(6,*) 'mesh center: ', iv, jv, kv
+      
+      transl_x = center_x - x(iv)
+      transl_y = center_y - y(jv)
+
+      !!!WARNING!!! controlla traslazione a.s.l. !!!
+      transl_z = MINVAL(ztop2d) - z(kv) 
+
+      x  = x  + transl_x
+      xb = xb + transl_x
+      y  = y  + transl_y
+      yb = yb + transl_y
+      z  = z  + transl_z
+      zb = zb + transl_z
+
+      WRITE(17,*) x
+      WRITE(17,*) y
+      WRITE(17,*) z
+      WRITE(17,*) xb
+      WRITE(17,*) yb
+      WRITE(17,*) zb
+      
+      RETURN
+      END SUBROUTINE compute_UTM_coords
 !----------------------------------------------------------------------
       SUBROUTINE interpolate_2d(topo,ff)
 !

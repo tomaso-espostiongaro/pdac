@@ -45,8 +45,9 @@
 !
 ! ... variables for grid generator:
 ! ... maximum cell size increase rate
-      REAL*8 ::  maxbeta, minbeta
-      REAL*8 ::  dbeta = 0.99
+      REAL*8 ::  maxbeta
+      REAL*8 ::  minbeta = 1.D0 + 1.D-5
+      REAL*8 ::  dbeta0 = 0.99
 !
 ! ... domain size along each axis
       REAL*8 :: domain_x, domain_y, domain_z
@@ -60,6 +61,8 @@
 !
 ! ... relative ( 0.0 < c < 1.0 ) center on each axis for refinement
       REAL*8 :: alpha_x, alpha_y, alpha_z
+!
+! ... coordinates of the mesh 'center'
       REAL*8 :: center_x, center_y, center_z
 !
 ! ... flag for increasing cell sizes: 1-constant rate; 2-constant slope
@@ -124,10 +127,10 @@
 !
       IF (grigen > 0) THEN
         CALL gen_grid(dx,nx,domain_x,alpha_x,dxmin,dxmax,n0x,iv) 
-        CALL gen_grid(dz,nz,domain_z,alpha_z,dzmin,dzmax,n0z,kv) 
         IF (job_type == '3D') THEN
           CALL gen_grid(dy,ny,domain_y,alpha_y,dymin,dymax,n0y,jv) 
         END IF
+        CALL gen_grid(dz,nz,domain_z,alpha_z,dzmin,dzmax,n0z,kv) 
       END IF
 !
       OPEN(17,FILE='mesh.dat')
@@ -155,6 +158,9 @@
         z(k)=(zb(k)-0.5D0*dz(k))
       END DO
 
+      WRITE(17,*) dx
+      WRITE(17,*) dy
+      WRITE(17,*) dz
       WRITE(17,*) x
       WRITE(17,*) y
       WRITE(17,*) z
@@ -319,8 +325,6 @@
         END IF
       END IF
       
-      WRITE(17,*) fl
-      
       RETURN
       END SUBROUTINE flic
 !----------------------------------------------------------------------
@@ -440,11 +444,11 @@
               WRITE(6,*) 'WARNING!!: domain size is reduced!'
               WRITE(6,*) 'Please increase: the number of cells or dxmax'
             ELSE
-              beta = beta / dbeta
+              beta = beta / dbeta0
             END IF
             print_mesh = .TRUE.
           ELSE IF ( lr > l )  THEN
-            beta = beta * dbeta
+            beta = beta * dbeta0
             WRITE(6,*) 'Reducing beta =', beta
           ELSE
             print_mesh = .TRUE.
@@ -552,7 +556,7 @@
 !
 ! ... relative center of the mesh (for refinement)
 !
-      REAL*8, INTENT(IN) :: alpha
+      REAL*8 :: alpha
 !
 ! ... minimum and maximum mesh size
 !
@@ -565,24 +569,23 @@
 !
       REAL*8 :: ded, der, dem, lder
 !      
-      REAL*8  :: minbeta, maxbeta
-      REAL*8  :: beta, beta1, beta2, frac
+      REAL*8  :: beta, beta1, beta2, frac, dbeta
       REAL*8  :: ntilde1, ntilde2
       REAL*8  :: l, l1, l2, lcomp
       INTEGER :: n01,n02,m1,m2,n11,n12
       INTEGER :: i, j, m, n, center
       LOGICAL :: print_mesh, already
-      INTEGER :: idelta
+      INTEGER :: idelta, ncount
 !
-      minbeta = 1.D0 + 1.D-5
-      maxbeta = 2.D0
-
       IF ( domain_size/demin < nd )  CALL error('grid_generator', &
           'insufficient number of cells', nd) 
       IF ( domain_size/demin == nd ) CALL error('grid_generator', &
           'number of cells is too big', nd)
+      IF (domain_size*alpha < demin) alpha = 0.D0
+      IF (domain_size*(1.D0-alpha) < demin) alpha = 1.D0
 !
       n01 = n0 / 2
+      IF( MOD(nd,2) == 0) n01 = n01 + 1
       n02 = n0 - n01
 !
 ! ... 'l1' and 'l2' are the sizes of the left and right domain
@@ -590,13 +593,35 @@
 !
       l1 = (domain_size*alpha) - n01*demin - 0.5D0 * demin
       l2 = (domain_size-alpha*domain_size) - n02*demin - 0.5D0 * demin
+      
+      IF (alpha == 0.D0) THEN
+  
+        n01 = 0
+        n02 = n0
+
+        l1 = 0.D0
+        l2 = domain_size - n02*demin - demin
+        
+      ELSE IF (alpha == 1.D0) THEN
+
+        n01 = n0
+        n02 = 0
+
+        l1 = domain_size - n01*demin - demin
+        l2 = 0.D0
+        
+      END IF
+
       WRITE(6,*) 'n01,n02,l1,l2',n01,n02,l1,l2
 !
       der = demax / demin
+      beta = 1.2D0
+      dbeta = dbeta0
       WRITE(6,*) 'Initial beta = ',beta
 !
 ! .. loop over the decreasing 'beta' to fit the domain size
 !
+      ncount = 1
       print_mesh = .FALSE.
       already = .FALSE.
 
@@ -605,7 +630,7 @@
         ! ... 'm' is the number of cells needed to increase the
         ! ... cell size from demin to demax at constant rate 'beta'
         !
-         m = INT(LOG(der)/LOG(beta))
+        m = INT(LOG(der)/LOG(beta))
 
         ! ... 'lcomp' is the size of the non-uniform part of the mesh
         !
@@ -660,16 +685,23 @@
            ELSE
               beta = beta * dbeta 
               already = .TRUE.
-              WRITE(6,*) 'Reducing beta=', beta
+              WRITE(6,*) 'Reducing beta = ', beta, ' n = ', &
+                (n01+m1+n11)+(n02+m2+n12)+1 
            ENDIF
         ELSE IF ( (n01+m1+n11)+(n02+m2+n12)+1 > nd ) THEN
            IF ( already ) THEN
               dbeta = dbeta + (1.0 - dbeta) / 2.0
            ENDIF
            beta = beta / dbeta
+           WRITE(6,*) 'Increasing beta = ', beta, ' n = ', &
+             (n01+m1+n11)+(n02+m2+n12)+1
         ELSE 
-           print_mesh = .TRUE.
+          print_mesh = .TRUE.
+          WRITE(6,*) 'Final beta = ', beta, ' n = ', &
+            (n01+m1+n11)+(n02+m2+n12)+1
         ENDIF
+
+        CALL myflush( 6 )
       END DO
 !
       IF ( beta >= maxbeta ) THEN
@@ -686,16 +718,16 @@
          ENDDO
       ENDIF
 !
-      ntilde2 = ( l2 - n11*demax) / demin + 1.D0
+      ntilde2 = ( l2 - n12*demax) / demin + 1.D0
       beta2 = beta
       IF ( ntilde2 > 1.D0 ) THEN
          DO j=1,50
-            beta2 = (1.D0 - (m2*beta2**( m2+1.D0 ) + 1.D0 ) / ntilde2 ) / &
+            beta2 = ( 1.D0 - ( m2*beta2**( m2+1.D0 ) + 1.D0 ) / ntilde2 ) / &
             ( 1.D0 - ( m2+1.D0 )*( beta2**m2 ) / ntilde2 )
          ENDDO
       ENDIF
- 
-! 
+!
+      WRITE(6,*) 'beta, beta1, beta2: ', beta, beta1, beta2 
       WRITE(6,*) 'n01,m1,n11',n01,m1,n11
       WRITE(6,*) 'n02,m2,n12',n02,m2,n12
 !
@@ -704,14 +736,16 @@
       delta(1:n11) = demax
       DO i = 1, m1
         delta(center-n01-i) = demin * beta1**i
+!        delta(center-n01-i) = demin * beta**i
       END DO
       delta(center-n01:center-1) = demin
       delta(center) = demin
-      delta(center+1:center+n02+1) = demin
+      delta(center+1:center+n02) = demin
       DO i = 1, m2
-        delta(center+n02+1+i) = demin * beta2**i
+        delta(center+n02+i) = demin * beta2**i
+!        delta(center+n02+i) = demin * beta**i
       END DO
-      delta(center+n02+m2+2:) = demax
+      delta(center+n02+m2+1:) = demax
 !
 ! ... accuracy of the mesh down to centimetres (second decimal digit)
 !
@@ -728,15 +762,6 @@
  777  FORMAT('domain_size = ',(F8.2)) 
  888  FORMAT('mesh_size = ',(F8.2)) 
 !
-      OPEN(unit=3,file='GRIDx.dat',form='formatted',status='unknown')
-      WRITE(3,*) n01+m1+n11+n02+m2+n12+1
-      WRITE(6,*) n01+m1+n11+n02+m2+n12+1
-      DO j=-n01-m1-n11,n02+m2+n12
-      WRITE(3,*) x(j)
-      WRITE(6,*) n01+m1+n11+j+1,j,x(j)
-      ENDDO
-      CLOSE(3)
-      
       RETURN
       END SUBROUTINE gen_grid
 !----------------------------------------------------------------------

@@ -138,6 +138,7 @@
 ! ... Setup cell-sizes and cell-flags
 !
       CALL grid_setup
+      CALL error('main','debug',1)
 
       IF (timing) then
           s1 = cpclock()

@@ -1,7 +1,7 @@
 !----------------------------------------------------------------------
       MODULE immersed_boundaries
 !----------------------------------------------------------------------
-      USE dimensions, ONLY: nx, ny, nz, ntot
+      USE dimensions, ONLY: nx, ny, nz, ntot, ntr
       USE parallel, ONLY: mpime, root
       USE volcano_topography, ONLY: xtop, ytop, ztop
       USE volcano_topography, ONLY: cx, cy, cz
@@ -45,42 +45,70 @@
 !
       REAL*8, ALLOCATABLE  :: topo_c(:)  ! topography on the grid
       REAL*8, ALLOCATABLE  :: topo_x(:)  ! topography on the grid
-      REAL*8, ALLOCATABLE  :: topo_y(:)  ! topography on the grid
+!           
+      REAL*8, ALLOCATABLE  :: topo2d_c(:,:)  ! topography on the grid
+      REAL*8, ALLOCATABLE  :: topo2d_x(:,:)  ! topography on the grid
+      REAL*8, ALLOCATABLE  :: topo2d_y(:,:)  ! topography on the grid
 !           
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
       SUBROUTINE import_topo
-      USE volcano_topography, ONLY: grid_locations
-      USE volcano_topography, ONLY: interpolate_2d
-      USE volcano_topography, ONLY: ord, next, dist
       USE control_flags, ONLY: job_type, lpr, immb
+      USE volcano_topography, ONLY: grid_locations, dist
+      USE volcano_topography, ONLY: interpolate_2d, ord, next
+      USE volcano_topography, ONLY: interpolate_dem, ord2d, nextx, nexty
 
       IMPLICIT NONE
       INTEGER :: p, nfpx, nfpz
       INTEGER :: i,j,k,ijk
 !
-      ALLOCATE(next(nx))
-      ALLOCATE(ord(nx))
-
       ALLOCATE(dist(ntot))
-!
-      ALLOCATE(topo_c(nx))
-      ALLOCATE(topo_x(nx))
 !
 ! ... interpolate topography on cell centers and write the
 ! ... implicit profile
 !
-      CALL grid_locations(0,0,0)
-      CALL interpolate_2d(topo_c)
-      
+      IF (job_type == '2D') THEN
+  
+        ALLOCATE(topo_c(nx))
+        ALLOCATE(topo_x(nx))
+
+        ALLOCATE(next(nx))
+        ALLOCATE(ord(nx))
+
+        CALL grid_locations(0,0,0)
+        CALL interpolate_2d(topo_c)
+
+      ELSE IF (job_type == '3D') THEN
+
+        ALLOCATE(topo2d_c(nx,ny))
+        ALLOCATE(topo2d_x(nx,ny))
+        ALLOCATE(topo2d_x(nx,ny))
+
+        ALLOCATE(nextx(nx))
+        ALLOCATE(nexty(ny))
+        ALLOCATE(ord2d(nx,ny))
+
+        CALL grid_locations(0,0,0)
+        CALL interpolate_dem(topo2d_c)
+
+        WRITE(6,*) 'TOPOGRAPHY'
+        DO j= 1, ny
+          DO i= 1, nx
+            WRITE(6,*) i, j, topo2d_c(i,j)
+          END DO
+        END DO
+
+      END IF
+
       IF (mpime == root) THEN
         OPEN(UNIT=14,FILE='improfile.dat',STATUS='UNKNOWN')
         WRITE(14,*) dist
         CLOSE(14)
       END IF
-
+!
+      CALL error('immb','debug',1)
       IF (immb >= 1) THEN
 !
 ! ... These arrays are exported and scattered among processors
@@ -272,7 +300,6 @@
 !
 ! ... find the no-slip point on the profile
 !
-           
         DO n=next(i-1),next(i)
           IF ((ztop(n-1) <= cz(k)).AND. (ztop(n) >= cz(k))) THEN
             grad = (xtop(n)-xtop(n-1))/(ztop(n)-ztop(n-1))
