@@ -316,7 +316,10 @@
         dzs = ztop(n) - cz(ord(i-1))
 
         s = sol2(norm(1), dxt, norm(2), dzt, dxs, dzs, err)
-        IF (err > 0) WRITE(7,*) 'Error in fp: ', fp
+        IF (err > 0) THEN
+          WRITE(8,*) 'WARNING! from proc: ',mpime
+          WRITE(8,*) 'Error in fp: ', fp
+        END IF
 
         IF ((s >= 0).AND.(s <= 1)) THEN
           fpt(fp)%nsl%x = s*xtop(n-1) + (1-s)*xtop(n)
@@ -367,7 +370,10 @@
         dzs = ztop(n) - cz(ord(i))
 
         s = sol2( norm(1), dxt, norm(2), dzt, dxs, dzs , err)
-        IF (err > 0) WRITE(7,*) 'Error in fp: ', fp
+        IF (err > 0) THEN
+          WRITE(8,*) 'WARNING! from proc: ', mpime
+          WRITE(8,*) 'Error in fp: ', fp
+        END IF
 
         IF ((s >= 0).AND.(s <= 1))	THEN
           fpt(fp)%nsl%x = s*xtop(n-1) + (1-s)*xtop(n)
@@ -412,7 +418,10 @@
         dzs = ztop(n) - cz(ord(i))
 
 	s = sol2( norm(1), dxt, norm(2), dzt, dxs, dzs, err )
-        IF (err > 0) WRITE(7,*) 'Error in fp: ', fp
+        IF (err > 0) THEN
+          WRITE(8,*) 'WARNING! from proc: ', mpime
+          WRITE(8,*) 'Error in fp: ', fp
+        END IF
 
         IF ((s >= 0).AND.(s <= 1))	THEN
           fpt(fp)%nsl%x = s*xtop(n-1) + (1-s)*xtop(n)
@@ -464,7 +473,10 @@
         dzs = ztop(n) - cz(ord(i+1))
 
 	s = sol2( norm(1), dxt, norm(2), dzt, dxs, dzs, err )
-        IF (err > 0) WRITE(7,*) 'Error in fp: ', fp
+        IF (err > 0) THEN
+          WRITE(8,*) 'WARNING! from proc: ', mpime
+          WRITE(8,*) 'Error in fp: ', fp
+        END IF
 
  	IF ((s >= 0).AND.(s <= 1))	THEN
 	  fpt(fp)%nsl%x = s*xtop(n-1) + (1-s)*xtop(n)

@@ -50,19 +50,21 @@
          stratification = .FALSE.
       ELSE IF (gravz /= -9.81D0) THEN
          IF( mpime == root ) THEN
-           WRITE(6,*) 'WARNING!! control atmospheric stratification'
+           WRITE(8,*) 'WARNING! from control atmosphere'
+           WRITE(8,*) 'gravz = ', gravz
          END IF
       END IF
       IF( mpime == root ) THEN
+        WRITE(6,*) 
         WRITE(6,*) 'Atmospheric stratification: ', stratification
         WRITE(6,*) 'Gravity: ', gravz
       END IF
 !
       IF (stratification) THEN
         IF( mpime == root ) THEN
-          IF (t_ground /= 288.15D0) WRITE(6,*) 'WARNING! control atmospheric &
+          IF (t_ground /= 288.15D0) WRITE(8,*) 'WARNING! control atmospheric &
                                           & temperature profile'
-          IF (p_ground /= 1.01325D5) WRITE(6,*)   'WARNING! control atmospheric &
+          IF (p_ground /= 1.01325D5) WRITE(8,*)'WARNING! control atmospheric &
                                           & pressure profile'
         END IF
       END IF	
@@ -198,7 +200,8 @@
         za = zb(k) + 0.5D0*(dz(1)-dz(k))
 
         IF ( ( za < 0.D0 ) .AND. ( mpime == root ) ) & 
-          WRITE(6,*) ' Row ',k, ' lays below the sea level; z = ', za
+          WRITE(8,*) 'WARNING! from atmospheric profile:'
+          WRITE(8,*) ' Row ',k, ' lays below the sea level; z = ', za
         IF (za <= 0.D0 .OR. .NOT.stratification) THEN
           ta = t_ground
           pa = p_ground

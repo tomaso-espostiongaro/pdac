@@ -32,7 +32,7 @@
 !-----------------------------------------------------------------------
       SUBROUTINE locate_vent
 
-      USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: job_type, lpr
       USE dimensions, ONLY: nx, ny, nz
       USE grid, ONLY: x, y, z, fl, xb, yb, zb
       USE grid, ONLY: bottom, iv, jv, kv, grigen
@@ -64,11 +64,10 @@
         END DO
       END IF
 !
-      IF( mpime == root ) THEN
-        WRITE(6,*) 
-        WRITE(6,*) 'Vent conditions imposed in cells: '
+      IF( lpr > 0 .AND. mpime == root ) THEN
+        WRITE(7,*) 
+        WRITE(7,*) 'Vent conditions imposed in cells: '
       END IF
-      WRITE(7,*) 'Vent'
 !
 ! ... define the rectangle containing the vent
 ! ... 'nvt' is the number of vent cells
@@ -95,9 +94,9 @@
       END IF
       quota = kv
 
-      IF( mpime == root ) THEN
-        WRITE(6,100) iv, jv, kv
-        WRITE(6,200) x(iv), y(jv), z(kv)
+      IF( lpr > 0 .AND. mpime == root ) THEN
+        WRITE(7,100) iv, jv, kv
+        WRITE(7,200) x(iv), y(jv), z(kv)
 100     FORMAT(1X,'vent center: ',3I5)
 200     FORMAT(1X,'center coordinates: ',3F12.6)
       END IF
@@ -135,7 +134,8 @@
             fl(ijk) = bottom
           END IF
           !
-          WRITE(7,10) nv, ijk, i, j, k, vcell(nv)%frac, fl(ijk)
+          IF (lpr > 0 .AND. mpime == root) &
+            WRITE(7,10) nv, ijk, i, j, k, vcell(nv)%frac, fl(ijk)
  10       FORMAT(I3,I7,3(I3),F8.4,I2)
 !
 ! ... fluid cells above the vent

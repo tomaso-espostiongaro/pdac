@@ -131,6 +131,7 @@
         IF (nblu(n) == 1) THEN
           m = m + 1
           IF (lpr > 1) THEN
+            WRITE(7,*) 
             WRITE(7,*) 'Computing action on block: ', n
             WRITE(7,*) 'Surface cells: '
             DO l = 1, perim
@@ -203,7 +204,7 @@
           ijk = surfp(m,pp)%ijk
           IF (mpime == surfp(m,pp)%np) surfp(m,pp)%p = p(ijk)
           fd = fd + surfp(m,pp)%ds * surfp(m,pp)%p * surfp(m,pp)%n(1)
-          WRITE(7,*) ijk, surfp(m,pp)%p, ep(ijk)
+          !WRITE(7,*) ijk, surfp(m,pp)%p, ep(ijk)
 	END DO
 !
       END SUBROUTINE dragbl

@@ -125,10 +125,8 @@
 !
         sweep = sweep + 1
 
-        IF ( mpime == root ) THEN
-          WRITE(6,fmt="(/,'* Starting iteration ',I5,' * ')" ) sweep
-          WRITE(6,fmt="('  Simulated time = ',F20.14)" ) time
-        END IF
+        WRITE(7,fmt="(/,'* Starting iteration ',I5,' * ')" ) sweep
+        WRITE(7,fmt="('  Simulated time = ',F20.14)" ) time
 !
         IF( timing ) then
            s1 = cpclock()

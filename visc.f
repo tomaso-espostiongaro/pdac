@@ -352,13 +352,6 @@
 	 j = MOD( imesh - 1, nx*ny ) / nx + 1
 	 k = ( imesh - 1 ) / ( nx*ny ) + 1
 !
-         !IF( i < 2 )           WRITE(*,*) 'error 1 ', ijk
-         !IF( i == SIZE( dx ) ) WRITE(*,*) 'error 2 ', ijk
-         !IF( j < 2 )           WRITE(*,*) 'error 3 ', ijk
-         !IF( j == SIZE( dy ) ) WRITE(*,*) 'error 4 ', ijk
-         !IF( k < 2 )           WRITE(*,*) 'error 5 ', ijk
-         !IF( k == SIZE( dz ) ) WRITE(*,*) 'error 6 ', ijk
-
          dxp=(dx(i)+dx(i+1))
          dxm=(dx(i)+dx(i-1))
          dyp=(dy(j)+dy(j+1))
@@ -380,35 +373,12 @@
          indzp2 = indzp * 2.0D0
          indzm2 = indzm * 2.0D0
 
-         !IF( ijk < 1  .OR. ijk  > SIZE(u) ) WRITE(*,*) 'error 7 ',ijk
-         !IF( imjk < 1 .OR. imjk > SIZE(u) ) WRITE(*,*) 'error 8 ',imjk
-         !IF( ipjk < 1 .OR. ipjk > SIZE(u) ) WRITE(*,*) 'error 9 ',ipjk
-         !IF( ijk < 1  .OR. ijk  > SIZE(v) ) WRITE(*,*) 'error 10',ijk
-         !IF( ijmk < 1 .OR. ijmk > SIZE(v) ) WRITE(*,*) 'error 11',ijmk
-         !IF( ijpk < 1 .OR. ijpk > SIZE(v) ) WRITE(*,*) 'error 12',ijpk
-         !IF( ijk < 1  .OR. ijk  > SIZE(w) ) WRITE(*,*) 'error 13',ijk
-         !IF( ijkm < 1 .OR. ijkm > SIZE(w) ) WRITE(*,*) 'error 14',ijkm
-         !IF( ijkp < 1 .OR. ijkp > SIZE(w) ) WRITE(*,*) 'error 15',ijkp
-
          dum = u(ijk) - u(imjk)
          dup = u(ipjk) - u(ijk)
          dvm = v(ijk) - v(ijmk)
          dvp = v(ijpk) - v(ijk)    
          dwm = w(ijk) - w(ijkm)
          dwp = w(ijkp) - w(ijk)
-
-         !IF( ijpk  < 1 .OR. ijpk  > SIZE(u) ) WRITE(*,*) 'error 16',ijpk
-         !IF( imjpk < 1 .OR. imjpk > SIZE(u) ) WRITE(*,*) 'error 17',imjpk
-         !IF( ijkp  < 1 .OR. ijkp  > SIZE(u) ) WRITE(*,*) 'error 18',ijkp 
-         !IF( imjkp < 1 .OR. imjkp > SIZE(u) ) WRITE(*,*) 'error 19',imjkp
-         !IF( ipjk  < 1 .OR. ipjk  > SIZE(v) ) WRITE(*,*) 'error 20',ipjk 
-         !IF( ipjmk < 1 .OR. ipjmk > SIZE(v) ) WRITE(*,*) 'error 21',ipjmk
-         !IF( ijkp  < 1 .OR. ijkp  > SIZE(v) ) WRITE(*,*) 'error 22',ijkp 
-         !IF( ijmkp < 1 .OR. ijmkp > SIZE(v) ) WRITE(*,*) 'error 23',ijmkp 
-         !IF( ipjk  < 1 .OR. ipjk  > SIZE(w) ) WRITE(*,*) 'error 24',ipjk  
-         !IF( ipjkm < 1 .OR. ipjkm > SIZE(w) ) WRITE(*,*) 'error 25',ipjkm 
-         !IF( ijpk  < 1 .OR. ijpk  > SIZE(w) ) WRITE(*,*) 'error 26',ijpk  
-         !IF( ijpkm < 1 .OR. ijpkm > SIZE(w) ) WRITE(*,*) 'error 27',ijpkm  
 
          dupm1 = u(ijpk) - u(imjpk)
          dupm2 = u(ijkp) - u(imjkp)
@@ -437,15 +407,6 @@
 !
 ! ... (isotropy)
 !
-         !IF( ijke < 1 .OR. ijke > SIZE(mu) ) WRITE(*,*) 'error 28',ijke  
-         !IF( ijk  < 1 .OR. ijk  > SIZE(mu) ) WRITE(*,*) 'error 29',ijk  
-         !IF( ijkn < 1 .OR. ijkn > SIZE(mu) ) WRITE(*,*) 'error 30',ijkn  
-         !IF( ijkt < 1 .OR. ijkt > SIZE(mu) ) WRITE(*,*) 'error 31',ijkn  
-         !IF( ijke < 1 .OR. ijke > SIZE(lambda) ) WRITE(*,*) 'error 32',ijke  
-         !IF( ijk  < 1 .OR. ijk  > SIZE(lambda) ) WRITE(*,*) 'error 33',ijk  
-         !IF( ijkn < 1 .OR. ijkn > SIZE(lambda) ) WRITE(*,*) 'error 34',ijkn  
-         !IF( ijkt < 1 .OR. ijkt > SIZE(lambda) ) WRITE(*,*) 'error 35',ijkn  
-
          txx2 = mu(ijke) * txx2 - cm * lambda(ijke) * dive
          txx1 = mu(ijk)  * txx1 - cm * lambda(ijk)  * divc
          tyy2 = mu(ijkn) * tyy2 - cm * lambda(ijkn) * divn
@@ -455,26 +416,12 @@
 !
 ! ... non-diagonal component of the stress tensor
 !
-         !IF( ijmk < 1 .OR. ijmk > SIZE(u) ) WRITE(*,*) 'error 36',ijmk  
-         !IF( ijpk < 1 .OR. ijpk > SIZE(u) ) WRITE(*,*) 'error 37',ijpk  
-         !IF( imjk < 1 .OR. imjk > SIZE(v) ) WRITE(*,*) 'error 38',imjk  
-         !IF( ipjk < 1 .OR. ipjk > SIZE(v) ) WRITE(*,*) 'error 39',ipjk  
-         !IF( ijmk < 1 .OR. ijmk > SIZE(w) ) WRITE(*,*) 'error 40',ijmk  
-         !IF( ijpk < 1 .OR. ijpk > SIZE(w) ) WRITE(*,*) 'error 41',ijpk  
-
          dum = u(ijk) - u(ijmk)
          dup = u(ijpk) - u(ijk)
          dvm = v(ijk) - v(imjk)
          dvp = v(ipjk) - v(ijk)
          dwm = w(ijk) - w(ijmk)
          dwp = w(ijpk) - w(ijk)
-
-         !IF( imjpk < 1 .OR. imjpk > SIZE(u) ) WRITE(*,*) 'error 42',imjpk  
-         !IF( imjkp < 1 .OR. imjkp > SIZE(u) ) WRITE(*,*) 'error 43',imjkp  
-         !IF( ipjmk < 1 .OR. ipjmk > SIZE(v) ) WRITE(*,*) 'error 44',ipjmk  
-         !IF( ijmkp < 1 .OR. ijmkp > SIZE(v) ) WRITE(*,*) 'error 45',ijmkp  
-         !IF( ijpkm < 1 .OR. ijpkm > SIZE(w) ) WRITE(*,*) 'error 46',ijpkm  
-         !IF( ipjkm < 1 .OR. ipjkm > SIZE(w) ) WRITE(*,*) 'error 47',ipjkm  
 
          dupm1 = u(imjpk) - u(imjk)
          dupm2 = u(imjkp) - u(imjk)
@@ -488,9 +435,6 @@
          txy2 = tyx2
          txy1 = dupm1 * indyp2 + dvm * indxm2
 
-         !IF( ijkp < 1 .OR. ijkp > SIZE(v) ) WRITE(*,*) 'error 48',ijkp  
-         !IF( ijkm < 1 .OR. ijkm > SIZE(v) ) WRITE(*,*) 'error 49',ijkm  
-
          dvp = v(ijkp) - v(ijk)
          dvm = v(ijk) - v(ijkm)
 
@@ -498,11 +442,6 @@
          tzy1 = dvm * indzm2 + dwpm1 * indyp2
          tyz2 = tzy2
          tyz1 = dvpm2 * indzp2 + dwm * indym2
-
-         !IF( ipjk < 1 .OR. ipjk > SIZE(w) ) WRITE(*,*) 'error 50',ipjk  
-         !IF( imjk < 1 .OR. imjk > SIZE(w) ) WRITE(*,*) 'error 51',imjk  
-         !IF( ijkp < 1 .OR. ijkp > SIZE(u) ) WRITE(*,*) 'error 52',ijkp  
-         !IF( ijkm < 1 .OR. ijkm > SIZE(u) ) WRITE(*,*) 'error 53',ijkm  
 
          dwp = w(ipjk) - w(ijk)
          dwm = w(ijk) - w(imjk)
@@ -517,22 +456,6 @@
 !
 ! ... compute linearly interpolated values of viscosity on the staggered grid
 !
-         !IF( ijke < 1 .OR. ijke > SIZE(eps) ) WRITE(*,*) 'error 54',ijke  
-         !IF( ijkw < 1 .OR. ijkw > SIZE(eps) ) WRITE(*,*) 'error 55',ijkw  
-         !IF( ijkn < 1 .OR. ijkn > SIZE(eps) ) WRITE(*,*) 'error 56',ijkn  
-         !IF( ijks < 1 .OR. ijks > SIZE(eps) ) WRITE(*,*) 'error 57',ijks  
-         !IF( ijkt < 1 .OR. ijkt > SIZE(eps) ) WRITE(*,*) 'error 58',ijkt  
-         !IF( ijkb < 1 .OR. ijkb > SIZE(eps) ) WRITE(*,*) 'error 59',ijkb  
-         !IF( ijken < 1 .OR. ijken > SIZE(eps) ) WRITE(*,*) 'error 60',ijken  
-         !IF( ijket < 1 .OR. ijket > SIZE(eps) ) WRITE(*,*) 'error 61',ijket  
-         !IF( ijkes < 1 .OR. ijkes > SIZE(eps) ) WRITE(*,*) 'error 62',ijkes  
-         !IF( ijkeb < 1 .OR. ijkeb > SIZE(eps) ) WRITE(*,*) 'error 63',ijkeb  
-         !IF( ijkwn < 1 .OR. ijkwn > SIZE(eps) ) WRITE(*,*) 'error 64',ijkwn  
-         !IF( ijkwt < 1 .OR. ijkwt > SIZE(eps) ) WRITE(*,*) 'error 65',ijkwt  
-         !IF( ijknt < 1 .OR. ijknt > SIZE(eps) ) WRITE(*,*) 'error 66',ijknt  
-         !IF( ijknb < 1 .OR. ijknb > SIZE(eps) ) WRITE(*,*) 'error 67',ijknb  
-         !IF( ijkst < 1 .OR. ijkst > SIZE(eps) ) WRITE(*,*) 'error 68',ijkst  
-
          epsc = eps(ijk)
          epse = eps(ijke)
          epsw = eps(ijkw)
@@ -549,22 +472,6 @@
          epsnt = eps(ijknt)
          epsnb = eps(ijknb)
          epsst = eps(ijkst)
-
-         !IF( ijke < 1 .OR. ijke > SIZE(mu) ) WRITE(*,*) 'error 69',ijke  
-         !IF( ijkw < 1 .OR. ijkw > SIZE(mu) ) WRITE(*,*) 'error 70',ijkw  
-         !IF( ijkn < 1 .OR. ijkn > SIZE(mu) ) WRITE(*,*) 'error 71',ijkn  
-         !IF( ijks < 1 .OR. ijks > SIZE(mu) ) WRITE(*,*) 'error 72',ijks  
-         !IF( ijkt < 1 .OR. ijkt > SIZE(mu) ) WRITE(*,*) 'error 73',ijkt  
-         !IF( ijkb < 1 .OR. ijkb > SIZE(mu) ) WRITE(*,*) 'error 74',ijkb  
-         !IF( ijken < 1 .OR. ijken > SIZE(mu) ) WRITE(*,*) 'error 75',ijken  
-         !IF( ijket < 1 .OR. ijket > SIZE(mu) ) WRITE(*,*) 'error 76',ijket  
-         !IF( ijkes < 1 .OR. ijkes > SIZE(mu) ) WRITE(*,*) 'error 77',ijkes  
-         !IF( ijkeb < 1 .OR. ijkeb > SIZE(mu) ) WRITE(*,*) 'error 78',ijkeb  
-         !IF( ijkwn < 1 .OR. ijkwn > SIZE(mu) ) WRITE(*,*) 'error 79',ijkwn  
-         !IF( ijkwt < 1 .OR. ijkwt > SIZE(mu) ) WRITE(*,*) 'error 80',ijkwt  
-         !IF( ijknt < 1 .OR. ijknt > SIZE(mu) ) WRITE(*,*) 'error 81',ijknt  
-         !IF( ijknb < 1 .OR. ijknb > SIZE(mu) ) WRITE(*,*) 'error 82',ijknb  
-         !IF( ijkst < 1 .OR. ijkst > SIZE(mu) ) WRITE(*,*) 'error 83',ijkst  
 
          muc = mu(ijk)
          mue = mu(ijke)

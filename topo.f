@@ -67,7 +67,7 @@
 
       IF( mpime == root ) THEN
         WRITE(6,*)
-        WRITE(6,*) 'Importing topology ...'
+        WRITE(6,*) 'Importing topographic matrix ...'
       END IF
 
       IF (job_type == '2D') THEN
@@ -80,7 +80,7 @@
       CALL set_profile
 
       IF( mpime == root ) THEN
-        WRITE(6,*) 'END Import topology'
+        WRITE(6,*) 'END Import topography'
       END IF
 !
       RETURN
@@ -154,7 +154,7 @@
         topo_file = TRIM(topography)
         OPEN(UNIT=3, FILE=topo_file, STATUS='OLD')
   
-        WRITE(*,*) 'Reading topography file: ', topo_file
+        WRITE(6,*) 'Reading topography file: ', topo_file
 
         READ(3,*) noditopx
         READ(3,*) noditopy
@@ -262,7 +262,7 @@
         transl_z = MINVAL(topo)
 
         IF( mpime == root ) THEN
-          WRITE(6,*) 'Translating mesh vertically: '
+          WRITE(6,*) 'Translating mesh vertically'
           WRITE(6,*) '     minimum topographic quota: ', transl_z
         END IF
 

@@ -11,6 +11,7 @@
       USE dimensions
       USE domain_decomposition, ONLY: meshinds
       USE gas_constants, ONLY: tzero, hzeros
+      USE parallel, ONLY: mpime
       USE specific_heat_module, ONLY: hcaps
       IMPLICIT NONE
       REAL*8, INTENT(INOUT) :: tk
@@ -24,8 +25,9 @@
 
       IF( tk < 0.0d0 ) THEN
          CALL meshinds(ijk,imesh,i,j,k)
-         WRITE(6,*) 'WARNING (eosl) negative temperature'
-         WRITE(6,*) 'local cell: ', ijk, i, j, k
+         WRITE(8,*) 'WARNING from proc: ', mpime
+         WRITE(8,*) 'negative temperature in eosl'
+         WRITE(8,*) 'local cell: ', ijk, i, j, k
       END IF
 
       RETURN

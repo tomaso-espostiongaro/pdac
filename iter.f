@@ -306,15 +306,14 @@
 ! --> avloop : the averaged number of inner iterations per cells
 ! --> timconv: the time for the whole mesh sweep
 !
-         IF (lpr > 1) THEN
+         IF (lpr > 0) THEN
            IF( n2 > 0 ) THEN
              avloop = REAL(nloop) / REAL(n2)
            ELSE
              avloop = REAL(nloop)
            END IF
-           IF( mpime == root ) &
-             WRITE(6, fmt="( I10, 2X, F4.2, 2X, I10, 2X, F10.3)" ) n2, avloop, n1, timconv(nit)
-           WRITE(7, fmt="( I10, 2X, F4.2, 2X, I10, 2X, F10.3)" ) n2, avloop, n1, timconv(nit)
+           WRITE(7, fmt="( I10, 2X, F4.2, 2X, I10, 2X, F10.3)" ) &
+                            n2, avloop, n1, timconv(nit)
          END IF
 !*******************************************************************
 
@@ -360,8 +359,7 @@
 !*******************************************************************
 ! ... write out the final number of iterations
 !
-          IF (lpr > 1) THEN
-            IF( mpime == root ) WRITE(6,277) nit
+          IF (lpr > 0) THEN
             WRITE(7,277) nit
  277        FORMAT('number of iterations: nit = ', I4)
           END IF
@@ -375,11 +373,9 @@
 !
        IF( MOD( nit, 1000 ) == 0 ) THEN
          omega = omega * 0.9D0
-         IF (lpr > 1) THEN
-           IF( mpime == root ) THEN
-             WRITE(6, fmt="('  reducing relaxation parameter omega')")
-             WRITE(6, fmt="('  new value = ',F12.4)") omega
-           END IF
+         IF (lpr > 0) THEN
+           WRITE(7, fmt="('  reducing relaxation parameter omega')")
+           WRITE(7, fmt="('  new value = ',F12.4)") omega
          END IF
        END IF
        IF (lpr > 1) call myflush( 6 )
@@ -394,11 +390,7 @@
       DO itim = 1, nit
         timiter = timiter + timconv(itim)
       END DO
-      IF( lpr > 1 ) THEN
-        WRITE(7,280)'Time for iterative solver: ',timiter
-        IF( mpime == root ) &
-          WRITE(6,280)'Time for iterative solver: ',timiter
-      END IF
+      IF( lpr > 0 ) WRITE(7,280)'Time for iterative solver: ',timiter
  280  FORMAT(2X,A27,F8.3) 
 
 !
@@ -408,10 +400,11 @@
 !
       IF( mustit /= 0 ) THEN
 !
-        IF (lpr > 1) THEN
+        IF (lpr > 0) THEN
           WRITE(7,700) nit, (time+dt)
           WRITE(7,*) 'convergence on proc ',mpime,' : ', ALL(converge)
-          IF (.NOT.ALL(converge)) WRITE(7,*) 'cells not converged (imesh,i,j,k): '
+          IF(.NOT.ALL(converge)) &
+            WRITE(7,*) 'cells not converged (imesh,i,j,k): '
           DO ijk = 1, ncint
             IF ( .NOT. converge( ijk ) ) THEN
               CALL meshinds( ijk , imesh, i , j , k )
@@ -792,8 +785,8 @@
       END DO
       
       IF( rls > 1.D0 ) THEN
-        IF (lpr > 1) THEN
-          WRITE(7,*) ' warning1: mass is not conserved'
+        IF (lpr > 0) THEN
+          WRITE(7,*) ' WARNING 1: mass is not conserved'
           WRITE(7,*) ' time, i, j, k ', time, i, j, k
           WRITE(7,*) ' rls, volfrac ', rls, 1.D0/ivf
         END IF
@@ -1078,6 +1071,7 @@
 ! ... of the various fields are computed once at the beginning of the
 ! ... loop and only updated at the end
 !
+        USE control_flags, ONLY: job_type, lpr
         USE dimensions
         USE pressure_epsilon, ONLY: p, ep
         USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
@@ -1267,9 +1261,10 @@
           END DO
 
           IF( rls > 1.D0 ) THEN
-            WRITE(7,*) ' warning1: mass is not conserved'
-            WRITE(7,*) ' i, j, k, rls ', i, j, k, rls
-            CALL error('iter', 'warning: mass is not conserved',1)
+            IF (lpr > 0) THEN
+              WRITE(7,*) ' WARNING 1: mass is not conserved'
+              WRITE(7,*) ' i, j, k, rls ', i, j, k, rls
+            ENDIF
           ENDIF
 
           ep( ijk ) = 1.D0 - rls
@@ -1361,6 +1356,7 @@
 !
 !----------------------------------------------------------------------
 
+        USE control_flags, ONLY: job_type, lpr
         USE dimensions
         USE pressure_epsilon, ONLY: p, ep
         USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
@@ -1541,9 +1537,10 @@
           rls = rls + rlk( ijk, 2 ) * inrl(2)
 
           IF( rls > 1.D0 ) THEN
-            WRITE(7,*) ' warning1: mass is not conserved'
-            WRITE(7,*) ' i, j, k, rls ', i, j, k, rls
-            CALL error('iter', 'warning: mass is not conserved',1)
+            IF( lpr > 0 ) THEN
+              WRITE(7,*) ' warning1: mass is not conserved'
+              WRITE(7,*) ' i, j, k, rls ', i, j, k, rls
+            ENDIF
           ENDIF
 
           ep( ijk ) = 1.D0 - rls

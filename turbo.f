@@ -187,7 +187,7 @@
 
       IF (modturbo == 2 .AND. job_type == '2D') THEN
 
-        IF( mpime == root ) WRITE(6,*) 'WARNING!: Dynamic Smagorinsky &
+        IF( mpime == root ) WRITE(8,*) 'WARNING!: Dynamic Smagorinsky &
                                       & model cannot be applied to 2D'
         modturbo = 1
 

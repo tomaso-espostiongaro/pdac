@@ -12,8 +12,6 @@
       DO irest = first_out, last_out, incr_out
 !---------------------------------------
 !
-       WRITE(6,fmt="(/,'* Starting filtering ',I5,' * ')" ) irest
-
        CALL filter_outp ( irest )
 !
        CALL myflush( 6 )

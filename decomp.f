@@ -123,7 +123,7 @@
 
       IF ( lpr > 0 .AND. ionode ) THEN
         WRITE( 6, * ) 
-        WRITE( 6, * ) 'Starting Grid Partition ...'
+        WRITE( 6, * ) 'Starting Grid Decomposition ...'
       END IF
 
       IF (ALLOCATED(nctot)) DEALLOCATE(nctot)
@@ -186,7 +186,7 @@
 !
       IF ( lpr > 0 .AND. ionode ) THEN
         WRITE(6,*) 
-        WRITE(6,*) '---  cells partition summary  ---'
+        WRITE(6,*) '---  Mesh decomposition summary  ---'
         WRITE(6,*) 
         DO ipe = 0, nproc - 1
           WRITE(6,*) ' # nctot( ',ipe, ' ) = ', nctot(ipe)
@@ -211,7 +211,7 @@
       END IF
 
       IF( ionode ) &
-        WRITE( 6, * ) 'End of Grid partition'
+        WRITE( 6, * ) 'End of Mesh decomposition'
 !
       RETURN
       END SUBROUTINE partition
@@ -247,7 +247,7 @@
       ionode = ( mpime == root )
 !
       IF( ionode ) &
-        WRITE( 6, * ) 'Using Layers Grid partition' 
+        WRITE( 6, * ) 'Using Layers Mesh decomposition' 
 !
       ALLOCATE(lay_map(0:nproc-1,2))
 !
@@ -392,7 +392,7 @@
       ionode = ( mpime == root )
 
       IF( ionode ) &
-        WRITE( 6, * ) 'Using Blocks ( 2D ) Grid partition' 
+        WRITE( 6, * ) 'Using Blocks ( 2D ) Mesh decomposition' 
 !
 ! ... Initially subdivides the domain into 'nbz' layers. Each layer
 ! ... will be in turn subdivided into 'nbx' blocks.
@@ -667,7 +667,7 @@
       ionode = ( mpime == root )
 
       IF( ionode ) &
-        WRITE( 6, * ) 'Using Colomns ( 3D ) Grid partition' 
+        WRITE( 6, * ) 'Using Colomns ( 3D ) Mesh decomposition' 
 
 !
 ! ... subdivides the domain into 'nby' Slabs. Each slab
@@ -878,7 +878,7 @@
                 END DO
               END DO
             END DO
-            IF (lpr > 2 .AND. ionode ) &
+            IF (lpr > 1 .AND. ionode ) &
               WRITE(6,*) 'proc_map(',ipe,'): ', proc_map(ipe)%corner1(:), proc_map(ipe)%corner2(:)
           END DO
         END DO
@@ -951,8 +951,10 @@
 
       nprocxy = nproc / nprocz
 
-      IF( nprocz == 1 .AND. lpr > 0 .AND. ionode ) &
-        WRITE(6,*) 'Warning: blocks3d distribution has no effect, nprocz = 1'
+      IF( nprocz == 1 .AND. ionode ) THEN
+        WRITE(8,*) 'WARNING! from domain decomposition'
+        WRITE(8,*) 'Blocks3d distribution has no effect, nprocz = 1'
+      END IF
 
 ! ... compute blocks in z direction 
 
@@ -988,8 +990,10 @@
         END DO
         rest = nbx*nby - nprocxy
 
-        IF( lpr > 0 .AND. ionode ) &
+        IF( lpr > 1 .AND. ionode ) THEN
+          WRITE(6,*) 'Report on domain decomposition'
           WRITE(6,*) 'nbx, nby, nbz, nprocz, nprocxy = ', nbx, nby, nbz, nprocz, nprocxy
+        END IF
 
 ! ... The number of layer (slab) nby is now defined, and it will not be
 ! ... modified further
@@ -1047,7 +1051,7 @@
 
         END IF
 
-        IF( lpr > 0 .AND. ionode ) THEN
+        IF( lpr > 1 .AND. ionode ) THEN
           DO layer = 1, nby
             WRITE(6,*) ' layer ', layer, ' nbl = ', nbl_lay(layer)
           END DO
@@ -1090,7 +1094,7 @@
           END DO
         END DO
 
-        IF( lpr > 0 .AND. ionode ) THEN
+        IF( lpr > 1 .AND. ionode ) THEN
           DO layer = 1, nby
             WRITE(6,*) ' layer_map ', layer, ' start, end = ', lay_map(layer,1), lay_map(layer,2)
           END DO
@@ -1151,7 +1155,7 @@
             END DO
           END DO
 
-          IF( lpr > 0 .AND. ionode ) &
+          IF( lpr > 1 .AND. ionode ) &
             WRITE(6,*) ' layer = ', layer, ' no. column blocks = ', nbl_lay(layer)
 !
 ! ...     Estimate of the number of cells contained in each column block
@@ -1238,7 +1242,7 @@
                 END DO
               END DO
 
-              IF (lpr > 2 .AND. ionode ) THEN
+              IF (lpr > 1 .AND. ionode ) THEN
                  WRITE(6,1000) ipe, proc_map(ipe)%blkbsw(:),proc_map(ipe)%blktne(:)
   1000           FORMAT( ' proc_map(',I4,'): BSW = ', 3I4, ' TNE = ', 3I4 )
               END IF
@@ -1294,14 +1298,8 @@
       ALLOCATE(snd_map( 0:(nproc-1) ) )
       
 !
-      IF( mpime == root ) THEN
-        WRITE( 6, * ) 
-        WRITE( 6, * ) 'Entering ghost ... '
-        WRITE( 6, * ) 'see files pdat.tst### for size and indexes of ghosts'
-      END IF
-      WRITE( 7, * ) 'Entering ghost ... '
+      WRITE( 7, * ) 'Entering Ghost ... '
 !
-
       rcv_map(:)%nrcv = 0
       snd_map(:)%nsnd = 0
       icnt     = 0
@@ -1493,10 +1491,10 @@
 ! ... array of sorted global cell indexes to be sent to 'mpime' 
 ! .... (see test below)
 
-      IF (lpr > 0) THEN
+      IF (lpr > 1) THEN
         DO ipe = 0, nproc - 1
           WRITE(7,300) nset(ipe), ipe
-          IF ( nset(ipe) > 0 .AND. lpr > 2 ) THEN
+          IF ( nset(ipe) > 0 .AND. lpr > 1 ) THEN
             WRITE(7,310) rcv_cell_set(ipe)%i(1,:)
           END IF
  300      FORMAT(' # neighbours set SIZE ',i5,' from ',i3)
@@ -1509,7 +1507,7 @@
 !
       ncext = SUM( nrcv ) 
       ncdom = ncint + ncext
-      IF (lpr > 0) THEN
+      IF (lpr > 1) THEN
         WRITE(7,* ) ' # ncext ', ncext
         WRITE(7,* ) ' # ncdom ', ncdom
       END IF
@@ -1536,7 +1534,7 @@
 
 ! ... print out basic information on the map
 !
-      IF (lpr > 0) THEN
+      IF (lpr > 1) THEN
         DO ipe = 0, nproc - 1
           WRITE(7,*) ' # nrcv ', nrcv(ipe), ' from ', ipe
         END DO
@@ -1601,10 +1599,10 @@
 
       END DO
 !
-      IF (lpr > 0) THEN
+      IF (lpr > 1) THEN
         DO ipe = 0, nproc - 1
           WRITE(7,100) rcv_map(ipe)%nrcv, ipe
-          IF( rcv_map(ipe)%nrcv > 0 .AND. lpr > 2 ) THEN
+          IF( rcv_map(ipe)%nrcv > 0 .AND. lpr > 1 ) THEN
             WRITE(7,110) rcv_map(ipe)%ircv(:)
             WRITE(7,*) ' ---- '
             WRITE(7,110) rcv_map(ipe)%iloc(:)
@@ -1614,10 +1612,10 @@
         END DO
       END IF
 
-      IF (lpr > 0) THEN
+      IF (lpr > 1) THEN
         DO ipe = 0, nproc - 1
           WRITE(7,200) snd_map(ipe)%nsnd, ipe
-          IF ( snd_map(ipe)%nsnd > 0 .AND. lpr > 2 ) THEN
+          IF ( snd_map(ipe)%nsnd > 0 .AND. lpr > 1 ) THEN
             WRITE(7,210) snd_map(ipe)%isnd(:)
             WRITE(7,*) ' ---- '
             WRITE(7,210) snd_map(ipe)%iloc(:)
@@ -1650,7 +1648,6 @@
 !
       IF (immb == 1) CALL local_forcing
 
-      IF( mpime == root ) WRITE(6,*) 'END of Ghost'
       WRITE(7,*) 'End of Ghost'
 !
       RETURN
@@ -2439,6 +2436,7 @@
           isour = MOD(mpime - ip + nproc, nproc)
           idest = MOD(mpime + ip        , nproc)
           ALLOCATE( rcvbuf( MAX(rcv_map(isour)%nrcv,1) ), STAT=ierr )
+
           IF( ierr /= 0 ) THEN
             WRITE(7,*) 'Trying to allocate ', MAX(rcv_map(isour)%nrcv,1), ' elements '
             CALL error(' data_exchange_r ', ' allocating rcvbuf ', ierr )
@@ -2825,8 +2823,11 @@
 
         CALL data_exchange(itest)
          
-        WRITE(7,*)   ' index received ' 
-        WRITE(7,310) itest( ncint + 1 : ncdom ) 
+        IF (lpr > 1) THEN
+          WRITE(7,*)   ' index received ' 
+          WRITE(7,310) itest( ncint + 1 : ncdom ) 
+        END IF
+
  310    FORMAT(10i8)
         
         DEALLOCATE( itest )
@@ -2921,7 +2922,8 @@ set_numx: IF (i/=0 .AND. k/=0) THEN
               numx(ijkl) = n 
 
               IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. j==1 .OR. j==ny) THEN
-                WRITE(7,*) 'x-forcing on boundaries', i, j, k
+                WRITE(8,*) 'WARNING! from ghost'
+                WRITE(8,*) 'x-forcing on boundaries', i, j, k
               END IF
             END IF
           ELSE
@@ -2949,7 +2951,8 @@ set_numy:   IF (i/=0 .AND. k/=0) THEN
                 numy(ijkl) = n 
 
                 IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. j==1 .OR. j==ny) THEN
-                  WRITE(7,*) 'y-forcing on boundaries', i, j, k
+                  WRITE(8,*) 'WARNING! from ghost'
+                  WRITE(8,*) 'y-forcing on boundaries', i, j, k
                 END IF
               END IF
             ELSE
@@ -2977,7 +2980,8 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               numz(ijkl) = n 
 
               IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. j==1 .OR. j==ny) THEN
-                WRITE(7,*) 'z-forcing on boundaries', i, j, k
+                WRITE(8,*) 'WARNING! from ghost'
+                WRITE(8,*) 'z-forcing on boundaries', i, j, k
               END IF
             END IF
           ELSE
@@ -3026,7 +3030,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
       bd(:) = 0
       vf(:) = 0.D0
 
-      IF( lpr > 0 ) THEN
+      IF( lpr > 1 ) THEN
         WRITE( 7, * ) 
         WRITE( 7, * ) 'b coefficients for immersed bndaries' 
         WRITE( 7, * ) '     ijk   i   j   k     b (int)'
@@ -3108,7 +3112,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               vf(ijk) = vf(ijk) / 6.D0
             END IF
 
-            IF (bd(ijk) /= filled  .AND. lpr > 2 ) THEN
+            IF (bd(ijk) /= filled  .AND. lpr > 1 ) THEN
               WRITE( 7, fmt = "( I8,3I4,2X,B8 )" ) ijk, i, j, k, bd(ijk)
             END IF
 
@@ -3142,7 +3146,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
       ALLOCATE(bdr(ncint,6)); bdr(:,:) = 0.D0
       ALLOCATE(vf(ncint)); vf(:) = 0.D0
 !
-      IF( lpr > 0 ) THEN
+      IF( lpr > 1 ) THEN
         WRITE( 7, * ) 
         WRITE( 7, * ) 'b coefficients for immersed bndaries' 
         WRITE( 7, * ) '     ijk   i   j   k     b (real)'
@@ -3201,7 +3205,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               vf(ijk)  = 0.25D0 * vf(ijk)
             END IF
 
-            IF( lpr > 2 ) WRITE( 7, fmt = "( I8,3I4,2X,6F8.4 )" ) ijk, i, j, k, bdr(ijk,:)
+            IF( lpr > 1 ) WRITE( 7, fmt = "( I8,3I4,2X,6F8.4 )" ) ijk, i, j, k, bdr(ijk,:)
 
           END IF
 
