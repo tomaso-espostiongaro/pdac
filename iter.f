@@ -316,15 +316,16 @@
 !
       IF( mustit /= 0) THEN
 !
-        WRITE(6,700) (time+dt)
+        WRITE(6,700) nit, (time+dt)
         WRITE(6,*) 'convergence on proc ',mpime,' : ', ALL(converge)
         IF (.NOT.ALL(converge)) WRITE(6,*) 'cells not converged (imesh,i,j,k): '
         DO ijk = 1, ncint
           IF (.NOT.converge(ijk)) THEN
+            CALL meshinds( ijk, imesh, i, j, k )
             WRITE(6,*) imesh, i, j, k
           END IF
         END DO
- 700    FORMAT('max number of iterations reached at time: ', F8.3)
+ 700    FORMAT('max number of iterations (',I5,') reached at time: ', F8.3)
 
         CALL error( ' iter ', 'max number of iters exceeded ', 1)
         omega=omega0

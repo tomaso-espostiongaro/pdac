@@ -50,6 +50,7 @@
       CHARACTER(LEN=11) :: errnb, testnb, lognb
       CHARACTER(LEN=8) :: inputfile, logfile, errorfile, testfile
       CHARACTER(LEN=3) :: procnum
+      INTEGER :: mydate(10)
 !
       INTEGER :: inputunit, logunit, errorunit, testunit
       INTEGER :: ig
@@ -57,16 +58,18 @@
       REAL*8 :: timtot, timprog, timdist, timsetup, timinit
       LOGICAL :: debug = .FALSE.
 !
+! ... initialize parallel environment
+
+      CALL parallel_startup  
+!
 ! ... Initialize the system clock counter    
 !
       t0 = elapsed_seconds()
 
       IF(timing) s0 = cpclock()
 
-!
-! ... initialize parallel environment
-
-      CALL parallel_startup  
+! ...  DATE AND TIME
+      CALL date_and_time( values = mydate )
 
 ! ... Initialize the IBM HW performance monitor
 !      call f_hpminit( mpime, 'pdac' )
@@ -94,6 +97,15 @@
         OPEN(UNIT=testunit,  FILE=testnb,    STATUS='UNKNOWN')
         OPEN(UNIT=errorunit, FILE=errnb,     STATUS='UNKNOWN')
       END IF
+
+      WRITE(6,100) mydate(5), mydate(6), mydate(7), mydate(3), mydate(2), mydate(1)
+100   FORMAT( ' Pyroclastic Dispersion Analysis Code', /, &
+              ' version: 3.0, June 2003',/, &
+              ' authors: A.Neri, G.Macedonio, D.Gidaspow, T. Esposti Ongaro',/, &
+              ' parallelized by: T. Esposti Ongaro, C. Cavazzoni, A. Neri',/, &
+              ' 3d version implemented by: T. Esposti Ongaro, C. Cavazzoni',//, &
+              ' This run began at ', I2, ':', I2, ':', I2, 3X, 'day ', I2, &
+              ' month ', I2, ' year ', I4 )
 !
 ! ... Read Input file
 !
@@ -244,6 +256,13 @@
 
 ! ... terminate the IBM HW performance monitor session
 !      call f_hpmterminate( mpime )
+
+! ...  DATE AND TIME
+      CALL date_and_time( values = mydate )
+      WRITE(6,110) mydate(5), mydate(6), mydate(7), mydate(3), mydate(2), mydate(1)
+110   FORMAT( ' This run ended at ', I2, ':', I2, ':', I2, 3X, 'day ', I2, &
+              ' month ', I2, ' year ', I4 )
+
 !
       CLOSE(5)
       IF( .NOT. debug ) CLOSE(6)
@@ -254,6 +273,7 @@
 ! 
 ! ... Finalize parallel environment
 !
+
       CALL parallel_hangup
 !
       STOP

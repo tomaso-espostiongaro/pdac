@@ -67,7 +67,8 @@
        WRITE(6,fmt="(/,'* Starting iteration ',I5,' * ')" ) irest
        WRITE(6,fmt="('  Simulated time = ',F12.5)" ) time
 
-       irest=irest+1
+       irest = irest + 1
+
        IF ( (itd == 1) .OR. (irest > 1) ) THEN
 !
 ! ... Compute Boundary Conditions
