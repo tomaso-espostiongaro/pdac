@@ -382,7 +382,7 @@
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
-      USE grid, ONLY: iob, x, y, z
+      USE grid, ONLY: iob, x, y, z, flag
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
       USE indijk_module, ONLY: ip0_jp0_kp0_

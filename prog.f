@@ -20,6 +20,7 @@
       USE io_restart, ONLY: tapewr, max_seconds
       USE iterative_solver, ONLY: iter, nit
       USE output_dump, ONLY: outp, shock_tube_out, outp_map, imap
+      USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: cps
       USE pressure_epsilon, ONLY: p, ep
       USE reactions, ONLY: rexion, irex
@@ -31,7 +32,7 @@
       USE time_parameters, ONLY: rungekut, sweep
       USE turbulence_model, ONLY: iturb, iss
       USE turbulence_model, ONLY: sgsg, sgss
-      USE parallel, ONLY: mpime, root
+      USE volcano_topography, ONLY: itp
 !
       IMPLICIT NONE
 !
@@ -297,7 +298,7 @@
 ! ... Write OUTPUT file
 ! 
         IF(MOD(sweep,nprint) == 0) THEN
-          IF (imap > 0) CALL outp_map(tg)
+          IF (imap > 0 .AND. itp >= 1) CALL outp_map(tg)
           CALL outp
         ENDIF
 !

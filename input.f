@@ -231,7 +231,7 @@
       topography = 'topo.dat' ! file containing the topographic profile
       immb  = 0               ! 1: use immersed boundaries
       imap  = 0               ! 1: map output
-      deltaz = 20             ! distance from the ground to plot maps
+      deltaz = 20.D0             ! distance from the ground to plot maps
       ibl  = 0                ! 1: compute drag and lift on blocks
 
 ! ... Inlet

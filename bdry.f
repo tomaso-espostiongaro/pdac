@@ -73,11 +73,11 @@
 !
         IF (flag(ijk) == 5) THEN
 
-          CALL update_inlet_cell(ijk)
+                IF (irand >= 1) CALL update_inlet_cell(ijk)
 
         ELSE IF (flag(ijk) == 8) THEN
 
-          CALL update_ventc(ijk,imesh,sweep)
+                IF (irand >= 1) CALL update_ventc(ijk,imesh,sweep)
 
         END IF
 !
