@@ -8,7 +8,7 @@
       USE control_flags, ONLY: job_type, lpr, run, imr
       USE control_flags, ONLY: implicit_enthalpy, implicit_fluxes
       USE dimensions
-      USE domain_decomposition, ONLY: ncint, myijk
+      USE domain_decomposition, ONLY: ncint, myijk, ncdom
       USE enthalpy_matrix, ONLY: ftem
       USE environment, ONLY: cpclock, timing, elapsed_seconds
       USE eos_gas, ONLY: thermal_eosg, update_eosg
@@ -61,7 +61,7 @@
       
       LOGICAL :: stop_now
 !
-      ALLOCATE(array(ncint))
+      ALLOCATE(array(ncdom))
 
       IF( timing ) then
          s0 = cpclock()
@@ -304,7 +304,7 @@
 ! ... Write OUTPUT file
 ! 
         IF(MOD(sweep,nprint) == 0) THEN
-          array = tg
+          array(1:ncdom) = tg(1:ncdom)
           IF (imap > 0 .AND. itp >= 1) CALL outp_map(array)
           CALL outp
         ENDIF

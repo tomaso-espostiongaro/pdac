@@ -176,6 +176,7 @@
       END IF
 
  122  FORMAT(10(1x,G14.6E3))
+ 123  CONTINUE
 
       DEALLOCATE(array_map)
 
