@@ -24,17 +24,17 @@
       USE dimensions
       USE eos_gas, ONLY: eosg, ygc, xgc, rags, cg
       USE gas_solid_temperature, ONLY: sieg, tg
-      USE gas_solid_velocity, ONLY: ug, vg, uk, vk
-      USE eulerian_flux, ONLY: masfg, masfk
+      USE gas_solid_velocity, ONLY: ug, wg, us, ws
+      USE eulerian_flux, ONLY: masfg, masfs
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
       USE grid, ONLY: fl_l
       USE grid, ONLY: myij, nij_l, nijx_l, data_exchange
-      USE tilde_momentum, ONLY: appu, appv
+      USE tilde_momentum, ONLY: appu, appw
       USE particles_constants, ONLY: rl, inrl
       USE phases_matrix, ONLY: mats, matsa, velsk, velsk2
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes
-      USE tilde_momentum, ONLY: rug, rvg, ruk, rvk
+      USE tilde_momentum, ONLY: rug, rwg, rus, rws
       USE time_parameters, ONLY: time, dt, tstop, timestart
       USE heat_capacity, ONLY: cp
 !
@@ -44,7 +44,7 @@
 !#include "f_hpm.h" 
 !
 !
-      INTEGER :: i, j , k, ij, imesh
+      INTEGER :: i, j , is, ij, imesh
       REAL*8 :: rlkx, rlx, dgorig, epx, rlkz
       REAL*8 :: omega0, dgz, dgx
       REAL*8  :: d3, p3
@@ -95,14 +95,14 @@
                      p(ij), p(ijr), p(ijt), rlk(:,ij),        &
                      rlk(:,ijr), rlk(:,ijt),                  &
                      rgp(ij),rgp(ijr), rgp(ijt) )   
-          CALL velsk2(ug(ij), vg(ij), uk(:,ij), vk(:,ij), ij)
+          CALL velsk2(ug(ij), wg(ij), us(:,ij), ws(:,ij), ij)
         END IF
       END DO
 ! 
       CALL data_exchange(ug)
-      CALL data_exchange(uk)
-      CALL data_exchange(vg)
-      CALL data_exchange(vk)
+      CALL data_exchange(us)
+      CALL data_exchange(wg)
+      CALL data_exchange(ws)
 !
 ! ... Put the new biassed velocities into the Gas Mass Balance 
 ! ... equation.
@@ -113,7 +113,7 @@
           imesh = myij(0, 0, ij)
           i = MOD( ( imesh - 1 ), nr) + 1
           CALL masfg(rgfr(imj), rgft(ijm), rgfr(ij),rgft(ij), &
-                      rnb(ug,ij),rnb(vg,ij),nb(rgp,ij),i)
+                      rnb(ug,ij),rnb(wg,ij),nb(rgp,ij),i)
         END IF
       END DO
 !
@@ -167,13 +167,13 @@
 
               IF(DABS(dg).LE.conv(ij)) THEN
                 rlx = 0.D0
-                DO k = 1, nsolid
-                  rlkx = (rlfr(k,ij) - rlfr(k,imj)) * inr(i) * indr(i)
-                  rlkz = (rlft(k,ij) - rlft(k,ijm)) * indz(j)
-                  rlk(k, ij) = rlkn(k, ij) - dt * (rlkx + rlkz)
+                DO is = 1, nsolid
+                  rlkx = (rlfr(is,ij) - rlfr(is,imj)) * inr(i) * indr(i)
+                  rlkz = (rlft(is,ij) - rlft(is,ijm)) * indz(j)
+                  rlk(is, ij) = rlkn(is, ij) - dt * (rlkx + rlkz)
 !                  - dt * (r1(ij)+r2(ij)+r3(ij)+r4(ij)+r5(ij))
-                  IF( rlk(k,ij) .LT. 0.D0 ) rlk(k,ij) = 0.D0
-                  rlx = rlx + rlk(k, ij) * inrl(k)
+                  IF( rlk(is,ij) .LT. 0.D0 ) rlk(is,ij) = 0.D0
+                  rlx = rlx + rlk(is, ij) * inrl(is)
                 END DO
                 epx=rlx
                 IF(epx.GT.1.D0) THEN
@@ -233,28 +233,28 @@
 
                 !call f_hpmstop( 3 )
 
-                CALL velsk(ug(ij), vg(ij), uk(:,ij),                  & 
-                           vk(:,ij), ug(imj), vg(ijm),                &
-                           uk(:,imj), vk(:,ijm), ij) 
+                CALL velsk(ug(ij), wg(ij), us(:,ij),                  & 
+                           ws(:,ij), ug(imj), wg(ijm),                &
+                           us(:,imj), ws(:,ijm), ij) 
 !
 ! ... Put the new biassed velocities into the Particle Mass Balance
 ! ... equation
 !
-                DO k=1, nsolid
-                CALL masfk(rlfr(k,imj), rlft(k,ijm), rlfr(k,ij),rlft(k,ij), &
-                           rnb(uk(k,:),ij),rnb(vk(k,:),ij),nb(rlk(k,:),ij),i)
+                DO is=1, nsolid
+                CALL masfs(rlfr(is,imj), rlft(is,ijm), rlfr(is,ij),rlft(is,ij), &
+                           rnb(us(is,:),ij),rnb(ws(is,:),ij),nb(rlk(is,:),ij),i)
                 END DO
 !
 ! ... and compute the corrected particle densities.
 !
                 rlx=0.D0
-                DO k=1,nsolid
-                  rlkx = (rlfr(k,ij)-rlfr(k,imj)) * inr(i) * indr(i)
-                  rlkz = (rlft(k,ij)-rlft(k,ijm)) * indz(j)
-                  rlk(k,ij) = rlkn(k,ij) - dt * (rlkx + rlkz)
+                DO is=1,nsolid
+                  rlkx = (rlfr(is,ij)-rlfr(is,imj)) * inr(i) * indr(i)
+                  rlkz = (rlft(is,ij)-rlft(is,ijm)) * indz(j)
+                  rlk(is,ij) = rlkn(is,ij) - dt * (rlkx + rlkz)
 !                             - dt * (r1(ij)+r2(ij)+r3(ij)+r4(ij)+r5(ij))
-                  IF(rlk(k,ij).LT.0.D0) rlk(k,ij)=0.D0
-                  rlx=rlx+rlk(k,ij)*inrl(k)
+                  IF(rlk(is,ij).LT.0.D0) rlk(is,ij)=0.D0
+                  rlx=rlx+rlk(is,ij)*inrl(is)
                 END DO
                 epx=rlx
                 IF(epx.GT.1.D0) THEN
@@ -273,7 +273,7 @@
 !
                 IF(DABS(dg) .GT. conv(ij)) THEN
                    CALL masfg(rgfr(imj), rgft(ijm), rgfr(ij),rgft(ij),   &
-                              rnb(ug,ij),rnb(vg,ij),nb(rgp,ij),i)
+                              rnb(ug,ij),rnb(wg,ij),nb(rgp,ij),i)
                    dgx = (rgfr(ij)-rgfr(imj))*inr(i)*indr(i)
                    dgz = (rgft(ij)-rgft(ijm))*indz(j)
                    dg = rgp(ij) - rgpn(ij) + dt * (dgx+dgz)
@@ -370,9 +370,9 @@
 !
       DEALLOCATE( rgfr, rgft)
       DEALLOCATE( rlfr, rlft)
-      DEALLOCATE( rug, rvg )
-      DEALLOCATE( ruk, rvk )
-      DEALLOCATE( appu, appv)
+      DEALLOCATE( rug, rwg )
+      DEALLOCATE( rus, rws )
+      DEALLOCATE( appu, appw)
       DEALLOCATE( conv, abeta)
 !
       DEALLOCATE(avloop)

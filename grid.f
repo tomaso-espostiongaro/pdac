@@ -48,7 +48,6 @@
         REAL*8, DIMENSION(:), ALLOCATABLE :: dx, dy, dz
         REAL*8, DIMENSION(:), ALLOCATABLE :: xb, yb, zb
         REAL*8, DIMENSION(:), ALLOCATABLE :: indx, indy, indz
-        REAL*8, DIMENSION(:), ALLOCATABLE :: inzb
         REAL*8, DIMENSION(:), ALLOCATABLE :: inr, inrb, indr
 !
         INTEGER :: itc, part
@@ -100,7 +99,6 @@
         ALLOCATE(fl(ntot))
         ALLOCATE(r(nr), rb(nr), dr(nr))
         ALLOCATE(inr(nr), inrb(nr), indr(nr))
-        ALLOCATE(inzb(nz))
         ALLOCATE(xb(nx), dx(nx), yb(ny), dy(ny), zb(nz), dz(nz))
         ALLOCATE(indx(nx), indy(ny), indz(nz))
 
@@ -178,15 +176,6 @@
             zb(j+1)=zb(j)+dz(j+1)
           END DO
 !
-          IF( zzero .EQ. 0.0d0 ) THEN
-            inzb(1) = VERYBIG
-          ELSE
-            inzb(1)=1.D0/zb(1)
-          END IF
-          DO j=2,(nz-1)
-            inzb(j)=1.D0/zb(j)
-          END DO  
-
           DO j=1,(nz-1)
             indz(j)=1.D0/dz(j)
           END DO  

@@ -141,7 +141,7 @@
 ! ... in gas momentum transport equations
 !
       USE grid, ONLY: nij_l
-      USE gas_solid_velocity, ONLY: ug, vg
+      USE gas_solid_velocity, ONLY: ug, wg
       USE grid, ONLY: data_exchange
       USE pressure_epsilon, ONLY: ep
       USE turbulence, ONLY: mugt, iturb
@@ -159,7 +159,7 @@
 !
 ! ... Newtonian stress tensor
 !
-      CALL stress(gvisx, gvisz, mugt, mug, ep, ug, vg)
+      CALL stress(gvisx, gvisz, mugt, mug, ep, ug, wg)
 !
       RETURN
       END SUBROUTINE
@@ -176,13 +176,13 @@
       USE grid, ONLY: fl_l, nij_l, nijx_l, data_exchange
       USE grid, ONLY: dz, dr
       USE gas_solid_density, ONLY: rlk
-      USE gas_solid_velocity, ONLY:  uk, vk
+      USE gas_solid_velocity, ONLY:  us, ws
       USE particles_constants, ONLY: rl, inrl
       USE set_indexes
       USE turbulence, ONLY: must
       IMPLICIT NONE
 !
-      REAL*8, ALLOCATABLE :: epk(:)
+      REAL*8, ALLOCATABLE :: eps(:)
       INTEGER, INTENT(IN) :: is 
 !
       REAL*8 :: drp, dzp, indrp, indzp
@@ -190,15 +190,15 @@
       INTEGER :: imesh, i, j, ij
       LOGICAL :: repulsive_model
 !
-      ALLOCATE(epk(nijx_l))
-      epk(:) = rlk(is,:)*inrl(is)
+      ALLOCATE(eps(nijx_l))
+      eps(:) = rlk(is,:)*inrl(is)
 !
       CALL data_exchange(mus)
 !
 ! ... Newtonian stress tensor
 !
-      CALL stress(pvisx(is,:), pvisz(is,:), mus(is,:), mus(is,:), epk(:), &
-                         uk(is,:), vk(is,:))
+      CALL stress(pvisx(is,:), pvisz(is,:), mus(is,:), mus(is,:), eps(:), &
+                         us(is,:), ws(is,:))
 !
 ! ... Repulsive model (Gidaspow and Ettehadieh, 1983)
 !
@@ -234,7 +234,7 @@
         END DO
       END IF
 !
-      DEALLOCATE(epk)
+      DEALLOCATE(eps)
 !
       RETURN
       END SUBROUTINE

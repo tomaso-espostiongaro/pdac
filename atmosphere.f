@@ -6,7 +6,7 @@
 !
 ! ... Initial atmospheric variables
 !
-        REAL*8 :: u0, v0, w0, p0, temp0, uk0, vk0, wk0
+        REAL*8 :: u0, v0, w0, p0, temp0, us0, vs0, ws0
         REAL*8 :: ep0, epsmx0
         REAL*8 :: gravx, gravz
         LOGICAL :: stratification

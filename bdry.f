@@ -12,8 +12,8 @@
       USE eos_gas, ONLY: rgpgc
       USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
       USE gas_solid_density, ONLY: rgp, rlk
-      USE gas_solid_temperature, ONLY: sieg, tg, siek, tk
-      USE gas_solid_velocity, ONLY: ug, vg, uk, vk
+      USE gas_solid_temperature, ONLY: sieg, tg, sies, ts
+      USE gas_solid_velocity, ONLY: ug, wg, us, ws
       USE grid, ONLY: zb, dz, rb, dr, r, inr, inrb
       USE grid, ONLY: nij_l, myij
       USE grid, ONLY: fl_l
@@ -29,14 +29,14 @@
       REAL*8 :: prif, pnn2, p1nn
       REAL*8 :: zrif, trif, rhorif, cost, costc
       REAL*8 :: rm1n, rmcn, rmcnn, rmc1n, rm0n, rm1nn, rm1knn, rm2n
-      REAL*8 :: v2n, vg2, vcnn, vcn, v1n, vc1n
-      REAL*8 :: u2nn, u2, v2nn, v2
+      REAL*8 :: w2n, wg2, wcnn, wcn, w1n, wc1n
+      REAL*8 :: u2nn, u2, w2nn, w2
       REAL*8 :: ucn, u1n, uc1n, ug2, u2n, ucnn
-      REAL*8 :: epk, epc, epcn, ep1nn, epnn
+      REAL*8 :: eps, epc, epcn, ep1nn, epnn
       REAL*8 :: t1nn, tc1n, tcn, t1n, t0n, t2n, tgnn
       REAL*8 :: dz1, dzc, dr1, drc, indrc
 
-      INTEGER :: ij, i, j, imesh, k, kg
+      INTEGER :: ij, i, j, imesh, ig, is
       INTEGER :: n2, nflr, nflt, nfll, nflb
       INTEGER :: nflbr, nfltr, nfllt, nfllb
       INTEGER :: mm
@@ -73,16 +73,16 @@
 
             CASE (2) 
 
-              vg(n2)=vg(ij)
-              DO k=1,nsolid
-                vk(k,n2)=vk(k,ij)
+              wg(n2)=wg(ij)
+              DO is=1,nsolid
+                ws(is,n2)=ws(is,ij)
               END DO
 
             CASE (3)
 
-              vg(n2)=-vg(ij)
-              DO k=1,nsolid
-                IF(rlk(k,ij).GT.0.D0) vk(k,n2)=-vk(k,ij)
+              wg(n2)=-wg(ij)
+              DO is=1,nsolid
+                IF(rlk(is,ij).GT.0.D0) ws(is,n2)=-ws(is,ij)
               END DO  
 
             CASE (4)
@@ -119,10 +119,10 @@
 ! ... calculation of the gas volumetric fraction at time (n+1)dt
 ! ... from the mass balance equation of solids in cell (ij)
                 epc=0.D0
-                DO k=1,nsolid
-                  epk = rlk(k,ij)*inrl(k) - dt*inrl(k)*inr(i)/dr1*          &
-                        (rb(i)*uk(k,ij)*rlk(k,ij) - rb(i-1)*uk(k,imj)*rlk(k,imj))
-                  epc=epc+epk
+                DO is=1,nsolid
+                  eps = rlk(is,ij)*inrl(is) - dt*inrl(is)*inr(i)/dr1*          &
+                        (rb(i)*us(is,ij)*rlk(is,ij) - rb(i-1)*us(is,imj)*rlk(is,imj))
+                  epc=epc+eps
                 END DO
                 ep1nn=1.D0-epc
 !
@@ -131,17 +131,17 @@
 ! ... Use gas velocity for mixture.
                 rm1nn=ep1nn*gmw(6)/(rgas*t1nn)
                 rm1knn=0.D0
-                DO k=1,nsolid
-                  rm1knn=rm1knn+rlk(k,ij) 
+                DO is=1,nsolid
+                  rm1knn=rm1knn+rlk(is,ij) 
                 END DO
 !
                 rm2n=0.D0
                 rm1n=0.D0
                 rm0n=0.D0
-                DO k=1,nsolid
-                  rm2n=rm2n+rlk(k,n2)
-                  rm1n=rm1n+rlk(k,ij)
-                  rm0n=rm0n+rlk(k,imj)
+                DO is=1,nsolid
+                  rm2n=rm2n+rlk(is,n2)
+                  rm1n=rm1n+rlk(is,ij)
+                  rm0n=rm0n+rlk(is,imj)
                 END DO
                 rm2n=rm2n+p(n2)*ep(n2)*gmw(6)/(rgas*tg(n2))
                 rm1n=rm1n+p(ij)*ep(ij)*gmw(6)/(rgas*tg(ij))
@@ -205,24 +205,24 @@
 ! ... Set primary variables
 !
               IF(nfltr.EQ.3) ug(ipjp) = -ug(n2)
-              IF(nfltr.EQ.4) vg(n2) = vg(ij)
-              DO k=1,nsolid
-                IF(nfltr.EQ.4) vk(k,n2)=vk(k,ij)
-                IF(uk(k,ij).GE.0.D0) THEN
-                  rlk(k,n2)=rlk(k,ij)
-                  uk(k,n2)=uk(k,ij)
+              IF(nfltr.EQ.4) wg(n2) = wg(ij)
+              DO is=1,nsolid
+                IF(nfltr.EQ.4) ws(is,n2)=ws(is,ij)
+                IF(us(is,ij).GE.0.D0) THEN
+                  rlk(is,n2)=rlk(is,ij)
+                  us(is,n2)=us(is,ij)
                 ELSE
-                  rlk(k,n2)=0.0D0
-                  uk(k,n2) =0.0D0
+                  rlk(is,n2)=0.0D0
+                  us(is,n2) =0.0D0
                 ENDIF
               END DO
 
-              DO kg=1,ngas
-                rgpgc(kg,n2)=rgpgc(kg,ij)
+              DO ig=1,ngas
+                rgpgc(ig,n2)=rgpgc(ig,ij)
               END DO
 
-              DO k=1,nsolid
-                siek(k,n2)=siek(k,ij)
+              DO is=1,nsolid
+                sies(is,n2)=sies(is,ij)
               END DO
 !              
             CASE DEFAULT
@@ -243,14 +243,14 @@
             END IF
             SELECT CASE (nfll)
             CASE (2)
-              vg(n2)=vg(ij)
-              DO k=1,nsolid
-                vk(k,n2)=vk(k,ij)
+              wg(n2)=wg(ij)
+              DO is=1,nsolid
+                ws(is,n2)=ws(is,ij)
               END DO 
             CASE (3)
-              vg(n2)=-vg(ij)
-              DO k=1,nsolid
-                IF(rlk(k,ij).GT.0.D0) vk(k,n2)=-vk(k,ij)
+              wg(n2)=-wg(ij)
+              DO is=1,nsolid
+                IF(rlk(is,ij).GT.0.D0) ws(is,n2)=-ws(is,ij)
               END DO 
             CASE (4)
 !
@@ -285,10 +285,10 @@
                 rm2n=0.D0
                 rm1n=0.D0
                 rm0n=0.D0
-                DO k=1,nsolid
-                  rm2n=rm2n+rlk(k,n2)
-                  rm1n=rm1n+rlk(k,ij)
-                  rm0n=rm0n+rlk(k,ipj)
+                DO is=1,nsolid
+                  rm2n=rm2n+rlk(is,n2)
+                  rm1n=rm1n+rlk(is,ij)
+                  rm0n=rm0n+rlk(is,ipj)
                 END DO
                 rm1knn = rm1n
                 rm2n=rm2n+p(n2)*ep(n2)*gmw(6)/(rgas*tg(n2))
@@ -301,11 +301,11 @@
 ! ... calculation of the gas volumetric fraction at time (n+1)dt
 ! ... from the mass balance equation of solids in cell (ij)
                 epc=0.D0
-                DO k=1,nsolid
-                 epk=rlk(k,ij)*inrl(k) -                                 &
-                     dt*inrl(k)*inr(i)/dr1*(rb(i)*uk(k,ij)*rlk(k,ipj) -  &
-                     rb(i-1)*uk(k,imj)*rlk(k,ij))
-                 epc=epc+epk
+                DO is=1,nsolid
+                 eps=rlk(is,ij)*inrl(is) -                                 &
+                     dt*inrl(is)*inr(i)/dr1*(rb(i)*us(is,ij)*rlk(is,ipj) -  &
+                     rb(i-1)*us(is,imj)*rlk(is,ij))
+                 epc=epc+eps
                 END DO
                 ep1nn=1.D0-epc
 !
@@ -337,10 +337,10 @@
                 sieg(n2)=sieg(ij)
 !
 ! ... extrapolation of the temperature and solid fraction to time (n+1)dt
-                DO k=1,nsolid
-                  IF(nfllt.EQ.4) vk(k,n2)=vk(k,ij)
-                  rlk(k,n2)=rlk(k,ij)
-                  uk(k,n2)=uk(k,ij)
+                DO is=1,nsolid
+                  IF(nfllt.EQ.4) ws(is,n2)=ws(is,ij)
+                  rlk(is,n2)=rlk(is,ij)
+                  us(is,n2)=us(is,ij)
                 END DO
 ! ... INFLOW ...
               ELSE
@@ -366,25 +366,25 @@
 ! ... Set primary variables
 !
               IF(j.EQ.2) ug(imjm)=-ug(n2)
-              IF(nfllt.EQ.4) vg(n2)=vg(ij)
+              IF(nfllt.EQ.4) wg(n2)=wg(ij)
               IF(nfllt.EQ.3) ug(ipjp) = -ug(n2)
-              DO k=1,nsolid
-                IF(nfllt.EQ.4) vk(k,n2)=vk(k,ij)
-                IF(uk(k,ij).GE.0.D0) THEN
-                  rlk(k,n2)=rlk(k,ij)
-                  uk(k,n2)=uk(k,ij)
+              DO is=1,nsolid
+                IF(nfllt.EQ.4) ws(is,n2)=ws(is,ij)
+                IF(us(is,ij).GE.0.D0) THEN
+                  rlk(is,n2)=rlk(is,ij)
+                  us(is,n2)=us(is,ij)
                 ELSE
-                  rlk(k,n2)=0.0D0
-                  uk(k,n2) =0.0D0
+                  rlk(is,n2)=0.0D0
+                  us(is,n2) =0.0D0
                 ENDIF
               END DO
 !
-              DO kg=1,ngas
-                rgpgc(kg,n2)=rgpgc(kg,ij)
+              DO ig=1,ngas
+                rgpgc(ig,n2)=rgpgc(ig,ij)
               END DO
 !
-              DO k=1,nsolid
-                siek(k,n2)=siek(k,ij)
+              DO is=1,nsolid
+                sies(is,n2)=sies(is,ij)
               END DO
 !
             CASE DEFAULT
@@ -410,8 +410,8 @@
             CASE (2)
 
               ug(n2)=ug(ij)
-              DO k=1,nsolid
-                uk(k,n2)=uk(k,ij)
+              DO is=1,nsolid
+                us(is,n2)=us(is,ij)
               END DO
 
               IF (j .EQ. (nz-1)) THEN
@@ -425,8 +425,8 @@
             CASE (3)
   
               ug(n2)=-ug(ij)
-              DO k=1,nsolid
-                IF(rlk(k,ij).GT.0.D0) uk(k,n2)=-uk(k,ij)
+              DO is=1,nsolid
+                IF(rlk(is,ij).GT.0.D0) us(is,n2)=-us(is,ij)
               END DO
 
             CASE (4)
@@ -435,10 +435,10 @@
               dzc=(dz(nz)+dz(nz-1))*0.5D0
               dz1=dz(nz-1)
 !
-              vc1n=vg(ijm)
-              vcn=vg(ij)
-              v1n=(vg(ijm)+vg(ij))*0.5D0
-              v2n=(vg(n2)+vg(ij))*0.5D0
+              wc1n=wg(ijm)
+              wcn=wg(ij)
+              w1n=(wg(ijm)+wg(ij))*0.5D0
+              w2n=(wg(n2)+wg(ij))*0.5D0
               epcn=(ep(ij)+ep(n2))*0.5D0
               tc1n=(tg(ijm)+tg(ij))*0.5D0
               tcn=(tg(ij)+tg(n2))*0.5D0
@@ -447,24 +447,24 @@
               t0n=tg(ij-nz)
 !
 ! ... OUTFLOW ...
-              IF(vg(ij).GT.0.D0) THEN
+              IF(wg(ij).GT.0.D0) THEN
 !
 ! ... Non-reflecting boundary condition 
 !
-                v2    = vg(n2)
-                v2nn   = v2 - dt/dz(nz) * (v2*v2 - v2n*vcn)
-                vg(n2) = v2nn
-                vcnn   = vcn - dt/dzc * (v2n*vcn - v1n*vc1n)
+                w2    = wg(n2)
+                w2nn   = w2 - dt/dz(nz) * (w2*w2 - w2n*wcn)
+                wg(n2) = w2nn
+                wcnn   = wcn - dt/dzc * (w2n*wcn - w1n*wc1n)
 !
-                t1nn = t1n - dt/dr1 * (vcn*t1n - vc1n*t0n)
+                t1nn = t1n - dt/dr1 * (wcn*t1n - wc1n*t0n)
 !
 ! ... calculation of gas volumetric fraction at time (n+1)dt
 ! ... from the mass balance equation of solids, in cell (ij)
                 epc=0.D0
-                DO k=1,nsolid
-                  epk=rlk(k,ij)*inrl(k) - dt*inrl(k)/dz1*(vk(k,ij)*rlk(k,ij) -  &
-                      vk(k,ijm)*rlk(k,ijm))
-                  epc=epc+epk
+                DO is=1,nsolid
+                  eps=rlk(is,ij)*inrl(is) - dt*inrl(is)/dz1*(ws(is,ij)*rlk(is,ij) -  &
+                      ws(is,ijm)*rlk(is,ijm))
+                  epc=epc+eps
                 END DO 
                 ep1nn=1.D0-epc
 !
@@ -473,16 +473,16 @@
 ! ... Use gas velocity for mixture.
                 rm1nn=ep1nn*gmw(6)/(rgas*t1nn)
                 rm1knn=0.D0
-                DO k=1,nsolid
-                  rm1knn=rm1knn+rlk(k,ij) 
+                DO is=1,nsolid
+                  rm1knn=rm1knn+rlk(is,ij) 
                 END DO 
                 rm2n=0.D0
                 rm1n=0.D0
                 rm0n=0.D0
-                DO k=1,nsolid
-                  rm2n=rm2n+rlk(k,n2)
-                  rm1n=rm1n+rlk(k,ij)
-                  rm0n=rm0n+rlk(k,ijm)
+                DO is=1,nsolid
+                  rm2n=rm2n+rlk(is,n2)
+                  rm1n=rm1n+rlk(is,ij)
+                  rm0n=rm0n+rlk(is,ijm)
                 END DO 
                 rm2n=rm2n+p(n2)*ep(n2)*gmw(6)/(rgas*tg(n2))
                 rm1n=rm1n+p(ij)*ep(ij)*gmw(6)/(rgas*tg(ij))
@@ -490,9 +490,9 @@
                 rmcn=(rm2n+rm1n)*0.5D0
                 rmc1n=(rm1n+rm0n)*0.5D0
 !
-                rmcnn=rmcn-dt/dzc*(v2n*rmcn-v1n*rmc1n)
+                rmcnn=rmcn-dt/dzc*(w2n*rmcn-w1n*rmc1n)
 !
-                p1nn=(1.D0/rm1nn)*(-rm1knn+rm1n-dt/dz1*(rm1n*vcn-rm0n*vc1n))
+                p1nn=(1.D0/rm1nn)*(-rm1knn+rm1n-dt/dz1*(rm1n*wcn-rm0n*wc1n))
                 IF (epc .LT. 1.0D-8) p1nn = p(ij)
 !
 ! ... Calculation of the advanced-time fluid pressure from Momentum balance
@@ -500,7 +500,7 @@
 ! ... 
                 pnn2=p(n2)
 !
-                p(n2)=-rmcnn*vcnn + rmcn*vcn-dt/dzc*(v2n*vcn*rmcn-v1n*vc1n*rmc1n) + &
+                p(n2)=-rmcnn*wcnn + rmcn*wcn-dt/dzc*(w2n*wcn*rmcn-w1n*wc1n*rmc1n) + &
                        dt*p1nn/dzc+gravz*dt*rmcn
                 p(n2)=p(n2)/(dt/dzc)
                 ep(n2) = ep(ij)
@@ -510,13 +510,13 @@
 ! ... (Correct non-physical pressure)
                 IF(p(n2).LE.0.D0) p(n2) = pnn2
 !
-              ELSEIF(vg(ij).LT.0.D0) THEN
+              ELSEIF(wg(ij).LT.0.D0) THEN
 ! ... INFLOW ...
 !
-                vg2=vg(ij)
-                vg(n2) = vg2
+                wg2=wg(ij)
+                wg(n2) = wg2
 !
-                t1nn = t1n - v1n*dt/dr1 * (t2n - t1n)
+                t1nn = t1n - w1n*dt/dr1 * (t2n - t1n)
 !
                 zrif=zb(nz)+0.5D0*(dz(1)-dz(nz))
                 CALL atm(zrif,prif,trif)
@@ -526,13 +526,13 @@
                 ep(n2)=1.D0
                 tg(n2)=trif
                 pnn2=p(n2)
-                p(n2)=(prif**gamn-(vg2**2/2.D0)/costc)**(1.D0/gamn)
+                p(n2)=(prif**gamn-(wg2**2/2.D0)/costc)**(1.D0/gamn)
 !
 ! ... (Correct non-physical pressure)
                 IF(p(n2).LE.0.D0) p(n2)=pnn2
 !
-              ELSEIF(vg(ij).EQ.0.D0) THEN
-                vg(n2) = vg(ij) 
+              ELSEIF(wg(ij).EQ.0.D0) THEN
+                wg(n2) = wg(ij) 
                 p(n2)  = p(ij)
                 ep(n2) = ep(ij)
                 tg(n2) = tg(ij)
@@ -543,40 +543,40 @@
 !
               IF (j .EQ. (nz-1)) THEN
                 IF(i .EQ. (nr-1)) THEN
-                  vg(ipjp) = vg(n2)
+                  wg(ipjp) = wg(n2)
                   ug(ipjp) = ug(n2)
                 ELSE IF(i .EQ. 2) THEN
-                  vg(imjp) = vg(n2)
+                  wg(imjp) = wg(n2)
                   ug(imjp) = ug(n2)
                 ENDIF
               END IF
 !
               IF(nfltr.EQ.4) ug(n2) = ug(ij)
 !
-              DO k=1,nsolid
-                IF(nfltr.EQ.4) uk(k,n2)=uk(k,ij)
-                IF(vk(k,ij).GE.0.D0) THEN
-                  rlk(k,n2)=rlk(k,ij)
-                  vk(k,n2)=vk(k,ij)
+              DO is=1,nsolid
+                IF(nfltr.EQ.4) us(is,n2)=us(is,ij)
+                IF(ws(is,ij).GE.0.D0) THEN
+                  rlk(is,n2)=rlk(is,ij)
+                  ws(is,n2)=ws(is,ij)
                 ELSE
-                  rlk(k,n2)=0.D0
-                  vk(k,n2)=0.D0
+                  rlk(is,n2)=0.D0
+                  ws(is,n2)=0.D0
                 ENDIF
                 IF(i .EQ. (nr-1) .AND. j .EQ. (nz-1)) THEN
-                  vk(k,ipjp)=vk(k,n2)
-                  uk(k,ipjp)=uk(k,n2)
+                  ws(is,ipjp)=ws(is,n2)
+                  us(is,ipjp)=us(is,n2)
                 ENDIF
               END DO 
 
-              DO kg=1,ngas
-                rgpgc(kg,n2)=rgpgc(kg,ij)
+              DO ig=1,ngas
+                rgpgc(ig,n2)=rgpgc(ig,ij)
               END DO 
              
-              DO k=1,nsolid
-                siek(k,n2)=siek(k,ij)
-                tk(k,n2)=tk(k,ij)
+              DO is=1,nsolid
+                sies(is,n2)=sies(is,ij)
+                ts(is,n2)=ts(is,ij)
                 IF (i .EQ. (nr-1) .AND. j .EQ. (nz-1)) THEN
-                  tk(k,ipjp)=tk(k,n2)
+                  ts(is,ipjp)=ts(is,n2)
                 END IF
               END DO
 !
@@ -601,8 +601,8 @@
             CASE (2)
 
               ug(n2)=ug(ij)
-              DO k=1,nsolid
-                uk(k,n2)=uk(k,ij)
+              DO is=1,nsolid
+                us(is,n2)=us(is,ij)
               END DO 
               IF (j .EQ. (2)) THEN
                 IF(i .EQ. (nr-1)) THEN
@@ -615,8 +615,8 @@
             CASE (3)
 
               ug(n2)=-ug(ij)
-              DO k=1,nsolid
-                IF(rlk(k,ij).GT.0.D0) uk(k,n2)=-uk(k,ij)
+              DO is=1,nsolid
+                IF(rlk(is,ij).GT.0.D0) us(is,n2)=-us(is,ij)
               END DO 
 
             CASE DEFAULT
@@ -633,7 +633,7 @@
 !-----------------------------------------------------------------------
       END SUBROUTINE boundary
 !-----------------------------------------------------------------------
-      SUBROUTINE fboundary(fug, fvg)
+      SUBROUTINE fboundary(fug, fwg)
 !-----------------------------------------------------------------------
 ! ... This routine computes boundary conditions for filtered velocities
 !
@@ -641,7 +641,7 @@
       USE set_indexes
 !
       IMPLICIT NONE
-      REAL*8, INTENT(INOUT), DIMENSION(:) :: fug, fvg
+      REAL*8, INTENT(INOUT), DIMENSION(:) :: fug, fwg
       INTEGER :: ij
       INTEGER :: n2, nflr, nflt, nfll, nflb
       INTEGER :: nflbr, nfltr, nfllt, nfllb
@@ -665,12 +665,12 @@
             n2 = ipj
             SELECT CASE (nflr) 
             CASE (2) 
-              fvg(n2)=fvg(ij)
+              fwg(n2)=fwg(ij)
             CASE (3)
-              fvg(n2)=-fvg(ij)
+              fwg(n2)=-fwg(ij)
             CASE (4)
               fug(n2) = fug(ij)
-              fvg(n2) = fvg(ij)
+              fwg(n2) = fwg(ij)
             CASE DEFAULT
               CONTINUE
             END SELECT
@@ -686,7 +686,7 @@
             CASE (3)
               fug(n2)=-fug(ij)
             CASE (4)
-              fvg(n2) = fvg(ij) 
+              fwg(n2) = fwg(ij) 
               fug(n2) = fug(ij)
             CASE DEFAULT
               CONTINUE
@@ -699,11 +699,11 @@
             n2 = imj
             SELECT CASE (nfll)
             CASE (2)
-              fvg(n2)=fvg(ij)
+              fwg(n2)=fwg(ij)
             CASE (3)
-              fvg(n2)=-fvg(ij)
+              fwg(n2)=-fwg(ij)
             CASE (4)
-              fvg(n2) = fvg(ij) 
+              fwg(n2) = fwg(ij) 
               fug(n2) = fug(ij)
             CASE DEFAULT
               CONTINUE

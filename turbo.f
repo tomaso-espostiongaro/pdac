@@ -2,7 +2,7 @@
       MODULE turbulence
 !----------------------------------------------------------------------
 !
-      USE gas_solid_velocity, ONLY: ug,vg 
+      USE gas_solid_velocity, ONLY: ug,wg 
       USE grid, ONLY: fl_l, myij,  nij_l, nijx_l, data_exchange
       USE environment, ONLY: timing, cpclock
       IMPLICIT NONE
@@ -142,7 +142,7 @@
 !
       REAL*8 ,DIMENSION(:), ALLOCATABLE :: modsr, sr1, sr2, sr12 
       REAL*8 ,DIMENSION(:), ALLOCATABLE :: p1, p2, p12 
-      REAL*8, DIMENSION(:), ALLOCATABLE :: fug, fvg, fu2g, fv2g, fuvg
+      REAL*8, DIMENSION(:), ALLOCATABLE :: fug, fwg, fu2g, fw2g, fuwg
 !
       REAL*8 :: fsr1, fsr2, fsr12, fmodsr
       REAL*8 :: fp1, fp2, fp12
@@ -161,36 +161,36 @@
       ALLOCATE(p12(nijx_l))  ;     p12 = 0.0D0
 !
       CALL data_exchange(ug)
-      CALL data_exchange(vg)
+      CALL data_exchange(wg)
 !
       DO ij = 1, nij_l
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)
-          CALL strain(ug, vg, ij, modsr(ij), sr1(ij), sr2(ij), sr12(ij), p1(ij), p2(ij), p12(ij))
+          CALL strain(ug, wg, ij, modsr(ij), sr1(ij), sr2(ij), sr12(ij), p1(ij), p2(ij), p12(ij))
         END IF
       END DO
 !
       IF (modturbo .EQ. 2) THEN
         ALLOCATE(fug(nijx_l))  ;     fug = 0.0D0
-        ALLOCATE(fvg(nijx_l))  ;     fvg = 0.0D0
+        ALLOCATE(fwg(nijx_l))  ;     fwg = 0.0D0
         ALLOCATE(fu2g(nijx_l)) ;     fu2g = 0.0D0
-        ALLOCATE(fv2g(nijx_l)) ;     fv2g = 0.0D0
-        ALLOCATE(fuvg(nijx_l)) ;     fuvg = 0.0D0
+        ALLOCATE(fw2g(nijx_l)) ;     fw2g = 0.0D0
+        ALLOCATE(fuwg(nijx_l)) ;     fuwg = 0.0D0
 !
 ! ... compute filtered velocities
 !
-        CALL vel_hat(fug, fvg, fu2g, fv2g, fuvg)        
+        CALL vel_hat(fug, fwg, fu2g, fw2g, fuwg)        
 !
-        CALL fboundary(fug, fvg)
+        CALL fboundary(fug, fwg)
 !
         CALL data_exchange(p1)
         CALL data_exchange(p2)
         CALL data_exchange(p12)
         CALL data_exchange(fug)
-        CALL data_exchange(fvg)
+        CALL data_exchange(fwg)
         CALL data_exchange(fu2g)
-        CALL data_exchange(fv2g)
-        CALL data_exchange(fuvg)
+        CALL data_exchange(fw2g)
+        CALL data_exchange(fuwg)
       END IF
 !
        DO ij = 1, nij_l
@@ -204,15 +204,15 @@
 !
           IF(modturbo.EQ.2) THEN
              delt = DSQRT(dz(j)*dr(i))
-             CALL strain(fug, fvg, ij, fmodsr, fsr1, fsr2, fsr12)
+             CALL strain(fug, fwg, ij, fmodsr, fsr1, fsr2, fsr12)
 !
              fp1  = filter(p1,ij)
              fp2  = filter(p2,ij)
              fp12 = filter(p12,ij)   
 !         
              l1  = fug(ij)**2 - fu2g(ij)
-             l2  = fvg(ij)**2 - fv2g(ij)
-             l12 = fug(ij)*fvg(ij) - fuvg(ij)
+             l2  = fwg(ij)**2 - fw2g(ij)
+             l12 = fug(ij)*fwg(ij) - fuwg(ij)
 !
 !             l1d = 0.5D0*l1 - 0.5D0*l2
 !             l2d = 0.5D0*l2 - 0.5D0*l1  
@@ -260,16 +260,16 @@
       DEALLOCATE(p12)
       IF (modturbo .EQ. 2) THEN
         DEALLOCATE(fug)
-        DEALLOCATE(fvg)
+        DEALLOCATE(fwg)
         DEALLOCATE(fu2g)
-        DEALLOCATE(fv2g)
-        DEALLOCATE(fuvg)
+        DEALLOCATE(fw2g)
+        DEALLOCATE(fuwg)
       END IF
 
       RETURN 
       END SUBROUTINE sgsg
 !----------------------------------------------------------------------
-      SUBROUTINE strain(u, v, ij, modsr, sr1, sr2, sr12, p1, p2, p12 )
+      SUBROUTINE strain(u, w, ij, modsr, sr1, sr2, sr12, p1, p2, p12 )
 !
 ! ... here computes the components of the strain rate tensor and its module.
 ! ... and the components of the function pij(=modsr*srij)
@@ -279,12 +279,12 @@
       USE set_indexes
       IMPLICIT NONE
 
-      REAL*8, INTENT(IN), DIMENSION(:) :: u, v
+      REAL*8, INTENT(IN), DIMENSION(:) :: u, w
       INTEGER,INTENT(IN)  :: ij
       REAL*8, INTENT(OUT) :: modsr, sr1, sr2, sr12
       REAL*8, OPTIONAL, INTENT(OUT) :: p1, p2, p12
 !
-      REAL*8 :: v1, v2, v3, u1, u2, u3, um1, um2, vm1, vm2 
+      REAL*8 :: w1, w2, w3, u1, u2, u3, um1, um2, wm1, wm2 
       REAL*8 :: drp, dzm, drm, dzp, indrp, indzm, indrm, indzp
       REAL*8 :: d33
       INTEGER :: i, j, imesh 
@@ -307,7 +307,7 @@
 ! ... by interpolating the values found on the staggered grids.
 !
         sr1 = (u(ij)-u(imj))*indr(i)
-        sr2 = (v(ij)-v(ijm))*indz(j)
+        sr2 = (w(ij)-w(ijm))*indz(j)
 !
         
 ! ... extra-term for cylindrical coordinates
@@ -321,15 +321,15 @@
         u3=0.5D0*(u(ijp)+u(imjp))
         u2=0.5D0*(u(ij)+u(imj))
         u1=0.5D0*(u(ijm)+u(imjm))
-        v3=0.5D0*(v(ipj)+v(ipjm))
-        v2=0.5D0*(v(ij)+v(ijm))
-        v1=0.5D0*(v(imj)+v(imjm))
+        w3=0.5D0*(w(ipj)+w(ipjm))
+        w2=0.5D0*(w(ij)+w(ijm))
+        w1=0.5D0*(w(imj)+w(imjm))
         um2=u2+(u3-u2)*dz(j)*indzp
         um1=u1+(u2-u1)*dz(j-1)*indzm
-        vm2=v2+(v3-v2)*dr(i)*indrp
-        vm1=v1+(v2-v1)*dr(i-1)*indrm
+        wm2=w2+(w3-w2)*dr(i)*indrp
+        wm1=w1+(w2-w1)*dr(i-1)*indrm
 
-        sr12 =((um2-um1)*indz(j)+(vm2-vm1)*indr(i))*0.5D0
+        sr12 =((um2-um1)*indz(j)+(wm2-wm1)*indr(i))*0.5D0
 !        
         modsr = DSQRT(2 * (sr1**2 + sr2**2 + 2*sr12**2) )
 
@@ -342,63 +342,63 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE vel_hat(fug, fvg, fu2g, fv2g, fuvg) 
+      SUBROUTINE vel_hat(fug, fwg, fu2g, fw2g, fuwg) 
 !
 !... the filtered components of the velocity are calculated...
 !... before filtering the product of the components of the velocity we 
-!... have defined the function u_per_v(ij)(next subroutine)...
+!... have defined the function u_per_w(ij)(next subroutine)...
 
       USE set_indexes, ONLY: subscr
       IMPLICIT NONE
  
-      REAL*8, DIMENSION(:), ALLOCATABLE :: uvg, u2g, v2g
-      REAL*8, INTENT(OUT), DIMENSION(:) :: fug, fvg, fu2g, fv2g, fuvg
+      REAL*8, DIMENSION(:), ALLOCATABLE :: uwg, u2g, w2g
+      REAL*8, INTENT(OUT), DIMENSION(:) :: fug, fwg, fu2g, fw2g, fuwg
       INTEGER :: i, j, ij
     
-      ALLOCATE(uvg(nijx_l)) 
+      ALLOCATE(uwg(nijx_l)) 
       ALLOCATE(u2g(nijx_l)) 
-      ALLOCATE(v2g(nijx_l)) 
-      uvg = 0.0D0
+      ALLOCATE(w2g(nijx_l)) 
+      uwg = 0.0D0
       u2g = 0.0D0
-      v2g = 0.0D0
+      w2g = 0.0D0
 !
-      CALL u_per_v(uvg) 
+      CALL u_per_w(uwg) 
       u2g = ug * ug
-      v2g = vg * vg
+      w2g = wg * wg
 !
-      CALL data_exchange(uvg)
+      CALL data_exchange(uwg)
 !
        DO ij = 1, nij_l
          IF (fl_l(ij) .EQ. 1) THEN 
           CALL subscr(ij)
           fug(ij)  = filter(ug,ij)
-          fvg(ij)  = filter(vg,ij)
+          fwg(ij)  = filter(wg,ij)
           fu2g(ij) = filter(u2g,ij)
-          fv2g(ij) = filter(v2g,ij)
-          fuvg(ij) = filter(uvg,ij)     
+          fw2g(ij) = filter(w2g,ij)
+          fuwg(ij) = filter(uwg,ij)     
          END IF 
        END DO 
 !
-      DEALLOCATE(uvg)
+      DEALLOCATE(uwg)
       DEALLOCATE(u2g)
-      DEALLOCATE(v2g)
+      DEALLOCATE(w2g)
 ! 
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE u_per_v(uvg)
+      SUBROUTINE u_per_w(uwg)
       USE set_indexes
 ! 
       IMPLICIT NONE
       INTEGER :: ij
-      REAL*8, INTENT(OUT) :: uvg(:)
+      REAL*8, INTENT(OUT) :: uwg(:)
 !
       DO ij = 1, nij_l
         IF(fl_l(ij) .EQ. 1) THEN
           CALL subscr(ij)
-          uvg(ij)=(0.5D0*(ug(ij)+ug(imj)))*(0.5D0*(vg(ij)+vg(ijm)))
+          uwg(ij)=(0.5D0*(ug(ij)+ug(imj)))*(0.5D0*(wg(ij)+wg(ijm)))
         ELSE
-          uvg(ij) = ug(ij)*vg(ij)
+          uwg(ij) = ug(ij)*wg(ij)
         END IF
       END DO   
       RETURN
@@ -419,20 +419,20 @@
 !
       USE dimensions
       USE gas_solid_density, ONLY: rlk
-      USE gas_solid_velocity, ONLY: uk, vk
+      USE gas_solid_velocity, ONLY: us, ws
       USE grid, ONLY: itc, dz, dr, r, rb, indz, indr, inr, inrb
       USE particles_constants, ONLY: rl, inrl, dk, cmus
       USE set_indexes
       IMPLICIT NONE
 !
-      REAL*8 :: v1, v2, v3, u1, u2, u3, vm1, vm2, um1, um2
+      REAL*8 :: w1, w2, w3, u1, u2, u3, wm1, wm2, um1, um2
       REAL*8 :: d12, d11, d22, d33
       REAL*8 :: drp, dzm, drm, dzp, indrp, indzm, indrm, indzp 
       INTEGER :: ij
-      INTEGER :: i, j, k, imesh
+      INTEGER :: i, j, is, imesh
 !
-      CALL data_exchange(uk)
-      CALL data_exchange(vk)
+      CALL data_exchange(us)
+      CALL data_exchange(ws)
 !
       d33=0.D0
       DO ij = 1, nij_l
@@ -452,23 +452,23 @@
          indzp=1.D0/dzp
          indzm=1.D0/dzm
 !         
-         DO k=1,nsolid
-           d11=2.D0*(uk(k,ij)-uk(k,imj))*indr(i)
-           d22=2.D0*(vk(k,ij)-vk(k,ijm))*indz(j)
-           IF(itc.EQ.1)d33=(uk(k,ij)+uk(k,imj))*inr(i)
-           u3=0.5D0*(uk(k,ijp)+uk(k,imjp))
-           u2=0.5D0*(uk(k,ij)+uk(k,imj))
-           u1=0.5D0*(uk(k,ijm)+uk(k,imjm))
-           v3=0.5D0*(vk(k,ipj)+vk(k,ipjm))
-           v2=0.5D0*(vk(k,ij)+vk(k,ijm))
-           v1=0.5D0*(vk(k,imj)+vk(k,imjm))
+         DO is=1,nsolid
+           d11=2.D0*(us(is,ij)-us(is,imj))*indr(i)
+           d22=2.D0*(ws(is,ij)-ws(is,ijm))*indz(j)
+           IF(itc.EQ.1)d33=(us(is,ij)+us(is,imj))*inr(i)
+           u3=0.5D0*(us(is,ijp)+us(is,imjp))
+           u2=0.5D0*(us(is,ij)+us(is,imj))
+           u1=0.5D0*(us(is,ijm)+us(is,imjm))
+           w3=0.5D0*(ws(is,ipj)+ws(is,ipjm))
+           w2=0.5D0*(ws(is,ij)+ws(is,ijm))
+           w1=0.5D0*(ws(is,imj)+ws(is,imjm))
            um2=u2+(u3-u2)*dz(j)*indzp
            um1=u1+(u2-u1)*dz(j-1)*indzm
-           vm2=v2+(v3-v2)*dr(i)*indrp
-           vm1=v1+(v2-v1)*dr(i-1)*indrm
-           d12=(um2-um1)*indz(j)+(vm2-vm1)*indr(i)
-           must(k,ij) = cmus(k)*0.7071D0*rl(k)*dk(k)**2 *            &
-     &                 10.D0**(3.98D0*rlk(k,ij)*inrl(k)-1.69D0) *   &
+           wm2=w2+(w3-w2)*dr(i)*indrp
+           wm1=w1+(w2-w1)*dr(i-1)*indrm
+           d12=(um2-um1)*indz(j)+(wm2-wm1)*indr(i)
+           must(is,ij) = cmus(is)*0.7071D0*rl(is)*dk(is)**2 *            &
+     &                 10.D0**(3.98D0*rlk(is,ij)*inrl(is)-1.69D0) *   &
      &                 DSQRT(d11*d11+d22*d22+d33*d33+2.0D0*d12*d12)
          END DO
         END IF

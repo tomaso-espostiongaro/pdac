@@ -8,7 +8,7 @@
       USE eos_solid, ONLY: eosl
       USE enthalpy_matrix, ONLY: ftem
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
-      USE gas_solid_temperature, ONLY: sieg, siegn, siek, siekn, tk, tg
+      USE gas_solid_temperature, ONLY: sieg, siegn, sies, siesn, ts, tg
       USE grid, ONLY: nij_l, myij, fl_l
       USE io_restart, ONLY: tapewr
       USE iterative_solver, ONLY: iter
@@ -32,7 +32,7 @@
       INTEGER :: irest
       INTEGER :: is, imesh
       INTEGER :: ijk
-      INTEGER :: kg, rk
+      INTEGER :: ig, rk
       REAL*8 :: tdump1, tpri
       REAL*8 :: s0, s1, s2, s3, s4, s5, s6, s7, s8, s9
       REAL*8 :: timbdry, timout, timrestart, timtilde, timiter, &
@@ -86,15 +86,15 @@
                      sieg(ijk), p(ijk), 1, 1, 0, imesh)
            rgp(ijk)=rog(ijk)*ep(ijk)
 ! 
-           DO kg=1,ngas
-             rgpgc(kg,ijk)=ygc(kg,ijk)*rgp(ijk)
+           DO ig=1,ngas
+             rgpgc(ig,ijk)=ygc(ig,ijk)*rgp(ijk)
            END DO
 ! 
 ! ... Compute particle specific heat and temperatures from Equation of State
 !
            DO is=1,nsolid
              IF (irex.GE.0) THEN
-               CALL eosl(tk(is,ijk),ck(is,ijk),cps(is),siek(is,ijk),1,1)
+               CALL eosl(ts(is,ijk),ck(is,ijk),cps(is),sies(is,ijk),1,1)
              ENDIF
            END DO
         END DO
@@ -136,10 +136,10 @@
            IF(irex.GE.0) siegn(ijk) = sieg(ijk)
            DO is=1,nsolid
              rlkn(is,ijk) = rlk(is,ijk)
-             IF (irex.GE.0) siekn(is,ijk) = siek(is,ijk)
+             IF (irex.GE.0) siesn(is,ijk) = sies(is,ijk)
            END DO
-           DO kg=1,ngas
-             rgpgcn(kg,ijk) = rgpgc(kg,ijk)
+           DO ig=1,ngas
+             rgpgcn(ig,ijk) = rgpgc(ig,ijk)
            END DO
 !
 ! ... Compute the temperature-dependent gas viscosity and th. conductivity

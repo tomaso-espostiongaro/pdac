@@ -15,7 +15,6 @@
 !----------------------------------------------------------------------
       SUBROUTINE bounds_press_eps
       USE dimensions
-      USE control_flags, ONLY: job_type
       IMPLICIT NONE
 !
       ALLOCATE(gas_pressure(ntot), void_fraction(ntot))

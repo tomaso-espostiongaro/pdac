@@ -10,12 +10,12 @@
       USE eos_gas, ONLY: cg
       USE gas_solid_velocity, ONLY: gas_velocity_r, gas_velocity_z, gas_velocity_x, gas_velocity_y
       USE gas_solid_velocity, ONLY: solid_velocity_r, solid_velocity_z, solid_velocity_x, solid_velocity_y
-      USE gas_solid_velocity, ONLY: ug, vg, wg, uk, vk, wk
+      USE gas_solid_velocity, ONLY: ug, wg, us, ws, vg, vs
       USE gas_solid_density, ONLY: gas_bulk_density, solid_bulk_density, gas_density
       USE gas_solid_density, ONLY: rgp, rlk, rog
       USE gas_solid_temperature, ONLY: gas_enthalpy, gas_temperature
       USE gas_solid_temperature, ONLY: solid_enthalpy, solid_temperature
-      USE gas_solid_temperature, ONLY: sieg, siek, tg, tk
+      USE gas_solid_temperature, ONLY: sieg, sies, tg, ts
       USE grid, ONLY: nij_l, myij
       USE pressure_epsilon, ONLY: gas_pressure, void_fraction
       USE pressure_epsilon, ONLY: p, ep
@@ -70,28 +70,26 @@
         gas_enthalpy(imesh) = sieg(ijk)
         IF( job_type == '2D' ) THEN
           gas_velocity_r(imesh) = ug(ijk)
-          gas_velocity_z(imesh) = vg(ijk)
         ELSE
           gas_velocity_x(imesh) = ug(ijk)
           gas_velocity_y(imesh) = vg(ijk)
-          gas_velocity_z(imesh) = wg(ijk)
         END IF
-        solid_enthalpy(:,imesh) = siek(:,ijk)
+        gas_velocity_z(imesh) = wg(ijk)
+        solid_enthalpy(:,imesh) = sies(:,ijk)
         IF( job_type == '2D' ) THEN
-          solid_velocity_r(:,imesh) = uk(:,ijk)
-          solid_velocity_z(:,imesh) = vk(:,ijk)
+          solid_velocity_r(:,imesh) = us(:,ijk)
         ELSE
-          solid_velocity_x(:,imesh) = uk(:,ijk)
-          solid_velocity_y(:,imesh) = vk(:,ijk)
-          solid_velocity_z(:,imesh) = wk(:,ijk)
+          solid_velocity_x(:,imesh) = us(:,ijk)
+          solid_velocity_y(:,imesh) = vs(:,ijk)
         END IF
+        solid_velocity_z(:,imesh) = ws(:,ijk)
         gc_mass_fraction(:, imesh) = ygc(:, ijk)
 !
         gas_bulk_density(imesh) = rgp(ijk)
         gas_density(imesh) = rog(ijk)
         void_fraction(imesh) = ep(ijk)
         gas_temperature(imesh) = tg(ijk)
-        solid_temperature(:,imesh) = tk(:,ijk)
+        solid_temperature(:,imesh) = ts(:,ijk)
         gc_bulk_density(:, imesh) = rgpgc(:, ijk)
         gc_molar_fraction(:, imesh) = xgc(:, ijk)
 !

@@ -6,8 +6,8 @@
 !----------------------------------------------------------------------
       CONTAINS
 !--------------------------------------------------------------------
-      SUBROUTINE hvs(hv, rlk, rog, ep, ug, ugm, uk, ukm,       &
-                     vg, vgm, vk, vkm, mug, kapg, cg, k)
+      SUBROUTINE hvs(hv, rlk, rog, ep, ug, ugm, us, usm,       &
+                     wg, wgm, ws, wsm, mug, kapg, cg, k)
 !
       USE dimensions
       USE particles_constants, ONLY: rl, inrl, dk 
@@ -16,11 +16,11 @@
       INTEGER, INTENT(IN) :: k
       REAL*8, INTENT(IN) :: rlk, rog, ep
       REAL*8, INTENT(IN) :: mug, kapg, cg
-      REAL*8, INTENT(IN) :: ug, ugm, uk, ukm 
-      REAL*8, INTENT(IN) :: vg, vgm, vk, vkm 
+      REAL*8, INTENT(IN) :: ug, ugm, us, usm 
+      REAL*8, INTENT(IN) :: wg, wgm, ws, wsm 
       REAL*8, INTENT(OUT) :: hv
 !
-      REAL*8 :: reynum, pranum, eps, du, dv, vrel
+      REAL*8 :: reynum, pranum, eps, du, dw, vrel
       REAL*8 :: asurf
 !
 !pe-------------
@@ -30,9 +30,9 @@
       ENDIF
 !pe-------------
       asurf = rlk * inrl(k) * (6.D0/dk(k))
-      du = 0.5D0*((ug+ugm)-(uk+ukm))
-      dv = 0.5D0*((vg+vgm)-(vk+vkm))
-      vrel = DSQRT(du**2+dv**2)
+      du = 0.5D0*((ug+ugm)-(us+usm))
+      dw = 0.5D0*((wg+wgm)-(ws+wsm))
+      vrel = DSQRT(du**2+dw**2)
       reynum = dk(k) * vrel * rog / mug
       pranum = cg * mug / kapg
 !

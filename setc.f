@@ -11,7 +11,7 @@
       USE turbulence, ONLY: turbulence_setup, iturb
       USE gas_solid_viscosity, ONLY: particle_viscosity
       IMPLICIT NONE
-      INTEGER :: k
+      INTEGER ::is 
 !
 ! molecular weight of chemical components (O2,N2,CO2,H2,H2O,Air,SO2)
 !
@@ -46,8 +46,8 @@
 !
 ! Initialize particle's viscosity
 ! 
-      DO k = 1, nsolid
-        particle_viscosity(k,:) = cmus(k)
+      DO is = 1, nsolid
+        particle_viscosity(is,:) = cmus(is)
       END DO
 !
 ! set useful constants 

@@ -11,7 +11,7 @@
 !
       PROGRAM pdac2d
 
-      USE atmosphere, ONLY: v0, u0, w0, p0, temp0, uk0, vk0, wk0, &
+      USE atmosphere, ONLY: v0, u0, w0, p0, temp0, us0, vs0, ws0, &
      &                      ep0, epsmx0, gravx, gravz
       USE dimensions
       USE eos_gas, ONLY: bounds_eosg, local_bounds_eosg
@@ -39,8 +39,8 @@
      &                            local_bounds_press_eps
       USE reactions, ONLY: irex
       USE roughness_module, ONLY: zrough, deallocate_roughness
-      USE initial_conditions, ONLY: setup, epsob, vpob, tpob, ygc0, &
-     &    ygcob, upob, vgob, ugob, pob, tgob, epob, lpr, zzero, &
+      USE initial_conditions, ONLY: setup, epsob, wpob, tpob, ygc0, &
+     &    ygcob, upob, wgob, ugob, pob, tgob, epob, lpr, zzero, &
      &    bounds_setup
       USE heat_capacity, ONLY: bounds_hcapgs, local_bounds_hcapgs
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
@@ -57,7 +57,7 @@
       CHARACTER(LEN=3) :: procnum
 !
       INTEGER :: n, m, i, j, k
-      INTEGER :: kg
+      INTEGER :: ig
       REAL*8 :: s0, s1, s2, s3, s4
       REAL*8 :: timtot, timprog, timdist, timsetup, timinit
 !
@@ -135,24 +135,23 @@
       iob(1:no)%zhi = block_bounds(6,1:no)
 
       ugob(1:no)  = fixed_vgas_r(1:no)
-      vgob(1:no)  = fixed_vgas_z(1:no)
+      wgob(1:no)  = fixed_vgas_z(1:no)
       pob(1:no)  = fixed_pressure(1:no)
       epob(1:no)  = fixed_gaseps(1:no)
       tgob(1:no)  = fixed_gastemp(1:no)
       upob(1:nsolid,1:no) = fixed_vpart_r(1:nsolid,1:no)
-      vpob(1:nsolid,1:no) = fixed_vpart_z(1:nsolid,1:no)
+      wpob(1:nsolid,1:no) = fixed_vpart_z(1:nsolid,1:no)
       epsob(1:nsolid,1:no) = fixed_parteps(1:nsolid,1:no)
       tpob(1:nsolid,1:no) = fixed_parttemp(1:nsolid,1:no)
       ygcob(1:ngas,1:no) = fixed_gasconc(1:ngas,1:no)
 
       IF( job_type == '2D' ) THEN
         u0 = initial_vgas_r
-        v0 = initial_vgas_z
       ELSE
         u0 = initial_vgas_x
         v0 = initial_vgas_y
-        w0 = initial_vgas_z
       END IF
+      w0 = initial_vgas_z
 
       p0 = initial_pressure
       ep0 = initial_void_fraction
@@ -160,13 +159,12 @@
       temp0 = initial_temperature
 
       IF( job_type == '2D' ) THEN
-        uk0 = initial_vpart_r
-        vk0 = initial_vpart_z
+        us0 = initial_vpart_r
       ELSE
-        uk0 = initial_vpart_x
-        vk0 = initial_vpart_y
-        wk0 = initial_vpart_z
+        us0 = initial_vpart_x
+        vs0 = initial_vpart_y
       END IF
+      ws0 = initial_vpart_z
 
       ygc0(1:ngas) = initial_gasconc(1:ngas)
 !
@@ -256,18 +254,18 @@
 !            IF(nso(n).EQ.5) THEN 
               IF( iob(n)%typ == 1 .OR. iob(n)%typ == 5) THEN 
 !pe------------------------------
-                WRITE(6,253) n,ugob(n),vgob(n),pob(n),epob(n)
-                WRITE(6,255) (k,upob(k,n),vpob(k,n), epsob(k,n),tpob(k,n),k=1,nsolid)
-                WRITE(6,256) (kg,ygcob(kg,n),kg=1,ngas)
+                WRITE(6,253) n,ugob(n),wgob(n),pob(n),epob(n)
+                WRITE(6,255) (k,upob(k,n),wpob(k,n), epsob(k,n),tpob(k,n),k=1,nsolid)
+                WRITE(6,256) (ig,ygcob(ig,n),ig=1,ngas)
               ENDIF
             END DO
           END IF
          WRITE(6,251) gravx,gravz
-         WRITE(6,260) u0,v0,p0,ep0,epsmx0,temp0
+         WRITE(6,260) u0,w0,p0,ep0,epsmx0,temp0
          WRITE(6,274)
          WRITE(6,275) (dk(i),rl(i),phis(i),cmus(i),cps(i), kap(i),i=1,nsolid)
-         WRITE(6,271) uk0,vk0
-         WRITE(6,261) (kg,ygc0(kg),kg=1,ngas)
+         WRITE(6,271) us0,ws0
+         WRITE(6,261) (ig,ygc0(ig),ig=1,ngas)
          WRITE(6,280) itd,time,tstop,dt,tpr,tdump
         END IF
       END IF
@@ -307,16 +305,16 @@
  251  FORMAT(/,1x,'gravity (x) = ',f7.2,'  gravity (z) = ',f7.2)
  252  FORMAT(/,1x,'obstacle flag',12x,'obstacle geometry')
  253  FORMAT(/,1x,'obstacle =',i3/ &
-      ' uob=',1pe11.4,' vob=',1pe11.4, &
+      ' uob=',1pe11.4,' wob=',1pe11.4, &
       ' pob=',1pe11.4,' epob=',1pe11.4)
  254  FORMAT(/,1x,12x,i3,6x,4i4)
  255  FORMAT(/,1x,'k-th particle =',i3/ &
-      ' upob=',1pe11.4,' vpob=',1pe11.4, &
+      ' upob=',1pe11.4,' wpob=',1pe11.4, &
       ' epsob=',1pe11.4,'  tpob=',1pe11.4)
  256  FORMAT(/,1x,'n-th gas =',i3/ &
       ' ygasob=',1pe11.4)
  260  FORMAT(/,1x,'initial data for gas and solid'/' u0=',1pe11.4, &
-      ' v0=',1pe11.4,' p0=',1pe11.4,' ep0=',1pe11.4, &
+      ' w0=',1pe11.4,' p0=',1pe11.4,' ep0=',1pe11.4, &
       '  max. eps=',1pe11.4,'     t0=',1pe11.4)
  261  FORMAT(/,1x,' nth-gas initial value=',i3/ ' ygasc0=',1pe11.4)
  274  FORMAT(/,1x,/,'particulate phase data',/, &
@@ -327,7 +325,7 @@
       ' solids specific heat',3x,/, &
       ' solids conductivity')
  275  FORMAT(/,2(6x,g10.3))
- 271  FORMAT(/,1x,'particle inflow data'/' uk0=',1pe11.4,' vk0=', 1pe11.4)
+ 271  FORMAT(/,1x,'particle inflow data'/' us0=',1pe11.4,' ws0=', 1pe11.4)
  280  FORMAT(/,1x,'runtime control:',/, &
       'restart itd = ',i3,/, &
       'initial time = ',1pe11.4,/, &

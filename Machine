@@ -13,6 +13,7 @@ MACROS= -DSCALAR
 #FFLAGS= -O3 -qstrict -qarch=pwr4 -qtune=pwr4 $(IPAFLG) -qalias=noaryovrlp -Q -bstatic -bmaxdata:0x70000000 
 #FFLAGS=  -O3 -qstrict -qarch=pwr4 -qtune=pwr4 -bmaxdata:0x70000000 
 FFLAGS=  -O3 -qstrict -qarch=pwr4 -qtune=pwr4 
+FFLAGS=  
 CPPFLAGS= -WF,$(MACROS)
 #PREPROCESSING = -qsuffix=cpp=f -I $(HPMHOME)/include/
 PREPROCESSING =

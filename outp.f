@@ -35,9 +35,9 @@
       CHARACTER*24 syscom
 !*************
 !
-      INTEGER :: ij2, ij1, k, j
+      INTEGER :: ij2, ij1, is, j
       INTEGER :: ijl
-      INTEGER :: kg
+      INTEGER :: ig
 !
 !      cmprs = .TRUE.
       cmprs = .FALSE.
@@ -60,12 +60,12 @@
         WRITE(3,550)(gas_pressure(ijl),ijl=ij1,ij2)
       END DO
 !
-      DO k=1,nsolid
-        WRITE(3,549) k
+      DO is=1,nsolid
+        WRITE(3,549)is 
         DO j=1,nz
           ij1=1+(nz-j)*nr
           ij2=nr+(nz-j)*nr
-          WRITE(3,550)(solid_bulk_density(k,ijl)*inrl(k),ijl=ij1,ij2)
+          WRITE(3,550)(solid_bulk_density(is,ijl)*inrl(is),ijl=ij1,ij2)
         END DO
       END DO
 !
@@ -93,39 +93,39 @@
 !
 !pdac------------
 ! define loop parameters
-        DO 343 kg=5,5
+        DO 343 ig=5,5
 !pdac------------
-          WRITE(3,562) kg
+          WRITE(3,562) ig
           DO j=1,nz
             ij1=1+(nz-j)*nr
             ij2=nr+(nz-j)*nr
-            WRITE(3,550)(gc_molar_fraction(kg,ijl),ijl=ij1,ij2)
+            WRITE(3,550)(gc_molar_fraction(ig,ijl),ijl=ij1,ij2)
            END DO
  343    CONTINUE
       ENDIF
 !
-      DO k=1,nsolid
+      DO is=1,nsolid
 !
-        WRITE(3,556) k
+        WRITE(3,556)is 
         DO j=1,nz
           ij1=1+(nz-j)*nr 
           ij2=nr+(nz-j)*nr
-          WRITE(3,550)(solid_velocity_r(k,ijl),ijl=ij1,ij2)
+          WRITE(3,550)(solid_velocity_r(is,ijl),ijl=ij1,ij2)
         END DO
 !
-        WRITE(3,557) k
+        WRITE(3,557)is 
         DO  j=1,nz
           ij1=1+(nz-j)*nr
           ij2=nr+(nz-j)*nr
-          WRITE(3,550)(solid_velocity_z(k,ijl),ijl=ij1,ij2)
+          WRITE(3,550)(solid_velocity_z(is,ijl),ijl=ij1,ij2)
         END DO
 !
         IF(irex.GE.0) THEN
-          WRITE(3,561) k
+          WRITE(3,561)is 
           DO j=1,nz
             ij1=1+(nz-j)*nr
             ij2=nr+(nz-j)*nr
-            WRITE(3,550)(solid_temperature(k,ijl),ijl=ij1,ij2)
+            WRITE(3,550)(solid_temperature(is,ijl),ijl=ij1,ij2)
           END DO
         ENDIF
 !

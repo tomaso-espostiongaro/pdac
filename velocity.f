@@ -5,7 +5,7 @@
 !
 
       REAL*8, DIMENSION(:),   ALLOCATABLE :: ug, vg, wg
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: uk, vk, wk
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: us, vs, ws
 
       REAL*8, DIMENSION(:),   ALLOCATABLE :: gas_velocity_r, gas_velocity_z, gas_velocity_x, gas_velocity_y
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: solid_velocity_r, solid_velocity_z, solid_velocity_x, solid_velocity_y
@@ -48,17 +48,17 @@
       USE grid, ONLY: nijx_l
       IMPLICIT NONE
 !
-      ALLOCATE(ug(nijx_l), vg(nijx_l))
-      ALLOCATE(uk(nsolid, nijx_l), vk(nsolid, nijx_l))
+      ALLOCATE(ug(nijx_l), wg(nijx_l))
+      ALLOCATE(us(nsolid, nijx_l), ws(nsolid, nijx_l))
       ug = 0.0d0
-      vg = 0.0d0
-      uk = 0.0d0
-      vk = 0.0d0
+      wg = 0.0d0
+      us = 0.0d0
+      ws = 0.0d0
       IF( job_type == '3D' ) THEN
-        ALLOCATE( wg(nijx_l) )
-        ALLOCATE( wk(nsolid, nijx_l) )
-        wg = 0.0d0
-        wk = 0.0d0
+        ALLOCATE( vg(nijx_l) )
+        ALLOCATE( vs(nsolid, nijx_l) )
+        vg = 0.0d0
+        vs = 0.0d0
       END IF
 
       RETURN

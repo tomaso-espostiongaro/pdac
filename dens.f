@@ -14,7 +14,6 @@
 !----------------------------------------------------------------------
       SUBROUTINE bounds_density
       USE dimensions
-      USE control_flags, ONLY: job_type
 !
       ALLOCATE(gas_bulk_density(ntot), gas_density(ntot))
       ALLOCATE(solid_bulk_density(nsolid,ntot))

@@ -18,8 +18,8 @@
       USE dimensions
       USE eos_gas, ONLY: cg
       USE gas_solid_density, ONLY: rgp, rgpn, rlk, rlkn, rog
-      USE gas_solid_temperature, ONLY: sieg, siegn, siek, siekn
-      USE gas_solid_velocity, ONLY: ug, vg, uk, vk
+      USE gas_solid_temperature, ONLY: sieg, siegn, sies, siesn
+      USE gas_solid_velocity, ONLY: ug, wg, us, ws
       USE grid, ONLY: r, rb, dr, zb, dz, inr, indr, indz 
       USE grid, ONLY: fl_l
       USE grid, ONLY: nij_l, myij, data_exchange
@@ -35,7 +35,7 @@
 !
       REAL*8 :: c3, hrexs, hrexg, c2, upxy, c1
       REAL*8 :: drc, dzc
-      INTEGER :: k, m, l, k1
+      INTEGER :: is, m, l, is1
       INTEGER :: ij
 !
       ALLOCATE(at(nphase, nphase))
@@ -62,23 +62,23 @@
           at(1,1) = rgp(ij)
           bt(1)   = siegn(ij) * rgpn(ij) + rhg(ij) - hrexg
 
-          DO k=1, nsolid
-            k1=k+1
+          DO is=1, nsolid
+            is1=is+1
 !
 ! ... Compute gas-particle heat transfer coefficients
 !
-            CALL hvs(hv(k,ij), rlk(k,ij), rog(ij),       &
-                 ep(ij), ug(ij), ug(imj), uk(k,ij),      &
-                 uk(k,imj), vg(ij), vg(ijm),             &
-                 vk(k,ij), vk(k,ijm), mug(ij),           &
-                 kapg(ij), cg(ij), k)
+            CALL hvs(hv(is,ij), rlk(is,ij), rog(ij),       &
+                 ep(ij), ug(ij), ug(imj), us(is,ij),      &
+                 us(is,imj), wg(ij), wg(ijm),             &
+                 ws(is,ij), ws(is,ijm), mug(ij),           &
+                 kapg(ij), cg(ij), is)
 !
-            at(1,1)   = at(1,1)       + dt * hv(k,ij) / cg(ij)
-            at(1,k1)  =               - dt * hv(k,ij) / ck(k,ij)
-            at(k1,1)  =               - dt * hv(k,ij) / cg(ij)
-            at(k1,k1) = rlk(k,ij) + dt * hv(k,ij) / ck(k,ij)
+            at(1,1)   = at(1,1)       + dt * hv(is,ij) / cg(ij)
+            at(1,is1)  =               - dt * hv(is,ij) / ck(is,ij)
+            at(is1,1)  =               - dt * hv(is,ij) / cg(ij)
+            at(is1,is1) = rlk(is,ij) + dt * hv(is,ij) / ck(is,ij)
 !
-            bt(k1) = rlkn(k,ij) * siekn(k,ij) + rhk(k, ij)
+            bt(is1) = rlkn(is,ij) * siesn(is,ij) + rhk(is, ij)
           END DO
 !
 ! ... Solve the interphase enthalpy matrix by using Gauss inversion
@@ -86,8 +86,8 @@
           CALL invdm(at, bt, ij)
 !
           sieg(ij) = bt(1)
-          DO k=1, nsolid
-            siek(k,ij) = bt(k+1)
+          DO is=1, nsolid
+            sies(is,ij) = bt(is+1)
           END DO
 !
         END IF
@@ -115,30 +115,30 @@
       INTEGER, INTENT(IN) :: ij
       REAL*8 :: a(nphase,nphase),b(nphase)
 !
-      INTEGER :: k
+      INTEGER ::is 
       REAL*8 :: div
 !
-      DO k=nphase,2,-1
-!        IF(abs(a(k,k)).LE.1.D-6) THEN
-        IF(rlk(k-1,ij)*inrl(k-1).LE.1.D-9) THEN
-          a(1,k)=0.D0
-          a(k,1)=0.D0
-          b(k)=0.D0
+      DO is=nphase,2,-1
+!        IF(abs(a(is,is)).LE.1.D-6) THEN
+        IF(rlk(is-1,ij)*inrl(is-1).LE.1.D-9) THEN
+          a(1,is)=0.D0
+          a(is,1)=0.D0
+          b(is)=0.D0
         ELSE
 !
 ! ... eliminate all cross elements in the gas enthalpy equation
 !
-          div=1.D0/a(k,k)
-          a(k,1)=a(k,1)*div
-          b(k)=b(k)*div
-          b(1)=b(1)-a(1,k)*b(k)
-          a(1,1)=a(1,1)-a(1,k)*a(k,1)
+          div=1.D0/a(is,is)
+          a(is,1)=a(is,1)*div
+          b(is)=b(is)*div
+          b(1)=b(1)-a(1,is)*b(is)
+          a(1,1)=a(1,1)-a(1,is)*a(is,1)
         ENDIF
       END DO
 !
       b(1)=b(1)/a(1,1)
-      DO k=2,nphase
-        b(k)=b(k)-a(k,1)*b(1)
+      DO is=2,nphase
+        b(is)=b(is)-a(is,1)*b(1)
       END DO
 !
       RETURN

@@ -11,7 +11,7 @@
       USE grid, ONLY: fl_l
       USE dimensions
       USE eos_gas, ONLY: rgpgc, rgpgcn, ygc
-      USE gas_solid_velocity, ONLY: ug, vg
+      USE gas_solid_velocity, ONLY: ug, wg
       USE grid, ONLY: dr, rb, dz, r, indr, inrb, indz, inr
       USE grid, ONLY: nij_l, myij, data_exchange
       USE set_indexes
@@ -22,7 +22,7 @@
       REAL*8 :: cs(7), cs0
       INTEGER :: i, j, imesh
       INTEGER :: ij
-      INTEGER :: kg
+      INTEGER :: ig
 !
       CALL data_exchange(rgpgc)
 !
@@ -33,34 +33,34 @@
         j  = ( imesh - 1 ) / nr + 1
         i  = MOD( ( imesh - 1 ), nr) + 1
 !
-        DO kg=1,ngas
-          cs(kg)=rgpgcn(kg,ij)
+        DO ig=1,ngas
+          cs(ig)=rgpgcn(ig,ij)
         END DO
         cs0=0.D0
-        IF(vg(ij).GT.0.D0) THEN
-          cs0=cs0-dt*indz(j)*vg(ij)
+        IF(wg(ij).GT.0.D0) THEN
+          cs0=cs0-dt*indz(j)*wg(ij)
         ELSE
-          DO kg=1,ngas
-            cs(kg)=cs(kg)-dt*indz(j)*vg(ij)*rgpgc(kg,ijt)
+          DO ig=1,ngas
+            cs(ig)=cs(ig)-dt*indz(j)*wg(ij)*rgpgc(ig,ijt)
           END DO
         ENDIF
-        IF(vg(ijm).GT.0.D0) THEN
-          DO kg=1,ngas
-            cs(kg)=cs(kg)+dt*indz(j)*vg(ijm)*rgpgc(kg,ijb)
+        IF(wg(ijm).GT.0.D0) THEN
+          DO ig=1,ngas
+            cs(ig)=cs(ig)+dt*indz(j)*wg(ijm)*rgpgc(ig,ijb)
           END DO
         ELSE
-          cs0=cs0+dt*indz(j)*vg(ijm)
+          cs0=cs0+dt*indz(j)*wg(ijm)
         ENDIF
         IF(ug(ij).GT.0.D0) THEN
           cs0=cs0-dt*inr(i)*indr(i)*rb(i)*ug(ij)
         ELSE
-          DO kg=1,ngas
-            cs(kg)=cs(kg)-dt*inr(i)*indr(i)*rb(i)*ug(ij)*rgpgc(kg,ijr)
+          DO ig=1,ngas
+            cs(ig)=cs(ig)-dt*inr(i)*indr(i)*rb(i)*ug(ij)*rgpgc(ig,ijr)
           END DO
         ENDIF
         IF(ug(imj).GT.0.D0)THEN
-          DO kg=1,ngas
-            cs(kg)=cs(kg) + dt * inr(i)*indr(i)*rb(i-1)*ug(imj)*rgpgc(kg,ijl)
+          DO ig=1,ngas
+            cs(ig)=cs(ig) + dt * inr(i)*indr(i)*rb(i-1)*ug(imj)*rgpgc(ig,ijl)
           END DO
         ELSE
           cs0=cs0+dt*inr(i)*indr(i)*rb(i-1)*ug(imj)
@@ -79,8 +79,8 @@
         cs(7)=cs(7)/(1.D0-cs0)
         IF(cs(7).LT.0.D0) cs(7)=0.D0
         cs0=cs(1)+cs(2)+cs(3)+cs(4)+cs(5)+cs(6)+cs(7)
-        DO kg=1,ngas
-          ygc(kg,ij)=cs(kg)/cs0
+        DO ig=1,ngas
+          ygc(ig,ij)=cs(ig)/cs0
         END DO
        END IF
       END DO

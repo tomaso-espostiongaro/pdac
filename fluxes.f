@@ -24,7 +24,7 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE fu_lb(fl, fb, dens, u, v, ij)
+      SUBROUTINE fu_lb(fl, fb, dens, u, w, ij)
 !
 ! ... Compute the convective fluxes on left and bottom sides of the cell
 ! ... for the r(x)-momentum density.
@@ -37,7 +37,7 @@
 !
       REAL*8, INTENT(OUT) :: fl, fb
 !
-      TYPE(stencil), INTENT(IN) :: dens, u, v
+      TYPE(stencil), INTENT(IN) :: dens, u, w
       INTEGER, INTENT(IN) :: ij
       INTEGER :: i, imesh
       INTEGER :: imj, ijm
@@ -71,7 +71,7 @@
 
       ijm = myij( 0,-1, ij)
       IF( fl_l(ijm) .NE. 1 ) THEN
-        cs=(dr(i+1) * v%s + dr(i) * v%se) * indrp
+        cs=(dr(i+1) * w%s + dr(i) * w%se) * indrp
         IF(cs.GE.0.D0) fb = dens_se * u%s * cs
         IF(cs.LT.0.D0) fb = dens_e * u%c * cs
       END IF
@@ -79,7 +79,7 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE fu_rt(fr, ft, dens, u, v, ij)
+      SUBROUTINE fu_rt(fr, ft, dens, u, w, ij)
 !
 ! ... Compute the convective fluxes on right and top  sides of the cell
 ! ... for the r(x)-momentum density.
@@ -90,7 +90,7 @@
       IMPLICIT NONE
 !
       REAL*8, INTENT(OUT) :: fr, ft
-      TYPE(stencil), INTENT(IN) :: dens, u, v
+      TYPE(stencil), INTENT(IN) :: dens, u, w
       INTEGER, INTENT(IN) :: ij
       INTEGER :: i,j,imesh
 !
@@ -153,7 +153,7 @@
       gradgt = (1.D0 - beta) * gradc + beta * grads
       gradlt = (1.D0 - beta) * gradc + beta * gradn
 
-      cs=(dr(i+1) * v%c + dr(i) * v%e) * indrp
+      cs=(dr(i+1) * w%c + dr(i) * w%e) * indrp
       cn=cs * dt * 2.0 * indzp
       IF (cs.GE.0.D0) THEN
         upwnd = dens_e * (u%c + muscl*(gradgt)*0.5*dz(j))
@@ -166,7 +166,7 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE fv_lb(fl, fb, dens, u, v, ij)
+      SUBROUTINE fw_lb(fl, fb, dens, u, w, ij)
 !
       USE dimensions
       USE grid, ONLY: fl_l
@@ -174,7 +174,7 @@
       IMPLICIT NONE
 !
       REAL*8, INTENT(OUT) :: fl, fb
-      TYPE(stencil), INTENT(IN) :: dens, u, v
+      TYPE(stencil), INTENT(IN) :: dens, u, w
       INTEGER, INTENT(IN) :: ij
 !
       INTEGER :: i,j, imesh
@@ -203,21 +203,21 @@
       imj = myij(-1, 0, ij)
       IF(fl_l(imj).NE.1) THEN
         cs=(dz(j+1)*u%w+dz(j)*u%nw)*indzp
-        IF(cs.GE.0.D0) fl = dens_wn * v%w * cs * rb(i-1)
-        IF(cs.LT.0.D0) fl = dens_n * v%c * cs * rb(i-1)
+        IF(cs.GE.0.D0) fl = dens_wn * w%w * cs * rb(i-1)
+        IF(cs.LT.0.D0) fl = dens_n * w%c * cs * rb(i-1)
       END IF
 !
       ijm = myij( 0,-1, ij)
       IF(fl_l(ijm).NE.1) THEN
-        cs=0.5D0*(v%s+v%c)
-        IF(cs.GE.0.D0) fb = dens_s * v%s * cs
-        IF(cs.LT.0.D0) fb = dens_n * v%c * cs
+        cs=0.5D0*(w%s+w%c)
+        IF(cs.GE.0.D0) fb = dens_s * w%s * cs
+        IF(cs.LT.0.D0) fb = dens_n * w%c * cs
       END IF
 !
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE fv_rt(fr, ft, dens, u, v, ij)
+      SUBROUTINE fw_rt(fr, ft, dens, u, w, ij)
 !
       USE dimensions
       USE grid, ONLY: fl_l
@@ -226,7 +226,7 @@
 !
       INTEGER, INTENT(IN) :: ij
       REAL*8, INTENT(OUT) :: fr, ft
-      TYPE(stencil), INTENT(IN) :: dens, u, v
+      TYPE(stencil), INTENT(IN) :: dens, u, w
 !
       INTEGER :: i,j, imesh
       REAL*8 :: dzp, dzpp, indzpp, indzp
@@ -259,9 +259,9 @@
 !
 ! ... MUSCL reconstruction of velocity (density unvaried)
 !
-      gradc = (2.0 * indrp * (v%e - v%c))
-      gradw = (2.0 * indrm * (v%c - v%w))
-      grade = (2.0 * indrpp * (v%ee - v%e))
+      gradc = (2.0 * indrp * (w%e - w%c))
+      gradw = (2.0 * indrm * (w%c - w%w))
+      grade = (2.0 * indrpp * (w%ee - w%e))
 
       gradgt = (1.0 - beta) * gradc + beta * gradw
       gradlt = (1.0 - beta) * gradc + beta * grade
@@ -269,28 +269,28 @@
       cs = (dz(j+1)*u%c+dz(j)*u%n)*indzp
       cn = cs * dt * 2.0 * indzp
       IF (cs.GE.0.D0) THEN
-        upwnd = dens_n * (v%c + muscl*(gradgt)*0.5*dr(i))
+        upwnd = dens_n * (w%c + muscl*(gradgt)*0.5*dr(i))
       ELSE IF (cs.LT.0.D0) THEN
-        upwnd = dens_en * (v%e + muscl*(gradlt)*0.5*dr(i+1))
+        upwnd = dens_en * (w%e + muscl*(gradlt)*0.5*dr(i+1))
       END IF
 !
       fr = upwnd * cs * rb(i)
 !
 ! ... on top volume boundary
 !
-      gradc = (indz(j+1) * (v%n - v%c))
-      gradn = (indz(j+2) * (v%nn - v%n))
-      grads = (indz(j) * (v%c - v%s))
+      gradc = (indz(j+1) * (w%n - w%c))
+      gradn = (indz(j+2) * (w%nn - w%n))
+      grads = (indz(j) * (w%c - w%s))
 
       gradgt = (1.0 - beta) * gradc + beta * grads
       gradlt = (1.0 - beta) * gradc + beta * gradn
 
-      cs = 0.5D0*(v%c+v%n)
+      cs = 0.5D0*(w%c+w%n)
       cn = cs * dt * indz(j+1)
       IF (cs.GE.0.D0) THEN
-        upwnd = dens_n * (v%c + muscl*(gradgt)*0.5*dz(j+1))
+        upwnd = dens_n * (w%c + muscl*(gradgt)*0.5*dz(j+1))
       ELSE IF (cs.LT.0.D0 .AND. j.NE.(nz-1)) THEN
-        upwnd = dens_nn * (v%n + muscl*(gradlt)*0.5*dz(j+1))
+        upwnd = dens_nn * (w%n + muscl*(gradlt)*0.5*dz(j+1))
       END IF 
 !
       ft = upwnd * cs
@@ -298,7 +298,7 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE fsc_lb(fl, fb, dens, field, u, v, ij)
+      SUBROUTINE fsc_lb(fl, fb, dens, field, u, w, ij)
 !
       USE dimensions
       USE grid, ONLY: fl_l
@@ -306,7 +306,7 @@
       IMPLICIT NONE
 !
       REAL*8, INTENT(OUT) :: fl, fb
-      TYPE(stencil), INTENT(IN) :: dens, field, u, v
+      TYPE(stencil), INTENT(IN) :: dens, field, u, w
       INTEGER, INTENT(IN) :: ij
 !
       INTEGER :: i,j, imesh
@@ -335,7 +335,7 @@
 ! ... on bottom volume boundary
 !
       IF ((fl_l(ijm) .NE. 1)) THEN
-        cs = v%s
+        cs = w%s
         IF (cs .GE. 0.D0) THEN
           upwnd = dens%s*field%s
         ELSE IF (cs .LT. 0.D0) THEN
@@ -347,14 +347,14 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE fsc_rt(fr, ft, dens, field, u, v, ij)
+      SUBROUTINE fsc_rt(fr, ft, dens, field, u, w, ij)
 !
       USE dimensions
       USE grid, ONLY: myij
       IMPLICIT NONE
 !
       REAL*8, INTENT(OUT) :: fr, ft
-      TYPE(stencil), INTENT(IN) :: dens, field, u, v
+      TYPE(stencil), INTENT(IN) :: dens, field, u, w
       INTEGER, INTENT(IN) :: ij
 !
       INTEGER :: i,j,imesh
@@ -410,7 +410,7 @@
         gradgt = (1.D0 - beta) * gradc + beta * grads
         gradlt = (1.D0 - beta) * gradc + beta * gradn
 
-        cs = v%c
+        cs = w%c
         cn = cs * dt * 2.0 * indzp
         IF (cs .GE. 0.D0) THEN
           upwnd = dens%c*field%c + muscl*(gradgt)*0.5*dz(j)
@@ -423,12 +423,12 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE masfg(rgfrm, rgftm, rgfr, rgft, ug, vg, rgp, i)
+      SUBROUTINE masfg(rgfrm, rgftm, rgfr, rgft, ug, wg, rgp, i)
 !
       IMPLICIT NONE
 !
       REAL*8, INTENT(OUT) :: rgfr, rgft, rgfrm, rgftm
-      TYPE(stencil), INTENT(IN) :: ug, vg, rgp
+      TYPE(stencil), INTENT(IN) :: ug, wg, rgp
       INTEGER, INTENT(IN) :: i
 !
       IF (ug%w.GE.0.D0) THEN
@@ -436,10 +436,10 @@
       ELSE
         rgfrm = ug%w * rgp%c * rb(i-1)
       ENDIF
-      IF (vg%s.GE.0.D0) THEN
-        rgftm = vg%s * rgp%s
+      IF (wg%s.GE.0.D0) THEN
+        rgftm = wg%s * rgp%s
       ELSE
-        rgftm = vg%s * rgp%c
+        rgftm = wg%s * rgp%c
       ENDIF
 !
       IF (ug%c.GE.0.D0) THEN
@@ -447,44 +447,44 @@
       ELSE
         rgfr = ug%c * rgp%e * rb(i)
       ENDIF
-      IF (vg%c.GE.0.D0) THEN
-        rgft = vg%c * rgp%c
+      IF (wg%c.GE.0.D0) THEN
+        rgft = wg%c * rgp%c
       ELSE
-        rgft = vg%c * rgp%n
+        rgft = wg%c * rgp%n
       ENDIF
 !
       RETURN
       END SUBROUTINE
 !
 !----------------------------------------------------------------------
-      SUBROUTINE masfk(rlfrm, rlftm, rlfr, rlft, uk, vk, rlk, i)
+      SUBROUTINE masfs(rlfrm, rlftm, rlfr, rlft, us, ws, rlk, i)
 !
       IMPLICIT NONE
 !
       REAL*8, INTENT(OUT) :: rlfrm, rlftm, rlfr, rlft
-      TYPE(stencil), INTENT(IN) :: uk, vk, rlk
+      TYPE(stencil), INTENT(IN) :: us, ws, rlk
       INTEGER, INTENT(IN) :: i
 !
-        IF (uk%w.GE.0.D0) THEN
-          rlfrm = uk%w * rlk%w * rb(i-1)
+        IF (us%w.GE.0.D0) THEN
+          rlfrm = us%w * rlk%w * rb(i-1)
         ELSE
-          rlfrm = uk%w * rlk%c * rb(i-1)
+          rlfrm = us%w * rlk%c * rb(i-1)
         END IF
-        IF (vk%s.GE.0.D0) THEN
-          rlftm = vk%s * rlk%s
+        IF (ws%s.GE.0.D0) THEN
+          rlftm = ws%s * rlk%s
         ELSE
-          rlftm = vk%s * rlk%c
+          rlftm = ws%s * rlk%c
         END IF
 ! 
-        IF (uk%c.GE.0.D0) THEN
-          rlfr = uk%c * rlk%c * rb(i)
+        IF (us%c.GE.0.D0) THEN
+          rlfr = us%c * rlk%c * rb(i)
         ELSE
-          rlfr = uk%c * rlk%e * rb(i)
+          rlfr = us%c * rlk%e * rb(i)
         END IF
-        IF (vk%c.GE.0.D0) THEN
-          rlft = vk%c * rlk%c
+        IF (ws%c.GE.0.D0) THEN
+          rlft = ws%c * rlk%c
         ELSE
-          rlft = vk%c * rlk%n
+          rlft = ws%c * rlk%n
         END IF
 !
       RETURN

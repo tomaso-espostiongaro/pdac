@@ -60,15 +60,15 @@
 !
       REAL*8, INTENT(IN) :: ygc(:)
       REAL*8, INTENT(OUT) :: xgc(:)
-      INTEGER :: kg
+      INTEGER :: ig
       REAL*8 :: mol
 !
       mol = 0.D0
-      DO kg=1,ngas
-        mol = mol + ygc(kg)/gmw(kg)
+      DO ig=1,ngas
+        mol = mol + ygc(ig)/gmw(ig)
       END DO
-      DO kg=1,ngas
-        xgc(kg)=ygc(kg)/gmw(kg)/mol
+      DO ig=1,ngas
+        xgc(ig)=ygc(ig)/gmw(ig)/mol
       END DO
       RETURN
       END SUBROUTINE
@@ -93,7 +93,7 @@
 !
       REAL*8 :: tgnn, mg, hc, ratmin
       INTEGER :: ii, nlmax
-      INTEGER :: kg
+      INTEGER :: ig
       PARAMETER( nlmax = 2000) 
       PARAMETER( ratmin = 1.D-8) 
 !
@@ -106,8 +106,8 @@
           tgnn = tg
           CALL hcapg(cp(:), tg)
           hc=0.D0
-          DO kg=1,ngas
-            hc=c_erg*cp(kg)*ygc(kg)+hc
+          DO ig=1,ngas
+            hc=c_erg*cp(ig)*ygc(ig)+hc
           END DO
           cg = hc
           tg = tzero+(sieg-hzerog)/cg
@@ -121,8 +121,8 @@
 !
       IF(irhog.GT.0) THEN
         mg=0.D0
-        DO kg=1,ngas
-          mg = mg + xgc(kg) * gmw(kg)
+        DO ig=1,ngas
+          mg = mg + xgc(ig) * gmw(ig)
         END DO
         rog = p/(rgas*tg)*mg
       ENDIF
@@ -147,13 +147,13 @@
       IMPLICIT NONE
 !
       INTEGER, INTENT(IN) :: imesh
-      INTEGER :: kg
+      INTEGER :: ig
 !
       REAL*8 :: mg, hc
 !
       mg = 0.D0
-      DO kg = 1, ngas
-        mg = gc_molar_fraction(kg,imesh) * gmw(kg) + mg
+      DO ig = 1, ngas
+        mg = gc_molar_fraction(ig,imesh) * gmw(ig) + mg
       END DO
 
 ! ... gas density (equation of state)
@@ -161,8 +161,8 @@
       gas_density(imesh) = gas_pressure(imesh) / (rgas*gas_temperature(imesh)) * mg
       gas_bulk_density(imesh) = gas_density(imesh) * void_fraction(imesh)
 
-      DO kg = 1, ngas
-        gc_bulk_density(kg,imesh) = gc_mass_fraction(kg,imesh) * gas_bulk_density(imesh)
+      DO ig = 1, ngas
+        gc_bulk_density(ig,imesh) = gc_mass_fraction(ig,imesh) * gas_bulk_density(imesh)
       END DO
 
 !pdac---------------
@@ -174,8 +174,8 @@
 !
       CALL hcapg(gc_heat_capacity(:,imesh),gas_temperature(imesh))
       hc = 0.D0
-      DO kg=1,ngas
-        hc = c_erg*gc_heat_capacity(kg,imesh)*gc_mass_fraction(kg,imesh) + hc
+      DO ig=1,ngas
+        hc = c_erg*gc_heat_capacity(ig,imesh)*gc_mass_fraction(ig,imesh) + hc
       END DO 
 
       gas_heat_capacity(imesh) = hc

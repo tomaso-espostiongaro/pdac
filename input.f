@@ -60,7 +60,7 @@
 !
       SUBROUTINE input( iunit )
 
-      USE atmosphere, ONLY: v0, u0, p0, temp0, uk0, vk0, ep0, epsmx0, gravx, gravz
+      USE atmosphere, ONLY: w0, u0, p0, temp0, us0, ws0, ep0, epsmx0, gravx, gravz
       USE eulerian_flux, ONLY: beta, muscl
       USE gas_constants, ONLY: phij, ckg, mmug, mmugs, mmugek, gmw
       USE grid, ONLY: dx, dy, dz, dr, itc
@@ -72,8 +72,8 @@
       USE phases_matrix, ONLY: rlim
       USE reactions, ONLY: irex
       USE roughness_module, ONLY: zrough, allocate_roughness, roughness
-      USE initial_conditions, ONLY: setup, epsob, vpob, tpob, ygc0, &
-     &    ygcob, upob, vgob, ugob, pob, tgob, epob, lpr, zzero, &
+      USE initial_conditions, ONLY: setup, epsob, wpob, tpob, ygc0, &
+     &    ygcob, upob, wgob, ugob, pob, tgob, epob, lpr, zzero, &
      &    bounds_setup
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut
@@ -95,7 +95,7 @@
 !
       NAMELIST / numeric / rungekut, beta, muscl, inmax, maxout, omega
 !
-      INTEGER :: i, j, k, n, m, kg
+      INTEGER :: i, j, k, n, m, ig
       CHARACTER(LEN=80) :: card
       LOGICAL :: tend
 !
@@ -326,7 +326,7 @@
           IF( block_type(n) == 1 .OR. block_type(n) == 5) THEN
             READ(5,*) fixed_vgas_r(n), fixed_vgas_z(n), fixed_pressure(n), fixed_gaseps(n), fixed_gastemp(n)
             READ(5,*) ( fixed_vpart_r(k,n), fixed_vpart_z(k,n), fixed_parteps(k,n), fixed_parttemp(k,n), k=1, nsolid)
-            READ(5,*) ( fixed_gasconc(kg,n), kg=1, ngas )
+            READ(5,*) ( fixed_gasconc(ig,n), ig=1, ngas )
           ENDIF
         END DO
 
@@ -370,7 +370,7 @@
           READ(5,*) initial_vgas_r, initial_vgas_z, initial_pressure, initial_void_fraction, max_packing, initial_temperature
           READ(5,*) initial_vpart_r, initial_vpart_z
         ENDIF
-        READ(5,*) (initial_gasconc(kg), kg=1, ngas)
+        READ(5,*) (initial_gasconc(ig), ig=1, ngas)
 
         GOTO 410
  400    tend = .TRUE.
