@@ -47,6 +47,7 @@
       INTEGER :: ijk, nv
       INTEGER :: iwest, ieast, jnorth, jsouth
       INTEGER :: quota
+      REAL*8 :: soglia
       
       IF( job_type == '2D') RETURN
 !
@@ -128,7 +129,14 @@
           !
           vcell(nv)%imesh = ijk
           vcell(nv)%frac = cell_fraction(i,j)
-          IF (vcell(nv)%frac > 0.D0) THEN
+
+          IF (irand == 0 .AND. iali == 0) THEN
+                  soglia = 0.5D0
+          ELSE
+                  soglia = 0.D0
+          END IF
+
+          IF (vcell(nv)%frac > soglia) THEN
             fl(ijk) = 8
           ELSE
             fl(ijk) = bottom
@@ -240,7 +248,7 @@
           ! ... partially filled by the topography in order
           ! ... to respect the mass flux
           !
-          IF (iali >= 1) CALL correct_vent_density(ijk,alpha)
+          IF (iali >= 1) CALL correct_vent_density(ijk,k,alpha)
 
           ! ... 'wrat' is the ratio between the maximum
           ! ... vertical velocity and the averaged velocity
@@ -273,22 +281,26 @@
       RETURN
       END SUBROUTINE set_ventc
 !-----------------------------------------------------------------------
-      SUBROUTINE correct_vent_density(ijk,alpha)
+      SUBROUTINE correct_vent_density(ijk,k,alpha)
 !
 ! ... Compute the steady inlet conditions for a circular vent
 ! ... An aribtrary radial profile can be assigned, as a function
 ! ... of the averaged vertical velocity
 !
-      USE dimensions, ONLY: nsolid
+      USE atmospheric_conditions, ONLY: p_atm, t_atm
+      USE dimensions, ONLY: nsolid, ngas
+      USE eos_gas, ONLY: xgc
       USE gas_solid_density, ONLY: rlk
+      USE gas_solid_temperature, ONLY: tg
+      USE gas_constants, ONLY: gmw, gas_type
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
       IMPLICIT NONE
 
-      INTEGER, INTENT(IN) :: ijk
+      INTEGER, INTENT(IN) :: ijk, k
       REAL*8, INTENT(IN) :: alpha
-      REAL*8 :: ep0
-      INTEGER :: is
+      REAL*8 :: ep0, mg, rrhoatm
+      INTEGER :: is, ig
       
       ! ... solid bulk density is reduced by the factor 'alpha'
       !
@@ -296,12 +308,22 @@
         rlk(ijk,is) = ep_solid(is)*rl(is) * alpha
       END DO
       
-      ! ... gas bulk density is reduced by the factor 'alpha'
+      ! ... the density contrast is reduced by the factor 'alpha'
       ! ... by correcting the pressure and the void fraction
       !
       ep0     = 1.D0 - SUM(ep_solid(1:nsolid))
       ep(ijk) = 1.D0 - alpha * SUM(ep_solid(1:nsolid))
-      p(ijk)  = p_gas * alpha * ep0 / ep(ijk)
+
+!      p(ijk)  = p_gas * alpha * ep0 / ep(ijk)
+     
+      mg = 0.D0
+      DO ig = 1, ngas
+         mg = mg + xgc(ijk,ig) * gmw(gas_type(ig))
+      END DO
+
+      rrhoatm = p_atm(k) / t_atm(k) * gmw(6)
+      p(ijk) = p_gas * alpha * ep0 / ep(ijk) + &
+               rrhoatm / mg * tg(ijk) * (1.D0-alpha) / ep(ijk)
 
       RETURN
       END SUBROUTINE correct_vent_density

@@ -87,6 +87,7 @@
                 fptx(fx)%wl = wg(ijk)
 
                 ! ... Set the pressure in non-resolved forcing points
+                ! ... (zero-gradient)
                 IF( fptx(fx)%int == 17 ) THEN
                         IF (flag(ijk) == 1) THEN
                                 p(ipjk) = p(ijk)
