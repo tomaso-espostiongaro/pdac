@@ -27,24 +27,24 @@
       SUBROUTINE setup
 !
       USE atmosphere, ONLY: u0, v0, w0, p0, temp0, us0, vs0, ws0, ep0, atm
+      USE control_flags, ONLY: job_type
       USE dimensions
       USE eos_gas, ONLY: mas, mole, cnvertg, gc_molar_fraction, gc_mass_fraction
       USE eos_solid, ONLY: cnverts
       USE gas_constants, ONLY: default_gas, present_gas
       USE gas_solid_density, ONLY: gas_bulk_density, solid_bulk_density
+      USE gas_solid_temperature, ONLY: gas_temperature, solid_temperature
+      USE gas_solid_temperature, ONLY: gas_enthalpy
       USE gas_solid_velocity, ONLY: gas_velocity_r, gas_velocity_z, &
           gas_velocity_x, gas_velocity_y
       USE gas_solid_velocity, ONLY: solid_velocity_r, solid_velocity_z, &
           solid_velocity_x, solid_velocity_y
-      USE gas_solid_temperature, ONLY: gas_temperature, solid_temperature
-      USE gas_solid_temperature, ONLY: gas_enthalpy
+      USE gas_solid_viscosity, ONLY: gas_viscosity, gas_thermal_conductivity
       USE grid, ONLY: grid_setup, zb, dx, dy, dz, dr
       USE grid, ONLY: fl, iob
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: gas_pressure, void_fraction
       USE time_parameters, ONLY: itd
-      USE gas_solid_viscosity, ONLY: gas_viscosity, gas_thermal_conductivity
-      USE control_flags, ONLY: job_type
 
       IMPLICIT NONE
 !
@@ -55,8 +55,6 @@
       CALL grid_setup(zzero)
       CALL setc
 !
-! ... MODIFICARE_X3D
-
       IF (itd <= 1) THEN
 
 !

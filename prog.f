@@ -14,7 +14,7 @@
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE io_restart, ONLY: tapewr
       USE iterative_solver, ONLY: iter
-      USE output_dump, ONLY: outp_2d, outp_bin
+      USE output_dump, ONLY: outp_2d, outp_3d, outp_bin
       USE particles_constants, ONLY: cps
       USE pressure_epsilon, ONLY: p, ep
       USE reactions, ONLY: rexion, irex

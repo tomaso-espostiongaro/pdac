@@ -4,7 +4,6 @@
       IMPLICIT NONE
       REAL*8, DIMENSION(:),   ALLOCATABLE :: bt
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: at
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: hv
 !
       SAVE
 !----------------------------------------------------------------------
@@ -32,6 +31,7 @@
       USE time_parameters, ONLY: time, dt
       IMPLICIT NONE
 !
+      REAL*8 :: hv
       REAL*8 :: hrexs, hrexg
       REAL*8 :: dugs, dvgs, dwgs
       INTEGER :: is, is1
@@ -39,7 +39,6 @@
 !
       ALLOCATE(at(nphase, nphase))
       ALLOCATE(bt(nphase))
-      ALLOCATE(hv(nsolid, ncint))
 !
           at = 0.D0
           bt = 0.D0
@@ -67,17 +66,17 @@
 !
 ! ... Compute gas-particle heat transfer coefficients
 !
-            dugs = ( (ug(ijk)-us(is,ijk)) + (ug(imjk)-us(imjk,is)) ) * 0.5D0
-            dvgs = ( (vg(ijk)-vs(is,ijk)) + (vg(ijmk)-vs(ijmk,is)) ) * 0.5D0
-            dwgs = ( (wg(ijk)-ws(is,ijk)) + (wg(ijkm)-ws(ijkm,is)) ) * 0.5D0
+            dugs = ( (ug(ijk)-us(is,ijk)) + (ug(imjk)-us(is,imjk)) ) * 0.5D0
+            dvgs = ( (vg(ijk)-vs(is,ijk)) + (vg(ijmk)-vs(is,ijmk)) ) * 0.5D0
+            dwgs = ( (wg(ijk)-ws(is,ijk)) + (wg(ijkm)-ws(is,ijkm)) ) * 0.5D0
 
-            CALL hvs(hv(is,ijk), rlk(is,ijk), rog(ijk), ep(ijk), &
+            CALL hvs(hv, rlk(is,ijk), rog(ijk), ep(ijk), &
                      dugs, dvgs, dwgs, mug(ijk), kapg(ijk), cg(ijk), is)
 !
-            at(1,1)     = at(1,1)     + dt * hv(is,ijk) / cg(ijk)
-            at(1,is1)   =             - dt * hv(is,ijk) / ck(is,ijk)
-            at(is1,1)   =             - dt * hv(is,ijk) / cg(ijk)
-            at(is1,is1) = rlk(is,ijk) + dt * hv(is,ijk) / ck(is,ijk)
+            at(1,1)     = at(1,1)     + dt * hv / cg(ijk)
+            at(1,is1)   =             - dt * hv / ck(is,ijk)
+            at(is1,1)   =             - dt * hv / cg(ijk)
+            at(is1,is1) = rlk(is,ijk) + dt * hv / ck(is,ijk)
 !
             bt(is1) = rlkn(is,ijk) * siesn(is,ijk) + rhs(is, ijk)
           END DO
@@ -96,7 +95,6 @@
 !
       DEALLOCATE(at)
       DEALLOCATE(bt)
-      DEALLOCATE(hv)
       DEALLOCATE(rhg)
       DEALLOCATE(rhs)
 !

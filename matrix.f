@@ -1,7 +1,6 @@
 !--------------------------------------------------------------------
       MODULE phases_matrix
 !--------------------------------------------------------------------
-      USE indijk_module
 
       IMPLICIT NONE
       SAVE
@@ -42,12 +41,13 @@
       USE gas_solid_density, ONLY: rgp, rlk
       USE grid, ONLY: dx, dy, dz
       USE grid, ONLY: myijk
-      USE tilde_momentum, ONLY: appu, appv,  appw
+      USE indijk_module
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE set_indexes, ONLY: ijke, ijkn, ijkt, ijkw, ijks, ijkb
       USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
+      USE tilde_momentum, ONLY: appu, appv,  appw
       USE time_parameters, ONLY: dt
 
       IMPLICIT NONE
@@ -84,9 +84,9 @@
           ep_w = (dx(i)*ep(ijkw) + dx(i-1)*ep(ijk)) * indxm
           ep_s = (dy(j)*ep(ijks) + dy(j-1)*ep(ijk)) * indym
           ep_b = (dz(k)*ep(ijkb) + dz(k-1)*ep(ijk)) * indzm
-          bu1(1) = rug(imjk)+ dt * indxm *2.D0* ep_w * (p(ijkw)-p(ijk))
-          bv1(1) = rvg(ijmk)+ dt * indym *2.D0* ep_s * (p(ijks)-p(ijk))
-          bw1(1) = rwg(ijkm)+ dt * indzm *2.D0* ep_b * (p(ijkb)-p(ijk))
+          bu1(l) = rug(imjk)+ dt * indxm *2.D0* ep_w * (p(ijkw)-p(ijk))
+          bv1(l) = rvg(ijmk)+ dt * indym *2.D0* ep_s * (p(ijks)-p(ijk))
+          bw1(l) = rwg(ijkm)+ dt * indzm *2.D0* ep_b * (p(ijkb)-p(ijk))
         ELSE
           eps_w = (dx(i)*rlk(l-1,ijkw) + dx(i-1)*rlk(l-1,ijk)) * indxm * inrl(l-1)
           eps_s = (dy(j)*rlk(l-1,ijks) + dy(j-1)*rlk(l-1,ijk)) * indym * inrl(l-1)
@@ -115,9 +115,9 @@
 !
 ! ... Diagonal elements
         IF(l == 1) THEN
-          au1(1,1)=au1(1,1)+(dx(i)*rgp(ijkw)+dx(i-1)*rgp(ijk))*indxm
-          av1(1,1)=av1(1,1)+(dy(j)*rgp(ijks)+dy(j-1)*rgp(ijk))*indym
-          aw1(1,1)=aw1(1,1)+(dz(k)*rgp(ijkb)+dz(k-1)*rgp(ijk))*indzm
+          au1(l,l)=au1(l,l)+(dx(i)*rgp(ijkw)+dx(i-1)*rgp(ijk))*indxm
+          av1(l,l)=av1(l,l)+(dy(j)*rgp(ijks)+dy(j-1)*rgp(ijk))*indym
+          aw1(l,l)=aw1(l,l)+(dz(k)*rgp(ijkb)+dz(k-1)*rgp(ijk))*indzm
         ELSE
           au1(l,l)=au1(l,l)+(dx(i)*rlk(l-1,ijkw)+dx(i-1)*rlk(l-1,ijk))*indxm
           av1(l,l)=av1(l,l)+(dy(j)*rlk(l-1,ijks)+dy(j-1)*rlk(l-1,ijk))*indym
@@ -143,9 +143,9 @@
           ep_e = (dx(i)*ep(ijke) + dx(i+1)*ep(ijk)) * indxp
           ep_n = (dy(j)*ep(ijkn) + dy(j+1)*ep(ijk)) * indyp
           ep_t = (dz(k)*ep(ijkt) + dz(k+1)*ep(ijk)) * indzp
-          bu(1)  = rug(ijk)+ dt * indxp *2.D0* ep_e * (p(ijk)-p(ijke))
-          bv(1)  = rvg(ijk)+ dt * indyp *2.D0* ep_n * (p(ijk)-p(ijkn))
-          bw(1)  = rwg(ijk)+ dt * indzp *2.D0* ep_t * (p(ijk)-p(ijkt))
+          bu(l)  = rug(ijk)+ dt * indxp *2.D0* ep_e * (p(ijk)-p(ijke))
+          bv(l)  = rvg(ijk)+ dt * indyp *2.D0* ep_n * (p(ijk)-p(ijkn))
+          bw(l)  = rwg(ijk)+ dt * indzp *2.D0* ep_t * (p(ijk)-p(ijkt))
         ELSE
           eps_e = (dx(i)*rlk(l-1,ijke) + dx(i+1)*rlk(l-1,ijk)) * indxp * inrl(l-1)
           eps_n = (dy(j)*rlk(l-1,ijkn) + dy(j+1)*rlk(l-1,ijk)) * indyp * inrl(l-1)
@@ -164,7 +164,7 @@
 ! ... Off-Diagonal elements
         DO ll=1,l
           ls=ls1+ll
-          au(l,ll)=(dx(i)*appu(ls,ijke)+appu(ls,ijk)*dx(i+1))*indxp
+          au(l,ll)=(dx(i)*appu(ls,ijke)+dx(i+1)*appu(ls,ijk))*indxp
           au(ll,l)=au(l,ll)
           av(l,ll)=(dy(j)*appv(ls,ijkn)+dy(j+1)*appv(ls,ijk))*indyp
           av(ll,l)=av(l,ll)
@@ -174,9 +174,9 @@
 !
 ! ... Diagonal elements
         IF (l == 1) THEN
-          au(1,1)=au(1,1)+(dx(i)*rgp(ijke)+dx(i+1)*rgp(ijk))*indxp
-          av(1,1)=av(1,1)+(dy(j)*rgp(ijkn)+dy(j+1)*rgp(ijk))*indyp
-          aw(1,1)=aw(1,1)+(dz(k)*rgp(ijkt)+dz(k+1)*rgp(ijk))*indzp
+          au(l,l)=au(l,l)+(dx(i)*rgp(ijke)+dx(i+1)*rgp(ijk))*indxp
+          av(l,l)=av(l,l)+(dy(j)*rgp(ijkn)+dy(j+1)*rgp(ijk))*indyp
+          aw(l,l)=aw(l,l)+(dz(k)*rgp(ijkt)+dz(k+1)*rgp(ijk))*indzp
         ELSE
           au(l,l)=au(l,l)+(dx(i)*rlk(l-1,ijke)+dx(i+1)*rlk(l-1,ijk))*indxp
           av(l,l)=av(l,l)+(dy(j)*rlk(l-1,ijkn)+dy(j+1)*rlk(l-1,ijk))*indyp
@@ -196,11 +196,12 @@
       USE gas_solid_density, ONLY: rgp, rlk
       USE grid, ONLY: dx, dy, dz
       USE grid, ONLY: myijk
-      USE tilde_momentum, ONLY: appu, appv, appw
+      USE indijk_module
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: ijke, ijkn, ijkt
       USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
+      USE tilde_momentum, ONLY: appu, appv, appw
       USE time_parameters, ONLY: dt
 
       IMPLICIT NONE
@@ -236,9 +237,9 @@
           ep_e = (dx(i)*ep(ijke) + dx(i+1)*ep(ijk)) * indxp
           ep_n = (dy(j)*ep(ijkn) + dy(j+1)*ep(ijk)) * indyp
           ep_t = (dz(k)*ep(ijkt) + dz(k+1)*ep(ijk)) * indzp
-          bu(1)  = rug(ijk)+ dt * indxp *2.D0* ep_e * (p(ijk)-p(ijke))
-          bv(1)  = rvg(ijk)+ dt * indyp *2.D0* ep_n * (p(ijk)-p(ijkn))
-          bw(1)  = rwg(ijk)+ dt * indzp *2.D0* ep_t * (p(ijk)-p(ijkt))
+          bu(l)  = rug(ijk)+ dt * indxp *2.D0* ep_e * (p(ijk)-p(ijke))
+          bv(l)  = rvg(ijk)+ dt * indyp *2.D0* ep_n * (p(ijk)-p(ijkn))
+          bw(l)  = rwg(ijk)+ dt * indzp *2.D0* ep_t * (p(ijk)-p(ijkt))
         ELSE
           eps_e = (dx(i)*rlk(l-1,ijke) + dx(i+1)*rlk(l-1,ijk)) * indxp * inrl(l-1)
           eps_n = (dy(j)*rlk(l-1,ijkn) + dy(j+1)*rlk(l-1,ijk)) * indyp * inrl(l-1)
@@ -257,7 +258,7 @@
 ! ... Off-Diagonal elements
         DO ll=1,l
           ls=ls1+ll
-          au(l,ll)=(dx(i)*appu(ls,ijke)+appu(ls,ijk)*dx(i+1))*indxp
+          au(l,ll)=(dx(i)*appu(ls,ijke)+dx(i+1)*appu(ls,ijk))*indxp
           au(ll,l)=au(l,ll)
           av(l,ll)=(dy(j)*appv(ls,ijkn)+dy(j+1)*appv(ls,ijk))*indyp
           av(ll,l)=av(l,ll)
@@ -267,9 +268,9 @@
 !
 ! ... Diagonal elements
         IF (l == 1) THEN
-          au(1,1)=au(1,1)+(dx(i)*rgp(ijke)+dx(i+1)*rgp(ijk))*indxp
-          av(1,1)=av(1,1)+(dy(j)*rgp(ijkn)+dy(j+1)*rgp(ijk))*indyp
-          aw(1,1)=aw(1,1)+(dz(k)*rgp(ijkt)+dz(k+1)*rgp(ijk))*indzp
+          au(l,l)=au(l,l)+(dx(i)*rgp(ijke)+dx(i+1)*rgp(ijk))*indxp
+          av(l,l)=av(l,l)+(dy(j)*rgp(ijkn)+dy(j+1)*rgp(ijk))*indyp
+          aw(l,l)=aw(l,l)+(dz(k)*rgp(ijkt)+dz(k+1)*rgp(ijk))*indzp
         ELSE
           au(l,l)=au(l,l)+(dx(i)*rlk(l-1,ijke)+dx(i+1)*rlk(l-1,ijk))*indxp
           av(l,l)=av(l,l)+(dy(j)*rlk(l-1,ijkn)+dy(j+1)*rlk(l-1,ijk))*indyp
@@ -280,27 +281,19 @@
       RETURN
       END SUBROUTINE mats2
 !----------------------------------------------------------------------
-      SUBROUTINE velsk(ug, vg, wg, us, vs, ws, ugm, vgm, wgm, usm, vsm, wsm, ijk)
+      SUBROUTINE velsk(ug, vg, wg, us, vs, ws, ugm, vgm, wgm, usm, vsm, wsm)
 !
+      USE dimensions, ONLY: nphase
       USE grid, ONLY: fl_l
-      USE grid, ONLY: myijk
-      USE dimensions
       USE set_indexes, ONLY: imjk, ijmk, ijkm, ipjk, ijpk, ijkp
       IMPLICIT NONE
 !
       REAL*8, INTENT(OUT) :: ug,vg,wg,us(:),vs(:),ws(:)
       REAL*8, INTENT(OUT) :: ugm,vgm,wgm,usm(:),vsm(:),wsm(:)
-      INTEGER, INTENT(IN) :: ijk
 !
       INTEGER :: ll, lp1, l, lj, li
-      INTEGER :: i,j,k,imesh
       INTEGER :: flw, fls, flb, fle, fln, flt
       REAL*8 :: div, amul
-!
-      imesh = myijk( ip0_jp0_kp0_, ijk)
-      i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
-      j = MOD( imesh - 1, nx*ny ) / nx + 1
-      k = ( imesh - 1 ) / ( nx*ny ) + 1
 !
 ! ... Use Gauss-Jordan method for matrix inversion
 !
@@ -547,26 +540,18 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE velsk2(ug, vg, wg, us, vs, ws, ijk)
+      SUBROUTINE velsk2(ug, vg, wg, us, vs, ws)
 !
+      USE dimensions, ONLY: nphase
       USE grid, ONLY: fl_l
-      USE grid, ONLY: myijk
-      USE dimensions
       USE set_indexes, ONLY: ipjk, ijpk, ijkp
       IMPLICIT NONE
 !
       REAL*8, INTENT(OUT) :: ug, vg, wg, us(:), vs(:), ws(:)
-      INTEGER, INTENT(IN) :: ijk
 !
       INTEGER :: ll, lp1, l, lj, li
-      INTEGER :: i,j,k,imesh
       INTEGER :: fle, fln, flt
       REAL*8 :: div, amul
-!
-      imesh = myijk( ip0_jp0_kp0_, ijk)
-      i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
-      j = MOD( imesh - 1, nx*ny ) / nx + 1
-      k = ( imesh - 1 ) / ( nx*ny ) + 1
 !
 ! ... Use Gauss-Jordan method for matrix inversion
 !
@@ -692,7 +677,6 @@
 !
       RETURN
       END SUBROUTINE
-
 !------------------------------------------------------------------------
       END MODULE
 !------------------------------------------------------------------------

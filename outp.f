@@ -28,21 +28,10 @@
 !
       CHARACTER :: filnam*11
       CHARACTER*4 :: letter
-      LOGICAL :: cmprs
-!
-! this variable is used by the non standard routine system
-!*************
-      CHARACTER*24 syscom
-!*************
 !
       INTEGER :: ij2, ij1, is, j
       INTEGER :: ijl
       INTEGER :: ig
-!
-!      cmprs = .TRUE.
-      cmprs = .FALSE.
-!
-! ... MODIFICARE_X3D
 !
       nfil=nfil+1
       filnam='OUTPUT.'//letter(nfil)
@@ -138,15 +127,6 @@
       CLOSE (3)
       END IF
 !
-      IF (cmprs) THEN
-      IF( mpime .EQ. root ) THEN
-        WRITE (syscom,4444) nfil,char(0)
-! ....   IBM 
-!        CALL system(syscom)
- 4444   FORMAT ('compress -f OUTPUT.',i4.4,a1)
-      END IF
-      END IF
-!
       RETURN
 
  547  FORMAT(1x,///,1x,'@@@ TIME = ',G11.4)
@@ -165,7 +145,6 @@
  555  FORMAT(1x,//,1x,'CDYN',/)
 !
       END SUBROUTINE outp_2d
-
 !----------------------------------------------------------------------
      SUBROUTINE recover_2d
 !
@@ -391,9 +370,163 @@
 !
       END SUBROUTINE outp_test_fluxes
 !----------------------------------------------------------------------
+      SUBROUTINE outp_3d
+!
+      USE dimensions, ONLY: nx, ny, nz, nsolid
+      USE eos_gas, ONLY: gc_molar_fraction
+      USE gas_constants, ONLY: present_gas, default_gas
+      USE gas_solid_density, ONLY: solid_bulk_density
+      USE gas_solid_velocity, ONLY: gas_velocity_x, gas_velocity_y, &
+      &                             gas_velocity_z
+      USE gas_solid_velocity, ONLY: solid_velocity_x, solid_velocity_y, &
+      &                             solid_velocity_z
+      USE gas_solid_temperature, ONLY: gas_temperature, solid_temperature
+      USE parallel, ONLY: nproc, mpime, root, group
+      USE particles_constants, ONLY: rl, inrl
+      USE pressure_epsilon, ONLY: gas_pressure
+      USE time_parameters, ONLY: time
+      USE turbulence, ONLY: smag_coeff, modturbo
+      USE control_flags, ONLY: job_type
+!
+      IMPLICIT NONE
+!
+      CHARACTER :: filnam*11
+      CHARACTER*4 :: letter
+!
+      INTEGER :: k, ijk
+      INTEGER :: ijk2, ijk1, is
+      INTEGER :: ig
+!
+      nfil=nfil+1
+      filnam='OUTPUT.'//letter(nfil)
+
+      IF( mpime == root ) THEN
+
+      OPEN(UNIT=3,FILE=filnam)
+!
+      WRITE(3,547) time
+!
+      WRITE(3,548)
+      DO k=1,nz
+        ijk1 = (k-1)*nx*ny +1
+        ijk2 = k*nx*ny
+        WRITE(3,550)(gas_pressure(ijk),ijk = ijk1, ijk2 )
+      END DO
+!
+      DO is=1,nsolid
+        WRITE(3,549)is 
+        DO k=1,nz
+          ijk1 = (k-1)*nx*ny +1
+          ijk2 = k*nx*ny
+          WRITE(3,550)(solid_bulk_density(is,ijk)*inrl(is),ijk=ijk1,ijk2)
+        END DO
+      END DO
+!
+      WRITE(3,552)
+      DO k=1,nz
+          ijk1 = (k-1)*nx*ny +1
+          ijk2 = k*nx*ny
+        WRITE(3,550)(gas_velocity_x(ijk),ijk=ijk1,ijk2)
+      END DO
+!
+      WRITE(3,552)
+      DO k=1,nz
+          ijk1 = (k-1)*nx*ny +1
+          ijk2 = k*nx*ny
+        WRITE(3,550)(gas_velocity_y(ijk),ijk=ijk1,ijk2)
+      END DO
+!
+      WRITE(3,553)
+      DO k=1,nz
+          ijk1 = (k-1)*nx*ny +1
+          ijk2 = k*nx*ny
+        WRITE(3,550)(gas_velocity_z(ijk),ijk=ijk1,ijk2)
+      END DO
+!
+      WRITE(3,560)
+      DO k=1,nz
+          ijk1 = (k-1)*nx*ny +1
+          ijk2 = k*nx*ny
+        WRITE(3,550)(gas_temperature(ijk),ijk=ijk1,ijk2)
+      END DO
+!
+      DO ig=1,ngas
+        IF( present_gas(ig) .AND. (ig /= default_gas) ) THEN
+          WRITE(3,562) ig
+          DO k=1,nz
+          ijk1 = (k-1)*nx*ny +1
+          ijk2 = k*nx*ny
+            WRITE(3,550)(gc_molar_fraction(ig,ijk),ijk=ijk1,ijk2)
+          END DO
+        END IF
+      END DO
+!
+      DO is=1,nsolid
+!
+        WRITE(3,556)is 
+        DO k=1,nz
+          ijk1 = (k-1)*nx*ny +1
+          ijk2 = k*nx*ny
+          WRITE(3,550)(solid_velocity_x(is,ijk),ijk=ijk1,ijk2)
+        END DO
+!
+        WRITE(3,556)is 
+        DO k=1,nz
+          ijk1 = (k-1)*nx*ny +1
+          ijk2 = k*nx*ny
+          WRITE(3,550)(solid_velocity_y(is,ijk),ijk=ijk1,ijk2)
+        END DO
+!
+        WRITE(3,557)is 
+        DO  k=1,nz
+          ijk1 = (k-1)*nx*ny +1
+          ijk2 = k*nx*ny
+          WRITE(3,550)(solid_velocity_z(is,ijk),ijk=ijk1,ijk2)
+        END DO
+!
+        WRITE(3,561)is 
+        DO k=1,nz
+          ijk1 = (k-1)*nx*ny +1
+          ijk2 = k*nx*ny
+          WRITE(3,550)(solid_temperature(is,ijk),ijk=ijk1,ijk2)
+        END DO
+!
+      END DO
+
+      IF (modturbo > 1) THEN
+        WRITE(3,555)
+        DO k=1,nz
+          ijk1 = (k-1)*nx*ny +1
+          ijk2 = k*nx*ny
+          WRITE(3,550)(smag_coeff(ijk),ijk=ijk1,ijk2)
+        END DO
+      END IF
+!
+      CLOSE (3)
+      END IF
+!
+      RETURN
+
+ 547  FORMAT(1x,///,1x,'@@@ TIME = ',G11.4)
+ 548  FORMAT(1x,//,1x,'P',/)
+ 549  FORMAT(1x,//,1x,'EPS',i1,/)
+! 550  FORMAT(1x,10(1x,g14.6e3))
+ 550  FORMAT(1x,10(1x,g12.6))
+ 552  FORMAT(1x,//,1x,'UG',/)
+ 553  FORMAT(1x,//,1x,'VG',/)
+ 556  FORMAT(1x,//,1x,'UP',I1,/)
+ 557  FORMAT(1x,//,1x,'VP',I1,/)
+ 560  FORMAT(1x,//,1x,'TG',/)
+ 561  FORMAT(1x,//,1x,'TP',I1,/)
+ 562  FORMAT(1x,//,1x,'XGC',I1,/)
+
+ 555  FORMAT(1x,//,1x,'CDYN',/)
+!
+      END SUBROUTINE outp_3d
+!----------------------------------------------------------------------
       SUBROUTINE outp_bin
 !
-      USE dimensions, ONLY: nr, nz, nsolid
+      USE dimensions, ONLY: nsolid
       USE eos_gas, ONLY: gc_molar_fraction
       USE gas_constants, ONLY: present_gas, default_gas
       USE gas_solid_density, ONLY: solid_bulk_density
@@ -419,7 +552,7 @@
       nfil=nfil+1
       filnam='output.'//letter(nfil)
 
-      IF( mpime .EQ. root ) THEN
+      IF( mpime == root ) THEN
 
         OPEN(UNIT=12,FORM='UNFORMATTED',FILE=filnam)
 !

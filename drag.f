@@ -6,7 +6,7 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE kdrags(kpgv,du,dv,dw,ep,rog,rgp,rlk,mug,is)
+      SUBROUTINE kdrags(kpgv,du,dv,dw,ep,rgp,rlk,mug,is)
 !----------------------------------------------------------------------
 ! ... This routine computes the gas-particles drag coefficient 
 !
@@ -14,18 +14,19 @@
 !
       REAL*8, INTENT(OUT) :: kpgv
       REAL*8, INTENT(IN) ::  du, dv, dw
-      REAL*8, INTENT(IN) :: ep,rog,rgp,mug
+      REAL*8, INTENT(IN) :: ep,rgp,mug
       REAL*8, INTENT(IN) :: rlk
       INTEGER, INTENT(IN) :: is
-      REAL*8 :: vrel
+      REAL*8 :: drag, vrel
 !
       vrel = DSQRT(du**2.D0 + dv**2.D0 + dw**2.D0)
 
       IF(ep < 0.8D0) THEN
-        CALL kdragl(kpgv,vrel,ep,rog,rlk,mug,is)
+        CALL kdragl(drag,vrel,ep,rgp,rlk,mug,is)
       ELSE
-        CALL kdragg(kpgv,vrel,ep,rog,rgp,rlk,mug,is)
+        CALL kdragg(drag,vrel,ep,rgp,rlk,mug,is)
       END IF
+      kpgv = drag
 !
       RETURN
       END SUBROUTINE
@@ -36,13 +37,14 @@
 ! ... This routine computes the interphase terms
 !
       USE dimensions
-      USE set_indexes
+      USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE time_parameters, ONLY: dt
       IMPLICIT NONE
 !
       REAL*8, INTENT(OUT) :: appu(:), appv(:), appw(:)
       REAL*8, INTENT(IN) :: kpgv(:) 
-      REAL*8, INTENT(IN) :: us(:,:),vs(:,:),ws(:,:),rlk(:,:)
+      REAL*8, INTENT(IN) :: us(:,:),vs(:,:),ws(:,:)
+      REAL*8, INTENT(IN) :: rlk(:,:)
       INTEGER, INTENT(IN) :: ijk
 !
       INTEGER :: k, ks, kk
@@ -55,23 +57,27 @@
         IF(k == 1) THEN
           ks=ks+1
           appu(ks)=0.D0
+          appv(ks)=0.D0
           appw(ks)=0.D0
         ELSE
           DO kk=1,k
               ks=ks+1
-            IF(kk.EQ.1)THEN
+            IF(kk == 1)THEN
               appu(ks)= - kpgv(k-1) * dt
+!              appu(ks)= 0.D0
               appv(ks)= - kpgv(k-1) * dt
+!              appv(ks)= 0.D0
               appw(ks)= - kpgv(k-1) * dt
-            ELSEIF(kk.EQ.k)THEN
+!              appw(ks)= 0.D0
+            ELSEIF(kk == k)THEN
               appu(ks)=0.D0
               appv(ks)=0.D0
               appw(ks)=0.D0
             ELSE
               CALL ppdrag(con,rlk(:,ijk),k,kk)
-              du=DABS(us(k-1,ijk)-us(kk-1,ijk) + us(k-1,imjk)-us(kk-1,imjk))*0.5D0
-              dv=DABS(vs(k-1,ijk)-vs(kk-1,ijk) + vs(k-1,ijmk)-vs(kk-1,ijmk))*0.5D0
-              dw=DABS(ws(k-1,ijk)-ws(kk-1,ijk) + ws(k-1,ijkm)-ws(kk-1,ijkm))*0.5D0
+              du=DABS(us(k-1,ijk)-us(kk-1,ijk)+us(k-1,imjk)-us(kk-1,imjk))*0.5D0
+              dv=DABS(vs(k-1,ijk)-vs(kk-1,ijk)+vs(k-1,ijmk)-vs(kk-1,ijmk))*0.5D0
+              dw=DABS(ws(k-1,ijk)-ws(kk-1,ijk)+ws(k-1,ijkm)-ws(kk-1,ijkm))*0.5D0
               appu(ks)= - (con*du) * dt
               appv(ks)= - (con*dv) * dt
               appw(ks)= - (con*dw) * dt
@@ -104,15 +110,15 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE kdragg(drag,vrel, ep, rog, rgp, rlk, mug, is)
+      SUBROUTINE kdragg(drag,vrel, ep, rgp, rlk, mug, is)
 !----------------------------------------------------------------------
       USE particles_constants, ONLY: rl, inrl, phis, dk
       IMPLICIT NONE
 !
+      REAL*8, INTENT(OUT) :: drag
+      REAL*8, INTENT(IN) :: vrel, ep, rgp, rlk, mug
       INTEGER, INTENT(IN) :: is
       REAL*8 :: reynum, drvrel, dracoe
-      REAL*8, INTENT(OUT) :: drag
-      REAL*8, INTENT(IN) :: vrel, ep, rog, rgp, rlk, mug
 !
       dracoe=4.4D-1
       reynum = rgp * dk(is) * phis(is) * vrel/mug
@@ -128,27 +134,27 @@
       IF(drvrel > 1.D30) THEN
         drag=1.D30
       ELSE
-        drag = 0.75D0 * drvrel * rog / (dk(is)*phis(is))
-        drag = drag * rlk * ep * inrl(is)
+        drag = 0.75D0 * drvrel * rgp / (dk(is)*phis(is))
+        drag = drag * rlk * inrl(is) 
       END IF 
 !
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE kdragl(drag, vrel, ep, rog, rlk, mug, is)
+      SUBROUTINE kdragl(drag, vrel, ep, rgp, rlk, mug, is)
 !
       USE particles_constants, ONLY: rl, inrl, phis, dk
       IMPLICIT NONE
 !
-      INTEGER, INTENT(IN) :: is
-      REAL*8 :: denom2, denom1
       REAL*8, INTENT(OUT) :: drag
-      REAL*8, INTENT(IN) :: vrel, ep, rog, rlk, mug
+      REAL*8, INTENT(IN) :: vrel, ep, rgp, rlk, mug
+      INTEGER, INTENT(IN) :: is
+      REAL*8 :: denom
 !
-      denom2 = ep * dk(is) * phis(is)
-      denom1 = denom2*denom2
-      drag = 150.D0 * rlk * inrl(is) * mug/denom1 + 1.75D0 * rog * vrel/denom2
-      drag = drag * rlk * ep * inrl(is)
+      denom = dk(is) * phis(is) * ep
+      drag = 150.D0 * ep * rlk * inrl(is) * mug  / denom +   &
+             1.75D0 * rgp * vrel
+      drag = drag  * rlk * inrl(is) / denom
       CONTINUE
 !
       RETURN

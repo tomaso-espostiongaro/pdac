@@ -337,9 +337,6 @@
       END SUBROUTINE
 !
 !----------------------------------------------------------------------
-
-! ... MODIFICARE_X3D (rivedere fino alla fine del file)
-
       SUBROUTINE partition
 !
 ! ... a routine that subdivides a regular grid between (nproc) 

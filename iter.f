@@ -88,7 +88,7 @@
           CALL subscr(ijk)
           CALL mats2(ijk)
           CALL velsk2(ug(ijk),   vg(ijk),   wg(ijk),         &
-	              us(:,ijk), vs(:,ijk), ws(:,ijk), ijk)
+	              us(:,ijk), vs(:,ijk), ws(:,ijk))
         END IF
       END DO
 ! 
@@ -235,7 +235,7 @@
                 CALL velsk(ug(ijk), vg(ijk), wg(ijk),               &
 		           us(:,ijk), vs(:,ijk), ws(:,ijk),         &
 			   ug(imjk), vg(ijmk), wg(ijkm),            &
-			   us(:,imjk), vs(:,imjk), ws(:,ijkm), ijk) 
+			   us(:,imjk), vs(:,imjk), ws(:,ijkm)) 
 
                 !call f_hpmstop( 3 )
 
@@ -370,7 +370,7 @@
 !********************************************************************
 ! ... report the number of cells where the procedure does not converge
 !
-        WRITE(6,700) time
+        WRITE(6,700) (time+dt)
         WRITE(6,*) 'convergence on proc ',mpime,' : ', ALL(converge)
         IF (.NOT.ALL(converge)) WRITE(6,*) 'cells not converged (ijk, i, j, k): '
         DO ijk = 1, ncint

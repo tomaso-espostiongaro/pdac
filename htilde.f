@@ -66,7 +66,7 @@
 !
       IF (iturb >= 1) THEN
         kapgt = kapgt + kapg
-      ELSE
+      ELSE IF (iturb == 0) THEN
         kapgt = kapg
       END IF
 !

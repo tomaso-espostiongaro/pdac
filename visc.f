@@ -142,7 +142,7 @@
 !
       IF (iturb >= 1) THEN
         mugt = mug + mugt
-      ELSE
+      ELSE IF (iturb == 0) THEN
         mugt = mug
       END IF
 !

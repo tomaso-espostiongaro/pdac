@@ -17,7 +17,7 @@
       REAL*8, ALLOCATABLE :: vsfe(:,:), vsfn(:,:), vsft(:,:)
       REAL*8, ALLOCATABLE :: wsfe(:,:), wsfn(:,:), wsft(:,:)
 !
-      REAL*8, DIMENSION(:,:), ALLOCATABLE  :: kpgv
+      REAL*8, DIMENSION(:), ALLOCATABLE  :: kpgv
       REAL*8, DIMENSION(:,:), ALLOCATABLE  :: appu, appv, appw
 !
 !----------------------------------------------------------------------
@@ -209,7 +209,7 @@
 !
 ! ... Allocate and initialize interphase terms.
 !
-      ALLOCATE(kpgv(nsolid,ncint))
+      ALLOCATE(kpgv(nsolid))
       ALLOCATE(appu(((nsolid+1)**2+(nsolid+1))/2, ncdom),   &
                appv(((nsolid+1)**2+(nsolid+1))/2, ncdom),   &
                appw(((nsolid+1)**2+(nsolid+1))/2, ncdom))
@@ -232,11 +232,11 @@
           w    = rnb(wg,ijk)
 !
           CALL flu(ugfe(ijk), ugfn(ijk), ugft(ijk),                        &
-                  ugfe(imjk), ugfn(imjk), ugft(imjk), dens, u, v, w, ijk)
+                  ugfe(imjk), ugfn(ijmk), ugft(ijkm), dens, u, v, w, ijk)
           CALL flv(vgfe(ijk), vgfn(ijk), vgft(ijk),                        &
-                  vgfe(ijmk), vgfn(ijmk), vgft(ijmk), dens, u, v, w, ijk)
+                  vgfe(imjk), vgfn(ijmk), vgft(ijkm), dens, u, v, w, ijk)
           CALL flw(wgfe(ijk), wgfn(ijk), wgft(ijk),                        &
-                  wgfe(ijkm), wgfn(ijkm), wgft(ijkm), dens, u, v, w, ijk)
+                  wgfe(imjk), wgfn(ijmk), wgft(ijkm), dens, u, v, w, ijk)
 !
           DO is = 1, nsolid
             dens = nb(rlk,is,ijk)
@@ -245,13 +245,13 @@
             w    = rnb(ws,is,ijk)
 !
             CALL flu(usfe(is,ijk), usfn(is,ijk), usft(is,ijk),           &
-                    usfe(is,imjk), usfn(is,imjk), usft(is,imjk),        &
+                    usfe(is,imjk), usfn(is,ijmk), usft(is,ijkm),        &
                     dens, u, v, w, ijk)
             CALL flv(vsfe(is,ijk), vsfn(is,ijk), vsft(is,ijk),           &
-                    vsfe(is,ijmk), vsfn(is,ijmk), vsft(is,ijmk),        &
+                    vsfe(is,imjk), vsfn(is,ijmk), vsft(is,ijkm),        &
                     dens, u, v, w, ijk)
             CALL flw(wsfe(is,ijk), wsfn(is,ijk), wsft(is,ijk),           &
-                    wsfe(is,ijkm), wsfn(is,ijkm), wsft(is,ijkm),        &
+                    wsfe(is,imjk), wsfn(is,ijmk), wsft(is,ijkm),        &
                     dens, u, v, w, ijk)
 !
           END DO
@@ -361,9 +361,9 @@
               usfz = usft(is,ijk) - usfb
 !
               rus(is,ijk) = rusn(is,ijk) + dt*pvisx(is,ijk)              &
-     &         - dt*indxp*2.D0*usfx                                      &
-     &         - dt*indy(j)*usfy                                         &
-     &         - dt*indz(k)*usfz                           
+     &         - dt*indxp*2.D0* usfx                                      &
+     &         - dt*indy(j)* usfy                                         &
+     &         - dt*indz(k)* usfz                           
 !
               vsfx = vsfe(is,ijk) - vsfw
               vsfy = vsfn(is,ijk) - vsfs
@@ -386,22 +386,25 @@
 !
 ! ... Compute the gas-particle drag coefficients
 !
-            dugs = ( (ug(ijk)-us(is,ijk)) + (ug(imjk)-us(imjk,is)) ) * 0.5D0
-            dvgs = ( (vg(ijk)-vs(is,ijk)) + (vg(ijmk)-vs(ijmk,is)) ) * 0.5D0
-            dwgs = ( (wg(ijk)-ws(is,ijk)) + (wg(ijkm)-ws(ijkm,is)) ) * 0.5D0
+            dugs = ( (ug(ijk)-us(is,ijk)) + (ug(imjk)-us(is,imjk)) )*0.5D0
+            dvgs = ( (vg(ijk)-vs(is,ijk)) + (vg(ijmk)-vs(is,ijmk)) )*0.5D0
+            dwgs = ( (wg(ijk)-ws(is,ijk)) + (wg(ijkm)-ws(is,ijkm)) )*0.5D0
 
-            CALL kdrags(kpgv(is,ijk), dugs, dvgs, dwgs, ep(ijk),         &
-                        rog(ijk), rgp(ijk), rlk(is,ijk), mug(ijk), is)                  
+            CALL kdrags(kpgv(is), dugs, dvgs, dwgs, ep(ijk),         &
+                        rgp(ijk), rlk(is,ijk), mug(ijk), is)                  
 
           END DO 
 !
 ! ... Compute the particle-particle coefficients and the interphase matrix
 !
-          CALL inter(appu(:,ijk), appv(:,ijk), appw(:,ijk), kpgv(:,ijk),    &
+          CALL inter(appu(:,ijk), appv(:,ijk), appw(:,ijk), kpgv(:),    &
      &               us, vs, ws, rlk, ijk)
 !
         END IF
       END DO
+!      appu = 0.D0
+!      appv = 0.D0
+!      appw = 0.D0
 !
       DEALLOCATE(ugfe, ugfn, ugft)
       DEALLOCATE(vgfe, vgfn, vgft)
