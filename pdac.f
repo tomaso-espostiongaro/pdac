@@ -200,7 +200,6 @@
       CALL allocate_viscosity
       CALL allocate_hcapgs
       CALL allocate_turbo
-
 !
 ! ... Read restart file
 !

@@ -303,6 +303,7 @@
                      ugfe(imjk), ugfn(ijkm), dens, u, w, ijk)
             CALL flw(wgfe(ijk), wgfn(ijk),                   &
                       wgfe(imjk), wgfn(ijkm), dens, u, w, ijk)
+                            CALL error('tilde','debug',1)
 
             DO is = 1, nsolid
               CALL nb(dens,rlk(:,is),ijk)

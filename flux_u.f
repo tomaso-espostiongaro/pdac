@@ -260,6 +260,7 @@
       indzm=1.D0/dzm
       indzp=1.D0/dzp
       indzpp=1.D0/dzpp
+
 !       
 ! ... Compute linearly interpolated values of density on the staggered grid
 !
@@ -268,6 +269,7 @@
       dens_t = (dx(i+1) * dens%t + dx(i) * dens%et) * indxp
       dens_w = (dx(i)   * dens%w + dx(i-1) * dens%c) * indxm
       dens_b = (dx(i+1) * dens%b + dx(i) * dens%eb) * indxp
+      WRITE(*,*) dens
 !
 ! ... an arbitrary choice !
 !
