@@ -40,7 +40,7 @@
       USE grid, ONLY: x, y, z, fl, xb, yb, zb, dz
       USE grid, ONLY: bottom, iv, jv, kv, grigen
       USE grid, ONLY: center_x, center_y
-      USE volcano_topography, ONLY: itp, dist, ord2d, vdem, xtop, ytop, ztop2d
+      USE volcano_topography, ONLY: itp, iavv, dist, ord2d, vdem, xtop, ytop, ztop2d
       USE parallel, ONLY: mpime, root
 
       IMPLICIT NONE
@@ -102,7 +102,8 @@
         dk = 0
         DO j = 1, ny
           DO i = 1, nx
-            IF ( (x(i)-xvent)**2 + (y(j)-yvent)**2 < base_radius**2 ) THEN
+            IF ( ((x(i)-xvent)**2 + (y(j)-yvent)**2 < base_radius**2) .AND. &
+                                                         (iavv > 0) ) THEN
                     dk = MAX(ord2d(i,j)-quota, dk)
             END IF
           END DO
