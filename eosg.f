@@ -118,6 +118,7 @@
         END DO
         WRITE(8,*) 'max number of iteration reached in eosg'
         WRITE(8,*) 'time, i, j',time,i,j
+        CALL error( ' eosg ', ' max number of iteration reached in eosg ', 1 )
   223   CONTINUE
       ENDIF
 !

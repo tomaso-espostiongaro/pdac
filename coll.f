@@ -22,6 +22,8 @@
       USE heat_capacity, ONLY: gc_heat_capacity, solid_heat_capacity
       USE heat_capacity, ONLY: cp, ck
 !
+      USE turbulence, ONLY: scoeff, smag_coeff
+!
       gas_pressure                = 0.D0
       solid_bulk_density          = 0.D0
       gas_enthalpy                = 0.D0
@@ -43,6 +45,8 @@
       solid_heat_capacity         = 0.D0
       gc_heat_capacity            = 0.D0
       gas_heat_capacity           = 0.D0
+!
+      smag_coeff                  = 0.D0
 !
       DO ij_l = 1, nij_l
         ij = myij(0,0,ij_l)
@@ -67,6 +71,8 @@
         solid_heat_capacity(:,ij) = ck(:,ij_l)
         gc_heat_capacity(:,ij) = cp(:,ij_l)
         gas_heat_capacity(ij) = cg(ij_l)
+!
+        smag_coeff(ij) = scoeff(ij_l)
         
       END DO
 !
@@ -91,5 +97,7 @@
       CALL parallel_sum_real(solid_heat_capacity, SIZE(solid_heat_capacity) )
       CALL parallel_sum_real(gc_heat_capacity, SIZE(gc_heat_capacity) )
       CALL parallel_sum_real(gas_heat_capacity, SIZE(gas_heat_capacity) )
+!
+      CALL parallel_sum_real(smag_coeff, SIZE(smag_coeff) )
 !
       END SUBROUTINE

@@ -61,7 +61,7 @@
       DO ij = 1, nij_l
        imesh = myij(0,0,ij)
        IF(fl_l(ij).EQ.1) THEN
-         CALL subscl(ij)
+         CALL subscr(ij)
          j = ( imesh - 1 ) / nr + 1
          i = MOD( ( imesh - 1 ), nr) + 1
 !
@@ -199,7 +199,7 @@
       DO ij = 1, nij_l
         imesh = myij(0,0,ij)
         IF(fl_l(ij).EQ.1) THEN
-          CALL subscl(ij)
+          CALL subscr(ij)
           CALL fu_rt(ugfr(ij), ugft(ij), nb(rgp,ij),             &
                      rnb(ug,ij), rnb(vg,ij), ij)
           CALL fv_rt(vgfr(ij), vgft(ij), nb(rgp,ij),             &
@@ -230,7 +230,7 @@
       DO ij = 1, nij_l
         imesh = myij(0,0,ij)
         IF(fl_l(ij).EQ.1) THEN
-          CALL subscl(ij)
+          CALL subscr(ij)
           j = ( imesh - 1 ) / nr + 1
           i = MOD( ( imesh - 1 ), nr) + 1
 !
@@ -260,7 +260,7 @@
 ! ... compute explicit (tilde) terms in the momentum equation (gas)
 ! 
           rug(ij) = rugn(ij)                                         &
-     &      + dt * (dr(i+1)*rgp(ij)+dr(i)*rgp(ijr))*indrp*gravx      &
+     &      + dt * (dr(i+1)*rgp(ij)+dr(i)*rgp(ijr))*indrp * gravx    &
      &      - dt * inrb(i) * indrp * 2.D0 * ugfx                     &
      &      - dt * indz(j) * ugfy                                    &
      &      + dt * gvisx(ij)                  

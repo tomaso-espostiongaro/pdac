@@ -5,7 +5,7 @@ FOBJS= atmosphere.o bdry.o coll.o dens.o dimensions.o distr.o\
 hcapgs.o hotc.o hvs.o htilde.o io.o iter.o kb07ad.o\
 letter.o matrix.o outp.o parallel.o particles.o\
 pdac2d.o press.o prog.o reactions.o roughness.o setc.o setup.o \
-subscl.o temp.o tilde.o time.o turbo.o types.o\
+subscr.o temp.o tilde.o time.o turbo.o types.o\
 velocity.o visc.o ygas.o input.o $(SYSOBJ)
 
 

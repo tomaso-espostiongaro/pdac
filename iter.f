@@ -55,11 +55,7 @@
       conv = 0.0D0
       abeta = 0.0D0
 !
-      DO ij = 1, nij_l
-        IF(fl_l(ij).EQ.1) THEN
-          CALL betas(conv(ij), abeta(ij), ij)
-        END IF
-      END DO
+      CALL betas(conv, abeta)
 !
 ! ... avloop is the per-cycle-average of inner loops in each cells
 ! ... avlp is the average of avloop over the proc subdomain
@@ -90,7 +86,7 @@
       DO ij = 1, nij_l
         imesh = myij(0, 0, ij)
         IF(fl_l(ij).EQ.1) THEN
-          CALL subscl(ij)
+          CALL subscr(ij)
           CALL matsa(ij, ep(ij), ep(ijr), ep(ijt),            &
                      p(ij), p(ijr), p(ijt), rlk(:,ij),        &
                      rlk(:,ijr), rlk(:,ijt),                  &
@@ -109,7 +105,7 @@
 !
       DO ij = 1, nij_l
         IF(fl_l(ij).EQ.1) THEN
-          CALL subscl(ij)
+          CALL subscr(ij)
           imesh = myij(0, 0, ij)
           i = MOD( ( imesh - 1 ), nr) + 1
           CALL masfg(rgfr(imj), rgft(ijm), rgfr(ij),rgft(ij), &
@@ -142,7 +138,7 @@
            j  = ( imesh - 1 ) / nr + 1
            i  = MOD( ( imesh - 1 ), nr) + 1
            
-            CALL subscl(ij)
+            CALL subscr(ij)
 
             first = .TRUE.
             IF( fl_l(ij) .EQ. 1 ) THEN
@@ -179,6 +175,7 @@
                 IF(epx.GT.1.D0) THEN
                   WRITE(8,*) 'warning: mass is not conserved'
                   WRITE(8,*) 'time,i,j,epst',time,i,j,epx
+                  CALL error('iter', 'warning: mass is not conserved',1)
                 ENDIF
                 ep(ij) = 1.D0 - epx
                 rgp(ij) = rog(ij) * ep(ij)
@@ -259,6 +256,7 @@
                 IF(epx.GT.1.D0) THEN
                   WRITE(8,*) 'warning: mass is not conserved'
                   WRITE(8,*) 'time,i,j,epst',time,i,j,epx
+                  CALL error('iter', 'warning: mass is not conserved',1)
                 ENDIF
 !
 ! ... Update gas volumetric fraction and gas density.
@@ -362,9 +360,8 @@
 !*******************************************************************
 !
       IF(.NOT. cvg) THEN
-        WRITE(8,*) 'warning: max number outer iters exceeded'
+        CALL error( ' iter ', 'max number of iters exceeded ', 1)
         omega=omega0
-        STOP
       END IF
 !
       DEALLOCATE( rgfr, rgft)
@@ -467,7 +464,7 @@
       RETURN
       END FUNCTION
 !----------------------------------------------------------------------
-      SUBROUTINE betas(cnv, abt, ij)
+      SUBROUTINE betas(cnv, abt)
 ! 
       USE dimensions
       USE eos_gas, ONLY: rags
@@ -488,13 +485,15 @@
        
       INTEGER :: nflb, nflt, nfll, nflr
       INTEGER :: i, j, imesh
-      INTEGER, INTENT(IN) :: ij
-      REAL*8, INTENT(OUT) :: cnv, abt
+      INTEGER :: ij
+      REAL*8, INTENT(OUT) :: cnv(:), abt(:)
 !
       REAL*8, PARAMETER :: delg=1.D-8
 !
+      DO ij = 1, nij_l
+        IF (fl_l(ij) == 1) THEN
           imesh = myij(0, 0, ij)
-          CALL subscl(ij)
+          CALL subscr(ij)
           j  = ( imesh - 1 ) / nr + 1
           i  = MOD( ( imesh - 1 ), nr) + 1
 
@@ -551,9 +550,10 @@
           rbeta = ep(ij) * rags + dt2z * (  rbtop + rbbot ) +    &
                   dt2r * (  rb(i) * rbright + rb(i-1) * rbleft )
 !
-           abt = csound
-!          abt = 1.D0 / rbeta
-          cnv = delg * rgp(ij)
+          abt(ij) = 1.D0 / rbeta
+          cnv(ij) = delg * rgp(ij)
+        END IF
+      END DO
 !
       RETURN
       END SUBROUTINE

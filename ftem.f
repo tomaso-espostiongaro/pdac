@@ -55,7 +55,7 @@
 !
       DO ij = 1, nij_l
         IF(fl_l(ij).EQ.1) THEN
-          CALL subscl(ij)
+          CALL subscr(ij)
 !
           IF(irex.EQ.2) CALL hrex(ij,hrexg,hrexs)
 !

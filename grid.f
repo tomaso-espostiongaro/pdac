@@ -253,31 +253,31 @@
       END DO
         WRITE(7,*) '  '
 !
-        DO ij=1,nr*nz
-            red(ij) = (cell_owner(ij)+1)
-            green(ij) = nproc - (cell_owner(ij)+1)
-            blue(ij) = (nproc - ABS(2*(cell_owner(ij)-nproc/2))) 
-          IF ((fl(ij).EQ.3 .AND. (fl(ij+1).EQ.1 .OR. fl(ij-1).EQ.1))   &
-               .OR. fl(ij).EQ.5 .OR. fl(ij).EQ.2 .OR. fl(ij).EQ.4)    THEN
-            red(ij) = 0
-            green(ij) = 0
-            blue(ij) = 0
-          END IF
-        END DO
+!        DO ij=1,nr*nz
+!            red(ij) = (cell_owner(ij)+1)
+!            green(ij) = nproc - (cell_owner(ij)+1)
+!            blue(ij) = (nproc - ABS(2*(cell_owner(ij)-nproc/2))) 
+!          IF ((fl(ij).EQ.3 .AND. (fl(ij+1).EQ.1 .OR. fl(ij-1).EQ.1))   &
+!               .OR. fl(ij).EQ.5 .OR. fl(ij).EQ.2 .OR. fl(ij).EQ.4)    THEN
+!            red(ij) = 0
+!            green(ij) = 0
+!            blue(ij) = 0
+!          END IF
+!        END DO
 !
-        IF (mpime .EQ. root) THEN
-          OPEN(UNIT=9,FILE='procs_map.ppm', FORM='FORMATTED', STATUS='UNKNOWN')
-           WRITE(9,'(A2)') 'P3'
-           WRITE(9,'(I3,A1,I3)') nr,' ',nz
-           WRITE(9,'(I3)') nproc
-           DO j = nz-1, 0, -1
-            DO i=1,nr
-              WRITE(9,100) red(i+nr*j), green(i+nr*j), blue(i+nr*j)
-            END DO
-           END DO
- 100      FORMAT(3(I4))
-          CLOSE(9)
-        END IF
+!        IF (mpime .EQ. root) THEN
+!          OPEN(UNIT=9,FILE='procs_map.ppm', FORM='FORMATTED', STATUS='UNKNOWN')
+!           WRITE(9,'(A2)') 'P3'
+!           WRITE(9,'(I3,A1,I3)') nr,' ',nz
+!           WRITE(9,'(I3)') nproc
+!           DO j = nz-1, 0, -1
+!            DO i=1,nr
+!              WRITE(9,100) red(i+nr*j), green(i+nr*j), blue(i+nr*j)
+!            END DO
+!           END DO
+! 100      FORMAT(3(I4))
+!          CLOSE(9)
+!        END IF
 !
       DEALLOCATE(red,green,blue)
       RETURN
@@ -1164,22 +1164,22 @@
 ! ... Second neighbours are not available on boundaries
 !
             ijrr = ippj
-            IF(i .EQ. (nr-1)) ijrr = ipj
+            IF(i .EQ. (nr-1)) ijrr = ijr
             nflrr=fl_l(ippj)
             IF( (nflrr.EQ.2) .OR. (nflrr.EQ.3) ) ijrr = ipj
 
             ijtt = ijpp
-            IF(j.EQ.(nz-1)) ijtt = ijp
+            IF(j.EQ.(nz-1)) ijtt = ijt
             nfltt=fl_l(ijpp)
             IF( (nfltt.EQ.2) .OR. (nfltt.EQ.3) ) ijtt = ijp
 
             ijll = immj
-            IF(i .EQ. (2)) ijll = imj
+            IF(i .EQ. (2)) ijll = ijl
             nflll=fl_l(immj)
             IF( (nflll.EQ.2) .OR. (nflll.EQ.3) ) ijll = imj
 
             ijbb = ijmm
-            IF(j.EQ.(2)) ijbb = ijm
+            IF(j.EQ.(2)) ijbb = ijb
             nflbb=fl_l(ijmm)
             IF( (nflbb.EQ.2) .OR. (nflbb.EQ.3) ) ijbb = ijm
 !

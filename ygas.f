@@ -29,7 +29,7 @@
       DO ij = 1, nij_l
        imesh = myij(0, 0, ij)
        IF(fl_l(ij).EQ.1) THEN
-        CALL subscl(ij)
+        CALL subscr(ij)
         j  = ( imesh - 1 ) / nr + 1
         i  = MOD( ( imesh - 1 ), nr) + 1
 !

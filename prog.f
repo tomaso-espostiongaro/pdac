@@ -1,7 +1,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE prog
 
-      USE grid, ONLY: fl_l
+      USE boundary_conditions, ONLY: boundary
       USE dimensions
       USE eos_gas, ONLY: mole, eosg, rags
       USE eos_gas, ONLY: ygc, rgpgc, rgpgcn, xgc, cg
@@ -9,7 +9,7 @@
       USE enthalpy_matrix, ONLY: ftem
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
       USE gas_solid_temperature, ONLY: sieg, siegn, siek, siekn, tk, tg
-      USE grid, ONLY: nij_l, myij
+      USE grid, ONLY: nij_l, myij, fl_l
       USE io_restart, ONLY: tapewr
       USE iterative_solver, ONLY: iter
       USE output_dump, ONLY: outp

@@ -22,6 +22,7 @@
       USE pressure_epsilon, ONLY: gas_pressure
       USE reactions, ONLY: irex
       USE time_parameters, ONLY: time
+      USE turbulence, ONLY: smag_coeff, modturbo
 !
       IMPLICIT NONE
 !
@@ -127,6 +128,16 @@
         ENDIF
 !
       END DO
+
+      IF (modturbo .GT. 1) THEN
+        WRITE(3,555)
+        DO j=1,nz
+          ij1=1+(nz-j)*nr
+          ij2=nr+(nz-j)*nr
+          WRITE(3,550)(smag_coeff(ijl),ijl=ij1,ij2)
+        END DO
+      END IF
+!
       CLOSE (3)
       END IF
 !
@@ -144,7 +155,7 @@
  547  FORMAT(1x,///,1x,'@@@ TIME = ',G11.4)
  548  FORMAT(1x,//,1x,'P',/)
  549  FORMAT(1x,//,1x,'EPS',i1,/)
- 550  FORMAT(1x,10(1x,g12.6))
+ 550  FORMAT(1x,10(1x,g14.6))
  552  FORMAT(1x,//,1x,'UG',/)
  553  FORMAT(1x,//,1x,'VG',/)
  556  FORMAT(1x,//,1x,'UP',I1,/)
@@ -152,6 +163,8 @@
  560  FORMAT(1x,//,1x,'TG',/)
  561  FORMAT(1x,//,1x,'TP',I1,/)
  562  FORMAT(1x,//,1x,'XGC',I1,/)
+
+ 555  FORMAT(1x,//,1x,'CDYN',/)
 !
       END SUBROUTINE
 

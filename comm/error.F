@@ -30,7 +30,7 @@
 #endif
 
 ! ... print the error message
-      WRITE (6,100) mpime, a, b, n
+      WRITE (8,100) mpime, a, b, n
 
 ! ... terminate the program
 !      CALL cpflush  ! flush output streams

@@ -128,19 +128,22 @@
 !----------------------------------------------------------------------
       SUBROUTINE sgsg
 
-!...compute dynamic C , dynamic turbulent viscosity and 
-!...turbulent conductivity in the center of the cell.
+! ... Sub Grid Stress (Gas)
+! ... compute dynamic C , dynamic turbulent viscosity and 
+! ... turbulent conductivity in the center of the cell.
 
+      USE boundary_conditions, ONLY: fboundary
       USE dimensions, ONLY: nr
       USE eos_gas, ONLY: cg
       USE gas_solid_density, ONLY: rog
-      USE set_indexes
+      USE set_indexes, ONLY: subscr
       USE grid, ONLY: dr, dz 
-!
       IMPLICIT NONE
+!
       REAL*8 ,DIMENSION(:), ALLOCATABLE :: modsr, sr1, sr2, sr12 
       REAL*8 ,DIMENSION(:), ALLOCATABLE :: p1, p2, p12 
       REAL*8, DIMENSION(:), ALLOCATABLE :: fug, fvg, fu2g, fv2g, fuvg
+!
       REAL*8 :: fsr1, fsr2, fsr12, fmodsr
       REAL*8 :: fp1, fp2, fp12
       REAL*8 :: l1, l2, l12, m1, m2, m12, l1d, l2d
@@ -160,7 +163,12 @@
       CALL data_exchange(ug)
       CALL data_exchange(vg)
 !
-      CALL strain(modsr, sr1, sr2, sr12, p1, p2, p12)
+      DO ij = 1, nij_l
+        IF(fl_l(ij).EQ.1) THEN
+          CALL subscr(ij)
+          CALL strain(ug, vg, ij, modsr(ij), sr1(ij), sr2(ij), sr12(ij), p1(ij), p2(ij), p12(ij))
+        END IF
+      END DO
 !
       IF (modturbo .EQ. 2) THEN
         ALLOCATE(fug(nijx_l))  ;     fug = 0.0D0
@@ -169,7 +177,11 @@
         ALLOCATE(fv2g(nijx_l)) ;     fv2g = 0.0D0
         ALLOCATE(fuvg(nijx_l)) ;     fuvg = 0.0D0
 !
+! ... compute filtered velocities
+!
         CALL vel_hat(fug, fvg, fu2g, fv2g, fuvg)        
+!
+        CALL fboundary(fug, fvg)
 !
         CALL data_exchange(p1)
         CALL data_exchange(p2)
@@ -183,16 +195,16 @@
 !
        DO ij = 1, nij_l
         IF(fl_l(ij).EQ.1) THEN
-          CALL subscl(ij)
+          CALL subscr(ij)
           imesh = myij(0,0,ij)
           j = ( imesh - 1 ) / nr + 1
           i = MOD( ( imesh - 1 ), nr) + 1
 !
-! ... Dynamic computation of the Smagorinsky length scale
+! ... Dynamic computation of the Smagorinsky length scale (Germano et al., 1990)
 !
           IF(modturbo.EQ.2) THEN
              delt = DSQRT(dz(j)*dr(i))
-             CALL strain_hat(fsr1, fsr2, fsr12, fmodsr, fug, fvg, ij)
+             CALL strain(fug, fvg, ij, fmodsr, fsr1, fsr2, fsr12)
 !
              fp1  = filter(p1,ij)
              fp2  = filter(p2,ij)
@@ -205,19 +217,21 @@
 !             l1d = 0.5D0*l1 - 0.5D0*l2
 !             l2d = 0.5D0*l2 - 0.5D0*l1  
 !
-             m1  = (4*fmodsr*fsr1 - fp1)
-             m2  = (4*fmodsr*fsr2 - fp2)
-             m12 = (4*fmodsr*fsr12 - fp12)
+             m1  = (4.D0*fmodsr*fsr1 - fp1)
+             m2  = (4.D0*fmodsr*fsr2 - fp2)
+             m12 = (4.D0*fmodsr*fsr12 - fp12)
 !              
+! ... min-square calculation
+!
              num = l1*m1 + l2*m2 + 2*l12*m12
-             den = delt**2*( m1**2 + m2**2 + 2*m12**2)
+             den = delt**2.D0*( m1**2.D0 + m2**2.D0 + 2.D0*m12**2.D0)
 !
              IF(den.EQ.0.0D0) THEN
               cdyn = 0.0D0
               ELSE 
               cdyn = 0.5D0*num/den 
              END IF
-             smag(ij) = cdyn * (delt**2)
+             smag(ij) = cdyn * (delt**2.D0)
           END IF
 !
 ! ... Smagorinsky turbulent viscosity
@@ -255,28 +269,27 @@
       RETURN 
       END SUBROUTINE sgsg
 !----------------------------------------------------------------------
-      SUBROUTINE strain(modsr, sr1, sr2, sr12, p1, p2, p12 )
+      SUBROUTINE strain(u, v, ij, modsr, sr1, sr2, sr12, p1, p2, p12 )
 !
-!....here computes the components of the strain rate tensor and its module.
-!...computes also the components of the function pij(=modsr*srij) that in the 
-!... previous subroutine needs to be filtered...
+! ... here computes the components of the strain rate tensor and its module.
+! ... and the components of the function pij(=modsr*srij)
 
-      USE dimensions    
+      USE dimensions, ONLY: nr    
       USE grid, ONLY:dr, dz, indr, indz,itc,inr 
       USE set_indexes
       IMPLICIT NONE
 
+      REAL*8, INTENT(IN), DIMENSION(:) :: u, v
+      INTEGER,INTENT(IN)  :: ij
+      REAL*8, INTENT(OUT) :: modsr, sr1, sr2, sr12
+      REAL*8, OPTIONAL, INTENT(OUT) :: p1, p2, p12
+!
       REAL*8 :: v1, v2, v3, u1, u2, u3, um1, um2, vm1, vm2 
       REAL*8 :: drp, dzm, drm, dzp, indrp, indzm, indrm, indzp
       REAL*8 :: d33
-      REAL*8, INTENT(OUT), DIMENSION(:) :: modsr, sr1, sr2, sr12
-      REAL*8, INTENT(OUT), DIMENSION(:) :: p1, p2, p12
-      INTEGER :: i, j, ij, imesh 
+      INTEGER :: i, j, imesh 
 !
-      DO ij = 1, nij_l
-       imesh = myij(0,0,ij)
-       IF(fl_l(ij).EQ.1) THEN
-        CALL subscl(ij)
+        imesh = myij(0,0,ij)
         j = ( imesh - 1 ) / nr + 1
         i = MOD( ( imesh - 1 ), nr) + 1
 
@@ -293,34 +306,38 @@
 ! ... Cross terms (non-diagonal) in the strain tensor are obtained
 ! ... by interpolating the values found on the staggered grids.
 !
-        sr1(ij) = (ug(ij)-ug(imj))*indr(i)
-        sr2(ij) = (vg(ij)-vg(ijm))*indz(j)
+        sr1 = (u(ij)-u(imj))*indr(i)
+        sr2 = (v(ij)-v(ijm))*indz(j)
 !
         
 ! ... extra-term for cylindrical coordinates
 !
-        IF(itc.EQ.1) d33 = (ug(ij)+ug(imj))*inr(i)
+        IF(itc.EQ.1) THEN
+          d33 = (u(ij)+u(imj))*inr(i)
+        ELSE
+          d33 = 0.D0
+        END IF
 !
-        u3=0.5D0*(ug(ijp)+ug(imjp))
-        u2=0.5D0*(ug(ij)+ug(imj))
-        u1=0.5D0*(ug(ijm)+ug(imjm))
-        v3=0.5D0*(vg(ipj)+vg(ipjm))
-        v2=0.5D0*(vg(ij)+vg(ijm))
-        v1=0.5D0*(vg(imj)+vg(imjm))
+        u3=0.5D0*(u(ijp)+u(imjp))
+        u2=0.5D0*(u(ij)+u(imj))
+        u1=0.5D0*(u(ijm)+u(imjm))
+        v3=0.5D0*(v(ipj)+v(ipjm))
+        v2=0.5D0*(v(ij)+v(ijm))
+        v1=0.5D0*(v(imj)+v(imjm))
         um2=u2+(u3-u2)*dz(j)*indzp
         um1=u1+(u2-u1)*dz(j-1)*indzm
         vm2=v2+(v3-v2)*dr(i)*indrp
         vm1=v1+(v2-v1)*dr(i-1)*indrm
 
-        sr12(ij) =((um2-um1)*indz(j)+(vm2-vm1)*indr(i))*0.5D0
+        sr12 =((um2-um1)*indz(j)+(vm2-vm1)*indr(i))*0.5D0
 !        
-        modsr(ij) = DSQRT(2*sr1(ij)**2 + 2*sr2(ij)**2 +4*sr12(ij)**2)
+        modsr = DSQRT(2 * (sr1**2 + sr2**2 + 2*sr12**2) )
 
-        p1(ij) =  modsr(ij)*sr1(ij)
-        p2(ij) =  modsr(ij)*sr2(ij)
-        p12(ij)=  modsr(ij)*sr12(ij)
-       END IF
-      END DO
+        IF (PRESENT(p1)) THEN 
+          p1  =  modsr * sr1
+          p2  =  modsr * sr2
+          p12 =  modsr * sr12
+        END IF
 !
       RETURN
       END SUBROUTINE
@@ -331,121 +348,41 @@
 !... before filtering the product of the components of the velocity we 
 !... have defined the function u_per_v(ij)(next subroutine)...
 
-      USE set_indexes
+      USE set_indexes, ONLY: subscr
       IMPLICIT NONE
  
-      REAL*8,DIMENSION(:),ALLOCATABLE::uvg
-      REAL*8,INTENT(OUT),DIMENSION(:):: fug, fvg, fu2g, fv2g, fuvg
+      REAL*8, DIMENSION(:), ALLOCATABLE :: uvg, u2g, v2g
+      REAL*8, INTENT(OUT), DIMENSION(:) :: fug, fvg, fu2g, fv2g, fuvg
       INTEGER :: i, j, ij
     
       ALLOCATE(uvg(nijx_l)) 
+      ALLOCATE(u2g(nijx_l)) 
+      ALLOCATE(v2g(nijx_l)) 
       uvg = 0.0D0
+      u2g = 0.0D0
+      v2g = 0.0D0
+!
       CALL u_per_v(uvg) 
+      u2g = ug * ug
+      v2g = vg * vg
+!
       CALL data_exchange(uvg)
 !
        DO ij = 1, nij_l
          IF (fl_l(ij) .EQ. 1) THEN 
-          CALL subscl(ij)
-          fug(ij) = filter(ug,ij)
-          fvg(ij) = filter(vg,ij)
-          fu2g(ij)= 0.125 *(ug(imj)**2 + ug(ipj)**2 + ug(ijm)**2 + ug(ijp)**2) &
-                  + 0.5D0*ug(ij)*ug(ij)
-          fv2g(ij)= 0.125 *(vg(imj)**2+vg(ipj)**2 + vg(ijm)**2 + vg(ijp)**2)   &
-                  + 0.5D0*vg(ij)*vg(ij)
-          fuvg(ij)= filter(uvg,ij)     
-
+          CALL subscr(ij)
+          fug(ij)  = filter(ug,ij)
+          fvg(ij)  = filter(vg,ij)
+          fu2g(ij) = filter(u2g,ij)
+          fv2g(ij) = filter(v2g,ij)
+          fuvg(ij) = filter(uvg,ij)     
          END IF 
        END DO 
 !
       DEALLOCATE(uvg)
+      DEALLOCATE(u2g)
+      DEALLOCATE(v2g)
 ! 
-      RETURN
-      END SUBROUTINE
-!----------------------------------------------------------------------
-      SUBROUTINE strain_hat(fsr1,fsr2,fsr12,fmodsr,fug,fvg,ij)
-!
-!...computes the filtered components of the strain rate tensor and the 
-!...filtered module using not the filter but the right analitycal formula  
-!...in which fug and fvg are used instead of the velocities u and v...
-
-      USE dimensions
-      USE grid, ONLY:dr, dz, indr, indz , itc, inr
-      USE grid, ONLY: fl
-      USE set_indexes
-!
-      IMPLICIT NONE
-      SAVE
-      INTEGER, INTENT (IN) :: ij
-      REAL*8, INTENT(IN) :: fug(:), fvg(:)
-      REAL*8, INTENT(OUT) :: fsr1, fsr2, fsr12, fmodsr
-      REAL*8 :: fv1, fv2, fv3, fu1, fu2, fu3, fum1, fum2, fvm1, fvm2
-      REAL*8 :: v1, v2, v3, u1, u2, u3, um1,um2, vm1, vm2  
-      REAL*8 :: drp, dzm, drm, dzp, indrp, indzm, indrm, indzp       
-      REAL*8 :: d33
-      INTEGER :: imesh, i, j
-      imesh = myij(0,0,ij)
-      CALL subscl(ij)
-      j = ( imesh - 1 ) / nr + 1
-      i = MOD( ( imesh - 1 ), nr) + 1
-!
-      drp=dr(i)+dr(i+1)
-      drm=dr(i)+dr(i-1)
-      dzp=dz(j)+dz(j+1)
-      dzm=dz(j)+dz(j-1)
-!
-      indrp=1.D0/drp
-      indrm=1.D0/drm
-      indzp=1.D0/dzp
-      indzm=1.D0/dzm
-!
-      fsr1 = (fug(ij)-fug(imj))*indr(i)
-      IF(fl(imj).NE.1) THEN
-        fsr1 = (ug(ij)-ug(imj))*indr(i)
-      END IF
-      fsr2 = (fvg(ij)-fvg(ijm))*indz(j)
-      IF(fl(ijm).NE.1) THEN
-        fsr2 = (vg(ij)-vg(ijm))*indz(j)
-      END IF
-!
-      IF(itc.EQ.1) d33 = (ug(ij)+ug(imj))*inr(i)
-!
-      fu3=0.5D0*(fug(ijp)+fug(imjp))
-      fu2=0.5D0*(fug(ij)+fug(imj))
-      fu1=0.5D0*(fug(ijm)+fug(imjm))
-      fv3=0.5D0*(fvg(ipj)+fvg(ipjm))
-      fv2=0.5D0*(fvg(ij)+fvg(ijm))
-      fv1=0.5D0*(fvg(imj)+fvg(imjm))
-      fum2=fu2+(fu3-fu2)*dz(j)*indzp
-      IF(fl(ijp).NE.1) THEN
-        u3=0.5D0*(ug(ijp)+ug(imjp))
-        u2=0.5D0*(ug(ij)+ug(imj))
-        um2=u2+(u3-u2)*dz(j)*indzp
-        fum2 = um2
-      END IF
-      fum1=fu1+(fu2-fu1)*dz(j-1)*indzm
-      IF(fl(ijm).NE.1) THEN
-        u2=0.5D0*(ug(ij)+ug(imj))
-        u1=0.5D0*(ug(ijm)+ug(imjm))
-        um1=u1+(u2-u1)*dz(j-1)*indzm
-        fum1 = um1
-      END IF
-      fvm2=fv2+(fv3-fv2)*dr(i)*indrp
-      IF(fl(ipj).NE.1) THEN
-        v3=0.5D0*(vg(ipj)+vg(ipjm))
-        v2=0.5D0*(vg(ij)+vg(ijm))
-        vm2=v2+(v3-v2)*dr(i)*indrp
-        fvm2 = vm2
-      END IF
-      fvm1=fv1+(fv2-fv1)*dr(i-1)*indrm
-      IF(fl(imj).NE.1) THEN
-        v2=0.5D0*(vg(ij)+vg(ijm))
-        v1=0.5D0*(vg(imj)+vg(imjm))
-        vm1=v1+(v2-v1)*dr(i-1)*indrm
-        fvm1 = vm1
-      END IF
-      fsr12= 0.5D0*((fum2-fum1)*indz(j)+(fvm2-fvm1)*indr(i))
-      fmodsr = DSQRT(2*fsr1**2 + 2*fsr2**2 + 4*fsr12**2)
-!
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
@@ -458,7 +395,7 @@
 !
       DO ij = 1, nij_l
         IF(fl_l(ij) .EQ. 1) THEN
-          CALL subscl(ij)
+          CALL subscr(ij)
           uvg(ij)=(0.5D0*(ug(ij)+ug(imj)))*(0.5D0*(vg(ij)+vg(ijm)))
         ELSE
           uvg(ij) = ug(ij)*vg(ij)
@@ -466,20 +403,18 @@
       END DO   
       RETURN
       END SUBROUTINE
-!
 !----------------------------------------------------------------------
        FUNCTION filter(t,ij)
-       USE set_indexes
+       USE set_indexes, ONLY: imj, ipj, ijm, ijp
 !
        REAL*8,INTENT(IN),DIMENSION(:):: t
        INTEGER,INTENT(IN):: ij
        REAL*8 :: filter
 !
-       CALL subscl(ij)
        filter = (0.125)*(t(imj)+t(ipj)+t(ijm)+t(ijp))+0.5D0*t(ij)
 !
        END FUNCTION filter
-!---------------------------------------------------------------------
+!----------------------------------------------------------------------
       SUBROUTINE sgss
 !
       USE dimensions
@@ -503,7 +438,7 @@
       DO ij = 1, nij_l
         imesh = myij(0, 0, ij)
         IF(fl_l(ij).EQ.1) THEN
-         CALL subscl(ij)
+         CALL subscr(ij)
          j = ( imesh - 1 ) / nr + 1
          i = MOD( ( imesh - 1 ), nr) + 1
 !
