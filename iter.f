@@ -112,12 +112,13 @@
 
       LOGICAL, ALLOCATABLE :: converge(:)
       LOGICAL :: use_opt_inner
+      LOGICAL :: ldg
 !
       ALLOCATE(conv(ncint), abeta(ncint))
       conv = 0.0D0
       abeta = 0.0D0
 !
-      ALLOCATE(converge(ncint))
+      ALLOCATE( converge( ncint ) )
 !
 ! ... Allocate and initialize local mass fluxes.
 !
@@ -268,9 +269,9 @@
             ! call system_clock (st0,ratc)
          END IF  
 
-         nloop = 0
+         nloop  = 0
          ninner = 0
-         ncnt  = 0
+         ncnt   = 0
 
          mesh_loop: DO ijk_ = 1, ncint
 
@@ -335,6 +336,7 @@
               CALL calc_res( i_ , j_ , k_ , ijk_ , dg )
 
               dgorig = dg
+              ldg    = .TRUE.
 
               !IF( nit == maxout ) &
               !WRITE(6,*) 'Pre ',imesh, i_ , j_ , k_, converge( ijk_ ), conv( ijk_ ), dg
@@ -402,6 +404,8 @@
                !IF( nit == maxout ) &
                !WRITE(6,*) 'IF1 ',imesh, i_ , j_ , k_, converge( ijk_ ), conv( ijk_ ), dg
 
+               ldg = .FALSE.
+
 
              ELSE IF ( ABS(dg) > conv( ijk_ ) ) THEN
 !
@@ -434,10 +438,14 @@
                 !IF( nit == maxout ) &
                 !WRITE(6,*) 'IF2D ',imesh, i_ , j_ , k_, converge( ijk_ ), conv( ijk_ ), d3, p3
 
-!   *** END TIMING (Convergence in the ijk cell) ***
+                ldg = .FALSE.
 
               END IF
 
+              IF( ldg ) THEN
+                WRITE(6,*) 'WARNING (iter) something wrong with dg '
+                WRITE(6,*) '       ',dg,imesh, i_ , j_ , k_, converge( ijk_ ), conv( ijk_ )
+              END IF
    
            END IF
 
@@ -660,12 +668,14 @@
       USE gas_solid_density, ONLY: rgp
       USE set_indexes, ONLY: nb, rnb, first_rnb, rnb_13, nb_13, first_nb
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
+      USE set_indexes, ONLY: chkstencil
       USE control_flags, ONLY: job_type
 !
       IMPLICIT NONE
 
-      INTEGER :: i, j, k, ijk
+      INTEGER :: i, j, k, ijk, info
 
+  
 
         IF (job_type == '2D') THEN
         
@@ -684,6 +694,16 @@
             CALL first_rnb( u, ug, ijk )
             CALL first_rnb( w, wg, ijk )
             CALL first_rnb( v, vg, ijk )
+
+            CALL chkstencil( dens, info )
+            IF( info /= 0 ) WRITE(6,*) 'wrong dens at: ', i, j, k
+            CALL chkstencil( u, info )
+            IF( info /= 0 ) WRITE(6,*) 'wrong u at: ', i, j, k
+            CALL chkstencil( v, info )
+            IF( info /= 0 ) WRITE(6,*) 'wrong v at: ', i, j, k
+            CALL chkstencil( w, info )
+            IF( info /= 0 ) WRITE(6,*) 'wrong w at: ', i, j, k
+
             CALL masf( rgfe( ijk  ),  rgfn( ijk  ),  rgft( ijk  ),    &
                        rgfe( imjk ),  rgfn( ijmk ),  rgft( ijkm ),    &
                     dens, u, v, w, i, j, k, ijk  )
@@ -796,6 +816,8 @@
       REAL*8 :: resx, resy, resz
       REAL*8, INTENT(OUT) :: res
       INTEGER :: i, j, k, ijk
+
+      INTEGER :: float_chk
 !      
       resy = 0.D0
 !
@@ -803,13 +825,12 @@
       resz = ( rgft(ijk) - rgft(ijkm) ) * indz(k)
       IF (job_type == '3D') resy = (rgfn(ijk) - rgfn(ijmk)) * indy(j)
 
-      !IF( i == 2 .AND. j == 2 .AND. k == 59 ) then
-      !  write(6,*) 'from calc_res'
-      !  write(6,*) 'rgfe ', rgfe(ijk), rgfe(imjk)
-      !  write(6,*) 'rgft ', rgft(ijk), rgft(ijkm)
-      !  write(6,*) 'rgfn ', rgfn(ijk), rgfn(ijmk)
-      !  write(6,*) 'rgp  ', rgp(ijk),  rgpn(ijk)
-      !endif
+      IF( float_chk( rgfe(ijk) ) /= 0 ) WRITE( 6, * ) 'rgfe ', rgfe(ijk)
+      IF( float_chk( rgft(ijk) ) /= 0 ) WRITE( 6, * ) 'rgft ', rgft(ijk)
+      IF( float_chk( rgfe(imjk) ) /= 0 ) WRITE( 6, * ) 'rgfe m ', rgfe(imjk)
+      IF( float_chk( rgft(ijkm) ) /= 0 ) WRITE( 6, * ) 'rgft m ', rgft(ijkm)
+      IF( float_chk( rgp(ijk) ) /= 0 ) WRITE( 6, * ) 'rgp ', rgp(ijk)
+      IF( float_chk( rgpn(ijk) ) /= 0 ) WRITE( 6, * ) 'rgpn ', rgpn(ijk)
 !
       res  = rgp(ijk) - rgpn(ijk) + dt * (resx+resy+resz)
 !          - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
@@ -1419,9 +1440,6 @@
              ELSE
                rgft_ = wg_%c * densg_%t
              ENDIF
-
-            !CALL masf( rgfe_ ,  rgfn_ ,  rgft_ , rgfem_ , rgfnm_ , rgftm_ ,   &
-            !          densg_, ug_, vg_, wg_ )
 
           resx = ( rgfe_ - rgfem_ ) * indx(i) * inx(i)
           resz = ( rgft_ - rgftm_ ) * indz(k)

@@ -51,6 +51,7 @@
                 mptimygas, mptimtem, mptimtot, mptsgsg   
       
       LOGICAL :: stop_now
+      INTEGER :: float_chk
 
 !
       IF( timing ) then
@@ -122,7 +123,7 @@
 
           !
           ! ... Compute Boundary Conditions
-         
+
           CALL boundary
 
           ! ... Compute derived fields from closure equations
@@ -138,6 +139,17 @@
             ! ... Compute gas density (rog) from thermal Equation of State
 
             CALL thermal_eosg( rog(ijk), tg(ijk), p(ijk), xgc(:,ijk) )
+
+            IF( float_chk( rog( ijk ) ) /= 0 ) THEN
+              WRITE(6,*) 'wrong rog: ', ijk, rog(ijk), tg(ijk), p(ijk)
+              rog(ijk) = 0.0d0
+            END IF
+            IF( float_chk( tg( ijk ) ) /= 0 ) THEN
+              WRITE(6,*) 'wrong tg: ', ijk, tg(ijk)
+            END IF
+            IF( float_chk( p( ijk ) ) /= 0 ) THEN
+              WRITE(6,*) 'wrong p: ', ijk, p(ijk)
+            END IF
 
             ! ... Compute gas specific heat (cp, cg) and gas temperature (tg )
             ! ... from caloric Equation of State

@@ -125,14 +125,21 @@
       REAL*8, INTENT(IN) :: xg(:)
 !
       REAL*8 :: mg
+      REAL*8 :: teff
+      REAL*8, PARAMETER :: tlim = 1.d-4
       INTEGER :: ig
 !
       mg = 0.D0
       DO ig = 1, ngas
         mg = mg + xg(ig) * gmw(ig)
       END DO
-!
-      rog = p / ( rgas * tg ) * mg
+
+      teff = rgas * tg
+      IF( teff > tlim ) THEN
+        rog = p / ( rgas * tg ) * mg
+      ELSE
+        rog = p / ( tlim ) * mg
+      END IF
 !
       RETURN
       END SUBROUTINE thermal_eosg
@@ -171,7 +178,7 @@
           sieg0 = sieg
           DO ii = 1, nlmax
             IF( tg < 1.0d0 ) THEN
-              WRITE(6,*) 'WARNING (caloric_eosg) zero or negative temperature'
+              ! WRITE(6,*) 'WARNING (caloric_eosg) zero or negative temperature'
               tg = 1.0d0
             END IF
             tgnn = tg

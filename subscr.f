@@ -567,7 +567,9 @@
         dotstencil%bb = a * st2%bb
       
       END FUNCTION dotstencil
+
 !-----------------------------------------------------------------------
+
       FUNCTION fracstencil(st1, st2)
 ! ... compute the ratio between two stencils, location by location
 !
@@ -602,6 +604,150 @@
         fracstencil%bb = st1%bb / st2%bb
       
       END FUNCTION fracstencil
+
+!-----------------------------------------------------------------------
+
+      SUBROUTINE chkstencil(st1,info)
+
+! ... check the stancil
+!
+      IMPLICIT NONE
+
+        TYPE(stencil), INTENT(INOUT) :: st1
+        INTEGER, INTENT(OUT) :: info
+        INTEGER :: float_chk
+
+        info = 0
+
+        IF( float_chk( st1%c ) /= 0 ) THEN
+          WRITE(6,*) 'chk: c'
+          st1%c = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%e) /= 0 ) THEN
+          WRITE(6,*) 'chk: e'
+          st1%e = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%w) /= 0 ) THEN
+          WRITE(6,*) 'chk: w'
+          st1%w = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%ee)/= 0 ) THEN
+          WRITE(6,*) 'chk: ee'
+          st1%ee = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%ww)/= 0 ) THEN
+          WRITE(6,*) 'chk: ww'
+          st1%ww = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%n )/= 0 ) THEN
+          WRITE(6,*) 'chk: n'
+          st1%n = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%en)/= 0 ) THEN
+          WRITE(6,*) 'chk: en'
+          st1%en = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%wn)/= 0 ) THEN
+          WRITE(6,*) 'chk: wn'
+          st1%wn = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%s)/= 0 ) THEN
+          WRITE(6,*) 'chk: s'
+          st1%s = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%es)/= 0 ) THEN
+          WRITE(6,*) 'chk: es'
+          st1%es = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%ws)/= 0 ) THEN
+          WRITE(6,*) 'chk: ws'
+          st1%ws = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%nn)/= 0 ) THEN
+          WRITE(6,*) 'chk: nn'
+          st1%nn = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%ss)/= 0 ) THEN
+          WRITE(6,*) 'chk: ss'
+          st1%ss = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%t )/= 0 ) THEN
+          WRITE(6,*) 'chk: t'
+          st1%t = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%et)/= 0 ) THEN
+          WRITE(6,*) 'chk: et'
+          st1%et = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%wt)/= 0 ) THEN
+          WRITE(6,*) 'chk: wt'
+          st1%wt = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%nt)/= 0 ) THEN
+          WRITE(6,*) 'chk: nt'
+          st1%nt = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%st)/= 0 ) THEN
+          WRITE(6,*) 'chk: st'
+          st1%st = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%b )/= 0 ) THEN
+          WRITE(6,*) 'chk: b'
+          st1%b = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%eb)/= 0 ) THEN
+          WRITE(6,*) 'chk: eb'
+          st1%eb = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%wb)/= 0 ) THEN
+          WRITE(6,*) 'chk: wb'
+          st1%wb = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%nb)/= 0 ) THEN
+          WRITE(6,*) 'chk: nb'
+          st1%nb = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%sb)/= 0 ) THEN
+          WRITE(6,*) 'chk: sb'
+          st1%sb = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%tt)/= 0 ) THEN
+          WRITE(6,*) 'chk: tt'
+          st1%tt = 0.0d0
+          info = info + 1
+        ENDIF
+        IF( float_chk( st1%bb)/= 0 ) THEN
+          WRITE(6,*) 'chk: bb'
+          st1%bb = 0.0d0
+          info = info + 1
+        ENDIF
+      
+      END SUBROUTINE
+
+!-----------------------------------------------------------------------
 !-----------------------------------------------------------------------
       SUBROUTINE nb( stncl, array, ijk )
 ! ... This routine compute the stencil around a grid point

@@ -426,8 +426,10 @@
       REAL*8 :: mg
       REAL*8 :: dc
       REAL*8 :: d1inv,d2inv,dcinv
+      REAL*8 :: pf1, pf2, pfd
 
       INTEGER :: ig, is
+      INTEGER :: float_chk
 !
 ! ... Definitions
 !
@@ -517,6 +519,11 @@
         p(n2) = -rmcnn*ucnn + rmcn*ucn - dt*dcinv*( u2n*ucn*rmcn - u1n*umn*rmmn) 
         p(n2) = p(n2) + grav * dt * rmcn
         p(n2) = p(n2)/(dt*dcinv) + p1nn
+
+        IF( float_chk( p(n2) ) /= 0 ) THEN
+          WRITE(6,*) 'boundary p 1 ', p(n2)
+          p(n2) = 0.0d0
+        END IF
 !
         ep(n2) = ep(n1)
         tg(n2) = tg(n1)
@@ -526,7 +533,13 @@
         END DO
 !
 ! ... Correct non-physical pressure
+!
         IF (p(n2) <= 0.0D0) p(n2) = p(n1)
+
+        IF( float_chk( p(n2) ) /= 0 ) THEN
+          WRITE(6,*) 'boundary p 4 ', p(n2)
+          p(n2) = 0.0d0
+        END IF
 !
       ELSE IF ( ucn <  0.D0 ) THEN
 
@@ -549,7 +562,25 @@
 !
 ! ... Adiabatic inflow
  
-        p(n2)=(prif**gamn-(u2n**2)/(2.D0*costc))**(1.D0/gamn)
+        ! p(n2)=(prif**gamn-(u2n**2)/(2.D0*costc))**(1.D0/gamn)
+
+        pf1 = prif**gamn
+        pf2 = (u2n**2)/(2.D0*costc)
+        pfd = pf1 - pf2
+
+        IF( pfd >= 0 ) THEN
+          p(n2) = pfd ** ( 1.d0 / gamn )
+        ELSE
+          p(n2) = prif
+        END IF
+
+        IF( float_chk( p(n2) ) /= 0 ) THEN
+          WRITE(6,*) 'boundary p 5 ', p(n2)
+          WRITE(6,*) 'boundary     ', pf1, pf2, pfd
+          WRITE(6,*) 'boundary     ', prif, gamn, u2n
+          WRITE(6,*) 'boundary     ', costc
+          p(n2) = prif
+        END IF
 !
         ep(n2) = 1.D0
         tg(n2) = trif
@@ -560,6 +591,7 @@
 ! ... Correct non-physical pressure
 
         IF ( p(n2) < 0.0D0 ) p(n2) = prif
+
 !
       ELSE IF ( ucn == 0.D0 ) THEN
 !
@@ -570,6 +602,11 @@
         DO ig=1,ngas
           rgpgc(n2,ig) = rgpgc(n1,ig)
         END DO
+
+        IF( float_chk( p(n2) ) /= 0 ) THEN
+          WRITE(6,*) 'boundary p 7 ', p(n2)
+          p(n2) = 0.0d0
+        END IF
 
       ENDIF
 !
@@ -592,7 +629,11 @@
 !                
       RETURN
       END SUBROUTINE inoutflow
+
+
 !----------------------------------------------------------------------
+
+
       SUBROUTINE outinflow(upn, ucn, uspn, uscn, d1, d2, k)
 !
 ! ... This routine computes the free in/outflow conditions in the boundary
@@ -618,8 +659,10 @@
       REAL*8 :: mg
       REAL*8 :: dc
       REAL*8 :: d1inv,d2inv,dcinv
+      REAL*8 :: pf1, pf2, pfd
 
       INTEGER :: ig, is
+      INTEGER :: float_chk
 !
 ! ... definitions
 !
@@ -704,9 +747,18 @@
         p(n2) = -rmcnn*ucnn + rmcn*ucn - dt*dcinv *     &
                  ( u1n*upn*rmpn - u2n*ucn*rmcn) + dt*dcinv * p1nn
         p(n2)=p(n2)/(dt*dcinv)
+
+        IF( float_chk( p(n2) ) /= 0 ) THEN
+          WRITE(6,*) 'boundary p 3 ', p(n2)
+          p(n2) = 0.0d0
+        END IF
 !
 ! ... Correct non-physical pressure
         IF (p(n2) <= 0.0D0) p(n2) = p(n1)
+        IF( float_chk( p(n2) ) /= 0 ) THEN
+          WRITE(6,*) 'boundary p 8 ', p(n2)
+          p(n2) = 0.0d0
+        END IF
         ep(n2) = ep(n1)
         tg(n2) = tg(n1)
         DO ig=1,ngas
@@ -736,7 +788,24 @@
 !
 ! ... Adiabatic inflow
 
-        p(n2)=(prif**gamn-(u2n**2)/(2.D0*costc))**(1.D0/gamn)
+        ! p(n2) = ( prif**gamn - ( u2n**2 ) / ( 2.D0 * costc ) ) ** ( 1.D0 / gamn )
+
+        pf1   = prif**gamn
+        pf2   = ( u2n**2 ) / ( 2.D0 * costc )
+        pfd   = ( pf1 - pf2 ) 
+        IF( pfd >= 0 ) THEN
+          p(n2) = pfd ** ( 1.d0 / gamn )
+        ELSE
+          p(n2) = prif
+        END IF
+       
+        IF( float_chk( p(n2) ) /= 0 ) THEN
+          WRITE(6,*) 'boundary p 9 ', p(n2)
+          WRITE(6,*) 'boundary     ', pf1, pf2, pfd
+          WRITE(6,*) 'boundary     ', prif, gamn, u2n
+          WRITE(6,*) 'boundary     ', costc
+          p(n2) = prif
+        END IF
 !
 ! ... Correct non-physical pressure
 

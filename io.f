@@ -377,6 +377,7 @@
       INTEGER :: ijk, ierr
       REAL*8, ALLOCATABLE :: io_buf(:)
       REAL(sgl), ALLOCATABLE :: io_bufs(:)
+      INTEGER :: float_chk
 
       IF( ntot < 1 ) &
         CALL error(' read_array ', ' ntot too small ', ntot )
@@ -414,6 +415,13 @@
             DEALLOCATE( io_buf )
          END IF
       END IF
+
+      DO ijk = 1, SIZE( array )
+        IF( float_chk( array( ijk ) ) /= 0 ) THEN
+           WRITE(6,*) 'WARNING (read_array) NAN in input field at: ',ijk,array(ijk)
+           array(ijk) = 0.0d0
+        END IF
+      END DO
 
       RETURN
       END SUBROUTINE

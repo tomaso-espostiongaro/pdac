@@ -22,9 +22,7 @@ eosg.o : decomp.o dens.o dimensions.o gas.o grid.o hcapgs.o parallel.o  \
 
 eosl.o : dimensions.o gas.o hcapgs.o particles.o temp.o 
 
-filter.o : bdry.o control.o decomp.o dens.o dimensions.o environment.o  \
-    eosg.o eosl.o ftem.o grid.o hcapgs.o htilde.o indijk.o io.o iter.o outp.o  \
-    particles.o press.o reactions.o temp.o tilde.o time.o turbo.o ygas.o 
+filter.o : outp.o 
 
 flux_m.o : decomp.o dimensions.o grid.o indijk.o limiters.o subscr.o time.o 
 
@@ -84,8 +82,8 @@ matsvels_solve.o :
 nondim.o : atmosphere.o decomp.o dimensions.o gas.o grid.o indijk.o  \
     particles.o time.o 
 
-outp.o : control.o decomp.o dens.o dimensions.o eosg.o gas.o io.o kinds.o  \
-    parallel.o particles.o press.o temp.o time.o turbo.o velocity.o 
+outp.o : control.o decomp.o dens.o dimensions.o eosg.o gas.o grid.o io.o  \
+    kinds.o parallel.o particles.o press.o temp.o time.o turbo.o velocity.o 
 
 parallel.o : 
 
