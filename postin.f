@@ -1,7 +1,6 @@
 !----------------------------------------------------------------------
       MODULE postp_input
 !----------------------------------------------------------------------
-      USE output_dump, ONLY: formatted_output
       IMPLICIT NONE
 ! ... read PP input file
 ! ... initialize some parameters
@@ -25,7 +24,7 @@
       INTEGER, INTENT(IN) :: punit
       
       NAMELIST / control / act, first_out, last_out, incr_out,  &
-               downsize_x, downsize_y, downsize_z, formatted_output
+               downsize_x, downsize_y, downsize_z
 
       NAMELIST / map / imap, deltaz
 
@@ -48,7 +47,6 @@
   downsize_x = 1    
   downsize_y = 1    
   downsize_z = 1    
-  formatted_output = .TRUE.
 
 ! ... Map
 
