@@ -746,7 +746,7 @@
       USE control_flags, ONLY: job_type, lpr
       USE dimensions
       USE gas_solid_density, ONLY: rlk, rlkn
-      USE immersed_boundaries, ONLY: forced
+      USE immersed_boundaries, ONLY: x_forced, y_forced, z_forced
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE time_parameters, ONLY: dt, time
@@ -757,6 +757,7 @@
       INTEGER, INTENT(IN) :: i, j, k, ijk
       INTEGER :: is
       REAL*8 :: vf, ivf
+      LOGICAL :: forced
 
       vf = b_e(ijk) + b_w(ijk) + b_t(ijk) + b_b(ijk)
 
@@ -796,7 +797,14 @@
           WRITE(8,*) ' time, i, j, k ', time, i, j, k
           WRITE(8,*) ' rls, volfrac ', rls, vf
         END IF
-        IF (.NOT.forced(ijk)) CALL error('iter','mass is not conserved',1)
+
+        IF (job_type == '2D') THEN
+          forced = x_forced(ijk) .OR. z_forced(ijk)
+        ELSE IF (job_type == '3D') THEN
+          forced = x_forced(ijk) .OR. y_forced(ijk) .OR. z_forced(ijk)
+        END IF
+
+        IF (.NOT.forced) CALL error('iter','mass is not conserved',1)
       ENDIF
 
       ep( ijk ) = 1.D0 - rls

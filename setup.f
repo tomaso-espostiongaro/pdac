@@ -73,7 +73,7 @@
       USE gas_solid_viscosity, ONLY: mus
       USE grid, ONLY: zb, dz
       USE grid, ONLY: flag, iob
-      USE immersed_boundaries, ONLY: forced
+      USE immersed_boundaries, ONLY: x_forced, y_forced, z_forced
       USE particles_constants, ONLY: rl, inrl, cmus
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: itd
@@ -87,6 +87,7 @@
       INTEGER :: ig, is
       REAL*8 :: zrif
       REAL*8 :: mass, tem
+      LOGICAL :: forced
 !
 ! ... Initialize particle's viscosity
 ! 
@@ -132,7 +133,14 @@
           ! ... Set initial velocity profiles
           !
           IF ( flag(ijk) == 1 .OR. flag(ijk) == 4 .OR. flag(ijk) == 6 ) THEN
-            IF( .NOT.forced(ijk) ) THEN
+
+            IF (job_type == '2D') THEN
+              forced = x_forced(ijk) .OR. z_forced(ijk)
+            ELSE IF (job_type == '3D') THEN
+              forced = x_forced(ijk) .OR. y_forced(ijk) .OR. z_forced(ijk)
+            END IF
+
+            IF( .NOT.forced ) THEN
               ug(ijk) = wind_x
               wg(ijk) = wind_z
               us(ijk,:) = ug(ijk)
@@ -200,7 +208,6 @@
       USE gas_solid_density, ONLY: rlk, rog, rgp
       USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
       USE grid, ONLY: flag
-      USE immersed_boundaries, ONLY: forced
       USE io_restart, ONLY: dump_all
       USE particles_constants, ONLY: inrl, cps
       USE pressure_epsilon, ONLY: ep, p

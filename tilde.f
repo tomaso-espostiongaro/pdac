@@ -272,7 +272,8 @@
       USE gas_solid_viscosity, ONLY: mug
       USE gas_solid_viscosity, ONLY: gvisx, gvisy, gvisz, pvisx, pvisy, pvisz
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE immersed_boundaries, ONLY: forx, fory, forz, numx, numy, numz, forced
+      USE immersed_boundaries, ONLY: forx, fory, forz, numx, numy, numz
+      USE immersed_boundaries, ONLY: x_forced, y_forced, z_forced
       USE particles_constants, ONLY: inrl
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm, ijkt, ijke, ijkn
 !
@@ -717,7 +718,7 @@
 !
           IF (immb >= 1) THEN
             
-            IF (forced(ijk)) THEN
+            IF (x_forced(ijk)) THEN
 
               fp = numx(ijk)
               pseudou = forx(fp)%vel
@@ -743,8 +744,11 @@
                 force = force - presn - dragn
                 rus(ijk,is) = rus(ijk,is) + dt * force
               END DO
+            END IF
             !
-              IF (job_type == '3D') THEN
+            IF (job_type == '3D') THEN
+              IF (y_forced(ijk)) THEN
+
                 fp = numy(ijk)
                 pseudov = fory(fp)%vel
   
@@ -758,11 +762,11 @@
                 END DO
                 force = force - presn - dragn
                 rvg(ijk) = rvg(ijk) + dt * force
-  
+ 
                 DO is = 1, nsolid
-                  force = ( indyp * (dy(j+1)*rlk(ijk,is)+dy(j)*rlk(ijkn,is)) * &
+                  force =( indyp * (dy(j+1)*rlk(ijk,is)+dy(j)*rlk(ijkn,is)) * &
                             pseudov - rvs(ijk,is) ) / dt
-                  ep_n  = (dy(j)*rlk(ijkn,is) + dy(j+1)*rlk(ijk,is)) * indyp * &
+                  ep_n  =(dy(j)*rlk(ijkn,is) + dy(j+1)*rlk(ijk,is)) * indyp * &
                           inrl(is)
                   presn = - indyp * 2.D0 * ep_n * (p(ijkn)-p(ijk))
                   dragn = kpgv(is) * dvgs(is)
@@ -770,7 +774,10 @@
                   rvs(ijk,is) = rvs(ijk,is) + dt * force
                 END DO
               END IF
+            END IF
             !
+            IF (z_forced(ijk)) THEN
+
               fp = numz(ijk)
               pseudow = forz(fp)%vel
 

@@ -40,7 +40,9 @@
       LOGICAL, ALLOCATABLE :: forcex(:)
       LOGICAL, ALLOCATABLE :: forcey(:)
       LOGICAL, ALLOCATABLE :: forcez(:)
-      LOGICAL, ALLOCATABLE :: forced(:)
+      LOGICAL, ALLOCATABLE :: x_forced(:)
+      LOGICAL, ALLOCATABLE :: y_forced(:)
+      LOGICAL, ALLOCATABLE :: z_forced(:)
 !
 ! ... Topographic elevation at the mesh points
 ! ... (centered and staggered)
@@ -53,7 +55,7 @@
 !
 ! ... This function gives the increasing number of local forcing points 
       INTEGER, ALLOCATABLE :: numx(:), numy(:), numz(:)
-      INTEGER :: nfp
+      INTEGER :: nfp, nfpx, nfpy, nfpz
 !           
       SAVE
 !----------------------------------------------------------------------
@@ -69,7 +71,7 @@
       USE grid, ONLY: z
 
       IMPLICIT NONE
-      INTEGER :: p, nfpx, nfpy, nfpz
+      INTEGER :: p
       INTEGER :: i,j,k,ijk
 
       LOGICAL, ALLOCATABLE :: dummy(:)
@@ -114,18 +116,18 @@
         ! ... Merge forcing points subsets
         !
         nfp = COUNT( forcex .OR. forcez )
-        ALLOCATE (forx (nfp) )
-        ALLOCATE (forz (nfp) )
+        ALLOCATE (forx (nfpx) )
+        ALLOCATE (forz (nfpz) )
 
-        CALL grid_locations(1,0,0)
-        CALL interpolate_2d(topo_x, dummy)
-        forx(1:nfpx) = fptx(1:nfpx)
-        CALL extrafx2d(forx, nfpx, topo_x)
+        !CALL grid_locations(1,0,0)
+        !CALL interpolate_2d(topo_x, dummy)
+        !forx(1:nfpx) = fptx(1:nfpx)
+        !CALL extrafx2d(forx, nfpx, topo_x)
 
-        CALL grid_locations(0,0,1)
-        CALL interpolate_2d(topo_c, dummy)
+        !CALL grid_locations(0,0,1)
+        !CALL interpolate_2d(topo_c, dummy)
         forz(1:nfpz) = fptz(1:nfpz)
-        CALL extrafz2d(forz, nfpz, topo_c)
+        !CALL extrafz2d(forz, nfpz, topo_c)
         
         DEALLOCATE(fptx)
         DEALLOCATE(fptz)
@@ -169,24 +171,24 @@
         ! ... Merge forcing points subsets
         !
         nfp = COUNT( forcex .OR. forcey .OR. forcez )
-        ALLOCATE (forx (nfp) )
-        ALLOCATE (fory (nfp) )
-        ALLOCATE (forz (nfp) )
+        ALLOCATE (forx (nfpx) )
+        ALLOCATE (fory (nfpy) )
+        ALLOCATE (forz (nfpz) )
 
-        CALL grid_locations(1,0,0)
-        CALL interpolate_dem(topo2d_x, dummy)
+        !CALL grid_locations(1,0,0)
+        !CALL interpolate_dem(topo2d_x, dummy)
         forx(1:nfpx) = fptx(1:nfpx)
-        CALL extrafx3d(forx, nfpx, topo2d_x)
+        !CALL extrafx3d(forx, nfpx, topo2d_x)
 
-        CALL grid_locations(0,1,0)
-        CALL interpolate_dem(topo2d_y, dummy)
+        !CALL grid_locations(0,1,0)
+        !CALL interpolate_dem(topo2d_y, dummy)
         fory(1:nfpy) = fpty(1:nfpy)
-        CALL extrafy3d(fory, nfpy, topo2d_y)
+        !CALL extrafy3d(fory, nfpy, topo2d_y)
 
-        CALL grid_locations(0,0,1)
-        CALL interpolate_dem(topo2d_c, dummy)
+        !CALL grid_locations(0,0,1)
+        !CALL interpolate_dem(topo2d_c, dummy)
         forz(1:nfpz) = fptz(1:nfpz)
-        CALL extrafz3d(forz, nfpz, topo2d_c)
+        !CALL extrafz3d(forz, nfpz, topo2d_c)
 !
         DEALLOCATE(fptx)
         DEALLOCATE(fpty)
@@ -199,9 +201,13 @@
         IF (job_type == '3D') &
           OPEN(UNIT=16,FILE='fory.dat',STATUS='UNKNOWN')
         OPEN(UNIT=17,FILE='forz.dat',STATUS='UNKNOWN')
-        DO p = 1, nfp
+        DO p = 1, nfpx
           WRITE(15,33) p, forx(p)
+        END DO
+        DO p = 1, nfpy
           IF (job_type == '3D') WRITE(16,33) p, fory(p)
+        END DO
+        DO p = 1, nfpz
           WRITE(17,33) p, forz(p)
         END DO
         CLOSE(15)

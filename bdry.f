@@ -28,8 +28,9 @@
       USE control_flags, ONLY: job_type
       USE domain_decomposition, ONLY: ncint, myijk, meshinds
       USE grid, ONLY: flag, x, y, z, xb, yb, zb
-      USE immersed_boundaries, ONLY: forx, fory, forz, forced
-      USE immersed_boundaries, ONLY: numx, numy, numz, nfp
+      USE immersed_boundaries, ONLY: forx, fory, forz
+      USE immersed_boundaries, ONLY: x_forced, y_forced, z_forced
+      USE immersed_boundaries, ONLY: numx, numy, numz
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE parallel, ONLY: mpime, root
       USE set_indexes, ONLY: subscr
@@ -43,6 +44,12 @@
       INTEGER :: fp, pp
       REAL*8 :: d1, d2 
       REAL*8 :: vel
+      LOGICAL :: fx, fy, fz, forced
+
+      fx = .FALSE.
+      fy = .FALSE.
+      fz = .FALSE.
+      forced = .FALSE.
 !
       DO ijk = 1, ncint
 
@@ -54,102 +61,122 @@
 ! ... If (ijk) is a forcing point, compute the pseudo-velocities
 ! ... that are used in the "immersed boundary" technique ...
 !
-          IF( forced(ijk) ) THEN
+          fx = x_forced(ijk)
+          IF (job_type == '3D') fy = y_forced(ijk)
+          fz = z_forced(ijk)
+          
+          forced = (fx .OR. fy .OR. fz)
+
+          IF (forced) THEN
 
             IF (job_type == '2D') THEN
 
-              fp = numx(ijk)
-              IF (fp > 0) THEN
-                IF (ABS(forx(fp)%int) < 10) THEN
-                  vel = velint(forx(fp), ug, ijk, xb, y, z)  
+              IF( fx ) THEN
+
+                fp = numx(ijk)
+                IF (fp > 0) THEN
+                  IF (ABS(forx(fp)%int) < 10) THEN
+                    vel = velint(forx(fp), ug, ijk, xb, y, z)  
+                  ELSE
+                    vel = velext(forx(fp), ug, ijk, xb, y, z)  
+                  END IF
                 ELSE
-                  vel = velext(forx(fp), ug, ijk, xb, y, z)  
+                  vel = 0.D0
                 END IF
-              ELSE
-                vel = 0.D0
-              END IF
-              forx(fp)%vel = vel
+                forx(fp)%vel = vel
 
-              ! ... Initialize x-velocity in the forced points
-              IF (sweep >= 1) THEN
-                ug(ijk) = vel
-                us(ijk,:) = vel
-              END IF
+                ! ... Initialize x-velocity in the forced points
+                IF (sweep >= 1) THEN
+                  ug(ijk) = vel
+                  us(ijk,:) = vel
+                END IF
 
-              fp = numz(ijk)
-              IF (fp > 0) THEN
-                IF (ABS(forz(fp)%int) < 10) THEN
-                  vel = velint(forz(fp), wg, ijk, x, y, zb)  
+              ELSE IF( fz ) THEN
+
+                fp = numz(ijk)
+                IF (fp > 0) THEN
+                  IF (ABS(forz(fp)%int) < 10) THEN
+                    vel = velint(forz(fp), wg, ijk, x, y, zb)  
+                  ELSE
+                    vel = velext(forz(fp), wg, ijk, x, y, zb)  
+                  END IF
                 ELSE
-                  vel = velext(forz(fp), wg, ijk, x, y, zb)  
+                  vel = 0.D0
                 END IF
-              ELSE
-                vel = 0.D0
-              END IF
-              forz(fp)%vel = vel
+                forz(fp)%vel = vel
 
-              ! ... Initialize z-velocity in the forced points
-              IF (sweep >= 1) THEN
-                wg(ijk) = vel
-                ws(ijk,:) = vel
+                ! ... Initialize z-velocity in the forced points
+                IF (sweep >= 1) THEN
+                  wg(ijk) = vel
+                  ws(ijk,:) = vel
+                END IF
+
               END IF
 
             ELSE IF (job_type == '3D') THEN
 
-              fp = numx(ijk)
-              IF (fp > 0) THEN
-                IF (ABS(forx(fp)%int) <= 8) THEN
-                  vel = velint3d(forx(fp), ug, ijk, xb, y, z)  
+              IF( fx ) THEN
+
+                fp = numx(ijk)
+                IF (fp > 0) THEN
+                  IF (ABS(forx(fp)%int) <= 8) THEN
+                    vel = velint3d(forx(fp), ug, ijk, xb, y, z)  
+                  ELSE
+                    vel = velext3d(forx(fp), ug, ijk, xb, y, z)  
+                  END IF
                 ELSE
-                  vel = velext3d(forx(fp), ug, ijk, xb, y, z)  
+                  vel = 0.D0
                 END IF
-              ELSE
-                vel = 0.D0
-              END IF
-              forx(fp)%vel = vel
+                forx(fp)%vel = vel
 
-              ! ... Initialize x-velocity in the forced points
-              IF (sweep >= 1) THEN
-                ug(ijk) = vel
-                us(ijk,:) = vel
-              END IF
+                ! ... Initialize x-velocity in the forced points
+                IF (sweep >= 1) THEN
+                  ug(ijk) = vel
+                  us(ijk,:) = vel
+                END IF
 
-              fp = numy(ijk)
-              IF (fp > 0) THEN
-                IF (ABS(fory(fp)%int) <= 8) THEN
-                  vel = velint3d(fory(fp), vg, ijk, x, yb, z)  
+              ELSE IF( fy ) THEN
+
+                fp = numy(ijk)
+                IF (fp > 0) THEN
+                  IF (ABS(fory(fp)%int) <= 8) THEN
+                    vel = velint3d(fory(fp), vg, ijk, x, yb, z)  
+                  ELSE
+                    vel = velext3d(fory(fp), vg, ijk, x, yb, z)  
+                  END IF
                 ELSE
-                  vel = velext3d(fory(fp), vg, ijk, x, yb, z)  
+                  vel = 0.D0
                 END IF
-              ELSE
-                vel = 0.D0
-              END IF
-              fory(fp)%vel = vel
+                fory(fp)%vel = vel
 
-              ! ... Initialize y-velocity in the forced points
-              IF (sweep >= 1) THEN
-                vg(ijk) = vel
-                vs(ijk,:) = vel
-              END IF
+                ! ... Initialize y-velocity in the forced points
+                IF (sweep >= 1) THEN
+                  vg(ijk) = vel
+                  vs(ijk,:) = vel
+                END IF
 
-              fp = numz(ijk)
-              IF (fp > 0) THEN
-                IF (ABS(forz(fp)%int) <= 8) THEN
-                  vel = velint3d(forz(fp), wg, ijk, x, y, zb)  
+              ELSE IF( fz ) THEN
+
+                fp = numz(ijk)
+                IF (fp > 0) THEN
+                  IF (ABS(forz(fp)%int) <= 8) THEN
+                    vel = velint3d(forz(fp), wg, ijk, x, y, zb)  
+                  ELSE
+                    vel = velext3d(forz(fp), wg, ijk, x, y, zb)  
+                  END IF
                 ELSE
-                  vel = velext3d(forz(fp), wg, ijk, x, y, zb)  
+                  vel = 0.D0
                 END IF
-              ELSE
-                vel = 0.D0
-              END IF
-              forz(fp)%vel = vel
+                forz(fp)%vel = vel
 
-              ! ... Initialize z-velocity in the forced points
-              IF (sweep >= 1) THEN
-                wg(ijk) = vel
-                ws(ijk,:) = vel
-              END IF
+                ! ... Initialize z-velocity in the forced points
+                IF (sweep >= 1) THEN
+                  wg(ijk) = vel
+                  ws(ijk,:) = vel
+                END IF
 
+              END IF
+          
             ELSE
 
               CALL error('bdry','Unknown job_type: '//job_type, 1)
@@ -656,22 +683,6 @@
           END IF
         END IF
       END DO
-
-     IF (mpime == root) THEN
-        OPEN(UNIT=15,FILE='forx.dat',STATUS='UNKNOWN')
-        IF (job_type == '3D') &
-          OPEN(UNIT=16,FILE='fory.dat',STATUS='UNKNOWN')
-        OPEN(UNIT=17,FILE='forz.dat',STATUS='UNKNOWN')
-        DO pp = 1, nfp
-          WRITE(15,33) pp, forx(pp)
-          IF (job_type == '3D') WRITE(16,33) pp, fory(pp)
-          WRITE(17,33) pp, forz(pp)
-        END DO
-        CLOSE(15)
-        CLOSE(16)
-        CLOSE(17)
-      END IF
- 33   FORMAT(5(I6),4(F18.3))
 !
       RETURN
       END SUBROUTINE boundary

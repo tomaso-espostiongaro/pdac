@@ -7,7 +7,8 @@
 !----------------------------------------------------------------------
         USE grid, ONLY: fl, flag
         USE indijk_module
-        USE immersed_boundaries, ONLY: forced, forcex, forcey, forcez, nfp
+        USE immersed_boundaries, ONLY: x_forced, y_forced, z_forced 
+        USE immersed_boundaries, ONLY: forcex, forcey, forcez
         USE immersed_boundaries, ONLY: numx, forx, numy, fory, numz, forz
         USE control_flags, ONLY: lpr, immb, itp
 !
@@ -809,6 +810,7 @@
       INTEGER :: localdim
       INTEGER :: layer, k2, k1, j2, j1, i2, i1, nkt
       INTEGER :: me
+      INTEGER :: nfpx, nfpy, nfpz
 !
       IF(ALLOCATED(rcv_map)) DEALLOCATE(rcv_map)
       IF(ALLOCATED(snd_map)) DEALLOCATE(snd_map)
@@ -1115,20 +1117,29 @@
 ! ... by using array numx/z. Scatter the array
 ! ... of forcing points among processors.
 !
-      ALLOCATE( forced(ncdom) )
-      forced = .FALSE.
+      ALLOCATE( x_forced(ncdom) )
+      IF (job_type == '3D') ALLOCATE( y_forced(ncdom) )
+      ALLOCATE( z_forced(ncdom) )
+      x_forced = .FALSE.
+      y_forced = .FALSE.
+      z_forced = .FALSE.
 
       IF (immb >= 1) THEN
 
         DO ijkl = 1, ncint
           ijk = myijk( ip0_jp0_kp0_, ijkl)
-          IF (job_type == '2D') THEN
-            forced(ijkl) = ( forcex(ijk) .OR. forcez(ijk) )
-          ELSE IF (job_type == '3D') THEN
-            forced(ijkl) = ( forcex(ijk) .OR. forcey(ijk) .OR. forcez(ijk) )
+
+          x_forced(ijkl) = forcex(ijk)
+          z_forced(ijkl) = forcez(ijk)
+          IF (job_type == '3D')  y_forced(ijkl) = forcey(ijk)
+
+          IF( x_forced(ijkl) .OR. z_forced(ijkl) ) flag(ijkl) = 1 
+          IF( job_type == '3D') THEN
+            IF( y_forced(ijkl) ) flag(ijkl) = 1 
           END IF
-          IF(forced(ijkl)) flag(ijkl) = 1
+
         END DO
+
         DEALLOCATE (forcex)
         IF (job_type == '3D') DEALLOCATE (forcey) 
         DEALLOCATE (forcez)
@@ -1139,8 +1150,12 @@
         END IF
         ALLOCATE( numz(ncint) ); numz = 0
       
-        DO n = 1, nfp
-        !
+        nfpx = SIZE(forx)
+        nfpy = SIZE(fory)
+        nfpz = SIZE(forz)
+
+        DO n = 1, nfpx
+        
           i = forx(n)%i
           j = forx(n)%j
           k = forx(n)%k
@@ -1152,11 +1167,15 @@ set_numx: IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
             END IF
             ijkl = cell_g2l(ijk,mpime)
             IF (k==1 .OR. k==nz) THEN
-              forced(ijkl) = .FALSE.
+              x_forced(ijkl) = .FALSE.
             END IF
-            IF (forced(ijkl)) numx(ijkl) = n 
+            IF (x_forced(ijkl)) numx(ijkl) = n 
           END IF set_numx
+
+        END DO
         !
+        DO n = 1, nfpy
+        
           IF (job_type == '3D') THEN
             i = fory(n)%i
             j = fory(n)%j
@@ -1169,12 +1188,16 @@ set_numy:   IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
               END IF
               ijkl = cell_g2l(ijk,mpime)
               IF (k==1 .OR. k==nz) THEN
-                forced(ijkl) = .FALSE.
+                y_forced(ijkl) = .FALSE.
               END IF
-              IF (forced(ijkl)) numy(ijkl) = n 
+              IF (y_forced(ijkl)) numy(ijkl) = n 
             END IF set_numy
           END IF
+
+        END DO
         !
+        DO n = 1, nfpz
+        
           i = forz(n)%i
           j = forz(n)%j
           k = forz(n)%k
@@ -1186,14 +1209,16 @@ set_numz: IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
             END IF
             ijkl = cell_g2l(ijk,mpime)
             IF (k==1 .OR. k==nz) THEN
-              forced(ijkl) = .FALSE.
+              z_forced(ijkl) = .FALSE.
             END IF
-            IF(forced(ijkl)) numz(ijkl) = n 
+            IF(z_forced(ijkl)) numz(ijkl) = n 
           END IF set_numz
-        !
+        
         END DO
 
-        CALL data_exchange(forced)
+        CALL data_exchange(x_forced)
+        CALL data_exchange(y_forced)
+        CALL data_exchange(z_forced)
 
       END IF
 !
