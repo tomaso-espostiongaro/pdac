@@ -192,6 +192,16 @@
             DO i=1,nr
               indr(i)=1.D0/dr(i)
             END DO  
+!
+! ...       Set "z" dimension
+            zb(1) = zzero
+            DO j=1,(nz-1)
+              zb(j+1)=zb(j)+dz(j+1)
+            END DO
+!
+            DO j=1,(nz-1)
+              indz(j)=1.D0/dz(j)
+            END DO  
 
           ELSE IF( job_type == '3D' ) THEN
 !

@@ -392,6 +392,8 @@
           READ(5,*) initial_vgas_x, initial_vgas_y, initial_vgas_z, initial_pressure, initial_void_fraction, &
             max_packing, initial_temperature
           READ(5,*) initial_vpart_x, initial_vpart_y, initial_vpart_z
+        ELSE 
+          CALL error('input # INITIAL CONDITIONS', 'unknown job_type',1) 
         ENDIF
         READ(5,*) (initial_gasconc(ig), ig=1, ngas)
 

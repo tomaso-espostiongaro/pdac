@@ -1,8 +1,27 @@
 #----------------------------------------
 # AIX
 #----------------------------------------
-MACROS= -DMPI
-#MACROS= -DSCALAR
+#MACROS= -DMPI
+MACROS= -DSCALAR
+#----------------------------------------
+# scalar compiler
+FC=xlf
+#FC=mpxlf_r
+# parallel compiler
+MPFC=mpxlf_r
+#----------------------------------------
+# ... parallel linker
+#LINKER= mpxlf_r
+# ... scalar linker
+LINKER=xlf
+#
+#----------------------------------------
+# for non AIX systems
+# SYSOBJ=system.o
+# FFLAGS=-O
+#FC=pgf90
+#MPFC=pgf90
+#LINKER=pgf90
 #----------------------------------------
 #OMPITRACE_HOME= /cineca/prod/OMPItrace
 #OMPILIB= -L $(OMPITRACE_HOME)/lib -lompitrace
@@ -24,24 +43,5 @@ HPMLIB=
 LINKFLAGS= 
 #LIBS= $(OMPILIB) $(HPMLIB)
 LIBS=
-#----------------------------------------
-# scalar compiler
-#FC=xlf
-FC=mpxlf_r
-# parallel compiler
-MPFC=mpxlf_r
-#----------------------------------------
-# ... parallel linker
-LINKER= mpxlf_r
-# ... scalar linker
-#LINKER=xlf
-#
-#----------------------------------------
-# for non AIX systems
-# SYSOBJ=system.o
-# FFLAGS=-O
-#FC=pgf90
-#MPFC=pgf90
-#LINKER=pgf90
 
 .SUFFIXES:.F

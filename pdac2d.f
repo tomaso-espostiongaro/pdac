@@ -252,40 +252,6 @@
 ! ... terminate the IBM HW performance monitor session
 !      call f_hpmterminate( mpime )
 !
-! ...  Writing log file
-! 
-      IF (mpime .EQ. root) THEN
-        WRITE(6,200) run_name
-        WRITE(6,220) itc,nr,nz,dr0,dz0,zzero,iturb,modturbo,iss,irex,ngas
-        WRITE(6,611) (dr(i),i=1,nr)
-        WRITE(6,622) (dz(j),j=1,nz)
-        WRITE(6,221) cmut,inmax,maxout,omega
-        IF(lpr.LT.2) THEN
-         WRITE(6,250) no
-          IF(no .NE. 0) THEN
-           WRITE(6,252)
-            DO  n=1,no
-              WRITE(6,254) iob(n)%typ, iob(n)%rlo, iob(n)%rhi, iob(n)%zlo, iob(n)%zhi
-!pe------------------------------
-!            IF(nso(n).EQ.5) THEN 
-              IF( iob(n)%typ == 1 .OR. iob(n)%typ == 5) THEN 
-!pe------------------------------
-                WRITE(6,253) n,ugob(n),vgob,wgob(n),pob(n),epob(n)
-                WRITE(6,255) (k,upob(k,n),vpob(k,n),wpob(k,n), epsob(k,n),tpob(k,n),k=1,nsolid)
-                WRITE(6,256) (ig,ygcob(ig,n),ig=1,ngas)
-              ENDIF
-            END DO
-          END IF
-         WRITE(6,251) gravx,gravz
-         WRITE(6,260) u0,w0,p0,ep0,epsmx0,temp0
-         WRITE(6,274)
-         WRITE(6,275) (dk(i),rl(i),phis(i),cmus(i),cps(i), kap(i),i=1,nsolid)
-         WRITE(6,271) us0,ws0
-         WRITE(6,261) (ig,ygc0(ig),ig=1,ngas)
-         WRITE(6,280) itd,time,tstop,dt,tpr,tdump
-        END IF
-      END IF
-!
       CLOSE(5)
       CLOSE(6)
       CLOSE(7)
@@ -296,61 +262,8 @@
 ! ... Finalize parallel environment
 !
       CALL parallel_hangup
+!
       STOP
-!
-! ... log format
-!
- 100  FORMAT(a30)
- 200  FORMAT(1x,'pdac_2d problem identifier -  ',a30)
- 220  FORMAT(/,1x,'geometry:',/, &
-      ' 1. coordinates (0=rect, 1=cylind): ',i3,/, &
-      ' 2. mesh size:    x,r (nr)=',i3,14x,'y,z (nz)=',i3,/, &
-      ' 3. unIForm cell size:    dr0=',1pe11.4,'  dz0=',1pe11.4,/, &
-      '    zero = ',1pe11.4,/, &
-      ' 4. turb. model (0=no, 1=sgs-s mod, 2=sgs-l0 mod) =',i2,/, &
-      ' 5. model turbulence= ',i3,/, &
-      ' 6. solid stress model (0=const visc, 1=sgs visc,',/, &
-      '    2=visc+g(e)) =',i2,/, &
-      ' 7. cohesion model (0=no cohes, 1=cohes) =',i2,/, &
-      ' 8. reaction (0=hydro, 1=thermo, 2=thermo+reaction) =',i2,/, &
-      ' 9. no. of gases ',i2)
- 221  FORMAT(/,1x,'physical constants:',/, &
-      '  cmut = ',1pe11.4,/, &
-      '  inmax = ',i3,' maxout = ',i4,' omega = ',1pe11.4)
- 250  FORMAT(/,1x,'obstacles no = ',i3 )
- 251  FORMAT(/,1x,'gravity (x) = ',f7.2,'  gravity (z) = ',f7.2)
- 252  FORMAT(/,1x,'obstacle flag',12x,'obstacle geometry')
- 253  FORMAT(/,1x,'obstacle =',i3/ &
-      ' uob=',1pe11.4,' wob=',1pe11.4, &
-      ' pob=',1pe11.4,' epob=',1pe11.4)
- 254  FORMAT(/,1x,12x,i3,6x,4i4)
- 255  FORMAT(/,1x,'k-th particle =',i3/ &
-      ' upob=',1pe11.4,' wpob=',1pe11.4, &
-      ' epsob=',1pe11.4,'  tpob=',1pe11.4)
- 256  FORMAT(/,1x,'n-th gas =',i3/ &
-      ' ygasob=',1pe11.4)
- 260  FORMAT(/,1x,'initial data for gas and solid'/' u0=',1pe11.4, &
-      ' w0=',1pe11.4,' p0=',1pe11.4,' ep0=',1pe11.4, &
-      '  max. eps=',1pe11.4,'     t0=',1pe11.4)
- 261  FORMAT(/,1x,' nth-gas initial value=',i3/ ' ygasc0=',1pe11.4)
- 274  FORMAT(/,1x,/,'particulate phase data',/, &
-      ' diameter',3x,/, &
-      ' microscopic density',3x,/, &
-      ' sphericity',3x,/, &
-      ' solids viscosity',3x,/, &
-      ' solids specific heat',3x,/, &
-      ' solids conductivity')
- 275  FORMAT(/,2(6x,g10.3))
- 271  FORMAT(/,1x,'particle inflow data'/' us0=',1pe11.4,' ws0=', 1pe11.4)
- 280  FORMAT(/,1x,'runtime control:',/, &
-      'restart itd = ',i3,/, &
-      'initial time = ',1pe11.4,/, &
-      'final time = ',1pe11.4,/, &
-      'time step = ',1pe11.4,/, &
-      'printing = ',1pe11.4,/, &
-      'restart dumping = ',1pe11.4)
- 611  FORMAT('dr(i) = '/,7(2x,1p7e11.4/))
- 622  FORMAT('dz(j) = '/,7(2x,1p7e11.4/))
 !
 !**************************************************************
       END PROGRAM pdac2d
