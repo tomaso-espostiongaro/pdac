@@ -121,7 +121,8 @@
         END IF
       END DO
 !
-! ... Start external iterative sweep.
+!/////////////////////////////////////////////////////////////////////
+! ... Here Start the external iterative sweep.
 !
 ! ... The correction equation are iterated on the mesh
 ! ... to propagate the updated velocities and pressure
@@ -261,17 +262,19 @@
 !*******************************************************************
 !
 ! ... mustit equals zero when convergence is reached 
-! ... simultaneously in each cell of the  subdomain.
+! ... simultaneously in each cell of the  subdomain
 !
         IF( ALL(converge) ) mustit = 0
 !
-! ... mustit must be zero in all subdomains.
+! ... mustit must be zero simultaneously in all subdomains
 !
         CALL parallel_sum_integer(mustit, 1)
 !
         IF(mustit == 0) THEN
           omega = omega0
 !*******************************************************************
+! ... write the final number of iterations
+!
           WRITE(6,277) time+dt, nit
  277      FORMAT('time = ', F8.3, '  nit = ', I4)
 !*******************************************************************
@@ -285,17 +288,20 @@
        IF(MOD(nit,1000) == 0) omega=omega*0.9D0
 !
       END DO sor_loop
+!/////////////////////////////////////////////////////////////////////
 
 ! ... stop the HW performance monitor
 !      call f_hpmstop( 1 )
 !
-      IF( mustit /= 0) THEN
 !********************************************************************
+! ... If the iterative sweep concluded without convergence
 ! ... report the number of cells where the procedure does not converge
+!
+      IF( mustit /= 0) THEN
 !
         WRITE(6,700) (time+dt)
         WRITE(6,*) 'convergence on proc ',mpime,' : ', ALL(converge)
-        IF (.NOT.ALL(converge)) WRITE(6,*) 'cells not converged (ijk, i, j, k): '
+        IF (.NOT.ALL(converge)) WRITE(6,*) 'cells not converged (ijk,i,j,k): '
         DO ijk = 1, ncint
           IF (.NOT.converge(ijk)) THEN
             imesh = myijk( ip0_jp0_kp0_, ijk)
@@ -306,11 +312,12 @@
           END IF
         END DO
  700    FORMAT('max number of iterations reached at time: ', F8.3)
-!*******************************************************************
 
         CALL error( ' iter ', 'max number of iters exceeded ', 1)
         omega=omega0
+
       END IF
+!*******************************************************************
 !
       DEALLOCATE( rgfe, rgfn, rgft)
       DEALLOCATE( rsfe, rsfn, rsft)
@@ -486,7 +493,6 @@
         END SUBROUTINE 
 !----------------------------------------------------------------------
       REAL*8 FUNCTION newp(d1, d2, d3, p1, p2, p3)
-!----------------------------------------------------------------------
 ! ... Bi-secant method
 !
       USE dimensions
@@ -515,7 +521,7 @@
       newp = 0.5D0 * (pa + pb)
 !
       RETURN
-      END FUNCTION
+      END FUNCTION newp
 !----------------------------------------------------------------------
       SUBROUTINE betas(cnv, abt)
 ! 
@@ -631,7 +637,7 @@
       END DO
 !
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE betas
 !----------------------------------------------------------------------
       END MODULE iterative_solver
 !----------------------------------------------------------------------

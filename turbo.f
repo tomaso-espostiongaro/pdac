@@ -219,7 +219,7 @@
                           sr11,sr12,sr22,sr13,sr23,sr33, ijk)
 !	  
             p11(ijk) = modsr(ijk) * sr11
-  	    p12(ijk) = modsr(ijk) * sr22
+  	    p12(ijk) = modsr(ijk) * sr12
 	    p22(ijk) = modsr(ijk) * sr22
 	    p13(ijk) = modsr(ijk) * sr13
 	    p23(ijk) = modsr(ijk) * sr23
@@ -552,7 +552,7 @@
 	
       sr12 = (uyp - uym) / (dyp+dym) + (vxp - vxm) / (dxp+dxm)
       sr13 = (uzp - uzm) / (dzp+dzm) + (wxp - wxm) / (dxp+dxm)
-      sr23 = (vzp + vzm) / (dzp+dzm) + (wyp - wym) / (dyp+dym)
+      sr23 = (vzp - vzm) / (dzp+dzm) + (wyp - wym) / (dyp+dym)
 !        
       modsr = DSQRT(2.D0 * (sr11**2.D0 + sr22**2.D0 + sr33**2.D0 +             &
 	                   2.D0*sr12**2.D0 + 2.D0*sr13**2.D0 + 2.D0*sr23**2.D0) )
