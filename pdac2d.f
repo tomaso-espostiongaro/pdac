@@ -71,7 +71,7 @@
 ! ... Initialize the IBM HW performance monitor
 !      call f_hpminit( mpime, 'pdac' )
 
-      nfil=0
+      nfil = 0
 !
 ! ... only root processor opens input FILE
 !
