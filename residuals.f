@@ -97,7 +97,7 @@
       CALL parallel_sum_real(res_s, nsolid)
       CALL parallel_sum_real(res_gc,ngas)
 
-      CALL compute_mass_flow_rate(nswp, mfr)
+      CALL compute_mass_flow_rate(mfr)
 
       IF (mpime == root) THEN
         WRITE(13,55) nswp, res_g, (res_s(is),  is=1,nsolid), &
@@ -112,7 +112,7 @@
       RETURN
       END SUBROUTINE print_mass_residuals
 !----------------------------------------------------------------------
-      SUBROUTINE compute_mass_flow_rate(nswp, mfr)
+      SUBROUTINE compute_mass_flow_rate(mfr)
 
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: ngas, nsolid
@@ -126,11 +126,10 @@
       USE time_parameters, ONLY: dt
       IMPLICIT NONE
 
-      INTEGER, INTENT(IN) :: nswp
       INTEGER :: ijk, i, j, k, imesh
       INTEGER :: ig, is
       REAL*8 :: volume, sx, sy, sz, flux
-      REAL*8 :: mfr
+      REAL*8, INTENT(OUT) :: mfr
 
       mfr  = 0.D0
 
@@ -169,4 +168,3 @@
       END SUBROUTINE compute_mass_flow_rate
 !----------------------------------------------------------------------
       END MODULE check_residuals
-!----------------------------------------------------------------------

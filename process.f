@@ -18,6 +18,7 @@
       REAL, ALLOCATABLE, DIMENSION(:,:) :: xgc
       REAL, ALLOCATABLE, DIMENSION(:,:) :: eps, us, vs, ws, ts
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: array_map
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: topo2d
 
       INTEGER :: imap
       REAL*8 :: deltaz
@@ -34,7 +35,9 @@
                 ws(ntot,nsolid), ts(ntot,nsolid))
       ALLOCATE(xgc(ntot,ngas))
       ALLOCATE(array_map(nx,ny))
+      ALLOCATE(topo2d(nx,ny))
       array_map = 0.D0
+      topo2d = -9999
 
       RETURN
       END SUBROUTINE allocate_main_fields
@@ -143,7 +146,7 @@
 !
       INTEGER :: tn, ijk, i, k
       LOGICAL :: lform
-      REAL, ALLOCATABLE, DIMENSION(:) :: rm, rg, bd, m, um, wm, mvm, c, mc 
+      REAL, ALLOCATABLE, DIMENSION(:) :: rm, rg, bd, m, um, vm, wm, mvm, c, mc 
       REAL, ALLOCATABLE, DIMENSION(:) :: epstot, lepstot, pd
       CHARACTER(LEN = 14) :: filnam
       CHARACTER(LEN = 4 ) :: lettera
@@ -155,6 +158,7 @@
       ALLOCATE(bd(ntot))  ! Bulk Density
       ALLOCATE(m(ntot))   ! Gas Component Mass Fraction
       ALLOCATE(um(ntot))  ! Mixture Velocity X
+      ALLOCATE(vm(ntot))  ! Mixture Velocity Y
       ALLOCATE(wm(ntot))  ! Mixture Velocity Z
       ALLOCATE(mvm(ntot)) ! Mixture Velocity Modulus
       ALLOCATE(c(ntot))  ! Inverse of the Sound Speed
@@ -172,21 +176,22 @@
         WRITE(logunit,fmt="(/,'* Starting post-processing ',I5,' * ')" ) tn
         CALL read_output ( tn )
 
-!        rm = rhom(eps,p,tg,xgc)
-!        rg = rhog(p,tg,xgc)
-!        bd = rgp(eps,p,tg,xgc)
-!        m  = mg(xgc)
-!
-!        um = velm(ug,us,eps,p,tg,xgc)
-!        wm = velm(wg,ws,eps,p,tg,xgc)
-!        mvm = vel(um,vm)
-!        c  = cm(bd,rg,rm,m,tg)
-!        mc = mach(mvm,c)
-!        pd = pdyn(rm,mvm)
+        rm = rhom(eps,p,tg,xgc)
+        rg = rhog(p,tg,xgc)
+        bd = rgp(eps,p,tg,xgc)
+        m  = mg(xgc)
+
+        um = velm(ug,us,eps,p,tg,xgc)
+        IF (job_type == '3D') vm = velm(vg,vs,eps,p,tg,xgc)
+        wm = velm(wg,ws,eps,p,tg,xgc)
+        mvm = vel(um,vm)
+        c  = cm(bd,rg,rm,m,tg)
+        mc = mach(mvm,c)
+        pd = pdyn(rm,mvm)
         epstot = epst(eps)
         lepstot = leps(epstot)
 
-        CALL write_array( tempunit, lepstot, lform )
+        CALL write_array( tempunit, pd, lform )
         CLOSE(tempunit)
 
         filnam = 'tg.'//lettera(tn)
@@ -196,7 +201,7 @@
         CALL write_array( tempunit, tg, lform )
         CLOSE(tempunit)
 
-        IF (imap > 0) CALL write_map(tn,tg)
+        IF (imap > 0) CALL write_map(tn,rm)
 
       END DO
 !
@@ -205,6 +210,7 @@
       DEALLOCATE(bd)
       DEALLOCATE(m)
       DEALLOCATE(um)
+      DEALLOCATE(vm)
       DEALLOCATE(wm)
       DEALLOCATE(mvm)
       DEALLOCATE(c)
@@ -227,7 +233,7 @@
       
       REAL, INTENT(IN), DIMENSION(:) :: array
       INTEGER, INTENT(IN) :: nfil
-      REAL*8 :: alpha, map
+      REAL*8 :: alpha, map, quota
       INTEGER :: i, j, k, ijk, ijkm
       CHARACTER( LEN = 4 ) :: lettera
       CHARACTER( LEN = 8 ) :: filnam
@@ -236,11 +242,13 @@
 
       filnam='map.'//lettera(nfil)
 
-      DO i = 2, nx-1
-        DO j = 2, ny-1
+      DO i = 1, nx
+        DO j = 1, ny
           !
-          DO k = 1, nz
-            IF (improfile(i,j,k) >= deltaz) THEN
+          search: DO k = 1, nz
+            quota = improfile(i,j,k)
+            IF (quota >= 0.D0 .AND. topo2d(i,j) == -9999) topo2d(i,j) = z(k) - quota
+            IF (quota >= deltaz) THEN
                 ijk  = i + (j-1) * nx + (k-1) * nx * ny
                 ijkm = i + (j-1) * nx + (k-2) * nx * ny
                 alpha = deltaz - z(k-1)
@@ -248,16 +256,21 @@
                 map = alpha * array(ijk) + (1.D0-alpha) * array(ijk)
                 array_map(i,j) = MAX(map, array_map(i,j))
                 !array_map(i,j) = map
-                EXIT
+                EXIT search
             END IF
-          END DO
+          END DO search
           !
         END DO
       END DO
 
       OPEN(UNIT=tempunit,FILE=filnam)
-      DO j = 2, ny-1
-          WRITE(tempunit,122) (array_map(i,j), i=2, nx-1)
+      DO j = 1, ny
+          WRITE(tempunit,122) (array_map(i,j), i=1, nx)
+      END DO
+      CLOSE(tempunit)
+      OPEN(UNIT=tempunit,FILE='topo2d.dat')
+      DO j = 1, ny
+          WRITE(tempunit,122) (topo2d(i,j), i=1, nx)
       END DO
       CLOSE(tempunit)
 

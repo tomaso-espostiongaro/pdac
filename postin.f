@@ -52,8 +52,8 @@
 
 ! ... Map
 
-  imap = 0
-  deltaz = 30
+  imap = 1
+  deltaz = 20
 
 ! ... Sampling
 

@@ -232,6 +232,7 @@
 ! ... An aribtrary radial profile can be assigned, as a function
 ! ... of the averaged vertical velocity
 !
+      USE check_residuals, ONLY: compute_mass_flow_rate
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nsolid, ngas
       USE domain_decomposition, ONLY: ncint, meshinds
@@ -249,7 +250,7 @@
       USE array_filters, ONLY: interp
       IMPLICIT NONE
 
-      REAL*8 :: ygcsum
+      REAL*8 :: ygcsum, mfr
       INTEGER :: ijk, imesh, i,j,k, is, ig, n
       REAL*8 :: alpha, beta, ra, dex, dey, angle, angle4
       REAL*8 :: fact_r
@@ -380,6 +381,9 @@
         
         END IF
       END DO
+
+      CALL compute_mass_flow_rate(mfr)
+      IF (mpime==root) WRITE(logunit,*) 'Mass flow rate at vent: ', mfr, 'Kg/s'
 
       RETURN
       END SUBROUTINE set_ventc
