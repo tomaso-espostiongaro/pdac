@@ -144,7 +144,7 @@
         CALL boundary
 
         ! ... write initial conditions
-        !IF (sweep == 1) CALL outp
+        IF (sweep == 1) CALL outp
         IF (.NOT.run) EXIT time_sweep
 
         IF( timing ) then
