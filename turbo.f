@@ -222,7 +222,6 @@
 !
 ! ... Smagorinsky turbulent viscosity
 !
-          WRITE(*,*) 'smag(',ij,') = ', smag(ij)
           mugt(ij) = rog(ij) * smag(ij) * modsr(ij)
           IF(mugt(ij).LT.0.0D0) mugt(ij) = 0.0D0
 !
