@@ -683,24 +683,33 @@
               WRITE(6,*) 'Please decrease minimum beta or number of cells'
               print_mesh = .TRUE.
            ELSE
+              IF ( already ) THEN
+                 dbeta = dbeta + ( 1.D0 - dbeta) / 2.D0
+                 already = .FALSE.
+              ENDIF
               beta = beta * dbeta 
-              already = .TRUE.
               WRITE(6,*) 'Reducing beta = ', beta, ' n = ', &
-                (n01+m1+n11)+(n02+m2+n12)+1 
+              (n01+m1+n11)+(n02+m2+n12)+1 
            ENDIF
         ELSE IF ( (n01+m1+n11)+(n02+m2+n12)+1 > nd ) THEN
-           IF ( already ) THEN
+           IF ( .not.already ) THEN
               dbeta = dbeta + (1.0 - dbeta) / 2.0
+              already = .TRUE.
            ENDIF
            beta = beta / dbeta
            WRITE(6,*) 'Increasing beta = ', beta, ' n = ', &
-             (n01+m1+n11)+(n02+m2+n12)+1
+           (n01+m1+n11)+(n02+m2+n12)+1
         ELSE 
-          print_mesh = .TRUE.
-          WRITE(6,*) 'Final beta = ', beta, ' n = ', &
-            (n01+m1+n11)+(n02+m2+n12)+1
+           IF ( (1.D0-dbeta) <= 1.D-15 ) THEN
+              print_mesh= .TRUE.
+              WRITE(6,*) 'Final beta = ', beta, ' n= ', &
+              (n01+m1+n11)+(n02+m2+n12)+1
+           ELSE
+              beta = beta / dbeta
+              already = .TRUE.
+           ENDIF
         ENDIF
-
+        
         CALL myflush( 6 )
       END DO
 !
@@ -713,11 +722,11 @@
       beta1 = beta
       IF ( ntilde1 > 1.D0 ) THEN
          DO j=1,50
-            beta1 = ( 1.D0 - ( m1*beta1**( m1+1.D0 ) + 1.D0 ) / ntilde1 ) / &
+            beta1 = ( 1.D0 - ( m1*beta1**( m1+1 ) + 1.D0 ) / ntilde1 ) / &
             &      ( 1.D0 - ( m1+1.D0 )*( beta1**m1 ) / ntilde1 ) 
          ENDDO
       ENDIF
-!
+!     
       ntilde2 = ( l2 - n12*demax) / demin + 1.D0
       beta2 = beta
       IF ( ntilde2 > 1.D0 ) THEN
