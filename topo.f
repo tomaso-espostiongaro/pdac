@@ -88,7 +88,7 @@
 
       REAL*8 :: ratio
       REAL*8 :: xmin, xmax, zmin, zmax
-      CHARACTER(LEN=20) :: topo_file
+      CHARACTER(LEN=80) :: topo_file
 !
 ! ... read the topography, as defined on a generic rectilinear
 ! ... mesh "xtop"
@@ -98,8 +98,9 @@
       IF (mpime == root) THEN
         OPEN(UNIT=3, FILE=topo_file, STATUS='OLD')
         READ(3,*) noditop
-        CALL bcast_integer(noditop,1,root)
       END IF
+
+      CALL bcast_integer(noditop,1,root)
 
       ALLOCATE(xtop(noditop))
       ALLOCATE(ztop(noditop))
@@ -108,10 +109,11 @@
         DO n=1, noditop
           READ(3,*) xtop(n),ztop(n)
         END DO
-        CALL bcast_real(xtop,noditop,root)
-        CALL bcast_real(ytop,noditop,root)
         CLOSE(3)
       END IF
+
+      CALL bcast_real(xtop,noditop,root)
+      CALL bcast_real(ytop,noditop,root)
 !
       xmin = MINVAL(xtop)
       xmax = MAXVAL(xtop)
@@ -130,7 +132,7 @@
       USE parallel, ONLY: mpime, root
       IMPLICIT NONE
 
-      CHARACTER(LEN=20) :: topo_file
+      CHARACTER(LEN=80) :: topo_file
       INTEGER :: p
       INTEGER :: i, j
       
@@ -152,13 +154,14 @@
         READ(3,*) dd
         READ(3,*) noval
 
-        CALL bcast_integer(noditopx,1,root)
-        CALL bcast_integer(noditopy,1,root)
-        CALL bcast_real(xll,1,root)
-        CALL bcast_real(yll,1,root)
-        CALL bcast_real(dd,1,root)
-        CALL bcast_integer(noval,1,root)
       END IF
+
+      CALL bcast_integer(noditopx,1,root)
+      CALL bcast_integer(noditopy,1,root)
+      CALL bcast_real(xll,1,root)
+      CALL bcast_real(yll,1,root)
+      CALL bcast_real(dd,1,root)
+      CALL bcast_integer(noval,1,root)
 
       vdem%nx           = noditopx
       vdem%ny           = noditopy
@@ -187,8 +190,9 @@
             ztop2d(i,j) = DBLE(elevation) / 100.D0
           END DO
         END DO
-        CALL bcast_real(ztop2d,noditopx*noditopy,root)
       END IF
+
+      CALL bcast_real(ztop2d,noditopx*noditopy,root)
 !
       RETURN
       END SUBROUTINE read_dem_ascii
