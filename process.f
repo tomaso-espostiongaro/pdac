@@ -179,21 +179,28 @@
         WRITE(logunit,fmt="(/,'* Starting post-processing ',I5,' * ')" ) tn
         CALL read_output ( tn )
 
-        rm = rhom(eps,p,tg,xgc)
-        rg = rhog(p,tg,xgc)
-        bd = rgp(eps,p,tg,xgc)
-        m  = mg(xgc)
-
-        um = velm(ug,us,eps,p,tg,xgc)
-        wm = velm(wg,ws,eps,p,tg,xgc)
-        mvm = vel(um,wm)
-        c  = cm(bd,rg,rm,m,tg)
+!        rm = rhom(eps,p,tg,xgc)
+!        rg = rhog(p,tg,xgc)
+!        bd = rgp(eps,p,tg,xgc)
+!        m  = mg(xgc)
+!
+!        um = velm(ug,us,eps,p,tg,xgc)
+!        wm = velm(wg,ws,eps,p,tg,xgc)
+!        mvm = vel(um,wm)
+!        c  = cm(bd,rg,rm,m,tg)
         epstot = epst(eps)
         lepstot = leps(epstot)
 
-        mc = mach(mvm,c)
+!        mc = mach(mvm,c)
 
         CALL write_array( tempunit, lepstot, lform )
+        CLOSE(tempunit)
+
+        filnam = 'tg.'//lettera(tn)
+        OPEN(tempunit,FILE=filnam, STATUS='NEW', FORM='UNFORMATTED')
+        WRITE(logunit,fmt="(/,'* Starting post-processing ',I5,' * ')" ) tn
+
+        CALL write_array( tempunit, tg, lform )
         CLOSE(tempunit)
 
       END DO
