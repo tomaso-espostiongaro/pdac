@@ -344,24 +344,54 @@
 ! ... lay on the same coordinate on the plane)
 !
       ijk = 1 + (ord(1)-1)*nx
-        ff(ijk) = .FALSE.
+      ff(ijk) = .FALSE.
+
       ijk = nx + (ord(1)-1)*nx
-        ff(ijk) = .FALSE.
+      ff(ijk) = .FALSE.
+
+      WRITE(*,*) 'forcing points'
       DO i = 2, nx - 1
-        IF (ord(i) >= ord(i-1)) THEN
+        IF ((ord(i)-ord(i-1) > 0).AND.(ord(i+1)-ord(i) >= 0)) THEN
           DO k = ord(i-1), ord(i)
             ijk = i + (k-1) * nx
             ff(ijk) = .TRUE.
+            WRITE(*,*) i,k,ord(i),ijk,'1'
           END DO
-        ELSE IF ( ord(i) < ord(i-1) ) THEN
-          ijk = i + (ord(i)-1) * nx
-          ff(ijk) = .TRUE.
-          DO k = ord(i), ord(i-1)
-            ijk = (i-1) + (k-1) * nx
+        ELSEIF (ord(i+1)-ord(i) < 0) THEN
+          DO k = ord(i+1), ord(i)
+            ijk = i + (k-1) * nx
             ff(ijk) = .TRUE.
+            WRITE(*,*) i,k,ord(i),ijk,'2'
           END DO
+        ELSE
+          k = ord(i)
+          ijk = i + (k-1) * nx
+          ff(ijk) = .TRUE.
+          WRITE(*,*) i,k,ord(i),ijk,'3'
         END IF
       END DO
+                                                             
+!      DO i = 2, nx - 1
+!        IF (ord(i) >= ord(i-1)) THEN
+!          DO k = ord(i-1), ord(i)
+!            ijk = i + (k-1) * nx
+!            ff(ijk) = .TRUE.
+!            WRITE(*,*) i,k,ord(i),ijk,'1'
+!          END DO
+!        ELSE IF ( ord(i) < ord(i-1) ) THEN
+!          k = ord(i)
+!          ijk = i + (k-1) * nx
+!          ff(ijk) = .TRUE.
+!          WRITE(*,*) i,k,ord(i),ijk,'2'
+!          IF (i>2) THEN
+!            DO k = ord(i), ord(i-1)
+!              ijk = (i-1) + (k-1) * nx
+!              ff(ijk) = .TRUE.
+!              WRITE(*,*) i-1,k,ord(i-1),ijk,'3'
+!            END DO
+!          END IF
+!        END IF
+!      END DO
 !
       RETURN
       END SUBROUTINE interpolate_2d

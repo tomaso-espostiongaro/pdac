@@ -6,6 +6,7 @@
 
       INTEGER :: ivent
       REAL*8 :: xvent, yvent, radius
+      REAL*8 :: wrat
       REAL*8 :: u_gas, v_gas, w_gas, p_gas, t_gas
       REAL*8 :: u_solid(max_nsolid), v_solid(max_nsolid), w_solid(max_nsolid), &
                 ep_solid(max_nsolid), t_solid(max_nsolid)
@@ -141,7 +142,7 @@
 
       REAL*8 :: area, ygcsum
       REAL*8 :: mixdens, mixvel, mfr, mg
-      REAL*8 :: alpha, ep0
+      REAL*8 :: alpha, ep0, ra, beta
       INTEGER :: ijk, imesh, i,j,k, is, ig, n
 
       area = ACOS(-1.D0) * radius**2
@@ -149,6 +150,16 @@
       DO ijk = 1, ncint      
         IF(flag(ijk) == 8) THEN
           CALL meshinds(ijk,imesh,i,j,k)
+
+          IF (wrat > 1.D0) THEN
+            beta = 1.D0 / (wrat - 1.D0)
+            ra = DSQRT((x(i)-xvent)**2 + (y(j)-yvent)**2)
+            ra = ra / radius
+          ELSE IF (wrat <= 1.D0) THEN
+            wrat = 1.D0
+            beta = 1.D0
+            ra = 0.D0
+          END IF
 
           DO n = 1, nvt
             IF (vcell(n)%imesh == imesh) THEN
@@ -158,7 +169,12 @@
           
           ug(ijk) = u_gas 
           IF (job_type == '3D') vg(ijk) = v_gas 
-          wg(ijk) = w_gas 
+          
+          !
+          ! ... vertical velocity profile
+          !
+          wg(ijk) = w_gas * wrat * (1.D0 - ra ** beta)
+          
           tg(ijk) = t_gas
           ep0     = 1.D0 - SUM(ep_solid(1:nsolid))
           ep(ijk) = 1.D0 - alpha * SUM(ep_solid(1:nsolid))
@@ -169,8 +185,15 @@
           END DO
 
           DO is = 1,nsolid
+
             us(ijk,is)  = u_solid(is) 
             IF (job_type == '3D') vs(ijk,is)  = v_solid(is) 
+          
+            !
+            ! ... vertical velocity profile
+            !
+            ws(ijk,is) = w_solid(is) * wrat * (1.D0 - ra ** beta)
+
             ws(ijk,is)  = w_solid(is) 
             ts(ijk,is)  = t_solid(is)
             rlk(ijk,is) = ep_solid(is)*rl(is) * alpha
@@ -189,6 +212,56 @@
 
       RETURN
       END SUBROUTINE set_ventc
+!-----------------------------------------------------------------------
+      SUBROUTINE update_ventc(sweep,ijk)
+!
+! ... Update the vertical velocity profile as a function of time
+! ... The time scale is 'tau'
+!
+      USE control_flags, ONLY: job_type
+      USE dimensions, ONLY: nsolid
+      USE domain_decomposition, ONLY: ncint, meshinds
+      USE gas_solid_velocity, ONLY: ug, wg, vg
+      USE gas_solid_velocity, ONLY: us, vs, ws
+      USE grid, ONLY: flag
+      IMPLICIT NONE
+
+      INTEGER, INTENT(IN) :: sweep, ijk
+      REAL*8 :: f1, f2, fact
+      INTEGER :: is
+
+      f1 = ft(sweep)
+      f2 = ft(sweep-1)
+      IF (sweep == 1) THEN
+        fact = f1
+      ELSE
+        fact = f1/f2
+      END IF
+      
+      wg(ijk) = wg(ijk) * fact
+      DO is = 1,nsolid
+        ws(ijk,is) = ws(ijk,is) * fact
+      END DO
+
+      RETURN
+      END SUBROUTINE update_ventc
+!-----------------------------------------------------------------------
+      REAL*8 FUNCTION ft(n)
+      USE time_parameters, ONLY: tau, dt
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: n
+      REAL*8 :: t
+
+      t = n * dt
+
+      IF (t <= tau) THEN
+        ft = 3.D0 * (t / tau)**2 - 2.D0 * (t / tau)**3     
+      ELSE
+        ft = 1.D0
+      END IF
+
+      RETURN
+      END FUNCTION ft
 !-----------------------------------------------------------------------
       REAL*8 FUNCTION cell_fraction(i, j)
 !

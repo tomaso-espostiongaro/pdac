@@ -85,7 +85,7 @@
       USE grid, ONLY: maxbeta, grigen
       USE initial_conditions, ONLY: density_specified
       USE vent_conditions, ONLY: ivent, u_gas, v_gas, w_gas, p_gas, t_gas, &
-          u_solid, v_solid, w_solid,  ep_solid, t_solid, radius
+          u_solid, v_solid, w_solid,  ep_solid, t_solid, radius, wrat
       USE immersed_boundaries, ONLY: immb
       USE iterative_solver, ONLY: inmax, maxout, omega, optimization
       USE io_restart, ONLY: max_seconds, nfil
@@ -98,7 +98,7 @@
       USE roughness_module, ONLY: zrough, allocate_roughness, roughness
       USE set_indexes, ONLY: subsc_setup
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
-     &                            timestart, rungekut
+     &                            timestart, rungekut, tau
       USE turbulence_model, ONLY: iturb, cmut, iss, modturbo
       USE volcano_topography, ONLY: itp
 !
@@ -107,7 +107,7 @@
       INTEGER, INTENT(IN) :: iunit
 
       NAMELIST / control / run_name, job_type, restart_mode,       &
-        time, tstop, dt, lpr, imr, tpr, tdump, nfil,               &
+        time, tstop, dt, lpr, imr, tpr, tdump, nfil, tau,          &
         formatted_output, max_seconds, run
 
       NAMELIST / model / irex, gas_viscosity, part_viscosity,      &
@@ -124,7 +124,7 @@
       NAMELIST / boundaries / west, east, south, north, bottom, top, &
         itp, topography, immb, ibl
       
-      NAMELIST / inlet / ivent, radius, u_gas, v_gas, w_gas,  &
+      NAMELIST / inlet / ivent, radius, wrat, u_gas, v_gas, w_gas,  &
         p_gas, t_gas, u_solid, v_solid, w_solid, ep_solid, t_solid, &
         vent_O2, vent_N2, vent_CO2, vent_H2, vent_H2O, vent_Air, vent_SO2
 
@@ -162,6 +162,7 @@
       formatted_output = .TRUE.
       max_seconds = 20000.0
       run = .TRUE.
+      tau = 1.D0
 
 ! ... Model
 
@@ -235,6 +236,7 @@
       u_gas = 0.D0            ! gas velocity x
       v_gas = 0.D0            ! gas velocity y
       w_gas = 0.D0            ! gas velocity z
+      wrat = 1.D0             ! maximum vertical velocity
       p_gas = 1.01325D5       ! gas pressure
       t_gas  = 288.15D0       ! gas temperature
       u_solid = 0.D0           ! particle velocity x (array)
@@ -286,7 +288,7 @@
       inmax = 8         !  maximum number of pressure correction steps
       maxout = 1000     !  maximum number of solver iteration
       omega = 1.0       !  relaxation parameter  ( 0.5 under - 2.0 over)
-      optimization = 2  !  optimization degree on iterative solver
+      optimization = 1  !  optimization degree on iterative solver
       implicit_fluxes   = .FALSE. ! fluxes are computed implicitly
       implicit_enthalpy = .FALSE. ! enthalpy solved implicitly
       update_eosg       = .TRUE.  ! update density after temperature
@@ -313,6 +315,7 @@
       CALL bcast_logical(formatted_output,1,root)
       CALL bcast_logical(run,1,root)
       CALL bcast_real(max_seconds,1,root)
+      CALL bcast_real(tau,1,root)
 
       SELECT CASE ( TRIM(restart_mode) )
         CASE ('from_scratch', 'default')
@@ -411,6 +414,7 @@
 
       CALL bcast_integer(ivent,1,root)
       CALL bcast_real(radius,1,root)
+      CALL bcast_real(wrat,1,root)
       CALL bcast_real(u_gas,1,root)
       CALL bcast_real(v_gas,1,root)
       CALL bcast_real(w_gas,1,root)
@@ -670,6 +674,7 @@
             CALL iotk_write_dat( iuni_nml, "tdump", tdump )
             CALL iotk_write_dat( iuni_nml, "nfil", irex )
             CALL iotk_write_dat( iuni_nml, "max_seconds", max_seconds )
+            CALL iotk_write_dat( iuni_nml, "tau", tau )
           CALL iotk_write_end( iuni_nml, "control" )
 
           CALL iotk_write_begin( iuni_nml, "model" )

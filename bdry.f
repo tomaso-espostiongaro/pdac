@@ -36,6 +36,7 @@
       USE set_indexes, ONLY: ipjk, imjk, ippjk, immjk, ijpk, ipjpk,    &
         imjpk, ijmk, ipjmk, imjmk, ijppk, ijmmk, ijkp, ipjkp, imjkp,   &
         ijpkp, ijmkp, ijkm, ipjkm, imjkm, ijpkm, ijmkm, ijkpp, ijkmm
+      USE vent_conditions, ONLY: update_ventc
 !
       IMPLICIT NONE
 !
@@ -50,12 +51,18 @@
       fy = 0 
       fz = 0
       forced = .FALSE.
+      WRITE(*,*) 'maxnum'
+      WRITE(*,*) MAXVAL(numx), MAXVAL(numz)
 !
       DO ijk = 1, ncint
 
         CALL meshinds(ijk,imesh,i,j,k)
 
-        IF( flag(ijk) == 1 ) THEN
+        IF (flag(ijk) == 8) THEN
+
+          CALL update_ventc(sweep,ijk)
+
+        ELSE IF( flag(ijk) == 1 ) THEN
           CALL subscr(ijk)
 !
 ! ... If (ijk) is a forcing point, compute the pseudo-velocities

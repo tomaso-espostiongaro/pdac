@@ -216,6 +216,7 @@
         END IF
 
       END DO
+      WRITE(*,*) 'number of forcing points: ', fp
 !
 ! ... Skip the -- last grid point -- 
 !

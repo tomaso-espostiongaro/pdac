@@ -1133,14 +1133,14 @@
           i = fptx(n)%i
           j = fptx(n)%j
           k = fptx(n)%k
-        
-set_numx: IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
+set_numx: IF (i/=0 .AND. k/=0) THEN
             IF (job_type == '2D') THEN
               ijk = i + (k-1) * nx
             ELSE IF (job_type == '3D') THEN
+              IF (j == 0) CALL error('decomp','control numx',1)
               ijk = i + (j-1) * nx + (k-1) * nx * ny
             END IF
-            IF( cell_owner(ijk)== mpime ) THEN
+            IF( cell_owner(ijk) == mpime ) THEN
               ijkl = cell_g2l(ijk,mpime)
               IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
                   j==1 .OR. j==ny) THEN
@@ -1160,10 +1160,11 @@ set_numx: IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
             i = fpty(n)%i
             j = fpty(n)%j
             k = fpty(n)%k
-set_numy:   IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
+set_numy:   IF (i/=0 .AND. k/=0) THEN
               IF (job_type == '2D') THEN
                 ijk = i + (k-1) * nx
               ELSE IF (job_type == '3D') THEN
+                IF (j == 0) CALL error('decomp','control numy',1)
                 ijk = i + (j-1) * nx + (k-1) * nx * ny
               END IF
               IF( cell_owner(ijk)== mpime ) THEN
@@ -1186,10 +1187,11 @@ set_numy:   IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
           i = fptz(n)%i
           j = fptz(n)%j
           k = fptz(n)%k
-set_numz: IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
+set_numz: IF (i/=0 .AND. k/=0) THEN
             IF (job_type == '2D') THEN
               ijk = i + (k-1) * nx
             ELSE IF (job_type == '3D') THEN
+              IF (j == 0) CALL error('decomp','control numz',1)
               ijk = i + (j-1) * nx + (k-1) * nx * ny
             END IF
             IF( cell_owner(ijk)== mpime ) THEN
@@ -1207,7 +1209,7 @@ set_numz: IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
         END DO
 
         CALL data_exchange(numx)
-        CALL data_exchange(numy)
+        IF (job_type == '3D') CALL data_exchange(numy)
         CALL data_exchange(numz)
 
       END IF

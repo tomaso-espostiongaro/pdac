@@ -1137,11 +1137,15 @@
 !     H E R E   S T A R T   T H E  O P T I M I Z E D   R O U T I N E S 
 !----------------------------------------------------------------------
 !
-      SUBROUTINE opt_inner_loop(i, j, k, ijk, nit, d3, p3,abeta_,conv_, &
+      SUBROUTINE opt_inner_loop(i, j, k, ijk, nit, d3, p3,abeta,conv, &
                                 dgorig, nloop, cvg )
 !
 !----------------------------------------------------------------------
-
+!
+! ... This is an optimized version of the inner_loop, where the stencils
+! ... of the various fields are computed once at the beginning of the
+! ... loop and only updated at the end
+!
         USE dimensions
         USE pressure_epsilon, ONLY: p, ep
         USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
@@ -1162,13 +1166,13 @@
         IMPLICIT NONE
 
         INTEGER :: nit, ijk, i, j, k, nloop
-        REAL*8 :: d3, p3, abeta_, conv_, dgorig
+        REAL*8 :: d3, p3, abeta, conv, dgorig
         LOGICAL, INTENT(OUT) :: cvg
         REAL*8 :: resx, resy, resz, mg
         REAL*8 :: rlkx, rlky, rlkz, rls
         REAL*8 :: fe_, fn_, ft_, fw_, fs_, fb_
-        REAL*8 :: fse_(max_nsolid), fsn_(max_nsolid), fst_(max_nsolid), &
-                  fsw_(max_nsolid), fss_(max_nsolid), fsb_(max_nsolid)
+        REAL*8 :: sfe_(max_nsolid), sfn_(max_nsolid), sft_(max_nsolid), &
+                  sfw_(max_nsolid), sfs_(max_nsolid), sfb_(max_nsolid)
 
         TYPE(stencil) :: ug_, vg_, wg_
         TYPE(stencil) :: us_(max_nsolid), vs_(max_nsolid), ws_(max_nsolid)
@@ -1182,10 +1186,10 @@
         ! ... These values of the mass fluxes will be updated
         ! ... in the inner_loop.
         !
-        fse_(1:nsolid) = rsfe( ijk, 1:nsolid )
-        fsw_(1:nsolid) = rsfe( imjk, 1:nsolid )
-        fst_(1:nsolid) = rsft( ijk, 1:nsolid )
-        fsb_(1:nsolid) = rsft( ijkm, 1:nsolid )
+        sfe_(1:nsolid) = rsfe( ijk, 1:nsolid )
+        sfw_(1:nsolid) = rsfe( imjk, 1:nsolid )
+        sft_(1:nsolid) = rsft( ijk, 1:nsolid )
+        sfb_(1:nsolid) = rsft( ijkm, 1:nsolid )
 
         fe_ = rgfe( ijk )
         fw_ = rgfe( imjk )
@@ -1193,8 +1197,8 @@
         fb_ = rgft( ijkm )
         
         IF(job_type == '3D') THEN
-          fsn_(1:nsolid) = rsfn( ijk, 1:nsolid )
-          fss_(1:nsolid) = rsfn( ijmk, 1:nsolid )
+          sfn_(1:nsolid) = rsfn( ijk, 1:nsolid )
+          sfs_(1:nsolid) = rsfn( ijmk, 1:nsolid )
           fn_ = rgfn( ijk )
           fs_ = rgfn( ijmk )
         END IF
@@ -1207,6 +1211,7 @@
         CALL first_rnb(ug_,ug,ijk)
         CALL first_rnb(wg_,wg,ijk)
         IF (job_type == '3D') CALL first_rnb(vg_,vg,ijk)
+
         IF (muscl /= 0) THEN
           CALL third_nb(rgp_,rgp,ijk)
           CALL third_rnb(ug_,ug,ijk)
@@ -1219,6 +1224,7 @@
           CALL first_rnb(us_(is),us(:,is),ijk)
           CALL first_rnb(ws_(is),ws(:,is),ijk)
           IF (job_type == '3D') CALL first_rnb(vs_(is),vs(:,is),ijk)
+
           IF (muscl /= 0) THEN
             CALL third_nb(rlk_(is),rlk(:,is),ijk)
             CALL third_rnb(us_(is),us(:,is),ijk)
@@ -1228,6 +1234,7 @@
         END DO
 !
         kros = -1
+
         DO loop = 1, inmax
 
           ! ... Correct the pressure at current cell
@@ -1239,7 +1246,7 @@
           ! ... and volumetric fractions ...
 !
           IF( (loop > 1) .OR. (nit > 1) ) THEN
-            CALL padjust( p(ijk), kros, d3, p3, omega, abeta_ )
+            CALL padjust( p(ijk), kros, d3, p3, omega, abeta )
           END IF
 !
           ! ... Use equation of state to calculate gas density 
@@ -1248,6 +1255,10 @@
           CALL thermal_eosg(rog(ijk),tg(ijk),p(ijk),xgcl(:))
 !
           rgp(ijk) = ep(ijk) * rog(ijk)
+          
+          ! ... Update the stencil
+          !
+          rgp_%c = rgp(ijk)
 !
           ! ... Update gas and particles velocities using the 
           ! ... corrected pressure at current location. 
@@ -1286,32 +1297,32 @@
 
             IF (job_type == '2D') THEN
 
-              CALL masf(fse_(is), fst_(is), fsw_(is), fsb_(is), &
+              CALL masf(sfe_(is), sft_(is), sfw_(is), sfb_(is), &
                         rlk_(is), us_(is), ws_(is), ijk)
                      
               IF (muscl > 0) THEN
-                CALL fmas(fse_(is), fst_(is), fsw_(is), fsb_(is), &
+                CALL fmas(sfe_(is), sft_(is), sfw_(is), sfb_(is), &
                           rlk_(is), us_(is), ws_(is), ijk)
               END IF
 
             ELSE IF (job_type == '3D') THEN
 
-              CALL masf(fse_(is), fsn_(is), fst_(is), &
-                        fsw_(is), fss_(is), fsb_(is), &
+              CALL masf(sfe_(is), sfn_(is), sft_(is), &
+                        sfw_(is), sfs_(is), sfb_(is), &
                         rlk_(is), us_(is), vs_(is), ws_(is), ijk)
 
               IF (muscl > 0) THEN
-                CALL fmas(fse_(is), fsn_(is), fst_(is), &
-                          fsw_(is), fss_(is), fsb_(is), &
+                CALL fmas(sfe_(is), sfn_(is), sft_(is), &
+                          sfw_(is), sfs_(is), sfb_(is), &
                           rlk_(is), us_(is), vs_(is), ws_(is), ijk)
               END IF
 
             END IF
 
-            rlkx = ( fse_(is) - fsw_(is) ) * indx(i) * inr(i)
-            rlkz = ( fst_(is) - fsb_(is) ) * indz(k)
+            rlkx = ( sfe_(is) - sfw_(is) ) * indx(i) * inr(i)
+            rlkz = ( sft_(is) - sfb_(is) ) * indz(k)
             IF (job_type == '3D') THEN
-              rlky = ( fsn_(is) - fss_(is) ) * indy(j)
+              rlky = ( sfn_(is) - sfs_(is) ) * indy(j)
             ELSE
               rlky = 0.D0
             END IF
@@ -1369,15 +1380,15 @@
 
           dg = rgp(ijk) - rgpn(ijk) + dt * ( resx + resy + resz )
 !
-          IF ( ( DABS(dg) > conv_ ) .OR. ( DABS(dg) >= DABS(dgorig) ) ) THEN
+          IF ( ( DABS(dg) > conv ) .OR. ( DABS(dg) >= DABS(dgorig) ) ) THEN
 
             cvg = .FALSE.
             IF( nit == 1 .AND. loop == 1 ) dgorig = dg
             d3 = dg
             ! ... steepen the Newton's slope (accelerate)
-            IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
+            IF( kros < 2 .AND. loop == inmax ) abeta = 0.5D0 * inmax * abeta
 
-          ELSE IF ( DABS( dg ) <= conv_ ) THEN
+          ELSE IF ( DABS( dg ) <= conv ) THEN
 
             cvg = .TRUE.
             EXIT
@@ -1389,10 +1400,10 @@
         ! ... Update the mass fluxes
         ! ... (used in the next outer iteration)
         !
-        rsfe( ijk, 1:nsolid ) = fse_(1:nsolid) 
-        rsfe( imjk, 1:nsolid ) = fsw_(1:nsolid) 
-        rsft( ijk, 1:nsolid ) = fst_(1:nsolid)
-        rsft( ijkm, 1:nsolid ) = fsb_(1:nsolid) 
+        rsfe( ijk, 1:nsolid ) = sfe_(1:nsolid) 
+        rsfe( imjk, 1:nsolid ) = sfw_(1:nsolid) 
+        rsft( ijk, 1:nsolid ) = sft_(1:nsolid)
+        rsft( ijkm, 1:nsolid ) = sfb_(1:nsolid) 
 
         rgfe( ijk ) = fe_
         rgfe( imjk ) = fw_ 
@@ -1400,8 +1411,8 @@
         rgft( ijkm ) = fb_
         
         IF(job_type == '3D') THEN
-          rsfn( ijk, 1:nsolid ) = fsn_(1:nsolid)
-          rsfn( ijmk, 1:nsolid ) = fss_(1:nsolid)
+          rsfn( ijk, 1:nsolid ) = sfn_(1:nsolid)
+          rsfn( ijmk, 1:nsolid ) = sfs_(1:nsolid)
           rgfn( ijk ) = fn_
           rgfn( ijmk ) = fs_
         END IF
