@@ -45,11 +45,11 @@
 !
       IMPLICIT NONE
       CHARACTER(LEN=11) :: errnb, testnb, lognb
-      CHARACTER(LEN=8) :: inputfile, logfile, errorfile, testfile
+      CHARACTER(LEN=8) :: inputfile, logfile, errorfile, testfile, checkfile
       CHARACTER(LEN=3) :: procnum
       INTEGER :: mydate(10)
 !
-      INTEGER :: inputunit, logunit, errorunit, testunit
+      INTEGER :: inputunit, logunit, errorunit, testunit, checkunit
       INTEGER :: ig
       REAL*8 :: s0, s1, s2, s3, s4, s5, s6, t0
       REAL*8 :: pt0, pt1, pt2, pt3, pt4, pt5, pt6
@@ -83,10 +83,12 @@
       logunit   = 6
       testunit  = 7
       errorunit = 8
+      checkunit = 13
       inputfile = 'pdac.dat'
       logfile = 'pdac.log'
       testfile = 'pdac.tst'
       errorfile = 'pdac.err'
+      checkfile = 'pdac.chm'
       errnb = errorfile//procnum(mpime)
       testnb = testfile//procnum(mpime)
       lognb = logfile//procnum(mpime)
@@ -95,6 +97,7 @@
         IF( .NOT. debug ) OPEN(UNIT=logunit,   FILE=logfile,   STATUS='UNKNOWN')
         OPEN(UNIT=testunit,  FILE=testfile,  STATUS='UNKNOWN')
         OPEN(UNIT=errorunit, FILE=errorfile, STATUS='UNKNOWN')
+        OPEN(UNIT=checkunit, FILE=checkfile, STATUS='UNKNOWN')
       ELSE
         IF( .NOT. debug ) OPEN(UNIT=logunit,   FILE=lognb,   STATUS='UNKNOWN')
         OPEN(UNIT=testunit,  FILE=testnb,    STATUS='UNKNOWN')
@@ -264,6 +267,7 @@
       IF( .NOT. debug ) CLOSE(logunit)
       CLOSE(errorunit)
       CLOSE(testunit)
+      CLOSE(checkunit)
       CLOSE(15)
 !
 ! ... Finalize parallel environment

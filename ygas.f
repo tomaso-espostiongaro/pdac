@@ -18,6 +18,7 @@
       USE domain_decomposition, ONLY: ncint, ncdom, meshinds
       USE eos_gas, ONLY: rgpgc, rgpgcn, ygc, xgc, mole
       USE gas_constants, ONLY: gas_type
+      USE gas_solid_density, ONLY: rgp
       USE grid, ONLY: dx, dy, dz, indx, indy, indz, inr
       USE grid, ONLY: flag
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
@@ -27,11 +28,18 @@
 !
       REAL*8 :: yfw, yfs, yfb, yfx, yfy, yfz
       REAL*8 :: ygcdfg
-      REAL*8 :: rgp, rgpinv, rgpgc_tmp
+      REAL*8 :: rgpt, rgpinv, rgpgc_tmp
       INTEGER :: i, j, k, imesh
       INTEGER :: ijk
       INTEGER :: ig, dfg
 !
+      IF (ngas == 1) THEN
+        ygc(1,:) = 1.D0
+        xgc(1,:) = 1.D0
+        rgpgc(:,1) = rgp(:)
+        RETURN
+      END IF
+
       ALLOCATE(yfe(ncdom,ngas), yft(ncdom,ngas))
       yfe = 0.D0; yft = 0.D0
 
@@ -44,6 +52,11 @@
 !
       CALL compute_all_fluxes
 
+      IF (lpr > 1) THEN
+        WRITE(8,*) 'ygas report at time: ', time
+        WRITE(8,*) 'Gas mass is not conserved at cells: '
+      END IF
+
       DO ijk = 1, ncint
        IF( flag(ijk) == 1 ) THEN
          CALL meshinds(ijk,imesh,i,j,k)
@@ -52,7 +65,7 @@
          yfx = 0.D0
          yfy = 0.D0
          yfz = 0.D0
-         rgp = 0.D0
+         rgpt = 0.D0
 
          DO ig=1,ngas
 	   
@@ -71,31 +84,34 @@
 	   rgpgc_tmp = rgpgc_tmp - dt * indx(i) * yfx * inr(i)     
            rgpgc_tmp = rgpgc_tmp - dt * indy(j) * yfy              
 	   rgpgc_tmp = rgpgc_tmp - dt * indz(k) * yfz
+
+           rgpgc(ijk,ig) = rgpgc_tmp
  
            IF(rgpgc(ijk,ig) < 0.D0) THEN
              IF (lpr > 1) THEN
-               WRITE(8,*) 'Warning!: gas mass is not conserved'
-               WRITE(8,128) time, ijk, ig 
+               WRITE(8,128) ijk, ig 
                WRITE(8,*) rgpgcn(ijk,ig),  rgpgc(ijk,ig)
- 128           FORMAT('Time= ',F8.3,' Cell= ',I6, ' Specie= ',I2)
+ 128           FORMAT(' Cell= ',I6, ' Specie= ',I2)
              END IF
+
              rgpgc(ijk,ig) = 0.D0
+
            END IF
 
-           rgp = rgp + rgpgc(ijk,ig)
+           rgpt = rgpt + rgpgc(ijk,ig)
 
          END DO
 
-         rgpinv = 1.0D0/rgp 
+         rgpinv = 1.0D0/rgpt 
 !
 ! ... Update the mass fractions (with the closure relation constraint)
 !
-         ygcdfg = 1.D0
-         DO ig = 1, ngas - 1
-           ygc(ig,ijk) = rgpgc(ijk,ig) * rgpinv
-           ygcdfg = ygcdfg - ygc(ig,ijk)
-         END DO
-         ygc(ngas,ijk) = ygcdfg
+        ygcdfg = 1.D0
+        DO ig = 1, ngas - 1
+          ygc(ig,ijk) = rgpgc(ijk,ig) * rgpinv
+          ygcdfg = ygcdfg - ygc(ig,ijk)
+        END DO
+        ygc(ngas,ijk) = ygcdfg
 !
 ! ... Update molar fractions
 !

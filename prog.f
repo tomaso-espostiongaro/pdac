@@ -4,7 +4,8 @@
 
       USE blunt_body, ONLY: bluntb, ibl
       USE boundary_conditions, ONLY: boundary
-      USE control_flags, ONLY: job_type, lpr, run
+      USE check_residuals, ONLY: print_mass_residuals
+      USE control_flags, ONLY: job_type, lpr, run, imr
       USE control_flags, ONLY: implicit_enthalpy, implicit_fluxes
       USE dimensions
       USE domain_decomposition, ONLY: ncint, myijk
@@ -328,6 +329,10 @@
         w1 = elapsed_seconds()
         WRITE(6,fmt="('  walltime = ',F10.2,', ',F10.2)") w1, w1-w0
         w0 = w1
+!
+! ... Print the total residuals of the mass conservation equation
+!
+        IF ( imr == 1 ) CALL print_mass_residuals(sweep)
 !
 !//////////////////////////////////////////////////////////////////////
 !

@@ -6,8 +6,9 @@
  time =  0.00,
  tstop = 200.0,
  dt    = 0.01,
- tpr   = 1.0,
- tdump = 10.0
+ tpr   = 1.00,
+ tdump = 10.0,
+ max_seconds = 1.D10
 /
 
 &model
@@ -22,7 +23,8 @@
   nx = 197,
   nz = 262,
   itc = 1,
-  iuni = 0
+  iuni = 0,
+  zzero = -400.
 /
 
 &boundaries

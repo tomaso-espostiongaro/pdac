@@ -68,7 +68,7 @@
       USE atmospheric_conditions, ONLY: wind_x, wind_y, wind_z, &
           p_ground, t_ground, void_fraction, max_packing
       USE blunt_body, ONLY: ibl, nblu
-      USE control_flags, ONLY: job_type, lpr, run
+      USE control_flags, ONLY: job_type, lpr, run, imr
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
       USE domain_decomposition, ONLY: mesh_partition
       USE enthalpy_matrix, ONLY: flim
@@ -107,7 +107,7 @@
       INTEGER, INTENT(IN) :: iunit
 
       NAMELIST / control / run_name, job_type, restart_mode,       &
-        time, tstop, dt, lpr, tpr, tdump, nfil,                    &
+        time, tstop, dt, lpr, imr, tpr, tdump, nfil,               &
         formatted_output, max_seconds, run
 
       NAMELIST / model / irex, gas_viscosity, part_viscosity,      &
@@ -155,6 +155,7 @@
       tstop = 100.0D0     ! stop time seconds
       dt = 0.01D0       ! time increment seconds
       lpr = 2           ! verbosity (not yet implemented)
+      imr = 0           ! =1 print mass residuals
       tpr = 1.0D0       ! write to output file every tpr seconds of simulated time
       tdump = 20.0D0    ! write restart every tdump seconds of simulated time
       nfil = 0          ! output file index
@@ -304,6 +305,7 @@
       CALL bcast_real(tstop,1,root)
       CALL bcast_real(dt,1,root)
       CALL bcast_integer(lpr,1,root)
+      CALL bcast_integer(imr,1,root)
       CALL bcast_real(tpr,1,root)
       CALL bcast_real(tdump,1,root)
       CALL bcast_integer(nfil,1,root)
@@ -661,6 +663,7 @@
             CALL iotk_write_dat( iuni_nml, "tstop", tstop )
             CALL iotk_write_dat( iuni_nml, "dt", dt )
             CALL iotk_write_dat( iuni_nml, "lpr", lpr )
+            CALL iotk_write_dat( iuni_nml, "imr", imr )
             CALL iotk_write_dat( iuni_nml, "tpr", tpr )
             CALL iotk_write_dat( iuni_nml, "tdump", tdump )
             CALL iotk_write_dat( iuni_nml, "nfil", irex )
@@ -799,7 +802,7 @@
       SUBROUTINE initc
 
       USE atmospheric_conditions, ONLY: atm_ygc
-      USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: job_type
       USE dimensions
       USE grid, ONLY: dx, dy, dz, itc
       USE grid, ONLY: iob, zzero, grigen

@@ -235,6 +235,12 @@
 
              dgorig = dg
 
+
+
+
+
+
+
              IF( ABS( dg ) <= conv( ijk ) ) THEN
 
                n1 = n1 + 1
@@ -272,7 +278,6 @@
              END IF
 
            END IF
-
          END DO mesh_loop
 
          IF( timing ) THEN

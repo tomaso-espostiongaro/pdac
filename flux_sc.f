@@ -318,9 +318,9 @@
       cs = u%c
       !cn = cs * dt * 2.D0 * indxp
       IF (cs >= 0.D0) THEN
-        upwnd  = dens%c*field%c 
+        upwnd  = dens%c * field%c 
       ELSE IF (cs < 0.D0) THEN
-        upwnd  = dens%e*field%e 
+        upwnd  = dens%e * field%e 
       ENDIF
       fe = upwnd * cs * rb(i)
 !
@@ -329,9 +329,9 @@
       cs = w%c
       !cn = cs * dt * 2.0 * indzp
       IF (cs >= 0.D0) THEN
-        upwnd  = dens%c*field%c 
+        upwnd  = dens%c * field%c 
       ELSE IF (cs < 0.D0) THEN
-        upwnd  = dens%t*field%t 
+        upwnd  = dens%t * field%t 
       ENDIF
       ft = upwnd * cs
 !

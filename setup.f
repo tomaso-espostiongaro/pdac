@@ -132,19 +132,20 @@
 
           ! ... Set initial velocity profiles
           !
-          IF ( flag(ijk) == 1 .OR. flag(ijk) == 4 .OR. flag(ijk) == 6 ) THEN
+          SELECT CASE ( flag(ijk) )
 
-          IF (immb >= 1) THEN
-            fx = numx(ijk)
-            IF (job_type == '2D') THEN
-              fy = 0
-            ELSE IF (job_type == '3D') THEN
-              fy = numy(ijk)
+          CASE (1,4,6)
+
+            IF (immb >= 1) THEN
+              fx = numx(ijk)
+              IF (job_type == '2D') THEN
+                fy = 0
+              ELSE IF (job_type == '3D') THEN
+                fy = numy(ijk)
+              END IF
+              fz = numz(ijk)
+              forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
             END IF
-            fz = numz(ijk)
-
-            forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
-          END IF
 
             IF( .NOT.forced ) THEN
               ug(ijk) = wind_x
@@ -156,7 +157,12 @@
                 vs(ijk,:) = vg(ijk)
               END IF
             END IF
-          END IF
+
+          CASE DEFAULT
+
+            CONTINUE
+
+          END SELECT
 !
         END DO
 ! 
