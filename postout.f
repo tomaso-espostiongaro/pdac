@@ -606,7 +606,7 @@
 !        DO it = first_out, last_out, incr_out
 !          CALL iotk_write_dat( iunxml, "timestep", it )
 !        END DO
-          WRITE( iunxml, * ) last_out
+          WRITE( iunxml, * ) (last_out - first_out + 1)/incr_out
         CALL iotk_write_end( iunxml, "frames" )
         !
       CALL iotk_write_end( iunxml, "dataset" )
