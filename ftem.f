@@ -135,8 +135,8 @@
             sies(ijk,is) = bt(is+1)
           END DO
 !
-! ... Compute specific heat for gas (cp, cg) and particles (ck)
-! ... Update temperature of gas (tg ) and particles (ts)
+! ... Compute specific heat for gas (cp, cg) and particles (ck);
+! ... update temperature of gas (tg ) and particles (ts)
 ! ... from caloric Equation of State
 !
           CALL caloric_eosg(cp(:,ijk), cg(ijk), tg(ijk), ygc(:,ijk), &

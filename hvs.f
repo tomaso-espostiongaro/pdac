@@ -57,6 +57,7 @@
 !                reynum**0.7D0 * pranum**(1.D0/3.D0))
 !
 ! Zabrodsky's correlations
+! (warning... it is not continuous)
 !
 !      IF (ep <= 0.8D0) THEN
 !        IF (reynum <= 200.D0) THEN

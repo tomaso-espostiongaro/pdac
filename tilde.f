@@ -167,6 +167,8 @@
       CALL data_exchange(tg)
       CALL data_exchange(ts)
 !
+! ... Initialize momentum 'tilde' terms (explicit momentum fluxes)
+!
       DO ijk = 1, ncint
 
 !       IF(flag(ijk) == 1) THEN
@@ -220,6 +222,8 @@
          
           END IF 
 !
+! ... Store fields at time n*dt
+!
           pn(ijk)    = p(ijk)
           rgpn(ijk)  = rgp(ijk)
           siegn(ijk) = sieg(ijk)
@@ -262,7 +266,6 @@
       USE momentum_transfer, ONLY: kdrags, inter
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: dt, time
-      USE turbulence_model, ONLY: iss, iturb
       USE gas_solid_viscosity, ONLY: viscg, viscs
       USE gas_solid_viscosity, ONLY: gas_viscosity, part_viscosity
       USE gas_solid_viscosity, ONLY: mug
@@ -361,8 +364,11 @@
       ALLOCATE( dvgs(nsolid) )
       ALLOCATE( dwgs(nsolid) )
       kpgv = 0.0D0
+      dugs = 0.0D0
+      dvgs = 0.0D0
+      dwgs = 0.0D0
 !
-! ... (a temporary array used in 2D) ...
+! ... (a temporary array only used in 2D) ...
 !
       ALLOCATE( nul( ( ( nsolid + 1 )**2 + ( nsolid + 1 ) ) / 2 ) )
       nul = 0.D0

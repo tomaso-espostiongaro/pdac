@@ -48,7 +48,7 @@
 !
         USE dimensions, ONLY: nz, no, nx, ny
         USE domain_decomposition, ONLY: myijk, meshinds
-        USE grid, ONLY: iob
+        USE grid, ONLY: iob, flag
         USE grid, ONLY: dz, zb, rb, dx, dy
         USE roughness_module, ONLY: zrough
         USE control_flags, ONLY: job_type
@@ -116,6 +116,7 @@
             ENDIF
 !
 ! ... Squared turbulence length scale is used into Smagorinsky model
+!
             smag(ijk) = sl**2
 !
           END DO
@@ -177,11 +178,17 @@
 !
       ALLOCATE( modsr(ncdom) );     modsr = 0.0D0
 
-      IF (modturbo == 2) THEN
+      IF (modturbo == 2 .AND. job_type == '2D') THEN
 
-        IF (job_type == '2D') &
-          CALL error('sgsg', 'Dynamic Smagorinsky model applies only to 3D', 1 ) 
+        WRITE(6,*) 'WARNING!: Dynamic Smagorinsky model cannot be applied to 2D'
+        modturbo = 1
 
+      ELSE IF (modturbo == 2 .AND. job_type == '3D' ) THEN
+
+        ! ... Allocate and initialize the filtered velocities for the
+        ! ... dynamic computation of the Smagorinsky length scale 
+        ! ... (Germano et al., 1990)
+        !
         ALLOCATE(p11(ncdom))  ;     p11 = 0.0D0
         ALLOCATE(p12(ncdom))  ;     p12 = 0.0D0
         ALLOCATE(p22(ncdom))  ;     p22 = 0.0D0
@@ -198,18 +205,15 @@
         ALLOCATE(fuwg(ncdom)) ;     fuwg = 0.0D0
         ALLOCATE(fvwg(ncdom)) ;     fvwg = 0.0D0
 
-      END IF
-!
-      IF (modturbo == 2 .AND. job_type == '3D' ) THEN
-
         DO ijk = 1, ncint
 
           IF(flag(ijk) == 1) THEN
 
             CALL subscr(ijk)
 !
-! ... compute the modulus and components of the strain rate tensor
-!
+            ! ... compute the modulus and components of the 
+            ! ... strain tensor
+            !
             CALL strain3d(ug, vg, wg, modsr(ijk),  &
                           sr11,sr12,sr22,sr13,sr23,sr33, ijk)
 !	  
@@ -220,8 +224,8 @@
 	    p23(ijk) = modsr(ijk) * sr23
 	    p33(ijk) = modsr(ijk) * sr33
 !
-! ... compute filtered velocities
-!
+            ! ... compute filtered velocities
+            !
             CALL vel_hat(ijk, fug(ijk), fvg(ijk), fwg(ijk),      &
 	                      fu2g(ijk), fv2g(ijk), fw2g(ijk),   &
 	                      fuvg(ijk), fuwg(ijk), fvwg(ijk) )        
@@ -246,8 +250,6 @@
 
       END IF  
 !
-!
-!
       DO ijk = 1, ncint
 
         IF( flag(ijk) == 1 ) THEN
@@ -258,6 +260,9 @@
 !
           IF( modturbo == 1 ) THEN
 	  
+             ! ... 'Classical' Smagorisnky model:
+             ! ... compute the modulus of strain tensor 
+             !
 	     IF (job_type == '2D') THEN
                CALL strain2d(ug, wg, modsr(ijk), ijk)
 	     ELSE IF (job_type == '3D') THEN
@@ -266,15 +271,13 @@
 	     END IF
 
           ELSE IF(modturbo == 2) THEN
-
-!
-! ... Dynamic computation of the Smagorinsky length scale (Germano et al., 1990)
 !
              CALL strain3d(fug, fvg, fwg, fmodsr, fsr11, fsr12, fsr22, &
 	                 fsr13, fsr23, fsr33, ijk)
 !
-! ... compute the local stencils and filter 
-!
+             ! ... compute the local neighbours of 'p' and filter
+             ! ... over the stencil 'sp'
+             !
              CALL rnb(sp11,p11,ijk)
              fp11 = filter_3d(sp11)
              
@@ -310,23 +313,25 @@
              m13 = (4.D0*fmodsr*fsr13 - fp13)
              m23 = (4.D0*fmodsr*fsr23 - fp23)
              m33 = (4.D0*fmodsr*fsr33 - fp33)
-!              
-! ... mesh filter length
+
+             ! ... mesh-filter length
+             !
              delt = ( dz(k)*dy(j)*dx(i) )**(1.0d0/3.0d0)
-!
+
              num = l11*m11 + l22*m22 + l33*m33 + &
 	           2.D0*l12*m12 + 2.D0*l13*m13 + 2.D0*l23*m23
 
              den = delt**2 * ( m11**2 + m22**2 + m33**2 + &
 	                        2.D0*m12**2 + 2.D0*m13**2 + 2.D0*m23**2 )
-!
+
              IF(den == 0.0D0) THEN
                cdyn = 0.0D0
              ELSE 
                cdyn = 0.5D0 * num / den 
              END IF
-!
-! ... squared Smagorinsky length scale
+
+             ! ... squared Smagorinsky length scale
+             !
              smag(ijk) = cdyn * (delt**2)
 
           END IF
@@ -616,7 +621,7 @@
 ! ... extra-term for cylindrical coordinates
 !
         IF(itc == 1) THEN
-          d33 = (u(ij)+u(imjk))*inr(i)
+          d33 = 0.5D0*(u(ij)+u(imjk))*inr(i)
         ELSE
           d33 = 0.D0
         END IF

@@ -270,7 +270,9 @@
         time = time + dt
 !
         CALL deallocate_fluxes
-
+!
+! ... Force the writing on the standard output
+!
         CALL myflush( 6 )
 !
         IF( timing ) then
