@@ -18,13 +18,11 @@
       REAL*8  :: omega, dg
       INTEGER :: inmax, maxout
 
-      INTEGER :: ncnt
       INTEGER, ALLOCATABLE, DIMENSION(:) :: b_e, b_w, b_t, b_b, b_n, b_s
 
       TYPE(stencil) :: u, v, w, dens         
 
       PRIVATE :: u, v, w, dens
-      PRIVATE :: ncnt
 !
 !----------------------------------------------------------------------
       CONTAINS
@@ -43,7 +41,7 @@
       USE domain_decomposition, ONLY: ncint, ncdom, data_exchange
       USE domain_decomposition, ONLY: myijk, meshinds
       USE enthalpy_matrix, ONLY: ftem
-      USE environment, ONLY: timing
+      USE environment, ONLY: cpclock, timing
       USE eos_gas, ONLY: xgc, cg
       USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
@@ -85,7 +83,9 @@
       REAL*8 ::  timiter
       REAL*8 ::  timconv(maxout)   
 !
-      INTEGER :: nit, nloop, mustit, ninner
+      INTEGER :: nit, nloop, mustit
+      INTEGER :: n1, n2
+      REAL*8  :: avloop
       INTEGER :: i_, j_, k_, ijk_
 
       LOGICAL, ALLOCATABLE :: converge(:)
@@ -203,14 +203,16 @@
          ! TIMING (Convergence in the ijk cell)
 !
          IF( timing ) THEN
+            st0 = cpclock()
             !st0 = cclock_wall()
+            !call system_clock (st0,ratc)
             !CALL f_hpmstart( 1, ' sor ' )
-            ! call system_clock (st0,ratc)
+            
          END IF  
 
          nloop  = 0
-         ninner = 0
-         ncnt   = 0
+         n1 = 0
+         n2 = 0
 
          mesh_loop: DO ijk_ = 1, ncint
 
@@ -234,7 +236,7 @@
 
              IF( ABS( dg ) <= conv( ijk_ ) ) THEN
 
-               ncnt = ncnt + 1
+               n1 = n1 + 1
               
                ! ... If the residual is lower then the prescribed limit
                ! ... compute the gas and particle densities and proceed 
@@ -256,13 +258,15 @@
 
                IF (optimization) THEN
                  CALL opt3_inner_loop(i_, j_, k_, ijk_, nit, d3, p3, &
-                                  abeta( ijk_ ), conv( ijk_ ), dgorig, nloop)
+                                  abeta(ijk_), conv(ijk_),&
+                                  dgorig, nloop)
                ELSE
                  CALL inner_loop(i_, j_, k_, ijk_, nit, d3, p3, &
-                                  abeta( ijk_ ), conv( ijk_ ), dgorig, nloop)
+                                 abeta(ijk_),conv(ijk_), &
+                                 dgorig, nloop)
                END IF
 
-               ninner = ninner + 1
+               n2 = n2 + 1
 
              END IF
 
@@ -271,19 +275,30 @@
          END DO mesh_loop
 
          IF( timing ) THEN
-             !st1 = cclock_wall()
-             ! call system_clock(st1,ratc)
+             st1 = cpclock()
+             !call system_clock(st1,ratc)
              !CALL f_hpmstop( 1 )
          END IF
 
-         timconv(nit) = timconv(nit) + real(st1-st0)         
-         IF( ninner > 0 ) THEN
-           WRITE(6, fmt="( I10, 2X, F4.2, 2X, I10, 2X, F6.3)" ) &
-             ninner, REAL(nloop) / REAL(ninner), ncnt, timconv(nit)
-         ELSE
-           WRITE(6, fmt="( I10, 2X, F4.2, 2X, I10, 2X, F6.3)" ) &
-             ninner, REAL(nloop), ncnt, timconv(nit)
+         timconv(nit) = timconv(nit) + real(st1-st0)/1000.D0         
+!
+!*******************************************************************
+! ... For each iteration on the mesh, write out:
+! --> n1 : the number of cells converged
+! --> n2 : the number of cells not converged
+! --> avloop : the averaged number of inner iterations per cells
+! --> timconv: the time for the whole mesh sweep
+!
+         IF (lpr > 1) THEN
+           IF( n2 > 0 ) THEN
+             avloop = REAL(nloop) / REAL(n2)
+           ELSE
+             avloop = REAL(nloop)
+           END IF
+           WRITE(6, fmt="( I10, 2X, F4.2, 2X, I10, 2X, F10.3)" ) &
+           n2, avloop, n1, timconv(nit)
          END IF
+!*******************************************************************
 
 ! ... Exchange all updated physical quantities on boundaries
 ! ... before starting a new sweep on the mesh.
@@ -314,23 +329,6 @@
 
         END IF
 !
-!********************************************************************
-! ... check the convergence parameters and the convergence history
-!
-      IF (lpr > 1) THEN
-        IF (MOD((time-timestart),tpr) <= dt) THEN
-          IF (nit == 1) THEN
-            WRITE(6,500) mpime, time
-            WRITE(6,501)
-          END IF
-          WRITE(6,502) nit, ALL(converge)
- 500      FORMAT('proc: ', I3, ' time: ', F8.3)
- 501      FORMAT('iteration # :  convergence')
- 502      FORMAT(I3,13X,L1)
-        END IF
-      END IF
-!*******************************************************************
-!
 ! ... mustit equals zero when convergence is reached 
 ! ... simultaneously in each cell of the subdomain
 !
@@ -344,9 +342,9 @@
 !*******************************************************************
 ! ... write out the final number of iterations
 !
-          IF (lpr >= 1) THEN
+          IF (lpr > 1) THEN
             WRITE(6,277) nit
- 277        FORMAT('  from iter: nit = ', I4)
+ 277        FORMAT('number of iterations: nit = ', I4)
           END IF
 !*******************************************************************
           omega = omega0
@@ -356,14 +354,14 @@
 ! ... If convergence is not reached in some cell
 ! ... start a new external sweep.
 !
-       IF( MOD( nit, 100 ) == 0 ) THEN
-         omega = omega * 0.5D0
+       IF( MOD( nit, 1000 ) == 0 ) THEN
+         omega = omega * 0.9D0
          IF (lpr > 1) THEN
            WRITE(6, fmt="('  reducing relaxation parameter omega')")
            WRITE(6, fmt="('  new value = ',F12.4)") omega
-           call myflush( 6 )
          END IF
        END IF
+       IF (lpr > 1) call myflush( 6 )
 !
       END DO sor_loop
 !
@@ -395,14 +393,16 @@
             IF ( .NOT. converge( ijk_ ) ) THEN
               CALL meshinds( ijk_ , imesh, i_ , j_ , k_ )
               WRITE(6,*) imesh, i_ , j_ , k_, conv( ijk_ )
+              WRITE(6,701) p(ijk_), rlk(ijk_,:), tg(ijk_), ts(ijk_,:)
             END IF
           END DO
  700      FORMAT('max number of iterations (',I5,') reached at time: ', F8.3)
+ 701      FORMAT(10(F14.6))
         END IF
 !
         ! ... CRASH! ...
         !
-        CALL error( ' iter ', 'max number of iters exceeded ', 1)
+        !CALL error( ' iter ', 'max number of iters exceeded ', 1)
         omega = omega0
 
       END IF
@@ -428,7 +428,8 @@
       END SUBROUTINE iter
 !----------------------------------------------------------------------
 !
-      SUBROUTINE inner_loop( i, j, k, ijk, nit, d3, p3, abeta_, conv_, dgorig, nloop )
+      SUBROUTINE inner_loop( i, j, k, ijk, nit, d3, p3, abeta_, conv_,  &
+                             dgorig, nloop )
 !
 !----------------------------------------------------------------------
 ! ... iteratively correct the pressure field in a cell by minimizing
@@ -1073,7 +1074,8 @@
 !     H E R E   S T A R T   T H E  O P T I M I Z E D   R O U T I N E S 
 !----------------------------------------------------------------------
 !
-      SUBROUTINE opt_inner_loop( i, j, k, ijk, nit, d3, p3, abeta_, conv_, dgorig, nloop )
+      SUBROUTINE opt_inner_loop(i, j, k, ijk, nit, d3, p3,abeta_,conv_, &
+                                dgorig, nloop )
 !
 !----------------------------------------------------------------------
 
@@ -1332,7 +1334,8 @@
       END SUBROUTINE opt_inner_loop
 !----------------------------------------------------------------------
 !
-      SUBROUTINE opt3_inner_loop( i, j, k, ijk, nit, d3, p3, abeta_, conv_, dgorig, nloop )
+      SUBROUTINE opt3_inner_loop(i,j,k,ijk,nit, d3, p3, abeta_,conv_, &
+                                 dgorig, nloop )
 !
 !----------------------------------------------------------------------
 

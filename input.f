@@ -179,7 +179,7 @@
       iturb = 1         ! turbulence  ( 0 no turbo, 1 turbo, 2 turbo + rough )
       modturbo = 1      ! turbulence  ( 1 smag, 2 dynamic )
       cmut = 0.1D0      ! Smagorinsky constant
-      rlim = 1.0D-8     ! limit for off-diagonal contribution in matrix 
+      rlim = 1.0D-10     ! limit for off-diagonal contribution in matrix 
                         ! inversion
       gravx = 0.0D0     ! gravity along x
       gravy = 0.0D0     ! gravity along y

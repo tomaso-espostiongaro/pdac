@@ -12,7 +12,7 @@
       REAL*8, PRIVATE, DIMENSION(:),   ALLOCATABLE ::  bu1, bv1, bw1
       REAL*8, PRIVATE, DIMENSION(:,:), ALLOCATABLE ::  au1, av1, aw1
 
-      REAL*8 :: rlim = 1.0d-20
+      REAL*8 :: rlim
 
 !--------------------------------------------------------------------
       CONTAINS

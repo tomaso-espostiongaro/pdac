@@ -282,7 +282,6 @@
 
             ! ... An error is introduced in temperature
             !
-            WRITE(6,*) 'Warning!: Temperature in restart could differ!'
             CALL caloric_eosg(cp(:,ijk), cg(ijk), tg(ijk), ygc(:,ijk), &
                             sieg(ijk), ijk, info)
             DO is=1, nsolid
@@ -341,11 +340,10 @@
         !csnd = DSQRT(gammaair*rgas/gmw(6)*tgob(n))
 
         DO ijk = 1, ncint
-          imesh = myijk( ip0_jp0_kp0_ , ijk )
           CALL meshinds(ijk,imesh,i,j,k)
 
           IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi  ) THEN
-            IF ( j >= iob(n)%ylo .AND. j <= iob(n)%yhi    &
+            IF ( ( j >= iob(n)%ylo .AND. j <= iob(n)%yhi )    &
                                     .OR. job_type == '2D') THEN
               IF ( i >= iob(n)%xlo .AND. i <= iob(n)%xhi  ) THEN
 

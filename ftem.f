@@ -171,7 +171,7 @@
 !
       DO is=nphase,2,-1
 !        IF(abs(a(is,is)) <= 1.D-6) THEN
-        IF(rlk(ijk,is-1)*inrl(is-1) <= 1.D-9) THEN
+         IF(rlk(ijk,is-1)*inrl(is-1) <= 1.D-10) THEN
           a(1,is)=0.D0
           a(is,1)=0.D0
           b(is)=0.D0

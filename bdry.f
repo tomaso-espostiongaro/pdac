@@ -502,16 +502,15 @@
 !
             CASE (3)
 !
-            IF(flag(ipjkm) /= 1) THEN
+              IF(flag(ipjkm) /= 1) THEN
+                ug(n2)   = -ug(n1)
+                us(n2,:) = -us(n1,:)
+              END IF
 
-              ug(n2)   = -ug(n1)
-              us(n2,:) = -us(n1,:)
-	      IF (job_type == '3D') THEN
+              IF(flag(ijpkm) /= 1 .AND. job_type == '3D') THEN
                 vg(n2)   = -vg(n1)
                 vs(n2,:) = -vs(n1,:)
-	      END IF
-
-            END IF
+              END IF
 !
             CASE DEFAULT
 !
