@@ -214,11 +214,7 @@
                   ! ... corrected pressure at current location. 
                   ! ... Pressure at neighbour cells could still be wrong.
 
-                  IF( nphase == 3 ) THEN
-                    CALL mats_3phase(ijk)
-                  ELSE
-                    CALL assemble_all_matrix(ijk)
-                  END IF
+                  CALL assemble_all_matrix(ijk)
                   CALL solve_all_velocities(ijk)
 
                   ! if( MOD(ijk,100) == 0 ) call f_hpmstop( 5 )
@@ -324,8 +320,10 @@
       END IF
 !*******************************************************************
 !
-      DEALLOCATE( rgfe, rgft)
-      DEALLOCATE( rsfe, rsft)
+      DEALLOCATE( rgfe)
+      DEALLOCATE( rgft)
+      DEALLOCATE( rsfe)
+      DEALLOCATE( rsft)
       DEALLOCATE( rug, rwg )
       DEALLOCATE( rus, rws )
       DEALLOCATE( appu, appw)

@@ -7,17 +7,6 @@ LINKFLAGS=
 LIBS=
 FREEFORM= -Mfree
 #----------------------------------------
-# scalar compiler
-#FC=xlf
-#FC=mpxlf
-# parallel compiler
-#MPFC=mpxlf
-#----------------------------------------
-# ... parallel linker
-#LINKER= mpxlf
-# ... scalar linker
-#LINKER=xlf
-#----------------------------------------
 FFLAGS= -O2 -tp athlonxp
 FC=pgf90
 MPFC=pgf90
