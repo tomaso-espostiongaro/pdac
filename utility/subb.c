@@ -10,19 +10,22 @@ int main( int argc, char ** argv )
   FILE * pf1, * pf2;
   int n1, n2, il;
   double x1, x2;
+  int ncell;
 
-  if( argc != 3 ) {
-    fprintf( stderr, "usage: %s output1 output2\n",argv[0]);
+  if( argc != 4 ) {
+    fprintf( stderr, "usage: %s output1 output2 ncell\n",argv[0]);
     exit(0);
   }
 
   pf1 = fopen( argv[1], "r" );
   pf2 = fopen( argv[2], "r" );
+  ncell = atoi( argv[3] );
+  
 
   n1 = fscanf(pf1,"%lf",&x1);
   n2 = fscanf(pf2,"%lf",&x2);
 
-  il = 1;
+  il = 0;
 
   while( n1 == 1 && n2 == 1 ) {
     if( x1 != x2 ) {
@@ -34,6 +37,7 @@ int main( int argc, char ** argv )
     }
     n1 = fscanf(pf1,"%lf",&x1);
     n2 = fscanf(pf2,"%lf",&x2);
+    if( ( il % ncell ) == 0 ) printf("=============== ARRAY %d ================\n", il / ncell + 1 );
     il ++;
   }
 

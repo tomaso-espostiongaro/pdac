@@ -52,7 +52,7 @@
 !
         OPEN(UNIT=9,form='unformatted', FILE = restart_file)
 !
-        WRITE(9) time, nx, ny, nz, nsolid, nfil
+        WRITE(9) time, nx, ny, nz, nsolid, ngas, nfil
 
       END IF
 !
@@ -160,16 +160,17 @@
       USE atmosphere, ONLY: atm
       USE grid, ONLY: zb, dz
       USE specific_heat_module, ONLY: hcapg
-      USE gas_constants, ONLY: tzero, hzerog
+      USE gas_constants, ONLY: tzero, hzerog, gas_type
 
 
       IMPLICIT NONE
 !
       INTEGER :: i, j, k, ijk, is, imesh
-      INTEGER :: nx_, ny_, nz_, nsolid_
+      INTEGER :: nx_, ny_, nz_, nsolid_, ngas_
       INTEGER :: ig, info
       LOGICAL :: lform = .FALSE.
       REAL*8 :: zrif, trif, prif, hc
+      REAL*8, ALLOCATABLE :: rtmp( :, : )
       
 
       IF( mpime .EQ. root ) THEN
@@ -181,6 +182,7 @@
         IF( old_restart ) THEN
           READ(9) time, nx_, ny_, nz_, nsolid_
         ELSE
+          !READ(9) time, nx_, ny_, nz_, nsolid_, ngas_, nfil
           READ(9) time, nx_, ny_, nz_, nsolid_, nfil
         END IF
 
@@ -189,6 +191,7 @@
         WRITE(6,*) ' ny   =  ', ny
         WRITE(6,*) ' nz   =  ', nz
         WRITE(6,*) ' nsolid =  ', nsolid
+        WRITE(6,*) ' ngas =  ', ngas
         WRITE(6,*) ' nfil   =  ', nfil
 
       END IF
@@ -198,6 +201,8 @@
       CALL bcast_integer(ny_, 1, root)
       CALL bcast_integer(nz_, 1, root)
       CALL bcast_integer(nsolid_, 1, root)
+      CALL bcast_integer(ngas_, 1, root)
+      CALL bcast_integer(nfil, 1, root)
 
       IF( nx_ /= nx ) &
         CALL error(' taperd ',' inconsistent dimension nx ', nx_ )
@@ -232,19 +237,10 @@
       !  read gas enthalpy
 
       sieg = 0.0d0
-      info = 0
       CALL read_array( 9, sieg, dbl, lform )
       IF( ANY( sieg < 0 ) ) THEN
          WRITE(6,*) 'WARNING reading restart, sieg < 0'
-         info = 1
       END IF
-      CALL parallel_sum_integer( info, 1 )
-      IF( info /= 0 ) THEN
-         IF( mpime == root ) OPEN( UNIT = 15, FORM = 'FORMATTED', STATUS = 'UNKNOWN' )
-         ! CALL write_array( 15, p, sgl, .TRUE. )
-         IF( mpime == root ) CLOSE( UNIT = 15 )
-      END IF
-         
 
       !
       !  read gas velocity
@@ -314,9 +310,17 @@
       !
       !  read gas components
 
+      ALLOCATE( rtmp( max_ngas, SIZE( ygc, 2 ) ) )
+
       ygc = 0.0d0
+      rtmp = 0.0d0
+      !DO ig = 1, ngas
+      DO ig = 1, max_ngas
+        !CALL read_array( 9, ygc(ig,:), dbl, lform )
+        CALL read_array( 9, rtmp(ig,:), dbl, lform )
+      END DO
       DO ig = 1, ngas
-        CALL read_array( 9, ygc(ig,:), dbl, lform )
+        ygc( ig, : ) = rtmp( gas_type(ig), : )
       END DO
       IF( ANY( ygc < 0 ) ) THEN
          WRITE(6,*) 'WARNING reading restart, ycg < 0'
@@ -355,16 +359,28 @@
       END IF
 
       rgpgc = 0.0d0
+      rtmp = 0.0d0
+      !DO ig = 1, ngas
+      DO ig = 1, max_ngas
+        !CALL read_array( 9, rgpgc(:,ig), dbl, lform )
+        CALL read_array( 9, rtmp(ig,:), dbl, lform )
+      END DO
       DO ig = 1, ngas
-        CALL read_array( 9, rgpgc(:,ig), dbl, lform )
+        rgpgc( :, ig ) = rtmp( gas_type(ig), : )
       END DO
       IF( ANY( rgpgc < 0 ) ) THEN
          WRITE(6,*) 'WARNING reading restart, rgpgc < 0'
       END IF
 
       xgc = 0.0d0
+      rtmp = 0.0d0
+      !DO ig = 1, ngas
+      DO ig = 1, max_ngas
+        !CALL read_array( 9, xgc(ig,:), dbl, lform )
+        CALL read_array( 9, rtmp(ig,:), dbl, lform )
+      END DO
       DO ig = 1, ngas
-        CALL read_array( 9, xgc(ig,:), dbl, lform )
+        xgc( ig, : ) = rtmp( gas_type(ig), : )
       END DO
       IF( ANY( xgc < 0 ) ) THEN
          WRITE(6,*) 'WARNING reading restart, xgc < 0'
@@ -393,25 +409,25 @@
       END IF
 
       ! Repair array (Carlo Debug)
-      DO ijk = 1, ncint
-        IF( tg( ijk ) <= 0.0d0 .OR. sieg( ijk ) <= 0.0d0 .OR. ANY( cp( :, ijk ) <= 0.0d0 ) ) THEN
-          WRITE(6,*) ' P : ', tg(ijk), sieg(ijk), cp(:,ijk)
-          CALL meshinds( ijk, imesh, i, j, k )
-          zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )
-          CALL atm( zrif, prif, trif)
-          p(ijk) = prif
-          tg(ijk) = trif
-          CALL hcapg( cp(:,ijk), tg(ijk))
-          WRITE(6,*) ' I : ', tg(ijk), sieg(ijk), cp(:,ijk)
-          hc = 0.D0
-          DO ig = 1, ngas
-            hc = hc + cp(ig,ijk) * ygc(ig,ijk)
-          END DO
-          cg(ijk) = hc
-          sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
-          WRITE(6,*) ' D : ', tg(ijk), sieg(ijk), cp(:,ijk)
-        END IF
-      END DO
+!      DO ijk = 1, ncint
+!        IF( tg( ijk ) <= 0.0d0 .OR. sieg( ijk ) <= 0.0d0 .OR. ALL( cp( :, ijk ) <= 0.0d0 ) ) THEN
+!          WRITE(6,*) ' P : ', tg(ijk), sieg(ijk), cp(:,ijk)
+!          CALL meshinds( ijk, imesh, i, j, k )
+!          zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )
+!          CALL atm( zrif, prif, trif)
+!          p(ijk) = prif
+!          tg(ijk) = trif
+!          CALL hcapg( cp(:,ijk), tg(ijk))
+!          WRITE(6,*) ' I : ', tg(ijk), sieg(ijk), cp(:,ijk)
+!          hc = 0.D0
+!          DO ig = 1, ngas
+!            hc = hc + cp(ig,ijk) * ygc(ig,ijk)
+!          END DO
+!          cg(ijk) = hc
+!          sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
+!          WRITE(6,*) ' D : ', tg(ijk), sieg(ijk), cp(:,ijk)
+!        END IF
+!      END DO
 
       IF( mpime .EQ. root ) THEN
         CLOSE (9)

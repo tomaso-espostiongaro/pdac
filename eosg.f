@@ -200,7 +200,7 @@
           CALL hcapg( cpgc(:), tg )
           cgas0 = 0.D0
           DO ig = 1, ngas
-            cgas0 = cpgc(ig) * yg(ig) + cgas0
+            cgas0 = cpgc( gas_type( ig ) ) * yg(ig) + cgas0
           END DO
           cgas  = cgas0
           tg = tzero + ( sieg - hzerog ) / cgas
@@ -211,7 +211,7 @@
             CALL hcapg( cpgc(:), tg )
             hc = 0.D0
             DO ig = 1, ngas
-              hc = cpgc(gas_type(ig)) * yg(ig) + hc
+              hc = cpgc( gas_type(ig) ) * yg(ig) + hc
             END DO
             cgas = hc
             tg = tzero + ( sieg - hzerog ) / cgas

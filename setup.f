@@ -209,7 +209,7 @@
       USE domain_decomposition, ONLY: ncint
       USE eos_gas, ONLY: mas, cnvertg, xgc, ygc
       USE eos_solid, ONLY: cnverts
-      USE gas_constants, ONLY: default_gas
+      USE gas_constants, ONLY: default_gas, gas_type
       USE gas_solid_density, ONLY: rlk
       USE particles_constants, ONLY: inrl
       USE pressure_epsilon, ONLY: ep
@@ -218,7 +218,8 @@
       IMPLICIT NONE
 !
       INTEGER :: ijk
-      INTEGER :: ig, is
+      INTEGER :: ig, is, dfg
+      REAL*8  :: xgc_def
 !
       IF (itd <= 1) THEN
 !
@@ -237,11 +238,16 @@
         DO ijk = 1, ncint
 
           ep(ijk) = 1.D0
+          xgc_def = 1.0d0
           DO ig = 1, ngas
-            IF (gas_type(ig) == default_gas) THEN
-              xgc(ig,ijk) = 1.D0 - SUM(xgc(:,ijk))
+            IF ( gas_type(ig) /= default_gas) THEN
+              xgc_def = xgc_def - xgc(ig,ijk)
+            ELSE
+              dfg = ig
             END IF
           END DO
+          xgc(dfg,ijk) = xgc_def
+
           DO is=1,nsolid
             ep(ijk) = ep(ijk) - rlk(ijk,is)*inrl(is)
           END DO
@@ -491,26 +497,29 @@
 !----------------------------------------------------------------------
       SUBROUTINE gas_check
       USE dimensions
-      USE gas_constants, ONLY: gas_type, present_gas
+      USE gas_constants, ONLY: gas_type, present_gas, default_gas
       IMPLICIT NONE
       INTEGER :: ig, igg
       
       ig = 0
       DO igg = 1, max_ngas
-        IF ((ygc0(igg) /= 0.0) .OR. ANY(ygcob(igg,:) /= 0.0) ) THEN
-          ig = ig + 1
-          gas_type(ig) = igg
-          present_gas(igg) = .TRUE.
-        END IF
-        IF (npr > 0) THEN
-          IF( ANY(ygcpr(igg,:) /= 0.0) ) THEN
+          IF ((ygc0(igg) /= 0.0) .OR. ANY(ygcob(igg,:) /= 0.0) ) THEN
             ig = ig + 1
             gas_type(ig) = igg
             present_gas(igg) = .TRUE.
           END IF
-        END IF
+          IF (npr > 0) THEN
+            IF( ANY(ygcpr(igg,:) /= 0.0) ) THEN
+              ig = ig + 1
+              gas_type(ig) = igg
+              present_gas(igg) = .TRUE.
+            END IF
+          END IF
       END DO
       IF (ig /= ngas) CALL error('setup','wrong number of gas species',ig)
+      DO ig = 1, ngas
+        WRITE(6,*) ' Gas ', ig, ' is type ', gas_type(ig)
+      END DO
 
       RETURN
       END SUBROUTINE gas_check

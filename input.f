@@ -611,7 +611,7 @@
               CALL iotk_write_dat( iuni_nml, "fixed_pressure", fixed_pressure(n) )
               CALL iotk_write_dat( iuni_nml, "fixed_gaseps", fixed_gaseps(n) )
               CALL iotk_write_dat( iuni_nml, "fixed_gastemp", fixed_gastemp(n) )
-              CALL iotk_write_dat( iuni_nml, "fixed_gasconc", fixed_gasconc( 1:ngas, n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_gasconc", fixed_gasconc( 1:max_ngas, n) )
               CALL iotk_write_dat( iuni_nml, "fixed_vpart_x", fixed_vpart_x( 1:nsolid, n) )
               CALL iotk_write_dat( iuni_nml, "fixed_vpart_y", fixed_vpart_y( 1:nsolid, n) )
               CALL iotk_write_dat( iuni_nml, "fixed_vpart_z", fixed_vpart_z( 1:nsolid, n) )
@@ -696,7 +696,7 @@
             CALL iotk_write_dat( iuni_nml, "initial_vpart_x", initial_vpart_x )
             CALL iotk_write_dat( iuni_nml, "initial_vpart_y", initial_vpart_y )
             CALL iotk_write_dat( iuni_nml, "initial_vpart_z", initial_vpart_z )
-            CALL iotk_write_dat( iuni_nml, "initial_gasconc", initial_gasconc( 1 : ngas ) )
+            CALL iotk_write_dat( iuni_nml, "initial_gasconc", initial_gasconc( 1 : max_ngas ) )
           CALL iotk_write_end( iuni_nml, "initial_conditions" )
         END IF
 

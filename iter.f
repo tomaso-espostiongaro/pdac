@@ -822,13 +822,6 @@
       resx = ( rgfe(ijk) - rgfe(imjk) ) * indx(i) * inx(i)
       resz = ( rgft(ijk) - rgft(ijkm) ) * indz(k)
       IF (job_type == '3D') resy = (rgfn(ijk) - rgfn(ijmk)) * indy(j)
-
-      ! IF( float_chk( rgfe(ijk) ) /= 0 ) WRITE( 6, * ) 'rgfe ', rgfe(ijk)
-      ! IF( float_chk( rgft(ijk) ) /= 0 ) WRITE( 6, * ) 'rgft ', rgft(ijk)
-      ! IF( float_chk( rgfe(imjk) ) /= 0 ) WRITE( 6, * ) 'rgfe m ', rgfe(imjk)
-      ! IF( float_chk( rgft(ijkm) ) /= 0 ) WRITE( 6, * ) 'rgft m ', rgft(ijkm)
-      ! IF( float_chk( rgp(ijk) ) /= 0 ) WRITE( 6, * ) 'rgp ', rgp(ijk)
-      ! IF( float_chk( rgpn(ijk) ) /= 0 ) WRITE( 6, * ) 'rgpn ', rgpn(ijk)
 !
       res  = rgp(ijk) - rgpn(ijk) + dt * (resx+resy+resz)
 !          - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
@@ -1575,7 +1568,7 @@
 !
           mg = 0.D0
           DO ig = 1, ngas
-            mg = mg + xgc(ig,ijk) * gmw(gas_type(ig))
+            mg = mg + xgc(ig,ijk) * gmw( gas_type(ig) )
           END DO
           rog(ijk) = p(ijk) / ( rgas * tg(ijk) ) * mg
 !

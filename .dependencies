@@ -79,6 +79,8 @@ limiters.o :
 matrix.o : control.o decomp.o dens.o dimensions.o grid.o indijk.o  \
     particles.o press.o subscr.o tilde.o time.o velocity.o 
 
+matsvels_solve.o : 
+
 nondim.o : atmosphere.o decomp.o dimensions.o gas.o grid.o indijk.o  \
     particles.o time.o 
 
@@ -94,7 +96,7 @@ pdac.o : decomp.o dens.o dimensions.o environment.o eosg.o gas.o grid.o  \
     temp.o tilde.o time.o turbo.o velocity.o visc.o 
 
 pp.o : decomp.o dens.o dimensions.o environment.o eosg.o gas.o grid.o  \
-    hcapgs.o input.o io.o matrix.o parallel.o particles.o press.o roughness.o  \
+    hcapgs.o input.o matrix.o parallel.o particles.o press.o roughness.o  \
     setup.o temp.o tilde.o time.o turbo.o velocity.o visc.o 
 
 press.o : decomp.o dimensions.o 
@@ -123,6 +125,8 @@ tilde.o : atmosphere.o control.o decomp.o dens.o dimensions.o drag.o eosg.o  \
     visc.o 
 
 time.o : 
+
+transto.o : 
 
 turbo.o : control.o decomp.o dens.o dimensions.o environment.o eosg.o grid.o  \
     indijk.o particles.o roughness.o subscr.o velocity.o 

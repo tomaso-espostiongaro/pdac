@@ -405,7 +405,7 @@
       INTEGER, INTENT(IN) :: k
 
       REAL*8 :: prif, pnn2, p1nn
-      REAL*8 :: zrif, trif, rhorif, cost, costc
+      REAL*8 :: zrif, trif, rhorif, cost, costc, rhorifm1
       REAL*8 :: rmcn, rmcnn, rmmn, rm1nn, rm1knn, rm2n, rm1n, rm0n
       REAL*8 :: u1n, u2n, ucnn, upnn
       REAL*8 :: eps, epc, epcn, ep1nn, epnn
@@ -489,14 +489,12 @@
 ! ... Calculation of fluid pressure from the gas equation of state and 
 ! ... the mixture density transport equation
 !
-        mg=0.D0
-        DO ig=1,ngas
-          mg = mg + xgc(ig,n1) * gmw(gas_type(ig))
+        mg = 0.D0
+        DO ig = 1, ngas
+          mg = mg + xgc(ig,n1) * gmw( gas_type( ig ) )
         END DO
-        !rm1nn=ep1nn*mg/(rgas*t1nn)         
-        !p1nn = (1.D0/rm1nn) * (- rm1knn + rm1n - dt*d1inv*(rm1n*ucn - rm0n*umn))
-        rm1nn=(rgas*t1nn)/(ep1nn*mg)      
-        p1nn = rm1nn * (- rm1knn + rm1n - dt*d1inv*(rm1n*ucn - rm0n*umn))
+        rm1nn = ( rgas * t1nn ) / ( ep1nn * mg )      
+        p1nn  = rm1nn * (- rm1knn + rm1n - dt * d1inv * ( rm1n * ucn - rm0n * umn ) )
 
         IF (epc < 1.0D-8) p1nn = p(n1)
 !
@@ -505,22 +503,18 @@
 
         p(n2) = -rmcnn*ucnn + rmcn*ucn - dt*dcinv*( u2n*ucn*rmcn - u1n*umn*rmmn) 
         p(n2) = p(n2) + grav * dt * rmcn
-        p(n2) = p(n2)/(dt*dcinv) + p1nn
-
-        IF( float_chk( p(n2) ) /= 0 ) THEN
-          WRITE(6,*) ' boundary p 1 ', p(n2)
-        END IF
+        p(n2) = p(n2) / ( dt * dcinv ) + p1nn
 !
         ep(n2) = ep(n1)
         tg(n2) = tg(n1)
-        DO ig=1,ngas
+        DO ig = 1, ngas
            rgpgc(n2,ig) = rgpgc(n2,ig) - &
-                          ucn * dt*d2inv * (rgpgc(n2,ig)-rgpgc(n1,ig))
+                          ucn * dt * d2inv * ( rgpgc(n2,ig) - rgpgc(n1,ig) )
         END DO
 !
 ! ... Correct non-physical pressure
 !
-        IF (p(n2) <= 0.0D0) p(n2) = p(n1)
+        IF ( p(n2) <= 0.0D0 ) p(n2) = p(n1)
 
         IF( float_chk( p(n2) ) /= 0 ) THEN
           WRITE(6,*) 'boundary p 4 ', p(n2)
@@ -536,27 +530,20 @@
 
 ! ... Non-reflecting b.c.
                 
-        upnn = upn - ucn*dt*d2inv * (0.D0 - u2n)
+        upnn = upn - ucn * dt * d2inv * ( 0.D0 - u2n )
         upn = upnn
 !
-        zrif=zb(k)+0.5D0*(dz(1)-dz(k))  ! DOMANDA perche dz(1)
-        CALL atm(zrif,prif,trif)
+        zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )  ! DOMANDA perche dz(1)
+        CALL atm( zrif, prif, trif )
 
-        !rhorif=prif*gmw(6)/(rgas*trif)
-        !cost=prif/(rhorif**gammaair)
-        !costc=(gammaair*cost**(1.D0/gammaair))/(gammaair-1.D0)
-
-        rhorif = rgas * trif/( prif*gmw(6))
-        cost = prif**(1.D0/gammaair) * rhorif
-        costc = (gammaair-1.D0)/ (gammaair*cost)
+        rhorifm1 = rgas * trif / ( prif * gmw(6) )   !  rhorif ** (-1)
+        cost  = prif ** ( 1.D0 / gammaair ) * rhorifm1
+        costc = ( gammaair - 1.D0 ) / ( gammaair * cost )
 !
 ! ... Adiabatic inflow
  
-        ! p(n2)=(prif**gamn-(u2n**2)/(2.D0*costc))**(1.D0/gamn)
-
         pf1 = prif**gamn
-        !pf2 = ( u2n**2 ) / ( 2.D0 * costc )
-        pf2 = u2n*u2n *  0.5D0 * costc
+        pf2 = u2n * u2n * 0.5D0 * costc
         pfd = pf1 - pf2
 
         IF( pfd >= 0 ) THEN
@@ -567,14 +554,11 @@
 
         IF( float_chk( p(n2) ) /= 0 ) THEN
           WRITE(6,*) 'boundary p 5 ', p(n2)
-          !WRITE(6,*) 'boundary     ', pf1, pf2, pfd
-          !WRITE(6,*) 'boundary     ', prif, gamn, u2n
-          !WRITE(6,*) 'boundary     ', costc
         END IF
 !
         ep(n2) = 1.D0
         tg(n2) = trif
-        DO ig=1,ngas
+        DO ig = 1, ngas
           rgpgc(n2,ig) = rgpgc(n1,ig)
         END DO
 
