@@ -53,8 +53,9 @@
       END SUBROUTINE
 !----------------------------------------------------------------------
        SUBROUTINE turbulence_setup
-
+!
 ! ... sets the Smagorinsky turbulence length scale
+! ... and the roughness length
 !
         USE dimensions, ONLY: nr, nz, no, nx, ny
         USE grid, ONLY: iob

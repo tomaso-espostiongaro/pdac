@@ -1,17 +1,12 @@
 !-----------------------------------------------------------------------
       MODULE boundary_conditions
 !-----------------------------------------------------------------------
-      USE atmosphere, ONLY: gravz, atm
+      USE atmosphere, ONLY: gravz
       USE dimensions
-      USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: sieg, tg, sies, ts
       USE grid, ONLY: zb, dz
       USE eos_gas, ONLY: rgpgc, xgc
-      USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE grid, ONLY: ncint, myijk
-      USE grid, ONLY: fl_l
-      USE parallel, ONLY: mpime
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p, ep
       USE time_parameters, ONLY: dt, time
@@ -24,10 +19,15 @@
 !-----------------------------------------------------------------------
       SUBROUTINE boundary2d
 !
-! ... This routine computes boundary conditions 
+! ... This routine computes boundary conditions for cylindrical
+! ... (r,z) coordinates
 !
       USE gas_solid_velocity, ONLY: ug, wg, us, ws
       USE grid, ONLY: rb, dr, r, inr, inrb
+      USE grid, ONLY: ncint, myijk
+      USE grid, ONLY: fl_l
+      USE indijk_module, ONLY: ip0_jp0_kp0_
+      USE parallel, ONLY: mpime
       USE set_indexes, ONLY: subscr
       USE set_indexes, ONLY: ipj, ipjp, imj, imjp, ijp, ijm, ipjm, imjm
 !
@@ -247,6 +247,10 @@
 !
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: dx, dy
+      USE grid, ONLY: ncint, myijk
+      USE grid, ONLY: fl_l
+      USE indijk_module, ONLY: ip0_jp0_kp0_
+      USE parallel, ONLY: mpime
       USE set_indexes, ONLY: subscr
       USE set_indexes, ONLY: ipjk, imjk, ippjk, immjk, ijpk, ipjpk,    &
         imjpk, ijmk, ipjmk, imjmk, ijppk, ijmmk, ijkp, ipjkp, imjkp,   &
@@ -598,6 +602,9 @@
 ! ... cell, i.e. the normal component of the velocity and the scalar fields
 ! ... for East, North and Top boundaries
 
+      USE atmosphere, ONLY: atm
+      USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
+
       REAL*8, INTENT(IN) :: umn, ucn
       REAL*8, INTENT(INOUT) :: upn
       REAL*8, INTENT(IN) :: usmn(:), uscn(:)
@@ -780,6 +787,9 @@
 ! ... This routine computes the free in/outflow conditions in the boundary
 ! ... cell, i.e. the normal component of the velocity and the scalar fields
 ! ... for West and South boundaries
+
+      USE atmosphere, ONLY: atm
+      USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
 
       REAL*8, INTENT(IN) :: upn
       REAL*8, INTENT(INOUT) :: ucn

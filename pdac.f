@@ -23,6 +23,7 @@
       USE gas_solid_temperature, ONLY: bounds_temperature, &
      &    local_bounds_temperature
       USE gas_solid_viscosity, ONLY: bounds_viscosity, local_bounds_viscosity
+      USE glocal_arrays, ONLY: distribute
       USE grid, ONLY: dx, dy, dz, dr, itc
       USE grid, ONLY: iob, flic, partition, ghost, &
      &    bounds_blbody, bounds_grid

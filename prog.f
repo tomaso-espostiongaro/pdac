@@ -9,6 +9,7 @@
       USE enthalpy_matrix, ONLY: ftem
       USE gas_solid_density, ONLY: rog, rgp, rlk
       USE gas_solid_temperature, ONLY: sieg, sies, ts, tg
+      USE glocal_arrays, ONLY: collect
       USE grid, ONLY: ncint, myijk, fl_l
       USE heat_capacity, ONLY: cp, ck
       USE indijk_module, ONLY: ip0_jp0_kp0_
