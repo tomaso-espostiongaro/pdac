@@ -55,7 +55,8 @@
       ! ... Input parameters
       INTEGER :: itp, iavv
       REAL*8 :: cellsize, filtersize
-      REAL*8 :: rim_quota, flatten_crater
+      REAL*8 :: rim_quota
+      LOGICAL :: flatten_crater
 !
 ! ... file name for the topography
       CHARACTER(LEN=80) :: dem_file
@@ -286,14 +287,20 @@
 !     
       ! ... Reset the resized DEM parameters as default
       !
-      WRITE(6,*) 'DEM is resized'
-      WRITE(6,*) 'Old resolution: ', vdem%cellsize, ' [m]'
+      IF (mpime == root) THEN
+        WRITE(6,*) 'DEM is resized'
+        WRITE(6,*) 'Old resolution: ', vdem%cellsize, ' [m]'
+      END IF
+!
       vdem%nx           = noditopx
       vdem%ny           = noditopy
       vdem%xcorner      = xul
       vdem%ycorner      = yul
       vdem%cellsize     = cellsize
-      WRITE(6,*) 'New resolution: ', vdem%cellsize, ' [m]'
+!
+      IF (mpime == root) THEN
+        WRITE(6,*) 'New resolution: ', vdem%cellsize, ' [m]'
+      END IF
 !
       ! ... Compute the new UTM coordinates of each element.
       !
@@ -482,6 +489,7 @@
       ! ... Re-set the cell flags at the base of the crater
       ! ... and the 'ord2d' and 'dist' arrays
       !
+      DEALLOCATE(nextx,nexty,dist,ord2d)
       CALL set_profile
 !
 ! ... Write out the new DEM file
@@ -652,7 +660,6 @@
           f2(i,j) = f2(i,j) / cnt
         END DO
       END DO
-      WRITE(*,'F14.6') f2(:,50)
 !
       ! ... Linearly interpolate quotas
       !

@@ -141,7 +141,8 @@
 
       IF (grigen > 0) THEN
 
-        WRITE(6,*) 'Generating grid ...'
+        IF( mpime == root ) &
+          WRITE(6,*) 'Generating grid ...'
 
         IF (mpime == root .AND. lpr > 0) &
           WRITE(7,*) 'Generating grid along x'
