@@ -74,6 +74,7 @@
       USE time_parameters, ONLY: time
       USE turbulence_model, ONLY: modturbo
       USE control_flags, ONLY: job_type
+      USE input_module, ONLY: lform => formatted_output
 !
       IMPLICIT NONE
 !
@@ -81,7 +82,6 @@
       CHARACTER*4 :: letter
 !
       INTEGER :: ig,is
-      LOGICAL :: lform = .TRUE.
       REAL*8, ALLOCATABLE :: otmp(:)
 !
       nfil=nfil+1

@@ -15,6 +15,9 @@
       CHARACTER(LEN=80) :: restart_mode
       INTEGER :: iuni
 
+! ... IO
+      LOGICAL :: formatted_output
+
 ! ... MESH
       REAL*8 :: delta_x(max_size)
       REAL*8 :: delta_y(max_size)
@@ -82,7 +85,7 @@
 
       NAMELIST / control / run_name, job_type, restart_mode, time, tstop, dt, lpr, tpr, &
         tdump, nfil, irex, iss, iturb, modturbo, cmut, rlim, gravx, gravz, &
-        ngas, default_gas
+        ngas, default_gas, formatted_output
 !
       NAMELIST / mesh / nx, ny, nz, itc, iuni, dx0, dy0, dz0, &
         mesh_partition
@@ -120,6 +123,7 @@
       gravz = -9.81D0
       ngas = 7
       default_gas = 6
+      formatted_output = .TRUE.
 
 ! ... Mesh
 
@@ -182,6 +186,7 @@
       CALL bcast_real(gravz,1,root)
       CALL bcast_integer(ngas,1,root)
       CALL bcast_integer(default_gas,1,root)
+      CALL bcast_logical(formatted_output,1,root)
 
       SELECT CASE ( TRIM(restart_mode) )
         CASE ('from_scratch', 'default')

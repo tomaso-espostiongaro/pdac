@@ -1,6 +1,8 @@
 !-----------------------------------------------------------------------
       MODULE dimensions
 !-----------------------------------------------------------------------
+        IMPLICIT NONE
+        SAVE
         INTEGER :: nx, ny, nz
         INTEGER :: ntot ! ntot = nx*nz or nx*ny*nz
         INTEGER :: no
