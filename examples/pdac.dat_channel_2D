@@ -29,6 +29,14 @@
   topography = 'wall.dat'
 /
 
+&inlet
+/
+
+&atmosphere
+  wind_x = 20.0,
+  wind_z = 20.0
+/
+
 &particles
   nsolid = 2, 
   diameter = 200.D0, 30.D0,
@@ -59,8 +67,3 @@
 4, 45, 45, 1, 30
 2, 1, 45, 1, 1
 2, 1, 45, 30, 30
-
-'INITIAL_CONDITIONS'
-20.0, 0.0, 1.0D5, 1.0 0.6413, 288.15 
-20.0, 0.0
-0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0
