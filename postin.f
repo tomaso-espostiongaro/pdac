@@ -13,7 +13,7 @@
 
       USE process_outp, ONLY: first_out, last_out, incr_out
       USE process_outp, ONLY: downsize_x, downsize_y, downsize_z
-      USE process_outp, ONLY: action, number_of_points
+      USE process_outp, ONLY: act, number_of_points
       USE process_outp, ONLY: assign_index
       USE process_outp, ONLY: index_i, index_j, index_k
       USE process_outp, ONLY: coordinate_x, coordinate_y, coordinate_z
@@ -23,7 +23,7 @@
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: punit
       
-      NAMELIST / control / action, first_out, last_out, incr_out,  &
+      NAMELIST / control / act, first_out, last_out, incr_out,  &
                downsize_x, downsize_y, downsize_z, formatted_output
 
       NAMELIST / sampling / number_of_points, assign_index, index_i, &
@@ -38,7 +38,7 @@
 
 ! ... Control
       
-  action     = 2        ! 1: mount time sequence, 2: time-space sampling        
+  act        = 2        ! 1: mount time sequence, 2: time-space sampling        
   first_out  = 1     
   last_out   = 10   
   incr_out   = 1    

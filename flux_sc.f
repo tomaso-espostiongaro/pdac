@@ -87,7 +87,7 @@
 ! ... on East volume boundary
 !
       cs = u%c
-      !cn = cs * dt * 2.0 * indxp
+      !cn = cs * dt * 2.D0 * indxp
       IF (cs >= 0.D0) THEN
         upwnd  = dens%c*field%c 
       ELSE IF (cs < 0.D0) THEN
@@ -98,7 +98,7 @@
 ! ... on North volume boundary
 !
       cs = v%c
-      !cn = cs * dt * 2.0 * indyp
+      !cn = cs * dt * 2.D0 * indyp
       IF (cs >= 0.D0) THEN
         upwnd  = dens%c*field%c 
       ELSE IF (cs < 0.D0) THEN
@@ -109,7 +109,7 @@
 ! ... on Top volume boundary
 !
       cs = w%c
-      !cn = cs * dt * 2.0 * indzp
+      !cn = cs * dt * 2.D0 * indzp
       IF (cs >= 0.D0) THEN
         upwnd  = dens%c*field%c 
       ELSE IF (cs < 0.D0) THEN
@@ -180,26 +180,24 @@
 !
 ! ... on East volume boundary
 !
-      gradc = 2.0 * indxp * (dens%e*field%e - dens%c*field%c)
-      gradw = 2.0 * indxm * (dens%c*field%c - dens%w*field%w)
-      grade = 2.0 * indxpp * (dens%ee*field%ee - dens%e*field%e)
+      gradc = 2.D0 * indxp * (dens%e*field%e - dens%c*field%c)
+      gradw = 2.D0 * indxm * (dens%c*field%c - dens%w*field%w)
+      grade = 2.D0 * indxpp * (dens%ee*field%ee - dens%e*field%e)
 !
       lim = 0.D0
       erre = 0.D0
 !
       cs = u%c
-      !cn = cs * dt * 2.0 * indxp
+      !cn = cs * dt * 2.D0 * indxp
       IF (cs >= 0.D0) THEN
-	erre = gradw / gradc
+	IF (gradc /= 0.D0) erre = gradw / gradc
 	incr = 0.5D0 * dx(i)
       ELSE IF (cs < 0.D0) THEN
-	erre = grade / gradc
+	IF (gradc /= 0.D0) erre = grade / gradc
 	incr = 0.5D0 * dx(i+1)
       ENDIF
 !
-      IF ((gradc /= 0.D0) .AND. (i /= nx-1)) THEN
-        CALL limiters(lim,erre)
-      END IF
+      IF (i /= nx-1) CALL limiters(lim,erre)
 !
       upwnd = lim * gradc * incr
 !
@@ -208,26 +206,24 @@
 !
 ! ... on North volume boundary
 !
-      gradc = 2.0 * indyp * (dens%n*field%n - dens%c*field%c)
-      grads = 2.0 * indym * (dens%c*field%c - dens%s*field%s)
-      gradn = 2.0 * indypp * (dens%nn*field%nn - dens%n*field%n)
+      gradc = 2.D0 * indyp * (dens%n*field%n - dens%c*field%c)
+      grads = 2.D0 * indym * (dens%c*field%c - dens%s*field%s)
+      gradn = 2.D0 * indypp * (dens%nn*field%nn - dens%n*field%n)
 !
       lim = 0.D0
       erre = 0.D0
 !
       cs = v%c
-      !cn = cs * dt * 2.0 * indyp
+      !cn = cs * dt * 2.D0 * indyp
       IF (cs >= 0.D0) THEN
-	erre = grads / gradc
+	IF (gradc /= 0.D0) erre = grads / gradc
 	incr = 0.5D0 * dy(j)
       ELSE IF (cs < 0.D0) THEN
-	erre = gradn / gradc
+	IF (gradc /= 0.D0) erre = gradn / gradc
 	incr = 0.5D0 * dy(j+1)
       ENDIF
 !
-      IF ((gradc /= 0.D0) .AND. (j /= ny-1)) THEN
-        CALL limiters(lim,erre)
-      END IF
+      IF (j /= ny-1) CALL limiters(lim,erre)
 !
       upwnd = lim * gradc * incr
 !
@@ -236,26 +232,24 @@
 !
 ! ... on Top volume boundary
 !
-      gradc = 2.0 * indzp * (dens%t*field%t - dens%c*field%c)
-      gradb = 2.0 * indzm * (dens%c*field%c - dens%b*field%b)
-      gradt = 2.0 * indzpp * (dens%tt*field%tt - dens%t*field%t)
+      gradc = 2.D0 * indzp * (dens%t*field%t - dens%c*field%c)
+      gradb = 2.D0 * indzm * (dens%c*field%c - dens%b*field%b)
+      gradt = 2.D0 * indzpp * (dens%tt*field%tt - dens%t*field%t)
 !
       lim = 0.D0
       erre = 0.D0
 !
       cs = w%c
-      !cn = cs * dt * 2.0 * indzp
+      !cn = cs * dt * 2.D0 * indzp
       IF (cs >= 0.D0) THEN
-	erre = gradb / gradc
+	IF (gradc /= 0.D0) erre = gradb / gradc
 	incr = 0.5D0 * dz(k)
       ELSE IF (cs < 0.D0) THEN
-	erre = gradt / gradc
+	IF (gradc /= 0.D0) erre = gradt / gradc
 	incr = 0.5D0 * dz(k+1)
       ENDIF
 !
-      IF ((gradc /= 0.D0) .AND. (k /= nz-1)) THEN
-        CALL limiters(lim,erre)
-      END IF
+      IF (k /= nz-1) CALL limiters(lim,erre)
 !
       upwnd = lim * gradc * incr
 !
@@ -327,7 +321,7 @@
 ! ... on Top volume boundary
 !
       cs = w%c
-      !cn = cs * dt * 2.0 * indzp
+      !cn = cs * dt * 2.D0 * indzp
       IF (cs >= 0.D0) THEN
         upwnd  = dens%c * field%c 
       ELSE IF (cs < 0.D0) THEN
@@ -402,16 +396,14 @@
       cs = u%c
       !cn = cs * dt * 2.D0 * indxp
       IF (cs >= 0.D0) THEN
-	erre = gradw / gradc
+	IF (gradc /= 0.D0) erre = gradw / gradc
 	incr = 0.5D0 * dx(i)
       ELSE IF (cs < 0.D0) THEN
-	erre = grade / gradc
+	IF (gradc /= 0.D0) erre = grade / gradc
 	incr = 0.5D0 * dx(i+1)
       ENDIF
 !
-      IF ((gradc /= 0.D0) .AND. (i /= nx-1)) THEN
-        CALL limiters(lim,erre)
-      END IF
+      IF (i /= nx-1) CALL limiters(lim,erre)
 !
       upwnd = lim * gradc * incr
 !
@@ -428,18 +420,16 @@
       erre = 0.D0
 !
       cs = w%c
-      !cn = cs * dt * 2.0 * indzp
+      !cn = cs * dt * 2.D0 * indzp
       IF (cs >= 0.D0) THEN
-	erre = gradb / gradc
+	IF (gradc /= 0.D0) erre = gradb / gradc
 	incr = 0.5D0 * dz(k)
       ELSE IF (cs < 0.D0) THEN
-	erre = gradt / gradc
+	IF (gradc /= 0.D0) erre = gradt / gradc
 	incr = 0.5D0 * dz(k+1)
       ENDIF
 !
-      IF ((gradc /= 0.D0) .AND. (k /= nz-1)) THEN
-        CALL limiters(lim,erre)
-      END IF
+      IF (k /= nz-1) CALL limiters(lim,erre)
 !
       upwnd = lim * gradc * incr
 !

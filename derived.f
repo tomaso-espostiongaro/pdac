@@ -65,11 +65,6 @@
         mg = mg + xgc(:,ig) * gmw(gas_type(ig))
       END DO
 
-      WRITE(*,*) gas_type(:)
-      WRITE(*,*) gmw(gas_type(:))
-      WRITE(*,*) SIZE(xgc), SIZE(mg)
-      RETURN
-
       RETURN
       END FUNCTION mg
 !----------------------------------------------------------------------
@@ -140,7 +135,7 @@
       REAL, DIMENSION(SIZE(eps,1),SIZE(eps,2)) :: rlk
 
       DO ijk = 1, ntot
-        rlk(ijk,:) = eps(ijk,:) / rl(:)
+        rlk(ijk,:) = eps(ijk,:) * rl(:)
       END DO
 
       END FUNCTION rlk
@@ -153,8 +148,10 @@
       REAL, INTENT(IN) :: eps(:,:)
       REAL, INTENT(IN) :: p(:), tg(:), xgc(:,:)
       REAL, DIMENSION(SIZE(p)) :: rhom
+      REAL, DIMENSION(SIZE(eps,1),SIZE(eps,2)) :: bds
 
-      rhom = rgp(eps,p,tg,xgc) + SUM(rlk(eps),DIM=2) 
+      bds = rlk(eps)
+      rhom = rgp(eps,p,tg,xgc) + SUM(bds,DIM=2) 
 
       RETURN
       END FUNCTION rhom
@@ -175,40 +172,35 @@
       RETURN
       END FUNCTION velm
 !----------------------------------------------------------------------
-      FUNCTION pdyn(rhom,velm)
+      FUNCTION pdyn(rm,velm)
       !
       ! ... computes the mixture dynamic pressure
       
       IMPLICIT NONE
-      REAL, INTENT(IN), DIMENSION(:) :: rhom, velm
-      REAL, DIMENSION(SIZE(rhom)) :: pdyn
+      REAL, INTENT(IN), DIMENSION(:) :: rm, velm
+      REAL, DIMENSION(SIZE(rm)) :: pdyn
 
-      pdyn = 0.5 * rhom * velm**2
+      pdyn = 0.5 * rm * velm**2
 
       RETURN
       END FUNCTION pdyn
 !----------------------------------------------------------------------
-      FUNCTION cm(rgp,rhog,rhom,mg,tg)
+      FUNCTION cm(rgp,rhog,rm,mg,tg)
       ! 
-      ! ... computes the mixture sound speed
+      ! ... computes the inverse of the mixture sound speed
 
       IMPLICIT NONE
-      REAL, INTENT(IN), DIMENSION(:) :: rgp, rhog, rhom, tg, mg
+      REAL, INTENT(IN), DIMENSION(:) :: rgp, rhog, rm, tg, mg
       REAL, DIMENSION(SIZE(tg)) :: cm
       REAL, DIMENSION(SIZE(rgp)) :: fact, y
 
 !
 ! ... Mixture sound speed (Wallis, 1969)
 !
-!      y = rgp / rhom
-!      fact = y + (1.0 - y) * rhog / rl(1)
-!      cm = SQRT(gammaair * rgas * tg / mg / y ) * fact
+      y = rgp / rm
+      fact = y + (1.0 - y) * rhog / rl(1)
+      cm = SQRT(gammaair * rgas * tg / mg / y ) * fact
 !
-! ... limit for particle density >> gas density
-!
-      cm = rhog / (rhom - rgp) * (gammaair * rgas * tg / mg)
-      cm = cm / rgp * rhog
-      
       RETURN
       END FUNCTION cm
 !----------------------------------------------------------------------

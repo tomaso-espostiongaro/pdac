@@ -24,7 +24,7 @@
       TYPE(inlet_cell), ALLOCATABLE :: vcell(:)
 
       INTEGER :: nvt
-      INTEGER :: seed
+      INTEGER, SAVE :: seed
 
       SAVE
 !-----------------------------------------------------------------------

@@ -29,6 +29,73 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
+      SUBROUTINE flv_3d(fe, fn, ft, fw, fs, fb, dens, u, v, w, j)
+!
+! ... Compute the convective fluxes on East, North, and Top sides of the cell
+! ... for the momentum density along y.
+!
+      USE grid, ONLY: flag
+      USE grid, ONLY: dy
+      USE set_indexes, ONLY: imjk, ijmk, ijkm
+      USE set_indexes, ONLY: stencil
+
+      IMPLICIT NONE
+!
+      REAL*8, INTENT(OUT) :: fe, fn, ft, fw, fs, fb
+      TYPE(stencil), INTENT(IN) :: dens, u, v, w
+      INTEGER, INTENT(IN) :: j
+!
+      REAL*8 :: dyp, indyp
+      REAL*8 :: gradc, grade, gradw, gradn, grads, gradt, gradb
+
+      dyp=dy(j)+dy(j+1)
+      indyp=1.D0/dyp
+!
+! ... on West volume bondary
+!
+      IF( flag(imjk) /= 1 ) THEN
+        cs = (u%wn * dy(j) + u%w * dy(j+1)) * indyp
+        IF ( cs >= 0.D0 ) fw = dens%w * v%w * cs
+        IF ( cs <  0.D0 ) fw = dens%c * v%c * cs
+      END IF
+!
+! ... on South volume bondary
+!
+      IF( flag(ijmk) /= 1 ) THEN
+        cs = 0.5D0 * ( v%c + v%s ) 
+        IF ( cs >= 0.D0 ) fs = dens%s * v%s * cs
+        IF ( cs <  0.D0 ) fs = dens%c * v%c * cs
+      END IF
+!
+! ... on Bottom volume bondary
+!
+      IF( flag(ijkm) /= 1 ) THEN
+        cs = (w%nb * dy(j) + w%b * dy(j+1)) * indyp
+        IF ( cs >= 0.D0 ) fb = dens%b * v%b * cs
+        IF ( cs <  0.D0 ) fb = dens%c * v%c * cs
+      END IF
+!
+! ... on East volume boundary
+!
+      cs = indyp * (u%c * dy(j+1) + u%n * dy(j))
+      IF ( cs >= 0.D0 ) fe  = dens%c * v%c * cs
+      IF ( cs <  0.D0 ) fe  = dens%e * v%e * cs
+!
+! ... on North volume boundary
+!
+      cs = 0.5D0 * ( v%n + v%c )
+      IF (cs >= 0.D0) fn  = dens%c * v%c * cs
+      IF (cs <  0.D0) fn  = dens%n * v%n * cs
+!
+! ... on Top volume boundary
+!
+      cs = indyp * (w%c * dy(j+1) + w%n * dy(j))
+      IF (cs >= 0.D0) ft  = dens%c * v%c * cs
+      IF (cs <  0.D0) ft  = dens%t * v%t * cs
+!
+      RETURN
+      END SUBROUTINE flv_3d
+!----------------------------------------------------------------------
       SUBROUTINE muscl_flv_3d(fe, fn, ft, dens, u, v, w, i, j, k)
 !
 ! ... Compute the convective fluxes on East, North, and Top sides of the cell
@@ -128,15 +195,15 @@
 !
 ! ... on Top volume boundary
 !
-      gradc = (dens%t * v%t   - dens%c * v%c) * 2.0 * indzp
-      gradb = (dens%c * v%c   - dens%b * v%b) * 2.0 * indzm
-      gradt = (dens%tt * v%tt - dens%t * v%t) * 2.0 * indzpp
+      gradc = (dens%t * v%t   - dens%c * v%c) * 2.D0 * indzp
+      gradb = (dens%c * v%c   - dens%b * v%b) * 2.D0 * indzm
+      gradt = (dens%tt * v%tt - dens%t * v%t) * 2.D0 * indzpp
 !
       lim = 0.D0
       erre = 0.D0
 !
       cs = (dy(j+1) * w%c + dy(j) * w%n) * indyp
-      !cn = cs * dt * 2.0 * indzp
+      !cn = cs * dt * 2.D0 * indzp
       IF (cs >= 0.D0) THEN
         IF (gradc /= 0) erre = gradb / gradc
 	incr = 0.5D0 * dz(k)
@@ -153,73 +220,6 @@
 !
       RETURN
       END SUBROUTINE muscl_flv_3d
-!----------------------------------------------------------------------
-      SUBROUTINE flv_3d(fe, fn, ft, fw, fs, fb, dens, u, v, w, j)
-!
-! ... Compute the convective fluxes on East, North, and Top sides of the cell
-! ... for the momentum density along y.
-!
-      USE grid, ONLY: flag
-      USE grid, ONLY: dy
-      USE set_indexes, ONLY: imjk, ijmk, ijkm
-      USE set_indexes, ONLY: stencil
-
-      IMPLICIT NONE
-!
-      REAL*8, INTENT(OUT) :: fe, fn, ft, fw, fs, fb
-      TYPE(stencil), INTENT(IN) :: dens, u, v, w
-      INTEGER, INTENT(IN) :: j
-!
-      REAL*8 :: dyp, indyp
-      REAL*8 :: gradc, grade, gradw, gradn, grads, gradt, gradb
-
-      dyp=dy(j)+dy(j+1)
-      indyp=1.D0/dyp
-!
-! ... on West volume bondary
-!
-      IF( flag(imjk) /= 1 ) THEN
-        cs = (u%wn * dy(j) + u%w * dy(j+1)) * indyp
-        IF ( cs >= 0.D0 ) fw = dens%w * v%w * cs
-        IF ( cs <  0.D0 ) fw = dens%c * v%c * cs
-      END IF
-!
-! ... on South volume bondary
-!
-      IF( flag(ijmk) /= 1 ) THEN
-        cs = 0.5D0 * ( v%c + v%s ) 
-        IF ( cs >= 0.D0 ) fs = dens%s * v%s * cs
-        IF ( cs <  0.D0 ) fs = dens%c * v%c * cs
-      END IF
-!
-! ... on Bottom volume bondary
-!
-      IF( flag(ijkm) /= 1 ) THEN
-        cs = ( w%b * dy(j+1) + w%nb * dy(j) ) * indyp
-        IF ( cs >= 0.D0 ) fb = dens%b * v%b * cs
-        IF ( cs <  0.D0 ) fb = dens%c * v%c * cs
-      END IF
-!
-! ... on East volume boundary
-!
-      cs = indyp * (u%c * dy(j+1) + u%n * dy(j))
-      IF ( cs >= 0.D0 ) fe  = dens%c * v%c * cs
-      IF ( cs <  0.D0 ) fe  = dens%e * v%e * cs
-!
-! ... on North volume boundary
-!
-      cs = 0.5D0 * ( v%n + v%c )
-      IF (cs >= 0.D0) fn  = dens%c * v%c * cs
-      IF (cs <  0.D0) fn  = dens%n * v%n * cs
-!
-! ... on Top volume boundary
-!
-      cs = (dy(j+1) * w%c + dy(j) * w%n) * indyp
-      IF (cs >= 0.D0) ft  = dens%c * v%c * cs
-      IF (cs <  0.D0) ft  = dens%t * v%t * cs
-!
-      RETURN
-      END SUBROUTINE flv_3d
 !----------------------------------------------------------------------
       END MODULE convective_fluxes_v
 !-----------------------------------------------------------------------

@@ -9,7 +9,7 @@
 !
 ! ... parameters for filters
 !
-      INTEGER :: action
+      INTEGER :: act
       INTEGER :: first_out, last_out, incr_out
       INTEGER :: downsize_x, downsize_y, downsize_z
 !
@@ -26,7 +26,7 @@
 !
 ! ... main fields
 !
-      REAL, ALLOCATABLE, DIMENSION(:) :: p, ug, vg, wg, tg
+      REAL, ALLOCATABLE, DIMENSION(:)   :: p, ug, vg, wg, tg
       REAL, ALLOCATABLE, DIMENSION(:,:) :: xgc
       REAL, ALLOCATABLE, DIMENSION(:,:) :: eps, us, vs, ws, ts
 !
@@ -135,15 +135,15 @@
 !
       lform = formatted_output
 
-      ALLOCATE(rm(ntot))
-      ALLOCATE(rg(ntot))
-      ALLOCATE(bd(ntot))
-      ALLOCATE(m(ntot))
-      ALLOCATE(um(ntot))
-      ALLOCATE(wm(ntot))
-      ALLOCATE(mvm(ntot))
-      ALLOCATE(c(ntot))
-      ALLOCATE(mc(ntot))
+      ALLOCATE(rm(ntot))  ! Mixture Density
+      ALLOCATE(rg(ntot))  ! Gas Density
+      ALLOCATE(bd(ntot))  ! Bulk Density
+      ALLOCATE(m(ntot))   ! Gas Component Mass Fraction
+      ALLOCATE(um(ntot))  ! Mixture Velocity X
+      ALLOCATE(wm(ntot))  ! Mixture Velocity Z
+      ALLOCATE(mvm(ntot)) ! Mixture Velocity Modulus
+      ALLOCATE(c(ntot))  ! Inverse of the Sound Speed
+      ALLOCATE(mc(ntot))  ! Mach Number
 
       CALL allocate_main_fields
 !

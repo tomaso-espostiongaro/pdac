@@ -49,6 +49,10 @@
       TYPE(stencil), INTENT(IN) :: u, v, w, dens
       INTEGER, INTENT(IN) :: ijk
 !
+! ... Correction factors used in the computation of
+! ... the derivative of the mass residual with pressure
+! ... (routine 'betas')
+!
       upc_e = 1.D0
       upc_w = 1.D0
       upc_t = 1.D0
@@ -174,7 +178,7 @@
       erre = 0.D0
 !
       cs = u%w
-      !cn = cs * dt * 2.0 * indxm
+      !cn = cs * dt * 2.D0 * indxm
       IF (cs >= 0.D0) THEN
 	IF (gradc /= 0.D0) erre = gradw / gradc
 	incr = 0.5D0 * dx(i-1)
@@ -196,13 +200,13 @@
 !
       gradw = gradc
       gradc = grade
-      grade = 2.0 * indxpp * (dens%ee - dens%e)
+      grade = 2.D0 * indxpp * (dens%ee - dens%e)
 !
       lim = 0.D0
       erre = 0.D0
 !
       cs = u%c
-      !cn = cs * dt * 2.0 * indxp
+      !cn = cs * dt * 2.D0 * indxp
       IF (cs >= 0.D0) THEN
 	IF (gradc /= 0.D0) erre = gradw / gradc
 	incr = 0.5D0 * dx(i)
@@ -222,15 +226,15 @@
 !
 ! ... on South volume boundary
 !
-      gradc = 2.0 * indym * (dens%c - dens%s)
-      grads = 2.0 * indymm * (dens%s - dens%ss)
-      gradn = 2.0 * indyp * (dens%n - dens%c)
+      gradc = 2.D0 * indym * (dens%c - dens%s)
+      grads = 2.D0 * indymm * (dens%s - dens%ss)
+      gradn = 2.D0 * indyp * (dens%n - dens%c)
 !
       lim = 0.D0
       erre = 0.D0
 !
       cs = v%s
-      !cn = cs * dt * 2.0 * indym
+      !cn = cs * dt * 2.D0 * indym
       IF (cs >= 0.D0) THEN
 	IF (gradc /= 0.D0) erre = grads / gradc
 	incr = 0.5D0 * dy(j-1)
@@ -252,13 +256,13 @@
 !
       grads = gradc
       gradc = gradn
-      gradn = 2.0 * indypp * (dens%nn - dens%n)
+      gradn = 2.D0 * indypp * (dens%nn - dens%n)
 !
       lim = 0.D0
       erre = 0.D0
 !
       cs = v%c
-      !cn = cs * dt * 2.0 * indyp
+      !cn = cs * dt * 2.D0 * indyp
       IF (cs >= 0.D0) THEN
 	IF (gradc /= 0.D0) erre = grads / gradc
 	incr = 0.5D0 * dy(j)
@@ -278,15 +282,15 @@
 !
 ! ... on Bottom volume boundary
 !
-      gradc = 2.0 * indzm * (dens%c - dens%b)
-      gradb = 2.0 * indzmm * (dens%b - dens%bb)
-      gradt = 2.0 * indzp * (dens%t - dens%c)
+      gradc = 2.D0 * indzm * (dens%c - dens%b)
+      gradb = 2.D0 * indzmm * (dens%b - dens%bb)
+      gradt = 2.D0 * indzp * (dens%t - dens%c)
 !
       lim = 0.D0
       erre = 0.D0
 !
       cs = w%b
-      !cn = cs * dt * 2.0 * indzm
+      !cn = cs * dt * 2.D0 * indzm
       IF (cs >= 0.D0) THEN
 	IF (gradc /= 0.D0) erre = gradb / gradc
 	incr = 0.5D0 * dz(k-1)
@@ -308,13 +312,13 @@
 !
       gradb = gradc
       gradc = gradt
-      gradt = 2.0 * indzpp * (dens%tt - dens%t)
+      gradt = 2.D0 * indzpp * (dens%tt - dens%t)
 !
       lim = 0.D0
       erre = 0.D0
 !
       cs = w%c
-      !cn = cs * dt * 2.0 * indzp
+      !cn = cs * dt * 2.D0 * indzp
       IF (cs >= 0.D0) THEN
 	IF (gradc /= 0.D0) erre = gradb / gradc
 	incr = 0.5D0 * dz(k)
@@ -481,7 +485,7 @@
       erre = 0.D0
 !
       cs = u%c
-      !cn = cs * dt * 2.0 * indxp
+      !cn = cs * dt * 2.D0 * indxp
       IF (cs >= 0.D0) THEN
 	IF (gradc /= 0.D0) erre = gradw / gradc
 	incr = 0.5D0 * dx(i)
