@@ -89,8 +89,7 @@
         IF (fl_l(ijk) == 1) THEN
           CALL subscr(ijk)
           CALL mats2(ijk)
-          CALL velsk2(ug(ijk),   vg(ijk),   wg(ijk),         &
-	              us(ijk,:), vs(ijk,:), ws(ijk,:))
+          CALL velsk2(ijk)
         END IF
       END DO
 ! 

@@ -565,14 +565,15 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE velsk2(ug, vg, wg, us, vs, ws)
+      SUBROUTINE velsk2(ijk)
 !
       USE dimensions, ONLY: nphase
       USE grid, ONLY: fl_l
       USE set_indexes, ONLY: ipjk, ijpk, ijkp
+      USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       IMPLICIT NONE
 !
-      REAL*8, INTENT(OUT) :: ug, vg, wg, us(:), vs(:), ws(:)
+      INTEGER, INTENT(IN) :: ijk
 !
       INTEGER :: ll, lp1, l, lj, li
       INTEGER :: fle, fln, flt
@@ -613,9 +614,9 @@
           END IF
         END DO
 !
-        ug=bu(1)
+        ug(ijk)=bu(1)
         DO l=2,nphase
-          us(l-1)=bu(l)
+          us(ijk,l-1)=bu(l)
         END DO
 !
       END IF
@@ -652,9 +653,9 @@
           END IF
         END DO
 !
-        vg=bv(1)
+        vg(ijk)=bv(1)
         DO l=2,nphase
-          vs(l-1)=bv(l)
+          vs(ijk,l-1)=bv(l)
         END DO
 !
       END IF
@@ -693,9 +694,9 @@
           END IF
         END DO
 !
-        wg=bw(1)
+        wg(ijk)=bw(1)
         DO l=2,nphase
-          ws(l-1)=bw(l)
+          ws(ijk,l-1)=bw(l)
         END DO
 !
       END IF

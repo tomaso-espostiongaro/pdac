@@ -1780,22 +1780,20 @@
         DO ip = 1, (nproc - 1)
           isour = MOD(mpime - ip + nproc, nproc)
           idest = MOD(mpime + ip        , nproc)
-          sdim = MAX( SIZE(array,1) * snd_map(idest)%nsnd, 1)
-          rdim = MAX( SIZE(array,1) * rcv_map(isour)%nrcv, 1)
+          sdim = MAX( SIZE(array,2) * snd_map(idest)%nsnd, 1)
+          rdim = MAX( SIZE(array,2) * rcv_map(isour)%nrcv, 1)
           ALLOCATE( rcvbuf( rdim ) )
           ALLOCATE( sndbuf( sdim ) )
-!          rcvbuf = 0.0
-!          sndbuf = 0.0
-          DO ib = 1, snd_map(idest)%nsnd
-            DO ik = 1, SIZE(array,1)
-              sndbuf(ik + SIZE(array,1)*(ib-1)) = array( ik, snd_map(idest)%iloc(ib) )
+          DO ik = 1, SIZE(array,2)
+            DO ib = 1, snd_map(idest)%nsnd
+              sndbuf(ib + snd_map(idest)%nsnd*(ik-1)) = array( snd_map(idest)%iloc(ib), ik )
             END DO
           END DO 
           CALL sendrecv_real(sndbuf(1), SIZE(sndbuf), idest,     &      
                              rcvbuf(1), SIZE(rcvbuf), isour, ip)
-          DO ib = 1, rcv_map(isour)%nrcv
-            DO ik = 1, SIZE(array,1)
-              array( ik, rcv_map(isour)%iloc(ib) ) = rcvbuf( ik + SIZE(array,1)*(ib-1))
+          DO ik = 1, SIZE(array,2)
+            DO ib = 1, rcv_map(isour)%nrcv
+              array( rcv_map(isour)%iloc(ib), ik ) = rcvbuf( ib + rcv_map(isour)%nrcv*(ik-1))
             END DO
           END DO 
           DEALLOCATE( rcvbuf )
