@@ -44,7 +44,7 @@
       REAL*8 :: hrexs, hrexg
       REAL*8 :: zero
       REAL*8 :: flx, prs, upxyz
-      REAL*8 :: dxc, dyc, dzc, ugc, vgc, wgc
+      REAL*8 :: indxc, indyc, indzc, ugc, vgc, wgc
       INTEGER :: is, m, l, is1
       INTEGER :: i, j, k, ijk, imesh
       TYPE(stencil) :: u, v, w, dens, enth
@@ -97,7 +97,7 @@
 !
 ! ... compute convective and diffusive fluxes (gas)
 !
-! ... assemble the stencils
+! ... assemble the computational stencils
           CALL nb(enth,sieg,ijk)
           CALL nb(dens,rgp,ijk)
           CALL nb(eps,ep,ijk)
@@ -147,11 +147,11 @@
 ! ... assemble computational stencils
             CALL nb(enth,sies(:,is),ijk)
             CALL nb(dens,rlk(:,is),ijk)
-            eps   = inrl(is) * dens
             CALL nb(temp,ts(:,is),ijk)
-            kappa = cte(kap(is))
             CALL rnb(u, us(:,is),ijk)
             CALL rnb(w, ws(:,is),ijk)
+            eps   = inrl(is) * dens
+            kappa = cte(kap(is))
             
             IF (job_type == '2D') THEN
 
@@ -206,7 +206,7 @@
 !
       egfx = 0.D0; egfy = 0.D0; egfz = 0.D0
       esfx = 0.D0; esfy = 0.D0; esfz = 0.D0
-      dxc = 0.D0 ; dyc = 0.D0 ; dzc = 0.D0
+      indxc = 0.D0 ; indyc = 0.D0 ; indzc = 0.D0
       ugc = 0.D0 ; vgc = 0.D0 ; wgc = 0.D0
 !
       DO ijk = 1, ncint
@@ -228,19 +228,19 @@
                 dt * indy(j) * egfy +   &
                 dt * indz(k) * egfz
 !
-          dxc = dx(i)+(dx(i+1)+dx(i-1))/2.D0 
-          dzc = dz(k)+(dz(k+1)+dz(k-1))/2.D0
+          indxc = 1.D0/(dx(i)+(dx(i+1)+dx(i-1))*0.5D0)
+          indzc = 1.D0/(dz(k)+(dz(k+1)+dz(k-1))*0.5D0)
           ugc = (ug(ijk)+ug(imjk))/2.D0
           wgc = (wg(ijk)+wg(ijkm))/2.D0
 
           IF (job_type == '3D') THEN
-            dyc = dy(j)+(dy(j+1)+dy(j-1))/2.D0
+            indyc = 1.D0 / (dy(j)+(dy(j+1)+dy(j-1))*0.5D0)
             vgc = (vg(ijk)+vg(ijmk))/2.D0
           END IF
 !
-          upxyz= dt/dxc * ugc * (p(ijke)-p(ijkw)) +   &
-                 dt/dyc * vgc * (p(ijkn)-p(ijks)) +   &
-                 dt/dzc * wgc * (p(ijkt)-p(ijkb))
+          upxyz= dt * indxc * ugc * (p(ijke)-p(ijkw)) +   &
+                 dt * indyc * vgc * (p(ijkn)-p(ijks)) +   &
+                 dt * indzc * wgc * (p(ijkt)-p(ijkb))
 !
           prs = ep(ijk) * (p(ijk) - pn(ijk) + upxyz)
 !
