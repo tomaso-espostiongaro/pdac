@@ -36,27 +36,27 @@
 !-----------------------------------------------------------------------
       CONTAINS
 !-----------------------------------------------------------------------
-      SUBROUTINE subscl(ij)
+      SUBROUTINE subscr(ij)
 !
       INTEGER, INTENT(IN) :: ij
 !
-      ijm = myij( 0,-1, ij)
-      imj = myij(-1, 0, ij)
-      ipj = myij(+1, 0, ij)
-      ijp = myij( 0,+1, ij)
-      ipjm= myij(+1,-1, ij)
-      ipjp= myij(+1,+1, ij)
-      imjm= myij(-1,-1, ij)
-      imjp= myij(-1,+1, ij)
-      ijpp= myij( 0,+2, ij)
-      ippj= myij(+2, 0, ij)
-      immj= myij(-2, 0, ij)
-      ijmm= myij( 0,-2, ij)
+      ijm  = myij( 0,-1, ij)
+      imj  = myij(-1, 0, ij)
+      ipj  = myij(+1, 0, ij)
+      ijp  = myij( 0,+1, ij)
+      ipjm = myij(+1,-1, ij)
+      ipjp = myij(+1,+1, ij)
+      imjm = myij(-1,-1, ij)
+      imjp = myij(-1,+1, ij)
+      ijpp = myij( 0,+2, ij)
+      ippj = myij(+2, 0, ij)
+      immj = myij(-2, 0, ij)
+      ijmm = myij( 0,-2, ij)
 !
-      ijr = myinds(r_, ij)
-      ijt = myinds(t_, ij)
-      ijl = myinds(l_, ij)
-      ijb = myinds(b_, ij)
+      ijr  = myinds(r_, ij)
+      ijt  = myinds(t_, ij)
+      ijl  = myinds(l_, ij)
+      ijb  = myinds(b_, ij)
       ijtr = myinds(tr_, ij)
       ijtl = myinds(tl_, ij)
       ijbl = myinds(bl_, ij)
@@ -100,6 +100,11 @@
       TYPE(stencil) :: rnb
       REAL*8, INTENT(IN) :: array(:)
       INTEGER, INTENT(IN) :: ij
+      INTEGER :: i,j,imesh
+!
+      imesh = myij(0,0,ij)
+      i  = MOD( ( imesh - 1 ), nr) + 1
+      j  = ( imesh - 1 ) / nr + 1
 !
       rnb%c  = array(ij)
       rnb%e  = array(ipj)
@@ -111,9 +116,13 @@
       rnb%se  = array(ipjm)
       rnb%sw  = array(imjm)
       rnb%ee  = array(ippj)
+      IF (i == (nr-1))  rnb%ee  = array(ipj)
       rnb%nn  = array(ijpp)
+      IF (j == (nz-1))  rnb%nn  = array(ijp)
       rnb%ww  = array(immj)
+      IF (i == 2)  rnb%ww  = array(imj)
       rnb%ss  = array(ijmm)
+      IF (j == (2))  rnb%ss  = array(ijm)
 
       RETURN
       END FUNCTION rnb
