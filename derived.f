@@ -15,9 +15,9 @@
       
       IMPLICIT NONE
       REAL, INTENT(IN) :: eps(:,:)
-      REAL, DIMENSION(SIZE(eps,DIM=2)) :: epst
+      REAL, DIMENSION(SIZE(eps,DIM=1)) :: epst
 
-      epst = SUM(eps,DIM=1)
+      epst = SUM(eps,DIM=2)
 
       RETURN
       END FUNCTION epst

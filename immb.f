@@ -111,7 +111,6 @@
         ALLOCATE(topo_x(nx))
 
         ! ... interpolate the topography on z/x-staggered mesh
-        ! ... (do not change the order of these calls!)
         !
         CALL interpolate_2d(xb, z, topo_x, forcex)
         CALL interpolate_2d(x, zb, topo_c, forcez)

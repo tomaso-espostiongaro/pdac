@@ -15,9 +15,9 @@
 
 !
       IMPLICIT NONE
-      CHARACTER(LEN=8) :: inputfile, postfile
+      CHARACTER(LEN=8) :: inputfile, postfile, logfile, testfile, ppfile
 !
-      INTEGER :: inputunit, postunit
+      INTEGER :: inputunit, postunit, logunit, testunit, ppunit
       INTEGER :: ig
 
 !
@@ -31,14 +31,23 @@
 !
 
       inputunit = 5
-      postunit  = 7
+      logunit   = 6
+      testunit  = 7
+      postunit  = 9
+      ppunit  = 13
       inputfile = 'pdac.dat'
+      logfile   = 'pp.log'
+      testfile  = 'pp.tst'
       postfile = 'pp.dat'
+      ppfile = 'dpd.dat'
 
       IF( mpime == 0 ) THEN
 
         OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN')
         OPEN(UNIT=postunit,  FILE=postfile,  STATUS='UNKNOWN')
+        OPEN(UNIT=logunit, FILE=logfile, STATUS='UNKNOWN')
+        OPEN(UNIT=testunit,  FILE=testfile,  STATUS='UNKNOWN')
+        OPEN(UNIT=ppunit,  FILE=ppfile,  STATUS='UNKNOWN')
 
       END IF
 
@@ -86,6 +95,9 @@
       IF( mpime == 0 ) THEN
         CLOSE(inputunit)
         CLOSE(postunit)
+        CLOSE(logunit)
+        CLOSE(testunit)
+        CLOSE(ppunit)
       END IF
 
       CALL parallel_hangup

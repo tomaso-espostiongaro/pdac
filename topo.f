@@ -51,7 +51,7 @@
       REAL*8, ALLOCATABLE :: xtop(:), ytop(:), ztop(:), ztop2d(:,:)
       INTEGER :: noditop, noditopx, noditopy
 !
-      INTEGER :: itp
+      INTEGER :: itp, iavv
 !
       SAVE
 !----------------------------------------------------------------------
@@ -80,6 +80,7 @@
         CALL read_2Dprofile
       ELSE IF (job_type == '3D') THEN
         CALL read_dem_ascii
+        IF (iavv >= 1) CALL averaged_volcano
         CALL compute_UTM_coords
       END IF
 !
@@ -206,6 +207,56 @@
 !
       RETURN
       END SUBROUTINE read_dem_ascii
+!----------------------------------------------------------------------
+      SUBROUTINE averaged_volcano
+      USE grid, ONLY: center_x, center_y
+      IMPLICIT NONE
+      INTEGER :: i, j, icenter, jcenter, distance, m
+      INTEGER :: dms, max_distance
+      REAL*8, ALLOCATABLE :: av_quota(:)
+      INTEGER, ALLOCATABLE :: nk(:)
+!
+      dms = vdem%nx**2 + vdem%ny**2
+      ALLOCATE( av_quota( 0:dms ) )
+      ALLOCATE( nk( 0:dms ) )
+      av_quota = 0.D0
+      nk       = 0
+!
+      DO i = 1, vdem%nx
+        IF (xtop(i) <= center_x) icenter = i
+      END DO
+      DO j = 1, vdem%ny
+        IF (ytop(j) <= center_y) jcenter = j
+      END DO
+      center_x = xtop(icenter)
+      center_y = ytop(jcenter)
+!
+      max_distance = 0
+      DO j = 1, vdem%ny
+        DO i = 1, vdem%nx
+          distance = (i - icenter)**2 + (j - jcenter)**2
+          av_quota(distance) = av_quota(distance) + ztop2d(i,j)
+          nk(distance) = nk(distance) + 1
+          IF (distance > max_distance) max_distance = distance
+        END DO
+      END DO
+      !
+      DO m = 1, dms
+        IF( nk(m) > 0 ) av_quota(m) = av_quota(m) / nk(m)
+      END DO
+!      
+      DO j = 1, vdem%ny
+        DO i = 1, vdem%nx
+          distance = (i - icenter)**2 + (j - jcenter)**2
+          ztop2d(i,j) = av_quota(distance)
+        END DO
+      END DO
+!
+      DEALLOCATE(av_quota)
+      DEALLOCATE(nk)
+!
+      RETURN
+      END SUBROUTINE averaged_volcano
 !----------------------------------------------------------------------
       SUBROUTINE compute_UTM_coords
 

@@ -177,6 +177,7 @@
       INTEGER :: tn, ijk
       LOGICAL :: lform
       REAL, ALLOCATABLE, DIMENSION(:) :: rm, rg, bd, m, um, wm, mvm, c, mc 
+      REAL, ALLOCATABLE, DIMENSION(:) :: epstot, lepstot
 !
       lform = formatted_output
 
@@ -189,6 +190,8 @@
       ALLOCATE(mvm(ntot)) ! Mixture Velocity Modulus
       ALLOCATE(c(ntot))  ! Inverse of the Sound Speed
       ALLOCATE(mc(ntot))  ! Mach Number
+      ALLOCATE(epstot(ntot))  ! Total particle fraction
+      ALLOCATE(lepstot(ntot))  ! Log10 of the total part. frac.
 
       CALL allocate_main_fields
 !
@@ -206,10 +209,12 @@
         wm = velm(wg,ws,eps,p,tg,xgc)
         mvm = vel(um,wm)
         c  = cm(bd,rg,rm,m,tg)
+        epstot = epst(eps)
+        lepstot = leps(epstot)
 
         mc = mach(mvm,c)
 
-        CALL write_array( 13, c, lform )
+        CALL write_array( 13, lepstot, lform )
 
       END DO
 !
@@ -222,6 +227,8 @@
       DEALLOCATE(mvm)
       DEALLOCATE(c)
       DEALLOCATE(mc)
+      DEALLOCATE(epstot)
+      DEALLOCATE(lepstot)
 ! 
       RETURN
       END SUBROUTINE process

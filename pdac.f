@@ -13,6 +13,7 @@
       PROGRAM pdac
 
       USE blunt_body, ONLY: set_blunt, ibl
+      USE control_flags, ONLY: run
       USE dimensions
       USE domain_decomposition, ONLY: partition, ghost
       USE eos_gas, ONLY: allocate_eosg

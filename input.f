@@ -102,7 +102,7 @@
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut, tau
       USE turbulence_model, ONLY: iturb, cmut, iss, modturbo
-      USE volcano_topography, ONLY: itp
+      USE volcano_topography, ONLY: itp, iavv
 !
       IMPLICIT NONE
  
@@ -124,7 +124,7 @@
         domain_x, domain_y, domain_z, maxbeta, grigen, mesh_partition
 
       NAMELIST / boundaries / west, east, south, north, bottom, top, &
-        itp, topography, immb, ibl, deltaz, imap
+        itp, iavv,  topography, immb, ibl, deltaz, imap
       
       NAMELIST / inlet / ivent, iali, irand, wrat, &
         xvent, yvent, radius, base_radius, u_gas, v_gas, w_gas,  &
@@ -228,6 +228,7 @@
       south = 6               !
       north = 6               !
       itp   = 0               ! itp = 1 => read topography from file
+      iavv   = 0              ! iavv = 1 => average volcano topography
       topography = 'topo.dat' ! file containing the topographic profile
       immb  = 0               ! 1: use immersed boundaries
       imap  = 0               ! 1: map output
@@ -420,6 +421,7 @@
       CALL bcast_integer(bottom,1,root)
       CALL bcast_integer(top,1,root)
       CALL bcast_integer(itp,1,root)
+      CALL bcast_integer(iavv,1,root)
       CALL bcast_character(topography,80,root)
       CALL bcast_integer(immb,1,root)
       CALL bcast_integer(imap,1,root)
@@ -769,6 +771,7 @@
             CALL iotk_write_dat( iuni_nml, "top", top )
             CALL iotk_write_dat( iuni_nml, "bottom", bottom )
             CALL iotk_write_dat( iuni_nml, "itp", itp )
+            CALL iotk_write_dat( iuni_nml, "iavv", iavv )
             CALL iotk_write_begin( iuni_nml, "topography" )
               WRITE( iuni_nml, * ) topography
             CALL iotk_write_end( iuni_nml, "topography" )

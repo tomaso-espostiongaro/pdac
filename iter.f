@@ -149,6 +149,8 @@
         optimization = 3
       ELSE IF( immb >= 1) THEN
         optimization = 1
+      ELSE IF (job_type == '2D') THEN
+        optimization = 1
       END IF
 
       IF( optimization == 3 ) THEN
