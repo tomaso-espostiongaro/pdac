@@ -12,31 +12,24 @@
       USE process_outp, ONLY: filter, process
 !
       IMPLICIT NONE
-      CHARACTER(LEN=8) :: inputfile, logfile, errorfile, postfile
+      CHARACTER(LEN=8) :: inputfile, postfile
 !
-      INTEGER :: inputunit, logunit, errorunit, postunit
+      INTEGER :: inputunit, postunit
       INTEGER :: ig
 !
 ! ... I/O files
 !
       inputunit = 5
-      logunit   = 6
       postunit  = 7
-      errorunit = 8
       inputfile = 'pdac.dat'
       postfile = 'pp.dat'
-      logfile = 'pp.log'
-      errorfile = 'pp.err'
 
       OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN')
-      OPEN(UNIT=logunit,   FILE=logfile,   STATUS='UNKNOWN')
       OPEN(UNIT=postunit,  FILE=postfile,  STATUS='UNKNOWN')
-      OPEN(UNIT=errorunit, FILE=errorfile, STATUS='UNKNOWN')
 
 ! ... Read Input files
 !
       CALL input( inputunit )
-      CALL postin( postunit )
 !
 ! ... set dimensions ...
 !
@@ -62,13 +55,15 @@
       CALL setpar
 
       CALL write_avs_files
+
+! ... Read Input files
+!
+      CALL postin( postunit )
       !CALL filter
       CALL process
 !
       CLOSE(inputunit)
-      CLOSE(logunit)
       CLOSE(postunit)
-      CLOSE(errorunit)
 !
       STOP
 !
