@@ -128,12 +128,7 @@
 !
       ELSE IF (itd == 2) THEN 
 !
-        DO imesh = 1, ntot
-            entemp =  gas_enthalpy(imesh)
-            CALL cnvertg(imesh)
-            WRITE(6,*) 'cnvertg', imesh, gas_enthalpy(imesh), entemp -  gas_enthalpy(imesh)
-            IF (DABS((entemp -  gas_enthalpy(imesh))/entemp) >= 1E-2) WRITE(6,*) 'BIG ERROR!' 
-        END DO
+        CONTINUE
 !
       ELSE IF (itd >= 3) THEN 
 

@@ -488,7 +488,7 @@
           END IF
         END DO
 !
-        ug=bu1(1)
+        ug=bu(1)
         DO k=2,nphase
           us(k-1)=bu(k)
         END DO

@@ -1,13 +1,11 @@
 #----------------------------------------
-# AIX
-#----------------------------------------
-#
 #MACROS= -DMPI
 MACROS= -DSCALAR
 #----------------------------------------
 CPPFLAGS= $(MACROS)
 LINKFLAGS= 
 LIBS=
+FREEFORM= -Mfree
 #----------------------------------------
 # scalar compiler
 #FC=xlf
@@ -19,10 +17,7 @@ LIBS=
 #LINKER= mpxlf
 # ... scalar linker
 #LINKER=xlf
-#
 #----------------------------------------
-# for non AIX systems
-# SYSOBJ=system.o
 FFLAGS= -O2 -tp athlonxp
 FC=pgf90
 MPFC=pgf90

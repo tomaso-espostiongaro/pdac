@@ -54,6 +54,7 @@
 !
 !
       DO ij = 1, ncint
+
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)
 !
@@ -91,6 +92,7 @@
           END DO
 !
         END IF
+
       END DO
 !
       DEALLOCATE(at)

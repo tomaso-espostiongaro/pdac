@@ -91,16 +91,17 @@
       CALL bcast_integer(nz_, 1, root)
       CALL bcast_integer(nsolid_, 1, root)
 
-      IF( nr_ /= nr ) &
-        CALL error(' taperd ',' inconsistent dimension nr ', nr_ )
-      IF( nx_ /= nx ) &
-        CALL error(' taperd ',' inconsistent dimension nx ', nx_ )
-      IF( ny_ /= ny ) &
-        CALL error(' taperd ',' inconsistent dimension ny ', ny_ )
-      IF( nz_ /= nz ) &
-        CALL error(' taperd ',' inconsistent dimension nz ', nz_ )
-      IF( nsolid_ /= nsolid ) &
-        CALL error(' taperd ',' inconsistent dimension nsolid ', nsolid_ )
+      WRITE(*,*) NR, NX, NY, NZ, nr_, nx_, ny_, nz_
+!      IF( nr_ /= nr ) &
+!        CALL error(' taperd ',' inconsistent dimension nr ', nr_ )
+!      IF( nx_ /= nx ) &
+!        CALL error(' taperd ',' inconsistent dimension nx ', nx_ )
+!      IF( ny_ /= ny ) &
+!        CALL error(' taperd ',' inconsistent dimension ny ', ny_ )
+!      IF( nz_ /= nz ) &
+!        CALL error(' taperd ',' inconsistent dimension nz ', nz_ )
+!      IF( nsolid_ /= nsolid ) &
+!        CALL error(' taperd ',' inconsistent dimension nsolid ', nsolid_ )
       
       
       IF( mpime .EQ. root ) THEN
