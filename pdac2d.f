@@ -39,7 +39,7 @@
       USE pressure_epsilon, ONLY: bounds_press_eps, &
      &                            local_bounds_press_eps
       USE reactions, ONLY: irex
-      USE roughness, ONLY: roucha, zrough, ir
+      USE roughness_module, ONLY: zrough, deallocate_roughness
       USE initial_conditions, ONLY: setup, epsob, vpob, tpob, ygc0, &
      &    ygcob, upob, vgob, ugob, pob, tgob, epob, lpr, zzero, &
      &    bounds_setup
@@ -93,14 +93,6 @@
 
       CALL input(5)
 
-      IF(mpime .EQ. root) THEN
-        READ(5,*) ir,(zrough(i),i=1,ir),roucha
-      END IF
-!
-      CALL bcast_integer(ir,1,root)
-      CALL bcast_real(zrough,ir,root)
-      CALL bcast_real(roucha,1,root)
-
 ! ... set dimensions ...
       ndi=ib2
       ndj=jb2
@@ -110,33 +102,10 @@
       CALL bounds_grid
       CALL bounds_press_eps
 !
-      IF(iuni.EQ.1) THEN
-        IF(mpime .EQ. root) THEN
-          READ(5,*) (dr(i),i=1,ib2)
-          READ(5,*) (dz(j),j=1,jb2)
-        END IF
-        CALL bcast_real(dr,ib2,root)
-        CALL bcast_real(dz,jb2,root)
-      ELSE IF (iuni.EQ.0) THEN
-        IF(mpime .EQ. root) THEN
-          READ(5,*) (dr(i),i=1,ib2)
-          READ(5,*) (dz(j),j=1,jb2)
-        END IF
-        DO i=1,ib2
-          dr(i)=dr0
-        END DO
-        DO j=1,jb2
-          dz(j)=dz0
-        END DO
-        CALL bcast_real(dr,ib2,root)
-        CALL bcast_real(dz,jb2,root)
-      ENDIF
+      dr(1:ib2) = delta_r(1:ib2)
+      dz(1:jb2) = delta_z(1:jb2)
 
-      IF(mpime .EQ. root) THEN
-        READ(5,*) no
-      ENDIF
-!
-      CALL bcast_integer(no,1,root)
+      no = number_of_block
 !
 ! ... set dimensions ...
       nnso=no
@@ -157,49 +126,28 @@
       CALL bounds_velocity
       CALL bounds_viscosity
 
-      IF(mpime .EQ. root) THEN
-        DO n = 1, no
-          READ(5,*) nso(n),(iob(m,n),m=1,4)
-!pe------------------------------
-!        IF(nso(n).EQ.5) THEN 
-          IF(nso(n).EQ.1.OR.nso(n).eq.5) THEN 
-!pe------------------------------
-            READ(5,*) ugob(n),vgob(n),pob(n),epob(n),tgob(n)
-            READ(5,*) (upob(k,n),vpob(k,n),epsob(k,n),tpob(k,n), k=1,nsolid)
-            READ(5,*) (ygcob(kg,n),kg=1,ngas)
-          ENDIF
-        END DO 
-      ENDIF
+      nso(1:no)   = block_type(1:no)
+      iob(:,1:no) = block_bounds(:,1:no)
+      ugob(1:no)  = fixed_vgas_r(1:no)
+      vgob(1:no)  = fixed_vgas_z(1:no)
+      pob(1:no)  = fixed_pressure(1:no)
+      epob(1:no)  = fixed_gaseps(1:no)
+      tgob(1:no)  = fixed_gastemp(1:no)
+      upob(1:nsolid,1:no) = fixed_vpart_r(1:nsolid,1:no)
+      vpob(1:nsolid,1:no) = fixed_vpart_z(1:nsolid,1:no)
+      epsob(1:nsolid,1:no) = fixed_parteps(1:nsolid,1:no)
+      tpob(1:nsolid,1:no) = fixed_parttemp(1:nsolid,1:no)
+      ygcob(1:ngas,1:no) = fixed_gasconc(1:ngas,1:no)
 
-      CALL bcast_integer(nso,SIZE(nso),root)
-      CALL bcast_integer(iob,SIZE(iob),root)
-      CALL bcast_real(ugob,SIZE(ugob),root)
-      CALL bcast_real(vgob,SIZE(vgob),root)
-      CALL bcast_real(pob,SIZE(pob),root)
-      CALL bcast_real(epob,SIZE(epob),root)
-      CALL bcast_real(tgob,SIZE(tgob),root)
-      CALL bcast_real(upob,SIZE(upob),root)
-      CALL bcast_real(vpob,SIZE(vpob),root)
-      CALL bcast_real(epsob,SIZE(epsob),root)
-      CALL bcast_real(tpob,SIZE(tpob),root)
-      CALL bcast_real(ygcob,SIZE(ygcob),root)
-
-      IF(mpime .EQ. root) THEN
-        READ(5,*) u0,v0,p0,ep0,epsmx0,temp0
-        READ(5,*) uk0,vk0
-        READ(5,*) (ygc0(kg),kg=1,ngas)
-        CLOSE(5)
-      ENDIF
-
-      CALL bcast_real(u0,1,root)
-      CALL bcast_real(v0,1,root)
-      CALL bcast_real(p0,1,root)
-      CALL bcast_real(ep0,1,root)
-      CALL bcast_real(epsmx0,1,root)
-      CALL bcast_real(temp0,1,root)
-      CALL bcast_real(uk0,1,root)
-      CALL bcast_real(vk0,1,root)
-      CALL bcast_real(ygc0,SIZE(ygc0),root)
+      u0 = wind_r
+      v0 = wind_z
+      p0 = atmospheric_pressure
+      ep0 = atmospheric_epsilon
+      epsmx0 = max_packing
+      temp0 = atmospheric_temperature
+      uk0 = initial_vpart_r
+      vk0 = initial_vpart_z
+      ygc0(1:ngas) = initial_gasconc(1:ngas)
 !
       dk(1:nsolid) = diameter(1:nsolid)
       rl(1:nsolid) = density(1:nsolid)
@@ -298,6 +246,8 @@
       CLOSE(6)
        CLOSE(7)
       CLOSE(8)
+
+      CALL deallocate_roughness( zrough )
       CALL parallel_hangup
       STOP
 !

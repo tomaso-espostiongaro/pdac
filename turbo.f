@@ -60,13 +60,14 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-       SUBROUTINE turbulence_setup( ir, zrough, roucha)
+       SUBROUTINE turbulence_setup( zrough )
 !
         USE grid, ONLY: iob, nso, no
         USE grid, ONLY: ib2, ib1, jb1, dz, dr, zb, rb
+        USE roughness_module, ONLY: roughness
 !
-        INTEGER, INTENT(IN) :: ir
-        REAL*8, INTENT(IN) :: zrough(:), roucha
+        TYPE (roughness), INTENT(IN) :: zrough
+
         INTEGER :: i, j, i1, i2, j2, n, ij
         REAL*8  :: sgsl0, zsgsl, zrou, sgslb, delt
         DO i=2,ib1
@@ -99,13 +100,13 @@
                sgsl0=cmut*delt
                IF(it(i).EQ.1) THEN
                  zsgsl=zb(j)-zbt(i)-dz(j)*0.5D0
-                 IF(ir.EQ.1) THEN
-                   zrou=zrough(1)
+                 IF( zrough%ir .EQ. 1 ) THEN
+                   zrou = zrough%r(1)
                  ELSE
-                   IF(rb(i).LE.roucha) THEN
-                     zrou=zrough(1)
+                   IF( rb(i) .LE. zrough%roucha ) THEN
+                     zrou = zrough%r(1)
                    ELSE
-                     zrou=zrough(2)
+                     zrou = zrough%r(2)
                    ENDIF
                  ENDIF
                  sgslb=0.4D0*(zsgsl+zrou)

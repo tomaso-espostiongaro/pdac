@@ -7,7 +7,7 @@
      &    gammaair, gamn, c_joule, c_erg, tzero, hzerog, hzeros, rgas
       USE particles_constants, ONLY: particles_constants_set, nsolid, cmus
       USE reactions, ONLY: h1, h2, h3, h4, h5
-      USE roughness, ONLY: roucha, zrough, ir
+      USE roughness_module, ONLY: zrough
       USE turbulence, ONLY: turbulence_setup, mus_g
       IMPLICIT NONE
       INTEGER :: k
@@ -65,7 +65,7 @@
       h4 = 0.D0                                  !
       h5 = 0.D0                                  !
 !
-      CALL turbulence_setup(ir, zrough, roucha)
+      CALL turbulence_setup( zrough )
 !
       RETURN
 !----------------------------------------------------------------------
