@@ -115,7 +115,7 @@
 !-----------------------------------------------------------------------
       SUBROUTINE set_ventc
 ! ... 
-      USE atmosphere, ONLY: p_ground, t_ground
+      USE atmospheric_conditions, ONLY: p_ground, t_ground
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nsolid, ngas
       USE domain_decomposition, ONLY: ncint, meshinds

@@ -134,8 +134,8 @@ types.o :
 
 velocity.o : control.o decomp.o dimensions.o 
 
-vent.o : control.o decomp.o dens.o dimensions.o eosg.o gas.o grid.o  \
-    particles.o press.o temp.o velocity.o 
+vent.o : atmosphere.o control.o decomp.o dens.o dimensions.o eosg.o gas.o  \
+    grid.o particles.o press.o temp.o velocity.o 
 
 visc.o : control.o decomp.o dens.o dimensions.o gas.o grid.o indijk.o  \
     particles.o press.o subscr.o turbo.o velocity.o 
