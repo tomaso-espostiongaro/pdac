@@ -1,6 +1,7 @@
 !----------------------------------------------------------------------
       MODULE postp_input
 !----------------------------------------------------------------------
+      USE output_dump, ONLY: formatted_output
       IMPLICIT NONE
 ! ... read PP input file
 ! ... initialize some parameters
@@ -11,20 +12,22 @@
 !-----------------------------------------------------------------------
       SUBROUTINE postin( punit )
 
-      USE process_outp, ONLY: first_out, last_out, incr_out
-      USE process_outp, ONLY: downsize_x, downsize_y, downsize_z
-      USE process_outp, ONLY: act, number_of_points
-      USE process_outp, ONLY: assign_index
-      USE process_outp, ONLY: index_i, index_j, index_k
-      USE process_outp, ONLY: coordinate_x, coordinate_y, coordinate_z
-      USE process_outp, ONLY: variable_n, field_n
-      USE process_outp, ONLY: formatted_output
+      USE filter_outp, ONLY: first_out, last_out, incr_out
+      USE filter_outp, ONLY: downsize_x, downsize_y, downsize_z
+      USE filter_outp, ONLY: act, number_of_points
+      USE filter_outp, ONLY: assign_index
+      USE filter_outp, ONLY: index_i, index_j, index_k
+      USE filter_outp, ONLY: coordinate_x, coordinate_y, coordinate_z
+      USE filter_outp, ONLY: variable_n, field_n
+      USE process_outp, ONLY: imap, deltaz
 
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: punit
       
       NAMELIST / control / act, first_out, last_out, incr_out,  &
                downsize_x, downsize_y, downsize_z, formatted_output
+
+      NAMELIST / map / imap, deltaz
 
       NAMELIST / sampling / number_of_points, assign_index, index_i, &
               index_j, index_k, coordinate_x, coordinate_y, coordinate_z
@@ -38,7 +41,7 @@
 
 ! ... Control
       
-  act        = 2        ! 1: mount time sequence, 2: time-space sampling        
+  act        = 1        ! 1: frame processing, 2: time-space sampling        
   first_out  = 1        ! index of the first frame to be postprocessed
   last_out   = 10       ! index of the last frame to be postprocessed
   incr_out   = 1        ! increment between frame index
@@ -46,6 +49,11 @@
   downsize_y = 1    
   downsize_z = 1    
   formatted_output = .TRUE.
+
+! ... Map
+
+  imap = 0
+  deltaz = 30
 
 ! ... Sampling
 
@@ -66,6 +74,7 @@
 !:::::::::::::::::::::::::::::  Read Namelists  ::::::::::::::::::::::::
 !
       READ(punit, control)
+      READ(punit, map)
       READ(punit, sampling)
       READ(punit, animation)
       READ(punit, post_processing)

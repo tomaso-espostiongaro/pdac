@@ -74,14 +74,8 @@
 !
       USE control_flags, ONLY: job_type
       USE grid, ONLY: fl
-      USE parallel, ONLY: mpime, root
 
       IMPLICIT NONE
-
-      IF( mpime == root ) THEN
-        WRITE(logunit,*)
-        WRITE(logunit,*) 'Importing topographic matrix ...'
-      END IF
 !
 ! ... Read external topography files.
 ! ... In 3D translate horizontally the  computational mesh 
@@ -115,10 +109,6 @@
 ! ... Translate vertically the mesh.
 !
       CALL set_profile
-!
-      IF( mpime == root ) THEN
-        WRITE(logunit,*) 'END Import topography'
-      END IF
 !
       RETURN
       END SUBROUTINE import_topography

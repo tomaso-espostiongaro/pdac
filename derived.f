@@ -204,18 +204,18 @@
       RETURN
       END FUNCTION cm
 !----------------------------------------------------------------------
-      FUNCTION vel(vx, vz, vy)
+      FUNCTION vel(v1, v2, v3)
       !
       ! ... compute the modulus of a velocity field
       IMPLICIT NONE
-      REAL, INTENT(IN), DIMENSION(:) :: vx, vz
-      REAL, INTENT(IN), DIMENSION(:), OPTIONAL :: vy
-      REAL, DIMENSION(SIZE(vx)) :: vel
+      REAL, INTENT(IN), DIMENSION(:) :: v1, v2
+      REAL, INTENT(IN), DIMENSION(:), OPTIONAL :: v3
+      REAL, DIMENSION(SIZE(v1)) :: vel
 
-      IF (PRESENT(vy)) THEN
-        vel = SQRT( vx**2 + vy**2 + vz**2 )
+      IF (PRESENT(v3)) THEN
+        vel = SQRT( v1**2 + v2**2 + v3**2 )
       ELSE
-        vel = SQRT( vx**2 + vz**2 )
+        vel = SQRT( v1**2 + v2**2 )
       END IF
       
       RETURN

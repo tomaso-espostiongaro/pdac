@@ -19,7 +19,7 @@
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE io_restart, ONLY: tapewr, max_seconds
       USE iterative_solver, ONLY: iter, nit
-      USE output_dump, ONLY: outp, shock_tube_out, outp_map, imap
+      USE output_dump, ONLY: outp, shock_tube_out
       USE output_dump, ONLY: write_radial_profile_2d
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: cps
@@ -57,12 +57,9 @@
       REAL*8 :: mptimbdry, mptimfieldn, mptimturbo, mptimtilde, &
                 mptimiter, mptimygas, mptimtem, mptimout, mptimres, mptimtot
       REAL*8 :: xgcl(max_ngas)
-      REAL*8, ALLOCATABLE :: array(:)
       
       LOGICAL :: stop_now
 !
-      ALLOCATE(array(ncdom))
-
       IF( timing ) then
          s0 = cpclock()
          !call cpu_time(t0)
@@ -303,11 +300,7 @@
 !
 ! ... Write OUTPUT file
 ! 
-        IF(MOD(sweep,nprint) == 0) THEN
-          array(1:ncdom) = tg(1:ncdom)
-          IF (imap > 0 .AND. itp >= 1) CALL outp_map(array)
-          CALL outp
-        ENDIF
+        IF(MOD(sweep,nprint) == 0) CALL outp
 !
         IF( timing ) then
           s11 = cpclock()
@@ -328,9 +321,7 @@
                           &  program stopping')" )
         END IF
 
-        IF((MOD(sweep,ndump) == 0) .OR. stop_now) THEN
-          CALL tapewr
-        END IF
+        IF((MOD(sweep,ndump) == 0) .OR. stop_now) CALL tapewr
 !
         IF( timing ) then
             s12 = cpclock()

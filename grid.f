@@ -118,7 +118,6 @@
       END SUBROUTINE allocate_blbody
 
 !----------------------------------------------------------
-
       SUBROUTINE grid_setup
 !
       USE control_flags, ONLY: job_type, lpr

@@ -1,6 +1,6 @@
 include Machine
 
-all: comm.a pdac.x
+all: comm.a pdac.x postp.x
 
 FOBJS= arrfil.o atmosphere.o blunt.o bdry.o control.o decomp.o dens.o \
 dimensions.o dome.o drag.o environment.o eosg.o eosl.o ftem.o \
@@ -11,7 +11,7 @@ outp.o parallel.o particles.o press.o prog.o reactions.o rannum.o\
 residuals.o roughness.o sampling.o setup.o subscr.o temp.o tilde.o time.o topo.o \
 turbo.o types.o velocity.o vent.o visc.o ygas.o iotk_module.o io_files.o
 
-PPFOBJS = derived.o process.o postin.o postout.o postp.o
+PPFOBJS = derived.o filter.o process.o postin.o postout.o postp.o
 
 pdac.x: $(FOBJS) pdac.o comm/comm.a
 	$(LINKER) -o pdac.x $(MPFFLAGS) $(LINKFLAGS) $(FOBJS) pdac.o comm/comm.a $(LIBS)

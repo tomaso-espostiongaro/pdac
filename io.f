@@ -24,10 +24,6 @@
 
       REAL*8 :: max_seconds
 
-      INTERFACE read_array
-         MODULE PROCEDURE read_array_dpara, read_array_sserial
-      END INTERFACE
-
       PUBLIC :: taperd, tapewr
       PUBLIC :: write_array, read_array
       PUBLIC :: max_seconds
@@ -132,7 +128,6 @@
       RETURN
       END SUBROUTINE tapewr
 !----------------------------------------------------------------------
-
       SUBROUTINE taperd
 !
       USE dimensions
@@ -248,7 +243,6 @@
          IF( mpime == root ) WRITE(errorunit,*) 'WARNING reading restart, rlk < 0'
       END IF
 
-
       !
       !  read particles velocity
 
@@ -338,10 +332,8 @@
       END IF
 !
       RETURN
-      END SUBROUTINE
-
+      END SUBROUTINE taperd
 !----------------------------------------------------------------------
-
       SUBROUTINE write_array( iunit, array, prec, lform )
 
       INTEGER, INTENT(IN) :: iunit, prec
@@ -389,11 +381,9 @@
       DEALLOCATE( io_buf_sgl )
 10    FORMAT(1x,10(1x,G14.6E3))
       RETURN
-      END SUBROUTINE
-
+      END SUBROUTINE write_array
 !----------------------------------------------------------------------
-
-      SUBROUTINE read_array_dpara( iunit, array, prec, lform )
+      SUBROUTINE read_array( iunit, array, prec, lform )
 
       !  This subroutine reads a REAL*8 array ( array ) of
       !  ntot elements from file iunit.
@@ -454,42 +444,7 @@
       END IF
 
       RETURN
-      END SUBROUTINE
-
-!----------------------------------------------------------------------
-
-      SUBROUTINE read_array_sserial( iunit, sarray, lform )
-
-      !  This subroutine reads a REAL array ( sarray ) of
-      !  ntot elements from file iunit
-      !  NOTE only root processor read the data
-      !  iunit  (input)  file to be read
-      !  array  (output) data read from file and distributed to processors
-      !  lform  (input)  format of the file 
-      !                  .TRUE.  = formatted
-      !                  .FALSE. = unformatted
-
-      INTEGER, INTENT(IN) :: iunit
-      LOGICAL, INTENT(IN) :: lform
-      REAL :: sarray(:)
-
-      INTEGER :: ijk, ierr
-
-      IF( ntot < 1 ) &
-        CALL error(' read_array ', ' ntot too small ', ntot )
-
-      IF( lform ) THEN
-         IF( mpime == root ) THEN
-            READ(iunit,*) ( sarray(ijk), ijk = 1, ntot )
-         END IF
-      ELSE
-         IF( mpime == root ) THEN
-            READ(iunit) ( sarray(ijk), ijk = 1, ntot )
-         END IF
-      END IF
-
-      RETURN
-      END SUBROUTINE
+      END SUBROUTINE read_array
 !----------------------------------------------------------------------
       END MODULE io_restart
 !----------------------------------------------------------------------

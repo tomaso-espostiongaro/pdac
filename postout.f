@@ -312,7 +312,6 @@
 !
 !
 !=----------------------------------------------------------------------------=!
-
     SUBROUTINE write_XML_files
       !
       USE control_flags, ONLY: job_type

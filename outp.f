@@ -9,8 +9,6 @@
       SAVE
 
       LOGICAL :: formatted_output
-      REAL*8 :: deltaz
-      INTEGER :: imap
 
       LOGICAL :: interpolate = .TRUE.
 !----------------------------------------------------------------------
@@ -127,61 +125,6 @@
  550  FORMAT(1x,10(1x,g12.6))
 !
       END SUBROUTINE shock_tube_out
-!----------------------------------------------------------------------
-      SUBROUTINE outp_map(array)
-
-      USE control_flags, ONLY: job_type
-      USE dimensions, ONLY: nx, ny, nz
-      USE domain_decomposition, ONLY: ncint, meshinds
-      USE grid, ONLY: z
-      USE immersed_boundaries, ONLY: topo2d_c, topo2d_x, topo2d_y
-      USE parallel, ONLY: mpime, root
-      USE set_indexes, ONLY: ijkp, first_subscr
-      USE io_files, ONLY: tempunit
-      IMPLICIT NONE
-      
-      REAL*8, INTENT(IN), DIMENSION(:) :: array
-      REAL*8 :: alpha
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: array_map
-      INTEGER :: i, j, k, ijk, imesh
-      CHARACTER( LEN = 4 ) :: lettera
-      CHARACTER( LEN = 8 ) :: filnam
-
-      IF (job_type == '2D') RETURN
-
-      filnam='map.'//lettera(nfil)
-
-      ALLOCATE(array_map(nx,ny))
-      array_map(:,:) = 0.D0
-
-      DO ijk = 1, ncint
-        CALL meshinds(ijk,imesh,i,j,k)
-        CALL first_subscr(ijk)
-        IF( z(k)  <= (topo2d_c(i,j) + deltaz) .AND.          &
-            z(k+1) > (topo2d_c(i,j) + deltaz) .AND. (k < nz) ) THEN
-          alpha = (topo2d_c(i,j) + deltaz) - z(k)
-          alpha = alpha / ( z(k+1) - z(k) )
-          array_map(i,j) = alpha * array(ijkp) + (1.D0-alpha) * array(ijk)
-        END IF
-      END DO
-
-      CALL parallel_sum_real(array_map, nx*ny)
-
-      IF (mpime == root) THEN
-        OPEN(UNIT=tempunit,FILE=filnam)
-        DO j = 2, ny-1
-            WRITE(tempunit,122) (array_map(i,j), i=2, nx-1)
-        END DO
-        CLOSE(tempunit)
-      END IF
-
- 122  FORMAT(10(1x,G14.6E3))
- 123  CONTINUE
-
-      DEALLOCATE(array_map)
-
-      RETURN
-      END SUBROUTINE outp_map
 !----------------------------------------------------------------------
       SUBROUTINE write_radial_profile_2d
 !

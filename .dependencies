@@ -21,9 +21,9 @@ derived.o : dimensions.o gas.o particles.o
 
 dimensions.o : 
 
-dome.o : arrfil.o control.o decomp.o dens.o dimensions.o environment.o  \
-    eosg.o gas.o grid.o io_files.o parallel.o particles.o press.o temp.o  \
-    topo.o velocity.o 
+dome.o : arrfil.o atmosphere.o control.o decomp.o dens.o dimensions.o  \
+    environment.o eosg.o gas.o grid.o io_files.o parallel.o particles.o  \
+    press.o temp.o topo.o velocity.o 
 
 drag.o : dimensions.o particles.o subscr.o time.o 
 
@@ -33,6 +33,8 @@ eosg.o : decomp.o dimensions.o gas.o grid.o hcapgs.o immb.o io_files.o  \
     parallel.o time.o 
 
 eosl.o : decomp.o dimensions.o gas.o hcapgs.o io_files.o parallel.o 
+
+filter.o : control.o dimensions.o grid.o io_files.o kinds.o 
 
 flux_m.o : decomp.o dimensions.o grid.o indijk.o limiters.o subscr.o time.o 
 
@@ -100,9 +102,9 @@ matrix.o : control.o decomp.o dens.o dimensions.o grid.o indijk.o  \
 nondim.o : atmosphere.o decomp.o dimensions.o gas.o grid.o indijk.o  \
     io_files.o particles.o time.o 
 
-outp.o : control.o decomp.o dens.o dimensions.o eosg.o gas.o grid.o immb.o  \
-    io.o io_files.o kinds.o parallel.o particles.o press.o subscr.o temp.o  \
-    time.o topo.o turbo.o velocity.o 
+outp.o : control.o decomp.o dens.o dimensions.o eosg.o gas.o grid.o io.o  \
+    io_files.o kinds.o parallel.o particles.o press.o temp.o time.o topo.o  \
+    turbo.o velocity.o 
 
 parallel.o : 
 
@@ -113,17 +115,18 @@ pdac.o : blunt.o control.o decomp.o dens.o dimensions.o dome.o environment.o  \
     parallel.o particles.o press.o setup.o temp.o tilde.o time.o topo.o  \
     turbo.o velocity.o vent.o visc.o 
 
-postin.o : process.o 
+postin.o : filter.o 
 
 postout.o : control.o dimensions.o grid.o input.o io_files.o iotk_module.o  \
     kinds.o outp.o process.o time.o 
 
-postp.o : dimensions.o gas.o grid.o input.o io_files.o parallel.o  \
-    particles.o postin.o postout.o process.o setup.o 
+postp.o : dimensions.o filter.o gas.o grid.o input.o io_files.o parallel.o  \
+    particles.o postin.o postout.o process.o setup.o topo.o 
 
 press.o : decomp.o dimensions.o 
 
-process.o : control.o derived.o dimensions.o grid.o io_files.o kinds.o 
+process.o : control.o derived.o dimensions.o filter.o grid.o io_files.o  \
+    kinds.o 
 
 prog.o : bdry.o blunt.o control.o decomp.o dens.o dimensions.o environment.o  \
     eosg.o ftem.o htilde.o indijk.o io.o io_files.o iter.o outp.o parallel.o  \

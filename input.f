@@ -116,7 +116,7 @@
       USE immersed_boundaries, ONLY: immb
       USE iterative_solver, ONLY: inmax, maxout, omega, optimization
       USE io_restart, ONLY: max_seconds, nfil
-      USE output_dump, ONLY: formatted_output, deltaz, imap
+      USE output_dump, ONLY: formatted_output
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl, kap, &
      &     cmus, phis, cps, dk, nsolid
@@ -148,10 +148,10 @@
         domain_x, domain_y, domain_z, maxbeta, grigen, mesh_partition
 
       NAMELIST / boundaries / west, east, south, north, bottom, top, &
-        immb, ibl, deltaz
+        immb, ibl
 
       NAMELIST / topography / dem_file, itp, iavv, nocrater, &
-        rim_quota, imap, filtersize, cellsize
+        rim_quota, filtersize, cellsize
       
       NAMELIST / inlet / ivent, iali, irand, ipro, rad_file, wrat, &
         crater_radius, &
@@ -263,7 +263,6 @@
       south = 2               !
       north = 2               !
       immb  = 0               ! 1: use immersed boundaries
-      deltaz = 20.D0             ! distance from the ground to plot maps
       ibl  = 0                ! 1: compute drag and lift on blocks
 
 ! ... Topography
@@ -273,7 +272,6 @@
       iavv   = 0              ! iavv = 1 => average volcano topography
       nocrater = .FALSE. ! flatten the crater
       rim_quota = 1000.D0     ! index of the rim quota 
-      imap  = 0               ! 1: map output
       filtersize  = 50        ! low-pass filter size
       cellsize  = 10          ! resolution of the resized dem
 
@@ -500,7 +498,6 @@
       CALL bcast_integer(bottom,1,root)
       CALL bcast_integer(top,1,root)
       CALL bcast_integer(immb,1,root)
-      CALL bcast_real(deltaz,1,root)
       CALL bcast_integer(ibl,1,root)
 !
 ! ... Topography Namelist ................................................
@@ -512,7 +509,6 @@
       CALL bcast_integer(iavv,1,root)
       CALL bcast_logical(nocrater,1,root)
       CALL bcast_real(rim_quota,1,root)
-      CALL bcast_integer(imap,1,root)
       CALL bcast_real(filtersize,1,root)
       CALL bcast_real(cellsize,1,root)
 !
@@ -897,7 +893,6 @@
             CALL iotk_write_dat( iuni_nml, "top", top )
             CALL iotk_write_dat( iuni_nml, "bottom", bottom )
             CALL iotk_write_dat( iuni_nml, "immb", immb )
-            CALL iotk_write_dat( iuni_nml, "deltaz", deltaz )
             CALL iotk_write_dat( iuni_nml, "ibl", ibl )
           CALL iotk_write_end( iuni_nml, "boundaries" )
 
@@ -907,7 +902,6 @@
             CALL iotk_write_end( iuni_nml, "dem_file" )
             CALL iotk_write_dat( iuni_nml, "itp", itp )
             CALL iotk_write_dat( iuni_nml, "iavv", iavv )
-            CALL iotk_write_dat( iuni_nml, "imap", imap )
             CALL iotk_write_dat( iuni_nml, "nocrater", nocrater )
             CALL iotk_write_dat( iuni_nml, "rim_quota", rim_quota )
             CALL iotk_write_dat( iuni_nml, "filtersize", filtersize )
