@@ -280,7 +280,7 @@
         END IF
       END DO
 !
-      CALL test_fluxes
+!      CALL test_fluxes
 !
       DEALLOCATE(egfe, egft)
       DEALLOCATE(esfe, esft)
