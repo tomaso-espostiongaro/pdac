@@ -167,7 +167,6 @@
 ! ... Iterative solver for momentum-mass pressure coupling
 ! ... and explicit solver for interphase coupling
 !
-         
            CALL iter
 !
                 IF( timing ) s7 = cpclock()

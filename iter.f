@@ -320,13 +320,16 @@
       END IF
 !*******************************************************************
 !
-      DEALLOCATE( rgfe)
-      DEALLOCATE( rgft)
-      DEALLOCATE( rsfe)
-      DEALLOCATE( rsft)
-      DEALLOCATE( rug, rwg )
-      DEALLOCATE( rus, rws )
-      DEALLOCATE( appu, appw)
+      DEALLOCATE(rgfe)
+      DEALLOCATE(rgft)
+      DEALLOCATE(rsfe)
+      DEALLOCATE(rsft)
+      DEALLOCATE(rug)
+      DEALLOCATE(rwg)
+      DEALLOCATE(rus)
+      DEALLOCATE(rws)
+      DEALLOCATE(appu)
+      DEALLOCATE(appw)
 
       IF (job_type == '3D') THEN
         DEALLOCATE( rgfn )
@@ -336,8 +339,9 @@
         DEALLOCATE( appv )
       END IF
 
-      DEALLOCATE( conv, abeta)
-!
+      DEALLOCATE(conv)
+      DEALLOCATE(abeta)
+
       DEALLOCATE(converge)
 !
       RETURN
