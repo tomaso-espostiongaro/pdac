@@ -261,21 +261,28 @@
         IF( .NOT. dump_all ) THEN
 
           DO ijk = 1, ncint
+            ! ... compute gas components molar fractions 
+            ! ... from mass fractions
+            !
             CALL mole( xgc(:,ijk), ygc(:,ijk) )
+
+            ! ... compute void fraction
+            !
             rls = 0.0d0
             DO is = 1, nsolid
               rls = rls + rlk(ijk,is) * inrl(is)
             END DO
             ep(ijk) = 1.D0 - rls
 
+            ! ... gas components bulk densities
+            !
             DO ig = 1, ngas
               rgpgc(ijk,ig) = ygc(ig,ijk) * rgp(ijk)
             END DO
 
-            !
             ! ... An error is introduced in temperature
             !
-            WRITE(6,*) 'Warning!: Temperature in restart could be slightly different!'
+            WRITE(6,*) 'Warning!: Temperature in restart could differ!'
             CALL caloric_eosg(cp(:,ijk), cg(ijk), tg(ijk), ygc(:,ijk), &
                             sieg(ijk), ijk, info)
             DO is=1, nsolid
