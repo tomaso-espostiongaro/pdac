@@ -137,6 +137,12 @@
  
             CALL mole( xgc(:,ijk), ygc(:,ijk) )
 
+            ! ... Compute gas specific heat (cp, cg) and gas temperature (tg )
+            ! ... from caloric Equation of State
+
+            CALL caloric_eosg( cp(:,ijk), cg(ijk), tg(ijk), ygc(:,ijk), &
+                             sieg(ijk), ijk, info)
+
             ! ... Compute gas density (rog) from thermal Equation of State
 
             CALL thermal_eosg( rog(ijk), tg(ijk), p(ijk), xgc(:,ijk) )
@@ -150,12 +156,6 @@
             IF( float_chk( p( ijk ) ) /= 0 ) THEN
               WRITE(6,*) 'wrong p: ', ijk, p(ijk)
             END IF
-
-            ! ... Compute gas specific heat (cp, cg) and gas temperature (tg )
-            ! ... from caloric Equation of State
-
-            CALL caloric_eosg( cp(:,ijk), cg(ijk), tg(ijk), ygc(:,ijk), &
-                             sieg(ijk), ijk, info)
 
             rgp( ijk ) = rog( ijk ) * ep( ijk )
 ! 
