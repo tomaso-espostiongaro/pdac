@@ -100,6 +100,7 @@
       USE grid, ONLY: west, east, south, north, bottom, top, topography
       USE initial_conditions, ONLY: setup, epsob, wpob, tpob, ygc0, &
      &    ygcob, upob, wgob, ugob, pob, tgob, epob, density_specified
+      USE initial_conditions, ONLY: ivent, xvent, yvent, radius
       USE iterative_solver, ONLY: inmax, maxout, omega
       USE io_restart, ONLY: old_restart, max_seconds
       USE output_dump, ONLY: formatted_output
@@ -136,7 +137,7 @@
         origin_x, origin_y, origin_z, mesh_partition
 
       NAMELIST / boundaries / west, east, south, north, bottom, top, &
-        itp, topography, immb
+        itp, topography, immb, ivent, xvent, yvent, radius
 
       NAMELIST / particles / nsolid, diameter, density, sphericity, &
         viscosity, specific_heat, thermal_conductivity
@@ -215,6 +216,10 @@
       itp   = 0               ! itp = 1 => read topography from file
       topography = 'topo.dat' ! file containing the topographic profile
       immb  = 0               ! 1: use immersed boundaries
+      ivent = 0               ! 1: Specify vent position and radius
+      xvent = 0.D0            ! x-coord of the vent
+      yvent = 0.D0            ! y-coord of the vent
+      radius = 200.D0         ! vent radius
 
 ! ... Particles
  
@@ -420,6 +425,10 @@
               WRITE( iuni_nml, * ) topography
             CALL iotk_write_end( iuni_nml, "topography" )
             CALL iotk_write_dat( iuni_nml, "immb", immb )
+            CALL iotk_write_dat( iuni_nml, "ivent", ivent )
+            CALL iotk_write_dat( iuni_nml, "xvent", xvent )
+            CALL iotk_write_dat( iuni_nml, "yvent", yvent )
+            CALL iotk_write_dat( iuni_nml, "radius", radius )
           CALL iotk_write_end( iuni_nml, "boundaries" )
         END IF
       END IF
@@ -433,6 +442,10 @@
       CALL bcast_integer(itp,1,root)
       CALL bcast_character(topography,80,root)
       CALL bcast_integer(immb,1,root)
+      CALL bcast_integer(ivent,1,root)
+      CALL bcast_real(xvent,1,root)
+      CALL bcast_real(yvent,1,root)
+      CALL bcast_real(radius,1,root)
 !
 ! ... Particles Namelist ..............................................
 !

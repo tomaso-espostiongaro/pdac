@@ -11,7 +11,8 @@
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: uppr,wppr,epspr,tppr, ygcpr
       LOGICAL :: density_specified
 
-      INTEGER :: npr
+      INTEGER :: npr, ivent
+      REAL*8 :: xvent, yvent, radius
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
@@ -157,7 +158,7 @@
           END SELECT
         
         END DO 
-!
+! 
 ! ... initial conditions already set from RESTART file
 !
       ELSE IF (itd == 2) THEN 
@@ -314,7 +315,6 @@
       RETURN
       END SUBROUTINE resetup
 !----------------------------------------------------------------------
-
       SUBROUTINE specified_flow(n)
 
       USE control_flags, ONLY: job_type
@@ -326,54 +326,70 @@
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
-      USE grid, ONLY: iob
+      USE grid, ONLY: iob, x, y, z
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
       USE indijk_module, ONLY: ip0_jp0_kp0_
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: n
-      REAL*8 :: ygcsum
+      REAL*8 :: ygcsum, dist2
       INTEGER :: ijk,i,j,k,imesh
       INTEGER :: ig, is, dfg
+      LOGICAL :: setflow
 
         !csnd = DSQRT(gammaair*rgas/gmw(6)*tgob(n))
 
         DO ijk = 1, ncint
           CALL meshinds(ijk,imesh,i,j,k)
 
-          IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi  ) THEN
-            IF ( ( j >= iob(n)%ylo .AND. j <= iob(n)%yhi )    &
-                                    .OR. job_type == '2D') THEN
-              IF ( i >= iob(n)%xlo .AND. i <= iob(n)%xhi  ) THEN
+          IF (ivent >= 1) THEN
 
-                ug(ijk) = ugob(n)
-                IF (job_type == '3D') vg(ijk) = vgob(n)
-                wg(ijk) = wgob(n)
-                tg(ijk) = tgob(n)
-                p(ijk)  = pob(n)
-                ep(ijk) = 1.D0 - SUM(epsob(:,n))
-                DO ig = 1, ngas
-                  ygc(ig,ijk) = ygcob(gas_type(ig),n)
-                END DO
-                DO is = 1,nsolid
-                  ts(ijk,is)  = tpob(is,n)
-                  us(ijk,is)  = upob(is,n)
-                  IF (job_type == '3D') vs(ijk,is)  = vpob(is,n)
-                  ws(ijk,is)  = wpob(is,n)
-                  rlk(ijk,is) = epsob(is,n)*rl(is)
-                END DO
-!
-! ... check gas components closure relation
-!
-                ygcsum = SUM(ygc(:,ijk))
-                IF ( ygcsum /= 1.D0 ) THEN
-                  ygc(ngas,ijk) = 1.D0 - SUM( ygc(1:ngas-1,ijk) )
+            dist2 = (x(i)-xvent)**2 + (y(j)-yvent)**2
+            IF (dist2 <= radius**2) setflow = .TRUE.
+          
+          ELSEIF (ivent == 0) THEN
+
+            IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi  ) THEN
+              IF ( ( j >= iob(n)%ylo .AND. j <= iob(n)%yhi )    &
+                                      .OR. job_type == '2D') THEN
+                IF ( i >= iob(n)%xlo .AND. i <= iob(n)%xhi  ) THEN
+                  
+                  setflow = .TRUE.
+                  
                 END IF
-!
               END IF
             END IF
+
           END IF
+
+          IF (setflow) THEN
+
+            ug(ijk) = ugob(n)
+            IF (job_type == '3D') vg(ijk) = vgob(n)
+            wg(ijk) = wgob(n)
+            tg(ijk) = tgob(n)
+            p(ijk)  = pob(n)
+            ep(ijk) = 1.D0 - SUM(epsob(:,n))
+            DO ig = 1, ngas
+              ygc(ig,ijk) = ygcob(gas_type(ig),n)
+            END DO
+            DO is = 1,nsolid
+              ts(ijk,is)  = tpob(is,n)
+              us(ijk,is)  = upob(is,n)
+              IF (job_type == '3D') vs(ijk,is)  = vpob(is,n)
+              ws(ijk,is)  = wpob(is,n)
+              rlk(ijk,is) = epsob(is,n)*rl(is)
+            END DO
+            !
+            ! ... check gas components closure relation
+            ygcsum = SUM(ygc(:,ijk))
+            IF ( ygcsum /= 1.D0 ) THEN
+              ygc(ngas,ijk) = 1.D0 - SUM( ygc(1:ngas-1,ijk) )
+            END IF
+
+          END IF
+!
         END DO 
 
       END SUBROUTINE specified_flow
