@@ -155,7 +155,7 @@
       LOGICAL :: lform, ex
       REAL, ALLOCATABLE, DIMENSION(:) :: rm, rg, bd, m, um, vm, wm, mvm, c, mc 
       REAL, ALLOCATABLE, DIMENSION(:) :: epstot, lepstot, pd
-      CHARACTER(LEN = 12) :: filnam
+      CHARACTER(LEN = 14) :: filnam
       CHARACTER(LEN = 4 ) :: lettera
 !
       lform = formatted_output
@@ -180,7 +180,7 @@
       INQUIRE(FILE=filnam,EXIST=ex)
       IF (ex) THEN
               OPEN(UNIT=tempunit,FILE=filnam)
-              READ(tempunit,*) array_map_max(:)
+              READ(tempunit,*) array_map_max(:,:)
               CLOSE(tempunit)
       END IF
 !
@@ -336,6 +336,8 @@
       LOGICAL :: ex
 
       IF (job_type == '2D') RETURN
+
+      filnam='map_max.'//lettera(nfil)
 
       DO i = 1, nx
         DO j = 1, ny
