@@ -32,7 +32,7 @@
       SUBROUTINE rexion
 !
       USE grid, ONLY: fl_l
-      USE grid, ONLY: nij_l, myijk, ncdom
+      USE grid, ONLY: ncint, myijk, ncdom
       USE dimensions
       USE indijk_module, ONLY: ip0_jp0_kp0_
       IMPLICIT NONE
@@ -42,7 +42,7 @@
 !
       ALLOCATE(r1(ncdom), r2(ncdom), r3(ncdom), r4(ncdom), r5(ncdom))
 !
-      DO ij = 1, nij_l
+      DO ij = 1, ncint
           imesh = myijk( ip0_jp0_kp0_, ij)
           IF(fl_l(ij).EQ.1) THEN
             r1(ij)=0.D0

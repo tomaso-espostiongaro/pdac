@@ -16,7 +16,7 @@
       USE gas_solid_temperature, ONLY: gas_enthalpy, gas_temperature
       USE gas_solid_temperature, ONLY: solid_enthalpy, solid_temperature
       USE gas_solid_temperature, ONLY: sieg, sies, tg, ts
-      USE grid, ONLY: nij_l, myijk
+      USE grid, ONLY: ncint, myijk
       USE pressure_epsilon, ONLY: gas_pressure, void_fraction
       USE pressure_epsilon, ONLY: p, ep
       USE heat_capacity, ONLY: gc_heat_capacity, solid_heat_capacity
@@ -64,7 +64,7 @@
 !
       smag_coeff                  = 0.D0
 !
-      DO ijk = 1, nij_l
+      DO ijk = 1, ncint
         imesh = myijk( ip0_jp0_kp0_, ijk)
         gas_pressure(imesh) = p(ijk)
         solid_bulk_density(:,imesh) = rlk(:,ijk)

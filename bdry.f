@@ -15,7 +15,7 @@
       USE gas_solid_temperature, ONLY: sieg, tg, sies, ts
       USE gas_solid_velocity, ONLY: ug, wg, us, ws
       USE grid, ONLY: zb, dz, rb, dr, r, inr, inrb
-      USE grid, ONLY: nij_l, myijk
+      USE grid, ONLY: ncint, myijk
       USE grid, ONLY: fl_l
       USE parallel, ONLY: mpime
       USE particles_constants, ONLY: rl, inrl
@@ -44,7 +44,7 @@
 !
 ! ... MODIFICARE_X3D (fino fine file )
 
-      DO ij = 1, nij_l
+      DO ij = 1, ncint
         imesh = myijk( ip0_jp0_kp0_, ij)
         j = ( imesh - 1 ) / nr + 1
         i = MOD( ( imesh - 1 ), nr) + 1
@@ -65,7 +65,7 @@
           IF( nflr.NE.1 .AND. nfltr.NE.1 ) THEN
 
             n2 = ipj
-            IF (ipj .GT. nij_l .AND. time .EQ. dt) THEN
+            IF (ipj .GT. ncint .AND. time .EQ. dt) THEN
              WRITE(8,*) 'right bdry'
              WRITE(8,*) 'warning: boundary cell not belonging to proc', mpime
              WRITE(8,*) 'ij, i, j, imesh', ij, i, j, imesh
@@ -237,7 +237,7 @@
           IF(nfll.NE.1.AND.nfllt.NE.1) THEN
 
             n2 = imj
-            IF (imj .GT. nij_l .AND. time .EQ. dt) THEN
+            IF (imj .GT. ncint .AND. time .EQ. dt) THEN
              WRITE(8,*) 'left bdry'
              WRITE(8,*) 'warning: boundary cell not belonging to proc', mpime
              WRITE(8,*) 'ij, i, j, imesh', ij, i, j, imesh
@@ -400,7 +400,7 @@
           IF (nflt .NE. 1 .AND. nfltr .NE. 1) THEN 
 
             n2 = ijp
-            IF (ijp .GT. nij_l .AND. time .EQ. dt) THEN
+            IF (ijp .GT. ncint .AND. time .EQ. dt) THEN
              WRITE(8,*) 'top bdry'
              WRITE(8,*) 'warning: boundary cell not belonging to proc', mpime
              WRITE(8,*) 'ij, i, j, imesh', ij, i, j, imesh
@@ -592,7 +592,7 @@
           IF(nflb.NE.1.AND.nflbr.NE.1) THEN
 !
             n2 = ijm
-            IF (ijm .GT. nij_l .AND. time .EQ. dt) THEN
+            IF (ijm .GT. ncint .AND. time .EQ. dt) THEN
              WRITE(8,*) 'bottom bdry'
              WRITE(8,*) 'warning: boundary cell not belonging to proc', mpime
              WRITE(8,*) 'ij, i, j, imesh', ij, i, j, imesh
@@ -638,7 +638,7 @@
 !-----------------------------------------------------------------------
 ! ... This routine computes boundary conditions for filtered velocities
 !
-      USE grid, ONLY: fl_l, nij_l
+      USE grid, ONLY: fl_l, ncint
       USE set_indexes
 !
       IMPLICIT NONE
@@ -647,7 +647,7 @@
       INTEGER :: n2, nflr, nflt, nfll, nflb
       INTEGER :: nflbr, nfltr, nfllt, nfllb
 !
-      DO ij = 1, nij_l
+      DO ij = 1, ncint
         IF (fl_l(ij) .EQ. 1) THEN
           CALL subscr(ij)
 !

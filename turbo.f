@@ -3,7 +3,7 @@
 !----------------------------------------------------------------------
 !
       USE gas_solid_velocity, ONLY: ug,wg 
-      USE grid, ONLY: fl_l, myijk,  nij_l, ncdom, data_exchange
+      USE grid, ONLY: fl_l, myijk,  ncint, ncdom, data_exchange
       USE environment, ONLY: timing, cpclock
       USE indijk_module, ONLY: ip0_jp0_kp0_
 
@@ -43,8 +43,8 @@
       USE dimensions
       IMPLICIT NONE
 !
-      ALLOCATE(smag(nij_l))
-      ALLOCATE(scoeff(nij_l))
+      ALLOCATE(smag(ncint))
+      ALLOCATE(scoeff(ncint))
       ALLOCATE(mugt(ncdom))
       ALLOCATE(must(nsolid, ncdom))
       ALLOCATE(kapgt(ncdom))
@@ -165,7 +165,7 @@
       CALL data_exchange(ug)
       CALL data_exchange(wg)
 !
-      DO ij = 1, nij_l
+      DO ij = 1, ncint
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)
           CALL strain(ug, wg, ij, modsr(ij), sr1(ij), sr2(ij), sr12(ij), p1(ij), p2(ij), p12(ij))
@@ -195,7 +195,7 @@
         CALL data_exchange(fuwg)
       END IF
 !
-       DO ij = 1, nij_l
+       DO ij = 1, ncint
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)
           imesh = myijk( ip0_jp0_kp0_, ij)
@@ -370,7 +370,7 @@
 !
       CALL data_exchange(uwg)
 !
-       DO ij = 1, nij_l
+       DO ij = 1, ncint
          IF (fl_l(ij) .EQ. 1) THEN 
           CALL subscr(ij)
           fug(ij)  = filter(ug,ij)
@@ -395,7 +395,7 @@
       INTEGER :: ij
       REAL*8, INTENT(OUT) :: uwg(:)
 !
-      DO ij = 1, nij_l
+      DO ij = 1, ncint
         IF(fl_l(ij) .EQ. 1) THEN
           CALL subscr(ij)
           uwg(ij)=(0.5D0*(ug(ij)+ug(imj)))*(0.5D0*(wg(ij)+wg(ijm)))
@@ -437,7 +437,7 @@
       CALL data_exchange(ws)
 !
       d33=0.D0
-      DO ij = 1, nij_l
+      DO ij = 1, ncint
         imesh = myijk( ip0_jp0_kp0_, ij)
         IF(fl_l(ij).EQ.1) THEN
          CALL subscr(ij)

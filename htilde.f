@@ -30,7 +30,7 @@
       USE gas_solid_viscosity, ONLY: kapg
       USE grid, ONLY: r, rb, dr, zb, dz, inr, indr, indz 
       USE grid, ONLY: fl_l
-      USE grid, ONLY: nij_l, ncdom, myijk, data_exchange
+      USE grid, ONLY: ncint, ncdom, myijk, data_exchange
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE heat_diffusion, ONLY: hotcg, hotck
       USE particles_constants, ONLY: inrl
@@ -45,8 +45,8 @@
       INTEGER :: is, m, l, is1, i, j, imesh
       INTEGER :: ij
 !
-      ALLOCATE(rhg(nij_l))
-      ALLOCATE(rhk(nsolid,nij_l))
+      ALLOCATE(rhg(ncint))
+      ALLOCATE(rhk(nsolid,ncint))
 !
       ALLOCATE(egfr(ncdom), egft(ncdom))
       ALLOCATE(egfl(ncdom), egfb(ncdom))
@@ -82,7 +82,7 @@
       CALL data_exchange(ts)
       CALL data_exchange(kapgt)
 !
-      DO ij = 1, nij_l
+      DO ij = 1, ncint
         imesh = myijk( ip0_jp0_kp0_, ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)
@@ -128,7 +128,7 @@
 ! ... entering from neighbouring cells.
 ! ... on boundaries, fluxes on left and bottom sides must be calculated
 !
-      DO ij = 1, nij_l
+      DO ij = 1, ncint
         imesh = myijk( ip0_jp0_kp0_, ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)

@@ -13,7 +13,7 @@
       USE eos_gas, ONLY: rgpgc, rgpgcn, ygc
       USE gas_solid_velocity, ONLY: ug, wg
       USE grid, ONLY: dr, rb, dz, r, indr, inrb, indz, inr
-      USE grid, ONLY: nij_l, myijk, data_exchange
+      USE grid, ONLY: ncint, myijk, data_exchange
       USE set_indexes
       USE time_parameters, ONLY: dt
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -22,27 +22,31 @@
 !
       REAL*8 :: cs(7), cs0
       INTEGER :: i, j, imesh
-      INTEGER :: ij
+      INTEGER :: ijk
       INTEGER :: ig
 !
       CALL data_exchange(rgpgc)
 !
-      DO ij = 1, nij_l
-       imesh = myijk( ip0_jp0_kp0_, ij)
-       IF(fl_l(ij).EQ.1) THEN
-        CALL subscr(ij)
+      DO ijk = 1, ncint
+
+       imesh = myijk( ip0_jp0_kp0_, ijk)
+
+       IF( fl_l(ijk) == 1 ) THEN
+
+        CALL subscr(ijk)
+
         j  = ( imesh - 1 ) / nr + 1
         i  = MOD( ( imesh - 1 ), nr) + 1
 !
         DO ig=1,ngas
-          cs(ig)=rgpgcn(ig,ij)
+          cs(ig)=rgpgcn(ig,ijk)
         END DO
         cs0=0.D0
-        IF(wg(ij).GT.0.D0) THEN
-          cs0=cs0-dt*indz(j)*wg(ij)
+        IF(wg(ijk).GT.0.D0) THEN
+          cs0=cs0-dt*indz(j)*wg(ijk)
         ELSE
           DO ig=1,ngas
-            cs(ig)=cs(ig)-dt*indz(j)*wg(ij)*rgpgc(ig,ijt)
+            cs(ig)=cs(ig)-dt*indz(j)*wg(ijk)*rgpgc(ig,ijt)
           END DO
         ENDIF
         IF(wg(ijm).GT.0.D0) THEN
@@ -52,11 +56,11 @@
         ELSE
           cs0=cs0+dt*indz(j)*wg(ijm)
         ENDIF
-        IF(ug(ij).GT.0.D0) THEN
-          cs0=cs0-dt*inr(i)*indr(i)*rb(i)*ug(ij)
+        IF(ug(ijk).GT.0.D0) THEN
+          cs0=cs0-dt*inr(i)*indr(i)*rb(i)*ug(ijk)
         ELSE
           DO ig=1,ngas
-            cs(ig)=cs(ig)-dt*inr(i)*indr(i)*rb(i)*ug(ij)*rgpgc(ig,ijr)
+            cs(ig)=cs(ig)-dt*inr(i)*indr(i)*rb(i)*ug(ijk)*rgpgc(ig,ijr)
           END DO
         ENDIF
         IF(ug(imj).GT.0.D0)THEN
@@ -81,9 +85,11 @@
         IF(cs(7).LT.0.D0) cs(7)=0.D0
         cs0=cs(1)+cs(2)+cs(3)+cs(4)+cs(5)+cs(6)+cs(7)
         DO ig=1,ngas
-          ygc(ig,ij)=cs(ig)/cs0
+          ygc(ig,ijk)=cs(ig)/cs0
         END DO
+
        END IF
+
       END DO
 !
       RETURN

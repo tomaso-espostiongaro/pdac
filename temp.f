@@ -23,7 +23,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE local_bounds_temperature
       USE dimensions
-      USE grid, ONLY: ncdom, nij_l
+      USE grid, ONLY: ncdom
       IMPLICIT NONE
 !
       ALLOCATE(sieg(ncdom), siegn(ncdom), tg(ncdom))

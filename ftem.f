@@ -22,7 +22,7 @@
       USE gas_solid_velocity, ONLY: ug, wg, us, ws
       USE grid, ONLY: r, rb, dr, zb, dz, inr, indr, indz 
       USE grid, ONLY: fl_l
-      USE grid, ONLY: nij_l, data_exchange
+      USE grid, ONLY: ncint, data_exchange
       USE heat_transfer, ONLY: hvs
       USE tilde_energy, ONLY: rhg, rhk
       USE pressure_epsilon, ONLY: p, pn, ep
@@ -40,7 +40,7 @@
 !
       ALLOCATE(at(nphase, nphase))
       ALLOCATE(bt(nphase))
-      ALLOCATE(hv(nsolid, nij_l))
+      ALLOCATE(hv(nsolid, ncint))
 !
           at = 0.D0
           bt = 0.D0
@@ -53,7 +53,7 @@
 !pdac------------
 !
 !
-      DO ij = 1, nij_l
+      DO ij = 1, ncint
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)
 !

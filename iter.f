@@ -28,7 +28,7 @@
       USE eulerian_flux, ONLY: masfg, masfs
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
       USE grid, ONLY: fl_l
-      USE grid, ONLY: myijk, nij_l, ncdom, data_exchange
+      USE grid, ONLY: myijk, ncint, ncdom, data_exchange
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE tilde_momentum, ONLY: appu, appw
       USE particles_constants, ONLY: rl, inrl
@@ -56,7 +56,7 @@
       REAL*8, ALLOCATABLE :: avloop(:)
       LOGICAL :: first, cvg
 !
-      ALLOCATE(conv(nij_l), abeta(nij_l))
+      ALLOCATE(conv(ncint), abeta(ncint))
       conv = 0.0D0
       abeta = 0.0D0
 !
@@ -65,7 +65,7 @@
 ! ... avloop is the per-cycle-average of inner loops in each cells
 ! ... avlp is the average of avloop over the proc subdomain
 !
-      ALLOCATE(avloop(nij_l))
+      ALLOCATE(avloop(ncint))
       avloop = 0
       avlp = 0
 !
@@ -88,7 +88,7 @@
 ! ... Solve the explicit phases matrix to get "new" velocities,
 ! ... biassed by the wrong pressure field.
 !
-      DO ij = 1, nij_l
+      DO ij = 1, ncint
         imesh = myijk( ip0_jp0_kp0_, ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)
@@ -108,7 +108,7 @@
 ! ... Put the new biassed velocities into the Gas Mass Balance 
 ! ... equation.
 !
-      DO ij = 1, nij_l
+      DO ij = 1, ncint
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)
           imesh = myijk( ip0_jp0_kp0_, ij)
@@ -136,7 +136,7 @@
 !
 !         call f_hpmstart( 2, ' SWEEP ' )
 !
-         DO ij = 1, nij_l
+         DO ij = 1, ncint
            avloop(ij) = avloop(ij) + 1
 
            imesh = myijk( ip0_jp0_kp0_, ij)
@@ -342,7 +342,7 @@
 ! ...   iterations, averaged number of external iterations ) 
 !
       avloop(:) = avloop(:)/nit
-      avlp = avlp/nit/nij_l
+      avlp = avlp/nit/ncint
 !
       t1 = tstop - 100 * dt     
 !      t1 = tstop
@@ -353,7 +353,7 @@
           WRITE(7,'(A15,F8.4)') 'avlp =', avlp
  500      FORMAT('time =', F8.3)
       END IF
-      DO ij=1,nij_l
+      DO ij=1,ncint
            imesh = myijk( ip0_jp0_kp0_, ij)
            j  = ( imesh - 1 ) / nr + 1
            i  = MOD( ( imesh - 1 ), nr) + 1
@@ -477,7 +477,7 @@
       USE gas_solid_density, ONLY: rog, rgp
       USE grid, ONLY: fl_l
       USE grid, ONLY: r, rb, dr, dz
-      USE grid, ONLY: nij_l, myijk
+      USE grid, ONLY: ncint, myijk
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes
@@ -496,7 +496,7 @@
 !
       REAL*8, PARAMETER :: delg=1.D-8
 !
-      DO ij = 1, nij_l
+      DO ij = 1, ncint
         IF (fl_l(ij) == 1) THEN
           imesh = myijk( ip0_jp0_kp0_, ij)
           CALL subscr(ij)

@@ -17,7 +17,7 @@
       USE gas_solid_temperature, ONLY: solid_enthalpy, solid_temperature
       USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
       USE gas_solid_viscosity, ONLY: mus, particle_viscosity
-      USE grid, ONLY: nij_l, myijk, data_exchange
+      USE grid, ONLY: ncint, myijk, data_exchange
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE pressure_epsilon, ONLY: gas_pressure, void_fraction
       USE pressure_epsilon, ONLY: p, ep
@@ -63,7 +63,7 @@
         smag = 0.D0
         mus = 0.D0
 !        
-      DO ij_l = 1, nij_l
+      DO ij_l = 1, ncint
         ij = myijk( ip0_jp0_kp0_, ij_l)
 !
         p(ij_l) = gas_pressure(ij)

@@ -140,7 +140,7 @@
 ! ... This routine computes the components of the viscous diffusion terms
 ! ... in gas momentum transport equations
 !
-      USE grid, ONLY: nij_l
+      USE grid, ONLY: ncint
       USE gas_solid_velocity, ONLY: ug, wg
       USE grid, ONLY: data_exchange
       USE pressure_epsilon, ONLY: ep
@@ -173,7 +173,7 @@
 ! ... in particle momentum transport equations
 !
       USE dimensions
-      USE grid, ONLY: fl_l, nij_l, ncdom, data_exchange
+      USE grid, ONLY: fl_l, ncint, ncdom, data_exchange
       USE grid, ONLY: dz, dr
       USE gas_solid_density, ONLY: rlk
       USE gas_solid_velocity, ONLY:  us, ws
@@ -206,7 +206,7 @@
 !
       repulsive_model = .TRUE.
       IF ( repulsive_model ) THEN
-        DO ij = 1, nij_l
+        DO ij = 1, ncint
          imesh = myijk(ip0_jp0_kp0_, ij)
          IF(fl_l(ij).EQ.1) THEN
            CALL subscr(ij)
@@ -248,7 +248,7 @@
 !
       USE dimensions
       USE grid, ONLY: itc, dz, dr, r, rb, indz, indr, inr, inrb
-      USE grid, ONLY: fl_l, nij_l
+      USE grid, ONLY: fl_l, ncint
       USE set_indexes
       USE indijk_module, ONLY: ip0_jp0_kp0_
 
@@ -268,7 +268,7 @@
       visx = 0.D0
       visz = 0.D0
 !
-      DO ij = 1, nij_l
+      DO ij = 1, ncint
         imesh = myijk( ip0_jp0_kp0_, ij)
         IF(fl_l(ij).EQ.1) THEN
          CALL subscr(ij)

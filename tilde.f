@@ -39,7 +39,7 @@
       USE gas_solid_velocity, ONLY: ug, wg, us, ws
       USE grid, ONLY: dz, dr, fl_l
       USE grid, ONLY: inr, inrb, indr, indz
-      USE grid, ONLY: nij_l, myijk, ncdom, data_exchange
+      USE grid, ONLY: ncint, myijk, ncdom, data_exchange
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes
 !
@@ -54,8 +54,8 @@
       IF (ALLOCATED(rwgn)) DEALLOCATE(rwgn)
       IF (ALLOCATED(rusn)) DEALLOCATE(rusn)
       IF (ALLOCATED(rwsn)) DEALLOCATE(rwsn)
-      ALLOCATE( rugn(nij_l),  rwgn(nij_l))
-      ALLOCATE( rusn(nsolid,nij_l),  rwsn(nsolid,nij_l))
+      ALLOCATE( rugn(ncint),  rwgn(ncint))
+      ALLOCATE( rusn(nsolid,ncint),  rwsn(nsolid,ncint))
       rugn = 0.0
       rwgn = 0.0
       rusn = 0.0
@@ -64,7 +64,7 @@
       CALL data_exchange(rgp)
       CALL data_exchange(rlk)
 !
-      DO ij = 1, nij_l
+      DO ij = 1, ncint
        imesh = myijk( ip0_jp0_kp0_,ij)
        IF(fl_l(ij).EQ.1) THEN
          CALL subscr(ij)
@@ -111,7 +111,7 @@
       USE gas_solid_viscosity, ONLY: viscg, viscs
       USE gas_solid_viscosity, ONLY: mug
       USE gas_solid_viscosity, ONLY: gvisx, gvisz, pvisx, pvisz
-      USE grid, ONLY: nij_l, myijk, ncdom, data_exchange
+      USE grid, ONLY: ncint, myijk, ncdom, data_exchange
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE parallel, ONLY: mpime
       USE set_indexes
@@ -125,8 +125,8 @@
       REAL*8 :: ugfx, ugfz, wgfx, wgfz
       REAL*8 :: ulfx, ulfz, wlfx, wlfz
 !
-      ALLOCATE(gvisx(nij_l), gvisz(nij_l))
-      ALLOCATE(pvisx(nsolid, nij_l), pvisz(nsolid, nij_l))
+      ALLOCATE(gvisx(ncint), gvisz(ncint))
+      ALLOCATE(pvisx(nsolid, ncint), pvisz(nsolid, ncint))
       gvisx = 0.D0; gvisz = 0.D0
       pvisx = 0.D0; pvisz = 0.D0
 
@@ -192,7 +192,7 @@
 !
 ! ... Allocate and initialize interphase terms.
 !
-      ALLOCATE(kpgv(nsolid,nij_l))
+      ALLOCATE(kpgv(nsolid,ncint))
       ALLOCATE(appu(((nsolid+1)**2+(nsolid+1))/2, ncdom),   &
                appw(((nsolid+1)**2+(nsolid+1))/2, ncdom))
 
@@ -203,7 +203,7 @@
 ! ... Compute fluxes on right and top sides of a cell
 ! ... in the whole computational domain.
 !
-      DO ij = 1, nij_l
+      DO ij = 1, ncint
         imesh = myijk( ip0_jp0_kp0_, ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)
@@ -234,7 +234,7 @@
 ! ... of right and top fluxes from neighbouring (left and bottom) cells.
 ! ... On boundaries, fluxes on left and bottom sides must be calculated
 !
-      DO ij = 1, nij_l
+      DO ij = 1, ncint
         imesh = myijk( ip0_jp0_kp0_, ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)

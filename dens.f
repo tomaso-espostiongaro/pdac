@@ -26,10 +26,10 @@
 !----------------------------------------------------------------------
       SUBROUTINE local_bounds_density
       USE dimensions
-      USE grid, ONLY: nij_l, ncdom
+      USE grid, ONLY: ncint, ncdom
 !
-      ALLOCATE(rgp(ncdom), rgpn(nij_l), rog(nij_l))
-      ALLOCATE(rlk(nsolid,ncdom), rlkn(nsolid,nij_l))
+      ALLOCATE(rgp(ncdom), rgpn(ncint), rog(ncint))
+      ALLOCATE(rlk(nsolid,ncdom), rlkn(nsolid,ncint))
       rgp = 0.D0
       rgpn = 0.D0
       rog = 0.D0

@@ -24,10 +24,10 @@
 !----------------------------------------------------------------------
       SUBROUTINE local_bounds_hcapgs
       USE dimensions
-      USE grid, ONLY: nij_l
+      USE grid, ONLY: ncint
 !
-      ALLOCATE(cp(ngas,nij_l))
-      ALLOCATE(ck(nsolid,nij_l))
+      ALLOCATE(cp(ngas,ncint))
+      ALLOCATE(ck(nsolid,ncint))
 !
       cp = 0.D0 
       ck = 0.D0

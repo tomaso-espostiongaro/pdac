@@ -9,7 +9,7 @@
       USE enthalpy_matrix, ONLY: ftem
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
       USE gas_solid_temperature, ONLY: sieg, siegn, sies, siesn, ts, tg
-      USE grid, ONLY: nij_l, myijk, fl_l
+      USE grid, ONLY: ncint, myijk, fl_l
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE io_restart, ONLY: tapewr
       USE iterative_solver, ONLY: iter
@@ -72,7 +72,7 @@
 ! ... Compute derived fields from closure equations
 ! ... (must be dumped into restart file)
 !
-        DO ijk = 1, nij_l
+        DO ijk = 1, ncint
 
            imesh = myijk( ip0_jp0_kp0_, ijk)
 ! 
@@ -128,7 +128,7 @@
        IF (time + 0.1D0*dt .GE. tstop)     EXIT time_sweep
 !------------------------------------------------------------ 
 !
-       DO ijk = 1, nij_l
+       DO ijk = 1, ncint
 !
 ! ... Store fields at time n*dt
 !

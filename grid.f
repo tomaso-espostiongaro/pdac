@@ -52,11 +52,11 @@
 !
         INTEGER :: itc, mesh_partition
 
-!       nij_l (ncint) number of local cells, 
+!       ncint (ncint) number of local cells, 
 !       ncext         number of external (ghost) cells, 
 !       ncdom         sum of the previous two
 !
-        INTEGER :: nij_l, ncext, ncdom  
+        INTEGER :: ncint, ncext, ncdom  
 !
         INTEGER, ALLOCATABLE :: myijk(:,:)
         INTEGER, ALLOCATABLE :: myinds(:,:)
@@ -77,6 +77,7 @@
 !
         TYPE (blbody), ALLOCATABLE :: iob(:)
 !
+        LOGICAL, PRIVATE :: outppm = .FALSE.
 
 !*******MX3D fl da eliminare in un secondo tempo
         INTEGER, DIMENSION(:), ALLOCATABLE :: fl
@@ -92,10 +93,13 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
+
       SUBROUTINE bounds_grid
-      USE dimensions
-      USE control_flags, ONLY: job_type
-      IMPLICIT NONE
+!
+        USE dimensions
+        USE control_flags, ONLY: job_type
+!
+        IMPLICIT NONE
 !
 ! ...   Set the appropriate total number of cells
         IF( job_type == '2D' ) THEN
@@ -106,136 +110,201 @@
           CALL error( ' bounds_grid ', ' wrong job_type '//job_type, 1)
         END IF
 
-        ALLOCATE(fl(ntot))
-        ALLOCATE(r(nr), rb(nr), dr(nr))
-        ALLOCATE(inr(nr), inrb(nr), indr(nr))
-        ALLOCATE(xb(nx), dx(nx), yb(ny), dy(ny), zb(nz), dz(nz))
-        ALLOCATE(indx(nx), indy(ny), indz(nz))
+        ALLOCATE( fl(ntot) )
+        ALLOCATE( r(nr), rb(nr), dr(nr) )
+        ALLOCATE( inr(nr), inrb(nr), indr(nr) ) 
+        ALLOCATE( xb(nx), dx(nx), yb(ny), dy(ny), zb(nz), dz(nz) )
+        ALLOCATE( indx(nx), indy(ny), indz(nz) )
 
-      RETURN
+        RETURN
       END SUBROUTINE
+!
 !----------------------------------------------------------------------
+!
       SUBROUTINE bounds_blbody
-      USE dimensions
-      IMPLICIT NONE
-        ALLOCATE(iob(no))
-      RETURN
-      END SUBROUTINE
-!----------------------------------------------------------
-        SUBROUTINE grid_setup(zzero)
         USE dimensions
+        IMPLICIT NONE
+          ALLOCATE(iob(no))
+        RETURN
+      END SUBROUTINE
+!
+!----------------------------------------------------------
+!
+        SUBROUTINE grid_setup(zzero)
+!
+          USE dimensions
+          USE control_flags, ONLY: job_type
+
           REAL*8, INTENT(IN) :: zzero
           REAL*8, PARAMETER :: VERYBIG = 1.0d+10
           INTEGER :: i, j
+
+          IF( job_type == '2D' ) THEN
 !
-! ... ONLY FOR CYLINDRICAL COORDINATES
+! ...       ONLY FOR CYLINDRICAL COORDINATES
 !
-! ...     Set "r" dimension
-          IF(itc.EQ.0) THEN
-            DO i=1,nr
-              r(i)=1.D0
-              rb(i)=1.D0
-            END DO
-          ELSE
-            rb(1)=0.D0
-            r(1)=-0.5D0*dr(1)+rb(1)
+! ...       Set "r" dimension
+            IF(itc.EQ.0) THEN
+              DO i=1,nr
+                r(i)=1.D0
+                rb(i)=1.D0
+              END DO
+            ELSE
+              rb(1)=0.D0
+              r(1)=-0.5D0*dr(1)+rb(1)
+              DO i=2,nr
+                rb(i)=(rb(i-1)+dr(i))
+                r(i)=(rb(i)-0.5D0*dr(i))
+              END DO
+            END IF
+!
+            IF (rb(1) .EQ. 0.0D0) THEN
+              inrb(1) = VERYBIG
+            ELSE
+              inrb(1) = 1.0D0/rb(1)
+            END IF
+            IF (itc.EQ.0) inrb(1)=1.D0
             DO i=2,nr
-              rb(i)=(rb(i-1)+dr(i))
-              r(i)=(rb(i)-0.5D0*dr(i))
+              inrb(i)=1.D0/rb(i)
+            END DO  
+!
+            DO i=1,nr
+              inr(i)=1.D0/r(i)
+            END DO  
+            DO i=1,nr
+              indr(i)=1.D0/dr(i)
+            END DO  
+
+          ELSE IF( job_type == '3D' ) THEN
+!
+! ...       CARTESIAN COORDINATES
+! 
+!                first cell
+!           |<----- dx(2) ---->|-----------|-----|
+!           xb(1)             xb(2)
+!
+! ...       Set "x" dimension
+            xb(1) = 0.0d0
+            DO j=1,(nx-1)
+              xb(j+1)=xb(j)+dx(j+1)
             END DO
-          END IF
 !
-          IF (rb(1) .EQ. 0.0D0) THEN
-            inrb(1) = VERYBIG
+            DO j=1,(nx-1)
+              indx(j)=1.D0/dx(j)
+            END DO 
+!
+! ...       Set "y" dimension
+            yb(1) = 0.0d0
+            DO j=1,(ny-1)
+              yb(j+1)=yb(j)+dy(j+1)
+            END DO
+!
+            DO j=1,(ny-1)
+              indy(j)=1.D0/dy(j)
+            END DO
+!
+! ...       Set "z" dimension
+            zb(1) = zzero
+            DO j=1,(nz-1)
+              zb(j+1)=zb(j)+dz(j+1)
+            END DO
+!
+            DO j=1,(nz-1)
+              indz(j)=1.D0/dz(j)
+            END DO  
+  
           ELSE
-            inrb(1) = 1.0D0/rb(1)
+    
+            CALL error(' grid_setup ', ' unknow job_type '//job_type, 1 )
+
           END IF
-          IF (itc.EQ.0) inrb(1)=1.D0
-          DO i=2,nr
-            inrb(i)=1.D0/rb(i)
-          END DO  
 !
-          DO i=1,nr
-            inr(i)=1.D0/r(i)
-          END DO  
-          DO i=1,nr
-            indr(i)=1.D0/dr(i)
-          END DO  
-!
-! ... CARTESIAN COORDINATES
-!
-! ...     Set "x" dimension
-          xb(1) = 0.0d0
-          DO j=1,(nx-1)
-            xb(j+1)=xb(j)+dx(j+1)
-          END DO
-!
-          DO j=1,(nx-1)
-            indx(j)=1.D0/dx(j)
-          END DO 
-!
-! ...     Set "y" dimension
-          yb(1) = 0.0d0
-          DO j=1,(ny-1)
-            yb(j+1)=yb(j)+dy(j+1)
-          END DO
-!
-          DO j=1,(ny-1)
-            indy(j)=1.D0/dy(j)
-          END DO
-!
-! ...     Set "z" dimension
-          zb(1) = zzero
-          DO j=1,(nz-1)
-            zb(j+1)=zb(j)+dz(j+1)
-          END DO
-!
-          DO j=1,(nz-1)
-            indz(j)=1.D0/dz(j)
-          END DO  
-!
+          RETURN 
         END SUBROUTINE
 
+!
 !----------------------------------------------------------------------
+!
       SUBROUTINE flic
 !
-      USE dimensions
-      IMPLICIT NONE
+        USE dimensions
+        USE control_flags, ONLY: job_type
 !
-      INTEGER :: i, j, ij, n, ijl
+        IMPLICIT NONE
 !
-      fl = 1
+        INTEGER :: i, j, k, ij, n, ijk
 !
-! ... MODIFICARE_X3D
-! ... upper-right corner
+        fl = 1
 !
-      IF (fl((nr-1)+(nz-1)*nr) == 4 .AND. fl(nr+(nz-2)*nr) == 4) THEN
-          fl(nr+(nz-1)*nr) = 4
-      END IF
+        IF( job_type == '2D' ) THEN
+
+          IF ( fl((nr-1)+(nz-1)*nr) == 4 .AND. fl(nr+(nz-2)*nr) == 4) THEN
+            fl(nr+(nz-1)*nr) = 4
+          END IF
+
+        ELSE IF( job_type == '3D' ) THEN
+
+          CALL error( ' flic ',' set the upper-right corner for X3D ', 1)
+
+        END IF
 !
-      IF(no.LE.0) RETURN
+        IF( no <= 0 ) RETURN
 !
-      DO n = 1, no
-        DO j = iob(n)%zlo, iob(n)%zhi 
-          DO i = iob(n)%rlo, iob(n)%rhi
-            ij=i+(j-1)*nr
-            SELECT CASE ( iob(n)%typ )
-              CASE (2) 
-                fl(ij) = 2
-              CASE (3) 
-                fl(ij) = 3
-              CASE (4) 
-                fl(ij) = 4
-              CASE (5) 
-                fl(ij) = 5
-              CASE (6) 
-                fl(ij) = 6
-              CASE DEFAULT
-                fl(ij) = 1
-            END SELECT
+! ...   no is the number of cell blocks (blunt body)
+!
+        IF( job_type == '2D' ) THEN
+
+          DO n = 1, no
+            DO j = iob(n)%zlo, iob(n)%zhi 
+              DO i = iob(n)%rlo, iob(n)%rhi
+                ij=i+(j-1)*nr
+                SELECT CASE ( iob(n)%typ )
+                  CASE (2) 
+                    fl(ij) = 2
+                  CASE (3) 
+                    fl(ij) = 3
+                  CASE (4) 
+                    fl(ij) = 4
+                  CASE (5) 
+                    fl(ij) = 5
+                  CASE (6) 
+                    fl(ij) = 6
+                  CASE DEFAULT
+                    fl(ij) = 1
+                END SELECT
+              END DO
+            END DO
           END DO
-        END DO
-      END DO
+
+        ELSE IF( job_type == '3D' ) THEN
+
+          DO n = 1, no
+            DO k = iob(n)%zlo, iob(n)%zhi
+              DO j = iob(n)%ylo, iob(n)%yhi
+                DO i = iob(n)%rlo, iob(n)%rhi
+                  ijk = i + ( (j-1) + (k-1)*ny ) * nx
+                  SELECT CASE ( iob(n)%typ )
+                    CASE (2)
+                      fl(ijk) = 2
+                    CASE (3)
+                      fl(ijk) = 3
+                    CASE (4)
+                      fl(ijk) = 4
+                    CASE (5)
+                      fl(ijk) = 5
+                    CASE (6)
+                      fl(ijk) = 6
+                    CASE DEFAULT
+                      fl(ijk) = 1
+                  END SELECT
+                END DO
+              END DO
+            END DO
+          END DO
+
+        END IF
+
+        RETURN
       END SUBROUTINE
 !
 !----------------------------------------------------------------------
@@ -243,6 +312,7 @@
 ! ... MODIFICARE_X3D (rivedere fino alla fine del file)
 
       SUBROUTINE partition
+!
 ! ... a routine that subdivides a regular grid between (nproc) 
 ! ... processors, balancing the computational load 
 ! ... Gives processor maps.
@@ -258,8 +328,9 @@
       INTEGER, ALLOCATABLE :: red(:), green(:), blue(:)
       INTEGER :: localdim
 !
+! ... Subroutine Body
 !
-      ALLOCATE(red(nr*nz),green(nr*nz),blue(nr*nz))
+      ALLOCATE( red(nr*nz), green(nr*nz), blue(nr*nz) )
 
       IF (ALLOCATED(nctot)) DEALLOCATE(nctot)
       IF (ALLOCATED(ncell)) DEALLOCATE(ncell)
@@ -321,33 +392,39 @@
       END DO
         WRITE(7,*) '  '
 !
-!        DO ij=1,nr*nz
-!            red(ij) = (cell_owner(ij)+1)
-!            green(ij) = nproc - (cell_owner(ij)+1)
-!            blue(ij) = (nproc - ABS(2*(cell_owner(ij)-nproc/2))) 
-!          IF ((fl(ij).EQ.3 .AND. (fl(ij+1).EQ.1 .OR. fl(ij-1).EQ.1))   &
-!               .OR. fl(ij).EQ.5 .OR. fl(ij).EQ.2 .OR. fl(ij).EQ.4)    THEN
-!            red(ij) = 0
-!            green(ij) = 0
-!            blue(ij) = 0
-!          END IF
-!        END DO
-!
-!        IF (mpime .EQ. root) THEN
-!          OPEN(UNIT=9,FILE='procs_map.ppm', FORM='FORMATTED', STATUS='UNKNOWN')
-!           WRITE(9,'(A2)') 'P3'
-!           WRITE(9,'(I3,A1,I3)') nr,' ',nz
-!           WRITE(9,'(I3)') nproc
-!           DO j = nz-1, 0, -1
-!            DO i=1,nr
-!              WRITE(9,100) red(i+nr*j), green(i+nr*j), blue(i+nr*j)
-!            END DO
-!           END DO
-! 100      FORMAT(3(I4))
-!          CLOSE(9)
-!        END IF
-!
+
+      IF( outppm ) THEN
+
+        DO ij=1,nr*nz
+            red(ij) = (cell_owner(ij)+1)
+            green(ij) = nproc - (cell_owner(ij)+1)
+            blue(ij) = (nproc - ABS(2*(cell_owner(ij)-nproc/2))) 
+          IF ((fl(ij).EQ.3 .AND. (fl(ij+1).EQ.1 .OR. fl(ij-1).EQ.1))   &
+               .OR. fl(ij).EQ.5 .OR. fl(ij).EQ.2 .OR. fl(ij).EQ.4)    THEN
+            red(ij) = 0
+            green(ij) = 0
+            blue(ij) = 0
+          END IF
+        END DO
+
+        IF (mpime .EQ. root) THEN
+          OPEN(UNIT=9,FILE='procs_map.ppm', FORM='FORMATTED', STATUS='UNKNOWN')
+           WRITE(9,'(A2)') 'P3'
+           WRITE(9,'(I3,A1,I3)') nr,' ',nz
+           WRITE(9,'(I3)') nproc
+           DO j = nz-1, 0, -1
+            DO i=1,nr
+              WRITE(9,100) red(i+nr*j), green(i+nr*j), blue(i+nr*j)
+            END DO
+           END DO
+ 100      FORMAT(3(I4))
+          CLOSE(9)
+        END IF
+
+      END IF
+
       DEALLOCATE(red,green,blue)
+
       RETURN
       END SUBROUTINE 
 !
@@ -359,6 +436,7 @@
 ! ... decomposes the domain into N horizontal layers
 !
       USE dimensions
+      USE control_flags, ONLY: job_type
       USE parallel, ONLY: nproc
 !
       IMPLICIT NONE
@@ -367,7 +445,7 @@
       INTEGER :: ncfl1(:)
       INTEGER :: nctot(:)
 !
-      INTEGER :: i, j, ij
+      INTEGER :: i, j, ij, ijk, k
       INTEGER :: icnt, icnt_ipe, ipe
       INTEGER :: localdim
       INTEGER, ALLOCATABLE :: lay_map(:,:)
@@ -381,32 +459,74 @@
        ncfl1(ipe) = localdim(countfl(1), nproc, ipe)
       END DO
 !
-      lay_map(0,1) = 1
-      lay_map(nproc-1,2) = nr*nz
-      ipe = 0
+      IF( job_type == '2D' ) THEN
 
-!*****MX3D solo loop ( nx, ny, nz -> ijk = i + (j-1)*nx + (k-1)*nx*ny )
-      DO j = 1, nz
-       DO i = 1, nr
-          ij = i + (j-1)*nr
+        lay_map(0,1) = 1
+        lay_map(nproc-1,2) = nr*nz
+        ipe = 0
 
-          IF ( fl(ij) == 1 ) THEN
-            icnt_ipe = icnt_ipe + 1
-            icnt     = icnt     + 1
-          END IF
+        DO j = 1, nz
+          DO i = 1, nr
 
-          nctot(ipe) = nctot(ipe) + 1
-
-          IF ( ( icnt_ipe == ncfl1(ipe) ) .AND. ( i /= (nr-1) ) ) THEN
-            icnt_ipe = 0
-            IF( icnt < countfl(1) ) THEN
-              lay_map(ipe,2) = ij
-              ipe = ipe + 1
-              lay_map(ipe,1) = ij+1
+            ij = i + (j-1)*nr
+  
+            IF ( fl(ij) == 1 ) THEN
+              icnt_ipe = icnt_ipe + 1
+              icnt     = icnt     + 1
             END IF
-          END IF
-       END DO 
-      END DO
+
+            nctot(ipe) = nctot(ipe) + 1
+
+            IF ( ( icnt_ipe == ncfl1(ipe) ) .AND. ( i /= (nr-1) ) ) THEN
+              icnt_ipe = 0
+              IF( icnt < countfl(1) ) THEN
+                lay_map(ipe,2) = ij
+                ipe = ipe + 1
+                lay_map(ipe,1) = ij+1
+              END IF
+            END IF
+
+          END DO 
+        END DO
+
+      ELSE IF( job_type == '3D' ) THEN
+
+        lay_map(0,1)       = 1
+        lay_map(nproc-1,2) = nx*ny*nz
+        ipe = 0
+
+        DO k = 1, nz
+          DO j = 1, ny
+            DO i = 1, nx
+
+              ijk = i + (j-1)*nx + (k-1)*nx*ny 
+  
+              IF ( fl(ijk) == 1 ) THEN
+                icnt_ipe = icnt_ipe + 1
+                icnt     = icnt     + 1
+              END IF
+
+              nctot(ipe) = nctot(ipe) + 1
+
+              IF ( ( icnt_ipe == ncfl1(ipe) ) .AND. &
+                   ( i /= (nx-1) ) .AND. ( j /= (ny-1) ) ) THEN
+                icnt_ipe = 0
+                IF( icnt < countfl(1) ) THEN
+                  lay_map(ipe,2) = ijk
+                  ipe = ipe + 1
+                  lay_map(ipe,1) = ijk+1
+                END IF
+              END IF
+
+            END DO
+          END DO
+        END DO
+
+      ELSE
+
+        CALL error(' layers ',' unknow job_type ', 1)
+
+      END IF
 
       DO ipe = 0, nproc - 1
         proc_map(ipe)%lay(:) =  lay_map(ipe,:)
@@ -695,12 +815,12 @@
       END DO
 
 ! ... number of local cells
-      nij_l = nctot(mpime)
+      ncint = nctot(mpime)
 !
 ! ... allocate stencil array indexes
 !
-      ALLOCATE( myijk( nstdim , nij_l ) )
-      ALLOCATE( myinds( nstdim, nij_l ) )
+      ALLOCATE( myijk( nstdim , ncint ) )
+      ALLOCATE( myinds( nstdim, ncint ) )
 !
 ! ... set up indexes
 !
@@ -739,7 +859,7 @@
       END IF
 !
 !
-      DO ijl = 1, nij_l
+      DO ijl = 1, ncint
 ! ...     store the global cell index ij, of the the local cell ijl
           myijk( ip0_jp0_kp0_, ijl) = cell_l2g(ijl, mpime)
       END DO
@@ -765,7 +885,7 @@
 ! ... number cells required to update the physical quantities:
 ! ... sum of the local and their neighbouring cells
       ncext = SUM( nrcv ) 
-      ncdom = nij_l + ncext
+      ncdom = ncint + ncext
       WRITE(7,* ) ' # ncext ', ncext
       WRITE(7,* ) ' # ncdom ', ncdom
 
@@ -889,7 +1009,7 @@
 !*****MX3D : ok
 !
       ALLOCATE(fl_l(ncdom))
-      DO ijl = 1, nij_l
+      DO ijl = 1, ncint
         ij = myijk( ip0_jp0_kp0_, ijl)
         fl_l(ijl) = fl(ij)
       END DO
@@ -897,7 +1017,7 @@
       CALL set_myinds(myinds, myijk)
 !
 ! ... Test the indexing (following sweep direction)
-!      DO ijl = 1, nij_l
+!      DO ijl = 1, ncint
 !        WRITE(7,*) ijl
 !        WRITE(7,*) (myinds(k,ijl), k=1,12)
 ! *CHANGE  (i,j,ijl) => (indijk(i,j,0),ijl) 
@@ -1014,7 +1134,7 @@
         fill = PRESENT(rcv_cell_set)
         icnt = 0
         IF( fill ) THEN
-          nij_l = SIZE(myijk, 2)
+          ncint = SIZE(myijk, 2)
           ijl   = cell_g2l(ij, mpime)
         END IF
         
@@ -1181,7 +1301,7 @@
         INTEGER, ALLOCATABLE :: ijsort(:)
 
         nproc = SIZE(rcv_cell_set)
-        nij_l = SIZE(myijk,2)
+        ncint = SIZE(myijk,2)
         icnt  = 0                    ! counts received cells from all processors
 
         DO ipe = 0, nproc - 1
@@ -1205,8 +1325,8 @@
             i   = rcv_cell_set(ipe)%i(3,ic)
             j   = rcv_cell_set(ipe)%i(4,ic)
             rcv_map(ipe)%ircv(icnt_rcv) = ije
-            rcv_map(ipe)%iloc(icnt_rcv) = icnt + nij_l
-            myijk( indijk(i,j,0), ijl ) = icnt + nij_l
+            rcv_map(ipe)%iloc(icnt_rcv) = icnt + ncint
+            myijk( indijk(i,j,0), ijl ) = icnt + ncint
             DO ic = 2, nset(ipe)
               ije = rcv_cell_set(ipe)%i(1,ic)
               ijl = rcv_cell_set(ipe)%i(2,ic)
@@ -1218,10 +1338,10 @@
                 icnt_rcv  = icnt_rcv + 1
                 icnt      = icnt + 1
                 rcv_map(ipe)%ircv(icnt_rcv) = ije
-                rcv_map(ipe)%iloc(icnt_rcv) = icnt + nij_l
+                rcv_map(ipe)%iloc(icnt_rcv) = icnt + ncint
               END IF 
-              myijk( indijk(i,j,0), ijl ) = icnt + nij_l  ! da sostituire con
-              ! ... myijk( stind, ijl ) = icnt + nij_l
+              myijk( indijk(i,j,0), ijl ) = icnt + ncint  ! da sostituire con
+              ! ... myijk( stind, ijl ) = icnt + ncint
             END DO
 
             DEALLOCATE( ijsort)
@@ -1259,7 +1379,7 @@
         INTEGER :: nflrr, nfltt, nflll, nflbb
         INTEGER :: i, j, ij, imesh
 !
-        DO ij = 1, nij_l 
+        DO ij = 1, ncint 
           imesh = myijk( ip0_jp0_kp0_, ij)
           j  = ( imesh - 1 ) / nr + 1
           i  = MOD( ( imesh - 1 ), nr) + 1
@@ -1465,14 +1585,14 @@
         ALLOCATE( itest(ncdom) )
 
         itest = 0
-        DO ijl = 1, nij_l
+        DO ijl = 1, ncint
           itest( ijl ) = myijk( ip0_jp0_kp0_, ijl)
         END DO
 
         CALL data_exchange(itest)
          
         WRITE(7,*)   ' index received ' 
-        WRITE(7,310) itest( nij_l + 1 : ncdom ) 
+        WRITE(7,310) itest( ncint + 1 : ncdom ) 
  310    FORMAT(10i8)
         
         DEALLOCATE( itest )
