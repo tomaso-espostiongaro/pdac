@@ -95,9 +95,11 @@
         WRITE(6,*) 'Set forcing point for immersed boundaries'
       END IF
 
-      ! ... Allocate the logical arrays that are used to 
+      !
+      ! ... Allocate the logical array that is used to 
       ! ... identify the forcing points
       !
+
       ALLOCATE(forcex(ntot)); forcex = .FALSE.
       ALLOCATE(forcey(ntot)); forcey = .FALSE.
       ALLOCATE(forcez(ntot)); forcez = .FALSE.
@@ -110,15 +112,14 @@
         ALLOCATE(topo_c(nx))
         ALLOCATE(topo_x(nx))
 
+        !
         ! ... interpolate the topography on z/x-staggered mesh
         !
         CALL interpolate_2d(xb, z, topo_x, forcex)
         CALL interpolate_2d(x, zb, topo_c, forcez)
 
-        ! ... When all velocity components on the cell faces are
-        ! ... forced except one, that component is forced externally
-        ! ... and its flag is set to '17'.
         !
+        ! ... Add external Forcing 
         DO k = 2, nz
           DO i = 2, nx-1
             ijk = (k-1) * nx + i
@@ -126,23 +127,21 @@
             ijkm = (k-2) * nx + i
 
             ! ... Add external Forcing in x 
-            !
             IF (forcez(ijk) .AND. forcex(ijk) .AND. (z(k) > topo_x(i-1)) ) THEN
                   extfx(imjk) = .TRUE.
-                  IF( fl(ijk) /=5 .AND. fl(ijk) /=8 ) fl(ijk) = 17
+                  IF( fl(ijk) /=5  .AND. fl(ijk) /=8 ) fl(ijk) = 17
             END IF
-            !
+
             IF (forcez(ijk) .AND. forcex(imjk) .AND. (z(k) > topo_x(i)) ) THEN
                   extfx(ijk) = .TRUE.
-                  IF( fl(ijk) /=5 .AND. fl(ijk) /=8 ) fl(ijk) = 17
+                  IF( fl(ijk) /=5 .AND. fl(ijk) /=8  ) fl(ijk) = 17
             END IF
 
             ! ... Add external Forcing in z 
-            !
             IF ( forcex(imjk) .AND. forcex(ijk) .AND. forcez(ijkm) .AND. &
                  (zb(k) > topo_c(i)) ) THEN
                  extfz(ijk) = .TRUE.
-                 IF( fl(ijk) /=5 .AND. fl(ijk) /=8 ) fl(ijk) = 17
+                 IF( fl(ijk) /=5 .AND. fl(ijk) /=8  ) fl(ijk) = 17
             END IF
 
           END DO
@@ -150,15 +149,15 @@
 
         nfpx = COUNT(forcex) + COUNT(extfx) 
         ALLOCATE(fptx(nfpx))
+
         nfpz = COUNT(forcez) + COUNT(extfz)
         ALLOCATE(fptz(nfpz))
 
         ! ... Interpolate the topography on x-staggered mesh
         !
         CALL interpolate_2d(xb, z, topo_x, forcex)
-
-        ! ... External Forcing along x 
         !
+        ! ... Forcing in x external points
         fp0 = 0
         DO k = 2, nz
           DO i = 2, nx-1
@@ -169,12 +168,12 @@
           END DO
         END DO
 
-        ! ... Forcing along x
         !
+        ! ... Forcing along x
         CALL forcing2d(xb, z, topo_x, fptx)
 
-        ! ... Set flag = 1 on forcing points
         !
+        ! ... Set flag = 1 on forcing points
         DO np = 1, nfpx
           i = fptx(np)%i
           k = fptx(np)%k
@@ -185,9 +184,8 @@
         ! ... Interpolate the topography on z-staggered mesh
         !
         CALL interpolate_2d(x, zb, topo_c, forcez)
-
-        ! ... External Forcing along z
         !
+        ! ... Forcing in z external points
         fp0 = 0
         DO k = 2, nz
           DO i = 2, nx-1
@@ -197,13 +195,12 @@
             END IF
           END DO
         END DO
-
-        ! ... Forcing along z
         !
+        ! ... Forcing along z
         CALL forcing2d(x, zb, topo_c, fptz)
 
-        ! ... Set flag = 1 on forcing points
         !
+        ! ... Set flag = 1 on forcing points
         DO np = 1, nfpz
           i = fptz(np)%i
           k = fptz(np)%k
@@ -216,18 +213,15 @@
         ALLOCATE(topo2d_c(nx,ny))
         ALLOCATE(topo2d_x(nx,ny))
         ALLOCATE(topo2d_y(nx,ny))
-        
-        ! ... Interpolate the topography on the y/z/x-staggered mesh
-        ! ... to count the forcing points
+        !
+        ! ... interpolate the topography on x/y/z-staggered mesh
         !
         CALL interpolate_dem(xb, y, z, topo2d_x, forcex)
         CALL interpolate_dem(x, yb, z, topo2d_y, forcey)
         CALL interpolate_dem(x, y, zb, topo2d_c, forcez)
 
-        ! ... When all velocity components on the cell faces are
-        ! ... forced except one, that component is forced externally
-        ! ... and its flag is set to '17'.
         !
+        ! ... Add external Forcing 
         DO k = 2, nz - 1
           DO j = 2, ny - 1
             DO i = 2, nx - 1
@@ -239,13 +233,12 @@
               ijkm = i + (j-1) * nx + (k-2) * nx * ny
  
               ! ... Add external Forcing in x
-              !
               IF (forcez(ijk) .AND. forcez(ijkm) .AND. &
                   forcey(ijk) .AND. forcey(ijmk) .AND. &
                   forcex(ijk) .AND.                    &
                   (z(k) > topo2d_x(i-1,j)) ) THEN
                     extfx(imjk) = .TRUE.
-                    IF( fl(ijk) /=5 .AND. fl(ijk) /=8 ) fl(ijk) = 17
+                    IF( fl(ijk) /=5 .AND. fl(ijk) /=8  ) fl(ijk) = 17
               END IF
 
               IF (forcez(ijk) .AND. forcez(ijkm) .AND. &
@@ -253,17 +246,16 @@
                   forcex(imjk) .AND.                   &
                   (z(k) > topo2d_x(i,j)) ) THEN
                     extfx(ijk) = .TRUE.
-                    IF( fl(ijk) /=5 .AND. fl(ijk) /=8 ) fl(ijk) = 17
+                    IF( fl(ijk) /=5 .AND. fl(ijk) /=8  ) fl(ijk) = 17
               END IF
 
               ! ... Add external Forcing in y 
-              !
               IF (forcez(ijk) .AND. forcez(ijkm) .AND. &
                   forcex(ijk) .AND. forcex(imjk) .AND. &
                   forcey(ijk) .AND.                    &
                   (z(k) > topo2d_y(i,j-1)) ) THEN
                     extfy(ijmk) = .TRUE.
-                    IF( fl(ijk) /=5 .AND. fl(ijk) /=8 ) fl(ijk) = 17
+                    IF( fl(ijk) /=5 .AND. fl(ijk) /=8  ) fl(ijk) = 17
               END IF
 
               IF (forcez(ijk) .AND. forcez(ijkm) .AND. &
@@ -271,17 +263,16 @@
                   forcey(imjk) .AND.                   &
                   (z(k) > topo2d_y(i,j)) ) THEN
                     extfy(ijk) = .TRUE.
-                    IF( fl(ijk) /=5 .AND. fl(ijk) /=8 ) fl(ijk) = 17
+                    IF( fl(ijk) /=5 .AND. fl(ijk) /=8  ) fl(ijk) = 17
               END IF
 
               ! ... Add external Forcing in z
-              !
               IF (forcex(ijk) .AND. forcex(imjk) .AND. &
                   forcey(ijk) .AND. forcey(ijmk) .AND. &
                   forcez(ijkm) .AND.                   &
                   (zb(k) > topo2d_c(i,j)) ) THEN
                     extfz(ijk) = .TRUE.
-                    IF( fl(ijk) /=5 .AND. fl(ijk) /=8 ) fl(ijk) = 17
+                    IF( fl(ijk) /=5 .AND. fl(ijk) /=8  ) fl(ijk) = 17
               END IF
 
             END DO
@@ -295,12 +286,11 @@
         nfpz = COUNT(forcez) + COUNT(extfz)
         ALLOCATE(fptz(nfpz))
 
-        ! ... Interpolate the topography on x-staggered mesh
+        ! ... interpolate the topography on x-staggered mesh
         !
         CALL interpolate_dem(xb, y, z, topo2d_x, forcex)
-
-        ! ... External forcing along x
         !
+        ! ... External forcing along x
         fp0=0
         DO k = 1, nz
           DO j = 1, ny
@@ -311,12 +301,11 @@
           END DO
         END DO
 
-        ! ... Forcing along x
         !
+        ! ... Forcing along x
         CALL forcing3d(xb, y, z, topo2d_x, fptx)
 
         ! ... Set flag = 1 on forcing points
-        !
         DO np = 1, nfpx
           i = fptx(np)%i
           j = fptx(np)%j
@@ -325,12 +314,12 @@
           IF (k>1 .AND. fl(ijk)==3 ) fl(ijk) = 1
         END DO
         
-        ! ... Interpolate the topography on y-staggered mesh.
+        ! ... interpolate the topography on y-staggered mesh
         !
         CALL interpolate_dem(x, yb, z, topo2d_y, forcey)
 
-        ! ... External forcing along y.
         !
+        ! ... External forcing along y
         fp0=0 
         DO k = 1, nz
           DO j = 1, ny
@@ -344,9 +333,8 @@
         ! ... Forcing along y
         !
         CALL forcing3d(x, yb, z, topo2d_y, fpty)
-
-        ! ... Set flag = 1 on forcing points
         !
+        ! ... Set flag = 1 on forcing points
         DO np = 1, nfpy
           i = fpty(np)%i
           j = fpty(np)%j
@@ -355,11 +343,11 @@
           IF (k>1 .AND. fl(ijk)==3 ) fl(ijk) = 1
         END DO
         
-        ! ... Interpolate the topography on z-staggered mesh.
+        ! ... interpolate the topography on z-staggered mesh
         !
         CALL interpolate_dem(x, y, zb, topo2d_c, forcez)
         
-        ! ... External forcing along z.
+        ! ... External forcing along z
         !
         fp0=0
         DO k = 1, nz
@@ -371,12 +359,11 @@
           END DO
         END DO
 
-        ! ... Forcing along z.
+        ! ... Forcing along z
         !
         CALL forcing3d(x, y, zb, topo2d_c, fptz)
-
-        ! ... Set flag = 1 on forcing points.
         !
+        ! ... Set flag = 1 on forcing points
         DO np = 1, nfpz
           i = fptz(np)%i
           j = fptz(np)%j
@@ -386,9 +373,7 @@
         END DO
         
       END IF
-!
-! ... Write out the forcing points
-!
+
       IF (lpr > 0) THEN
         IF (mpime == root) THEN
           OPEN(UNIT=15,FILE='fptx.dat',STATUS='UNKNOWN')
