@@ -40,7 +40,7 @@
       USE phases_matrix, ONLY: solve_velocities, solve_all_velocities
       USE phases_matrix, ONLY: mats_3phase
       USE pressure_epsilon, ONLY: p, ep
-      USE set_indexes, ONLY: stencil, nb, rnb
+      USE set_indexes, ONLY: stencil, nb, rnb, first_rnb, rnb_13, nb_13
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
       USE specific_heat_module, ONLY: cp
       USE tilde_energy, ONLY: htilde
@@ -72,7 +72,7 @@
       REAL*8 ::  timiter
       REAL*8 ::  timconv(maxout)   
 !
-      INTEGER :: nit, loop, mustit, kros
+      INTEGER :: nit, loop, mustit
       LOGICAL, ALLOCATABLE :: converge(:)
       TYPE(stencil) :: u, v, w, dens
 !
@@ -174,7 +174,7 @@
 !
 
          IF( timing ) THEN
-            ! st0 = cclock_wall()
+            st0 = cclock_wall()
             ! call system_clock (st0,ratc)
          END IF  
 
@@ -192,7 +192,7 @@
               ! ... equation of the gas phase
 
 !
-              CALL calc_res(dg)
+              CALL calc_res( i, j, k, ijk, dg)
               dgorig = dg
 
               IF(DABS(dg) <= conv(ijk)) THEN
@@ -204,7 +204,7 @@
                 converge(ijk) = .TRUE.
 
                 ! ... Compute new ep(.)
-                CALL calc_eps
+                CALL calc_eps( i, j, k, ijk )
                 rgp(ijk) = ep(ijk) * rog(ijk)
 
               ELSE IF (DABS(dg) > conv(ijk)) THEN
@@ -216,58 +216,8 @@
 !
                 d3 = dg
                 p3 = p(ijk)
-                kros = -1
 !
-                inner_loop: DO loop = 1, inmax
-!
-                  ! ... Correct the pressure at current cell
-                  ! ... by using successively the Newton's method
-                  ! ... (or the secant method where Newton is not
-                  ! ... applicable) and the two-sided secant method.
-                  ! ... The first time in a cell, skip pressure correction
-                  ! ... to compute once the particle velocities 
-                  ! ... and volumetric fractions ...
-!
-!                  CALL betas(conv(ijk), abeta(ijk), ijk)
-                  IF( (loop > 1) .OR. (nit > 1) ) THEN
-                    CALL padjust(p(ijk), kros, d3, p3, omega, abeta(ijk))
-                  END IF
-!
-                  ! ... Use equation of state to calculate gas density 
-                  ! ... from (new) pressure and (old) temperature.
-!
-                  CALL thermal_eosg(rog(ijk),tg(ijk),p(ijk),xgc(:,ijk))
-!
-                  rgp(ijk) = ep(ijk) * rog(ijk)
-!
-                  !IF( MOD( ijk, 100 ) == 0 ) call f_hpmstart( 5, ' ITER_mas ')
-!
-                  ! ... Update gas and particles velocities using the 
-                  ! ... corrected pressure at current location. 
-                  ! ... Pressure at neighbour cells could still be wrong.
-
-                  CALL assemble_all_matrix(ijk)
-                  CALL solve_all_velocities(ijk)
-
-                  ! if( MOD(ijk,100) == 0 ) call f_hpmstop( 5 )
-!
-                  ! ... update particle and gas densities and the 
-                  ! ... gas mass residual 'dg'
-
-                  CALL update_eps
-                  rgp(ijk) = ep(ijk) * rog(ijk)
-                  CALL update_res(dg)
-!
-                  IF ((DABS(dg) > conv(ijk) .OR. DABS(dg) >= DABS(dgorig))) THEN
-                    IF(nit == 1 .AND. loop == 1) dgorig=dg
-                    d3=dg
-                    ! ... steepen the Newton's slope (accelerate)
-                    IF(kros < 2 .AND. loop == inmax) &
-                       abeta(ijk) = 0.5D0 * inmax * abeta(ijk)
-                  ELSE IF (DABS(dg) <= conv(ijk)) THEN
-                    EXIT inner_loop
-                  END IF
-                END DO inner_loop
+                CALL inner_loop( i, j, k, ijk, nit, d3, p3, abeta(ijk), conv(ijk), dgorig )
 
 !   *** END TIMING (Convergence in the ijk cell) ***
 
@@ -279,7 +229,7 @@
          END DO mesh_loop
 
          IF( timing ) THEN
-             ! st1 = cclock_wall()
+             st1 = cclock_wall()
              ! call system_clock(st1,ratc)
          END IF
 
@@ -402,91 +352,19 @@
       RETURN
 !----------------------------------------------------------------------
       CONTAINS
-!-------------------------------------------------------------------------
-      SUBROUTINE calc_part_mass_flux
-! ... compute the particle mass fluxes by using the stencil
-! ... as defined in the 'subscr' module
-
-      IMPLICIT NONE
-!
-      DO is = 1, nsolid
-
-        CALL nb(dens,rlk(:,is),ijk)
-        CALL rnb(u,us(:,is),ijk)
-        CALL rnb(w,ws(:,is),ijk)
-
-        IF (job_type == '2D') THEN
-
-          CALL fmas(rsfe(ijk,is),  rsft(ijk,is),    &
-                    rsfe(imjk,is), rsft(ijkm,is),   &
-                    dens, u, w, ijk)
-
-        ELSE IF (job_type == '3D') THEN
-
-          CALL rnb(v,vs(:,is),ijk)
-          CALL fmas(rsfe(ijk,is),  rsfn(ijk,is),  rsft(ijk,is),    &
-                    rsfe(imjk,is), rsfn(ijmk,is), rsft(ijkm,is),   &
-                    dens, u, v, w, ijk)
-
-        END IF
-      END DO
-
-      END SUBROUTINE calc_part_mass_flux
-!----------------------------------------------------------------------
-      SUBROUTINE calc_eps
-! ... Use the Mass Balance equation of the solids
-! ... to compute particle volumetric fractions and the void fraction.
-!
-      IMPLICIT NONE
-      REAL*8 :: rlkx, rlky, rlkz, rls
-
-      rlkx = 0.D0
-      rlky = 0.D0
-      rlkz = 0.D0
-      rls = 0.D0
-
-      DO is = 1, nsolid
-        rlkx = (rsfe(ijk,is) - rsfe(imjk,is)) * indx(i) * inx(i)
-        rlkz = (rsft(ijk,is) - rsft(ijkm,is)) * indz(k)
-        IF (job_type == '3D') rlky = (rsfn(ijk,is) - rsfn(ijmk,is)) * indy(j)
-
-        rlk( ijk, is) = rlkn( ijk,is ) - dt * (rlkx+rlky+rlkz)
-!        - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
-        rlk(ijk,is) = MAX( 0.0d0, rlk(ijk,is) )
-
-        rls = rls + rlk( ijk,is) * inrl(is)
-
-      END DO
-      
-      IF(rls > 1.D0) THEN
-        WRITE(8,*) 'warning1: mass is not conserved'
-        WRITE(8,*) 'time,i,j,k,rls',time,i,j,k,rls
-        CALL error('iter', 'warning: mass is not conserved',1)
-      ENDIF
-
-      ep(ijk) = 1.D0 - rls
-
-      END SUBROUTINE calc_eps
-!----------------------------------------------------------------------
-      SUBROUTINE update_eps
-! ... update the particle volumetric fractions and the void fraction
-
-      IMPLICIT NONE
-
-      CALL calc_part_mass_flux
-      CALL calc_eps
-
-      END SUBROUTINE update_eps
 !----------------------------------------------------------------------
       SUBROUTINE calc_gas_mass_flux
 ! ... compute the gas mass fluxes by using the stencil, as defined in the
 ! ... 'subscr' module
 !
+      USE flux_limiters, ONLY: muscl
+      USE convective_mass_fluxes, ONLY: fmas, masf
+
       IMPLICIT NONE
 
-        CALL nb(dens,rgp,ijk)
-        CALL rnb(u,ug,ijk)
-        CALL rnb(w,wg,ijk)
+        CALL nb_13(dens,rgp,ijk)
+        CALL rnb_13(u,ug,ijk)
+        CALL rnb_13(w,wg,ijk)
 
         IF (job_type == '2D') THEN
         
@@ -496,48 +374,22 @@
 
         ELSE IF (job_type == '3D') THEN
 
-          CALL rnb(v,vg,ijk)
-          CALL fmas(rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &
+!          IF( muscl == 0 ) THEN
+!            CALL first_rnb(v,vg,ijk)
+!            CALL masf(rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &
+!                    rgfe(imjk), rgfn(ijmk), rgft(ijkm),   &
+!                    dens, u, v, w, ijk)
+!          ELSE
+            CALL rnb_13(v,vg,ijk)
+            CALL fmas(rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &
                     rgfe(imjk), rgfn(ijmk), rgft(ijkm),   &
                     dens, u, v, w, ijk)
+!          ENDIF
         ENDIF
-
       END SUBROUTINE calc_gas_mass_flux
-!----------------------------------------------------------------------
-      SUBROUTINE calc_res(res)
-! ... Compute the residual of the Mass Balance equation of the gas phase
-!
-      IMPLICIT NONE
-      REAL*8 :: resx, resy, resz
-      REAL*8, INTENT(OUT) :: res
-!      
-      resx = 0.D0
-      resy = 0.D0
-      resz = 0.D0
-!
-      resx = (rgfe(ijk) - rgfe(imjk)) * indx(i) * inx(i)
-      resz = (rgft(ijk) - rgft(ijkm)) * indz(k)
-      IF (job_type == '3D') resy = (rgfn(ijk) - rgfn(ijmk)) * indy(j)
-!
-      res  = rgp(ijk) - rgpn(ijk) + dt * (resx+resy+resz)
-!          - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
 
-      RETURN
-      END SUBROUTINE calc_res
 !----------------------------------------------------------------------
-      SUBROUTINE update_res(residual)
-! ... update residual of the Mass Balance equation of the gas phase
-! ... using guessed velocities and pressure.
-!
-      IMPLICIT NONE
-      REAL*8 :: residual
-!      
-      CALL calc_gas_mass_flux
-      CALL calc_res(residual)
-!      
-      RETURN
-      END SUBROUTINE update_res
-!----------------------------------------------------------------------
+
       SUBROUTINE test_fluxes
 !
       USE control_flags, ONLY: job_type
@@ -596,6 +448,95 @@
       END SUBROUTINE test_fluxes
 !----------------------------------------------------------------------
       END SUBROUTINE iter
+
+!----------------------------------------------------------------------
+      SUBROUTINE calc_eps( i, j, k, ijk )
+
+      USE dimensions
+      USE gas_solid_density, ONLY: rlk, rlkn
+      USE pressure_epsilon, ONLY: p, ep
+      USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
+      USE time_parameters, ONLY: dt, time
+      USE control_flags, ONLY: job_type
+      USE particles_constants, ONLY: inrl
+
+! ... Use the Mass Balance equation of the solids
+! ... to compute particle volumetric fractions and the void fraction.
+!
+      IMPLICIT NONE
+      REAL*8 :: rlkx, rlky, rlkz, rls
+      INTEGER :: i, j, k, ijk
+      INTEGER :: is
+
+      rlkx = 0.D0
+      rlky = 0.D0
+      rlkz = 0.D0
+      rls = 0.D0
+
+      IF (job_type == '2D') THEN
+
+        DO is = 1, nsolid
+          rlkx = (rsfe(ijk,is) - rsfe(imjk,is)) * indx(i) * inx(i)
+          rlkz = (rsft(ijk,is) - rsft(ijkm,is)) * indz(k)
+
+          rlk( ijk, is) = rlkn( ijk,is ) - dt * (rlkx+rlky+rlkz)
+!          - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
+          rlk(ijk,is) = MAX( 0.0d0, rlk(ijk,is) )
+          rls = rls + rlk( ijk,is) * inrl(is)
+        END DO
+
+      ELSE IF (job_type == '3D') THEN
+
+        DO is = 1, nsolid
+          rlkx = (rsfe(ijk,is) - rsfe(imjk,is)) * indx(i) * inx(i)
+          rlky = (rsfn(ijk,is) - rsfn(ijmk,is)) * indy(j)
+          rlkz = (rsft(ijk,is) - rsft(ijkm,is)) * indz(k)
+
+          rlk( ijk, is) = rlkn( ijk,is ) - dt * (rlkx+rlky+rlkz)
+!          - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
+          rlk(ijk,is) = MAX( 0.0d0, rlk(ijk,is) )
+          rls = rls + rlk( ijk,is) * inrl(is)
+        END DO
+
+      END IF
+      
+      IF(rls > 1.D0) THEN
+        WRITE(8,*) 'warning1: mass is not conserved'
+        WRITE(8,*) 'time,i,j,k,rls',time,i,j,k,rls
+        CALL error('iter', 'warning: mass is not conserved',1)
+      ENDIF
+
+      ep(ijk) = 1.D0 - rls
+
+      END SUBROUTINE calc_eps
+
+!----------------------------------------------------------------------
+      SUBROUTINE calc_res( i, j, k, ijk, res)
+! ... Compute the residual of the Mass Balance equation of the gas phase
+!
+      USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
+      USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
+      USE control_flags, ONLY: job_type
+      USE time_parameters, ONLY: dt
+
+      IMPLICIT NONE
+      REAL*8 :: resx, resy, resz
+      REAL*8, INTENT(OUT) :: res
+      INTEGER :: i, j, k, ijk
+!      
+      resx = 0.D0
+      resy = 0.D0
+      resz = 0.D0
+!
+      resx = (rgfe(ijk) - rgfe(imjk)) * indx(i) * inx(i)
+      resz = (rgft(ijk) - rgft(ijkm)) * indz(k)
+      IF (job_type == '3D') resy = (rgfn(ijk) - rgfn(ijmk)) * indy(j)
+!
+      res  = rgp(ijk) - rgpn(ijk) + dt * (resx+resy+resz)
+!          - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
+
+      RETURN
+      END SUBROUTINE calc_res
 !----------------------------------------------------------------------
       SUBROUTINE padjust(p, kros, d3, p3, omega, abeta)
 ! ... Correct the pressure field to minimize the gas mass residual
@@ -693,6 +634,7 @@
       USE convective_mass_fluxes, ONLY: upc_w, upc_s, upc_b
       USE control_flags, ONLY: job_type
       USE eos_gas, ONLY: csound
+!      USE gas_constants, ONLY: gammaair
       USE gas_solid_density, ONLY: rog, rgp
       USE grid, ONLY: dx, dy, dz, fl_l
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -796,8 +738,11 @@
 !
 ! ... Inverse of the squared sound velocity (perfect gas)
 !
+
           CALL csound(sqc,rog(ijk),p(ijk))
           rags = 1.D0 / sqc
+             
+!          CALL csound(rags,rog(ijk),p(ijk))
 !
 ! ... rbeta = dD_g/dP
 
@@ -808,6 +753,268 @@
 !
       RETURN
       END SUBROUTINE betas
+
+      SUBROUTINE inner_loop( i, j, k, ijk, nit, d3, p3, abeta_, conv_, dgorig )
+
+        USE dimensions
+        USE pressure_epsilon, ONLY: p, ep
+        USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
+        USE gas_solid_temperature, ONLY: tg
+        USE eos_gas, ONLY: thermal_eosg, xgc, cg
+        USE phases_matrix, ONLY: assemble_matrix, assemble_all_matrix
+        USE phases_matrix, ONLY: solve_velocities, solve_all_velocities
+        USE phases_matrix, ONLY: mats_3phase
+        USE set_indexes, ONLY: stencil, nb, rnb, first_rnb, rnb_13, nb_13
+        USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
+        USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
+        USE control_flags, ONLY: job_type
+        USE time_parameters, ONLY: dt
+        USE flux_limiters, ONLY: muscl
+        USE convective_mass_fluxes, ONLY: fmas, masf
+
+        IMPLICIT NONE
+
+        INTEGER :: nit, ijk, i, j, k
+        REAL*8 :: d3, p3, abeta_, conv_, dgorig
+        REAL*8 :: resx, resy, resz
+        TYPE(stencil) :: u, v, w, dens
+        TYPE(stencil) :: ug_, vg_, wg_, densg_
+        TYPE(stencil), SAVE :: u1, v1, w1, dens1
+        TYPE(stencil), SAVE :: u2, v2, w2, dens2
+
+        INTEGER :: loop, kros
+
+        kros = -1
+
+        IF( nsolid == 2 ) THEN
+          CALL nb_13(dens1,rlk(:,1),ijk)
+          CALL nb_13(dens2,rlk(:,2),ijk)
+          CALL rnb_13(u1,us(:,1),ijk)
+          CALL rnb_13(u2,us(:,2),ijk)
+          CALL rnb_13(w1,ws(:,1),ijk)
+          CALL rnb_13(w2,ws(:,2),ijk)
+          IF( job_type == '3D' ) THEN
+             CALL rnb_13(v1,vs(:,1),ijk)
+             CALL rnb_13(v2,vs(:,2),ijk)
+          END IF
+        END IF
+        CALL nb_13( densg_, rgp, ijk )
+        CALL rnb_13( ug_, ug, ijk )
+        CALL rnb_13( wg_, wg, ijk )
+        IF( job_type == '3D' ) THEN
+          CALL rnb_13( vg_, vg, ijk )
+        END IF
+
+        DO loop = 1, inmax
+!
+          ! ... Correct the pressure at current cell
+          ! ... by using successively the Newton's method
+          ! ... (or the secant method where Newton is not
+          ! ... applicable) and the two-sided secant method.
+          ! ... The first time in a cell, skip pressure correction
+          ! ... to compute once the particle velocities 
+          ! ... and volumetric fractions ...
+!
+          IF( (loop > 1) .OR. (nit > 1) ) THEN
+            CALL padjust(p(ijk), kros, d3, p3, omega, abeta_ )
+          END IF
+!
+          ! ... Use equation of state to calculate gas density 
+          ! ... from (new) pressure and (old) temperature.
+!
+          CALL thermal_eosg(rog(ijk),tg(ijk),p(ijk),xgc(:,ijk))
+!
+          rgp(ijk) = ep(ijk) * rog(ijk)
+!
+          ! ... Update gas and particles velocities using the 
+          ! ... corrected pressure at current location. 
+          ! ... Pressure at neighbour cells could still be wrong.
+
+          ! IF( nsolid == 2 ) THEN
+          IF( nsolid == 2 .AND. .FALSE. ) THEN
+            CALL mats_3phase(ijk)
+          ELSE
+            CALL assemble_all_matrix(ijk)
+          END IF
+          CALL solve_all_velocities(ijk)
+!
+          ! ... update particle and gas densities and the 
+          ! ... gas mass residual 'dg'
+
+          ! ... update the particle volumetric fractions and the void fraction
+          ! CALL update_eps
+
+          IF( nsolid == 2 ) THEN
+
+             dens1%c = rlk( ijk, 1 )
+             dens2%c = rlk( ijk, 2 )
+             u1%c = us( ijk, 1 )
+             u1%w = us( imjk, 1 )
+             u2%c = us( ijk, 2 )
+             u2%w = us( imjk, 2 )
+             w1%c = ws( ijk, 1 )
+             w1%b = ws( ijkm, 1 )
+             w2%c = ws( ijk, 2 )
+             w2%b = ws( ijkm, 2 )
+             IF( job_type == '3D' ) THEN
+               v1%c = vs( ijk, 1 )
+               v1%s = vs( ijmk, 1 )
+               v2%c = vs( ijk, 2 )
+               v2%s = vs( ijmk, 2 )
+             END IF
+
+             ! --- by hand inlining -- CALL calc_part_mass_flux_2
+             IF (job_type == '2D') THEN
+
+               CALL fmas(rsfe(ijk,1),  rsft(ijk,1),    &
+                    rsfe(imjk,1), rsft(ijkm,1),   &
+                    dens1, u1, w1, ijk)
+          
+               CALL fmas(rsfe(ijk,2),  rsft(ijk,2),    &
+                    rsfe(imjk,2), rsft(ijkm,2),   &
+                    dens2, u2, w2, ijk)
+
+             ELSE IF (job_type == '3D') THEN
+
+!               IF( muscl == 0 ) THEN
+!                   CALL masf(rsfe(ijk,is),  rsfn(ijk,is),  rsft(ijk,is),    &
+!                    rsfe(imjk,is), rsfn(ijmk,is), rsft(ijkm,is),   &
+!                    dens, u, v, w, ijk)
+!               ELSE
+                  CALL fmas(rsfe(ijk,1),  rsfn(ijk,1),  rsft(ijk,1),    &
+                    rsfe(imjk,1), rsfn(ijmk,1), rsft(ijkm,1),   &
+                    dens1, u1, v1, w1, ijk)
+                  CALL fmas(rsfe(ijk,2),  rsfn(ijk,2),  rsft(ijk,2),    &
+                    rsfe(imjk,2), rsfn(ijmk,2), rsft(ijkm,2),   &
+                    dens2, u2, v2, w2, ijk)
+!               END IF
+
+             END IF
+             ! --- by hand inlining -- CALL calc_part_mass_flux_2
+
+             CALL calc_eps( i, j, k, ijk )
+
+          ELSE
+
+             CALL calc_part_mass_flux
+             CALL calc_eps( i, j, k, ijk )
+
+          END IF
+
+          rgp( ijk ) = ep( ijk ) * rog( ijk )
+
+          ! ... update residual of the Mass Balance equation of the gas phase
+          ! ... using guessed velocities and pressure.
+          ! CALL update_res(dg)
+
+          densg_%c = rgp(ijk)
+          ug_%c = ug( ijk )
+          ug_%w = ug( imjk )
+          wg_%c = wg( ijk )
+          wg_%b = wg( ijkm )
+          IF( job_type == '3D' ) THEN
+             vg_%c = vg( ijk )
+             vg_%s = vg( ijmk )
+          END IF
+
+          ! --- by hand inlining -- CALL calc_gas_mass_flux
+          IF (job_type == '2D') THEN
+        
+             CALL fmas(rgfe(ijk),  rgft(ijk),    &
+                      rgfe(imjk), rgft(ijkm),   &
+                      densg_, ug_, wg_, ijk)
+
+          ELSE IF (job_type == '3D') THEN
+
+!            IF( muscl == 0 ) THEN
+!              CALL first_rnb(v,vg,ijk)
+!              CALL masf(rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &
+!                      rgfe(imjk), rgfn(ijmk), rgft(ijkm),   &
+!                      densg_, ug_, vg_, wg_, ijk)
+!            ELSE
+              CALL fmas(rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &
+                      rgfe(imjk), rgfn(ijmk), rgft(ijkm),   &
+                      densg_, ug_, vg_, wg_, ijk)
+!            ENDIF
+          ENDIF
+          ! --- by hand inlining -- CALL calc_gas_mass_flux
+
+          ! --- by hand inlining -- CALL calc_res( i, j, k, ijk, dg)
+          resx = (rgfe(ijk) - rgfe(imjk)) * indx(i) * inx(i)
+          resz = (rgft(ijk) - rgft(ijkm)) * indz(k)
+          resy = 0.D0
+          IF (job_type == '3D') resy = (rgfn(ijk) - rgfn(ijmk)) * indy(j)
+!
+          dg = rgp(ijk) - rgpn(ijk) + dt * (resx+resy+resz)
+!            - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
+          ! --- by hand inlining -- CALL calc_res( i, j, k, ijk, dg)
+!
+          IF ( ( DABS(dg) > conv_ .OR. DABS(dg) >= DABS(dgorig) ) ) THEN
+
+            IF(nit == 1 .AND. loop == 1) dgorig = dg
+            d3 = dg
+            ! ... steepen the Newton's slope (accelerate)
+            IF( kros < 2 .AND. loop == inmax ) &
+               abeta_ = 0.5D0 * inmax * abeta_
+
+          ELSE IF ( DABS(dg) <= conv_ ) THEN
+
+            EXIT
+
+          END IF
+
+
+        END DO 
+
+        RETURN
+      
+      CONTAINS
+
+!-----------------------------------------------------------------------
+      SUBROUTINE calc_part_mass_flux
+! ... compute the particle mass fluxes by using the stencil
+! ... as defined in the 'subscr' module
+
+      USE flux_limiters, ONLY: muscl
+      USE convective_mass_fluxes, ONLY: fmas, masf
+
+      IMPLICIT NONE
+
+      INTEGER :: is
+!
+        DO is = 1, nsolid
+
+          CALL nb_13(dens,rlk(:,is),ijk)
+          CALL rnb_13(u,us(:,is),ijk)
+          CALL rnb_13(w,ws(:,is),ijk)
+
+          IF (job_type == '2D') THEN
+
+            CALL fmas(rsfe(ijk,is),  rsft(ijk,is),    &
+                    rsfe(imjk,is), rsft(ijkm,is),   &
+                    dens, u, w, ijk)
+
+          ELSE IF (job_type == '3D') THEN
+
+!           IF( muscl == 0 ) THEN
+!             CALL first_rnb(v,vs(:,is),ijk)
+!             CALL masf(rsfe(ijk,is),  rsfn(ijk,is),  rsft(ijk,is),    &
+!                    rsfe(imjk,is), rsfn(ijmk,is), rsft(ijkm,is),   &
+!                    dens, u, v, w, ijk)
+!           ELSE
+              CALL rnb_13(v,vs(:,is),ijk)
+              CALL fmas(rsfe(ijk,is),  rsfn(ijk,is),  rsft(ijk,is),    &
+                    rsfe(imjk,is), rsfn(ijmk,is), rsft(ijkm,is),   &
+                    dens, u, v, w, ijk)
+!           END IF
+
+          END IF
+        END DO
+
+      END SUBROUTINE calc_part_mass_flux
+
+      END SUBROUTINE inner_loop
+
 !----------------------------------------------------------------------
       END MODULE iterative_solver
 !----------------------------------------------------------------------

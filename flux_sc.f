@@ -53,7 +53,7 @@
       imesh = myijk( ip0_jp0_kp0_, ijk)
       i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
       j = MOD( imesh - 1, nx*ny ) / nx + 1
-      k = ( imesh - 1 ) / ( nx*ny ) + 1
+      k = ( imesh - 1 ) / ( nx*ny ) + 1 
 !
       dxm=dx(i)+dx(i-1)
       dxp=dx(i)+dx(i+1)

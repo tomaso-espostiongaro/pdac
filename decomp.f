@@ -681,9 +681,9 @@
 
       DO ipe = 0, nproc - 1
         WRITE(7,300) nset(ipe), ipe
-        IF ( nset(ipe) > 0 ) THEN
-          WRITE(7,310) rcv_cell_set(ipe)%i(1,:)
-        END IF
+!        IF ( nset(ipe) > 0 ) THEN
+!          WRITE(7,310) rcv_cell_set(ipe)%i(1,:)
+!        END IF
  300    FORMAT(' # neighbours set SIZE ',i5,' from ',i3)
  310    FORMAT(10i8)
       END DO
@@ -784,9 +784,9 @@
       DO ipe = 0, nproc - 1
         WRITE(7,100) rcv_map(ipe)%nrcv, ipe
         IF(rcv_map(ipe)%nrcv > 0 ) THEN
-          WRITE(7,110) rcv_map(ipe)%ircv(:)
-          WRITE(7,*) ' ---- '
-          WRITE(7,110) rcv_map(ipe)%iloc(:)
+          ! WRITE(7,110) rcv_map(ipe)%ircv(:)
+          ! WRITE(7,*) ' ---- '
+          ! WRITE(7,110) rcv_map(ipe)%iloc(:)
         END IF
  100    FORMAT(' # receiving ',i5,' cells from ',i3)
  110    FORMAT(10i8)
@@ -795,9 +795,9 @@
       DO ipe = 0, nproc - 1
         WRITE(7,200) snd_map(ipe)%nsnd, ipe
         IF (snd_map(ipe)%nsnd > 0 ) THEN
-          WRITE(7,210) snd_map(ipe)%isnd(:)
-          WRITE(7,*) ' ---- '
-          WRITE(7,210) snd_map(ipe)%iloc(:)
+          ! WRITE(7,210) snd_map(ipe)%isnd(:)
+          ! WRITE(7,*) ' ---- '
+          ! WRITE(7,210) snd_map(ipe)%iloc(:)
         END IF
  200    FORMAT(' # sending ',i5,' cells to ',i3)
  210    FORMAT(10i8)
@@ -1507,30 +1507,42 @@
         IMPLICIT NONE
         REAL*8 :: array(:)
         REAL*8, ALLOCATABLE :: sndbuf(:), rcvbuf(:) 
-        INTEGER :: ip, isour, idest, ib, itag, ihand
+        INTEGER :: ip, isour, idest, ib, itag, ishand, irhand
 !
         DO ip = 1, (nproc - 1)
+
           isour = MOD(mpime - ip + nproc, nproc)
           idest = MOD(mpime + ip        , nproc)
           ALLOCATE( rcvbuf( MAX(rcv_map(isour)%nrcv,1) ) )
           ALLOCATE( sndbuf( MAX(snd_map(idest)%nsnd,1) ) )
+
+          !IF( rcv_map(isour)%nrcv > 0 ) THEN
+          !  CALL irecv_real( rcvbuf, rcv_map(isour)%nrcv, isour, ip, irhand )
+          !END IF
+
           DO ib = 1, snd_map(idest)%nsnd
             sndbuf(ib) = array( snd_map(idest)%iloc(ib) )
           END DO 
-          IF( snd_map(idest)%nsnd > 0 ) THEN
-            CALL isend_real( sndbuf(1), snd_map(idest)%nsnd, idest, ip, ihand )
-          END IF
-          IF( rcv_map(isour)%nrcv > 0 ) THEN
-            CALL recv_real( rcvbuf, rcv_map(isour)%nrcv, isour, ip )
-          END IF
-          IF( snd_map(idest)%nsnd > 0 ) THEN
-            CALL mp_wait( ihand )
-          END IF
-          !CALL sendrecv_real(sndbuf(1), snd_map(idest)%nsnd, idest,  &
-          !  rcvbuf, rcv_map(isour)%nrcv, isour, ip)
+
+          !IF( snd_map(idest)%nsnd > 0 ) THEN
+          !  CALL isend_real( sndbuf(1), snd_map(idest)%nsnd, idest, ip, ishand )
+          !END IF
+
+          CALL sendrecv_real(sndbuf(1), snd_map(idest)%nsnd, idest,  &
+             rcvbuf, rcv_map(isour)%nrcv, isour, ip)
+
+          !IF( rcv_map(isour)%nrcv > 0 ) THEN
+          !  CALL mp_wait( irhand )
+          !END IF
+
           DO ib = 1, rcv_map(isour)%nrcv
             array( rcv_map(isour)%iloc(ib) ) = rcvbuf(ib)
           END DO 
+
+          !IF( snd_map(idest)%nsnd > 0 ) THEN
+          !  CALL mp_wait( ishand )
+          !END IF
+
           DEALLOCATE( rcvbuf )
           DEALLOCATE( sndbuf )
         END DO
@@ -1778,7 +1790,7 @@
         CALL data_exchange(itest)
          
         WRITE(7,*)   ' index received ' 
-        WRITE(7,310) itest( ncint + 1 : ncdom ) 
+        ! WRITE(7,310) itest( ncint + 1 : ncdom ) 
  310    FORMAT(10i8)
         
         DEALLOCATE( itest )

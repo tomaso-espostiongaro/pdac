@@ -44,7 +44,7 @@
 !
       DO ijk = 1, ncint
       IF (fl_l(ijk) == 1) THEN
-        energy = p(ijk)/rog(ijk)/(gammaair - 1.D0)
+        energy = p(ijk)/(rog(ijk)*(gammaair - 1.D0))
         WRITE(11,550)rog(ijk),wg(ijk),p(ijk),energy
       END IF
       END DO

@@ -443,6 +443,55 @@
 
       RETURN
       END SUBROUTINE nb
+
+
+      SUBROUTINE nb_13( stncl, array, ijk )
+! ... This routine compute the stencil around a grid point
+! ... considering the boundary conditions
+!
+      IMPLICIT NONE 
+!
+      TYPE(stencil) :: stncl
+      REAL*8, INTENT(IN) :: array(:)
+      INTEGER, INTENT(IN) :: ijk
+!
+      IF( job_type_flag == 2 ) THEN
+
+        stncl%c  = array(ijk)
+
+        stncl%e  = array(ijke)
+        stncl%t  = array(ijkt)
+        stncl%w  = array(ijkw)
+        stncl%b  = array(ijkb)
+        stncl%et  = array(ijket)
+        stncl%wt  = array(ijkwt)
+        stncl%eb  = array(ijkeb)
+        stncl%wb  = array(ijkwb)
+        stncl%ee  = array(ijkee)
+        stncl%tt  = array(ijktt)
+        stncl%ww  = array(ijkww)
+        stncl%bb  = array(ijkbb)
+
+      ELSE IF( job_type_flag == 3 ) THEN
+
+        stncl%c = array( ijk )
+        stncl%e = array( ijke )
+        stncl%w = array( ijkw )
+        stncl%ee = array( ijkee )
+        stncl%ww = array( ijkww )
+        stncl%n = array( ijkn )
+        stncl%s = array( ijks )
+        stncl%nn = array( ijknn )
+        stncl%ss = array( ijkss )
+        stncl%t = array( ijkt )
+        stncl%b = array( ijkb )
+        stncl%tt = array( ijktt )
+        stncl%bb = array( ijkbb )
+
+      END IF
+
+      RETURN
+      END SUBROUTINE nb_13
 !-----------------------------------------------------------------------
       SUBROUTINE rnb(stncl,array,ijk)
 ! ... This routine compute the stencil around a grid point
@@ -503,6 +552,57 @@
 
       RETURN
       END SUBROUTINE rnb
+
+!-----------------------------------------------------------------------
+
+      SUBROUTINE rnb_13(stncl,array,ijk)
+! ... This routine compute the stencil around a grid point
+! ... without considering the boundary conditions
+!
+      USE dimensions
+      IMPLICIT NONE 
+!
+      TYPE(stencil) :: stncl
+      REAL*8, INTENT(IN) :: array(:)
+      INTEGER, INTENT(IN) :: ijk
+!
+      IF( job_type_flag == 2 ) THEN
+
+        stncl%c  = array(ijk)
+        stncl%e  = array(ipjk)
+        stncl%t  = array(ijkp)
+        stncl%w  = array(imjk)
+        stncl%b  = array(ijkm)
+        stncl%et  = array(ipjkp)
+        stncl%wt  = array(imjkp)
+        stncl%eb  = array(ipjkm)
+        stncl%wb  = array(imjkm)
+        stncl%ee  = array(ippjk)
+        stncl%tt  = array(ijkpp)
+        stncl%ww  = array(immjk)
+        stncl%bb  = array(ijkmm)
+
+      ELSE IF( job_type_flag == 3 ) THEN
+
+         stncl%c = array( ijk )
+         stncl%e = array( ipjk )
+         stncl%w = array( imjk )
+         stncl%ee = array( ippjk )
+         stncl%ww = array( immjk )
+         stncl%n = array( ijpk )
+         stncl%s = array( ijmk )
+         stncl%nn = array( ijppk )
+         stncl%ss = array( ijmmk )
+         stncl%t = array( ijkp )
+         stncl%b = array( ijkm )
+         stncl%tt = array( ijkpp )
+         stncl%bb = array( ijkmm )
+
+      END IF
+
+      RETURN
+      END SUBROUTINE rnb_13
+
 !-----------------------------------------------------------------------
       SUBROUTINE first_nb( stncl, array, ijk )
 ! ... first neighbours
@@ -535,7 +635,9 @@
 
       RETURN
       END SUBROUTINE first_nb
+
 !-----------------------------------------------------------------------
+
       SUBROUTINE first_rnb(stncl,array,ijk)
 ! ... first neighbours
 

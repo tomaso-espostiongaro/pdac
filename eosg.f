@@ -55,7 +55,7 @@
         mol = mol + yg(ig)/gmw(ig)
       END DO
       DO ig=1,ngas
-        xg(ig)=yg(ig)/gmw(ig)/mol
+        xg(ig)=yg(ig)/(gmw(ig)*mol)
       END DO
 
       RETURN
@@ -89,16 +89,19 @@
       SUBROUTINE csound(sqc, rog, p)
 !
 ! ... Compute gas density as a function of temperature and pressure
-! ... Compute sqared gas sound speed
+! ... Compute squared gas sound speed
 !
       USE gas_constants, ONLY: gammaair
       IMPLICIT NONE
 !
       REAL*8, INTENT(OUT) :: sqc
+!      REAL*8, INTENT(OUT) :: sqcinv
       REAL*8, INTENT(IN) :: rog, p
 !
       sqc = gammaair * p / rog
 !
+!      sqcinv = rog / (gammaair * p )
+      
       RETURN
       END SUBROUTINE csound
 !----------------------------------------------------------------------

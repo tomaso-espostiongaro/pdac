@@ -30,7 +30,8 @@
       ENDIF
 !pe-------------
       eps  =  rlk * inrl(k)
-      eps2 = (rlk * inrl(k))**2
+      !eps2 = (rlk * inrl(k))**2
+      eps2 = eps**2 
       asurf = 6.D0 * kapg * eps / (dk(k)**2)
       vrel = DSQRT(du**2+dv**2+dw**2)
       reynum = dk(k) * vrel * rog / mug

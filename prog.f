@@ -49,7 +49,7 @@
                 cputimygas, cputimtem, cputimtot, cputsgsg
       REAL*8 :: mptimbdry, mptimout, mptimrestart, mptimtilde, mptimiter, &
                 mptimygas, mptimtem, mptimtot, mptsgsg   
-
+      
       LOGICAL :: stop_now
 
 !
@@ -106,7 +106,11 @@
        END IF
 
        WRITE(6,fmt="(/,'* Starting iteration ',I5,' * ')" ) irest
-       WRITE(6,fmt="('  Simulated time = ',F12.5)" ) time
+       WRITE(6,fmt="('  Simulated time = ',F20.14)" ) time
+!       WRITE(6,fmt="('  time step = ',F6.4)" ) dt
+!       WRITE(6,fmt="('  tpri = ',F20.14)" ) tpri
+!       WRITE(6,fmt="('  tdump1 = ',F20.14)" ) tdump1
+!       WRITE(6,fmt="('  time+0.1D0*dt  = ',F20.14)" ) time+0.1D0*dt
 
        irest = irest + 1
 

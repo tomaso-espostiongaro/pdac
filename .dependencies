@@ -1,8 +1,9 @@
 
 atmosphere.o : dimensions.o gas.o 
 
-bdry.o : atmosphere.o decomp.o dens.o dimensions.o eosg.o gas.o grid.o  \
-    indijk.o parallel.o particles.o press.o subscr.o temp.o time.o velocity.o 
+bdry.o : atmosphere.o control.o decomp.o dens.o dimensions.o eosg.o gas.o  \
+    grid.o indijk.o parallel.o particles.o press.o subscr.o temp.o time.o  \
+    velocity.o 
 
 control.o : 
 
@@ -59,9 +60,9 @@ io.o : control.o decomp.o dens.o dimensions.o eosg.o hcapgs.o kinds.o  \
     parallel.o press.o temp.o time.o velocity.o 
 
 iter.o : control.o decomp.o dens.o dimensions.o environment.o eosg.o  \
-    flux_m.o ftem.o grid.o hcapgs.o htilde.o indijk.o io.o kinds.o matrix.o  \
-    outp.o parallel.o particles.o press.o subscr.o temp.o tilde.o time.o  \
-    velocity.o 
+    flux_m.o ftem.o grid.o hcapgs.o htilde.o indijk.o io.o kinds.o limiters.o  \
+    matrix.o outp.o parallel.o particles.o press.o subscr.o temp.o tilde.o  \
+    time.o velocity.o 
 
 kb07ad.o : 
 

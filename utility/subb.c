@@ -8,7 +8,7 @@ int main( int argc, char ** argv )
   char fil1[80];
   char fil2[80];
   FILE * pf1, * pf2;
-  int n1, n2;
+  int n1, n2, il;
   double x1, x2;
 
   if( argc != 3 ) {
@@ -22,14 +22,19 @@ int main( int argc, char ** argv )
   n1 = fscanf(pf1,"%lf",&x1);
   n2 = fscanf(pf2,"%lf",&x2);
 
+  il = 1;
+
   while( n1 == 1 && n2 == 1 ) {
-    if( x1 == 0.0 && x2 == 0.0 ) {
-      printf("%lf %lf %lf\n", x1, x2, fabs(x2-x1) );
-    } else {
-      printf("%lf %lf %lf\n", x1, x2, fabs(x2-x1)/(fabs(x2)+fabs(x1)) );
+    if( x1 != x2 ) {
+      if( x1 == 0.0 && x2 == 0.0 ) {
+        printf("%d %e %e %e\n", il, x1, x2, fabs(x2-x1) );
+      } else {
+        printf("%d %e %e %e\n", il, x1, x2, fabs(x2-x1)/(fabs(x2)+fabs(x1)) );
+      }
     }
     n1 = fscanf(pf1,"%lf",&x1);
     n2 = fscanf(pf2,"%lf",&x2);
+    il ++;
   }
 
   return 1;

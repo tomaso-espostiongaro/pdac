@@ -37,9 +37,16 @@
       IMPLICIT NONE
 !
       INTEGER :: ijk, i, j, k, imesh, ig, is
-      REAL*8 :: d1, d2
+      REAL*8 :: d1, d2 
 !
+
       DO ijk = 1, ncint
+
+        imesh = myijk( ip0_jp0_kp0_, ijk)
+
+        i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
+        j = MOD( imesh - 1, nx*ny ) / nx + 1
+        k = ( imesh - 1 ) / ( nx*ny ) + 1
 
         IF( fl_l(ijk) == 1 ) THEN
 
@@ -394,6 +401,7 @@
       REAL*8 :: tcn, tmn, t1nn, t1n, t0n, t2n
       REAL*8 :: mg
       REAL*8 :: dc
+      REAL*8 :: d1inv,d2inv,dcinv
 
       INTEGER :: ig, is
 !
@@ -402,6 +410,9 @@
       u1n = ( umn + ucn ) * 0.5D0
       u2n = ( upn + ucn ) * 0.5D0
       dc = ( d2  + d1 ) * 0.5D0
+      d1inv = 1.0D0 / d1
+      d2inv = 1.0D0 / d2
+      dcinv = 1.0D0 / dc
 !
 ! ... interpolation of mid-point values
 
@@ -422,9 +433,9 @@
 !
 ! ...  Non-reflecting boundary conditions
 
-        upnn = upn - ucn*dt/d2 * (upn - ucn)
+        upnn = upn - ucn*dt*d2inv * (upn - ucn)
         upn = upnn
-        ucnn = ucn * ( 1 - dt/d1 * (ucn - umn) )
+        ucnn = ucn * ( 1 - dt*d1inv * (ucn - umn) )
 
 ! MODIFICARE X3D ....  IF(j == .EQ.2) ug(ipjm)=-ug(n2) ! 
 
@@ -435,7 +446,7 @@
 
         epc = 0.D0
         DO is = 1, nsolid
-          eps = rlk(n1,is) * inrl(is) - ( dt * inrl(is) / d1 )  *          &
+          eps = rlk(n1,is) * inrl(is) - ( dt * inrl(is) * d1inv )  *          &
                 ( uscn(is)*rlk(n1,is) - usmn(is)*rlk(n0,is) )
           epc = epc + eps
         END DO
@@ -460,7 +471,7 @@
         rmcn=(rm2n+rm1n)*0.5D0
         rmmn=(rm1n+rm0n)*0.5D0
 !
-        rmcnn = rmcn-dt/dc*(u2n*rmcn-u1n*rmmn)
+        rmcnn = rmcn-dt*dcinv*(u2n*rmcn-u1n*rmmn)
 !
 ! ... Calculation of fluid pressure from the gas equation of state and 
 ! ... the mixture density transport equation
@@ -469,23 +480,25 @@
         DO ig=1,ngas
           mg = mg + xgc(ig,n1) * gmw(ig)
         END DO
-        rm1nn=ep1nn*mg/(rgas*t1nn)
-                 
-        p1nn = (1.D0/rm1nn) * (- rm1knn + rm1n - dt/d1*(rm1n*ucn - rm0n*umn))
+        !rm1nn=ep1nn*mg/(rgas*t1nn)         
+        !p1nn = (1.D0/rm1nn) * (- rm1knn + rm1n - dt*d1inv*(rm1n*ucn - rm0n*umn))
+        rm1nn=(rgas*t1nn)/(ep1nn*mg)      
+        p1nn = rm1nn * (- rm1knn + rm1n - dt*d1inv*(rm1n*ucn - rm0n*umn))
+
         IF (epc < 1.0D-8) p1nn = p(n1)
 !
 ! ... Calculation of the advanced-time fluid pressure from Momentum balance
 ! ... equation of the mixture
 
-        p(n2) = -rmcnn*ucnn + rmcn*ucn - dt/dc*( u2n*ucn*rmcn - u1n*umn*rmmn) 
+        p(n2) = -rmcnn*ucnn + rmcn*ucn - dt*dcinv*( u2n*ucn*rmcn - u1n*umn*rmmn) 
         p(n2) = p(n2) + grav * dt * rmcn
-        p(n2) = p(n2)/(dt/dc) + p1nn
+        p(n2) = p(n2)/(dt*dcinv) + p1nn
 !
         ep(n2) = ep(n1)
         tg(n2) = tg(n1)
         DO ig=1,ngas
            rgpgc(n2,ig) = rgpgc(n2,ig) - &
-                          ucn * dt/d2 * (rgpgc(n2,ig)-rgpgc(n1,ig))
+                          ucn * dt*d2inv * (rgpgc(n2,ig)-rgpgc(n1,ig))
         END DO
 !
 ! ... Correct non-physical pressure
@@ -501,7 +514,7 @@
 
 ! ... Non-reflecting b.c.
                 
-        upnn = upn - ucn*dt/d2 * (0.D0 - u2n)
+        upnn = upn - ucn*dt*d2inv * (0.D0 - u2n)
         upn = upnn
 !
         zrif=zb(k)+0.5D0*(dz(1)-dz(k))
@@ -580,12 +593,16 @@
       REAL*8 :: tcn, tpn, t1nn, t1n, t0n, t2n
       REAL*8 :: mg
       REAL*8 :: dc
+      REAL*8 :: d1inv,d2inv,dcinv
 
       INTEGER :: ig, is
 !
 ! ... definitions
 !
       dc = (d1+d2)*0.5D0
+      d1inv = 1.0D0 / d1
+      d2inv = 1.0D0 / d2
+      dcinv = 1.0D0 / dc 
 
       u1n  = (upn+ucn)*0.5D0
 
@@ -596,7 +613,7 @@
       tcn  = (t1n + t2n) * 0.5D0
       epcn = (ep(n1)+ep(n2))*0.5D0
 !
-      u2n = ucn - (upn-ucn)/d1 * 0.5*d2
+      u2n = ucn - (upn-ucn)*d1inv * 0.5*d2
 !
 ! ... OUTFLOW ...
 
@@ -608,7 +625,7 @@
 ! 
 ! ... Non-reflecting boundary condition
 !
-        ucn = ucn - upn * dt/d1 * (upn - ucn)
+        ucn = ucn - upn * dt*d1inv * (upn - ucn)
 !
 ! ... MODIFICAREX3D IF(j.EQ.2) ug(imjmk) = - ug(n2)
 !
@@ -618,7 +635,7 @@
         epc = 0.D0
         DO is = 1, nsolid
          eps = rlk(n1,is) * inrl(is) -                                 &
-             dt*inrl(is)/d1 * (uspn(is)*rlk(n0,is) - uscn(is)*rlk(n1,is))
+             dt*inrl(is)*d1inv * (uspn(is)*rlk(n0,is) - uscn(is)*rlk(n1,is))
          epc=epc+eps
         END DO
         ep1nn=1.D0-epc
@@ -640,7 +657,7 @@
         rmcn=(rm2n+rm1n)*0.5D0
         rmpn=(rm1n+rm0n)*0.5D0
 !
-        rmcnn = rmcn - dt/dc * (u1n*rmpn-u2n*rmcn)
+        rmcnn = rmcn - dt*dcinv * (u1n*rmpn-u2n*rmcn)
 !
 ! ... calculation of fluid pressure 
 ! ... from a mass balance equation for the mixture.
@@ -650,17 +667,19 @@
         DO ig=1,ngas
           mg = mg + xgc(ig,n1) * gmw(ig)
         END DO
-        rm1nn = ep1nn*mg/(rgas*t1nn)
-        p1nn = (1.D0/rm1nn) * &
-               (-rm1knn+rm1n-dt/d1*(upn*rm0n-rm1n*ucn))
+        !rm1nn = ep1nn*mg/(rgas*t1nn)
+        !p1nn = (1.D0/rm1nn) * &
+        !       (-rm1knn+rm1n-dt*d1inv*(upn*rm0n-rm1n*ucn))
+        rm1nn = (rgas*t1nn)/(ep1nn*mg)
+        p1nn = rm1nn * (-rm1knn+rm1n-dt*d1inv*(upn*rm0n-rm1n*ucn))
         IF (epc < 1.0D-8) p1nn = p(n1)
 !
 ! ... Calculation of the advanced-time fluid pressure from Momentum balance
 ! ... equation of the mixture
 
-        p(n2) = -rmcnn*ucnn + rmcn*ucn - dt/dc *     &
-                 ( u1n*upn*rmpn - u2n*ucn*rmcn) + dt/dc * p1nn
-        p(n2)=p(n2)/(dt/dc)
+        p(n2) = -rmcnn*ucnn + rmcn*ucn - dt*dcinv *     &
+                 ( u1n*upn*rmpn - u2n*ucn*rmcn) + dt*dcinv * p1nn
+        p(n2)=p(n2)/(dt*dcinv)
 !
 ! ... Correct non-physical pressure
         IF (p(n2) <= 0.0D0) p(n2) = p(n1)
@@ -668,7 +687,7 @@
         tg(n2) = tg(n1)
         DO ig=1,ngas
           rgpgc(n2,ig) = rgpgc(n2,ig) - &
-                         upn * dt/d2 * (rgpgc(n1,ig)-rgpgc(n2,ig))
+                         upn * dt*d2inv * (rgpgc(n1,ig)-rgpgc(n2,ig))
         END DO
 !
 ! ... extrapolation of the temperature and solid fraction to time (n+1)dt
@@ -683,7 +702,7 @@
 
 ! ... INFLOW ...
 !
-        ucn = ucn - upn*dt/d1 * (u1n - 0.D0)
+        ucn = ucn - upn*dt*d1inv * (u1n - 0.D0)
 
         zrif = zb(k)+0.5D0*(dz(1)-dz(k))
         CALL atm(zrif,prif,trif)

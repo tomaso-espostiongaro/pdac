@@ -49,6 +49,7 @@
       REAL*8 :: bb, aa, cc, sum, om
       REAL*8 :: tst, tr, t1, t2, t3
       REAL*8 :: m
+      REAL*8 :: suminv
       INTEGER :: ig, jg
 !
 ! ... Compute Temperature Dependent Viscosity of each gas specie (Reid)
@@ -118,8 +119,9 @@
           DO jg=1,ngas
             sum=sum+xgc(jg)*phij(ig,jg)
           END DO
-          mu = mu + xgc(ig) * mmug(ig) /sum     
-          kap = kap + xgc(ig) * ckg(ig) /sum       
+          suminv = 1.0D0 / sum
+          mu = mu + xgc(ig) * mmug(ig) * suminv   
+          kap = kap + xgc(ig) * ckg(ig) * suminv       
         END IF
       END DO
 !
