@@ -23,6 +23,10 @@
         END TYPE 
 !
 !
+        INTEGER, PARAMETER :: LAYER_MAP   = 1
+        INTEGER, PARAMETER :: BLOCK2D_MAP = 2
+        INTEGER, PARAMETER :: BLOCK3D_MAP = 3
+!
         TYPE cells_map_type
           INTEGER :: type              ! Identify the map type (1 layer, 2 columns, 3 blocks)
           INTEGER :: lay(2)            ! lay(1) -> imesh start, lay(2) -> imesh end (layer)
@@ -38,11 +42,24 @@
         TYPE (rcv_map_type), ALLOCATABLE :: rcv_map(:)
         TYPE (snd_map_type), ALLOCATABLE :: snd_map(:)
         TYPE (cells_map_type), ALLOCATABLE :: proc_map(:)
+
+! ...   The following arrays contain information on how the cells
+!       are distributed among processors.
 !
-        INTEGER, ALLOCATABLE :: ncell(:)  ! number of cell (balanced)
-        INTEGER, ALLOCATABLE :: nctot(:)  ! number of cell (unbalanced)
-        INTEGER, ALLOCATABLE :: ncdif(:)  ! 
+        INTEGER, ALLOCATABLE :: nctot(:)  ! unbalanced number of cell
         INTEGER, ALLOCATABLE :: ncfl1(:)  ! number of cell with fl=1
+        INTEGER, ALLOCATABLE :: ncell(:)  ! balanced number of cell
+        INTEGER, ALLOCATABLE :: ncdif(:)  ! ncfl1 - ncell
+        PRIVATE :: nctot, ncfl1, ncell, ncdif
+!
+        !  nctot unbalanced number of cell,
+        !        this is the number of cells on each process, as if they were 
+        !        equally distributed among processors, regardless of their 
+        !        computational weight.
+        !  ncfl1 number of cells on each process with the flag equal 1
+        !  ncell bulanced number of cell, this is the number of cells on
+        !        each process that it is computed to obtain the same 
+        !        computational load on each process.
 !
         REAL*8, DIMENSION(:), ALLOCATABLE :: r, rb, dr
         REAL*8, DIMENSION(:), ALLOCATABLE :: dx, dy, dz
@@ -180,8 +197,8 @@
 ! ...       CARTESIAN COORDINATES
 ! 
 !                first cell
-!           |<----- dx(2) ---->|-----------|-----|
-!           xb(1)             xb(2)
+!           |<----- dx(1) ---->|<----- dx(2) ----->|<----- .... ---|
+!                            xb(1)                xb(2)
 !
 ! ...       Set "x" dimension
             xb(1) = 0.0d0
@@ -359,16 +376,16 @@
 !     1=layers
 !     2=blocks
 !
-!*****MX3D ok
+      IF( nproc <= 2 ) mesh_partition = LAYER_MAP
 !
-      IF( nproc <= 2 ) mesh_partition = 1
-      IF(ALLOCATED(proc_map)) DEALLOCATE(proc_map)
-      ALLOCATE(proc_map(0:nproc-1))
+      IF( ALLOCATED( proc_map ) ) DEALLOCATE( proc_map )
+      ALLOCATE( proc_map(0:nproc-1) )
+
       proc_map(0:nproc-1)%type = mesh_partition
 
-      IF ( proc_map(0)%type == 1 ) THEN
+      IF ( proc_map(0)%type == LAYER_MAP ) THEN
         CALL layers( ncfl1, nctot )
-      ELSE IF ( proc_map(0)%type == 2 ) THEN
+      ELSE IF ( proc_map(0)%type == BLOCK2D_MAP ) THEN
         CALL blocks( ncfl1, nctot )
       ELSE
         CALL error(' partition ',' partition type not yet implemented ',proc_map(0)%type)
@@ -376,21 +393,18 @@
 !
 ! ... ncell is the balanced number of cells to each processor:
 ! 
-!
-!*****MX3D ok
-!
       DO ipe = 0, nproc - 1
         ncell(ipe) = localdim(countfl(1), nproc, ipe)
         ncdif(ipe) = ncfl1(ipe) - ncell(ipe)
       END DO
 !
-        WRITE(7,*) '---  partition  -----'
-        WRITE(7,*) '  '
+      WRITE(7,*) '---  partition  -----'
+      WRITE(7,*) '  '
       DO ipe = 0, nproc - 1
         WRITE(7,*) ' # nctot( ',ipe, ' )', nctot(ipe)
         WRITE(7,*) ' # ncfl1( ',ipe, ' )', ncfl1(ipe),' -', ncell(ipe),' =', ncdif(ipe)
       END DO
-        WRITE(7,*) '  '
+      WRITE(7,*) '  '
 !
 
       IF( outppm ) THEN
@@ -736,7 +750,9 @@
 
       RETURN
       END SUBROUTINE
+!
 ! ---------------------------------------------------------------------
+!
       SUBROUTINE ghost
 !
 ! ... Identifies and allocates ghost cells
@@ -779,13 +795,13 @@
 !
       nset   = 0
       ncext = 0
-      IF ( proc_map(mpime)%type == 1 ) THEN
+      IF ( proc_map(mpime)%type == LAYER_MAP ) THEN
         DO ij = proc_map(mpime)%lay(1), proc_map(mpime)%lay(2)
           IF ( fl(ij) .EQ. 1 ) THEN
             ncext = ncext + cell_neighbours(ij, mpime, nset)
           END IF
         END DO
-      ELSE IF ( proc_map(mpime)%type == 2 ) THEN
+      ELSE IF ( proc_map(mpime)%type == BLOCK2D_MAP ) THEN
         i1 = proc_map(mpime)%colsw(1)
         i2 = proc_map(mpime)%colne(1)
         j1 = proc_map(mpime)%colsw(2)
@@ -832,7 +848,7 @@
       nset  = 0
       icnt  = 0
       nrcv  = 0
-      IF ( proc_map(mpime)%type == 1 ) THEN
+      IF ( proc_map(mpime)%type == LAYER_MAP ) THEN
 !
 !*****MX3D : cambia il loop sulle celle interne (v.sopra)
 !
@@ -841,7 +857,7 @@
           icnt = icnt + cell_neighbours(ij, mpime, nset, rcv_cell_set, myijk)
           END IF
         END DO
-      ELSE IF ( proc_map(mpime)%type == 2 ) THEN
+      ELSE IF ( proc_map(mpime)%type == BLOCK2D_MAP ) THEN
         i1 = proc_map(mpime)%colsw(1)
         i2 = proc_map(mpime)%colne(1)
         j1 = proc_map(mpime)%colsw(2)
@@ -1041,11 +1057,11 @@
         i = MOD( ( ij - 1 ), nr) + 1
           
         DO ipe = 0, nproc - 1
-          IF ( proc_map(ipe)%type == 1 ) THEN 
+          IF ( proc_map(ipe)%type == LAYER_MAP ) THEN 
             IF( ij .GE. proc_map(ipe)%lay(1) .AND. ij .LE. proc_map(ipe)%lay(2) ) THEN
               cell_owner = ipe
             END IF
-          ELSE IF ( proc_map(ipe)%type == 2 ) THEN
+          ELSE IF ( proc_map(ipe)%type == BLOCK2D_MAP ) THEN
             IF (j .GE. proc_map(ipe)%colsw(2) .AND. j .LE. proc_map(ipe)%colne(2)) THEN
               IF (i .GE. proc_map(ipe)%colsw(1) .AND.  &
                   i .LE. proc_map(ipe)%colne(1)) cell_owner = ipe
@@ -1066,9 +1082,9 @@
       INTEGER, INTENT(IN) :: ijl, mpime
       INTEGER :: i,j,i1,i2,j1
 !
-      IF ( proc_map(mpime)%type == 1 ) THEN
+      IF ( proc_map(mpime)%type == LAYER_MAP ) THEN
         cell_l2g = ijl + proc_map(mpime)%lay(1) - 1
-      ELSE IF ( proc_map(mpime)%type == 2 ) THEN
+      ELSE IF ( proc_map(mpime)%type == BLOCK2D_MAP ) THEN
         j1 = proc_map(mpime)%colsw(2)
         i1 = proc_map(mpime)%colsw(1)
         i2 = proc_map(mpime)%colne(1)
@@ -1091,9 +1107,9 @@
       INTEGER, INTENT(IN) :: ij, mpime
       INTEGER :: i,j,i1,i2,j1
 !
-      IF ( proc_map(mpime)%type == 1 ) THEN
+      IF ( proc_map(mpime)%type == LAYER_MAP ) THEN
         cell_g2l = ij - proc_map(mpime)%lay(1) + 1
-      ELSE IF ( proc_map(mpime)%type == 2 ) THEN
+      ELSE IF ( proc_map(mpime)%type == BLOCK2D_MAP ) THEN
         j = ( ij - 1 ) / nr + 1
         i = MOD( ( ij - 1 ), nr) + 1
         j1 = proc_map(mpime)%colsw(2)

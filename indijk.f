@@ -1,30 +1,31 @@
 MODULE indijk_module
 
-  INTEGER, PARAMETER :: ip0_jp0_kp0_ =   1
-  INTEGER, PARAMETER :: ip1_jp0_kp0_ =   2
-  INTEGER, PARAMETER :: im1_jp0_kp0_ =   3
-  INTEGER, PARAMETER :: ip2_jp0_kp0_ =   4
-  INTEGER, PARAMETER :: im2_jp0_kp0_ =   5
-  INTEGER, PARAMETER :: ip0_jp1_kp0_ =   6
-  INTEGER, PARAMETER :: ip1_jp1_kp0_ =   7
-  INTEGER, PARAMETER :: im1_jp1_kp0_ =   8
-  INTEGER, PARAMETER :: ip0_jm1_kp0_ =   9
-  INTEGER, PARAMETER :: ip1_jm1_kp0_ =  10
-  INTEGER, PARAMETER :: im1_jm1_kp0_ =  11
-  INTEGER, PARAMETER :: ip0_jp2_kp0_ =  12
-  INTEGER, PARAMETER :: ip0_jm2_kp0_ =  13
-  INTEGER, PARAMETER :: ip0_jp0_kp1_ =  14
-  INTEGER, PARAMETER :: ip1_jp0_kp1_ =  15
-  INTEGER, PARAMETER :: im1_jp0_kp1_ =  16
-  INTEGER, PARAMETER :: ip0_jp1_kp1_ =  17
-  INTEGER, PARAMETER :: ip0_jm1_kp1_ =  18
-  INTEGER, PARAMETER :: ip0_jp0_km1_ =  19
-  INTEGER, PARAMETER :: ip1_jp0_km1_ =  20
-  INTEGER, PARAMETER :: im1_jp0_km1_ =  21
-  INTEGER, PARAMETER :: ip0_jp1_km1_ =  22
-  INTEGER, PARAMETER :: ip0_jm1_km1_ =  23
-  INTEGER, PARAMETER :: ip0_jp0_kp2_ =  24
-  INTEGER, PARAMETER :: ip0_jp0_km2_ =  25
+  INTEGER, PARAMETER :: ip0_jp0_kp0_ =   1  ! ijk 
+  INTEGER, PARAMETER :: ip1_jp0_kp0_ =   2  ! ipjk 
+  INTEGER, PARAMETER :: im1_jp0_kp0_ =   3  ! imjk 
+  INTEGER, PARAMETER :: ip2_jp0_kp0_ =   4  ! ippjk 
+  INTEGER, PARAMETER :: im2_jp0_kp0_ =   5  ! immjk 
+  INTEGER, PARAMETER :: ip0_jp1_kp0_ =   6  ! ijpk 
+  INTEGER, PARAMETER :: ip1_jp1_kp0_ =   7  ! ipjpk 
+  INTEGER, PARAMETER :: im1_jp1_kp0_ =   8  ! imjpk 
+  INTEGER, PARAMETER :: ip0_jm1_kp0_ =   9  ! ijmk 
+  INTEGER, PARAMETER :: ip1_jm1_kp0_ =  10  ! ipjmk 
+  INTEGER, PARAMETER :: im1_jm1_kp0_ =  11  ! imjmk 
+  INTEGER, PARAMETER :: ip0_jp2_kp0_ =  12  ! ijppk 
+  INTEGER, PARAMETER :: ip0_jm2_kp0_ =  13  ! ijmmk 
+  INTEGER, PARAMETER :: ip0_jp0_kp1_ =  14  ! ijkp 
+  INTEGER, PARAMETER :: ip1_jp0_kp1_ =  15  ! ipjkp 
+  INTEGER, PARAMETER :: im1_jp0_kp1_ =  16  ! imjkp 
+  INTEGER, PARAMETER :: ip0_jp1_kp1_ =  17  ! ijpkp 
+  INTEGER, PARAMETER :: ip0_jm1_kp1_ =  18  ! ijmkp 
+  INTEGER, PARAMETER :: ip0_jp0_km1_ =  19  ! ijkm 
+  INTEGER, PARAMETER :: ip1_jp0_km1_ =  20  ! ipjkm 
+  INTEGER, PARAMETER :: im1_jp0_km1_ =  21  ! imjkm 
+  INTEGER, PARAMETER :: ip0_jp1_km1_ =  22  ! ijpkm 
+  INTEGER, PARAMETER :: ip0_jm1_km1_ =  23  ! ijmkm 
+  INTEGER, PARAMETER :: ip0_jp0_kp2_ =  24  ! ijkpp 
+  INTEGER, PARAMETER :: ip0_jp0_km2_ =  25  ! ijkmm 
+
 
 ! Stencil Dimension
 !
