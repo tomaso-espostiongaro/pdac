@@ -14,6 +14,13 @@ int float_chk_( double *a ) {
 	      return nan;
 }
 
+#elif defined __IRIX
+
+int float_chk_( double *a ) {
+	   int nan = 0;
+	      return nan;
+}
+
 #else
 
 int float_chk( double *a ) {

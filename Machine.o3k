@@ -1,12 +1,13 @@
 #----------------------------------------
 # SGI Origin
 #----------------------------------------
-MACROS= -DMPI
+MACROS= -D__MPI -D__IRIX
 #----------------------------------------
 FFLAGS= -O2 
+CFLAGS= -O2 $(MACROS)
 CPPFLAGS= $(MACROS)
 PREPROCESSING = -cpp
-FREEFORM= -freeform
+FREEFORM= -freeform 
 MODULES= -I ./
 LINKFLAGS= 
 LIBS= -lmpi
