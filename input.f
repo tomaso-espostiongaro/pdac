@@ -1,4 +1,6 @@
+!-----------------------------------------------------------------------------------------
    MODULE input_module
+!-----------------------------------------------------------------------------------------
 
       USE dimensions, ONLY: max_nsolid, ngas, nroughx, max_size, max_nblock, max_ngas, nr, nz
 
@@ -52,12 +54,14 @@
       REAL*8 :: initial_vpart_y
       REAL*8 :: initial_vpart_z
       REAL*8 :: initial_gasconc(max_ngas) ! initial gas concentration (for each specie)
-
+!-----------------------------------------------------------------------------------------
      CONTAINS
+!-----------------------------------------------------------------------------------------
 !
       SUBROUTINE input( iunit )
 
       USE atmosphere, ONLY: v0, u0, p0, temp0, uk0, vk0, ep0, epsmx0, gravx, gravz
+      USE eulerian_flux, ONLY: beta, muscl
       USE gas_constants, ONLY: phij, ckg, mmug, mmugs, mmugek, gmw
       USE grid, ONLY: dz, dr, itc
       USE grid, ONLY: nso, iob
@@ -89,7 +93,7 @@
       NAMELIST / particles / nsolid, diameter, density, sphericity, &
         viscosity, specific_heat, thermal_conductivity
 !
-      NAMELIST / numeric / rungekut, inmax, maxout, omega
+      NAMELIST / numeric / rungekut, beta, muscl, inmax, maxout, omega
 !
       INTEGER :: i, j, k, n, m, kg
       CHARACTER(LEN=80) :: card
@@ -141,6 +145,8 @@
 ! ... Numeric
 
       rungekut = 1
+      beta = 0.25
+      muscl = 0.0
       inmax = 8
       maxout = 5000
       omega = 1.0
@@ -214,6 +220,8 @@
       END IF
 
       CALL bcast_integer(rungekut,1,root)
+      CALL bcast_real(beta,1,root)
+      CALL bcast_real(muscl,1,root)
       CALL bcast_integer(inmax,1,root)
       CALL bcast_integer(maxout,1,root)
       CALL bcast_real(omega,1,root)

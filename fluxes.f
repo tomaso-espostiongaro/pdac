@@ -17,6 +17,8 @@
       REAL*8, PRIVATE :: cs                        ! convective stream   !
       REAL*8, PRIVATE :: cn                        ! Courant number      !
       REAL*8, PRIVATE :: upwnd                     ! upwinded variable   !
+
+      REAL*8 :: beta, muscl
 !
       SAVE
 !----------------------------------------------------------------------
@@ -24,7 +26,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE fu_lb(fl, fb, dens, u, v, ij)
 !
-! ... Compute the convective fluxes on left and bottom element sides
+! ... Compute the convective fluxes on left and bottom sides of the cell
 ! ... for the r(x)-momentum density.
 !
       USE dimensions
@@ -79,7 +81,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE fu_rt(fr, ft, dens, u, v, ij)
 !
-! ... Compute the convective fluxes on right and top element sides
+! ... Compute the convective fluxes on right and top  sides of the cell
 ! ... for the r(x)-momentum density.
 !
       USE dimensions
@@ -93,19 +95,27 @@
       INTEGER :: i,j,imesh
 !
       REAL*8 :: dens_e, dens_ee, dens_ne
-      REAL*8 :: drp, drpp, indrpp, indrp
-      REAL*8 :: dzp, indzp
+      REAL*8 :: drm, drp, drpp, indrpp, indrp, indrm
+      REAL*8 :: dzp, indzp, dzm, indzm, dzpp, indzpp
+      REAL*8 :: gradc, grade, gradn, gradw, grads, gradgt, gradlt
 !
       imesh = myij( 0, 0, ij)
       i  = MOD( ( imesh - 1 ), nr) + 1
       j  = ( imesh - 1 ) / nr + 1
 !
+      drm=dr(i)+dr(i-1)
       drp=dr(i)+dr(i+1)
       drpp=dr(i+1)+dr(i+2)
+      dzm=dz(j)+dz(j-1)
       dzp=dz(j)+dz(j+1)
+      dzpp=dz(j+1)+dz(j+2)
+
+      indrm=1.D0/drm
       indrp=1.D0/drp
       indrpp=1.D0/drpp
+      indzm=1.D0/dzm
       indzp=1.D0/dzp
+      indzpp=1.D0/dzpp
 !       
 ! ... Values of density interpolated at cell boundaries
 !
@@ -115,24 +125,40 @@
 !
 ! ... on right volume boundary
 !
+! ... MUSCL reconstruction of velocity (density unvaried)
+!
+      gradc = (indr(i+1) * (u%e - u%c))
+      gradw = (indr(i) * (u%c - u%w))
+      grade = (indr(i+2) * (u%ee - u%e))
+      
+      gradgt = (1.D0 - beta) * gradc + beta * gradw
+      gradlt= (1.D0 - beta) * gradc + beta * grade
+
       cs = 0.5D0 * (u%c + u%e)
       cn = cs * dt * indr(i+1)
       IF (cs.GE.0.D0) THEN
-        upwnd = dens_e * u%c
+        upwnd = dens_e * (u%c + muscl*(gradgt)*0.5*dr(i+1))
       ELSE IF (cs.LT.0.D0) THEN
-        upwnd = dens_ee * u%e
+        upwnd = dens_ee * (u%e + muscl*(gradlt)*0.5*dr(i+1))
       END IF
 !
       fr = upwnd * cs * r(i+1)
 !
 ! ... on top volume boundary
 !
+      gradc = (u%n - u%c) * 2.0 * indzp
+      gradn = (u%nn - u%n) * 2.0 * indzpp
+      grads = (u%c - u%s) * 2.0 * indzm
+
+      gradgt = (1.D0 - beta) * gradc + beta * grads
+      gradlt = (1.D0 - beta) * gradc + beta * gradn
+
       cs=(dr(i+1) * v%c + dr(i) * v%e) * indrp
       cn=cs * dt * 2.0 * indzp
       IF (cs.GE.0.D0) THEN
-        upwnd = dens_e * u%c
+        upwnd = dens_e * (u%c + muscl*(gradgt)*0.5*dz(j))
       ELSE IF (cs.LT.0.D0) THEN
-        upwnd = dens_ne * u%n
+        upwnd = dens_ne * (u%n + muscl*(gradlt)*0.5*dz(j+1))
       END IF 
 !
       ft = upwnd * cs
@@ -204,42 +230,67 @@
 !
       INTEGER :: i,j, imesh
       REAL*8 :: dzp, dzpp, indzpp, indzp
+      REAL*8 :: drm, drp, drpp, indrm, indrp, indrpp
       REAL*8 :: dens_n, dens_nn, dens_en
+      REAL*8 :: gradc, grade, gradn, gradw, grads, gradgt, gradlt
 !
       imesh = myij( 0, 0, ij)
       j  = ( imesh - 1 ) / nr + 1
       i  = MOD( ( imesh - 1 ), nr) + 1
 !
-        dzp=dz(j)+dz(j+1)
-        dzpp=dz(j+1)+dz(j+2)
-        indzp=1.D0/dzp
-        indzpp=1.D0/dzpp
+      dzp=dz(j)+dz(j+1)
+      dzpp=dz(j+1)+dz(j+2)
+      drm=dr(i)+dr(i-1)
+      drp=dr(i)+dr(i+1)
+      drpp=dr(i+1)+dr(i+2)
+
+      indzp=1.D0/dzp
+      indzpp=1.D0/dzpp
+      indrm=1.D0/drm
+      indrp=1.D0/drp
+      indrpp=1.D0/drpp
 !
 ! ... values of density interpolated at cell boundaries
-        dens_n = (dz(j+1) * dens%c + dz(j) * dens%n) * indzp
-        dens_en = (dz(j+1) * dens%e + dz(j) * dens%ne) * indzp
-        dens_nn = (dz(j+2) * dens%n + dz(j+1) * dens%nn) * indzpp
+      dens_n = (dz(j+1) * dens%c + dz(j) * dens%n) * indzp
+      dens_en = (dz(j+1) * dens%e + dz(j) * dens%ne) * indzp
+      dens_nn = (dz(j+2) * dens%n + dz(j+1) * dens%nn) * indzpp
 !
 ! ... on right volume boundary
 !
+! ... MUSCL reconstruction of velocity (density unvaried)
+!
+      gradc = (2.0 * indrp * (v%e - v%c))
+      gradw = (2.0 * indrm * (v%c - v%w))
+      grade = (2.0 * indrpp * (v%ee - v%e))
+
+      gradgt = (1.0 - beta) * gradc + beta * gradw
+      gradlt = (1.0 - beta) * gradc + beta * grade
+
       cs = (dz(j+1)*u%c+dz(j)*u%n)*indzp
       cn = cs * dt * 2.0 * indzp
       IF (cs.GE.0.D0) THEN
-        upwnd = dens_n * v%c
+        upwnd = dens_n * (v%c + muscl*(gradgt)*0.5*dr(i))
       ELSE IF (cs.LT.0.D0) THEN
-        upwnd = dens_en * v%e
+        upwnd = dens_en * (v%e + muscl*(gradlt)*0.5*dr(i+1))
       END IF
 !
       fr = upwnd * cs * rb(i)
 !
 ! ... on top volume boundary
 !
+      gradc = (indz(j+1) * (v%n - v%c))
+      gradn = (indz(j+2) * (v%nn - v%n))
+      grads = (indz(j) * (v%c - v%s))
+
+      gradgt = (1.0 - beta) * gradc + beta * grads
+      gradlt = (1.0 - beta) * gradc + beta * gradn
+
       cs = 0.5D0*(v%c+v%n)
       cn = cs * dt * indz(j+1)
       IF (cs.GE.0.D0) THEN
-        upwnd = dens_n * v%c
+        upwnd = dens_n * (v%c + muscl*(gradgt)*0.5*dz(j+1))
       ELSE IF (cs.LT.0.D0 .AND. j.NE.(nz-1)) THEN
-        upwnd = dens_nn * v%n
+        upwnd = dens_nn * (v%n + muscl*(gradlt)*0.5*dz(j+1))
       END IF 
 !
       ft = upwnd * cs
@@ -307,38 +358,64 @@
       INTEGER, INTENT(IN) :: ij
 !
       INTEGER :: i,j,imesh
-      REAL*8  :: drp, dzp
-      REAL*8  :: indrp, indzp 
+      REAL*8  :: drm, drp, dzm, dzp, drpp, dzpp
+      REAL*8  :: indrm, indrp, indzm, indzp , indrpp, indzpp
+      REAL*8 :: gradc, grade, gradn, gradw, grads, gradgt, gradlt
 !
       imesh = myij( 0, 0, ij)
       i  = MOD( ( imesh - 1 ), nr) + 1
       j  = ( imesh - 1 ) / nr + 1
 !
+        drm = (dr(i) + dr(i-1))
         drp = (dr(i) + dr(i+1))
+        drpp = (dr(i+1) + dr(i+2))
+        dzm = (dz(j) + dz(j-1))
         dzp = (dz(j) + dz(j+1))
+        dzpp = (dz(j+1) + dz(j+2))
+
+        indrm = 1.D0/drm
         indrp = 1.D0/drp
+        indrpp = 1.D0/drpp
+        indzm = 1.D0/dzm
         indzp = 1.D0/dzp
+        indzpp = 1.D0/dzpp
 !
 ! ... on right volume boundary
 !
+! ... MUSCL reconstruction of velocity (density unvaried)
+!
+        gradc = 2.0 * indrp * (dens%e*field%e - dens%c*field%c)
+        gradw = 2.0 * indrm * (dens%c*field%c - dens%w*field%w)
+        grade = 2.0 * indrpp * (dens%ee*field%ee - dens%e*field%e)
+
+        gradgt = (1.D0 - beta) * gradc + beta * gradw
+        gradlt = (1.D0 - beta) * gradc + beta * grade
+
         cs = u%c
         cn = cs * dt * 2.0 * indrp
         IF (cs .GE. 0.D0) THEN
-          upwnd  = dens%c*field%c
+          upwnd  = dens%c*field%c + muscl*(gradgt)*0.5*dr(i)
         ELSE IF (cs .LT. 0.D0) THEN
-          upwnd  = dens%e*field%e
+          upwnd  = dens%e*field%e + muscl*(gradlt)*0.5*dr(i+1)
         ENDIF
 !
       fr = upwnd * cs * rb(i)
 !
 ! ... on top volume boundary
 !
+        gradc = 2.0 * indzp * (dens%n*field%n - dens%c*field%c)
+        grads = 2.0 * indzm * (dens%c*field%c - dens%s*field%s)
+        gradn = 2.0 * indzpp * (dens%nn*field%nn - dens%n*field%n)
+
+        gradgt = (1.D0 - beta) * gradc + beta * grads
+        gradlt = (1.D0 - beta) * gradc + beta * gradn
+
         cs = v%c
         cn = cs * dt * 2.0 * indzp
         IF (cs .GE. 0.D0) THEN
-          upwnd = dens%c*field%c
+          upwnd = dens%c*field%c + muscl*(gradgt)*0.5*dz(j)
         ELSE IF (cs .LT. 0.D0) THEN
-          upwnd = dens%n*field%n
+          upwnd = dens%n*field%n + muscl*(gradlt)*0.5*dz(j+1)
         ENDIF
 !
       ft = upwnd * cs

@@ -155,7 +155,7 @@
  547  FORMAT(1x,///,1x,'@@@ TIME = ',G11.4)
  548  FORMAT(1x,//,1x,'P',/)
  549  FORMAT(1x,//,1x,'EPS',i1,/)
- 550  FORMAT(1x,10(1x,g14.6))
+ 550  FORMAT(1x,10(1x,g14.6e3))
  552  FORMAT(1x,//,1x,'UG',/)
  553  FORMAT(1x,//,1x,'VG',/)
  556  FORMAT(1x,//,1x,'UP',I1,/)
