@@ -61,6 +61,10 @@
 ! ... file name for the topography
       CHARACTER(LEN=80) :: dem_file
 !
+      INTERFACE interp_1d
+        MODULE PROCEDURE interp_1d_array, interp_1d_scalar
+      END INTERFACE interp_1d
+!
       PUBLIC
       PRIVATE :: icenter,jcenter,xdem,ydem,zdem
       SAVE
@@ -401,6 +405,10 @@
 
       DO i = 1, counter
         av_quota(NINT(rad_dist(i))) = rad_quota(i)
+      END DO
+      WRITE(*,*) SIZE(rad_dist)
+      DO i = 1, SIZE(rad_dist)
+        WRITE(*,*) cellsize * DSQRT(rad_dist(i)),rad_quota(i)
       END DO
 !
       ! ... Assign the new averaged values to the
@@ -961,7 +969,43 @@
       RETURN
       END SUBROUTINE interpolate_dem
 !----------------------------------------------------------------------
-      SUBROUTINE interp_1d(x1, f1, x2, f2, t)
+      SUBROUTINE interp_1d_scalar(x1, f1, x2, f2)
+      IMPLICIT NONE
+
+      REAL*8, INTENT(IN), DIMENSION(:) :: x1, f1
+      REAL*8, INTENT(IN) :: x2
+      REAL*8, INTENT(OUT) :: f2
+      INTEGER :: i, k, l, n, n1x, t
+      REAL*8 :: grad
+
+      n1x = SIZE(x1)
+!
+! ... locate the grid points near the topographic points
+! ... and interpolate linearly the profile  
+!
+      DO n = 1, n1x
+          IF (x1(n) >= x2) THEN
+
+            ! ... t indicates the progressive number of the
+            ! ... topographic point laying on the right of a grid center 'i'
+            ! ... 'l' counts the grid points
+            !
+            t = n
+ 
+            IF (n == 1) THEN
+              f2 = f1(1)
+            ELSE
+              grad = (f1(n)-f1(n-1))/(x1(n)-x1(n-1))
+              f2 = f1(n-1) + (x2-x1(n-1)) * grad
+            END IF
+
+          ENDIF
+      ENDDO
+!
+      RETURN
+      END SUBROUTINE interp_1d_scalar
+!----------------------------------------------------------------------
+      SUBROUTINE interp_1d_array(x1, f1, x2, f2, t)
       IMPLICIT NONE
 
       REAL*8, INTENT(IN), DIMENSION(:) :: x1, x2, f1
@@ -1002,7 +1046,7 @@
       ENDDO
 !
       RETURN
-      END SUBROUTINE interp_1d
+      END SUBROUTINE interp_1d_array
 !----------------------------------------------------------------------
       SUBROUTINE interp_2d(x1, y1, f1, x2, y2, f2, tx, ty)
       IMPLICIT NONE

@@ -1,18 +1,24 @@
 !-----------------------------------------------------------------------
       MODULE vent_conditions
 !-----------------------------------------------------------------------
-      USE dimensions, ONLY: max_nsolid, max_ngas
+      USE dimensions, ONLY: max_nsolid, max_ngas, nsolid, ngas
       IMPLICIT NONE
 
       ! ... flags
       !
-      INTEGER :: ivent, irand, iali
+      INTEGER :: ivent, irand, iali, ipro
 
       REAL*8 :: xvent, yvent, vent_radius, base_radius, crater_radius
       REAL*8 :: wrat
       REAL*8 :: u_gas, v_gas, w_gas, p_gas, t_gas
       REAL*8 :: u_solid(max_nsolid), v_solid(max_nsolid), w_solid(max_nsolid), &
                 ep_solid(max_nsolid), t_solid(max_nsolid)
+      !
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: ug_rad, wg_rad, &
+                                           p_rad, tg_rad, rad
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: ygc_rad
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: us_rad, ws_rad, &
+                                             ep_rad, ts_rad
       REAL*8 :: vent_ygc(max_ngas)
 
       TYPE inlet_cell
@@ -25,6 +31,7 @@
 
       INTEGER :: nvt
       INTEGER, SAVE :: seed
+      CHARACTER(LEN=80) :: rad_file
 
       SAVE
 !-----------------------------------------------------------------------
@@ -69,6 +76,8 @@
         DO j = 1, ny
           IF (y(j) <= yvent) jv = j
         END DO
+        xvent = x(iv)
+        yvent = y(jv)
       END IF
 !
 ! ... Define the 'quota' of the volcanic vent
@@ -235,12 +244,14 @@
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
+      USE volcano_topography, ONLY: interp_1d
       IMPLICIT NONE
 
       REAL*8 :: ygcsum
       INTEGER :: ijk, imesh, i,j,k, is, ig, n
       REAL*8 :: alpha, beta, ra, dex, dey, angle, angle4
       REAL*8 :: fact_r
+      REAL*8 :: distance
 
       IF (job_type == '2D') RETURN
       
@@ -257,38 +268,71 @@
             END IF
           END DO
           
-          ! ... Set the initial conditions, as
-          ! ... specified in the input file on 
-          ! ... all cells enclosing the vent
-          !
-          ug(ijk) = u_gas 
-          IF (job_type == '3D') vg(ijk) = v_gas 
-          wg(ijk) = w_gas
-          
-          tg(ijk) = t_gas
-          ep(ijk) = 1.D0 - SUM(ep_solid(1:nsolid))
-          p(ijk)  = p_gas
-
-          DO ig = 1, ngas
-            ygc(ijk,ig) = vent_ygc(gas_type(ig))
-          END DO
-
-          DO is = 1,nsolid
-            us(ijk,is)  = u_solid(is) 
-            IF (job_type == '3D') vs(ijk,is)  = v_solid(is) 
-            ws(ijk,is) = w_solid(is)
-
-            ts(ijk,is)  = t_solid(is)
-            rlk(ijk,is) = ep_solid(is)*rl(is)
-          END DO
-          
+          IF (ipro >= 1 .AND. job_type == '3D') THEN
+            !
+            CALL read_radial_profile
+            distance = DSQRT( (x(i)-xvent)**2 + (y(j)-yvent)**2 )
+            angle    = ATAN2( (y(j)-yvent), (x(i)-xvent) )
+            !
+            CALL interp_1d(rad, ug_rad, distance, ug(ijk))
+            vg(ijk) = ug(ijk) * SIN(angle)
+            ug(ijk) = ug(ijk) * COS(angle)
+            CALL interp_1d(rad, wg_rad, distance, wg(ijk))
+            !
+            CALL interp_1d(rad, tg_rad, distance, tg(ijk))
+            CALL interp_1d(rad, p_rad,  distance, p(ijk))
+            !
+            DO ig = 1, ngas
+              CALL interp_1d(rad, ygc_rad(:,ig), distance, ygc(ijk,ig))
+            END DO
+            !
+            ep(ijk) = 1.D0
+            DO is = 1,nsolid
+              CALL interp_1d(rad, us_rad(:,is),  distance, us(ijk,is))
+              vs(ijk,is) = us(ijk,is) * SIN(angle)
+              us(ijk,is) = us(ijk,is) * COS(angle)
+              CALL interp_1d(rad, ws_rad(:,is),  distance, ws(ijk,is))
+              !
+              CALL interp_1d(rad, ts_rad(:,is),  distance, ts(ijk,is))
+              CALL interp_1d(rad, ep_rad(:,is), distance, rlk(ijk,is))
+              ep(ijk) = ep(ijk) - rlk(ijk,is)
+              rlk(ijk,is) = rlk(ijk,is) * rl(is)
+            END DO
+            !
+          ELSE
+            ! ... Set the initial conditions, as
+            ! ... specified in the input file on 
+            ! ... all cells enclosing the vent
+            !
+            ug(ijk) = u_gas 
+            IF (job_type == '3D') vg(ijk) = v_gas 
+            wg(ijk) = w_gas
+            !
+            tg(ijk) = t_gas
+            ep(ijk) = 1.D0 - SUM(ep_solid(1:nsolid))
+            p(ijk)  = p_gas
+            !
+            DO ig = 1, ngas
+              ygc(ijk,ig) = vent_ygc(gas_type(ig))
+            END DO
+            !
+            DO is = 1,nsolid
+              us(ijk,is)  = u_solid(is) 
+              IF (job_type == '3D') vs(ijk,is)  = v_solid(is) 
+              ws(ijk,is) = w_solid(is)
+              !
+              ts(ijk,is)  = t_solid(is)
+              rlk(ijk,is) = ep_solid(is)*rl(is)
+            END DO
+          END IF
+!          
           ! ... check gas components closure relation
           !
           ygcsum = SUM(ygc(ijk,:))
           IF ( ygcsum /= 1.D0 ) THEN
             ygc(ijk,ngas) = 1.D0 - SUM( ygc(ijk,1:ngas-1) )
           END IF
-          
+!          
           ! ... Mixture density is corrected in those cells
           ! ... partially filled by the topography in order
           ! ... to respect the mass flux
@@ -300,7 +344,7 @@
           ! ... If 'wrat' is greater than 1, the inlet profile
           ! ... decreases to 0 towards the vent rim as a power law.
           ! 
-          IF (wrat > 1.D0) THEN
+          IF (wrat > 1.D0 .AND. ipro == 0) THEN
             beta = 1.D0 / (wrat - 1.D0)
             dey = y(j)-yvent
             dex = x(i)-xvent
@@ -334,6 +378,62 @@
 
       RETURN
       END SUBROUTINE set_ventc
+!-----------------------------------------------------------------------
+      SUBROUTINE read_radial_profile
+      USE parallel, ONLY: mpime, root
+      IMPLICIT NONE
+      INTEGER :: raddim, is, n, ig
+!
+      IF (mpime == root) THEN
+              OPEN(16,FILE=TRIM(rad_file),STATUS='UNKNOWN')
+              READ(16,*) raddim
+      END IF
+!
+      CALL bcast_integer(raddim,1,root)
+!
+      ALLOCATE (ug_rad(raddim),wg_rad(raddim), &
+          tg_rad(raddim), p_rad(raddim), rad(raddim))
+      ALLOCATE (ygc_rad(raddim,ngas))
+      ALLOCATE (us_rad(raddim,nsolid), &
+          ws_rad(raddim,nsolid), ts_rad(raddim,nsolid), ep_rad(raddim,nsolid))
+!
+      IF (mpime == root) THEN
+              READ(16,*) (rad(n), n=1, raddim)
+              READ(16,*) (ug_rad(n), n=1, raddim)
+              READ(16,*) (wg_rad(n), n=1, raddim)
+              READ(16,*) (tg_rad(n), n=1, raddim)
+              READ(16,*) (p_rad(n), n=1, raddim)
+              DO ig = 1, ngas
+                READ(16,*) (ygc_rad(n,ig), n=1, raddim)
+              END DO
+              DO is = 1, nsolid
+                READ(16,*) (us_rad(n,is), n=1, raddim)
+                READ(16,*) (ws_rad(n,is), n=1, raddim)
+                READ(16,*) (ts_rad(n,is), n=1, raddim)
+                READ(16,*) (ep_rad(n,is), n=1, raddim)
+              END DO
+      END IF
+!
+      CALL bcast_real(rad,raddim,root)
+      CALL bcast_real(ug_rad,raddim,root)
+      CALL bcast_real(wg_rad,raddim,root)
+      CALL bcast_real(tg_rad,raddim,root)
+      CALL bcast_real(p_rad,raddim,root)
+      CALL bcast_real(ygc_rad,raddim*ngas,root)
+      CALL bcast_real(us_rad,raddim*nsolid,root)
+      CALL bcast_real(ws_rad,raddim*nsolid,root)
+      CALL bcast_real(ts_rad,raddim*nsolid,root)
+      CALL bcast_real(ep_rad,raddim*nsolid,root)
+!
+      IF (mpime == root) CLOSE(16)
+!
+      RETURN
+      END SUBROUTINE read_radial_profile
+!-----------------------------------------------------------------------
+      SUBROUTINE write_radial_profile
+      IMPLICIT NONE
+      RETURN
+      END SUBROUTINE write_radial_profile
 !-----------------------------------------------------------------------
       SUBROUTINE correct_vent_density(ijk,k,alpha)
 !

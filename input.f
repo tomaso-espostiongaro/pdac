@@ -87,7 +87,8 @@
       USE initial_conditions, ONLY: density_specified
       USE vent_conditions, ONLY: u_gas,v_gas,w_gas,p_gas,t_gas, wrat, &
           u_solid, v_solid, w_solid,  ep_solid, t_solid, base_radius, &
-          crater_radius, vent_radius, xvent, yvent, ivent, iali, irand
+          crater_radius, vent_radius, xvent, yvent, ivent, iali, irand, &
+          ipro, rad_file
       USE immersed_boundaries, ONLY: immb
       USE iterative_solver, ONLY: inmax, maxout, omega, optimization
       USE io_restart, ONLY: max_seconds, nfil
@@ -130,7 +131,8 @@
       NAMELIST / topography / dem_file, itp, iavv, flatten_crater, &
         rim_quota, imap, filtersize, cellsize
       
-      NAMELIST / inlet / ivent, iali, irand, wrat, crater_radius, &
+      NAMELIST / inlet / ivent, iali, irand, ipro, rad_file, wrat, &
+        crater_radius, &
         xvent, yvent, vent_radius, base_radius, u_gas, v_gas, w_gas,  &
         p_gas, t_gas, u_solid, v_solid, w_solid, ep_solid, t_solid, &
         vent_O2, vent_N2, vent_CO2, vent_H2, vent_H2O, vent_Air, vent_SO2
@@ -251,6 +253,8 @@
       ivent = 0               ! 0: specify inlet blocks 1: circular vent
       iali  = 0               ! 1: vent antialiasing ON
       irand = 0               ! 1: circular vent specified on average
+      ipro = 0                ! 1: inlet radial profile
+      rad_file = 'profile.rad'! file with the radial profile
       xvent  = 0.D0           ! coordinates of the vent
       yvent  = 0.D0           ! coordinates of the vent
       vent_radius = 100.D0    ! vent radius
@@ -456,6 +460,8 @@
       CALL bcast_integer(ivent,1,root)
       CALL bcast_integer(iali,1,root)
       CALL bcast_integer(irand,1,root)
+      CALL bcast_integer(ipro,1,root)
+      CALL bcast_character(rad_file,80,root)
       CALL bcast_real(xvent,1,root)
       CALL bcast_real(yvent,1,root)
       CALL bcast_real(vent_radius,1,root)
@@ -813,6 +819,10 @@
           CALL iotk_write_begin( iuni_nml, "inlet" )
             CALL iotk_write_dat( iuni_nml, "ivent", ivent )
             CALL iotk_write_dat( iuni_nml, "iali", iali )
+            CALL iotk_write_dat( iuni_nml, "ipro", ipro )
+            CALL iotk_write_begin( iuni_nml, "rad_file" )
+              WRITE( iuni_nml, * ) rad_file
+            CALL iotk_write_end( iuni_nml, "rad_file" )
             CALL iotk_write_dat( iuni_nml, "wrat", wrat )
             CALL iotk_write_dat( iuni_nml, "irand", irand )
             CALL iotk_write_dat( iuni_nml, "xvent", xvent )

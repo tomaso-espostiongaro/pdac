@@ -179,6 +179,52 @@
       RETURN
       END SUBROUTINE outp_map
 !----------------------------------------------------------------------
+      SUBROUTINE write_radial_profile_2d
+!
+      USE dimensions, ONLY: nsolid, ngas, nx, nz
+      USE eos_gas, ONLY: xgc, ygc
+      USE gas_constants, ONLY: gas_type
+      USE gas_solid_density, ONLY: rlk
+      USE gas_solid_velocity, ONLY: ug, vg, wg
+      USE gas_solid_velocity, ONLY: us, vs, ws
+      USE gas_solid_temperature, ONLY: tg, ts
+      USE grid, ONLY: zb, x
+      USE io_restart, ONLY: write_array
+      USE parallel, ONLY: nproc, mpime, root, group
+      USE particles_constants, ONLY: rl, inrl
+      USE pressure_epsilon, ONLY: p
+      USE time_parameters, ONLY: time
+      USE turbulence_model, ONLY: modturbo
+      USE control_flags, ONLY: job_type
+      USE volcano_topography, ONLY: rim_quota
+      IMPLICIT NONE
+      INTEGER :: n, is, ig, kq, k
+
+      DO k = 1, nz
+        IF (zb(k) <= rim_quota) kq = k
+      END DO
+      
+        OPEN(16,FILE='radial_profile.dat')
+        WRITE(16,*) nx
+        WRITE(16,*) (x(n), n=1, nx)
+        WRITE(16,*) (ug(n + (kq-1)*nx), n=1, nx)
+        WRITE(16,*) (wg(n + (kq-1)*nx), n=1, nx)
+        WRITE(16,*) (tg(n + (kq-1)*nx), n=1, nx)
+        WRITE(16,*) (p(n + (kq-1)*nx), n=1, nx)
+        DO ig = 1, ngas
+          WRITE(16,*) (ygc(n,ig), n=1, nx)
+        END DO
+        DO is = 1, nsolid
+          WRITE(16,*) (us(n + (kq-1)*nx,is), n=1, nx)
+          WRITE(16,*) (ws(n + (kq-1)*nx,is), n=1, nx)
+          WRITE(16,*) (ts(n + (kq-1)*nx,is), n=1, nx)
+          WRITE(16,*) (rlk(n + (kq-1)*nx,is)*inrl(is), n=1, nx)
+        END DO
+        CLOSE(16)
+
+      RETURN
+      END SUBROUTINE write_radial_profile_2d
+!----------------------------------------------------------------------
       SUBROUTINE outp
 !
       USE dimensions, ONLY: nsolid, ngas

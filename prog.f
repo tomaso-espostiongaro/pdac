@@ -20,6 +20,7 @@
       USE io_restart, ONLY: tapewr, max_seconds
       USE iterative_solver, ONLY: iter, nit
       USE output_dump, ONLY: outp, shock_tube_out, outp_map, imap
+      USE output_dump, ONLY: write_radial_profile_2d
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: cps
       USE pressure_epsilon, ONLY: p, ep
@@ -41,7 +42,7 @@
       INTEGER :: info
       INTEGER :: is
       INTEGER :: ijk
-      INTEGER :: ig, rk
+      INTEGER :: ig, rk, n
       INTEGER :: myrank
       REAL*8 :: dt0
       REAL*8 :: w0, w1, wmax
@@ -55,9 +56,12 @@
       REAL*8 :: mptimbdry, mptimfieldn, mptimturbo, mptimtilde, &
                 mptimiter, mptimygas, mptimtem, mptimout, mptimres, mptimtot
       REAL*8 :: xgcl(max_ngas)
+      REAL*8, ALLOCATABLE :: array(:)
       
       LOGICAL :: stop_now
 !
+      ALLOCATE(array(ncint))
+
       IF( timing ) then
          s0 = cpclock()
          call cpu_time(t0)
@@ -299,9 +303,11 @@
 ! ... Write OUTPUT file
 ! 
         IF(MOD(sweep,nprint) == 0) THEN
-          IF (imap > 0 .AND. itp >= 1) CALL outp_map(tg)
+          array = tg
+          IF (imap > 0 .AND. itp >= 1) CALL outp_map(array)
           CALL outp
         ENDIF
+        CALL write_radial_profile_2d
 !
         IF( timing ) then
           s11 = cpclock()
