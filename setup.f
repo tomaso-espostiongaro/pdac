@@ -42,6 +42,7 @@
       USE eos_gas, ONLY: mas, mole, cnvertg, xgc, ygc
       USE eos_solid, ONLY: cnverts
       USE gas_constants, ONLY: default_gas, present_gas
+      USE gas_constants, ONLY: gmw, rgas
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_temperature, ONLY: sieg
@@ -60,7 +61,7 @@
       INTEGER :: x1, x2, z1, z2
       INTEGER :: ig, is
       REAL*8 :: zrif, prif, trif
-      REAL*8 :: ymd
+      REAL*8 :: ymd, tem
 !
       CALL grid_setup( zzero )
       CALL setc
@@ -121,6 +122,8 @@
 !
         DO n = 1, no
           IF ( iob(n)%typ == 1 .OR. iob(n)%typ == 5 ) THEN
+
+            tem = pob(n)/(rgas*tgob(n))*gmw(6)
 
             DO ijk = 1, ncint
               imesh = myijk( ip0_jp0_kp0_ , ijk )
@@ -334,6 +337,7 @@
 ! set useful constants 
 !
       gammaair = 1.33D0                          ! air adiabatic constant
+      gammaair = 1.4D0                          ! air adiabatic constant
       gamn     = (gammaair - 1.D0) / gammaair    ! useful constant ! 
       c_joule = 4.186D0                          ! cal per joule
       c_erg   = 4.186D7                          ! cal per erg

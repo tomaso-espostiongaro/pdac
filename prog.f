@@ -7,7 +7,7 @@
       USE domain_decomposition, ONLY: ncint, myijk
       USE enthalpy_matrix, ONLY: ftem
       USE environment, ONLY: cpclock, timing
-      USE eos_gas, ONLY: mole, eosg, rags
+      USE eos_gas, ONLY: mole, caloric_eosg, thermal_eosg
       USE eos_gas, ONLY: ygc, rgpgc, xgc, cg
       USE eos_solid, ONLY: eosl
       USE gas_components, ONLY: ygas
@@ -18,11 +18,12 @@
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE io_restart, ONLY: tapewr
       USE iterative_solver, ONLY: iter
-      USE output_dump, ONLY: outp_2d, outp_3d, outp
+      USE output_dump, ONLY: outp, shock_tube_out
       USE particles_constants, ONLY: cps
       USE pressure_epsilon, ONLY: p, ep
       USE reactions, ONLY: rexion, irex
       USE tilde_energy, ONLY: htilde
+      USE tilde_momentum, ONLY: allocate_fluxes, deallocate_fluxes
       USE tilde_momentum, ONLY: tilde, fieldn
       USE time_parameters, ONLY: time, tpr, tdump, tstop, dt, itd
       USE time_parameters, ONLY: rungekut
@@ -32,7 +33,7 @@
       IMPLICIT NONE
 !
       INTEGER :: irest
-      INTEGER :: is, imesh
+      INTEGER :: is
       INTEGER :: ijk
       INTEGER :: ig, rk
       REAL*8 :: tdump1, tpri
@@ -79,19 +80,22 @@
 ! ... Compute derived fields from closure equations
 ! ... (all these fields must be dumped into restart file)
 !
-        DO ijk = 1, ncint
-
-           imesh = myijk( ip0_jp0_kp0_, ijk)
-! 
+         DO ijk = 1, ncint
+!
 ! ... Compute molar fractions of gas species
 !
            CALL mole( xgc(:,ijk), ygc(:,ijk) )
 !
-! ... Compute gas specific heat, density and temperature from gas Equation of State
+! ... Compute gas density from thermal Equation of State
 !
-           CALL eosg(rags, rog(ijk), cp(:,ijk), cg(ijk),   &
-                     tg(ijk), ygc(:,ijk), xgc(:,ijk),      &
-                     sieg(ijk), p(ijk), 1, 1, 0, imesh)
+           CALL thermal_eosg(rog(ijk), tg(ijk), p(ijk), xgc(:,ijk) )
+
+! ... Compute gas specific heat and gas temperature 
+! ... from caloric Equation of State
+!
+           CALL caloric_eosg(cp(:,ijk), cg(ijk), tg(ijk), ygc(:,ijk), &
+                             sieg(ijk), ijk)
+
            rgp(ijk)=rog(ijk)*ep(ijk)
 ! 
            DO ig=1,ngas
@@ -101,10 +105,9 @@
 ! ... Compute particle specific heat and temperatures from Equation of State
 !
            DO is=1,nsolid
-             CALL eosl(ts(ijk,is),ck(is,ijk),cps(is),sies(ijk,is),1,1)
+             CALL eosl(ts(ijk,is),ck(is,ijk),cps(is),sies(ijk,is))
            END DO
-
-        END DO
+         END DO
 !
        END IF
 
@@ -114,6 +117,7 @@
 !
        IF(time+0.1D0*dt >= tpri) THEN
          CALL outp
+!         CALL shock_tube_out
          tpri=tpri+tpr
        ENDIF
 
@@ -137,7 +141,7 @@
 !
        CALL fieldn
 !
-! ... Compute Turbulent viscosity from Smagorinsky sub-grid-stress model
+! ... Compute Turbulent viscosity from sub-grid-stress (sgs) model
 !
        IF (iturb >= 1)  CALL sgsg
        IF (iss >= 1)    CALL sgss
@@ -149,10 +153,12 @@
               timrestart = timrestart + (s4 - s3)
               tsgsg = tsgsg + (s5 - s4)
 !
+         CALL allocate_fluxes
+!
 ! ... Start the explicit Runge-Kutta iteration
 !
          dt0 = dt
-         DO rk = 1, rungekut
+         runge_kutta: DO rk = 1, rungekut
 !
                 IF( timing ) s5 = cpclock()
 !
@@ -170,33 +176,35 @@
            CALL iter
 !
                 IF( timing ) s7 = cpclock()
-! 
-! ... Solve the explicit transport equation of gas species
-!
-           IF (irex > 2) CALL rexion
-           CALL ygas
-
-                IF( timing ) s8 = cpclock()
 !
 ! ... Solve the explicit transport equations for enthalpies
 !
            CALL htilde
            CALL ftem
 !
+                IF( timing ) s8 = cpclock()
+! 
+! ... Solve the explicit transport equation of gas species
+!
+           IF (irex > 2) CALL rexion
+           CALL ygas
+
                 IF( timing ) s9 = cpclock()
 
                 timtilde = timtilde + (s6 - s5)
                 timiter = timiter + (s7 - s6)
-                timygas = timygas + (s8 - s7)
-                timtem = timtem + (s9 - s8)
+                timygas = timtem + (s8 - s7)
+                timtem = timygas + (s9 - s8)
 
-         END DO
-!
+         END DO runge_kutta
 ! ... End the Runge-Kutta iteration
-!
          dt = dt0
+!
+         CALL deallocate_fluxes
+!
+! ... Advance time
          time = time + dt
-
+!
 !------------------------------------------
       END DO time_sweep
 !------------------------------------------

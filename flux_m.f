@@ -534,7 +534,7 @@
 !
 ! ... on Top volume boundary
 !
-      gradt = gradc
+      gradb = gradc
       gradc = gradt
       gradt = 2.D0 * indzpp * (dens%tt - dens%t)
 !

@@ -2,13 +2,11 @@
       MODULE gas_solid_density
 !----------------------------------------------------------------------
       IMPLICIT NONE
-      SAVE
 !
-      REAL*8, DIMENSION(:), ALLOCATABLE :: gas_density, gas_bulk_density
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: solid_bulk_density
-
       REAL*8, DIMENSION(:), ALLOCATABLE :: rgp, rgpn, rog
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: rlk, rlkn
+!
+      SAVE
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------

@@ -3,12 +3,8 @@
 !-----------------------------------------------------
       IMPLICIT NONE
 !
-
       REAL*8, DIMENSION(:),   ALLOCATABLE :: ug, vg, wg
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: us, vs, ws
-
-      REAL*8, DIMENSION(:),   ALLOCATABLE :: gas_velocity_r, gas_velocity_z, gas_velocity_x, gas_velocity_y
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: solid_velocity_r, solid_velocity_z, solid_velocity_x, solid_velocity_y
 !
       SAVE
 !-----------------------------------------------------

@@ -25,11 +25,10 @@
       SUBROUTINE htilde
 ! ... (2D/3D-Compliant)
 !
-      USE convective_fluxes_sc, ONLY: fsc
       USE control_flags, ONLY: job_type
-      USE diffusive_fluxes, ONLY: hotc
       USE dimensions
-      USE domain_decomposition, ONLY: ncint, ncdom, myijk, data_exchange, meshinds
+      USE domain_decomposition, ONLY: myijk, data_exchange, meshinds
+      USE domain_decomposition, ONLY: ncint, ncdom
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: sieg, sies, tg, ts
@@ -37,9 +36,10 @@
       USE grid, ONLY: dx, dy, dz, indx, indy, indz, inx
       USE grid, ONLY: fl_l
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE particles_constants, ONLY: inrl, kap
+      USE particles_constants, ONLY: inrl
       USE pressure_epsilon, ONLY: p, pn, ep
-      USE set_indexes
+      USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
+      USE set_indexes, ONLY: ijke, ijkw, ijkn, ijks, ijkt, ijkb
       USE time_parameters, ONLY: dt
       USE turbulence_model, ONLY: kapgt, iturb
       IMPLICIT NONE
@@ -52,11 +52,6 @@
       REAL*8 :: indxc, indyc, indzc, ugc, vgc, wgc
       INTEGER :: is, m, l, is1
       INTEGER :: i, j, k, ijk, imesh
-      TYPE(stencil) :: u, v, w, dens, enth
-      TYPE(stencil) :: eps, temp, kappa
-!
-      ALLOCATE(rhg(ncint))
-      ALLOCATE(rhs(ncint,nsolid))
 !
       ALLOCATE(egfe(ncdom), egft(ncdom))
       ALLOCATE(esfe(ncdom,nsolid), esft(ncdom,nsolid))
@@ -80,14 +75,13 @@
         esfn = 0.0D0;  hsfn = 0.0D0
       END IF
 !
-      rhg = 0.0D0
-      rhs = 0.0D0      
-!
       IF (iturb >= 1) THEN
         kapgt = kapgt + kapg
       ELSE IF (iturb == 0) THEN
         kapgt = kapg
       END IF
+      kapg  = 0.D0
+      kapgt = 0.D0
 !
       CALL data_exchange(sieg)
       CALL data_exchange(sies)
@@ -95,6 +89,132 @@
       CALL data_exchange(ts)
       CALL data_exchange(kapgt)
 !
+! ... Compute East, North, and Top fluxes in every cell
+! ... within the computational domain
+! 
+      CALL compute_all_fluxes
+!
+! ... fluxes on left and bottom sides keep values
+! ... entering from neighbouring cells.
+!
+      egfx = 0.D0; egfy = 0.D0; egfz = 0.D0
+      esfx = 0.D0; esfy = 0.D0; esfz = 0.D0
+      indxc = 0.D0 ; indyc = 0.D0 ; indzc = 0.D0
+      ugc = 0.D0 ; vgc = 0.D0 ; wgc = 0.D0
+!
+      DO ijk = 1, ncint
+        IF(fl_l(ijk) == 1) THEN
+          CALL meshinds(ijk,imesh,i,j,k)
+          CALL subscr(ijk)
+! 
+          egfx = egfe(ijk) - egfe(imjk)
+          egfz = egft(ijk) - egft(ijkm)
+!
+          IF (job_type == '3D') THEN
+            egfy = egfn(ijk) - egfn(ijmk)
+          END IF
+
+          flx = dt * indx(i) * egfx * inx(i) +   &
+                dt * indy(j) * egfy          +   &
+                dt * indz(k) * egfz
+!
+          indxc = 1.D0/(dx(i)+(dx(i+1)+dx(i-1))*0.5D0)
+          indzc = 1.D0/(dz(k)+(dz(k+1)+dz(k-1))*0.5D0)
+          ugc = (ug(ijk)+ug(imjk))/2.D0
+          wgc = (wg(ijk)+wg(ijkm))/2.D0
+
+          IF (job_type == '3D') THEN
+            indyc = 1.D0 / (dy(j)+(dy(j+1)+dy(j-1))*0.5D0)
+            vgc = (vg(ijk)+vg(ijmk))/2.D0
+          END IF
+!
+          dpxyz= dt * indxc * ugc * (p(ijke)-p(ijkw)) +   &
+                 dt * indyc * vgc * (p(ijkn)-p(ijks)) +   &
+                 dt * indzc * wgc * (p(ijkt)-p(ijkb))
+!
+          deltap = ep(ijk) * (p(ijk) - pn(ijk) + dpxyz)
+!
+          rhg(ijk) = - flx + deltap
+!
+! ... Same procedure carried out for solids
+!
+          DO is=1, nsolid
+           IF (rlk(imjk,is) * inrl(is) <= 1.D-9) THEN
+             esfx = esfe(ijk, is)
+           ELSE
+             esfx = esfe(ijk, is) - esfe(imjk, is)
+           END IF
+
+           IF (rlk(ijkm,is) * inrl(is) <= 1.D-9) THEN
+             esfz = esft(ijk, is)
+           ELSE
+             esfz = esft(ijk, is) - esft(ijkm, is)
+           END IF
+
+           IF (job_type == '3D') THEN
+             IF (rlk(ijmk,is) * inrl(is) <= 1.D-9) THEN
+               esfy = esfn(ijk, is)
+             ELSE
+               esfy = esfn(ijk, is) - esfn(ijmk, is)
+             END IF
+           END IF
+!
+            flx = dt * indx(i) * esfx * inx(i) +  &
+                  dt * indy(j) * esfy          +  &
+                  dt * indz(k) * esfz
+!
+            rhs(ijk,is) = - flx
+          END DO
+!
+        END IF
+      END DO
+!
+!      CALL test_fluxes
+!
+      DEALLOCATE(egfe, egft)
+      DEALLOCATE(esfe, esft)
+!
+      DEALLOCATE(hgfe, hgft)
+      DEALLOCATE(hsfe, hsft)
+!
+      IF (job_type == '3D') THEN
+        DEALLOCATE(egfn)
+        DEALLOCATE(esfn)
+        DEALLOCATE(hgfn)
+        DEALLOCATE(hsfn)
+      END IF
+!
+      RETURN
+      END SUBROUTINE htilde
+!----------------------------------------------------------------------
+      SUBROUTINE compute_all_fluxes
+
+      USE control_flags, ONLY: job_type
+      USE convective_fluxes_sc, ONLY: fsc
+      USE diffusive_fluxes, ONLY: hotc
+      USE dimensions, ONLY: nsolid
+      USE domain_decomposition, ONLY: ncint, ncdom
+      USE domain_decomposition, ONLY: data_exchange
+      USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
+      USE gas_solid_density, ONLY: rgp, rlk
+      USE gas_solid_temperature, ONLY: sieg, sies, tg, ts
+      USE gas_solid_viscosity, ONLY: kapg
+      USE grid, ONLY: fl_l
+      USE particles_constants, ONLY: inrl, kap
+      USE pressure_epsilon, ONLY: p, ep
+      USE set_indexes, ONLY: nb, rnb, stencil, cte
+      USE set_indexes, ONLY: imjk, ijmk, ijkm
+      USE set_indexes
+      USE turbulence_model, ONLY: kapgt
+
+      IMPLICIT NONE
+!
+      REAL*8 :: zero
+      INTEGER :: is
+      INTEGER :: ijk
+      TYPE(stencil) :: u, v, w, dens, enth
+      TYPE(stencil) :: eps, temp, kappa
+
       DO ijk = 1, ncint
         IF(fl_l(ijk) == 1) THEN
           CALL subscr(ijk)
@@ -204,101 +324,10 @@
         CALL data_exchange(egfn)
         CALL data_exchange(esfn)
       END IF
-!
-! ... fluxes on left and bottom sides keep values
-! ... entering from neighbouring cells.
-!
-      egfx = 0.D0; egfy = 0.D0; egfz = 0.D0
-      esfx = 0.D0; esfy = 0.D0; esfz = 0.D0
-      indxc = 0.D0 ; indyc = 0.D0 ; indzc = 0.D0
-      ugc = 0.D0 ; vgc = 0.D0 ; wgc = 0.D0
-!
-      DO ijk = 1, ncint
-        IF(fl_l(ijk) == 1) THEN
-          CALL meshinds(ijk,imesh,i,j,k)
-          CALL subscr(ijk)
-! 
-          egfx = egfe(ijk) - egfe(imjk)
-          egfz = egft(ijk) - egft(ijkm)
-!
-          IF (job_type == '3D') THEN
-            egfy = egfn(ijk) - egfn(ijmk)
-          END IF
 
-          flx = dt * indx(i) * egfx * inx(i) +   &
-                dt * indy(j) * egfy          +   &
-                dt * indz(k) * egfz
-!
-          indxc = 1.D0/(dx(i)+(dx(i+1)+dx(i-1))*0.5D0)
-          indzc = 1.D0/(dz(k)+(dz(k+1)+dz(k-1))*0.5D0)
-          ugc = (ug(ijk)+ug(imjk))/2.D0
-          wgc = (wg(ijk)+wg(ijkm))/2.D0
-
-          IF (job_type == '3D') THEN
-            indyc = 1.D0 / (dy(j)+(dy(j+1)+dy(j-1))*0.5D0)
-            vgc = (vg(ijk)+vg(ijmk))/2.D0
-          END IF
-!
-          dpxyz= dt * indxc * ugc * (p(ijke)-p(ijkw)) +   &
-                 dt * indyc * vgc * (p(ijkn)-p(ijks)) +   &
-                 dt * indzc * wgc * (p(ijkt)-p(ijkb))
-!
-          deltap = ep(ijk) * (p(ijk) - pn(ijk) + dpxyz)
-!
-          rhg(ijk) = - flx + deltap
-!
-! ... Same procedure carried out for solids
-!
-          DO is=1, nsolid
-           IF (rlk(imjk,is) * inrl(is) <= 1.D-9) THEN
-             esfx = esfe(ijk, is)
-           ELSE
-             esfx = esfe(ijk, is) - esfe(imjk, is)
-           END IF
-
-           IF (rlk(ijkm,is) * inrl(is) <= 1.D-9) THEN
-             esfz = esft(ijk, is)
-           ELSE
-             esfz = esft(ijk, is) - esft(ijkm, is)
-           END IF
-
-           IF (job_type == '3D') THEN
-             IF (rlk(ijmk,is) * inrl(is) <= 1.D-9) THEN
-               esfy = esfn(ijk, is)
-             ELSE
-               esfy = esfn(ijk, is) - esfn(ijmk, is)
-             END IF
-           END IF
-!
-            flx = dt * indx(i) * esfx * inx(i) +  &
-                  dt * indy(j) * esfy          +  &
-                  dt * indz(k) * esfz
-!
-            rhs(ijk,is) = - flx
-          END DO
-!
-        END IF
-      END DO
-!
-!      CALL test_fluxes
-!
-      DEALLOCATE(egfe, egft)
-      DEALLOCATE(esfe, esft)
-!
-      DEALLOCATE(hgfe, hgft)
-      DEALLOCATE(hsfe, hsft)
-!
-      IF (job_type == '3D') THEN
-        DEALLOCATE(egfn)
-        DEALLOCATE(esfn)
-        DEALLOCATE(hgfn)
-        DEALLOCATE(hsfn)
-      END IF
-!
       RETURN
-      END SUBROUTINE htilde
+      END SUBROUTINE compute_all_fluxes
 !----------------------------------------------------------------------
-
       SUBROUTINE test_fluxes
 !
       USE control_flags, ONLY: job_type

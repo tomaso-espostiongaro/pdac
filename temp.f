@@ -2,12 +2,16 @@
       MODULE gas_solid_temperature
 !----------------------------------------------------------------------
       IMPLICIT NONE
-      SAVE
 !
-      REAL*8, DIMENSION(:),   ALLOCATABLE :: gas_enthalpy, gas_temperature
+! ... gas specific internal enthalpy, gas temperature
+
       REAL*8, DIMENSION(:),   ALLOCATABLE :: sieg, siegn, tg
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: solid_enthalpy, solid_temperature
+!
+! ... solid specific internal enthalpy, solid temperature
+
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: sies, siesn, ts
+!
+      SAVE
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------

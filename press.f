@@ -4,9 +4,6 @@
       IMPLICIT NONE
       SAVE
 !
-      REAL*8, DIMENSION(:), ALLOCATABLE :: gas_pressure
-      REAL*8, DIMENSION(:), ALLOCATABLE :: void_fraction
-!
       REAL*8, DIMENSION(:), ALLOCATABLE :: ep
       REAL*8, DIMENSION(:), ALLOCATABLE :: p, pn
 !

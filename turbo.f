@@ -13,7 +13,6 @@
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: must   ! solid turbulent viscosity
 
 
-      REAL*8, DIMENSION(:), ALLOCATABLE :: smag_factor, smag_coeff
       REAL*8, DIMENSION(:), ALLOCATABLE :: smag, scoeff
 !
       INTEGER :: iturb, iss, modturbo

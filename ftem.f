@@ -19,7 +19,7 @@
 !
       USE control_flags, ONLY: job_type
       USE dimensions
-      USE domain_decomposition, ONLY: ncint, data_exchange
+      USE domain_decomposition, ONLY: ncint
       USE eos_gas, ONLY: cg
       USE gas_solid_density, ONLY: rgp, rgpn, rlk, rlkn, rog
       USE gas_solid_temperature, ONLY: sieg, siegn, sies, siesn
@@ -103,8 +103,6 @@
 !
       DEALLOCATE(at)
       DEALLOCATE(bt)
-      DEALLOCATE(rhg)
-      DEALLOCATE(rhs)
 !
       RETURN
       END SUBROUTINE

@@ -2,16 +2,20 @@
       MODULE eos_gas
 !----------------------------------------------------------------------
       IMPLICIT NONE
-      SAVE
 !
-      REAL*8, DIMENSION(:), ALLOCATABLE :: gas_specific_heat
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: gc_mass_fraction
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: gc_molar_fraction
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: gc_bulk_density
-      REAL*8, DIMENSION(:), ALLOCATABLE :: cg
+! ... gas specific heat
+
+      REAL*8, DIMENSION(:), ALLOCATABLE :: cg 
+
+! ... gas components mass and molar fractions
+
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: ygc, xgc
+
+! ... gas component bulk densities
+
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: rgpgc, rgpgcn
-      REAL*8 :: rags
+!
+      SAVE
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
@@ -82,24 +86,66 @@
       RETURN
       END SUBROUTINE mas
 !----------------------------------------------------------------------
-      SUBROUTINE eosg(rags, rog, cpgc, cgas, tg, yg, xg, sieg, p, itemp, &
-                      irhog, isound, imesh)
+      SUBROUTINE csound(sqc, rog, p)
 !
-! ... updates gas density with new pressure
+! ... Compute gas density as a function of temperature and pressure
+! ... Compute sqared gas sound speed
+!
+      USE gas_constants, ONLY: gammaair
+      IMPLICIT NONE
+!
+      REAL*8, INTENT(OUT) :: sqc
+      REAL*8, INTENT(IN) :: rog, p
+!
+      sqc = gammaair * p / rog
+!
+      RETURN
+      END SUBROUTINE csound
+!----------------------------------------------------------------------
+      SUBROUTINE thermal_eosg(rog, tg, p, xg)
+!
+! ... Compute gas density as a function of temperature and pressure
+! ... Compute sqared gas sound speed
+!
+      USE dimensions, ONLY: ngas
+      USE gas_constants, ONLY: gmw, rgas
+      IMPLICIT NONE
+!
+      REAL*8, INTENT(OUT) :: rog
+      REAL*8, INTENT(IN) :: tg, p
+      REAL*8, INTENT(IN) :: xg(:)
+!
+      REAL*8 :: mg
+      INTEGER :: ig
+!
+      mg=0.D0
+      DO ig=1,ngas
+        mg = mg + xg(ig) * gmw(ig)
+      END DO
+!
+      rog = p/(rgas*tg)*mg
+!
+      RETURN
+      END SUBROUTINE thermal_eosg
+!----------------------------------------------------------------------
+      SUBROUTINE caloric_eosg(cpgc, cgas, tg, yg, sieg, ijk)
+!
+! ... Iterative inversion of the enthalpy-temperature law
+! ... (the gas thermal capacity depends on the temperature cg=cg(T) )
 !
       USE dimensions
-      USE grid, ONLY: fl
+      USE grid, ONLY: fl_l
       USE gas_constants, ONLY: gmw, c_joule, rgas, tzero, hzerog, gammaair
+      USE parallel, ONLY: mpime
       USE specific_heat_module, ONLY:  hcapg
       USE time_parameters, ONLY: time
       IMPLICIT NONE
 !
-      INTEGER, INTENT(IN) :: imesh
-      REAL*8, INTENT(IN) :: yg(:), xg(:), sieg, p
-      REAL*8, INTENT(OUT) :: rog, rags
+      REAL*8, INTENT(IN) :: sieg
+      REAL*8, INTENT(IN) :: yg(:)
       REAL*8, INTENT(OUT) :: cpgc(:), cgas
       REAL*8, INTENT(INOUT) :: tg
-      INTEGER :: itemp, irhog, isound
+      INTEGER, INTENT(IN) :: ijk
 !
       REAL*8 :: tgnn, mg, hc, ratmin
       REAL*8 :: tg0, sieg0, cgas0
@@ -107,12 +153,8 @@
       INTEGER :: ig
       PARAMETER( nlmax = 2000) 
       PARAMETER( ratmin = 1.D-8) 
-!
-      IF (fl(imesh) == 1) THEN
-        IF(itemp > 0) THEN
-!
-! ... iterative inversion of the enthalpy-temperature law
-! ... (the gas thermal capacity depends on the temperature cg=cg(T) )
+
+      IF (fl_l(ijk) == 1) THEN
           tg0=tg
           sieg0=sieg
           DO ii = 1, nlmax
@@ -127,32 +169,22 @@
             tg = tzero+(sieg-hzerog)/cgas
             IF (DABS((tgnn-tg)/tgnn) <= ratmin) GOTO 223
           END DO
+!**********************************************************************
           WRITE(8,*) 'max number of iteration reached in eosg'
-          WRITE(8,*) 'time:',time, 'cell:',imesh
+          WRITE(8,*) 'time:', time, 'proc:', mpime, 'cell:', ijk 
           WRITE(8,*) 'temperature:',tg0, 'enthalpy:',sieg0
           WRITE(8,*) 'specific heat:',cgas0
-          CALL error( ' eosg ', ' max number of iteration reached in eosg ', 1 )
+          CALL error( 'eosg', 'max number of iteration reached in eosg', 1)
+!**********************************************************************
   223     CONTINUE
-        ENDIF
-!
-        IF(irhog > 0) THEN
-          mg=0.D0
-          DO ig=1,ngas
-            mg = mg + xg(ig) * gmw(ig)
-          END DO
-          rog = p/(rgas*tg)*mg
-        ENDIF
-!
-        IF(isound > 0) rags = rog/p/gammaair
       END IF
 !
       RETURN
-      END SUBROUTINE eosg
+      END SUBROUTINE caloric_eosg
 !----------------------------------------------------------------------
-
       SUBROUTINE cnvertg( ijk )
 !
-! ... computes thermodynamic mean quantities
+! ... setup thermodynamic mean quantities
 !
       USE dimensions
       USE gas_constants, ONLY: gmw, c_joule, rgas, tzero, hzerog

@@ -25,8 +25,9 @@
       USE dimensions
       USE domain_decomposition, ONLY: ncint, ncdom, data_exchange
       USE domain_decomposition, ONLY: myijk, meshinds
-      USE eos_gas, ONLY: eosg, ygc, xgc, rags, cg
-      USE gas_solid_temperature, ONLY: sieg, tg
+      USE enthalpy_matrix, ONLY: ftem
+      USE eos_gas, ONLY: thermal_eosg, xgc, cg
+      USE gas_solid_temperature, ONLY: tg
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
       USE grid, ONLY: fl_l
@@ -41,8 +42,8 @@
       USE set_indexes, ONLY: stencil, nb, rnb
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
       USE specific_heat_module, ONLY: cp
-      USE tilde_momentum, ONLY: appu, appv, appw
-      USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
+      USE tilde_energy, ONLY: htilde
+      USE tilde_momentum, ONLY: tilde
       USE time_parameters, ONLY: time, dt, timestart, tpr
       USE control_flags, ONLY: job_type
 !
@@ -150,6 +151,10 @@
 !
 !         call f_hpmstart( 2, ' SWEEP ' )
 !
+! ... Compute fluxes and forces in the momentum equation
+! ... (for fully implicit solution)
+!         CALL tilde
+
          mesh_loop: DO ijk = 1, ncint
 
            converge(ijk) = .FALSE.
@@ -186,7 +191,7 @@
                 d3 = dg
                 p3 = p(ijk)
                 kros = -1
-
+!
                 inner_loop: DO loop = 1, inmax
 !
                   ! ... Correct the pressure at current cell
@@ -197,20 +202,19 @@
                   ! ... to compute once the particle velocities 
                   ! ... and volumetric fractions ...
 !
+!                  CALL betas(conv(ijk), abeta(ijk), ijk)
                   IF( (loop > 1) .OR. (nit > 1) ) THEN
                     CALL padjust(p(ijk), kros, d3, p3, omega, abeta(ijk))
                   END IF
 !
                   ! ... Use equation of state to calculate gas density 
-                  ! ... from new pressure and old temperature.
+                  ! ... from (new) pressure and (old) temperature.
 !
-                  CALL eosg(rags,rog(ijk),cp(:,ijk),cg(ijk),      &    
-                            tg(ijk), ygc(:,ijk), xgc(:,ijk),      &
-                            sieg(ijk), p(ijk), 0, 1, 0, imesh)
-
+                  CALL thermal_eosg(rog(ijk),tg(ijk),p(ijk),xgc(:,ijk))
+!
                   rgp(ijk) = ep(ijk) * rog(ijk)
 !
-                  !IF( MOD( ijk, 100 ) == 0 ) call f_hpmstart( 5, ' ITER_masf ')
+                  !IF( MOD( ijk, 100 ) == 0 ) call f_hpmstart( 5, ' ITER_mas ')
 !
                   ! ... Update gas and particles velocities using the 
                   ! ... corrected pressure at current location. 
@@ -243,6 +247,12 @@
 
            END IF    
          END DO mesh_loop
+!
+! ... Update gas and particles enthalpy
+! ... (for fully implicit solution)
+!
+!         CALL htilde
+!         CALL ftem
 
 !        call f_hpmstop( 2 )
 
@@ -281,7 +291,7 @@
         IF(mustit == 0) THEN
           omega = omega0
 !*******************************************************************
-! ... write the final number of iterations
+! ... write out the final number of iterations
 !
           WRITE(6,277) time+dt, nit
  277      FORMAT('time = ', F8.3, '  nit = ', I4)
@@ -326,19 +336,10 @@
       DEALLOCATE(rgft)
       DEALLOCATE(rsfe)
       DEALLOCATE(rsft)
-      DEALLOCATE(rug)
-      DEALLOCATE(rwg)
-      DEALLOCATE(rus)
-      DEALLOCATE(rws)
-      DEALLOCATE(appu)
-      DEALLOCATE(appw)
 
       IF (job_type == '3D') THEN
         DEALLOCATE( rgfn )
         DEALLOCATE( rsfn )
-        DEALLOCATE( rvg )
-        DEALLOCATE( rvs )
-        DEALLOCATE( appv )
       END IF
 
       DEALLOCATE(conv)
@@ -364,14 +365,14 @@
 
         IF (job_type == '2D') THEN
 
-          CALL masf(rsfe(ijk,is),  rsft(ijk,is),    &
+          CALL fmas(rsfe(ijk,is),  rsft(ijk,is),    &
                     rsfe(imjk,is), rsft(ijkm,is),   &
                     dens, u, w, ijk)
 
         ELSE IF (job_type == '3D') THEN
 
           CALL rnb(v,vs(:,is),ijk)
-          CALL masf(rsfe(ijk,is),  rsfn(ijk,is),  rsft(ijk,is),    &
+          CALL fmas(rsfe(ijk,is),  rsfn(ijk,is),  rsft(ijk,is),    &
                     rsfe(imjk,is), rsfn(ijmk,is), rsft(ijkm,is),   &
                     dens, u, v, w, ijk)
 
@@ -437,14 +438,14 @@
 
         IF (job_type == '2D') THEN
         
-          CALL masf(rgfe(ijk),  rgft(ijk),    &
+          CALL fmas(rgfe(ijk),  rgft(ijk),    &
                     rgfe(imjk), rgft(ijkm),   &
                     dens, u, w, ijk)
 
         ELSE IF (job_type == '3D') THEN
 
           CALL rnb(v,vg,ijk)
-          CALL masf(rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &
+          CALL fmas(rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &
                     rgfe(imjk), rgfn(ijmk), rgft(ijkm),   &
                     dens, u, v, w, ijk)
         ENDIF
@@ -639,8 +640,7 @@
       USE convective_mass_fluxes, ONLY: upc_e, upc_n, upc_t
       USE convective_mass_fluxes, ONLY: upc_w, upc_s, upc_b
       USE control_flags, ONLY: job_type
-      USE eos_gas, ONLY: rags
-      USE gas_constants, ONLY: gammaair
+      USE eos_gas, ONLY: csound
       USE gas_solid_density, ONLY: rog, rgp
       USE grid, ONLY: dx, dy, dz, fl_l
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -653,7 +653,8 @@
       REAL*8 :: iepx, iepy, iepz
       REAL*8 :: dxm, dxp, dym, dyp, dzm, dzp
       REAL*8 :: indxm, indxp, indym, indyp, indzm, indzp
-      REAL*8 :: gam, csound, rbeta
+      REAL*8 :: rbeta, rags
+      REAL*8 :: sqc
        
       INTEGER :: nfle, nflw, nfln, nfls, nflt, nflb
       INTEGER :: i, j, k, imesh
@@ -741,11 +742,10 @@
           END IF
 
 !
-! ... Inverse of the squared sound velocity
+! ... Inverse of the squared sound velocity (perfect gas)
 !
-          gam = gammaair
-          rags = rog(ijk) / p(ijk) / gam
-          csound = DSQRT(1.0D0 /rags)
+          CALL csound(sqc,rog(ijk),p(ijk))
+          rags = 1.D0 / sqc
 !
 ! ... rbeta = dD_g/dP
 

@@ -26,7 +26,7 @@
       USE grid, ONLY: iob, flic, allocate_blbody, allocate_grid
       USE io_restart, ONLY: taperd, tapewr
       USE iterative_solver, ONLY: inmax, maxout, omega
-      USE output_dump, ONLY: nfil, recover_2d
+      USE output_dump, ONLY: nfil
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
      &    mpime, root
       USE particles_constants, ONLY: rl, inrl, kap, &
@@ -55,7 +55,7 @@
       INTEGER :: ig
       REAL*8 :: s0, s1, s2, s3, s4
       REAL*8 :: timtot, timprog, timdist, timsetup, timinit
-      LOGICAL :: debug = .FALSE.
+      LOGICAL :: debug = .TRUE.
 !
       IF(timing) s0 = cpclock()
 
@@ -211,7 +211,7 @@
       IF(itd == 2) THEN 
         CALL taperd
       ELSE IF (itd >= 3) THEN
-        CALL recover_2d
+        CALL error('setup','Output recovering not implemented',1)         
       END IF
 
 !

@@ -6,25 +6,21 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE eosl(tk, cps, ck, siek, iheat,itemp)
+      SUBROUTINE eosl(tk, cps, ck, siek)
 !
       USE dimensions
       USE gas_constants, ONLY: tzero, hzeros
       USE specific_heat_module, ONLY: hcaps
       IMPLICIT NONE
-      INTEGER, INTENT(IN) :: iheat, itemp
       REAL*8, INTENT(INOUT) :: tk
       REAL*8, INTENT(IN) ::  cps, siek
       REAL*8, INTENT(OUT) :: ck
 
-      IF(iheat > 0) CALL hcaps(ck, cps, tk)
-      IF(itemp > 0) THEN
-        tk = tzero + (siek-hzeros) / ck
-        CALL hcaps(ck, cps, tk)
-      ENDIF
+      CALL hcaps(ck, cps, tk)
+      tk = tzero + (siek-hzeros) / ck
 
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE eosl
 !----------------------------------------------------------------------
       SUBROUTINE cnverts(ijk)
 !
@@ -48,8 +44,6 @@
 !
       RETURN
       END SUBROUTINE cnverts
-
-
 !----------------------------------------------------------------------
       END MODULE eos_solid
 !----------------------------------------------------------------------

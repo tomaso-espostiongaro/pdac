@@ -5,8 +5,7 @@
 !
       INTEGER, PUBLIC :: muscl
       REAL*8, PUBLIC  :: beta
-
-      LOGICAL, PRIVATE:: vanleer, minmod, superbee, ultrabeta
+      INTEGER :: lim_type
 !
       SAVE
 !----------------------------------------------------------------------
@@ -21,20 +20,33 @@
       REAL*8, INTENT(OUT) :: limiter
       REAL*8, INTENT(IN)  :: erre
       
-      vanleer   = .FALSE.
-      minmod    = .FALSE.
-      superbee  = .FALSE.
-      ultrabeta = .TRUE.
+      SELECT CASE (lim_type)
 
-      IF (vanleer) THEN
+      CASE (1) !(VanLeer)
+
         limiter = ( DABS(erre) + erre ) / ( 1.D0 + DABS(erre) )
-      ELSE IF (minmod) THEN
+
+      CASE (2) !(minmod)
+
         limiter = MAX( 0.D0, MIN( erre, 1.D0 ))
-      ELSE IF (superbee) THEN
+
+      CASE (3) !(superbee)
+
         limiter = MAX( 0.D0, MIN( 2.D0*erre, 1.D0 ), MIN( erre, 2.D0 ))
-      ELSE IF (ultrabeta) THEN
+
+      CASE (4) !(ultrabeta)
+
         limiter = MAX( 0.D0, MIN( 2.D0*erre, ((1.D0-beta) + beta*erre), 2.D0 ))
-      END IF
+
+      CASE (0) !(beta unlimited)
+
+        limiter = (1.D0-beta) + beta*erre
+
+      CASE DEFAULT
+
+        limiter = 0.D0
+      
+      END SELECT
         
       END SUBROUTINE limiters
 !-----------------------------------------------------------------------

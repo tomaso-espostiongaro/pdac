@@ -57,7 +57,7 @@
 
       USE atmosphere, ONLY: w0, u0, p0, temp0, us0, ws0, ep0, epsmx0, gravx, gravz
       USE domain_decomposition, ONLY: mesh_partition
-      USE flux_limiters, ONLY: beta, muscl
+      USE flux_limiters, ONLY: beta, muscl, lim_type
       USE gas_constants, ONLY: default_gas
       USE grid, ONLY: dx, dy, dz, itc
       USE iterative_solver, ONLY: inmax, maxout, omega
@@ -90,7 +90,7 @@
       NAMELIST / particles / nsolid, diameter, density, sphericity, &
         viscosity, specific_heat, thermal_conductivity
 !
-      NAMELIST / numeric / rungekut, beta, muscl, inmax, maxout, omega
+      NAMELIST / numeric / rungekut, beta, muscl, lim_type, inmax, maxout, omega
 !
       INTEGER :: i, j, k, n, m, ig
       CHARACTER(LEN=80) :: card
@@ -148,6 +148,7 @@
 
       rungekut = 1
       beta = 0.25
+      lim_type = 4
       muscl = 0
       inmax = 8
       maxout = 1000
@@ -241,6 +242,7 @@
 
       CALL bcast_integer(rungekut,1,root)
       CALL bcast_real(beta,1,root)
+      CALL bcast_integer(lim_type,1,root)
       CALL bcast_integer(muscl,1,root)
       CALL bcast_integer(inmax,1,root)
       CALL bcast_integer(maxout,1,root)
