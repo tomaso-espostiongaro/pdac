@@ -526,20 +526,14 @@
 
         IF (ig /= ngas) CALL error('setup','wrong number of gas species',ig)
 
-      ELSE IF (itd == 2) THEN
-
-        DO igg = 1, max_ngas
-          IF (ANY(gas_type == igg)) present_gas(igg) = .TRUE.
+        DO ig = 1, ngas
+          IF( mpime == root ) THEN
+            WRITE(logunit,*) ' Gas ', ig, ' is type ', gas_type(ig)
+            IF (gas_type(ig)==0) CALL error('gas_check','control gas species',1)
+          END IF
         END DO
 
       END IF
-
-      DO ig = 1, ngas
-        IF( mpime == root ) THEN
-          WRITE(logunit,*) ' Gas ', ig, ' is type ', gas_type(ig)
-          IF (gas_type(ig)==0) CALL error('gas_check','control gas species',1)
-        END IF
-      END DO
 
       RETURN
       END SUBROUTINE gas_check
