@@ -51,8 +51,8 @@
       INTEGER :: is, m, l, is1
       INTEGER :: i, j, k, ijk, imesh
 
-      INTEGER :: b_e, b_w, b_t, b_b, b_n, b_s
-      !REAL*8 :: b_e, b_w, b_t, b_b, b_n, b_s
+      !INTEGER :: b_e, b_w, b_t, b_b, b_n, b_s
+      REAL*8 :: b_e, b_w, b_t, b_b, b_n, b_s
       REAL*8 :: ivf
 !
 ! ... Initialize the cell fractions for immersed boundaries
@@ -85,6 +85,7 @@
 ! ... within the computational domain
 ! 
       CALL compute_all_fluxes
+      !CALL test_fluxes
 !
 ! ... Fluxes on west, south, and bottom sides keep values
 ! ... entering from neighbouring cells.
@@ -424,7 +425,33 @@
 
       RETURN
       END SUBROUTINE compute_all_fluxes
+!----------------------------------------------------------------------
+      SUBROUTINE test_fluxes
+      USE domain_decomposition, ONLY: ncint, meshinds
+      USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
+      USE gas_solid_velocity, ONLY: ug
 
+      IMPLICIT NONE
+      INTEGER :: ijk, imesh, i, j, k
+
+      OPEN(UNIT=25,FILE='pdac.fl',STATUS='UNKNOWN')
+      WRITE(25,*) 'Test enthalpy fluxes ...'
+      WRITE(25,*)
+      DO ijk = 1, ncint
+        CALL subscr(ijk)
+        CALL meshinds(ijk,imesh,i,j,k)
+
+        !WRITE(25,100) ijk, i, j, k, egfe(ijk), egfn(ijk), egft(ijk)
+        WRITE(25,101) egfe(ijk), egfn(ijk), egft(ijk)
+
+      END DO
+
+ 100  FORMAT(4(I5),3(G20.10E2))
+ 101  FORMAT(3(G20.10E2))
+      CLOSE(25)
+      
+      RETURN
+      END SUBROUTINE test_fluxes
 !----------------------------------------------------------------------
       END MODULE tilde_energy
 !-----------------------------------------------------------

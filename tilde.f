@@ -377,6 +377,7 @@
 ! ... in the physical domain and ghost cells
 
       CALL compute_all_fluxes
+      !CALL test_fluxes
 !
 ! ... Fluxes on West, South and Bottom sides keep values 
 ! ... of East, North and Top fluxes from neighbouring cells.
@@ -733,7 +734,7 @@
 !
 ! ... Second order MUSCL correction
 !
-            IF (muscl > 0) THEN
+            IF (muscl > 1) THEN
               IF ( i /= nx-1 ) CALL muscl_flu(ugfe(ijk), ugft(ijk),   &
                                         dens_stagx, u, w, i, k)
               IF ( k /= nz-1 ) CALL muscl_flw(wgfe(ijk), wgft(ijk),   &
@@ -763,7 +764,7 @@
 !
 ! ... Second order MUSCL correction
 !
-              IF (muscl > 0) THEN
+              IF (muscl > 1) THEN
                 IF ( i /= nx-1 ) CALL muscl_flu(usfe(ijk,is), usft(ijk,is),  &
                                           dens_stagx, u, w, i, k)
                 IF ( k /= nz-1 ) CALL muscl_flw(wsfe(ijk,is), wsft(ijk,is),  &
@@ -780,8 +781,8 @@
 !
             ! ... Assemble computational stencil
             CALL rnb(u,ug,ijk)
-            CALL rnb(w,wg,ijk) 
             CALL rnb(v,vg,ijk)
+            CALL rnb(w,wg,ijk) 
             CALL nb ( dens, rgp, ijk )
 
             ! ... Interpolate density on the staggered grid
@@ -803,7 +804,7 @@
 !
 ! ... Second order MUSCL correction
 !
-            IF (muscl > 0) THEN
+            IF (muscl > 1) THEN
               IF ( i /= nx-1 ) &
                 CALL muscl_flu(ugfe(ijk), ugfn(ijk), ugft(ijk), &
                          dens_stagx, u, v, w, i, j, k)
@@ -846,7 +847,7 @@
 !
 ! ... Second order MUSCL correction
 !
-              IF (muscl > 0) THEN
+              IF (muscl > 1) THEN
                 IF ( i /= nx-1 ) &
                   CALL muscl_flu(usfe(ijk,is), usfn(ijk,is), usft(ijk,is), &
                            dens_stagx, u, v, w, i, j, k)
@@ -892,6 +893,34 @@
 !
       RETURN
       END SUBROUTINE compute_all_fluxes
+!----------------------------------------------------------------------
+      SUBROUTINE test_fluxes
+      USE domain_decomposition, ONLY: ncint, meshinds
+      USE grid, ONLY: flag
+      USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
+      USE gas_solid_velocity, ONLY: ug
+
+      IMPLICIT NONE
+      INTEGER :: ijk, imesh, i, j, k
+
+      OPEN(UNIT=25,FILE='pdac.fl',STATUS='UNKNOWN')
+      WRITE(25,*) 'Test momentum fluxes ...'
+      WRITE(25,*)
+      DO ijk = 1, ncint
+        CALL subscr(ijk)
+        CALL meshinds(ijk,imesh,i,j,k)
+          
+        !WRITE(25,101) ijk, i, j, k, ugfe(ijk), ugfn(ijk), ugft(ijk)
+        WRITE(25,101) ugfe(ijk), ugfn(ijk), ugft(ijk)
+
+      END DO
+
+ 100  FORMAT(4(I5),3(G20.10E2))
+ 101  FORMAT(3(G20.10E2))
+      CLOSE(25)
+
+      RETURN
+      END SUBROUTINE test_fluxes
 !----------------------------------------------------------------------
       END MODULE tilde_momentum
 !----------------------------------------------------------------------

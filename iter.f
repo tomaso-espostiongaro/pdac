@@ -175,6 +175,8 @@
           END IF
         END IF
       END DO
+
+      !CALL test_fluxes
 !
 ! ... Here Start the external iterative sweep.
 !/////////////////////////////////////////////////////////////////////
@@ -1138,7 +1140,7 @@
         CALL first_rnb(wg_,wg,ijk)
         IF (job_type == '3D') CALL first_rnb(vg_,vg,ijk)
 
-        IF (muscl /= 0) THEN
+        IF (muscl > 0) THEN
           CALL third_nb(rgp_,rgp,ijk)
           CALL third_rnb(ug_,ug,ijk)
           CALL third_rnb(wg_,wg,ijk)
@@ -1151,7 +1153,7 @@
           CALL first_rnb(ws_(is),ws(:,is),ijk)
           IF (job_type == '3D') CALL first_rnb(vs_(is),vs(:,is),ijk)
 
-          IF (muscl /= 0) THEN
+          IF (muscl > 0) THEN
             CALL third_nb(rlk_(is),rlk(:,is),ijk)
             CALL third_rnb(us_(is),us(:,is),ijk)
             CALL third_rnb(ws_(is),ws(:,is),ijk)
@@ -1283,7 +1285,7 @@
 
             CALL masf( fe_, ft_, fw_, fb_, rgp_, ug_, wg_, ijk )
 
-            IF (muscl /= 0) THEN
+            IF (muscl > 0) THEN
               CALL fmas( fe_, ft_, fw_, fb_, rgp_, ug_, wg_, ijk )
             END IF
 
@@ -1291,7 +1293,7 @@
 
             CALL masf( fe_, fn_, ft_, fw_, fs_, fb_, rgp_, ug_, vg_, wg_, ijk)
 
-            IF (muscl /= 0) THEN
+            IF (muscl > 0) THEN
               CALL fmas( fe_, fn_, ft_, fw_, fs_, fb_, rgp_, ug_, vg_, wg_, ijk)
             END IF
 
@@ -1436,7 +1438,7 @@
         CALL first_rnb( wg_, wg, ijk )
         CALL first_rnb( vg_, vg, ijk )
 
-        IF (muscl /= 0) THEN
+        IF (muscl > 0) THEN
           CALL third_nb(dens1,rlk(:,1),ijk)
           CALL third_nb(dens2,rlk(:,2),ijk)
           CALL third_rnb(u1,us(:,1),ijk)
@@ -1509,7 +1511,7 @@
           CALL masf( rsfe1_,  rsfn1_,  rsft1_, rsfem1_, rsfnm1_, rsftm1_,   &
                  dens1, u1, v1, w1, ijk)
 
-          IF (muscl /= 0) THEN
+          IF (muscl > 0) THEN
             CALL fmas( rsfe1_,  rsfn1_,  rsft1_, rsfem1_, rsfnm1_, rsftm1_, &
                  dens1, u1, v1, w1, ijk)
           END IF
@@ -1524,7 +1526,7 @@
           CALL masf( rsfe2_,  rsfn2_,  rsft2_, rsfem2_, rsfnm2_, rsftm2_,   &
                  dens2, u2, v2, w2, ijk)
 
-          IF (muscl /= 0) THEN
+          IF (muscl > 0) THEN
             CALL fmas( rsfe2_,  rsfn2_,  rsft2_, rsfem2_, rsfnm2_, rsftm2_, &
                  dens2, u2, v2, w2, ijk)
           END IF
@@ -1557,7 +1559,7 @@
           CALL masf( rgfe_ ,  rgfn_ ,  rgft_ , rgfem_ , rgfnm_ , rgftm_ ,   &
                       densg_, ug_, vg_, wg_, ijk )
 
-          IF (muscl /= 0) THEN
+          IF (muscl > 0) THEN
             CALL fmas( rgfe_ ,  rgfn_ ,  rgft_ , rgfem_ , rgfnm_ , rgftm_ ,   &
                       densg_, ug_, vg_, wg_, ijk )
           END IF
@@ -1609,6 +1611,31 @@
         RETURN
       
       END SUBROUTINE opt3_inner_loop
+!----------------------------------------------------------------------
+      SUBROUTINE test_fluxes
+      USE domain_decomposition, ONLY: ncint, meshinds
+      USE set_indexes, ONLY: subscr
+      IMPLICIT NONE
+      INTEGER :: ijk, imesh, i, j, k
+
+      OPEN(UNIT=25,FILE='pdac.fl',STATUS='UNKNOWN')
+      WRITE(25,*) 'Test mass fluxes ...'
+      WRITE(25,*)
+      DO ijk = 1, ncint
+        CALL subscr(ijk)
+        CALL meshinds(ijk,imesh,i,j,k)
+
+        !WRITE(25,100) ijk, i, j, k, rgfe(ijk), rgfn(ijk), rgft(ijk)
+        WRITE(25,101) rgfe(ijk), rgfn(ijk), rgft(ijk)
+
+      END DO
+
+ 100  FORMAT(4(I5), 3(G20.10E2))
+ 101  FORMAT(3(G20.10E2))
+      CLOSE(25)
+
+      RETURN
+      END SUBROUTINE test_fluxes
 !----------------------------------------------------------------------
       END MODULE iterative_solver
 !----------------------------------------------------------------------
