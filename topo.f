@@ -607,7 +607,8 @@
         z  = z  + transl_z
         zb = zb + transl_z
         
-        ! ... Reset the 'ord2d' array and set the implicit profile
+        ! ... Reset the 'ord2d' array after translation 
+        ! ... and set the implicit profile
         !
         DO j = 1, ny
           DO i = 1, nx
@@ -711,11 +712,9 @@
       INTEGER i,j,k,ijk
       INTEGER itopo
 
-      ff = .FALSE.
-
       CALL interp(xtop, ytop, ztop2d, cx, cy, topo2d, nextx, nexty)
- 
-      ! ... Topography is expressed in centimeters
+
+      ! ... Topography must be accurate to centimeters
       !
       DO j=1,ny
         DO i=1,nx
@@ -730,9 +729,7 @@
       DO j=1,ny
          DO i=1,nx
             DO k=1,nz
-              IF (cz(k) <= topo2d(i,j)) THEN
-                 ord2d(i,j) = k  
-              ENDIF
+              IF (cz(k) <= topo2d(i,j)) ord2d(i,j) = k  
             ENDDO
          ENDDO
       ENDDO
@@ -740,6 +737,7 @@
 ! ... Identify forcing points
 ! ... (skip boundaries)
 !
+      ff = .FALSE.
       DO i = 2, nx - 1
         DO j = 2, ny - 1
           DO k = 2, ord2d(i,j) - 1
@@ -867,7 +865,7 @@
 ! ... Set cell-flag = 3 in cells laying below the topography
 !
       USE control_flags, ONLY: lpr, job_type
-      USE grid, ONLY: fl
+      USE grid, ONLY: fl, zb
       IMPLICIT NONE
 
       INTEGER :: i, j, k, ijk
@@ -881,7 +879,7 @@
             IF (q >= k) THEN
                     IF( fl(ijk)/=5 ) fl(ijk) = 3
             ELSE
-              EXIT
+                    IF( fl(ijk)==3 ) fl(ijk) = 1
             END IF
           END DO
         END DO
@@ -894,7 +892,7 @@
               IF (q >= k) THEN
                       IF( fl(ijk)/=5 ) fl(ijk) = 3
               ELSE
-                EXIT
+                      IF( fl(ijk)==3 ) fl(ijk) = 1
               END IF
             END DO
           END DO
