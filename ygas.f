@@ -96,7 +96,7 @@
   	     yfy = yfn(ijk,ig) - yfs
            END IF
 
-           rgpgc(ig) = rgpgcn(ijk)
+           rgpgc(ig) = rgpgcn(ijk,ig)
 	   rgpgc(ig) = rgpgc(ig) - dt * indx(i) * yfx * inr(i)     
            rgpgc(ig) = rgpgc(ig) - dt * indy(j) * yfy              
 	   rgpgc(ig) = rgpgc(ig) - dt * indz(k) * yfz

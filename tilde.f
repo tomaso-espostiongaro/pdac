@@ -233,7 +233,10 @@
           pn(ijk)    = p(ijk)
           rgpn(ijk)  = rgp(ijk)
           siegn(ijk) = sieg(ijk)
-          rgpgcn(ijk,:) = rgpn(ijk)*ygc(ijk,:)
+!
+          DO ig = 1, ngas
+            rgpgcn(ijk,ig) = rgpn(ijk) * ygc(ijk,ig)
+          END DO
 !
           DO is = 1, nsolid
             rlkn(ijk,is)  = rlk(ijk,is)
