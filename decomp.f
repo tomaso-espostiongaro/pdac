@@ -9,7 +9,7 @@
         USE indijk_module
         USE immersed_boundaries, ONLY: x_forced, y_forced, z_forced 
         USE immersed_boundaries, ONLY: forcex, forcey, forcez
-        USE immersed_boundaries, ONLY: numx, forx, numy, fory, numz, forz
+        USE immersed_boundaries, ONLY: numx, fptx, numy, fpty, numz, fptz
         USE control_flags, ONLY: lpr, immb, itp
 !
         IMPLICIT NONE
@@ -1150,15 +1150,15 @@
         END IF
         ALLOCATE( numz(ncint) ); numz = 0
       
-        nfpx = SIZE(forx)
-        nfpy = SIZE(fory)
-        nfpz = SIZE(forz)
+        nfpx = SIZE(fptx)
+        nfpy = SIZE(fpty)
+        nfpz = SIZE(fptz)
 
         DO n = 1, nfpx
         
-          i = forx(n)%i
-          j = forx(n)%j
-          k = forx(n)%k
+          i = fptx(n)%i
+          j = fptx(n)%j
+          k = fptx(n)%k
 set_numx: IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
             IF (job_type == '2D') THEN
               ijk = i + (k-1) * nx
@@ -1166,7 +1166,8 @@ set_numx: IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
               ijk = i + (j-1) * nx + (k-1) * nx * ny
             END IF
             ijkl = cell_g2l(ijk,mpime)
-            IF (k==1 .OR. k==nz) THEN
+            IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx &
+           .OR. j==1 .OR. j==ny) THEN
               x_forced(ijkl) = .FALSE.
             END IF
             IF (x_forced(ijkl)) numx(ijkl) = n 
@@ -1177,9 +1178,9 @@ set_numx: IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
         DO n = 1, nfpy
         
           IF (job_type == '3D') THEN
-            i = fory(n)%i
-            j = fory(n)%j
-            k = fory(n)%k
+            i = fpty(n)%i
+            j = fpty(n)%j
+            k = fpty(n)%k
 set_numy:   IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
               IF (job_type == '2D') THEN
                 ijk = i + (k-1) * nx
@@ -1187,7 +1188,8 @@ set_numy:   IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
                 ijk = i + (j-1) * nx + (k-1) * nx * ny
               END IF
               ijkl = cell_g2l(ijk,mpime)
-              IF (k==1 .OR. k==nz) THEN
+              IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx &
+             .OR. j==1 .OR. j==ny) THEN
                 y_forced(ijkl) = .FALSE.
               END IF
               IF (y_forced(ijkl)) numy(ijkl) = n 
@@ -1198,9 +1200,9 @@ set_numy:   IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
         !
         DO n = 1, nfpz
         
-          i = forz(n)%i
-          j = forz(n)%j
-          k = forz(n)%k
+          i = fptz(n)%i
+          j = fptz(n)%j
+          k = fptz(n)%k
 set_numz: IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
             IF (job_type == '2D') THEN
               ijk = i + (k-1) * nx
@@ -1208,7 +1210,8 @@ set_numz: IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
               ijk = i + (j-1) * nx + (k-1) * nx * ny
             END IF
             ijkl = cell_g2l(ijk,mpime)
-            IF (k==1 .OR. k==nz) THEN
+            IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx &
+             .OR. j==1 .OR. j==ny) THEN
               z_forced(ijkl) = .FALSE.
             END IF
             IF(z_forced(ijkl)) numz(ijkl) = n 

@@ -513,9 +513,6 @@
          WRITE(7,*) 'Please increase maximum beta or number of cells'
       ENDIF
 !
-
-      WRITE(6,*) 'check!'
-
       maxn = .TRUE.
       DO WHILE ( maxn )
          ntilde1 = ( l1 - n11*demax ) / demin + 1.D0

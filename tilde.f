@@ -272,7 +272,7 @@
       USE gas_solid_viscosity, ONLY: mug
       USE gas_solid_viscosity, ONLY: gvisx, gvisy, gvisz, pvisx, pvisy, pvisz
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE immersed_boundaries, ONLY: forx, fory, forz, numx, numy, numz
+      USE immersed_boundaries, ONLY: fptx, fpty, fptz, numx, numy, numz
       USE immersed_boundaries, ONLY: x_forced, y_forced, z_forced
       USE particles_constants, ONLY: inrl
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm, ijkt, ijke, ijkn
@@ -538,181 +538,6 @@
      &                 us, vs, ws, rlk, ijk)
           END IF
 !
-              fp = numx(ijk)
-              pseudou = forx(fp)%vel
-
-              force = ( indxp * (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke)) * &
-                        pseudou - rug(ijk) ) / dt
-              ep_e  = (dx(i)*ep(ijke) + dx(i+1)*ep(ijk)) * indxp
-              presn = - indxp * 2.D0 * ep_e * (p(ijke)-p(ijk))
-              dragn = 0.D0
-              DO is = 1, nsolid
-                dragn = dragn - kpgv(is) * dugs(is)
-              END DO
-              force = force - presn - dragn
-              rug(ijk) = rug(ijk) + dt * force
-
-              DO is = 1, nsolid
-                force = ( indxp * (dx(i+1)*rlk(ijk,is)+dx(i)*rlk(ijke,is)) * &
-                          pseudou - rus(ijk,is) ) / dt
-                ep_e  = (dx(i)*rlk(ijke,is) + dx(i+1)*rlk(ijk,is)) * indxp * &
-                        inrl(is)
-                presn = - indxp * 2.D0 * ep_e * (p(ijke)-p(ijk))
-                dragn = kpgv(is) * dugs(is)
-                force = force - presn - dragn
-                rus(ijk,is) = rus(ijk,is) + dt * force
-              END DO
-            !
-              fp = numx(ijk)
-              pseudou = forx(fp)%vel
-
-              force = ( indxp * (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke)) * &
-                        pseudou - rug(ijk) ) / dt
-              ep_e  = (dx(i)*ep(ijke) + dx(i+1)*ep(ijk)) * indxp
-              presn = - indxp * 2.D0 * ep_e * (p(ijke)-p(ijk))
-              dragn = 0.D0
-              DO is = 1, nsolid
-                dragn = dragn - kpgv(is) * dugs(is)
-              END DO
-              force = force - presn - dragn
-              rug(ijk) = rug(ijk) + dt * force
-
-              DO is = 1, nsolid
-                force = ( indxp * (dx(i+1)*rlk(ijk,is)+dx(i)*rlk(ijke,is)) * &
-                          pseudou - rus(ijk,is) ) / dt
-                ep_e  = (dx(i)*rlk(ijke,is) + dx(i+1)*rlk(ijk,is)) * indxp * &
-                        inrl(is)
-                presn = - indxp * 2.D0 * ep_e * (p(ijke)-p(ijk))
-                dragn = kpgv(is) * dugs(is)
-                force = force - presn - dragn
-                rus(ijk,is) = rus(ijk,is) + dt * force
-              END DO
-            !
-              fp = numx(ijk)
-              pseudou = forx(fp)%vel
-
-              force = ( indxp * (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke)) * &
-                        pseudou - rug(ijk) ) / dt
-              ep_e  = (dx(i)*ep(ijke) + dx(i+1)*ep(ijk)) * indxp
-              presn = - indxp * 2.D0 * ep_e * (p(ijke)-p(ijk))
-              dragn = 0.D0
-              DO is = 1, nsolid
-                dragn = dragn - kpgv(is) * dugs(is)
-              END DO
-              force = force - presn - dragn
-              rug(ijk) = rug(ijk) + dt * force
-
-              DO is = 1, nsolid
-                force = ( indxp * (dx(i+1)*rlk(ijk,is)+dx(i)*rlk(ijke,is)) * &
-                          pseudou - rus(ijk,is) ) / dt
-                ep_e  = (dx(i)*rlk(ijke,is) + dx(i+1)*rlk(ijk,is)) * indxp * &
-                        inrl(is)
-                presn = - indxp * 2.D0 * ep_e * (p(ijke)-p(ijk))
-                dragn = kpgv(is) * dugs(is)
-                force = force - presn - dragn
-                rus(ijk,is) = rus(ijk,is) + dt * force
-              END DO
-            !
-              fp = numx(ijk)
-              pseudou = forx(fp)%vel
-
-              force = ( indxp * (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke)) * &
-                        pseudou - rug(ijk) ) / dt
-              ep_e  = (dx(i)*ep(ijke) + dx(i+1)*ep(ijk)) * indxp
-              presn = - indxp * 2.D0 * ep_e * (p(ijke)-p(ijk))
-              dragn = 0.D0
-              DO is = 1, nsolid
-                dragn = dragn - kpgv(is) * dugs(is)
-              END DO
-              force = force - presn - dragn
-              rug(ijk) = rug(ijk) + dt * force
-
-              DO is = 1, nsolid
-                force = ( indxp * (dx(i+1)*rlk(ijk,is)+dx(i)*rlk(ijke,is)) * &
-                          pseudou - rus(ijk,is) ) / dt
-                ep_e  = (dx(i)*rlk(ijke,is) + dx(i+1)*rlk(ijk,is)) * indxp * &
-                        inrl(is)
-                presn = - indxp * 2.D0 * ep_e * (p(ijke)-p(ijk))
-                dragn = kpgv(is) * dugs(is)
-                force = force - presn - dragn
-                rus(ijk,is) = rus(ijk,is) + dt * force
-              END DO
-            !
-              fp = numx(ijk)
-              pseudou = forx(fp)%vel
-
-              force = ( indxp * (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke)) * &
-                        pseudou - rug(ijk) ) / dt
-              ep_e  = (dx(i)*ep(ijke) + dx(i+1)*ep(ijk)) * indxp
-              presn = - indxp * 2.D0 * ep_e * (p(ijke)-p(ijk))
-              dragn = 0.D0
-              DO is = 1, nsolid
-                dragn = dragn - kpgv(is) * dugs(is)
-              END DO
-              force = force - presn - dragn
-              rug(ijk) = rug(ijk) + dt * force
-
-              DO is = 1, nsolid
-                force = ( indxp * (dx(i+1)*rlk(ijk,is)+dx(i)*rlk(ijke,is)) * &
-                          pseudou - rus(ijk,is) ) / dt
-                ep_e  = (dx(i)*rlk(ijke,is) + dx(i+1)*rlk(ijk,is)) * indxp * &
-                        inrl(is)
-                presn = - indxp * 2.D0 * ep_e * (p(ijke)-p(ijk))
-                dragn = kpgv(is) * dugs(is)
-                force = force - presn - dragn
-                rus(ijk,is) = rus(ijk,is) + dt * force
-              END DO
-            !
-              fp = numx(ijk)
-              pseudou = forx(fp)%vel
-
-              force = ( indxp * (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke)) * &
-                        pseudou - rug(ijk) ) / dt
-              ep_e  = (dx(i)*ep(ijke) + dx(i+1)*ep(ijk)) * indxp
-              presn = - indxp * 2.D0 * ep_e * (p(ijke)-p(ijk))
-              dragn = 0.D0
-              DO is = 1, nsolid
-                dragn = dragn - kpgv(is) * dugs(is)
-              END DO
-              force = force - presn - dragn
-              rug(ijk) = rug(ijk) + dt * force
-
-              DO is = 1, nsolid
-                force = ( indxp * (dx(i+1)*rlk(ijk,is)+dx(i)*rlk(ijke,is)) * &
-                          pseudou - rus(ijk,is) ) / dt
-                ep_e  = (dx(i)*rlk(ijke,is) + dx(i+1)*rlk(ijk,is)) * indxp * &
-                        inrl(is)
-                presn = - indxp * 2.D0 * ep_e * (p(ijke)-p(ijk))
-                dragn = kpgv(is) * dugs(is)
-                force = force - presn - dragn
-                rus(ijk,is) = rus(ijk,is) + dt * force
-              END DO
-            !
-              fp = numx(ijk)
-              pseudou = forx(fp)%vel
-
-              force = ( indxp * (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke)) * &
-                        pseudou - rug(ijk) ) / dt
-              ep_e  = (dx(i)*ep(ijke) + dx(i+1)*ep(ijk)) * indxp
-              presn = - indxp * 2.D0 * ep_e * (p(ijke)-p(ijk))
-              dragn = 0.D0
-              DO is = 1, nsolid
-                dragn = dragn - kpgv(is) * dugs(is)
-              END DO
-              force = force - presn - dragn
-              rug(ijk) = rug(ijk) + dt * force
-
-              DO is = 1, nsolid
-                force = ( indxp * (dx(i+1)*rlk(ijk,is)+dx(i)*rlk(ijke,is)) * &
-                          pseudou - rus(ijk,is) ) / dt
-                ep_e  = (dx(i)*rlk(ijke,is) + dx(i+1)*rlk(ijk,is)) * indxp * &
-                        inrl(is)
-                presn = - indxp * 2.D0 * ep_e * (p(ijke)-p(ijk))
-                dragn = kpgv(is) * dugs(is)
-                force = force - presn - dragn
-                rus(ijk,is) = rus(ijk,is) + dt * force
-              END DO
-            !
 ! ... On the immersed boundary the explicit terms must be modified
 ! ... by adding a force to mimic the boundary
 !
@@ -721,7 +546,7 @@
             IF (x_forced(ijk)) THEN
 
               fp = numx(ijk)
-              pseudou = forx(fp)%vel
+              pseudou = fptx(fp)%vel
 
               force = ( indxp * (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke)) * &
                         pseudou - rug(ijk) ) / dt
@@ -750,7 +575,7 @@
               IF (y_forced(ijk)) THEN
 
                 fp = numy(ijk)
-                pseudov = fory(fp)%vel
+                pseudov = fpty(fp)%vel
   
                 force = ( indyp * (dy(j+1)*rgp(ijk)+dy(j)*rgp(ijkn)) * &
                           pseudov - rvg(ijk) ) / dt
@@ -779,7 +604,7 @@
             IF (z_forced(ijk)) THEN
 
               fp = numz(ijk)
-              pseudow = forz(fp)%vel
+              pseudow = fptz(fp)%vel
 
               force = ( indzp * (dz(k+1)*rgp(ijk)+dz(k)*rgp(ijkt)) * &
                         pseudow - rwg(ijk) ) / dt

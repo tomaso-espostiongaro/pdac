@@ -32,7 +32,6 @@
       END TYPE forcing_point
 !
       TYPE(forcing_point), ALLOCATABLE :: fptx(:), fpty(:), fptz(:)
-      TYPE(forcing_point), ALLOCATABLE :: forx(:), fory(:), forz(:)
 !
 ! ... Conditional array to be used in loops:
 ! ... this value is .TRUE. when force has to be computed at a given location
@@ -113,25 +112,6 @@
         ! ... Forcing along z
         CALL forcing2d(fptz,topo_c)
         !
-        ! ... Merge forcing points subsets
-        !
-        nfp = COUNT( forcex .OR. forcez )
-        ALLOCATE (forx (nfpx) )
-        ALLOCATE (forz (nfpz) )
-
-        !CALL grid_locations(1,0,0)
-        !CALL interpolate_2d(topo_x, dummy)
-        !forx(1:nfpx) = fptx(1:nfpx)
-        !CALL extrafx2d(forx, nfpx, topo_x)
-
-        !CALL grid_locations(0,0,1)
-        !CALL interpolate_2d(topo_c, dummy)
-        forz(1:nfpz) = fptz(1:nfpz)
-        !CALL extrafz2d(forz, nfpz, topo_c)
-        
-        DEALLOCATE(fptx)
-        DEALLOCATE(fptz)
-
       ELSE IF (job_type == '3D') THEN
 
         ALLOCATE(topo2d_c(nx,ny))
@@ -168,47 +148,21 @@
         ! ... Forcing along z
         CALL forcing3d(fptz,topo2d_c)
         !
-        ! ... Merge forcing points subsets
-        !
-        nfp = COUNT( forcex .OR. forcey .OR. forcez )
-        ALLOCATE (forx (nfpx) )
-        ALLOCATE (fory (nfpy) )
-        ALLOCATE (forz (nfpz) )
-
-        !CALL grid_locations(1,0,0)
-        !CALL interpolate_dem(topo2d_x, dummy)
-        forx(1:nfpx) = fptx(1:nfpx)
-        !CALL extrafx3d(forx, nfpx, topo2d_x)
-
-        !CALL grid_locations(0,1,0)
-        !CALL interpolate_dem(topo2d_y, dummy)
-        fory(1:nfpy) = fpty(1:nfpy)
-        !CALL extrafy3d(fory, nfpy, topo2d_y)
-
-        !CALL grid_locations(0,0,1)
-        !CALL interpolate_dem(topo2d_c, dummy)
-        forz(1:nfpz) = fptz(1:nfpz)
-        !CALL extrafz3d(forz, nfpz, topo2d_c)
-!
-        DEALLOCATE(fptx)
-        DEALLOCATE(fpty)
-        DEALLOCATE(fptz)
-
       END IF
 
       IF (mpime == root) THEN
-        OPEN(UNIT=15,FILE='forx.dat',STATUS='UNKNOWN')
+        OPEN(UNIT=15,FILE='fptx.dat',STATUS='UNKNOWN')
         IF (job_type == '3D') &
-          OPEN(UNIT=16,FILE='fory.dat',STATUS='UNKNOWN')
-        OPEN(UNIT=17,FILE='forz.dat',STATUS='UNKNOWN')
+          OPEN(UNIT=16,FILE='fpty.dat',STATUS='UNKNOWN')
+        OPEN(UNIT=17,FILE='fptz.dat',STATUS='UNKNOWN')
         DO p = 1, nfpx
-          WRITE(15,33) p, forx(p)
+          WRITE(15,33) p, fptx(p)
         END DO
         DO p = 1, nfpy
-          IF (job_type == '3D') WRITE(16,33) p, fory(p)
+          IF (job_type == '3D') WRITE(16,33) p, fpty(p)
         END DO
         DO p = 1, nfpz
-          WRITE(17,33) p, forz(p)
+          WRITE(17,33) p, fptz(p)
         END DO
         CLOSE(15)
         CLOSE(16)
@@ -531,98 +485,6 @@
       END SUBROUTINE forcing2d
 !
 !----------------------------------------------------------------------
-      SUBROUTINE extrafx2d(fx, nfpx, topo)
-      USE volcano_topography, ONLY: cx, cy, cz, next
-!
-      IMPLICIT NONE
-      INTEGER, INTENT(IN) :: nfpx
-      TYPE(forcing_point), DIMENSION(:), INTENT(INOUT) :: fx
-      REAL*8, DIMENSION(:), INTENT(IN) :: topo
-      INTEGER :: ijk, i, j, k
-      INTEGER :: npx, n
-      REAL*8 :: grad
-        
-      npx = nfpx
-
-      DO ijk = 1, ntot
-!
-! ... If the vertical velocity is forced but the horizontal
-! ... velocity is not, impose the forcing horizontally with
-! ... extrapolation ('int'= -10)
-!
-        IF (forcez(ijk).AND.(.NOT.forcex(ijk))) THEN
-
-          k = ( ijk - 1 ) / nx + 1
-          i = MOD( ( ijk - 1 ), nx) + 1
-
-          npx = npx + 1
-          fx(npx)%i = i
-          fx(npx)%k = k
-          !
-          ! ... find the no-slip point on the profile
-          DO n=next(i),next(i+1)
-            IF ((ztop(n-1) >= cz(k)).AND.(ztop(n) <= cz(k))) THEN
-              grad = (xtop(n)-xtop(n-1))/(ztop(n)-ztop(n-1))
-  	      fx(npx)%nsl%x = xtop(n-1) + (cz(k)-ztop(n-1)) * grad
-  	      fx(npx)%nsl%z = cz(k)
-  	    ENDIF
-          ENDDO
-
-          IF (cz(k) >= topo(i)) THEN
-            ! ... extrapolation is done if the point lays
-            ! ... above the topography ...
-            !
-            fx(npx)%int = -10
-          ELSE
-            ! ... otherwise do nothing!
-            !
-            fx(npx)%int = -100
-            fx(npx)%nsl%x = 0.D0
-            fx(npx)%nsl%z = 0.D0
-          END IF
-
-        END IF
-      END DO
-!
-      IF (npx/=nfp) CALL error('extrafx','check nfp',1)
-!
-      RETURN
-      END SUBROUTINE extrafx2d
-!----------------------------------------------------------------------
-      SUBROUTINE extrafz2d(fz, nfpz, topo)
-      USE volcano_topography, ONLY: cx, cy, cz, next
-!
-      IMPLICIT NONE
-      INTEGER, INTENT(IN) :: nfpz
-      TYPE(forcing_point), DIMENSION(:), INTENT(INOUT) :: fz
-      REAL*8, DIMENSION(:), INTENT(IN) :: topo
-      INTEGER :: ijk, i, j, k
-      INTEGER :: npz
-        
-      npz = nfpz
-
-      DO ijk = 1, ntot
-        k = ( ijk - 1 ) / nx + 1
-        i = MOD( ( ijk - 1 ), nx) + 1
-        IF (forcex(ijk).AND.(.NOT.forcez(ijk))) THEN
-          npz = npz + 1
-          fz(npz)%i = i
-          fz(npz)%k = k
-          IF (cz(k) >= topo(i)) THEN
-            fz(npz)%int = 10
-            fz(npz)%nsl%x = cx(i)
-            fz(npz)%nsl%z = topo(i)
-          ELSE
-            fz(npz)%int = 100
-          END IF
-        END IF
-      END DO
-!
-      IF (npz/=nfp) CALL error('extrafz','check nfp',1)
-
-      RETURN
-      END SUBROUTINE extrafz2d
-!----------------------------------------------------------------------
       SUBROUTINE forcing3d(fpt, topo2d)
       USE volcano_topography, ONLY: ord2d, next
       USE volcano_topography, ONLY: cx, cy, cz
@@ -817,204 +679,6 @@
 !
       END SUBROUTINE forcing3d
 !
-!----------------------------------------------------------------------
-      SUBROUTINE extrafx3d(fx, nfpx, topo2d)
-      USE volcano_topography, ONLY: cx, cy, cz, nextx, nexty
-!
-      IMPLICIT NONE
-      INTEGER, INTENT(IN) :: nfpx
-      TYPE(forcing_point), DIMENSION(:), INTENT(INOUT) :: fx
-      REAL*8, DIMENSION(:,:), INTENT(IN) :: topo2d
-      INTEGER :: ijk, i, j, k
-      INTEGER :: npx, n
-      REAL*8 :: dist1y, dist2y, alpha, beta
-      REAL*8 :: quota1, quota2
-      LOGICAL :: others
-        
-      npx = nfpx
-
-      DO ijk = 1, ntot
-!
-! ... If the vertical velocity is forced but the horizontal
-! ... velocity is not, impose the forcing horizontally with
-! ... extrapolation ('int'= -10)
-!
-        others = forcey(ijk) .OR. forcez(ijk)
-
-        IF (others .AND. (.NOT.forcex(ijk))) THEN
-
-          k = ( ijk - 1 ) / ( nx*ny ) + 1
-          j = MOD( ijk - 1, nx*ny) / nx + 1
-          i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
-
-          npx = npx + 1
-
-          fx(npx)%i = i
-          fx(npx)%j = j
-          fx(npx)%k = k
-
-          IF (cz(k) >= topo2d(i,j)) THEN
-
-            ! ... extrapolation is done if the point lays
-            ! ... above the topography ...
-            !
-
-            dist1y = cy(j) - ytop(nexty(j)-1)
-            dist2y = ytop(nexty(j)) - cy(j)
-            beta   = dist1y/(dist1y+dist2y)
-
-            quota1 = beta * ztop2d(nextx(i),nexty(j)) + &
-                     (1.D0 - beta) * ztop2d(nextx(i),nexty(j)-1)
-
-            quota2 = beta * ztop2d(nextx(i)-1,nexty(j)) + &
-                     (1.D0 - beta) * ztop2d(nextx(i)-1,nexty(j)-1)
-
-            alpha = (cz(k) - quota2) / (quota1 - quota2)
-
-            fx(npx)%nsl%x = alpha * xtop(nextx(i)) + &
-                            (1.D0 - alpha) * xtop(nextx(i)-1)
-
-            fx(npx)%nsl%y = cy(j)
-            fx(npx)%nsl%z = cz(k)
-            fx(npx)%int = 9
-
-          ELSE
-            !
-            ! ...  do nothing!
-            !
-            fx(npx)%int = -9
-            fx(npx)%nsl%x = 0.D0
-            fx(npx)%nsl%y = 0.D0
-            fx(npx)%nsl%z = 0.D0
-          END IF
-
-        END IF
-      END DO
-!
-      IF (npx/=nfp) CALL error('extrafx','check nfp',1)
-!
-      RETURN
-      END SUBROUTINE extrafx3d
-!----------------------------------------------------------------------
-      SUBROUTINE extrafy3d(fy, nfpy, topo2d)
-      USE volcano_topography, ONLY: cx, cy, cz, nextx, nexty
-!
-      IMPLICIT NONE
-      INTEGER, INTENT(IN) :: nfpy
-      TYPE(forcing_point), DIMENSION(:), INTENT(INOUT) :: fy
-      REAL*8, DIMENSION(:,:), INTENT(IN) :: topo2d
-      INTEGER :: ijk, i, j, k
-      INTEGER :: npy, n
-      REAL*8 :: dist1x, dist2x, alpha, beta
-      REAL*8 :: quota1, quota2
-      LOGICAL :: others
-        
-      npy = nfpy
-
-      DO ijk = 1, ntot
-!
-! ... If the vertical velocity is forced but the horizontal
-! ... velocity is not, impose the forcing horizontally with
-! ... extrapolation ('int'= -10)
-!
-        others = forcex(ijk) .OR. forcez(ijk)
-
-        IF (others .AND. (.NOT.forcey(ijk))) THEN
-
-          k = ( ijk - 1 ) / ( nx*ny ) + 1
-          j = MOD( ijk - 1, nx*ny) / nx + 1
-          i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
-
-          npy = npy + 1
-
-          fy(npy)%i = i
-          fy(npy)%j = j
-          fy(npy)%k = k
-          
-          IF (cz(k) >= topo2d(i,j)) THEN
-            ! ... extrapolation is done if the point lays
-            ! ... above the topography ...
-            !
-            dist1x = cx(i) - xtop(nextx(i)-1)
-            dist2x = xtop(nextx(i)) - cx(i)
-            alpha  = dist1x/(dist1x+dist2x)
-
-            quota1 = alpha * ztop2d(nextx(i),nexty(j)) + &
-                     (1.D0 - alpha) * ztop2d(nextx(i)-1,nexty(j))
-
-            quota2 = alpha * ztop2d(nextx(i),nexty(j)-1) + &
-                     (1.D0 - alpha) * ztop2d(nextx(i)-1,nexty(j)-1)
-
-            beta = (cz(k) - quota2) / (quota1 - quota2)
-
-            fy(npy)%nsl%y = beta * ytop(nexty(j)) + &
-                            (1.D0 - beta) * ytop(nexty(j)-1)
-
-            fy(npy)%nsl%x = cx(i)
-            fy(npy)%nsl%z = cz(k)
-            fy(npy)%int = 10
-          ELSE
-            ! ...  do nothing!
-            !
-            fy(npy)%int = -10
-            fy(npy)%nsl%x = 0.D0
-            fy(npy)%nsl%y = 0.D0
-            fy(npy)%nsl%z = 0.D0
-          END IF
-
-        END IF
-      END DO
-!
-      IF (npy/=nfp) CALL error('extrafy','check nfp',1)
-!
-      RETURN
-      END SUBROUTINE extrafy3d
-!----------------------------------------------------------------------
-      SUBROUTINE extrafz3d(fz, nfpz, topo2d)
-      USE volcano_topography, ONLY: cx, cy, cz, next
-!
-      IMPLICIT NONE
-      INTEGER, INTENT(IN) :: nfpz
-      TYPE(forcing_point), DIMENSION(:), INTENT(INOUT) :: fz
-      REAL*8, DIMENSION(:,:), INTENT(IN) :: topo2d
-      INTEGER :: ijk, i, j, k
-      INTEGER :: npz
-      LOGICAL :: others
-        
-      npz = nfpz
-
-      DO ijk = 1, ntot
-
-        k = ( ijk - 1 ) / ( nx*ny ) + 1
-        j = MOD( ijk - 1, nx*ny) / nx + 1
-        i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
-
-        others = forcex(ijk) .OR. forcey(ijk)
-        
-        IF (others .AND. (.NOT.forcez(ijk))) THEN
-        
-          npz = npz + 1
-        
-          fz(npz)%i = i
-          fz(npz)%j = j
-          fz(npz)%k = k
-
-          IF (cz(k) >= topo2d(i,j)) THEN
-            fz(npz)%int = 11
-            fz(npz)%nsl%x = cx(i)
-            fz(npz)%nsl%y = cy(j)
-            fz(npz)%nsl%z = topo2d(i,j)
-          ELSE
-            fz(npz)%int = -11
-          END IF
-        
-        END IF
-      END DO
-!
-      IF (npz/=nfp) CALL error('extrafz','check nfp',1)
-
-      RETURN
-      END SUBROUTINE extrafz3d
 !----------------------------------------------------------------------
       END MODULE immersed_boundaries
 !----------------------------------------------------------------------

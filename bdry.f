@@ -28,7 +28,7 @@
       USE control_flags, ONLY: job_type
       USE domain_decomposition, ONLY: ncint, myijk, meshinds
       USE grid, ONLY: flag, x, y, z, xb, yb, zb
-      USE immersed_boundaries, ONLY: forx, fory, forz
+      USE immersed_boundaries, ONLY: fptx, fpty, fptz
       USE immersed_boundaries, ONLY: x_forced, y_forced, z_forced
       USE immersed_boundaries, ONLY: numx, numy, numz
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -41,7 +41,7 @@
       IMPLICIT NONE
 !
       INTEGER :: ijk, i, j, k, imesh, ig, is
-      INTEGER :: fp, pp
+      INTEGER :: fp, p
       REAL*8 :: d1, d2 
       REAL*8 :: vel
       LOGICAL :: fx, fy, fz, forced
@@ -75,15 +75,12 @@
 
                 fp = numx(ijk)
                 IF (fp > 0) THEN
-                  IF (ABS(forx(fp)%int) < 10) THEN
-                    vel = velint(forx(fp), ug, ijk, xb, y, z)  
-                  ELSE
-                    vel = velext(forx(fp), ug, ijk, xb, y, z)  
-                  END IF
+                  vel = velint(fptx(fp), ug, ijk, xb, y, z)  
                 ELSE
+                  WRITE(6,*) 'WARNING fp=0 '
                   vel = 0.D0
                 END IF
-                forx(fp)%vel = vel
+                fptx(fp)%vel = vel
 
                 ! ... Initialize x-velocity in the forced points
                 IF (sweep >= 1) THEN
@@ -95,15 +92,12 @@
 
                 fp = numz(ijk)
                 IF (fp > 0) THEN
-                  IF (ABS(forz(fp)%int) < 10) THEN
-                    vel = velint(forz(fp), wg, ijk, x, y, zb)  
-                  ELSE
-                    vel = velext(forz(fp), wg, ijk, x, y, zb)  
-                  END IF
+                  vel = velint(fptz(fp), wg, ijk, x, y, zb)  
                 ELSE
+                  WRITE(6,*) 'WARNING fp=0 '
                   vel = 0.D0
                 END IF
-                forz(fp)%vel = vel
+                fptz(fp)%vel = vel
 
                 ! ... Initialize z-velocity in the forced points
                 IF (sweep >= 1) THEN
@@ -119,15 +113,12 @@
 
                 fp = numx(ijk)
                 IF (fp > 0) THEN
-                  IF (ABS(forx(fp)%int) <= 8) THEN
-                    vel = velint3d(forx(fp), ug, ijk, xb, y, z)  
-                  ELSE
-                    vel = velext3d(forx(fp), ug, ijk, xb, y, z)  
-                  END IF
+                  vel = velint3d(fptx(fp), ug, ijk, xb, y, z)  
                 ELSE
+                  WRITE(6,*) 'WARNING fp=0 '
                   vel = 0.D0
                 END IF
-                forx(fp)%vel = vel
+                fptx(fp)%vel = vel
 
                 ! ... Initialize x-velocity in the forced points
                 IF (sweep >= 1) THEN
@@ -139,15 +130,12 @@
 
                 fp = numy(ijk)
                 IF (fp > 0) THEN
-                  IF (ABS(fory(fp)%int) <= 8) THEN
-                    vel = velint3d(fory(fp), vg, ijk, x, yb, z)  
-                  ELSE
-                    vel = velext3d(fory(fp), vg, ijk, x, yb, z)  
-                  END IF
+                  vel = velint3d(fpty(fp), vg, ijk, x, yb, z)  
                 ELSE
+                  WRITE(6,*) 'WARNING fp=0 '
                   vel = 0.D0
                 END IF
-                fory(fp)%vel = vel
+                fpty(fp)%vel = vel
 
                 ! ... Initialize y-velocity in the forced points
                 IF (sweep >= 1) THEN
@@ -159,15 +147,12 @@
 
                 fp = numz(ijk)
                 IF (fp > 0) THEN
-                  IF (ABS(forz(fp)%int) <= 8) THEN
-                    vel = velint3d(forz(fp), wg, ijk, x, y, zb)  
-                  ELSE
-                    vel = velext3d(forz(fp), wg, ijk, x, y, zb)  
-                  END IF
+                  vel = velint3d(fptz(fp), wg, ijk, x, y, zb)  
                 ELSE
+                  WRITE(6,*) 'WARNING fp=0 '
                   vel = 0.D0
                 END IF
-                forz(fp)%vel = vel
+                fptz(fp)%vel = vel
 
                 ! ... Initialize z-velocity in the forced points
                 IF (sweep >= 1) THEN
@@ -683,6 +668,27 @@
           END IF
         END IF
       END DO
+
+!     IF (mpime == root) THEN
+!        OPEN(UNIT=15,FILE='fptx.dat',STATUS='UNKNOWN')
+!        IF (job_type == '3D') &
+!          OPEN(UNIT=16,FILE='fpty.dat',STATUS='UNKNOWN')
+!        OPEN(UNIT=17,FILE='fptz.dat',STATUS='UNKNOWN')
+!        DO p = 1, SIZE(fptx)
+!          WRITE(15,33) p, fptx(p)
+!        END DO
+!        DO p = 1, SIZE(fpty)
+!          IF (job_type == '3D') WRITE(16,33) p, fpty(p)
+!        END DO
+!        DO p = 1, SIZE(fptz)
+!          WRITE(17,33) p, fptz(p)
+!        END DO
+!        CLOSE(15)
+!        CLOSE(16)
+!        CLOSE(17)
+!      END IF
+! 33   FORMAT(5(I6),4(F18.3))
+
 !
       RETURN
       END SUBROUTINE boundary
@@ -1459,52 +1465,6 @@
         
       END FUNCTION velint
 !----------------------------------------------------------------------
-      REAL*8 FUNCTION velext(fpt, vel, ijk, cx, cy, cz)
-!
-! ... Interpolate EXTERNAL velocity on a forcing point to get no-slip
-! ... conditions on a solid immersed boundary 
-
-      USE set_indexes, ONLY: ijkp, ipjk
-      USE immersed_boundaries, ONLY: forcing_point
-      IMPLICIT NONE
-
-      TYPE(forcing_point), INTENT(IN) :: fpt
-      REAL*8, DIMENSION(:), INTENT(IN) :: vel
-      INTEGER, INTENT(IN) :: ijk
-      REAL*8, DIMENSION(:), INTENT(IN) :: cx, cy, cz
-
-      INTEGER :: i, k, interp
-      REAL*8 :: h, grad, nsx, nsz
-        
-      i = fpt%i
-      k = fpt%k
-      nsx = fpt%nsl%x
-      nsz = fpt%nsl%z
-      interp = fpt%int
-
-      SELECT CASE( interp )
-
-      CASE (10)
-
-        h = cz(k) - nsz
-        grad = vel(ijkp) / (cz(k+1)-cz(k)+h)
-        velext = grad * h
-
-      CASE (-10)
-
-        h = cx(i) - nsx
-        grad = vel(ipjk) / (cx(i+1)-cx(i)+h)
-        velext = grad * h
-
-      CASE DEFAULT
-
-        velext = 0.D0
-
-      END SELECT
-
-
-      END FUNCTION velext
-!-----------------------------------------------------------------------
       REAL*8 FUNCTION velint3d(fpt, vel, ijk, cx, cy, cz)
 !
 ! ... Interpolate velocities on a forcing point to get no-slip
@@ -1631,60 +1591,6 @@
         
       RETURN
       END FUNCTION velint3d
-!----------------------------------------------------------------------
-      REAL*8 FUNCTION velext3d(fpt, vel, ijk, cx, cy, cz)
-!
-! ... Interpolate EXTERNAL velocity on a forcing point to get no-slip
-! ... conditions on a solid immersed boundary 
-
-      USE set_indexes, ONLY: ijkp, ijpk, ipjk
-      USE immersed_boundaries, ONLY: forcing_point
-      IMPLICIT NONE
-
-      TYPE(forcing_point), INTENT(IN) :: fpt
-      REAL*8, DIMENSION(:), INTENT(IN) :: vel
-      INTEGER, INTENT(IN) :: ijk
-      REAL*8, DIMENSION(:), INTENT(IN) :: cx, cy, cz
-
-      INTEGER :: i, j, k, interp
-      REAL*8 :: h, grad, nsx, nsy, nsz
-        
-      i = fpt%i
-      j = fpt%j
-      k = fpt%k
-      nsx = fpt%nsl%x
-      nsy = fpt%nsl%y
-      nsz = fpt%nsl%z
-      interp = fpt%int
-
-      SELECT CASE( interp )
-
-      CASE (9)
-
-        h = cx(i) - nsx
-        grad = vel(ipjk) / (cx(i+1)-cx(i)+h)
-        velext3d = grad * h
-
-      CASE (10)
-
-        h = cy(j) - nsy
-        grad = vel(ijpk) / (cy(j+1)-cy(j)+h)
-        velext3d = grad * h
-
-      CASE (11)
-
-        h = cz(k) - nsz
-        grad = vel(ijkp) / (cz(k+1)-cz(k)+h)
-        velext3d = grad * h
-
-      CASE DEFAULT
-
-        velext3d = 0.D0
-
-      END SELECT
-
-      RETURN
-      END FUNCTION velext3d
 !----------------------------------------------------------------------
       END MODULE boundary_conditions
 !-----------------------------------------------------------------------
