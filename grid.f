@@ -5,6 +5,9 @@
 ! ... 2D or 3D mesh used for computation, and the cell types 
 !
 !----------------------------------------------------------------------
+
+      USE io_files, ONLY: errorunit, testunit, logunit
+
       IMPLICIT NONE
 !
       REAL*8, DIMENSION(:), ALLOCATABLE :: dx, dy, dz
@@ -101,9 +104,9 @@
       ALLOCATE( fl(ntot) )
 
       IF( mpime == root ) THEN
-        WRITE(6,*) 
-        WRITE(6,*) 'Simulation Grid      : ', nx, ny, nz
-        WRITE(6,*) 'Total number of cells: ', ntot
+        WRITE(logunit,*) 
+        WRITE(logunit,*) 'Simulation Grid      : ', nx, ny, nz
+        WRITE(logunit,*) 'Total number of cells: ', ntot
       END IF
 
       RETURN
@@ -125,14 +128,15 @@
       USE control_flags, ONLY: job_type, lpr
       USE dimensions, ONLY: nx, ny, nz
       USE parallel, ONLY: mpime, root
+      USE io_files, ONLY: tempunit
 
       REAL*8, PARAMETER :: VERYBIG = 1.0d+10
       INTEGER :: i, j, k, ijk
       REAL*8 :: zrif
 
       IF( mpime == root ) THEN
-        WRITE(6,*)
-        WRITE(6,*) 'Entering Grid setup'
+        WRITE(logunit,*)
+        WRITE(logunit,*) 'Entering Grid setup'
       END IF
 !
 ! ... generate the non-uniform mesh (without geographic referencing)
@@ -142,21 +146,21 @@
       IF (grigen > 0) THEN
 
         IF( mpime == root ) &
-          WRITE(6,*) 'Generating grid ...'
+          WRITE(logunit,*) 'Generating grid ...'
 
         IF (mpime == root .AND. lpr > 0) &
-          WRITE(7,*) 'Generating grid along x'
+          WRITE(testunit,*) 'Generating grid along x'
         CALL generate_grid(dx,nx,domain_x,alpha_x,dxmin,dxmax,n0x,iv) 
 
         IF (job_type == '3D') THEN
 
           IF (mpime == root .AND. lpr > 0) &
-            WRITE(7,*) 'Generating grid along y'
+            WRITE(testunit,*) 'Generating grid along y'
           CALL generate_grid(dy,ny,domain_y,alpha_y,dymin,dymax,n0y,jv) 
         END IF
 
         IF (mpime == root .AND. lpr > 0) &
-          WRITE(7,*) 'Generating grid along z'
+          WRITE(testunit,*) 'Generating grid along z'
         CALL generate_grid(dz,nz,domain_z,alpha_z,dzmin,dzmax,n0z,kv) 
 
       END IF
@@ -228,26 +232,26 @@
 !
       CALL flic
 !      
-      OPEN(17,FILE='mesh.dat')
-            WRITE(17,*) 'Georeferenced x-y mesh'
-            WRITE(17,*) 'x'
-            WRITE(17,17) x
-            WRITE(17,*) 'xb'
-            WRITE(17,17) xb
-            WRITE(17,*) 'y'
-            WRITE(17,17) y
-            WRITE(17,*) 'yb'
-            WRITE(17,17) yb
-            WRITE(17,*) 'z' 
-            WRITE(17,17) z 
-            WRITE(17,*) 'zb' 
-            WRITE(17,17) zb
-      CLOSE(17)
+      OPEN( tempunit, FILE='mesh.dat')
+            WRITE(tempunit,*) 'Georeferenced x-y mesh'
+            WRITE(tempunit,*) 'x'
+            WRITE(tempunit,17) x
+            WRITE(tempunit,*) 'xb'
+            WRITE(tempunit,17) xb
+            WRITE(tempunit,*) 'y'
+            WRITE(tempunit,17) y
+            WRITE(tempunit,*) 'yb'
+            WRITE(tempunit,17) yb
+            WRITE(tempunit,*) 'z' 
+            WRITE(tempunit,17) z 
+            WRITE(tempunit,*) 'zb' 
+            WRITE(tempunit,17) zb
+      CLOSE( tempunit )
 
  17   FORMAT(5(F20.6))
 
       IF( mpime == root ) THEN
-        WRITE(6,*) 'END Grid setup'
+        WRITE(logunit,*) 'END Grid setup'
       END IF
 
       RETURN 
@@ -466,7 +470,7 @@
       der = demax / demin
       beta = 1.2D0
       dbeta = dbeta0
-      IF( lpr > 1 .AND. ionode) WRITE(7,*) 'Initial beta = ',beta
+      IF( lpr > 1 .AND. ionode) WRITE(testunit,*) 'Initial beta = ',beta
 !
 ! .. loop over the decreasing 'beta' to fit the domain size
 !
@@ -522,8 +526,8 @@
 !
         IF ( n11+n12 == 0 ) THEN
           IF (ionode) THEN
-            WRITE(8,*) 'WARNING!!: no cells with maximum size!'
-            WRITE(8,*) 'Please decrease beta or dmax'
+            WRITE(errorunit,*) 'WARNING!!: no cells with maximum size!'
+            WRITE(errorunit,*) 'Please decrease beta or dmax'
           END IF
         ENDIF 
 !    
@@ -533,8 +537,8 @@
         IF ( (n01+m1+n11)+(n02+m2+n12)+1 < nd ) THEN 
            IF ( beta*dbeta < minbeta) THEN
              IF(ionode) THEN
-               WRITE(8,*) 'WARNING!!: beta = minimum beta!'
-               WRITE(8,*) 'Please decrease min beta or number of cells'
+               WRITE(errorunit,*) 'WARNING!!: beta = minimum beta!'
+               WRITE(errorunit,*) 'Please decrease min beta or number of cells'
              END IF
               print_mesh = .TRUE.
            ELSE
@@ -544,7 +548,7 @@
               ENDIF
               beta = beta * dbeta 
               IF( lpr > 2 .AND. ionode) &
-                 WRITE(7,*) 'Reducing beta = ', beta, ' n = ', &
+                 WRITE(testunit,*) 'Reducing beta = ', beta, ' n = ', &
               (n01+m1+n11)+(n02+m2+n12)+1 
            ENDIF
         ELSE IF ( (n01+m1+n11)+(n02+m2+n12)+1 > nd ) THEN
@@ -554,26 +558,26 @@
            ENDIF
            beta = beta / dbeta
            IF( lpr > 2 .AND. ionode ) &
-             WRITE(7,*) 'Increasing beta = ', beta, ' n = ', &
+             WRITE(testunit,*) 'Increasing beta = ', beta, ' n = ', &
              (n01+m1+n11)+(n02+m2+n12)+1
         ELSE 
            IF ( (1.D0-dbeta) <= 1.D-15 ) THEN
               print_mesh= .TRUE.
               IF( lpr >= 1 .AND. ionode) &
-                WRITE(7,*) 'Final beta = ', beta, ' n= ', (n01+m1+n11)+(n02+m2+n12)+1
+                WRITE(testunit,*) 'Final beta = ', beta, ' n= ', (n01+m1+n11)+(n02+m2+n12)+1
            ELSE
              already = .TRUE.
              beta = beta / dbeta
              IF( lpr > 2 .AND. ionode) &
-               WRITE(7,*) 'Increasing beta = ', beta, ' n = ', (n01+m1+n11)+(n02+m2+n12)+1
+               WRITE(testunit,*) 'Increasing beta = ', beta, ' n = ', (n01+m1+n11)+(n02+m2+n12)+1
            ENDIF
         ENDIF
       END DO
 !
       IF ( beta >= maxbeta ) THEN
          IF (ionode) THEN
-           WRITE(8,*) 'WARNING!!: beta >= maximum beta!'
-           WRITE(8,*) 'Please increase maximum beta or number of cells'
+           WRITE(errorunit,*) 'WARNING!!: beta >= maximum beta!'
+           WRITE(errorunit,*) 'Please increase maximum beta or number of cells'
          END IF
       ENDIF
 !
@@ -590,7 +594,7 @@
          IF ( demin*beta1**m1 > demax ) THEN
 
             IF ( (m1==0) .OR. ( beta1 > maxbeta ) ) THEN
-               IF (ionode) WRITE(8,*) 'WARNING!!: beta >= maximum beta!'
+               IF (ionode) WRITE(errorunit,*) 'WARNING!!: beta >= maximum beta!'
                maxn = .FALSE.
             ELSE
                n11 = n11 + 1
@@ -614,7 +618,7 @@
          ENDIF
          IF ( demin*beta2**m2 > demax ) THEN
             IF ( (m2==0) .OR. ( beta2 > maxbeta ) ) THEN
-               IF(ionode) WRITE(8,*) 'WARNING!!: beta >= maximum beta!'
+               IF(ionode) WRITE(errorunit,*) 'WARNING!!: beta >= maximum beta!'
                maxn = .FALSE.
             ELSE
                n12 = n12 + 1
@@ -626,9 +630,9 @@
       END DO          
 !
       IF( lpr > 0 .AND. ionode) THEN
-        WRITE(7,*) 'demin, demax : ', demin, demax
-        WRITE(7,*) 'n01, m1, n11 : ', n01, m1, n11
-        WRITE(7,*) 'n02, m2, n12 : ', n02, m2, n12
+        WRITE(testunit,*) 'demin, demax : ', demin, demax
+        WRITE(testunit,*) 'n01, m1, n11 : ', n01, m1, n11
+        WRITE(testunit,*) 'n02, m2, n12 : ', n02, m2, n12
       END IF
 !
       center = n11 + m1 + n01 + 1
@@ -654,8 +658,8 @@
       END DO
       
       IF (ionode) THEN
-        WRITE(7,777) domain_size
-        WRITE(7,888) SUM(delta)
+        WRITE(testunit,777) domain_size
+        WRITE(testunit,888) SUM(delta)
       END IF
 
  777  FORMAT('domain_size = ',(F8.2)) 

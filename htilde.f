@@ -430,25 +430,26 @@
       USE domain_decomposition, ONLY: ncint, meshinds
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
       USE gas_solid_velocity, ONLY: ug
+      USE io_files, ONLY: tempunit
 
       IMPLICIT NONE
       INTEGER :: ijk, imesh, i, j, k
 
-      OPEN(UNIT=25,FILE='pdac.fl',STATUS='UNKNOWN')
-      WRITE(25,*) 'Test enthalpy fluxes ...'
-      WRITE(25,*)
+      OPEN(UNIT=tempunit,FILE='pdac.fl',STATUS='UNKNOWN')
+      WRITE(tempunit,*) 'Test enthalpy fluxes ...'
+      WRITE(tempunit,*)
       DO ijk = 1, ncint
         CALL subscr(ijk)
         CALL meshinds(ijk,imesh,i,j,k)
 
-        !WRITE(25,100) ijk, i, j, k, egfe(ijk), egfn(ijk), egft(ijk)
-        WRITE(25,101) egfe(ijk), egfn(ijk), egft(ijk)
+        !WRITE(tempunit,100) ijk, i, j, k, egfe(ijk), egfn(ijk), egft(ijk)
+        WRITE(tempunit,101) egfe(ijk), egfn(ijk), egft(ijk)
 
       END DO
 
  100  FORMAT(4(I5),3(G20.10E2))
  101  FORMAT(3(G20.10E2))
-      CLOSE(25)
+      CLOSE(tempunit)
       
       RETURN
       END SUBROUTINE test_fluxes

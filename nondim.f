@@ -139,49 +139,50 @@
 !----------------------------------------------------------------------
       SUBROUTINE print_numbers
       USE time_parameters, ONLY : time
+      USE io_files, ONLY : tempunit
       IMPLICIT NONE
 
       INTEGER :: ij2, ij1, is, j
       INTEGER :: ijl
       INTEGER :: ig
 
-      OPEN(UNIT=3,FILE='OUTPUT_NUMBERS')
+      OPEN(UNIT=tempunit,FILE='OUTPUT_NUMBERS')
 
-      WRITE(3,547) time
+      WRITE(tempunit,547) time
 
-      WRITE(3,101)
+      WRITE(tempunit,101)
       DO j=1,nz
         ij1=1+(nz-j)*nx
         ij2=nx+(nz-j)*nx
-        WRITE(3,550)(rich(ijl),ijl=ij1,ij2)
+        WRITE(tempunit,550)(rich(ijl),ijl=ij1,ij2)
       END DO
 
-      WRITE(3,102)
+      WRITE(tempunit,102)
       DO j=1,nz
         ij1=1+(nz-j)*nx
         ij2=nx+(nz-j)*nx
-        WRITE(3,550)(mut2mu(ijl),ijl=ij1,ij2)
+        WRITE(tempunit,550)(mut2mu(ijl),ijl=ij1,ij2)
       END DO
 
       DO is = 1, nsolid
-        WRITE(3,103)is
+        WRITE(tempunit,103)is
         DO j=1,nz
           ij1=1+(nz-j)*nx
           ij2=nx+(nz-j)*nx
-          WRITE(3,550)(gas2pp(is,ijl),ijl=ij1,ij2)
+          WRITE(tempunit,550)(gas2pp(is,ijl),ijl=ij1,ij2)
         END DO
       END DO
 
       DO is = 1, nsolid
-        WRITE(3,104)is
+        WRITE(tempunit,104)is
         DO j=1,nz
           ij1=1+(nz-j)*nx
           ij2=nx+(nz-j)*nx
-          WRITE(3,550)(drag2grav(is,ijl),ijl=ij1,ij2)
+          WRITE(tempunit,550)(drag2grav(is,ijl),ijl=ij1,ij2)
         END DO
       END DO
 
-      CLOSE (3)
+      CLOSE (tempunit)
 !
  547  FORMAT(1x,///,1x,'@@@ TIME = ',G11.4)
  550  FORMAT(1x,10(1x,g14.6e3))

@@ -3,6 +3,7 @@
 !----------------------------------------------------------------------
       USE kinds
       USE io_restart, ONLY: nfil
+      USE io_files, ONLY: logunit
 
       IMPLICIT NONE
       SAVE
@@ -30,10 +31,10 @@
       USE time_parameters, ONLY: time
       USE turbulence_model, ONLY: modturbo
       USE control_flags, ONLY: job_type
+      USE io_files, ONLY: filnam, outpunit
 !
       IMPLICIT NONE
 !
-      CHARACTER :: filnam*11
       CHARACTER*4 :: lettera
       LOGICAL :: lform
 !
@@ -48,32 +49,32 @@
       IF( mpime == root ) THEN
 
         IF (lform) THEN
-          OPEN(UNIT=12,FILE=filnam)
-          WRITE(12,*) time
+          OPEN(UNIT=outpunit,FILE=filnam)
+          WRITE(outpunit,*) time
         ELSE 
-          OPEN(UNIT=12,FORM='UNFORMATTED',FILE=filnam)
-          WRITE(12) REAL(time,4)
+          OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam)
+          WRITE(outpunit) REAL(time,4)
         END IF
  
       END IF
 !
-      CALL write_array( 12, p, sgl, lform )  ! gas_pressure
-      CALL write_array( 12, tg, sgl, lform )   ! gas_temperature
-      CALL write_array( 12, rog, sgl, lform )  ! gas_density
+      CALL write_array( outpunit, p, sgl, lform )  ! gas_pressure
+      CALL write_array( outpunit, tg, sgl, lform )   ! gas_temperature
+      CALL write_array( outpunit, rog, sgl, lform )  ! gas_density
 !
       IF (job_type == '2D') THEN
-        CALL write_array( 12, ug, sgl, lform ) ! gas_velocity_r
-        CALL write_array( 12, wg, sgl, lform ) ! gas_velocity_z
+        CALL write_array( outpunit, ug, sgl, lform ) ! gas_velocity_r
+        CALL write_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
       ELSE IF (job_type == '3D') THEN
-        CALL write_array( 12, ug, sgl, lform ) ! gas_velocity_x
-        CALL write_array( 12, vg, sgl, lform ) ! gas_velocity_y
-        CALL write_array( 12, wg, sgl, lform ) ! gas_velocity_z
+        CALL write_array( outpunit, ug, sgl, lform ) ! gas_velocity_x
+        CALL write_array( outpunit, vg, sgl, lform ) ! gas_velocity_y
+        CALL write_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
       ELSE
         CALL error('outp_','Unknown job type',1)
       END IF
 
       IF( mpime == root ) THEN
-        CLOSE (12)
+        CLOSE (outpunit)
       END IF
 !
       RETURN
@@ -93,6 +94,7 @@
       USE time_parameters, ONLY: time
       USE control_flags, ONLY: job_type
       USE domain_decomposition, ONLY: data_collect, data_distribute
+      USE io_files, ONLY: tempunit
 
 !
       IMPLICIT NONE
@@ -100,25 +102,24 @@
       CHARACTER( LEN = 15 ) :: filnam
       CHARACTER( LEN = 4 ) :: lettera
 !
-      INTEGER :: i,j,ijk
-      INTEGER :: ig
+      INTEGER :: i, j, ijk, ig
       REAL*8 :: energy
 !
-      nfil=nfil+1
-      filnam='shtube.'//lettera(nfil)
+      nfil = nfil + 1
+      filnam = 'shtube.' // lettera( nfil )
 
-      IF( mpime .EQ. root ) THEN
+      IF( mpime == root ) THEN
 
-      OPEN(UNIT=11,FILE=filnam)
-!
-      DO ijk = 1, ncint
-      IF (flag(ijk) == 1) THEN
-        energy = p(ijk)/(rog(ijk)*(gammaair - 1.D0))
-        WRITE(11,550)rog(ijk),wg(ijk),p(ijk),energy,tg(ijk)
-      END IF
-      END DO
-!
-      CLOSE (11)
+        OPEN(UNIT=tempunit,FILE=filnam)
+        DO ijk = 1, ncint
+          IF (flag(ijk) == 1) THEN
+            energy = p(ijk)/(rog(ijk)*(gammaair - 1.D0))
+            WRITE(tempunit,550)rog(ijk),wg(ijk),p(ijk),energy,tg(ijk)
+          END IF
+        END DO
+
+        CLOSE (tempunit)
+
       END IF
 !
       RETURN
@@ -136,6 +137,7 @@
       USE immersed_boundaries, ONLY: topo2d_c, topo2d_x, topo2d_y
       USE parallel, ONLY: mpime, root
       USE set_indexes, ONLY: ijkp, first_subscr
+      USE io_files, ONLY: tempunit
       IMPLICIT NONE
       
       REAL*8, INTENT(IN), DIMENSION(:) :: array
@@ -166,10 +168,11 @@
       CALL parallel_sum_real(array_map, nx*ny)
 
       IF (mpime == root) THEN
-        OPEN(UNIT=12,FILE=filnam)
+        OPEN(UNIT=tempunit,FILE=filnam)
         DO j = 2, ny-1
-            WRITE(12,122) (array_map(i,j), i=2, nx-1)
+            WRITE(tempunit,122) (array_map(i,j), i=2, nx-1)
         END DO
+        CLOSE(tempunit)
       END IF
 
  122  FORMAT(10(1x,G14.6E3))
@@ -197,6 +200,7 @@
       USE turbulence_model, ONLY: modturbo
       USE control_flags, ONLY: job_type
       USE volcano_topography, ONLY: rim_quota
+      USE io_files, ONLY: tempunit
       IMPLICIT NONE
       INTEGER :: n, is, ig, kq, k, nq
 
@@ -204,32 +208,37 @@
         IF (zb(k) <= rim_quota) kq = k
       END DO
       
-        OPEN(16,FILE='radial_profile.dat')
-        WRITE(16,*) nx
-        WRITE(16,*) (r(n), n=1, nx)
-        WRITE(16,*) (ug(n + (kq-1)*nx), n=1, nx)
-        WRITE(16,*) (wg(n + (kq-1)*nx), n=1, nx)
-        WRITE(16,*) (tg(n + (kq-1)*nx), n=1, nx)
-        WRITE(16,*) (p(n + (kq-1)*nx), n=1, nx)
-        DO ig = 1, ngas
-          WRITE(16,*) (ygc(n,ig), n=1, nx)
-        END DO
-        DO is = 1, nsolid
-          WRITE(16,*) (us(n + (kq-1)*nx,is), n=1, nx)
-          WRITE(16,*) (ws(n + (kq-1)*nx,is), n=1, nx)
-          WRITE(16,*) (ts(n + (kq-1)*nx,is), n=1, nx)
-          WRITE(16,*) (rlk(n + (kq-1)*nx,is)*inrl(is), n=1, nx)
-        END DO
-        CLOSE(16)
-      OPEN(18,FILE='radial_profile_gas.dat')
-      OPEN(19,FILE='radial_profile_part.dat')
+      OPEN(tempunit,FILE='radial_profile.dat')
+      WRITE(tempunit,*) nx
+      WRITE(tempunit,*) (r(n), n=1, nx)
+      WRITE(tempunit,*) (ug(n + (kq-1)*nx), n=1, nx)
+      WRITE(tempunit,*) (wg(n + (kq-1)*nx), n=1, nx)
+      WRITE(tempunit,*) (tg(n + (kq-1)*nx), n=1, nx)
+      WRITE(tempunit,*) (p(n + (kq-1)*nx), n=1, nx)
+      DO ig = 1, ngas
+        WRITE(tempunit,*) (ygc(n,ig), n=1, nx)
+      END DO
+      DO is = 1, nsolid
+        WRITE(tempunit,*) (us(n + (kq-1)*nx,is), n=1, nx)
+        WRITE(tempunit,*) (ws(n + (kq-1)*nx,is), n=1, nx)
+        WRITE(tempunit,*) (ts(n + (kq-1)*nx,is), n=1, nx)
+        WRITE(tempunit,*) (rlk(n + (kq-1)*nx,is)*inrl(is), n=1, nx)
+      END DO
+      CLOSE(tempunit)
+
+      OPEN(tempunit,FILE='radial_profile_gas.dat')
       DO n = 1, nx
         nq = n + (kq-1)*nx
-        WRITE(18,188) r(n), ug(nq), wg(nq), tg(nq), p(nq), (ygc(nq,ig), ig=1, ngas)
-        WRITE(19,199) r(n), (us(nq), ws(nq), ts(nq), rlk(nq,is)*inrl(is), is=1,nsolid)
+        WRITE(tempunit,188) r(n), ug(nq), wg(nq), tg(nq), p(nq), (ygc(nq,ig), ig=1, ngas)
       END DO
-        CLOSE(18)
-        CLOSE(19)
+      CLOSE(tempunit)
+
+      OPEN(tempunit,FILE='radial_profile_part.dat')
+      DO n = 1, nx
+        nq = n + (kq-1)*nx
+        WRITE(tempunit,199) r(n), (us(nq,is), ws(nq,is), ts(nq,is), rlk(nq,is)*inrl(is), is=1,nsolid)
+      END DO
+      CLOSE(tempunit)
 
  188  FORMAT(7(F15.5))       
  199  FORMAT(9(F15.5))       
@@ -253,10 +262,10 @@
       USE time_parameters, ONLY: time
       USE turbulence_model, ONLY: modturbo
       USE control_flags, ONLY: job_type
+      USE io_files, ONLY: filnam, outpunit
 !
       IMPLICIT NONE
 !
-      CHARACTER( LEN = 11 ) :: filnam
       CHARACTER( LEN =  4 ) :: lettera
       LOGICAL :: lform
 !
@@ -270,51 +279,51 @@
       IF( mpime == root ) THEN
 
         IF (lform) THEN
-          OPEN(UNIT=12,FILE=filnam)
-          WRITE(12,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
+          OPEN(UNIT=outpunit,FILE=filnam)
+          WRITE(outpunit,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
         ELSE 
-          OPEN(UNIT=12,FORM='UNFORMATTED',FILE=filnam)
-          WRITE(12) REAL(time,4)
+          OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam)
+          WRITE(outpunit) REAL(time,4)
         END IF
 
-        WRITE(6,fmt="('  from outp: writing file ',A20)") filnam
+        WRITE(logunit,fmt="('  from outp: writing file ',A20)") filnam
  
       END IF
 !
-      IF( lform .AND. mpime == root ) WRITE(12,'(1x,//,1x,"P   ",/)')
-      CALL write_array( 12, p, sgl, lform )  ! gas_pressure
+      IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"P   ",/)')
+      CALL write_array( outpunit, p, sgl, lform )  ! gas_pressure
 
       IF (job_type == '2D') THEN
 
-        IF( lform .AND. mpime == root ) WRITE(12,'(1x,//,1x,"UG  ",/)')
-        CALL write_array( 12, ug, sgl, lform ) ! gas_velocity_r
+        IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"UG  ",/)')
+        CALL write_array( outpunit, ug, sgl, lform ) ! gas_velocity_r
 
-        IF( lform .AND. mpime == root ) WRITE(12,'(1x,//,1x,"WG  ",/)')
-        CALL write_array( 12, wg, sgl, lform ) ! gas_velocity_z
+        IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"WG  ",/)')
+        CALL write_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
 
       ELSE IF (job_type == '3D') THEN
 
-        IF( lform .AND. mpime == root ) WRITE(12,'(1x,//,1x,"UG  ",/)')
-        CALL write_array( 12, ug, sgl, lform ) ! gas_velocity_x
+        IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"UG  ",/)')
+        CALL write_array( outpunit, ug, sgl, lform ) ! gas_velocity_x
 
-        IF( lform .AND. mpime == root ) WRITE(12,'(1x,//,1x,"VG  ",/)')
-        CALL write_array( 12, vg, sgl, lform ) ! gas_velocity_y
+        IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"VG  ",/)')
+        CALL write_array( outpunit, vg, sgl, lform ) ! gas_velocity_y
 
-        IF( lform .AND. mpime == root ) WRITE(12,'(1x,//,1x,"WG  ",/)')
-        CALL write_array( 12, wg, sgl, lform ) ! gas_velocity_z
+        IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"WG  ",/)')
+        CALL write_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
 
       ELSE
         CALL error('outp_','Unknown job type',1)
       END IF
 
-      IF( lform .AND. mpime == root ) WRITE(12,'(1x,//,1x,"TG  ",/)')
-      CALL write_array( 12, tg, sgl, lform )  ! gas_temperature
+      IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"TG  ",/)')
+      CALL write_array( outpunit, tg, sgl, lform )  ! gas_temperature
 !
       ALLOCATE( otmp( SIZE( xgc, 1 ) ) )
       DO ig=1,ngas
           otmp = xgc(:,ig)
-          IF( lform .AND. mpime == root ) WRITE(12,'(1x,//,1x,"XGC",I1,/)') ig
-          CALL write_array( 12, otmp, sgl, lform )  ! gc_molar_fraction
+          IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"XGC",I1,/)') ig
+          CALL write_array( outpunit, otmp, sgl, lform )  ! gc_molar_fraction
       END DO
       DEALLOCATE( otmp )
 !
@@ -323,39 +332,39 @@
       DO is = 1, nsolid
 
         otmp = rlk(:,is)*inrl(is)
-        IF( lform .AND. mpime == root ) WRITE(12,'(1x,//,1x,"EPS",I1,/)') is
-        CALL write_array( 12, otmp, sgl, lform )  ! solid_bulk_density
+        IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"EPS",I1,/)') is
+        CALL write_array( outpunit, otmp, sgl, lform )  ! solid_bulk_density
 
         IF (job_type == '2D') THEN
 
-          IF( lform .AND. mpime == root ) WRITE(12,'(1x,//,1x," US",I1,/)') is
-          CALL write_array( 12, us(:,is), sgl, lform )  ! solid_velocity_r
+          IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x," US",I1,/)') is
+          CALL write_array( outpunit, us(:,is), sgl, lform )  ! solid_velocity_r
 
-          IF( lform .AND. mpime == root ) WRITE(12,'(1x,//,1x," WS",I1,/)') is
-          CALL write_array( 12, ws(:,is), sgl, lform )  ! solid_velocity_z
+          IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x," WS",I1,/)') is
+          CALL write_array( outpunit, ws(:,is), sgl, lform )  ! solid_velocity_z
 
         ELSE IF (job_type == '3D') THEN
 
-          IF( lform .AND. mpime == root ) WRITE(12,'(1x,//,1x," US",I1,/)') is
-          CALL write_array( 12, us(:,is), sgl, lform )  ! solid_velocity_x
+          IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x," US",I1,/)') is
+          CALL write_array( outpunit, us(:,is), sgl, lform )  ! solid_velocity_x
 
-          IF( lform .AND. mpime == root ) WRITE(12,'(1x,//,1x," VS",I1,/)') is
-          CALL write_array( 12, vs(:,is), sgl, lform )  ! solid_velocity_y
+          IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x," VS",I1,/)') is
+          CALL write_array( outpunit, vs(:,is), sgl, lform )  ! solid_velocity_y
 
-          IF( lform .AND. mpime == root ) WRITE(12,'(1x,//,1x," WS",I1,/)') is
-          CALL write_array( 12, ws(:,is), sgl, lform )  ! solid_velocity_z
+          IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x," WS",I1,/)') is
+          CALL write_array( outpunit, ws(:,is), sgl, lform )  ! solid_velocity_z
 
         END IF
 
-        IF( lform .AND. mpime == root ) WRITE(12,'(1x,//,1x," TS",I1,/)') is
-        CALL write_array( 12, ts(:,is), sgl, lform )  ! solid_temperature
+        IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x," TS",I1,/)') is
+        CALL write_array( outpunit, ts(:,is), sgl, lform )  ! solid_temperature
 
       END DO
 
       DEALLOCATE( otmp )
 
       IF( mpime == root ) THEN
-        CLOSE (12)
+        CLOSE (outpunit)
       END IF
 
       nfil=nfil+1
@@ -379,10 +388,10 @@
       USE time_parameters, ONLY: time
       USE turbulence_model, ONLY: modturbo
       USE control_flags, ONLY: job_type
+      USE io_files, ONLY: filnam, outpunit
 !
       IMPLICIT NONE
 !
-      CHARACTER( LEN = 11 ) :: filnam
       CHARACTER( LEN =  4 ) :: lettera
       LOGICAL :: lform
 !
@@ -395,61 +404,61 @@
       IF( mpime == root ) THEN
 
         IF (lform) THEN
-          OPEN(UNIT=12,FILE=filnam)
-          READ(12,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
+          OPEN(UNIT=outpunit,FILE=filnam)
+          READ(outpunit,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
         ELSE 
-          OPEN(UNIT=12,FORM='UNFORMATTED',FILE=filnam)
-          READ(12) time
+          OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam)
+          READ(outpunit) time
         END IF
 
-        WRITE(6,fmt="('  from outp: recovering file ',A20)") filnam
-        WRITE(6,*) 'time = ', time
+        WRITE(logunit,fmt="('  from outp: recovering file ',A20)") filnam
+        WRITE(logunit,*) 'time = ', time
  
       END IF
 !
       CALL bcast_real(time, 1, root)
 !
-      IF( lform .AND. mpime == root ) READ(12,122)
+      IF( lform .AND. mpime == root ) READ(outpunit,122)
       p = 0.D0
-      CALL read_array( 12, p, sgl, lform )  ! gas_pressure
+      CALL read_array( outpunit, p, sgl, lform )  ! gas_pressure
 
       IF (job_type == '2D') THEN
 
-        IF( lform .AND. mpime == root ) READ(12,122)
+        IF( lform .AND. mpime == root ) READ(outpunit,122)
         ug = 0.D0
-        CALL read_array( 12, ug, sgl, lform ) ! gas_velocity_r
+        CALL read_array( outpunit, ug, sgl, lform ) ! gas_velocity_r
 
-        IF( lform .AND. mpime == root ) READ(12,122)
+        IF( lform .AND. mpime == root ) READ(outpunit,122)
         wg = 0.D0
-        CALL read_array( 12, wg, sgl, lform ) ! gas_velocity_z
+        CALL read_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
 
       ELSE IF (job_type == '3D') THEN
 
-        IF( lform .AND. mpime == root ) READ(12,122)
+        IF( lform .AND. mpime == root ) READ(outpunit,122)
         ug = 0.D0
-        CALL read_array( 12, ug, sgl, lform ) ! gas_velocity_x
+        CALL read_array( outpunit, ug, sgl, lform ) ! gas_velocity_x
 
-        IF( lform .AND. mpime == root ) READ(12,122)
+        IF( lform .AND. mpime == root ) READ(outpunit,122)
         vg = 0.D0
-        CALL read_array( 12, vg, sgl, lform ) ! gas_velocity_y
+        CALL read_array( outpunit, vg, sgl, lform ) ! gas_velocity_y
 
-        IF( lform .AND. mpime == root ) READ(12,122)
+        IF( lform .AND. mpime == root ) READ(outpunit,122)
         wg = 0.D0
-        CALL read_array( 12, wg, sgl, lform ) ! gas_velocity_z
+        CALL read_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
 
       ELSE
         CALL error('outp_','Unknown job type',1)
       END IF
 
-      IF( lform .AND. mpime == root ) READ(12,122)
+      IF( lform .AND. mpime == root ) READ(outpunit,122)
       tg = 0.D0
-      CALL read_array( 12, tg, sgl, lform )  ! gas_temperature
+      CALL read_array( outpunit, tg, sgl, lform )  ! gas_temperature
 !
       ALLOCATE( otmp( SIZE( xgc, 1 ) ) )
       DO ig=1,ngas
-          IF( lform .AND. mpime == root ) READ(12,122)
+          IF( lform .AND. mpime == root ) READ(outpunit,122)
           otmp = 0.D0
-          CALL read_array( 12, otmp, sgl, lform )  ! gc_molar_fraction
+          CALL read_array( outpunit, otmp, sgl, lform )  ! gc_molar_fraction
           xgc(:,ig) = otmp
       END DO
       DEALLOCATE( otmp )
@@ -458,47 +467,47 @@
 
       DO is = 1, nsolid
 
-        IF( lform .AND. mpime == root ) READ(12,122)
+        IF( lform .AND. mpime == root ) READ(outpunit,122)
         otmp = 0.D0
-        CALL read_array( 12, otmp, sgl, lform )  ! solid_bulk_density
+        CALL read_array( outpunit, otmp, sgl, lform )  ! solid_bulk_density
         rlk(:,is) = otmp * rl(is)
 
         IF (job_type == '2D') THEN
 
-          IF( lform .AND. mpime == root ) READ(12,122)
+          IF( lform .AND. mpime == root ) READ(outpunit,122)
           us = 0.D0
-          CALL read_array( 12, us(:,is), sgl, lform )  ! solid_velocity_r
+          CALL read_array( outpunit, us(:,is), sgl, lform )  ! solid_velocity_r
 
-          IF( lform .AND. mpime == root ) READ(12,122)
+          IF( lform .AND. mpime == root ) READ(outpunit,122)
           ws = 0.D0
-          CALL read_array( 12, ws(:,is), sgl, lform )  ! solid_velocity_z
+          CALL read_array( outpunit, ws(:,is), sgl, lform )  ! solid_velocity_z
 
         ELSE IF (job_type == '3D') THEN
 
-          IF( lform .AND. mpime == root ) READ(12,122)
+          IF( lform .AND. mpime == root ) READ(outpunit,122)
           us = 0.D0
-          CALL read_array( 12, us(:,is), sgl, lform )  ! solid_velocity_x
+          CALL read_array( outpunit, us(:,is), sgl, lform )  ! solid_velocity_x
 
-          IF( lform .AND. mpime == root ) READ(12,122)
+          IF( lform .AND. mpime == root ) READ(outpunit,122)
           vs = 0.D0
-          CALL read_array( 12, vs(:,is), sgl, lform )  ! solid_velocity_y
+          CALL read_array( outpunit, vs(:,is), sgl, lform )  ! solid_velocity_y
 
-          IF( lform .AND. mpime == root ) READ(12,122)
+          IF( lform .AND. mpime == root ) READ(outpunit,122)
           ws = 0.D0
-          CALL read_array( 12, ws(:,is), sgl, lform )  ! solid_velocity_z
+          CALL read_array( outpunit, ws(:,is), sgl, lform )  ! solid_velocity_z
 
         END IF
 
-        IF( lform .AND. mpime == root ) READ(12,122)
+        IF( lform .AND. mpime == root ) READ(outpunit,122)
         ts = 0.D0
-        CALL read_array( 12, ts(:,is), sgl, lform )  ! solid_temperature
+        CALL read_array( outpunit, ts(:,is), sgl, lform )  ! solid_temperature
 
       END DO
 
       DEALLOCATE( otmp )
 
       IF( mpime == root ) THEN
-        CLOSE (12)
+        CLOSE (outpunit)
       END IF
 
       nfil=nfil+1
@@ -517,11 +526,11 @@
       USE domain_decomposition, ONLY: ncint, meshinds
       USE gas_constants, ONLY: gas_type, gammaair
       USE grid, ONLY: dx, dy, dz
+      USE io_files, ONLY: filnam, outpunit
 !
       IMPLICIT NONE
 !
       INTEGER, INTENT(IN) :: irest
-      CHARACTER(LEN = 11) :: filnam
       CHARACTER(LEN = 4 ) :: lettera
       CHARACTER(LEN = 2 ) :: lettera2
       CHARACTER(LEN = 4 ) :: var
@@ -536,7 +545,7 @@
 !
 !
       filnam='output.'//lettera(irest)
-      IF( mpime == root ) WRITE(6,fmt="('  filter: reading file ',A11)") filnam
+      IF( mpime == root ) WRITE(logunit,fmt="('  filter: reading file ',A11)") filnam
 
       lform = formatted_output
 
@@ -545,86 +554,86 @@
       IF( mpime == root ) THEN
 
         IF (lform) THEN
-          OPEN( UNIT=12, FILE=filnam, STATUS='OLD')
-          READ (12,*) time
+          OPEN( UNIT=outpunit, FILE=filnam, STATUS='OLD')
+          READ (outpunit,*) time
         ELSE 
-          OPEN(UNIT=12,FORM='UNFORMATTED',FILE=filnam, STATUS='OLD')
-          READ (12) stime
+          OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam, STATUS='OLD')
+          READ (outpunit) stime
         END IF
 
       END IF
 
       ALLOCATE( array( ntot ) )
 
-      IF( mpime == root ) WRITE(6,fmt="('  filtering gas pressure ')")
+      IF( mpime == root ) WRITE(logunit,fmt="('  filtering gas pressure ')")
 !
-      CALL read_array( 12, array, lform )  ! gas_pressure
+      CALL read_array( outpunit, array, lform )  ! gas_pressure
 
       CALL crop_array( 'pgas' )  ! gas_pressure
 
-      IF( mpime == root ) WRITE(6,fmt="('  filtering reading gas velocities ')")
+      IF( mpime == root ) WRITE(logunit,fmt="('  filtering reading gas velocities ')")
 
       IF (job_type == '2D') THEN
 
-        CALL read_array( 12, array, lform ) ! gas_velocity_r
+        CALL read_array( outpunit, array, lform ) ! gas_velocity_r
         CALL inte_array_x( 'ugas' )  
 
-        CALL read_array( 12, array, lform ) ! gas_velocity_z
+        CALL read_array( outpunit, array, lform ) ! gas_velocity_z
         CALL inte_array_z( 'wgas' ) 
 
       ELSE IF (job_type == '3D') THEN
 
-        CALL read_array( 12, array, lform ) ! gas_velocity_x
+        CALL read_array( outpunit, array, lform ) ! gas_velocity_x
         CALL inte_array_x( 'ugas' )  
 
-        CALL read_array( 12, array, lform ) ! gas_velocity_y
+        CALL read_array( outpunit, array, lform ) ! gas_velocity_y
         CALL inte_array_y( 'vgas' )  
 
-        CALL read_array( 12, array, lform ) ! gas_velocity_z
+        CALL read_array( outpunit, array, lform ) ! gas_velocity_z
         CALL inte_array_z( 'wgas' )  
 
       ELSE
         CALL error('outp_','Unknown job type',1)
       END IF
 
-      IF( mpime == root ) WRITE(6,fmt="('  filtering gas temperature ')")
+      IF( mpime == root ) WRITE(logunit,fmt="('  filtering gas temperature ')")
 
-      CALL read_array( 12, array, lform )  ! gas_temperature
+      CALL read_array( outpunit, array, lform )  ! gas_temperature
       CALL crop_array( 'tgas' )  
 
-      IF( mpime == root ) WRITE(6,fmt="('  filtering molarfraction ')")
+      IF( mpime == root ) WRITE(logunit,fmt="('  filtering molarfraction ')")
 !
       DO ig=1,ngas
           var = 'xg'//lettera2( ig )
-          CALL read_array( 12, array, lform )  ! gc_molar_fraction
+          CALL read_array( outpunit, array, lform )  ! gc_molar_fraction
           CALL crop_array( var )  
       END DO
 
       IF( mpime == root ) WRITE( 6, fmt="('  filtering solid density, velocities and temperature')")
 !
       DO is = 1, nsolid
-        CALL read_array( 12, array, lform )  ! solid_bulk_density
+        CALL read_array( outpunit, array, lform )  ! solid_bulk_density
         var = 'ep'//lettera2( is )
         CALL crop_array( var )  
         IF (job_type == '2D') THEN
-          CALL read_array( 12, array, lform )  ! solid_velocity_r
+          CALL read_array( outpunit, array, lform )  ! solid_velocity_r
           var = 'us'//lettera2( is )
           CALL inte_array_x( var )  
-          CALL read_array( 12, array, lform )  ! solid_velocity_z
+          CALL read_array( outpunit, array, lform )  ! solid_velocity_z
           var = 'ws'//lettera2( is )
           CALL inte_array_z( var )  
         ELSE IF (job_type == '3D') THEN
-          CALL read_array( 12, array, lform )  ! solid_velocity_x
+          CALL read_array( outpunit, array, lform )  ! solid_velocity_x
           var = 'us'//lettera2( is )
           CALL inte_array_x( var )  
-          CALL read_array( 12, array, lform )  ! solid_velocity_y
+          CALL read_array( outpunit, array, lform )  ! solid_velocity_y
           var = 'vs'//lettera2( is )
           CALL inte_array_y( var )  
-          CALL read_array( 12, array, lform )  ! solid_velocity_z
+          CALL read_array( outpunit, array, lform )  ! solid_velocity_z
           var = 'ws'//lettera2( is )
           CALL inte_array_z( var )  
         END IF
-        CALL read_array( 12, array, lform )  ! solid_temperature
+        CALL read_array( outpunit, array, lform )  ! solid_temperature
         var = 'ts'//lettera2( is )
         CALL crop_array( var )  
       END DO
@@ -632,7 +641,7 @@
       DEALLOCATE( array )
 
       IF( mpime == root ) THEN
-        CLOSE (12)
+        CLOSE (outpunit)
       END IF
 !
       RETURN
@@ -650,7 +659,7 @@
         ELSE 
           OPEN( UNIT=iunit, FORM='UNFORMATTED', FILE=filwri, STATUS='UNKNOWN' )
         END IF
-        IF( mpime == root ) WRITE(6,fmt="('  crop_array: writing file ',A16)") filwri
+        IF( mpime == root ) WRITE(logunit,fmt="('  crop_array: writing file ',A16)") filwri
 
         ALLOCATE( sarray( ntot ) )
         sarray = 0.0
@@ -703,7 +712,7 @@
         ELSE 
           OPEN( UNIT=iunit, FORM='UNFORMATTED', FILE=filwri, STATUS='UNKNOWN' )
         END IF
-        IF( mpime == root ) WRITE(6,fmt="('  inte_array_x: writing file ',A16)") filwri
+        IF( mpime == root ) WRITE(logunit,fmt="('  inte_array_x: writing file ',A16)") filwri
         ALLOCATE( sarray( ntot ) )
         imesh = 0
         sarray = 0.0
@@ -760,7 +769,7 @@
         ELSE 
           OPEN( UNIT=iunit, FORM='UNFORMATTED', FILE=filwri, STATUS='UNKNOWN' )
         END IF
-        IF( mpime == root ) WRITE(6,fmt="('  inte_array_y: writing file ',A16)") filwri
+        IF( mpime == root ) WRITE(logunit,fmt="('  inte_array_y: writing file ',A16)") filwri
         ALLOCATE( sarray( ntot ) )
         imesh = 0
         sarray = 0.0
@@ -817,7 +826,7 @@
         ELSE 
           OPEN( UNIT=iunit, FORM='UNFORMATTED', FILE=filwri, STATUS='UNKNOWN' )
         END IF
-        IF( mpime == root ) WRITE(6,fmt="('  inte_array_z: writing file ',A16)") filwri
+        IF( mpime == root ) WRITE(logunit,fmt="('  inte_array_z: writing file ',A16)") filwri
         ALLOCATE( sarray( ntot ) )
         imesh = 0
         sarray = 0.0

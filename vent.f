@@ -2,6 +2,7 @@
       MODULE vent_conditions
 !-----------------------------------------------------------------------
       USE dimensions, ONLY: max_nsolid, max_ngas, nsolid, ngas
+      USE io_files, ONLY: errorunit, logunit
       IMPLICIT NONE
 
       ! ... flags
@@ -100,7 +101,7 @@
         !
         IF( base_radius < 2.0D0*vent_radius ) THEN
                 base_radius = 2.0D0*vent_radius
-                WRITE(8,*) 'WARNING! control the crater base!'
+                WRITE(errorunit,*) 'WARNING! control the crater base!'
         END IF
 
         ! ... Reset the vent quota
@@ -133,8 +134,8 @@
 ! ... Print out the vent coordinates on the standard output
 !
       IF( lpr > 0 .AND. mpime == root ) THEN
-        WRITE(6,100) iv, jv, kv
-        WRITE(6,200) x(iv), y(jv), z(kv)
+        WRITE(logunit,100) iv, jv, kv
+        WRITE(logunit,200) x(iv), y(jv), z(kv)
 100     FORMAT(1X,'vent center: ',3I5)
 200     FORMAT(1X,'vent center coordinates: ',3(F12.2))
       END IF
@@ -170,8 +171,8 @@
       END IF
 !
       IF( lpr > 0 .AND. mpime == root ) THEN
-        WRITE(6,*) 
-        WRITE(6,*) 'Vent conditions imposed in cells: '
+        WRITE(logunit,*) 
+        WRITE(logunit,*) 'Vent conditions imposed in cells: '
       END IF
 !      
 ! ... Loop over the cells enclosing the vent
@@ -205,7 +206,7 @@
           END IF
           
           IF (lpr > 0 .AND. mpime == root) &
-            WRITE(6,10) nv, ijk, i, j, k, vcell(nv)%frac, fl(ijk)
+            WRITE(logunit,10) nv, ijk, i, j, k, vcell(nv)%frac, fl(ijk)
  10       FORMAT(I3,I7,3(I3),F8.4,I2)
 
           ! ... Above the vent quota, cell flags are set to '1'
@@ -219,7 +220,7 @@
         END DO
       END DO
 
-      IF( mpime == root ) WRITE(6,*) 'END Set Vent'
+      IF( mpime == root ) WRITE(logunit,*) 'END Set Vent'
 !
       RETURN
       END SUBROUTINE locate_vent
@@ -384,12 +385,13 @@
 !-----------------------------------------------------------------------
       SUBROUTINE read_radial_profile
       USE parallel, ONLY: mpime, root
+      USE io_files, ONLY: tempunit
       IMPLICIT NONE
       INTEGER :: raddim, is, n, ig
 !
       IF (mpime == root) THEN
-              OPEN(16,FILE=rad_file,STATUS='OLD')
-              READ(16,*) raddim
+              OPEN(tempunit,FILE=rad_file,STATUS='OLD')
+              READ(tempunit,*) raddim
       END IF
 !
       CALL bcast_integer(raddim,1,root)
@@ -401,19 +403,19 @@
           ws_rad(raddim,nsolid), ts_rad(raddim,nsolid), ep_rad(raddim,nsolid))
 !
       IF (mpime == root) THEN
-              READ(16,*) (rad(n), n=1, raddim)
-              READ(16,*) (ug_rad(n), n=1, raddim)
-              READ(16,*) (wg_rad(n), n=1, raddim)
-              READ(16,*) (tg_rad(n), n=1, raddim)
-              READ(16,*) (p_rad(n), n=1, raddim)
+              READ(tempunit,*) (rad(n), n=1, raddim)
+              READ(tempunit,*) (ug_rad(n), n=1, raddim)
+              READ(tempunit,*) (wg_rad(n), n=1, raddim)
+              READ(tempunit,*) (tg_rad(n), n=1, raddim)
+              READ(tempunit,*) (p_rad(n), n=1, raddim)
               DO ig = 1, ngas
-                READ(16,*) (ygc_rad(n,ig), n=1, raddim)
+                READ(tempunit,*) (ygc_rad(n,ig), n=1, raddim)
               END DO
               DO is = 1, nsolid
-                READ(16,*) (us_rad(n,is), n=1, raddim)
-                READ(16,*) (ws_rad(n,is), n=1, raddim)
-                READ(16,*) (ts_rad(n,is), n=1, raddim)
-                READ(16,*) (ep_rad(n,is), n=1, raddim)
+                READ(tempunit,*) (us_rad(n,is), n=1, raddim)
+                READ(tempunit,*) (ws_rad(n,is), n=1, raddim)
+                READ(tempunit,*) (ts_rad(n,is), n=1, raddim)
+                READ(tempunit,*) (ep_rad(n,is), n=1, raddim)
               END DO
       END IF
 !
@@ -428,7 +430,7 @@
       CALL bcast_real(ts_rad,raddim*nsolid,root)
       CALL bcast_real(ep_rad,raddim*nsolid,root)
 !
-      IF (mpime == root) CLOSE(16)
+      IF (mpime == root) CLOSE(tempunit)
 !
       RETURN
       END SUBROUTINE read_radial_profile

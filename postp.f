@@ -12,12 +12,12 @@
       USE process_outp, ONLY: filter, process
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
      &    mpime, root, nproc
+      USE io_files, ONLY: inputunit, postunit, logunit, testunit, ppunit, inputfile
 
 !
       IMPLICIT NONE
       CHARACTER(LEN=8) :: inputfile, postfile, logfile, testfile, ppfile
 !
-      INTEGER :: inputunit, postunit, logunit, testunit, ppunit
       INTEGER :: ig
 
 !
@@ -30,16 +30,10 @@
 ! ... I/O files
 !
 
-      inputunit = 5
-      logunit   = 6
-      testunit  = 7
-      postunit  = 9
-      ppunit  = 13
-      inputfile = 'pdac.dat'
       logfile   = 'pp.log'
       testfile  = 'pp.tst'
-      postfile = 'pp.dat'
-      ppfile = 'dpd.dat'
+      postfile  = 'pp.dat'
+      ppfile    = 'dpd.dat'
 
       IF( mpime == 0 ) THEN
 

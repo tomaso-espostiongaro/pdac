@@ -2,6 +2,7 @@
       MODULE atmospheric_conditions
 !------------------------------------------------------------------------
       USE dimensions, ONLY: max_ngas
+      USE io_files, ONLY: errorunit, logunit
       IMPLICIT NONE
       PUBLIC
 !
@@ -50,21 +51,21 @@
          stratification = .FALSE.
       ELSE IF (gravz /= -9.81D0) THEN
          IF( mpime == root ) THEN
-           WRITE(8,*) 'WARNING! from control atmosphere'
-           WRITE(8,*) 'gravz = ', gravz
+           WRITE(errorunit,*) 'WARNING! from control atmosphere'
+           WRITE(errorunit,*) 'gravz = ', gravz
          END IF
       END IF
       IF( mpime == root ) THEN
-        WRITE(6,*) 
-        WRITE(6,*) 'Atmospheric stratification: ', stratification
-        WRITE(6,*) 'Gravity: ', gravz
+        WRITE(logunit,*) 
+        WRITE(logunit,*) 'Atmospheric stratification: ', stratification
+        WRITE(logunit,*) 'Gravity: ', gravz
       END IF
 !
       IF (stratification) THEN
         IF( mpime == root ) THEN
-          IF (t_ground /= 288.15D0) WRITE(8,*) 'WARNING! control atmospheric &
+          IF (t_ground /= 288.15D0) WRITE(errorunit,*) 'WARNING! control atmospheric &
                                           & temperature profile'
-          IF (p_ground /= 1.01325D5) WRITE(8,*)'WARNING! control atmospheric &
+          IF (p_ground /= 1.01325D5) WRITE(errorunit,*)'WARNING! control atmospheric &
                                           & pressure profile'
         END IF
       END IF	
@@ -152,11 +153,11 @@
 
         IF (lpr > 1 .AND. stratification) THEN
           IF( mpime == root ) THEN
-            WRITE(6,*) layer(l)%name
-            WRITE(6,*) layer(l)%gradt
-            WRITE(6,*) layer(l)%ztop
-            WRITE(6,*) pbot, layer(l)%ptop
-            WRITE(6,*) tbot, layer(l)%ttop
+            WRITE(logunit,*) layer(l)%name
+            WRITE(logunit,*) layer(l)%gradt
+            WRITE(logunit,*) layer(l)%ztop
+            WRITE(logunit,*) pbot, layer(l)%ptop
+            WRITE(logunit,*) tbot, layer(l)%ttop
           END IF
         END IF
 
@@ -200,8 +201,8 @@
         za = zb(k) + 0.5D0*(dz(1)-dz(k))
 
         IF ( ( za < 0.D0 ) .AND. ( mpime == root ) ) THEN
-          WRITE(8,*) 'WARNING! from atmospheric profile:'
-          WRITE(8,*) ' Row ',k, ' lays below the sea level; z = ', za
+          WRITE(errorunit,*) 'WARNING! from atmospheric profile:'
+          WRITE(errorunit,*) ' Row ',k, ' lays below the sea level; z = ', za
         END IF
         IF (za <= 0.D0 .OR. .NOT.stratification) THEN
           ta = t_ground

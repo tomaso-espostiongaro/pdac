@@ -34,6 +34,7 @@
       USE turbulence_model, ONLY: iturb, iss
       USE turbulence_model, ONLY: sgsg, sgss
       USE volcano_topography, ONLY: itp
+      USE io_files, ONLY: testunit, logunit
 !
       IMPLICIT NONE
 !
@@ -76,8 +77,8 @@
       sweep  = NINT(time/dt)
 
       IF( mpime == root ) THEN
-        WRITE(6,*) 'Print OUTPUT  every ', nprint, ' time steps'
-        WRITE(6,*) 'Print RESTART every ', ndump, ' time steps'
+        WRITE(logunit,*) 'Print OUTPUT  every ', nprint, ' time steps'
+        WRITE(logunit,*) 'Print RESTART every ', ndump, ' time steps'
       END IF
 !
       !
@@ -119,7 +120,7 @@
       w0 = elapsed_seconds()
 !
       !CALL set_sampling( 1000.D0, 0.D0, 1500.D0, ismp, psmp)
-      !IF( mpime == psmp ) OPEN(19,FILE='p_samp.dat')
+      !IF( mpime == psmp ) OPEN(sampunit,FILE='p_samp.dat')
 !
 !//////////////////////////////////////////////////////////////////////
 !
@@ -129,8 +130,8 @@
 !
         sweep = sweep + 1
 
-        WRITE(7,fmt="(/,'* Starting iteration ',I5,' * ')" ) sweep
-        WRITE(7,fmt="('  Simulated time = ',F20.14)" ) time
+        WRITE(testunit,fmt="(/,'* Starting iteration ',I5,' * ')" ) sweep
+        WRITE(testunit,fmt="('  Simulated time = ',F20.14)" ) time
 !
         IF( timing ) then
            s1 = cpclock()
@@ -290,7 +291,7 @@
 ! ... Force the writing on the standard output
 !
         IF( mpime == root ) &
-          WRITE(6,fmt="('Iteration: ',I6,' nit: ', I5)" ) sweep, nit
+          WRITE(logunit,fmt="('Iteration: ',I6,' nit: ', I5)" ) sweep, nit
         CALL myflush( 6 )
         IF (lpr > 1) CALL myflush( 7 )
 !
@@ -323,7 +324,7 @@
 
         IF( stop_now ) THEN
           IF( mpime == root ) &
-            WRITE(6,fmt="('  elapsed_seconds exceed max_second',/,'  &
+            WRITE(logunit,fmt="('  elapsed_seconds exceed max_second',/,'  &
                           &  program stopping')" )
         END IF
 
@@ -347,7 +348,7 @@
         mptimres  = mptimres  + (p12 - p11)
 !
         w1 = elapsed_seconds()
-        WRITE(7,fmt="('  walltime = ',F10.2,', ',F10.2)") w1, w1-w0
+        WRITE(testunit,fmt="('  walltime = ',F10.2,', ',F10.2)") w1, w1-w0
         w0 = w1
 !
 ! ... Print the total residuals of the mass conservation equation
@@ -391,9 +392,9 @@
         cptimtot  = ( t13 - t0 ) 
         mptimtot   = ( p13 - p0 ) 
                 
-        WRITE(7,*) '  WALL TIME computed calling SYSTEM_CLOCK (s)'
-        WRITE(7,900) 'Bdry','Dyn','Tilde','Iter','Ygas','Tem','Out','Restart','Total'
-        WRITE(7,999) timbdry,  timturbo, timtilde, timiter, timygas, timtem, &
+        WRITE(testunit,*) '  WALL TIME computed calling SYSTEM_CLOCK (s)'
+        WRITE(testunit,900) 'Bdry','Dyn','Tilde','Iter','Ygas','Tem','Out','Restart','Total'
+        WRITE(testunit,999) timbdry,  timturbo, timtilde, timiter, timygas, timtem, &
                      timout, timres, timtot
 
 995     FORMAT(/,A45)                   

@@ -1,6 +1,7 @@
 !----------------------------------------------------------------------
       MODULE gas_components
 !----------------------------------------------------------------------
+      USE io_files, ONLY: errorunit
       IMPLICIT NONE
 !
 ! ... convective concentration fluxes 
@@ -88,8 +89,8 @@
 
            IF(rgpgc(ig) < 0.D0) THEN
              IF (lpr > 1) THEN
-               WRITE(8,128) ijk, ig 
-               WRITE(8,*) rgpgc(ig)
+               WRITE(errorunit,128) ijk, ig 
+               WRITE(errorunit,*) rgpgc(ig)
  128           FORMAT(' Cell= ',I6, ' Specie= ',I2)
              END IF
 

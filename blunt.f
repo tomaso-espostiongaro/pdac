@@ -9,6 +9,7 @@
       USE parallel, ONLY: mpime, root
       USE pressure_epsilon, ONLY: p, ep
       USE time_parameters, ONLY: time, dt
+      USE io_files, ONLY: testunit
       IMPLICIT NONE
 !      
       INTEGER :: nblu(1:max_nblock) = 0
@@ -36,9 +37,10 @@
       USE dimensions
       USE domain_decomposition, ONLY: cell_g2l, cell_owner, meshinds
       USE grid, ONLY: dx, dz, flag
+      USE io_files, ONLY: blunit, blfile
       INTEGER :: prm, l, m, n, i, j, k, ijk, imesh
 
-      IF (mpime == root) OPEN(15,FILE='body.dat')
+      IF (mpime == root) OPEN( blunit, FILE=blfile )
       perim = 0
       prm   = 0
       DO n = 1, no
@@ -131,17 +133,17 @@
         IF (nblu(n) == 1) THEN
           m = m + 1
           IF (lpr > 1) THEN
-            WRITE(7,*) 
-            WRITE(7,*) 'Computing action on block: ', n
-            WRITE(7,*) 'Surface cells: '
+            WRITE(testunit,*) 
+            WRITE(testunit,*) 'Computing action on block: ', n
+            WRITE(testunit,*) 'Surface cells: '
             DO l = 1, perim
               IF (surfp(m,l)%np == mpime) THEN
                 ijk = surfp(m,l)%ijk
                 CALL meshinds(ijk,imesh,i,j,k)
-                WRITE(7,*) i, j, k, ijk
+                WRITE(testunit,*) i, j, k, ijk
               END IF
             END DO
-            WRITE(7,*) 'END Computing action on block: ', n
+            WRITE(testunit,*) 'END Computing action on block: ', n
           END IF
         END IF
       END DO
@@ -150,6 +152,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE bluntb
       USE dimensions, ONLY: no
+      USE io_files, ONLY: blunit
 !
       IMPLICIT NONE
       INTEGER :: n, m, pp
@@ -186,7 +189,7 @@
 !
       DEALLOCATE(fdrag, flift)
 
-      CALL myflush( 15 )
+      CALL myflush( blunit )
 !
       RETURN
       END SUBROUTINE bluntb
@@ -204,7 +207,7 @@
           ijk = surfp(m,pp)%ijk
           IF (mpime == surfp(m,pp)%np) surfp(m,pp)%p = p(ijk)
           fd = fd + surfp(m,pp)%ds * surfp(m,pp)%p * surfp(m,pp)%n(1)
-          !WRITE(7,*) ijk, surfp(m,pp)%p, ep(ijk)
+          !WRITE(testunit,*) ijk, surfp(m,pp)%p, ep(ijk)
 	END DO
 !
       END SUBROUTINE dragbl
@@ -224,17 +227,23 @@
 	END DO
 !
       END SUBROUTINE liftbl
+
 !----------------------------------------------------------------------
+
       SUBROUTINE print_action
+
       USE time_parameters, ONLY: time
       USE parallel, ONLY: mpime, root
+      USE io_files, ONLY: blunit
+
       IMPLICIT NONE
 
-      IF( mpime == root ) WRITE(15,200) time, fdrag(:), flift(:)
+      IF( mpime == root ) WRITE(blunit,200) time, fdrag(:), flift(:)
 
  200  FORMAT(F14.6,20(G18.6))
 
       END SUBROUTINE print_action
+
 !----------------------------------------------------------------------
       END MODULE blunt_body
 !----------------------------------------------------------------------

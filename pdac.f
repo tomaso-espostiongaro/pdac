@@ -41,14 +41,12 @@
       USE vent_conditions, ONLY: ivent, locate_vent
       USE volcano_topography, ONLY: import_topography, write_profile, itp
       USE environment, ONLY: cpclock, timing, elapsed_seconds
+      USE io_files
 !
       IMPLICIT NONE
-      CHARACTER(LEN=11) :: testnb
-      CHARACTER(LEN=8) :: inputfile, logfile, errorfile, testfile, checkfile
       CHARACTER(LEN=3) :: procnum
       INTEGER :: mydate(10)
 !
-      INTEGER :: inputunit, logunit, errorunit, testunit, checkunit
       INTEGER :: ig
       REAL*8 :: s0, s1, s2, s3, s4, s5, s6, t0
       REAL*8 :: pt0, pt1, pt2, pt3, pt4, pt5, pt6
@@ -73,19 +71,7 @@
 
 ! ... date and time
       CALL date_and_time( values = mydate )
-!
-! ... I/O files
-!
-      inputunit = 5
-      logunit   = 6
-      testunit  = 7
-      errorunit = 8
-      checkunit = 13
-      inputfile = 'pdac.dat'
-      logfile   = 'pdac.log'
-      testfile  = 'pdac.tst'
-      errorfile = 'pdac.err'
-      checkfile = 'pdac.chm'
+
       testnb = testfile//procnum(mpime)
       IF(mpime == root) THEN
         OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN')
@@ -98,9 +84,9 @@
       END IF
 
       IF( mpime == root ) THEN
-        WRITE(6,100) mydate(5), mydate(6), mydate(7), mydate(3), mydate(2), mydate(1)
-        WRITE(6,*)
-        WRITE(6,*) 'Number of processor in use: ', nproc
+        WRITE(logunit,100) mydate(5), mydate(6), mydate(7), mydate(3), mydate(2), mydate(1)
+        WRITE(logunit,*)
+        WRITE(logunit,*) 'Number of processor in use: ', nproc
       END IF
 100   FORMAT( ' Pyroclastic Dispersion Analysis Code', /, &
            &  ' version: 3.0, June 2003',/, &
@@ -244,12 +230,12 @@
             mptiminit  = (pt1 - pt0)
              
           IF (mpime == root) THEN
-            WRITE(6,*)' (From main) WALL TIME computed calling SYSTEM_CLOCK (s)'
-            WRITE(6,900) 'Init', 'Ghost', 'Rest', 'Setup', 'Prog', 'Total'
-            WRITE(6,999) timinit, timghost, timres, timsetup, timprog, timtot
-!            WRITE(6,*)'             WALL TIME computed calling MP_WALLTIME (s)'
-!            WRITE(6,900) 'Init', 'Ghost', 'Rest', 'Setup', 'Prog', 'Total'
-!            WRITE(6,999) mptiminit, mptimghost, mptimres, mptimsetup, mptimprog, mptimtot
+            WRITE(logunit,*)' (From main) WALL TIME computed calling SYSTEM_CLOCK (s)'
+            WRITE(logunit,900) 'Init', 'Ghost', 'Rest', 'Setup', 'Prog', 'Total'
+            WRITE(logunit,999) timinit, timghost, timres, timsetup, timprog, timtot
+!            WRITE(logunit,*)'             WALL TIME computed calling MP_WALLTIME (s)'
+!            WRITE(logunit,900) 'Init', 'Ghost', 'Rest', 'Setup', 'Prog', 'Total'
+!            WRITE(logunit,999) mptiminit, mptimghost, mptimres, mptimsetup, mptimprog, mptimtot
           END IF
 999     FORMAT(6(1X,F10.2),/)
 900     FORMAT(6(1X,A10))
@@ -258,7 +244,7 @@
 ! ... date and time
       CALL date_and_time( values = mydate )
       IF( mpime == root ) THEN
-        WRITE(6,110) mydate(5), mydate(6), mydate(7), mydate(3), mydate(2), mydate(1)
+        WRITE(logunit,110) mydate(5), mydate(6), mydate(7), mydate(3), mydate(2), mydate(1)
       END IF
 110   FORMAT( ' This run ended at ', I2, ':', I2, ':', I2, 3X, 'day ', I2, &
               ' month ', I2, ' year ', I4 )
@@ -275,8 +261,6 @@
       IF(topen) CLOSE(testunit)
       INQUIRE(UNIT=checkunit,OPENED=topen)
       IF(topen) CLOSE(checkunit)
-      INQUIRE(UNIT=15,OPENED=topen)
-      IF(topen) CLOSE(15)
 !
 ! ... Finalize parallel environment
 !

@@ -15,6 +15,7 @@
       USE parallel, ONLY: mpime, root
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: time
+      USE io_files, ONLY: errorunit, logunit
 !
       IMPLICIT NONE
       PRIVATE
@@ -37,6 +38,8 @@
 !----------------------------------------------------------------------
 
       SUBROUTINE tapewr
+
+      USE io_files, ONLY: resfile, resunit
 !
       IMPLICIT NONE
 !
@@ -44,35 +47,32 @@
       INTEGER :: ig
       LOGICAL :: lform = .FALSE.
 !
-      CHARACTER*13 restart_file
-      restart_file = 'pdac.res'
-!
       IF( mpime == root ) THEN
 !
-        WRITE(6,*) ' writing to restart file '
+        WRITE(logunit,*) ' writing to restart file '
 !
-        OPEN(UNIT=9,form='unformatted', FILE = restart_file)
+        OPEN(UNIT=resunit,form='unformatted', FILE = resfile)
 !
-        WRITE(9) time, nx, ny, nz, nsolid, ngas, nfil
-        WRITE(9) gas_type
+        WRITE(resunit) time, nx, ny, nz, nsolid, ngas, nfil
+        WRITE(resunit) gas_type
 
       END IF
 !
 ! ... store the final values of the main physical variables 
 ! 
 
-      CALL write_array( 9, p, dbl, lform )
+      CALL write_array( resunit, p, dbl, lform )
       
       IF (job_type == '2D') THEN
 
-        CALL write_array( 9, ug, dbl, lform )
-        CALL write_array( 9, wg, dbl, lform )
+        CALL write_array( resunit, ug, dbl, lform )
+        CALL write_array( resunit, wg, dbl, lform )
 
       ELSE IF (job_type == '3D') THEN
 
-        CALL write_array( 9, ug, dbl, lform )
-        CALL write_array( 9, vg, dbl, lform )
-        CALL write_array( 9, wg, dbl, lform )
+        CALL write_array( resunit, ug, dbl, lform )
+        CALL write_array( resunit, vg, dbl, lform )
+        CALL write_array( resunit, wg, dbl, lform )
 
       ELSE
 
@@ -80,25 +80,25 @@
 
       END IF
 
-      CALL write_array( 9, sieg, dbl, lform )
+      CALL write_array( resunit, sieg, dbl, lform )
 
       DO is = 1, nsolid
-        CALL write_array( 9, rlk(:,is), dbl, lform )
+        CALL write_array( resunit, rlk(:,is), dbl, lform )
       END DO
 
       IF (job_type == '2D') THEN
 
         DO is = 1, nsolid
-          CALL write_array( 9, us(:,is), dbl, lform )
-          CALL write_array( 9, ws(:,is), dbl, lform )
+          CALL write_array( resunit, us(:,is), dbl, lform )
+          CALL write_array( resunit, ws(:,is), dbl, lform )
         END DO
 
       ELSE IF (job_type == '3D') THEN
 
         DO is = 1, nsolid
-          CALL write_array( 9, us(:,is), dbl, lform )
-          CALL write_array( 9, vs(:,is), dbl, lform )
-          CALL write_array( 9, ws(:,is), dbl, lform )
+          CALL write_array( resunit, us(:,is), dbl, lform )
+          CALL write_array( resunit, vs(:,is), dbl, lform )
+          CALL write_array( resunit, ws(:,is), dbl, lform )
         END DO
 
       ELSE
@@ -108,25 +108,25 @@
       END IF
 
       DO is = 1, nsolid
-        CALL write_array( 9, sies(:,is), dbl, lform )
+        CALL write_array( resunit, sies(:,is), dbl, lform )
       END DO
 
       DO ig = 1, ngas
-        CALL write_array( 9, ygc(:,ig), dbl, lform )
+        CALL write_array( resunit, ygc(:,ig), dbl, lform )
       END DO
 !
-      CALL write_array( 9, rgp, dbl, lform )
+      CALL write_array( resunit, rgp, dbl, lform )
 
-      CALL write_array( 9, rog, dbl, lform )
+      CALL write_array( resunit, rog, dbl, lform )
 
-      CALL write_array( 9, tg, dbl, lform )
+      CALL write_array( resunit, tg, dbl, lform )
       
       DO is = 1, nsolid
-        CALL write_array( 9, ts(:,is), dbl, lform )
+        CALL write_array( resunit, ts(:,is), dbl, lform )
       END DO
 !
       IF( mpime .EQ. root ) THEN
-        CLOSE(9)
+        CLOSE(resunit)
       END IF
 
       RETURN
@@ -141,6 +141,7 @@
       USE grid, ONLY: zb, dz
       USE specific_heat_module, ONLY: hcapg
       USE gas_constants, ONLY: tzero, hzerog
+      USE io_files, ONLY: resfile, resunit 
 
 
       IMPLICIT NONE
@@ -155,21 +156,21 @@
 
       IF( mpime == root ) THEN
 
-        WRITE(6,*) ' reading from restart file '
+        WRITE(logunit,*) ' reading from restart file '
 !
-        OPEN(UNIT=9,form='unformatted',FILE='pdac.res')
+        OPEN(UNIT=resunit,form='unformatted',FILE=resfile)
 
-        READ(9) time, nx_, ny_, nz_, nsolid_, ngas_, nfil
-        READ(9) gas_type
+        READ(resunit) time, nx_, ny_, nz_, nsolid_, ngas_, nfil
+        READ(resunit) gas_type
 
-        WRITE(6,*) ' time =  ', time
-        WRITE(6,*) ' nx   =  ', nx
-        WRITE(6,*) ' ny   =  ', ny
-        WRITE(6,*) ' nz   =  ', nz
-        WRITE(6,*) ' nsolid   =  ', nsolid
-        WRITE(6,*) ' ngas     =  ', ngas
-        WRITE(6,*) ' nfil     =  ', nfil
-        WRITE(6,*) ' gas_type =  ', gas_type
+        WRITE(logunit,*) ' time =  ', time
+        WRITE(logunit,*) ' nx   =  ', nx
+        WRITE(logunit,*) ' ny   =  ', ny
+        WRITE(logunit,*) ' nz   =  ', nz
+        WRITE(logunit,*) ' nsolid   =  ', nsolid
+        WRITE(logunit,*) ' ngas     =  ', ngas
+        WRITE(logunit,*) ' nfil     =  ', nfil
+        WRITE(logunit,*) ' gas_type =  ', gas_type
 
       END IF
 
@@ -197,9 +198,9 @@
       !  read pressure
 
       p = 0.0d0
-      CALL read_array( 9, p, dbl, lform )
+      CALL read_array( resunit, p, dbl, lform )
       IF( ANY( p < 0 ) ) THEN
-         IF( mpime == root ) WRITE(8,*) 'WARNING reading restart, p < 0'
+         IF( mpime == root ) WRITE(errorunit,*) 'WARNING reading restart, p < 0'
       END IF
 
       !
@@ -209,17 +210,17 @@
 
         ug = 0.0d0
         wg = 0.0d0
-        CALL read_array( 9, ug, dbl, lform )
-        CALL read_array( 9, wg, dbl, lform )
+        CALL read_array( resunit, ug, dbl, lform )
+        CALL read_array( resunit, wg, dbl, lform )
 
       ELSE IF (job_type == '3D') THEN
 
         ug = 0.0d0
         vg = 0.0d0
         wg = 0.0d0
-        CALL read_array( 9, ug, dbl, lform )
-        CALL read_array( 9, vg, dbl, lform )
-        CALL read_array( 9, wg, dbl, lform )
+        CALL read_array( resunit, ug, dbl, lform )
+        CALL read_array( resunit, vg, dbl, lform )
+        CALL read_array( resunit, wg, dbl, lform )
 
       ELSE
 
@@ -231,9 +232,9 @@
       !  read gas enthalpy
 
       sieg = 0.0d0
-      CALL read_array( 9, sieg, dbl, lform )
+      CALL read_array( resunit, sieg, dbl, lform )
       IF( ANY( sieg < 0 ) ) THEN
-         IF( mpime == root ) WRITE(8,*) 'WARNING reading restart, sieg < 0'
+         IF( mpime == root ) WRITE(errorunit,*) 'WARNING reading restart, sieg < 0'
       END IF
 
       !
@@ -241,10 +242,10 @@
 
       rlk = 0.0d0
       DO is = 1, nsolid
-        CALL read_array( 9, rlk(:,is), dbl, lform )
+        CALL read_array( resunit, rlk(:,is), dbl, lform )
       END DO
       IF( ANY( rlk < 0 ) ) THEN
-         IF( mpime == root ) WRITE(8,*) 'WARNING reading restart, rlk < 0'
+         IF( mpime == root ) WRITE(errorunit,*) 'WARNING reading restart, rlk < 0'
       END IF
 
 
@@ -256,8 +257,8 @@
         us = 0.0d0
         ws = 0.0d0
         DO is = 1, nsolid
-          CALL read_array( 9, us(:,is), dbl, lform )
-          CALL read_array( 9, ws(:,is), dbl, lform )
+          CALL read_array( resunit, us(:,is), dbl, lform )
+          CALL read_array( resunit, ws(:,is), dbl, lform )
         END DO
 
       ELSE IF (job_type == '3D') THEN
@@ -266,9 +267,9 @@
         vs = 0.0d0
         ws = 0.0d0
         DO is = 1, nsolid
-          CALL read_array( 9, us(:,is), dbl, lform )
-          CALL read_array( 9, vs(:,is), dbl, lform )
-          CALL read_array( 9, ws(:,is), dbl, lform )
+          CALL read_array( resunit, us(:,is), dbl, lform )
+          CALL read_array( resunit, vs(:,is), dbl, lform )
+          CALL read_array( resunit, ws(:,is), dbl, lform )
         END DO
 
       ELSE
@@ -282,10 +283,10 @@
 
       sies = 0.0d0
       DO is = 1, nsolid
-        CALL read_array( 9, sies(:,is), dbl, lform )
+        CALL read_array( resunit, sies(:,is), dbl, lform )
       END DO
       IF( ANY( sies < 0.0d0 ) ) THEN
-         IF( mpime == root ) WRITE(8,*) 'WARNING reading restart, sies < 0'
+         IF( mpime == root ) WRITE(errorunit,*) 'WARNING reading restart, sies < 0'
       END IF
 
       !
@@ -293,47 +294,47 @@
 
       ygc = 0.0d0
       DO ig = 1, ngas
-        CALL read_array( 9, ygc(:,ig), dbl, lform )
+        CALL read_array( resunit, ygc(:,ig), dbl, lform )
       END DO
       IF( ANY( ygc < 0 ) ) THEN
-         IF( mpime == root ) WRITE(8,*) 'WARNING reading restart, ygc < 0'
+         IF( mpime == root ) WRITE(errorunit,*) 'WARNING reading restart, ygc < 0'
       END IF
 
       !
       ! read gas density
 
       rgp = 0.0d0
-      CALL read_array( 9, rgp, dbl, lform )
+      CALL read_array( resunit, rgp, dbl, lform )
       IF( ANY( rgp < 0 ) ) THEN
-         IF( mpime == root ) WRITE(8,*) 'WARNING reading restart, rgp < 0'
+         IF( mpime == root ) WRITE(errorunit,*) 'WARNING reading restart, rgp < 0'
       END IF
 
       rog = 0.0d0
-      CALL read_array( 9, rog, dbl, lform )
+      CALL read_array( resunit, rog, dbl, lform )
       IF( ANY( rog < 0 ) ) THEN
-         IF( mpime == root ) WRITE(8,*) 'WARNING reading restart, rog < 0'
+         IF( mpime == root ) WRITE(errorunit,*) 'WARNING reading restart, rog < 0'
       END IF
 
       !
       ! read gas and particle temperature
 
       tg = 0.0d0
-      CALL read_array( 9, tg, dbl, lform ) 
+      CALL read_array( resunit, tg, dbl, lform ) 
       IF( ANY( tg < 0 ) ) THEN
-         IF( mpime == root ) WRITE(8,*) 'WARNING reading restart, tg < 0'
+         IF( mpime == root ) WRITE(errorunit,*) 'WARNING reading restart, tg < 0'
       END IF
 
       ts = 0.0d0
       DO is = 1, nsolid
-        CALL read_array( 9, ts(:,is), dbl, lform )
+        CALL read_array( resunit, ts(:,is), dbl, lform )
       END DO
       IF( ANY( ts < 0 ) ) THEN
-         IF( mpime == root ) WRITE(8,*) 'WARNING reading restart, ts < 0'
+         IF( mpime == root ) WRITE(errorunit,*) 'WARNING reading restart, ts < 0'
       END IF
 
       IF( mpime == root ) THEN
-        CLOSE (9)
-        WRITE(6,*) ' restart file has been red '
+        CLOSE (resunit)
+        WRITE(logunit,*) ' restart file has been red '
       END IF
 !
       RETURN

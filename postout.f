@@ -10,6 +10,7 @@
       USE iotk_module
       USE grid
       USE output_dump, ONLY: formatted_output
+      USE io_files, ONLY: iuni_scalar, iuni_u, iuni_v, iuni_w
       IMPLICIT NONE
  
       CHARACTER(LEN=15) :: filetype
@@ -18,14 +19,6 @@
       INTEGER :: lbl, ig, is
       INTEGER :: nfields, ndim, veclen, nlx, nly, nlz
 
-!
-! ... I/O units
-!
-      INTEGER :: iuni_scalar = 21
-      INTEGER :: iuni_u = 22
-      INTEGER :: iuni_v = 23
-      INTEGER :: iuni_w = 24
-!
       OPEN( UNIT=iuni_scalar, FILE='scalar.fld', STATUS='UNKNOWN')
       OPEN( UNIT=iuni_u, FILE='u.fld', STATUS='UNKNOWN')
       OPEN( UNIT=iuni_v, FILE='v.fld', STATUS='UNKNOWN')
@@ -331,6 +324,7 @@
       USE process_outp, ONLY: first_out, last_out, incr_out
       USE time_parameters, ONLY: dt, timestart
       USE kinds
+      USE io_files, ONLY: iunxml, xmlfile
 
       IMPLICIT NONE
  
@@ -343,12 +337,7 @@
       CHARACTER(LEN=80) :: fldn
       REAL(sgl) :: rsgl
 
-!
-! ... I/O units
-!
-      INTEGER :: iunxml = 21
-!
-      OPEN( UNIT=iunxml, FILE='output.xml', STATUS='UNKNOWN')
+      OPEN( UNIT=iunxml, FILE=xmlfile, STATUS='UNKNOWN')
 !
 ! ... control parameters
 !

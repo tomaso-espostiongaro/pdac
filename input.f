@@ -3,6 +3,7 @@
 !----------------------------------------------------------------------
       USE dimensions, ONLY: max_nsolid, ngas, nroughx, max_size, &
           max_nblock, max_ngas, nz, nx, ny
+      USE io_files, ONLY: logunit
 
       REAL*8 :: diameter(max_nsolid)
       REAL*8 :: density(max_nsolid)
@@ -324,7 +325,7 @@
 !
 
       IF(mpime == root) &
-        WRITE(6,*) 'Reading input ...'
+        WRITE(logunit,*) 'Reading input ...'
 !
 !
 ! :::::::::::::::::::::::  R E A D   N A M E L I S T S ::::::::::::::::
@@ -694,7 +695,7 @@
 
 
       IF(mpime == root) &
-        WRITE(6,*) 'END input'
+        WRITE(logunit,*) 'END input'
 
 
 !----------------------------------------------------------------------
@@ -705,13 +706,13 @@
       ! ... Writes input parameters into an XML file
 
       USE iotk_module
+      USE io_files, ONLY: iuni_nml, nmlfile
       IMPLICIT NONE
-      INTEGER :: iuni_nml = 20
       CHARACTER(LEN=256) :: attr
 
       IF( mpime == root ) THEN
 
-          OPEN( UNIT=iuni_nml, FILE='pdac.nml', STATUS='UNKNOWN')
+          OPEN( UNIT=iuni_nml, FILE=nmlfile, STATUS='UNKNOWN')
           WRITE(iuni_nml, * ) '<?xml version="1.0" encoding="UTF-8"?>'
 
           CALL iotk_write_begin( iuni_nml, "input" )

@@ -4,6 +4,7 @@
       USE dimensions
       USE kinds
       USE control_flags, ONLY: job_type
+      USE io_files, ONLY: logunit
 !
       IMPLICIT NONE
       SAVE
@@ -47,6 +48,8 @@
       END SUBROUTINE allocate_main_fields
 !----------------------------------------------------------------------
       SUBROUTINE read_output( tn )
+
+      USE io_files, ONLY: outpunit
 !
       IMPLICIT NONE
 !
@@ -68,109 +71,110 @@
       iunit = 50
 
       IF (lform) THEN
-        OPEN( UNIT=12, FILE=filnam, STATUS='OLD')
-        READ(12,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
+        OPEN( UNIT=outpunit, FILE=filnam, STATUS='OLD')
+        READ(outpunit,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
       ELSE 
-        OPEN(UNIT=12,FORM='UNFORMATTED',FILE=filnam, STATUS='OLD')
-        READ (12) stime
+        OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam, STATUS='OLD')
+        READ (outpunit) stime
       END IF
 
       IF( lform ) THEN
-        DO i=1,4; READ(12,*); END DO
+        DO i=1,4; READ(outpunit,*); END DO
       END IF
-      CALL read_array( 12, p, lform )  ! gas_pressure
+      CALL read_array( outpunit, p, lform )  ! gas_pressure
 
       IF (job_type == '2D') THEN
 
         IF( lform ) THEN
-          DO i=1,4; READ(12,*); END DO
+          DO i=1,4; READ(outpunit,*); END DO
         END IF
-        CALL read_array( 12, ug, lform ) ! gas_velocity_r
+        CALL read_array( outpunit, ug, lform ) ! gas_velocity_r
         IF( lform ) THEN
-          DO i=1,4; READ(12,*); END DO
+          DO i=1,4; READ(outpunit,*); END DO
         END IF
-        CALL read_array( 12, wg, lform ) ! gas_velocity_z
+        CALL read_array( outpunit, wg, lform ) ! gas_velocity_z
 
       ELSE IF (job_type == '3D') THEN
 
         IF( lform ) THEN
-          DO i=1,4; READ(12,*); END DO
+          DO i=1,4; READ(outpunit,*); END DO
         END IF
-        CALL read_array( 12, ug, lform ) ! gas_velocity_x
+        CALL read_array( outpunit, ug, lform ) ! gas_velocity_x
         IF( lform ) THEN
-          DO i=1,4; READ(12,*); END DO
+          DO i=1,4; READ(outpunit,*); END DO
         END IF
-        CALL read_array( 12, vg, lform ) ! gas_velocity_y
+        CALL read_array( outpunit, vg, lform ) ! gas_velocity_y
         IF( lform ) THEN
-          DO i=1,4; READ(12,*); END DO
+          DO i=1,4; READ(outpunit,*); END DO
         END IF
-        CALL read_array( 12, wg, lform ) ! gas_velocity_z
+        CALL read_array( outpunit, wg, lform ) ! gas_velocity_z
 
       ELSE
         CALL error('outp_','Unknown job type',1)
       END IF
 
       IF( lform ) THEN
-        DO i=1,4; READ(12,*); END DO
+        DO i=1,4; READ(outpunit,*); END DO
       END IF
-      CALL read_array( 12, tg, lform )  ! gas_temperature
+      CALL read_array( outpunit, tg, lform )  ! gas_temperature
 
       DO ig=1,ngas
         IF( lform ) THEN
-          DO i=1,4; READ(12,*); END DO
+          DO i=1,4; READ(outpunit,*); END DO
         END IF
-        CALL read_array( 12, xgc(:,ig), lform )  ! gc_molar_fraction
+        CALL read_array( outpunit, xgc(:,ig), lform )  ! gc_molar_fraction
       END DO
 
       DO is = 1, nsolid
 
         IF( lform ) THEN
-          DO i=1,4; READ(12,*); END DO
+          DO i=1,4; READ(outpunit,*); END DO
         END IF
-        CALL read_array( 12, eps(:,is), lform )  ! solid_bulk_density
+        CALL read_array( outpunit, eps(:,is), lform )  ! solid_bulk_density
 
         IF (job_type == '2D') THEN
 
           IF( lform ) THEN
-            DO i=1,4; READ(12,*); END DO
+            DO i=1,4; READ(outpunit,*); END DO
           END IF
-          CALL read_array( 12, us(:,is), lform )  ! solid_velocity_r
+          CALL read_array( outpunit, us(:,is), lform )  ! solid_velocity_r
           IF( lform ) THEN
-            DO i=1,4; READ(12,*); END DO
+            DO i=1,4; READ(outpunit,*); END DO
           END IF
-          CALL read_array( 12, ws(:,is), lform )  ! solid_velocity_z
+          CALL read_array( outpunit, ws(:,is), lform )  ! solid_velocity_z
 
         ELSE IF (job_type == '3D') THEN
 
           IF( lform ) THEN
-            DO i=1,4; READ(12,*); END DO
+            DO i=1,4; READ(outpunit,*); END DO
           END IF
-          CALL read_array( 12, us(:,is), lform )  ! solid_velocity_x
+          CALL read_array( outpunit, us(:,is), lform )  ! solid_velocity_x
           IF( lform ) THEN
-            DO i=1,4; READ(12,*); END DO
+            DO i=1,4; READ(outpunit,*); END DO
           END IF
-          CALL read_array( 12, vs(:,is), lform )  ! solid_velocity_y
+          CALL read_array( outpunit, vs(:,is), lform )  ! solid_velocity_y
           IF( lform ) THEN
-            DO i=1,4; READ(12,*); END DO
+            DO i=1,4; READ(outpunit,*); END DO
           END IF
-          CALL read_array( 12, ws(:,is), lform )  ! solid_velocity_z
+          CALL read_array( outpunit, ws(:,is), lform )  ! solid_velocity_z
 
         END IF
 
         IF( lform ) THEN
-          DO i=1,4; READ(12,*); END DO
+          DO i=1,4; READ(outpunit,*); END DO
         END IF
-        CALL read_array( 12, ts(:,is), lform )  ! solid_temperature
+        CALL read_array( outpunit, ts(:,is), lform )  ! solid_temperature
 
       END DO
 
-      CLOSE (12)
+      CLOSE (outpunit)
 !
       RETURN
       END SUBROUTINE read_output
 !-----------------------------------------------------------------------
       SUBROUTINE process
       USE derived_fields
+      USE io_files, ONLY: checkunit
       USE grid, ONLY: z
 
       IMPLICIT NONE
@@ -198,7 +202,7 @@
 !
       DO tn = first_out, last_out, incr_out
 
-        WRITE(6,fmt="(/,'* Starting post-processing ',I5,' * ')" ) tn
+        WRITE(logunit,fmt="(/,'* Starting post-processing ',I5,' * ')" ) tn
         CALL read_output ( tn )
 
         rm = rhom(eps,p,tg,xgc)
@@ -215,7 +219,7 @@
 
         mc = mach(mvm,c)
 
-        CALL write_array( 13, lepstot, lform )
+        CALL write_array( checkunit, lepstot, lform )
 
         i = 201
         DO k = 1, 120
@@ -248,7 +252,7 @@
 !
       DO irest = first_out, last_out, incr_out
 
-        WRITE(6,fmt="(/,'* Starting filtering ',I5,' * ')" ) irest
+        WRITE(logunit,fmt="(/,'* Starting filtering ',I5,' * ')" ) irest
         CALL filter_outp ( irest )
 
       END DO
@@ -258,6 +262,8 @@
 !----------------------------------------------------------------------
       SUBROUTINE filter_outp( irest )
       USE grid, ONLY: dx, dy, dz
+
+      USE io_files, ONLY: outpunit
 !
       IMPLICIT NONE
 !
@@ -276,63 +282,63 @@
       REAL, ALLOCATABLE :: array(:)
 !
       filnam='output.'//lettera(irest)
-      WRITE(6,fmt="('  filter: reading file ',A11)") filnam
+      WRITE(logunit,fmt="('  filter: reading file ',A11)") filnam
 
       lform = formatted_output
 
       iunit = 50
 
       IF (lform) THEN
-        OPEN( UNIT=12, FILE=filnam, STATUS='OLD')
-        READ (12,*) time
+        OPEN( UNIT=outpunit, FILE=filnam, STATUS='OLD')
+        READ (outpunit,*) time
       ELSE 
-        OPEN(UNIT=12,FORM='UNFORMATTED',FILE=filnam, STATUS='OLD')
-        READ (12) stime
+        OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam, STATUS='OLD')
+        READ (outpunit) stime
       END IF
 
       ALLOCATE( array( ntot ) )
 
-      WRITE(6,fmt="('  filtering gas pressure ')")
+      WRITE(logunit,fmt="('  filtering gas pressure ')")
 !
-      CALL read_array( 12, array, lform )  ! gas_pressure
+      CALL read_array( outpunit, array, lform )  ! gas_pressure
 
       CALL crop_array( 'pgas' )  ! gas_pressure
 
-      WRITE(6,fmt="('  filtering reading gas velocities ')")
+      WRITE(logunit,fmt="('  filtering reading gas velocities ')")
 
       IF (job_type == '2D') THEN
 
-        CALL read_array( 12, array, lform ) ! gas_velocity_r
+        CALL read_array( outpunit, array, lform ) ! gas_velocity_r
         CALL inte_array_x( 'ugas' )  
 
-        CALL read_array( 12, array, lform ) ! gas_velocity_z
+        CALL read_array( outpunit, array, lform ) ! gas_velocity_z
         CALL inte_array_z( 'wgas' ) 
 
       ELSE IF (job_type == '3D') THEN
 
-        CALL read_array( 12, array, lform ) ! gas_velocity_x
+        CALL read_array( outpunit, array, lform ) ! gas_velocity_x
         CALL inte_array_x( 'ugas' )  
 
-        CALL read_array( 12, array, lform ) ! gas_velocity_y
+        CALL read_array( outpunit, array, lform ) ! gas_velocity_y
         CALL inte_array_y( 'vgas' )  
 
-        CALL read_array( 12, array, lform ) ! gas_velocity_z
+        CALL read_array( outpunit, array, lform ) ! gas_velocity_z
         CALL inte_array_z( 'wgas' )  
 
       ELSE
         CALL error('outp_','Unknown job type',1)
       END IF
 
-      WRITE(6,fmt="('  filtering gas temperature ')")
+      WRITE(logunit,fmt="('  filtering gas temperature ')")
 
-      CALL read_array( 12, array, lform )  ! gas_temperature
+      CALL read_array( outpunit, array, lform )  ! gas_temperature
       CALL crop_array( 'tgas' )  
 
-      WRITE(6,fmt="('  filtering molarfraction ')")
+      WRITE(logunit,fmt="('  filtering molarfraction ')")
 !
       DO ig=1,ngas
           var = 'xg'//lettera2( ig )
-          CALL read_array( 12, array, lform )  ! gc_molar_fraction
+          CALL read_array( outpunit, array, lform )  ! gc_molar_fraction
           CALL crop_array( var )  
       END DO
 
@@ -340,35 +346,35 @@
                         & temperature')")
 !
       DO is = 1, nsolid
-        CALL read_array( 12, array, lform )  ! solid_bulk_density
+        CALL read_array( outpunit, array, lform )  ! solid_bulk_density
         var = 'ep'//lettera2( is )
         CALL crop_array( var )  
         IF (job_type == '2D') THEN
-          CALL read_array( 12, array, lform )  ! solid_velocity_r
+          CALL read_array( outpunit, array, lform )  ! solid_velocity_r
           var = 'us'//lettera2( is )
           CALL inte_array_x( var )  
-          CALL read_array( 12, array, lform )  ! solid_velocity_z
+          CALL read_array( outpunit, array, lform )  ! solid_velocity_z
           var = 'ws'//lettera2( is )
           CALL inte_array_z( var )  
         ELSE IF (job_type == '3D') THEN
-          CALL read_array( 12, array, lform )  ! solid_velocity_x
+          CALL read_array( outpunit, array, lform )  ! solid_velocity_x
           var = 'us'//lettera2( is )
           CALL inte_array_x( var )  
-          CALL read_array( 12, array, lform )  ! solid_velocity_y
+          CALL read_array( outpunit, array, lform )  ! solid_velocity_y
           var = 'vs'//lettera2( is )
           CALL inte_array_y( var )  
-          CALL read_array( 12, array, lform )  ! solid_velocity_z
+          CALL read_array( outpunit, array, lform )  ! solid_velocity_z
           var = 'ws'//lettera2( is )
           CALL inte_array_z( var )  
         END IF
-        CALL read_array( 12, array, lform )  ! solid_temperature
+        CALL read_array( outpunit, array, lform )  ! solid_temperature
         var = 'ts'//lettera2( is )
         CALL crop_array( var )  
       END DO
 
       DEALLOCATE( array )
 
-      CLOSE (12)
+      CLOSE (outpunit)
 !
       RETURN
 !-----------------------------------------------------------------------
@@ -385,7 +391,7 @@
         ELSE 
           OPEN(UNIT=iunit,FORM='UNFORMATTED',FILE=filwri)
         END IF
-        WRITE(6,fmt="('  crop_array: writing file ',A16)") filwri
+        WRITE(logunit,fmt="('  crop_array: writing file ',A16)") filwri
 
         ALLOCATE( sarray( ntot ) )
         sarray = 0.0
@@ -436,7 +442,7 @@
         ELSE 
           OPEN( UNIT=iunit, FORM='UNFORMATTED', FILE=filwri, STATUS='UNKNOWN' )
         END IF
-        WRITE(6,fmt="('  inte_array_x: writing file ',A16)") filwri
+        WRITE(logunit,fmt="('  inte_array_x: writing file ',A16)") filwri
         ALLOCATE( sarray( ntot ) )
         imesh = 0
         sarray = 0.0
@@ -493,7 +499,7 @@
         ELSE 
           OPEN( UNIT=iunit, FORM='UNFORMATTED', FILE=filwri, STATUS='UNKNOWN' )
         END IF
-        WRITE(6,fmt="('  inte_array_y: writing file ',A16)") filwri
+        WRITE(logunit,fmt="('  inte_array_y: writing file ',A16)") filwri
         ALLOCATE( sarray( ntot ) )
         imesh = 0
         sarray = 0.0
@@ -550,7 +556,7 @@
         ELSE 
           OPEN( UNIT=iunit, FORM='UNFORMATTED', FILE=filwri, STATUS='UNKNOWN' )
         END IF
-        WRITE(6,fmt="('  inte_array_z: writing file ',A16)") filwri
+        WRITE(logunit,fmt="('  inte_array_z: writing file ',A16)") filwri
         ALLOCATE( sarray( ntot ) )
         imesh = 0
         sarray = 0.0

@@ -9,6 +9,7 @@
         USE indijk_module
         USE immersed_boundaries, ONLY: immb
         USE control_flags, ONLY: lpr
+        USE io_files, ONLY: errorunit, testunit, logunit
 !
         IMPLICIT NONE
         SAVE
@@ -185,28 +186,28 @@
       END DO
 !
       IF ( lpr > 0 .AND. ionode ) THEN
-        WRITE(6,*) 
-        WRITE(6,*) '---  Mesh decomposition summary  ---'
-        WRITE(6,*) 
+        WRITE(logunit,*) 
+        WRITE(logunit,*) '---  Mesh decomposition summary  ---'
+        WRITE(logunit,*) 
         DO ipe = 0, nproc - 1
-          WRITE(6,*) ' # nctot( ',ipe, ' ) = ', nctot(ipe)
-          WRITE(6,*) ' # ncfl1( ',ipe, ' ) = ', ncfl1(ipe)
-          WRITE(6,*) ' # ncdif( ',ipe, ' ) = ', ncfl1(ipe),' -', ncell(ipe),' =', ncdif(ipe)
+          WRITE(logunit,*) ' # nctot( ',ipe, ' ) = ', nctot(ipe)
+          WRITE(logunit,*) ' # ncfl1( ',ipe, ' ) = ', ncfl1(ipe)
+          WRITE(logunit,*) ' # ncdif( ',ipe, ' ) = ', ncfl1(ipe),' -', ncell(ipe),' =', ncdif(ipe)
           IF( proc_map(0)%type == LAYER_MAP ) THEN
-            WRITE(6,*) '   proc(', ipe,')_map (first-last):', &
+            WRITE(logunit,*) '   proc(', ipe,')_map (first-last):', &
               proc_map(ipe)%lay(1), proc_map(ipe)%lay(2)
           ELSE IF(  proc_map(0)%type == BLOCK2D_MAP ) THEN
-            WRITE(6,*) '   proc(', ipe,')_map (left-bot.):', &
+            WRITE(logunit,*) '   proc(', ipe,')_map (left-bot.):', &
               proc_map(ipe)%corner1(1), proc_map(ipe)%corner1(2)
-            WRITE(6,*) '   proc(', ipe,')_map (right-top):', &
+            WRITE(logunit,*) '   proc(', ipe,')_map (right-top):', &
               proc_map(ipe)%corner2(1), proc_map(ipe)%corner2(2)
           ELSE IF(  proc_map(0)%type == BLOCK3D_MAP ) THEN
-            WRITE(6,*) '   proc(', ipe,')_map (BSW):', &
+            WRITE(logunit,*) '   proc(', ipe,')_map (BSW):', &
               proc_map(ipe)%blkbsw(1), proc_map(ipe)%blkbsw(2), proc_map(ipe)%blkbsw(3)
-            WRITE(6,*) '   proc(', ipe,')_map (TNE):', &
+            WRITE(logunit,*) '   proc(', ipe,')_map (TNE):', &
               proc_map(ipe)%blktne(1), proc_map(ipe)%blktne(2), proc_map(ipe)%blktne(3)
           END IF 
-          WRITE(6,*) '-----------------------------'
+          WRITE(logunit,*) '-----------------------------'
         END DO
       END IF
 
@@ -834,7 +835,7 @@
             END DO
           END DO
 
-          IF( lpr > 0 .AND. ionode ) WRITE(6,*) ' layer = ', layer, ' no. columns = ', nbl_lay(layer)
+          IF( lpr > 0 .AND. ionode ) WRITE(logunit,*) ' layer = ', layer, ' no. columns = ', nbl_lay(layer)
 !
 ! ... Estimate of the number of cells contained in each block
 ! ... in the layer
@@ -879,7 +880,7 @@
               END DO
             END DO
             IF (lpr > 1 .AND. ionode ) &
-              WRITE(6,*) 'proc_map(',ipe,'): ', proc_map(ipe)%corner1(:), proc_map(ipe)%corner2(:)
+              WRITE(logunit,*) 'proc_map(',ipe,'): ', proc_map(ipe)%corner1(:), proc_map(ipe)%corner2(:)
           END DO
         END DO
 
@@ -952,8 +953,8 @@
       nprocxy = nproc / nprocz
 
       IF( nprocz == 1 .AND. ionode ) THEN
-        WRITE(8,*) 'WARNING! from domain decomposition'
-        WRITE(8,*) 'Blocks3d distribution has no effect, nprocz = 1'
+        WRITE(errorunit,*) 'WARNING! from domain decomposition'
+        WRITE(errorunit,*) 'Blocks3d distribution has no effect, nprocz = 1'
       END IF
 
 ! ... compute blocks in z direction 
@@ -991,8 +992,8 @@
         rest = nbx*nby - nprocxy
 
         IF( lpr > 1 .AND. ionode ) THEN
-          WRITE(6,*) 'Report on domain decomposition'
-          WRITE(6,*) 'nbx, nby, nbz, nprocz, nprocxy = ', nbx, nby, nbz, nprocz, nprocxy
+          WRITE(logunit,*) 'Report on domain decomposition'
+          WRITE(logunit,*) 'nbx, nby, nbz, nprocz, nprocxy = ', nbx, nby, nbz, nprocz, nprocxy
         END IF
 
 ! ... The number of layer (slab) nby is now defined, and it will not be
@@ -1053,7 +1054,7 @@
 
         IF( lpr > 1 .AND. ionode ) THEN
           DO layer = 1, nby
-            WRITE(6,*) ' layer ', layer, ' nbl = ', nbl_lay(layer)
+            WRITE(logunit,*) ' layer ', layer, ' nbl = ', nbl_lay(layer)
           END DO
         END IF
 
@@ -1096,7 +1097,7 @@
 
         IF( lpr > 1 .AND. ionode ) THEN
           DO layer = 1, nby
-            WRITE(6,*) ' layer_map ', layer, ' start, end = ', lay_map(layer,1), lay_map(layer,2)
+            WRITE(logunit,*) ' layer_map ', layer, ' start, end = ', lay_map(layer,1), lay_map(layer,2)
           END DO
         END IF
 
@@ -1156,7 +1157,7 @@
           END DO
 
           IF( lpr > 1 .AND. ionode ) &
-            WRITE(6,*) ' layer = ', layer, ' no. column blocks = ', nbl_lay(layer)
+            WRITE(logunit,*) ' layer = ', layer, ' no. column blocks = ', nbl_lay(layer)
 !
 ! ...     Estimate of the number of cells contained in each column block
 ! ...     in the layer
@@ -1243,7 +1244,7 @@
               END DO
 
               IF (lpr > 1 .AND. ionode ) THEN
-                 WRITE(6,1000) ipe, proc_map(ipe)%blkbsw(:),proc_map(ipe)%blktne(:)
+                 WRITE(logunit,1000) ipe, proc_map(ipe)%blkbsw(:),proc_map(ipe)%blktne(:)
   1000           FORMAT( ' proc_map(',I4,'): BSW = ', 3I4, ' TNE = ', 3I4 )
               END IF
 
@@ -1493,9 +1494,9 @@
 
       IF (lpr > 1) THEN
         DO ipe = 0, nproc - 1
-          WRITE(7,300) nset(ipe), ipe
+          WRITE(testunit,300) nset(ipe), ipe
           IF ( nset(ipe) > 0 .AND. lpr > 2) THEN
-            WRITE(7,310) rcv_cell_set(ipe)%i(1,:)
+            WRITE(testunit,310) rcv_cell_set(ipe)%i(1,:)
           END IF
  300      FORMAT(' # neighbours set SIZE ',i5,' from ',i3)
  310      FORMAT(10i8)
@@ -1508,8 +1509,8 @@
       ncext = SUM( nrcv ) 
       ncdom = ncint + ncext
       IF (lpr > 1) THEN
-        WRITE(7,* ) ' # ncext ', ncext
-        WRITE(7,* ) ' # ncdom ', ncdom
+        WRITE(testunit,* ) ' # ncext ', ncext
+        WRITE(testunit,* ) ' # ncdom ', ncdom
       END IF
 !
 ! ... prepare the receive map 
@@ -1536,7 +1537,7 @@
 !
       IF (lpr > 1) THEN
         DO ipe = 0, nproc - 1
-          WRITE(7,*) ' # nrcv ', nrcv(ipe), ' from ', ipe
+          WRITE(testunit,*) ' # nrcv ', nrcv(ipe), ' from ', ipe
         END DO
       END IF
 !
@@ -1601,11 +1602,11 @@
 !
       IF (lpr > 1) THEN
         DO ipe = 0, nproc - 1
-          WRITE(7,100) rcv_map(ipe)%nrcv, ipe
+          WRITE(testunit,100) rcv_map(ipe)%nrcv, ipe
           IF( rcv_map(ipe)%nrcv > 0 .AND. lpr > 2 ) THEN
-            WRITE(7,110) rcv_map(ipe)%ircv(:)
-            WRITE(7,*) ' ---- '
-            WRITE(7,110) rcv_map(ipe)%iloc(:)
+            WRITE(testunit,110) rcv_map(ipe)%ircv(:)
+            WRITE(testunit,*) ' ---- '
+            WRITE(testunit,110) rcv_map(ipe)%iloc(:)
           END IF
  100      FORMAT(' # receiving ',i5,' cells from ',i3)
  110      FORMAT(10i8)
@@ -1614,11 +1615,11 @@
 
       IF (lpr > 1) THEN
         DO ipe = 0, nproc - 1
-          WRITE(7,200) snd_map(ipe)%nsnd, ipe
+          WRITE(testunit,200) snd_map(ipe)%nsnd, ipe
           IF ( snd_map(ipe)%nsnd > 0 .AND. lpr > 2 ) THEN
-            WRITE(7,210) snd_map(ipe)%isnd(:)
-            WRITE(7,*) ' ---- '
-            WRITE(7,210) snd_map(ipe)%iloc(:)
+            WRITE(testunit,210) snd_map(ipe)%isnd(:)
+            WRITE(testunit,*) ' ---- '
+            WRITE(testunit,210) snd_map(ipe)%iloc(:)
           END IF
  200      FORMAT(' # sending ',i5,' cells to ',i3)
  210      FORMAT(10i8)
@@ -1648,7 +1649,7 @@
 !
       IF (immb == 1) CALL local_forcing
 
-      WRITE(7,*) 'End of Ghost'
+      WRITE(testunit,*) 'End of Ghost'
 !
       RETURN
       END SUBROUTINE ghost
@@ -2478,12 +2479,12 @@
           ALLOCATE( rcvbuf( MAX(rcv_map(isour)%nrcv,1) ), STAT=ierr )
 
           IF( ierr /= 0 ) THEN
-            WRITE(7,*) 'Trying to allocate ', MAX(rcv_map(isour)%nrcv,1), ' elements '
+            WRITE(testunit,*) 'Trying to allocate ', MAX(rcv_map(isour)%nrcv,1), ' elements '
             CALL error(' data_exchange_r ', ' allocating rcvbuf ', ierr )
           END IF
           ALLOCATE( sndbuf( MAX(snd_map(idest)%nsnd,1) ), STAT=ierr )
           IF( ierr /= 0 ) THEN
-            WRITE(7,*) 'Trying to allocate ', MAX(snd_map(idest)%nsnd,1), ' elements '
+            WRITE(testunit,*) 'Trying to allocate ', MAX(snd_map(idest)%nsnd,1), ' elements '
             CALL error(' data_exchange_r ', ' allocating sndbuf ', ierr )
           END IF
 
@@ -2543,12 +2544,12 @@
           rdim = MAX( SIZE(array,2) * rcv_map(isour)%nrcv, 1)
           ALLOCATE( rcvbuf( rdim ), STAT=ierr )
           IF( ierr /= 0 ) THEN
-            WRITE(7,*) 'Trying to allocate ', rdim, ' elements '
+            WRITE(testunit,*) 'Trying to allocate ', rdim, ' elements '
             CALL error(' data_exchange_rm ', ' allocating rcvbuf ', ierr )
           END IF
           ALLOCATE( sndbuf( sdim ), STAT=ierr )
           IF( ierr /= 0 ) THEN
-            WRITE(7,*) 'Trying to allocate ', sdim, ' elements '
+            WRITE(testunit,*) 'Trying to allocate ', sdim, ' elements '
             CALL error(' data_exchange_rm ', ' allocating sndbuf ', ierr )
           END IF
 
@@ -2608,12 +2609,12 @@
           idest = MOD(mpime + ip        , nproc)
           ALLOCATE( rcvbuf( MAX(rcv_map(isour)%nrcv,1) ), STAT=ierr )
           IF( ierr /= 0 ) THEN
-            WRITE(7,*) 'Trying to allocate ', MAX(rcv_map(isour)%nrcv,1), ' elements '
+            WRITE(testunit,*) 'Trying to allocate ', MAX(rcv_map(isour)%nrcv,1), ' elements '
             CALL error(' data_exchange_i ', ' allocating rcvbuf ', ierr )
           END IF
           ALLOCATE( sndbuf( MAX(snd_map(idest)%nsnd,1) ), STAT=ierr )
           IF( ierr /= 0 ) THEN
-            WRITE(7,*) 'Trying to allocate ', MAX(snd_map(idest)%nsnd,1), ' elements '
+            WRITE(testunit,*) 'Trying to allocate ', MAX(snd_map(idest)%nsnd,1), ' elements '
             CALL error(' data_exchange_i ', ' allocating sndbuf ', ierr )
           END IF
           DO ib = 1, snd_map(idest)%nsnd
@@ -2647,12 +2648,12 @@
           idest = MOD(mpime + ip        , nproc)
           ALLOCATE( rcvbuf( MAX(rcv_map(isour)%nrcv,1) ), STAT=ierr )
           IF( ierr /= 0 ) THEN
-            WRITE(7,*) 'Trying to allocate ', MAX(rcv_map(isour)%nrcv,1), ' elements '
+            WRITE(testunit,*) 'Trying to allocate ', MAX(rcv_map(isour)%nrcv,1), ' elements '
             CALL error(' data_exchange_l ', ' allocating rcvbuf ', ierr )
           END IF
           ALLOCATE( sndbuf( MAX(snd_map(idest)%nsnd,1) ), STAT=ierr )
           IF( ierr /= 0 ) THEN
-            WRITE(7,*) 'Trying to allocate ', MAX(snd_map(idest)%nsnd,1), ' elements '
+            WRITE(testunit,*) 'Trying to allocate ', MAX(snd_map(idest)%nsnd,1), ' elements '
             CALL error(' data_exchange_l ', ' allocating sndbuf ', ierr )
           END IF
           DO ib = 1, snd_map(idest)%nsnd
@@ -2863,8 +2864,8 @@
 
         CALL data_exchange(itest)
          
-        WRITE(7,*)   ' index received ' 
-        WRITE(7,310) itest( ncint + 1 : ncdom ) 
+        WRITE(testunit,*)   ' index received ' 
+        WRITE(testunit,310) itest( ncint + 1 : ncdom ) 
 
  310    FORMAT(10i8)
         
@@ -2961,8 +2962,8 @@ set_numx: IF (i/=0 .AND. k/=0) THEN
               numx(ijkl) = n 
 
               IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. j==1 .OR. j==ny) THEN
-                WRITE(8,*) 'WARNING! from ghost'
-                WRITE(8,*) 'x-forcing on boundaries', i, j, k
+                WRITE(errorunit,*) 'WARNING! from ghost'
+                WRITE(errorunit,*) 'x-forcing on boundaries', i, j, k
               END IF
             END IF
           ELSE
@@ -2990,8 +2991,8 @@ set_numy:   IF (i/=0 .AND. k/=0) THEN
                 numy(ijkl) = n 
 
                 IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. j==1 .OR. j==ny) THEN
-                  WRITE(8,*) 'WARNING! from ghost'
-                  WRITE(8,*) 'y-forcing on boundaries', i, j, k
+                  WRITE(errorunit,*) 'WARNING! from ghost'
+                  WRITE(errorunit,*) 'y-forcing on boundaries', i, j, k
                 END IF
               END IF
             ELSE
@@ -3019,8 +3020,8 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               numz(ijkl) = n 
 
               IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. j==1 .OR. j==ny) THEN
-                WRITE(8,*) 'WARNING! from ghost'
-                WRITE(8,*) 'z-forcing on boundaries', i, j, k
+                WRITE(errorunit,*) 'WARNING! from ghost'
+                WRITE(errorunit,*) 'z-forcing on boundaries', i, j, k
               END IF
             END IF
           ELSE

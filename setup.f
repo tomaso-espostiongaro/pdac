@@ -1,6 +1,7 @@
 !----------------------------------------------------------------------
       MODULE initial_conditions
 !----------------------------------------------------------------------
+      USE io_files, ONLY: logunit
       IMPLICIT NONE
       SAVE
       REAL*8, DIMENSION(:), ALLOCATABLE   :: ugob, vgob, wgob, epob, &
@@ -558,7 +559,7 @@
 
       DO ig = 1, ngas
         IF( mpime == root ) THEN
-          WRITE(6,*) ' Gas ', ig, ' is type ', gas_type(ig)
+          WRITE(logunit,*) ' Gas ', ig, ' is type ', gas_type(ig)
         END IF
       END DO
 

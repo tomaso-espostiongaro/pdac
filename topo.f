@@ -3,6 +3,7 @@
 !----------------------------------------------------------------------
       USE dimensions, ONLY: nx, ny, nz, ntot, no
       USE parallel, ONLY: mpime, root
+      USE io_files, ONLY: testunit, logunit
 
       IMPLICIT NONE
 !
@@ -78,8 +79,8 @@
       IMPLICIT NONE
 
       IF( mpime == root ) THEN
-        WRITE(6,*)
-        WRITE(6,*) 'Importing topographic matrix ...'
+        WRITE(logunit,*)
+        WRITE(logunit,*) 'Importing topographic matrix ...'
       END IF
 !
 ! ... Read external topography files.
@@ -116,7 +117,7 @@
       CALL set_profile
 !
       IF( mpime == root ) THEN
-        WRITE(6,*) 'END Import topography'
+        WRITE(logunit,*) 'END Import topography'
       END IF
 !
       RETURN
@@ -124,6 +125,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE read_2Dprofile
       USE parallel, ONLY: mpime, root
+      USE io_files, ONLY: tempunit
       IMPLICIT NONE
 
       INTEGER :: n, noditop
@@ -135,8 +137,8 @@
 !
       topo_file = TRIM(dem_file)
       IF (mpime == root) THEN
-        OPEN(UNIT=3, FILE=topo_file, STATUS='OLD')
-        READ(3,*) noditop
+        OPEN(UNIT=tempunit, FILE=topo_file, STATUS='OLD')
+        READ(tempunit,*) noditop
       END IF
 !
       CALL bcast_integer(noditop,1,root)
@@ -146,9 +148,9 @@
 !
       IF (mpime == root) THEN
         DO n=1, noditop
-          READ(3,*) xtop(n),ztop(n)
+          READ(tempunit,*) xtop(n),ztop(n)
         END DO
-        CLOSE(3)
+        CLOSE(tempunit)
       END IF
 !
       CALL bcast_real(xtop,noditop,root)
@@ -160,6 +162,7 @@
       SUBROUTINE read_dem_ascii
 !
       USE parallel, ONLY: mpime, root
+      USE io_files, ONLY: tempunit
       IMPLICIT NONE
 
       CHARACTER(LEN=80) :: topo_file
@@ -177,14 +180,14 @@
 !
       IF (mpime == root) THEN
         topo_file = TRIM(dem_file)
-        OPEN(UNIT=3, FILE=topo_file, STATUS='OLD')
-        WRITE(6,*) 'Reading topography file: ', topo_file
-        READ(3,*) nodidemx
-        READ(3,*) nodidemy
-        READ(3,*) xul
-        READ(3,*) yul
-        READ(3,*) dd
-        READ(3,*) noval
+        OPEN(UNIT=tempunit, FILE=topo_file, STATUS='OLD')
+        WRITE(logunit,*) 'Reading topography file: ', topo_file
+        READ(tempunit,*) nodidemx
+        READ(tempunit,*) nodidemy
+        READ(tempunit,*) xul
+        READ(tempunit,*) yul
+        READ(tempunit,*) dd
+        READ(tempunit,*) noval
       END IF
 !
       CALL bcast_integer(nodidemx,1,root)
@@ -221,13 +224,17 @@
       IF (mpime == root) THEN
         DO j = vdem%ny, 1, -1
           DO i = 1, vdem%nx
-            READ(3,*) elevation
+            READ(tempunit,*) elevation
             zdem(i,j) = DBLE(elevation) / 100.D0
           END DO
         END DO
       END IF
 !
       CALL bcast_real(zdem,nodidemx*nodidemy,root)
+
+      IF (mpime == root) THEN
+        CLOSE(tempunit)
+      END IF
 !
       RETURN
       END SUBROUTINE read_dem_ascii
@@ -284,8 +291,8 @@
       ! ... Reset the resized DEM parameters as default
       !
       IF (mpime == root) THEN
-        WRITE(6,*) 'DEM is resized'
-        WRITE(6,*) 'Old resolution: ', vdem%cellsize, ' [m]'
+        WRITE(logunit,*) 'DEM is resized'
+        WRITE(logunit,*) 'Old resolution: ', vdem%cellsize, ' [m]'
       END IF
 !
       vdem%nx           = noditopx
@@ -295,7 +302,7 @@
       vdem%cellsize     = cellsize
 !
       IF (mpime == root) THEN
-        WRITE(6,*) 'New resolution: ', vdem%cellsize, ' [m]'
+        WRITE(logunit,*) 'New resolution: ', vdem%cellsize, ' [m]'
       END IF
 !
       ! ... Compute the new UTM coordinates of each element.
@@ -559,8 +566,8 @@
         !
         transl_z = MINVAL(topo) 
         IF( mpime == root ) THEN
-          WRITE(6,*) 'Translating mesh vertically'
-          WRITE(6,*) 'Minimum topographic quota: ', transl_z
+          WRITE(logunit,*) 'Translating mesh vertically'
+          WRITE(logunit,*) 'Minimum topographic quota: ', transl_z
         END IF
         z  = z  + transl_z
         zb = zb + transl_z
@@ -568,7 +575,7 @@
         ! ... Re-set the 'ord' array and set the implicit profile
         !
         IF (lpr > 1 .AND. mpime == root) &
-          WRITE(7,*) 'topographic ordinates'
+          WRITE(testunit,*) 'topographic ordinates'
         DO i = 1, nx
           DO k = 1, nz
             IF (zb(k) <= topo(i)) ord(i) = k  
@@ -576,7 +583,7 @@
             dist(ijk) = z(k) - topo(i)
           END DO
           IF (lpr > 1 .AND. mpime == root) &
-            WRITE(7,*) i, ord(i)
+            WRITE(testunit,*) i, ord(i)
         END DO
         !
         DEALLOCATE(topo)
@@ -596,8 +603,8 @@
         !
         transl_z = MINVAL(topo2d)
         IF( mpime == root ) THEN
-          WRITE(6,*) 'Translating mesh vertically'
-          WRITE(6,*) 'Minimum topographic quota: ', transl_z
+          WRITE(logunit,*) 'Translating mesh vertically'
+          WRITE(logunit,*) 'Minimum topographic quota: ', transl_z
         END IF
         z  = z  + transl_z
         zb = zb + transl_z
@@ -764,49 +771,50 @@
       USE control_flags, ONLY: job_type
       USE grid, ONLY: x, xb, y, yb, z, zb
       USE grid, ONLY: iob, fl, bottom
+      USE io_files, ONLY: tempunit
 !
       IMPLICIT NONE
       INTEGER :: n, i, j, k, ijk
 !
 ! ... Write out the georeferenced mesh coordinates
 !
-      OPEN(14,FILE='mesh.dat')
-      WRITE(14,*) 'Georeferenced x-y mesh'
-      WRITE(14,*) 'x'
-      WRITE(14,14) x
-      WRITE(14,*) 'xb'
-      WRITE(14,14) xb
-      WRITE(14,*) 'y'
-      WRITE(14,14) y
-      WRITE(14,*) 'yb'
-      WRITE(14,14) yb
-      WRITE(14,*) 'z'
-      WRITE(14,14) z
-      WRITE(14,*) 'zb'
-      WRITE(14,14) zb
-      CLOSE(14)
+      OPEN(tempunit,FILE='mesh.dat')
+      WRITE(tempunit,*) 'Georeferenced x-y mesh'
+      WRITE(tempunit,*) 'x'
+      WRITE(tempunit,14) x
+      WRITE(tempunit,*) 'xb'
+      WRITE(tempunit,14) xb
+      WRITE(tempunit,*) 'y'
+      WRITE(tempunit,14) y
+      WRITE(tempunit,*) 'yb'
+      WRITE(tempunit,14) yb
+      WRITE(tempunit,*) 'z'
+      WRITE(tempunit,14) z
+      WRITE(tempunit,*) 'zb'
+      WRITE(tempunit,14) zb
+      CLOSE(tempunit)
 !
  14   FORMAT(5(F20.6))
 !
 ! ... Write out the implicit profile
 !
       IF (mpime == root) THEN
-        OPEN(UNIT=14,FILE='improfile.dat',STATUS='UNKNOWN')
-        WRITE(14,fmt='(F9.2)') dist
-        CLOSE(14)
+        OPEN(UNIT=tempunit,FILE='improfile.dat',STATUS='UNKNOWN')
+        WRITE(tempunit,fmt='(F9.2)') dist
+        CLOSE(tempunit)
 !
 ! ... Write out the new DEM file
 !
         IF( job_type == '3D') THEN
-          OPEN(14,FILE='newdem.dat',STATUS='UNKNOWN')
-          WRITE(14,*) vdem%nx
-          WRITE(14,*) vdem%ny
-          WRITE(14,*) vdem%xcorner
-          WRITE(14,*) vdem%ycorner
-          WRITE(14,*) vdem%cellsize
-          WRITE(14,*) vdem%nodata_value
-          WRITE(14,'(10(I8))') NINT(ztop2d*100.D0)
-          CLOSE(14)
+          OPEN(tempunit,FILE='newdem.dat',STATUS='UNKNOWN')
+          WRITE(tempunit,*) vdem%nx
+          WRITE(tempunit,*) vdem%ny
+          WRITE(tempunit,*) vdem%xcorner
+          WRITE(tempunit,*) vdem%ycorner
+          WRITE(tempunit,*) vdem%cellsize
+          WRITE(tempunit,*) vdem%nodata_value
+          WRITE(tempunit,'(10(I8))') NINT(ztop2d*100.D0)
+          CLOSE(tempunit)
         END IF
       END IF
 !

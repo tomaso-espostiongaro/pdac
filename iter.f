@@ -3,6 +3,7 @@
 !----------------------------------------------------------------------
       USE grid, ONLY: dx, dy, dz, indx, indy, indz, inr
       USE set_indexes, ONLY: stencil
+      USE io_files, ONLY: testunit
 
       IMPLICIT NONE
 !
@@ -317,7 +318,7 @@
            ELSE
              avloop = REAL(nloop)
            END IF
-           WRITE(7, fmt="( I10, 2X, F4.2, 2X, I10, 2X, F10.3)" ) &
+           WRITE(testunit, fmt="( I10, 2X, F4.2, 2X, I10, 2X, F10.3)" ) &
                             n2, avloop, n1, timconv(nit)
          END IF
 !*******************************************************************
@@ -365,7 +366,7 @@
 ! ... write out the final number of iterations
 !
           IF (lpr > 0) THEN
-            WRITE(7,277) nit
+            WRITE(testunit,277) nit
  277        FORMAT('number of iterations: nit = ', I4)
           END IF
 !*******************************************************************
@@ -379,8 +380,8 @@
        IF( MOD( nit, 1000 ) == 0 ) THEN
          omega = omega * 0.9D0
          IF (lpr > 0) THEN
-           WRITE(7, fmt="('  reducing relaxation parameter omega')")
-           WRITE(7, fmt="('  new value = ',F12.4)") omega
+           WRITE(testunit, fmt="('  reducing relaxation parameter omega')")
+           WRITE(testunit, fmt="('  new value = ',F12.4)") omega
          END IF
        END IF
 !
@@ -394,7 +395,7 @@
       DO itim = 1, nit
         timiter = timiter + timconv(itim)
       END DO
-      IF( lpr > 0 ) WRITE(7,280)'Time for iterative solver: ',timiter
+      IF( lpr > 0 ) WRITE(testunit,280)'Time for iterative solver: ',timiter
  280  FORMAT(2X,A27,F8.3) 
 
 !
@@ -405,14 +406,14 @@
       IF( mustit /= 0 ) THEN
 !
         IF (lpr > 0) THEN
-          WRITE(7,700) nit, (time+dt)
-          WRITE(7,*) 'convergence on proc ',mpime,' : ', ALL(converge)
+          WRITE(testunit,700) nit, (time+dt)
+          WRITE(testunit,*) 'convergence on proc ',mpime,' : ', ALL(converge)
           IF(.NOT.ALL(converge)) &
-            WRITE(7,*) 'cells not converged (imesh,i,j,k): '
+            WRITE(testunit,*) 'cells not converged (imesh,i,j,k): '
           DO ijk = 1, ncint
             IF ( .NOT. converge( ijk ) ) THEN
               CALL meshinds( ijk , imesh, i , j , k )
-              WRITE(7,*) imesh, i , j , k
+              WRITE(testunit,*) imesh, i , j , k
             END IF
           END DO
  700      FORMAT('max number of iterations (',I5,') reached at time: ', F8.3)
@@ -797,9 +798,9 @@
       IF( rls > 1.D0 ) THEN
 
         IF (lpr > 0) THEN
-          WRITE(7,*) ' WARNING 1: mass is not conserved'
-          WRITE(7,*) ' time, i, j, k ', time, i, j, k
-          WRITE(7,*) ' rls, volfrac ', rls, 1.D0/ivf
+          WRITE(testunit,*) ' WARNING 1: mass is not conserved'
+          WRITE(testunit,*) ' time, i, j, k ', time, i, j, k
+          WRITE(testunit,*) ' rls, volfrac ', rls, 1.D0/ivf
         END IF
 
         IF (immb == 1) THEN
@@ -1284,8 +1285,8 @@
 
           IF( rls > 1.D0 ) THEN
             IF (lpr > 0) THEN
-              WRITE(7,*) ' WARNING 2: mass is not conserved'
-              WRITE(7,*) ' i, j, k, rls ', i, j, k, rls
+              WRITE(testunit,*) ' WARNING 2: mass is not conserved'
+              WRITE(testunit,*) ' i, j, k, rls ', i, j, k, rls
             ENDIF
             CALL error('iter','mass is not conserved',2)
           ENDIF
@@ -1563,8 +1564,8 @@
 
           IF( rls > 1.D0 ) THEN
             IF( lpr > 0 ) THEN
-              WRITE(7,*) ' warning1: mass is not conserved'
-              WRITE(7,*) ' i, j, k, rls ', i, j, k, rls
+              WRITE(testunit,*) ' warning1: mass is not conserved'
+              WRITE(testunit,*) ' i, j, k, rls ', i, j, k, rls
             ENDIF
           ENDIF
 
@@ -1640,24 +1641,25 @@
       SUBROUTINE test_fluxes
       USE domain_decomposition, ONLY: ncint, meshinds
       USE set_indexes, ONLY: subscr
+      USE io_files, ONLY: tempunit
       IMPLICIT NONE
       INTEGER :: ijk, imesh, i, j, k
 
-      OPEN(UNIT=25,FILE='pdac.fl',STATUS='UNKNOWN')
-      WRITE(25,*) 'Test mass fluxes ...'
-      WRITE(25,*)
+      OPEN(UNIT=tempunit,FILE='pdac.fl',STATUS='UNKNOWN')
+      WRITE(tempunit,*) 'Test mass fluxes ...'
+      WRITE(tempunit,*)
       DO ijk = 1, ncint
         CALL subscr(ijk)
         CALL meshinds(ijk,imesh,i,j,k)
 
-        !WRITE(25,100) ijk, i, j, k, rgfe(ijk), rgfn(ijk), rgft(ijk)
-        WRITE(25,101) rgfe(ijk), rgfn(ijk), rgft(ijk)
+        !WRITE(tempunit,100) ijk, i, j, k, rgfe(ijk), rgfn(ijk), rgft(ijk)
+        WRITE(tempunit,101) rgfe(ijk), rgfn(ijk), rgft(ijk)
 
       END DO
 
  100  FORMAT(4(I5), 3(G20.10E2))
  101  FORMAT(3(G20.10E2))
-      CLOSE(25)
+      CLOSE(tempunit)
 
       RETURN
       END SUBROUTINE test_fluxes

@@ -26,6 +26,7 @@
 ! ... This routine computes (x,y,z) boundary conditions 
 !
       USE control_flags, ONLY: job_type, lpr
+      USE io_files, ONLY: tempunit
       USE domain_decomposition, ONLY: ncint, myijk, meshinds
       USE grid, ONLY: flag, x, y, z, xb, yb, zb
       USE immersed_boundaries, ONLY: fptx, fpty, fptz
@@ -685,24 +686,23 @@
 !
       IF (lpr > 1 .AND. immb >0) THEN
         IF (mpime == root) THEN
-          OPEN(UNIT=15,FILE='fptx.dat',STATUS='UNKNOWN')
-          IF (job_type == '3D') &
-            OPEN(UNIT=16,FILE='fpty.dat',STATUS='UNKNOWN')
-          OPEN(UNIT=17,FILE='fptz.dat',STATUS='UNKNOWN')
+          OPEN(UNIT=tempunit,FILE='fptx.dat',STATUS='UNKNOWN')
           DO np = 1, SIZE(fptx)
-            WRITE(15,33) np, fptx(np)
+            WRITE(tempunit,33) np, fptx(np)
           END DO
-          CLOSE(15)
+          CLOSE(tempunit)
           IF (job_type == '3D') THEN
+            OPEN(UNIT=tempunit,FILE='fpty.dat',STATUS='UNKNOWN')
             DO np = 1, SIZE(fpty)
-              WRITE(16,33) np, fpty(np)
+              WRITE(tempunit,33) np, fpty(np)
             END DO
-            CLOSE(16)
+            CLOSE(tempunit)
           END IF
+          OPEN(UNIT=tempunit,FILE='fptz.dat',STATUS='UNKNOWN')
           DO np = 1, SIZE(fptz)
-            WRITE(17,33) np, fptz(np)
+            WRITE(tempunit,33) np, fptz(np)
           END DO
-          CLOSE(17)
+          CLOSE(tempunit)
         END IF
  33   FORMAT(5(I6),10(F16.3))
       END IF

@@ -5,6 +5,7 @@
       USE domain_decomposition, ONLY: ncint, ncdom, data_exchange
       USE environment, ONLY: timing, cpclock
       USE indijk_module, ONLY: ip0_jp0_kp0_
+      USE io_files, ONLY: errorunit
 
       IMPLICIT NONE
 !
@@ -187,7 +188,7 @@
 
       IF (modturbo == 2 .AND. job_type == '2D') THEN
 
-        IF( mpime == root ) WRITE(8,*) 'WARNING!: Dynamic Smagorinsky &
+        IF( mpime == root ) WRITE(errorunit,*) 'WARNING!: Dynamic Smagorinsky &
                                       & model cannot be applied to 2D'
         modturbo = 1
 

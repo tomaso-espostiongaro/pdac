@@ -5,6 +5,7 @@
       USE grid, ONLY: fl
       USE parallel, ONLY: mpime, root
       USE volcano_topography, ONLY: xtop, ytop, ztop
+      USE io_files, ONLY: errorunit, logunit
 
       IMPLICIT NONE
 !
@@ -69,6 +70,7 @@
       USE volcano_topography, ONLY: interpolate_profile, interpolate_dem
       USE grid, ONLY: x, xb, y, yb, z, zb
       USE parallel, ONLY: mpime, root
+      USE io_files, ONLY: tempunit
 
       IMPLICIT NONE
       INTEGER :: p, np
@@ -89,8 +91,8 @@
 ! ... and set interpolation parameters
 !
       IF( mpime == root ) THEN
-        WRITE(6,*)
-        WRITE(6,*) 'Set forcing point for immersed boundaries'
+        WRITE(logunit,*)
+        WRITE(logunit,*) 'Set forcing point for immersed boundaries'
       END IF
 
       ! ... Allocate the logical arrays that are used to 
@@ -389,24 +391,23 @@
 !
       IF (lpr > 0) THEN
         IF (mpime == root) THEN
-          OPEN(UNIT=15,FILE='fptx.dat',STATUS='UNKNOWN')
-          IF (job_type == '3D') &
-            OPEN(UNIT=16,FILE='fpty.dat',STATUS='UNKNOWN')
-          OPEN(UNIT=17,FILE='fptz.dat',STATUS='UNKNOWN')
+          OPEN(UNIT=tempunit,FILE='fptx.dat',STATUS='UNKNOWN')
           DO np = 1, SIZE(fptx)
-            WRITE(15,33) np, fptx(np)
+            WRITE(tempunit,33) np, fptx(np)
           END DO
-          CLOSE(15)
+          CLOSE(tempunit)
           IF (job_type == '3D') THEN
+            OPEN(UNIT=tempunit,FILE='fpty.dat',STATUS='UNKNOWN')
             DO np = 1, SIZE(fpty)
-              WRITE(16,33) np, fpty(np)
+              WRITE(tempunit,33) np, fpty(np)
             END DO
-            CLOSE(16)
+            CLOSE(tempunit)
           END IF
+          OPEN(UNIT=tempunit,FILE='fptz.dat',STATUS='UNKNOWN')
           DO np = 1, SIZE(fptz)
-            WRITE(17,33) np, fptz(np)
+            WRITE(tempunit,33) np, fptz(np)
           END DO
-          CLOSE(17)
+          CLOSE(tempunit)
         END IF
  33   FORMAT(5(I6),10(F16.3))
       END IF
@@ -421,7 +422,7 @@
       END IF
 
       IF( mpime == root ) THEN
-        WRITE(6,*) 'END Set forcing'
+        WRITE(logunit,*) 'END Set forcing'
       END IF
 !
       RETURN
@@ -525,8 +526,8 @@
 
         s = sol2(norm(1), dxt, norm(2), dzt, dxs, dzs, err)
         IF (err > 0) THEN
-          WRITE(8,*) 'WARNING! from proc: ',mpime
-          WRITE(8,*) 'Error in fp: ', fp
+          WRITE(errorunit,*) 'WARNING! from proc: ',mpime
+          WRITE(errorunit,*) 'Error in fp: ', fp
         END IF
 
         IF ((s >= 0).AND.(s <= 1)) THEN
@@ -579,8 +580,8 @@
 
         s = sol2( norm(1), dxt, norm(2), dzt, dxs, dzs , err)
         IF (err > 0) THEN
-          WRITE(8,*) 'WARNING! from proc: ', mpime
-          WRITE(8,*) 'Error in fp: ', fp
+          WRITE(errorunit,*) 'WARNING! from proc: ', mpime
+          WRITE(errorunit,*) 'Error in fp: ', fp
         END IF
 
         IF ((s >= 0).AND.(s <= 1))	THEN
@@ -627,8 +628,8 @@
 
         s = sol2( norm(1), dxt, norm(2), dzt, dxs, dzs, err )
         IF (err > 0) THEN
-          WRITE(8,*) 'WARNING! from proc: ', mpime
-          WRITE(8,*) 'Error in fp: ', fp
+          WRITE(errorunit,*) 'WARNING! from proc: ', mpime
+          WRITE(errorunit,*) 'Error in fp: ', fp
         END IF
 
         IF ((s >= 0).AND.(s <= 1)) THEN
@@ -682,8 +683,8 @@
 
 	s = sol2( norm(1), dxt, norm(2), dzt, dxs, dzs, err )
         IF (err > 0) THEN
-          WRITE(8,*) 'WARNING! from proc: ', mpime
-          WRITE(8,*) 'Error in fp: ', fp
+          WRITE(errorunit,*) 'WARNING! from proc: ', mpime
+          WRITE(errorunit,*) 'Error in fp: ', fp
         END IF
 
  	IF ((s >= 0).AND.(s <= 1))	THEN
