@@ -4,7 +4,6 @@
       USE dimensions, ONLY: max_nsolid, max_ngas, nsolid, ngas
       USE io_files, ONLY: errorunit, logunit
       IMPLICIT NONE
-      PUBLIC
 
       ! ... flags
       !
@@ -28,6 +27,8 @@
       REAL*8, PARAMETER :: q  = 400.D0      ! gas flux [Kg/s]       
       REAL*8, PARAMETER :: kappa = 1.D-12   ! permeability [m^-2]
       REAL*8 :: beta
+      PRIVATE :: mu, q, kappa, beta
+      PUBLIC
       
       SAVE
 !-----------------------------------------------------------------------
@@ -120,7 +121,6 @@
                     n = n + 1
                     dcell(n)%imesh = ijk
                     dcell(n)%radius = DSQRT(distance2)
-                    fl(ijk) = 9
             END IF
           END DO
         END DO
@@ -175,8 +175,8 @@
       USE array_filters, ONLY: interp
       IMPLICIT NONE
 
-      REAL*8 :: ygcsum, ra, pi, psi
-      INTEGER :: ijk, imesh, i,j,k, is, ig, n
+      REAL*8 :: ygcsum, ra, pi, psi, raddo
+      INTEGER :: ijk, imesh, i,j,k, is, ig, n, counter
 
       IF (job_type == '2D') RETURN
 !      
@@ -184,26 +184,32 @@
 !
       pi = 4.D0 * ATAN(1.D0)
       psi = 2.D0 * pi
-      beta = 2.D0 * mu * q * rgas * t_dome
+      beta = 2.D0 * mu * q * rgas / 18.D0 * 1.D3 * t_dome
       beta = beta / ( p_atm(kv)**2 * kappa * psi * dome_radius )
 !
-      DO ijk = 1, ncint      
-        IF(flag(ijk) == 9) THEN
+      raddo = 0.D0
+      DO WHILE (raddo <= dome_radius)
+        IF (mpime == root) WRITE(*,*) raddo, p_dome(raddo,p_atm(kv))
+        raddo = raddo + 1.D0
+      END DO
+
+      mesh_loop: DO ijk = 1, ncint      
+        IF(flag(ijk) == 1) THEN
           CALL meshinds(ijk,imesh,i,j,k)
           
           ! ... Loop over the dome cells to find the
-          ! ... cell index
+          ! ... cell index (must be optimized!!!)
           !
-          DO n = 1, ndm
-            IF (dcell(n)%imesh == ijk) EXIT
-          END DO
+          n = 0
+          count_loop: DO counter = 1, ndm
+            IF (dcell(n)%imesh == imesh) THEN
+              n = counter
+            ELSE
+              GOTO 100
+            END IF
+          END DO count_loop
           ra = dcell(n)%radius
          
-          ! ... cell flag is reset to fluid cells
-          ! ... to perform the flow computation at t>0
-          !
-          flag(ijk) = 1
-
           ! ... Set the initial conditions, as
           ! ... specified in the input file on 
           ! ... all cells enclosing the vent
@@ -236,8 +242,11 @@
             ygc(ijk,ngas) = 1.D0 - SUM( ygc(ijk,1:ngas-1) )
           END IF
 !          
+ 100    CONTINUE
         END IF
-      END DO
+      END DO mesh_loop
+
+      DEALLOCATE(dcell)
 
       RETURN
       END SUBROUTINE set_domec
@@ -250,8 +259,8 @@
       REAL*8, INTENT(IN) :: r2, pa
       REAL*8 :: r1, fact
 
-      r1 = MAX(DSQRT(r2), 10.D0)
-      IF (dome_radius >= r1) THEN
+      r1 = MAX(r2, 10.D0)
+      IF (r1 <= dome_radius) THEN
               fact = dome_radius / r1 - 1.D0
       ELSE
               fact = 0.D0

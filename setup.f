@@ -174,9 +174,10 @@
         END DO
 ! 
 ! ... Set initial conditions in boundary cells 
-! ... with specified fluid flow 
+!! ... with specified fluid flow 
 !
         IF (ivent >= 1) CALL set_ventc
+        IF (idome >= 1) CALL set_domec
 
         DO n = 1, no
 
@@ -194,7 +195,6 @@
         
         END DO 
 
-        IF (idome >= 1) CALL set_domec
 ! 
 ! ... initial conditions already set from RESTART file
 !
