@@ -1,5 +1,5 @@
 &control
- run_name = 'Sub_Plinian_2',
+ run_name = 'Strong_strombolian'
  job_type = '3D',
  restart_mode = 'from_scratch', ! ( from_scratch | restart )
  time =  0.00,
