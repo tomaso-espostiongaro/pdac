@@ -2,11 +2,14 @@
       SUBROUTINE prog
 
       USE boundary_conditions, ONLY: boundary2d, boundary3d
+      USE control_flags, ONLY: job_type
       USE dimensions
+      USE enthalpy_matrix, ONLY: ftem
+      USE environment, ONLY: cpclock, timing
       USE eos_gas, ONLY: mole, eosg, rags
       USE eos_gas, ONLY: ygc, rgpgc, xgc, cg
       USE eos_solid, ONLY: eosl
-      USE enthalpy_matrix, ONLY: ftem
+      USE gas_components, ONLY: ygas
       USE gas_solid_density, ONLY: rog, rgp, rlk
       USE gas_solid_temperature, ONLY: sieg, sies, ts, tg
       USE glocal_arrays, ONLY: collect
@@ -25,9 +28,6 @@
       USE time_parameters, ONLY: rungekut
       USE turbulence_model, ONLY: iturb, iss
       USE turbulence_model, ONLY: sgsg, sgss
-      USE gas_components, ONLY: ygas
-      USE environment, ONLY: cpclock, timing
-      USE control_flags, ONLY: job_type
 !
       IMPLICIT NONE
 !
@@ -106,7 +106,7 @@
         END DO
 !
        END IF
-!
+
               IF( timing ) s2 = cpclock()
 !
 ! ... Write OUTPUT file
@@ -120,8 +120,8 @@
        ELSE IF( job_type == '3D' ) THEN
          IF(time+0.1D0*dt >= tpri) THEN
            CALL collect
-           CALL outp_bin
-!           CALL outp_3d
+!           CALL outp_bin
+           CALL outp_3d
            tpri=tpri+tpr
          ENDIF
        ELSE

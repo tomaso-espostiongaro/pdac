@@ -25,7 +25,8 @@
 !----------------------------------------------------------------------
       SUBROUTINE fieldn
 !----------------------------------------------------------------------
-! ... Compute explicitly and store all fields at time ndt
+! ... Compute explicitly and store all fields and physical parameters
+! ... at time ndt
 !
       USE dimensions
       USE eos_gas, ONLY: rgpgc, rgpgcn, xgc
@@ -63,7 +64,7 @@
 !
       DO ijk = 1, ncint
        imesh = myijk( ip0_jp0_kp0_,ijk)
-       IF(fl_l(ijk) == 1) THEN
+!       IF(fl_l(ijk) == 1) THEN
          CALL subscr(ijk)
          i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
          j = MOD( imesh - 1, nx*ny ) / nx + 1
@@ -108,7 +109,7 @@
 !
          CALL viscon(mug(ijk), kapg(ijk), xgc(:,ijk), tg(ijk))
 !	
-       END IF
+!       END IF
       END DO
 !
       RETURN
@@ -224,7 +225,6 @@
 ! ... in the whole computational domain.
 !
       DO ijk = 1, ncint
-        imesh = myijk( ip0_jp0_kp0_, ijk)
         IF(fl_l(ijk) == 1) THEN
           CALL subscr(ijk)
           CALL nb(dens,rgp,ijk)

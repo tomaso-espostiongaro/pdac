@@ -285,89 +285,6 @@
 !
      END SUBROUTINE recover_2d
 
-!-----------------------------------------------------------------------------------
-      SUBROUTINE outp_test_fluxes(rgfr, rgft)
-!
-      USE dimensions, ONLY: nr, nz, nsolid
-      USE tilde_momentum, ONLY: rug, rwg, rus, rws
-      USE parallel, ONLY: nproc, mpime, root, group
-      USE particles_constants, ONLY: rl, inrl
-      USE time_parameters, ONLY: time
-!
-      IMPLICIT NONE
-!
-      REAL*8, INTENT(IN) :: rgfr(:), rgft(:)
-!
-      INTEGER :: ij2, ij1, is, j
-      INTEGER :: ijl
-      INTEGER :: ig
-!
-! ... MODIFICARE_X3D
-!
-      IF( mpime .EQ. root ) THEN
-
-      OPEN(UNIT=3,FILE='OUTPUT_TEST_FLUXES')
-!
-      WRITE(3,547) time
-!
-      WRITE(3,100)
-      DO j=1,nz
-        ij1=1+(nz-j)*nr
-        ij2=nr+(nz-j)*nr
-        WRITE(3,550)(rug(ijl),ijl=ij1,ij2)
-      END DO
-!
-      WRITE(3,101)
-      DO j=1,nz
-        ij1=1+(nz-j)*nr
-        ij2=nr+(nz-j)*nr
-        WRITE(3,550)(rwg(ijl),ijl=ij1,ij2)
-      END DO
-!
-      DO is=1,nsolid
-        WRITE(3,102)is 
-        DO j=1,nz
-          ij1=1+(nz-j)*nr
-          ij2=nr+(nz-j)*nr
-          WRITE(3,550)(rus(ijl,is)*inrl(is),ijl=ij1,ij2)
-        END DO
-        WRITE(3,103)is 
-        DO j=1,nz
-          ij1=1+(nz-j)*nr
-          ij2=nr+(nz-j)*nr
-          WRITE(3,550)(rws(ijl,is)*inrl(is),ijl=ij1,ij2)
-        END DO
-      END DO
-!
-      WRITE(3,106)
-      DO j=1,nz
-        ij1=1+(nz-j)*nr
-        ij2=nr+(nz-j)*nr
-        WRITE(3,550)((rgfr(ijl)-rgfr(ijl-1)),ijl=ij1,ij2)
-      END DO
-!
-      WRITE(3,107)
-      DO j=1,nz
-        ij1=1+(nz-j)*nr
-        ij2=nr+(nz-j)*nr
-        WRITE(3,550)((rgft(ijl)-rgft(ijl-nr)),ijl=ij1,ij2)
-      END DO
-!
-      CLOSE (3)
-      END IF
-!
-      RETURN
-
- 547  FORMAT(1x,///,1x,'@@@ TIME = ',G11.4)
- 550  FORMAT(1x,10(1x,g14.6e3))
- 100  FORMAT(1x,//,1x,'RUG',/)
- 101  FORMAT(1x,//,1x,'RWG',/)
- 102  FORMAT(1x,//,1x,'RUS',I1,/)
- 103  FORMAT(1x,//,1x,'RWS',I1,/)
- 106  FORMAT(1x,//,1x,'MASFX',/)
- 107  FORMAT(1x,//,1x,'MASFZ',/)
-!
-      END SUBROUTINE outp_test_fluxes
 !----------------------------------------------------------------------
       SUBROUTINE outp_3d
 !
@@ -428,14 +345,14 @@
         WRITE(3,550)(gas_velocity_x(ijk),ijk=ijk1,ijk2)
       END DO
 !
-      WRITE(3,552)
+      WRITE(3,553)
       DO k=1,nz
           ijk1 = (k-1)*nx*ny +1
           ijk2 = k*nx*ny
         WRITE(3,550)(gas_velocity_y(ijk),ijk=ijk1,ijk2)
       END DO
 !
-      WRITE(3,553)
+      WRITE(3,554)
       DO k=1,nz
           ijk1 = (k-1)*nx*ny +1
           ijk2 = k*nx*ny
@@ -469,14 +386,14 @@
           WRITE(3,550)(solid_velocity_x(ijk,is),ijk=ijk1,ijk2)
         END DO
 !
-        WRITE(3,556)is 
+        WRITE(3,557)is 
         DO k=1,nz
           ijk1 = (k-1)*nx*ny +1
           ijk2 = k*nx*ny
           WRITE(3,550)(solid_velocity_y(ijk,is),ijk=ijk1,ijk2)
         END DO
 !
-        WRITE(3,557)is 
+        WRITE(3,558)is 
         DO  k=1,nz
           ijk1 = (k-1)*nx*ny +1
           ijk2 = k*nx*ny
@@ -513,8 +430,10 @@
  550  FORMAT(1x,10(1x,g12.6))
  552  FORMAT(1x,//,1x,'UG',/)
  553  FORMAT(1x,//,1x,'VG',/)
+ 554  FORMAT(1x,//,1x,'WG',/)
  556  FORMAT(1x,//,1x,'UP',I1,/)
  557  FORMAT(1x,//,1x,'VP',I1,/)
+ 558  FORMAT(1x,//,1x,'WP',I1,/)
  560  FORMAT(1x,//,1x,'TG',/)
  561  FORMAT(1x,//,1x,'TP',I1,/)
  562  FORMAT(1x,//,1x,'XGC',I1,/)

@@ -27,8 +27,8 @@
 
       INTEGER, PRIVATE :: job_type_flag
 !
-! ... change scheme => change stencil!
-! ... the compass notation (N,W,S,E) is adopted for both myijk and myinds
+! ... Define the computational stencil for Finite Volume schemes.
+! ... The standard compass notation (n,w,s,e,t,b,...) is adopted 
 !
       TYPE stencil
         REAL*8 :: c
@@ -58,6 +58,9 @@
         REAL*8 :: bb
       END TYPE stencil
 !
+! ... Overloading of the arithmetic binary operators
+! ... between stencils
+!
       INTERFACE OPERATOR(+)
         MODULE PROCEDURE sumstencil
       END INTERFACE
@@ -75,7 +78,6 @@
 !-----------------------------------------------------------------------
       CONTAINS
 !-----------------------------------------------------------------------
-
       SUBROUTINE subsc_setup( job_type )
       IMPLICIT NONE
         CHARACTER(LEN=80) :: job_type
@@ -176,7 +178,7 @@
 
       END IF
 
-    END SUBROUTINE
+    END SUBROUTINE subscr
 !-----------------------------------------------------------------------
       FUNCTION cte(c)
       IMPLICIT NONE
@@ -378,7 +380,9 @@
       END FUNCTION fracstencil
 !-----------------------------------------------------------------------
       SUBROUTINE nb( stncl, array, ijk )
-
+! ... This routine compute the stencil around a grid point
+! ... considering the boundary conditions
+!
       IMPLICIT NONE 
 !
       TYPE(stencil) :: stncl
@@ -435,13 +439,15 @@
       END SUBROUTINE nb
 !-----------------------------------------------------------------------
       SUBROUTINE rnb(stncl,array,ijk)
+! ... This routine compute the stencil around a grid point
+! ... without considering the boundary conditions
+!
       USE dimensions
       IMPLICIT NONE 
 !
       TYPE(stencil) :: stncl
       REAL*8, INTENT(IN) :: array(:)
       INTEGER, INTENT(IN) :: ijk
-      INTEGER :: i,j,k,imesh
 !
       IF( job_type_flag == 2 ) THEN
 

@@ -119,7 +119,7 @@
       INTEGER :: itemp, irhog, isound
 !
       REAL*8 :: tgnn, mg, hc, ratmin
-      REAL*8 :: tg0, sieg0
+      REAL*8 :: tg0, sieg0, cgas0
       INTEGER :: ii, nlmax
       INTEGER :: ig
       PARAMETER( nlmax = 2000) 
@@ -139,6 +139,7 @@
             DO ig=1,ngas
               hc=c_erg*cpgc(ig)*yg(ig)+hc
             END DO
+            IF (tg == tg0) cgas0 = hc
             cgas = hc
             tg = tzero+(sieg-hzerog)/cgas
             IF (DABS((tgnn-tg)/tgnn) <= ratmin) GOTO 223
@@ -146,6 +147,7 @@
           WRITE(8,*) 'max number of iteration reached in eosg'
           WRITE(8,*) 'time:',time, 'cell:',imesh
           WRITE(8,*) 'temperature:',tg0, 'enthalpy:',sieg0
+          WRITE(8,*) 'specific heat:',cgas0
           CALL error( ' eosg ', ' max number of iteration reached in eosg ', 1 )
   223     CONTINUE
         ENDIF

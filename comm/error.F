@@ -6,7 +6,7 @@
 
       IMPLICIT NONE
 
-#if defined __MPI
+#if defined MPI
       include 'mpif.h'
 #endif
 
@@ -21,7 +21,7 @@
 !  end of declarations
 !  ----------------------------------------------
 
-#if defined __MPI
+#if defined MPI
       CALL mpi_comm_size(mpi_comm_world,nproc,ierr)
       CALL mpi_comm_rank(mpi_comm_world,mpime,ierr)
 #else
@@ -39,7 +39,7 @@
       WRITE (15,100) mpime, a, b, n
       CLOSE(UNIT=15)
 
-#if defined __MPI
+#if defined MPI
       CALL mpi_finalize(ierr)
       IF ( ierr/=0 ) THEN
         CALL mpi_abort(mpi_comm_world, ierr)

@@ -1026,14 +1026,6 @@
       CALL data_exchange(fl_l)
       CALL set_myinds(myinds, myijk)
 !
-! ... Test the indexing (following sweep direction)
-!      DO ijl = 1, ncint
-!        WRITE(7,*) ijl
-!        WRITE(7,*) (myinds(k,ijl), k=1,12)
-! *CHANGE  (i,j,ijl) => (indijk(i,j,0),ijl) 
-!        WRITE(7,*) ((myijk(i,j,ijl),i=-2,2),j=-2,2)
-!      END DO
-!
       RETURN
 
       END SUBROUTINE
@@ -1479,8 +1471,6 @@
 
 !---------------------------------------------------
 !
-!*****MX3D : cambiare gli stencil
-!
       SUBROUTINE set_myinds(myinds, myijk)
 !
         USE dimensions
@@ -1490,21 +1480,23 @@
         INTEGER :: myinds(:,:)
         INTEGER :: myijk(:,:)
 !
-        INTEGER :: ijl, ijr, ijb, ijt, ijbr, ijtr, ijbl, ijtl, ijrr, ijtt, ijll, ijbb
-        INTEGER :: imj, ipj, ijm, ijp, ipjm, ipjp, imjm, imjp, ippj, ijpp, immj, ijmm
+        INTEGER :: ijl, ijr, ijb, ijt
+        INTEGER :: ijbr, ijtr, ijbl, ijtl, ijrr, ijtt, ijll, ijbb
+        INTEGER :: imj, ipj, ijm, ijp
+        INTEGER :: ipjm, ipjp, imjm, imjp, ippj, ijpp, immj, ijmm
 
         INTEGER :: nflr, nflt, nfll, nflb
         INTEGER :: nfltr, nfltl, nflbr, nflbl
         INTEGER :: nflrr, nfltt, nflll, nflbb
         INTEGER :: i, j, k, ijk, imesh
 
-        INTEGER ::  ipjk,  imjk,  ippjk,  immjk,  ijpk,  ipjpk,  imjpk,  ijmk,  &
-                    ipjmk,  imjmk,  ijppk,  ijmmk,  ijkp,  ipjkp,  imjkp,  ijpkp,  &
-                    ijmkp,  ijkm,  ipjkm,  imjkm,  ijpkm,  ijmkm,  ijkpp,  ijkmm
+        INTEGER ::  ipjk, imjk, ippjk, immjk, ijpk, ipjpk, imjpk, ijmk,  &
+                    ipjmk, imjmk, ijppk, ijmmk, ijkp, ipjkp, imjkp, ijpkp,  &
+                    ijmkp, ijkm, ipjkm, imjkm, ijpkm, ijmkm, ijkpp, ijkmm
 
-        INTEGER ::  ijke,  ijkw,  ijkee,  ijkww,  ijkn,  ijken,  ijkwn,  ijks,  ijkes,  &
-                    ijkws,  ijknn,  ijkss,  ijkt,  ijket,  ijkwt,  ijknt,  ijkst,  ijkb, &
-                    ijkeb,  ijkwb,  ijknb,  ijksb,  ijktt,  ijkbb
+        INTEGER ::  ijke, ijkw, ijkee, ijkww, ijkn, ijken, ijkwn, ijks,  &
+                    ijkes,  ijkws, ijknn, ijkss, ijkt, ijket, ijkwt, ijknt, &
+                    ijkst, ijkb, ijkeb, ijkwb, ijknb, ijksb, ijktt, ijkbb
 !
         DO ijk = 1, ncint 
 
@@ -1529,9 +1521,6 @@
               ijpp= myijk( ip0_jp2_kp0_, ijk)
               immj= myijk( im2_jp0_kp0_, ijk)
               ijmm= myijk( ip0_jm2_kp0_, ijk)
-!
-! ... indexes labelled Right, Top, Left, Bottom, etc., correspond to those defined 
-! ...  above, except at boundaries ...
 !
 ! ... First neighbours: near the axis or solid boundaries 
 ! ... impose homogeneous Neumann conditions
@@ -1619,9 +1608,9 @@
 
           ELSE IF( job_type == '3D' ) THEN
 
-            i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
-            j = MOD( ijk - 1, nx*ny ) / nx + 1
-            k = ( ijk - 1 ) / ( nx*ny ) + 1
+            i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
+            j = MOD( imesh - 1, nx*ny ) / nx + 1
+            k = ( imesh - 1 ) / ( nx*ny ) + 1
 
             IF( (i >= 2) .AND. (i <= (nx-1)) .AND.   &
                 (j >= 2) .AND. (j <= (ny-1)) .AND.   &

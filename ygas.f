@@ -13,14 +13,15 @@
       USE dimensions
       USE convective_fluxes, ONLY: fsc
       USE eos_gas, ONLY: rgpgc, rgpgcn, ygc
+      USE gas_constants, ONLY: default_gas
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE grid, ONLY: dx, dy, dz, indx, indy, indz
       USE grid, ONLY: ncint, ncdom, myijk, data_exchange
       USE grid, ONLY: fl_l
+      USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: stencil, nb, rnb, cte
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
       USE time_parameters, ONLY: dt,time
-      USE indijk_module, ONLY: ip0_jp0_kp0_
 !
       IMPLICIT NONE
 !
@@ -36,16 +37,16 @@
 !
       CALL data_exchange(rgpgc)
 !
+      one  = cte(1.D0)
       DO ijk = 1, ncint
-       imesh = myijk( ip0_jp0_kp0_, ijk)
        IF( fl_l(ijk) == 1 ) THEN
+         imesh = myijk( ip0_jp0_kp0_, ijk)
          i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
          j = MOD( imesh - 1, nx*ny ) / nx + 1
          k = ( imesh - 1 ) / ( nx*ny ) + 1
          CALL subscr(ijk)
          
          DO ig=1,ngas
-	   one  = cte(1.D0)
 	   CALL nb(field,rgpgc(:,ig),ijk)
 	   CALL rnb(u,ug,ijk)
 	   CALL rnb(v,vg,ijk)
@@ -64,8 +65,8 @@
       CALL data_exchange(yft)
 
       DO ijk = 1, ncint
-       imesh = myijk( ip0_jp0_kp0_, ijk)
        IF( fl_l(ijk) == 1 ) THEN
+         imesh = myijk( ip0_jp0_kp0_, ijk)
          i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
          j = MOD( imesh - 1, nx*ny ) / nx + 1
          k = ( imesh - 1 ) / ( nx*ny ) + 1
@@ -86,11 +87,11 @@
 	                 - dt * indx(i) * yfx              &
 	                 - dt * indy(j) * yfy              &
 	                 - dt * indz(k) * yfz
-
+ 
            IF(rgpgc(ijk,ig) < 0.D0) THEN
-!             WRITE(8,*) 'Warning!: gas mass is not conserved'
-!             WRITE(8,128) time, ijk, ig, rgpgc(ijk,ig)
-! 128         FORMAT('Time= ',F8.3,' Cell= ',I6, ' Specie= ',I2,' Bulk= ',F14.6)
+             WRITE(8,*) 'Warning!: gas mass is not conserved'
+             WRITE(8,128) time, ijk, ig, rgpgc(ijk,ig)
+ 128         FORMAT('Time= ',F8.3,' Cell= ',I6, ' Specie= ',I2)
              rgpgc(ijk,ig) = 0.D0
            END IF
            
@@ -98,9 +99,13 @@
 
          END DO
 
-       DO ig=1,ngas
-         ygc(ig,ijk)=rgpgc(ijk,ig)/rgp
-       END DO
+         ygc(default_gas, ijk) = 1.D0
+         DO ig=1,ngas
+           IF (ig /= default_gas) THEN
+             ygc(ig,ijk)=rgpgc(ijk,ig)/rgp
+             ygc(default_gas, ijk) = ygc(default_gas, ijk) - ygc(ig,ijk)
+           END IF
+         END DO
 
        END IF
       END DO

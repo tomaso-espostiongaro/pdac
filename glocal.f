@@ -122,16 +122,16 @@
       IF( job_type == '2D' ) THEN
         CALL parallel_sum_real(gas_velocity_r, SIZE(gas_velocity_r) )
       ELSE
-        CALL parallel_sum_real(gas_velocity_x, SIZE(gas_velocity_r) )
-        CALL parallel_sum_real(gas_velocity_y, SIZE(gas_velocity_r) )
+        CALL parallel_sum_real(gas_velocity_x, SIZE(gas_velocity_x) )
+        CALL parallel_sum_real(gas_velocity_y, SIZE(gas_velocity_y) )
       END IF
       CALL parallel_sum_real(gas_velocity_z, SIZE(gas_velocity_z) )
       CALL parallel_sum_real(solid_enthalpy, SIZE(solid_enthalpy) )
       IF( job_type == '2D' ) THEN
         CALL parallel_sum_real(solid_velocity_r, SIZE(solid_velocity_r) )
       ELSE
-        CALL parallel_sum_real(solid_velocity_x, SIZE(solid_velocity_r) )
-        CALL parallel_sum_real(solid_velocity_y, SIZE(solid_velocity_r) )
+        CALL parallel_sum_real(solid_velocity_x, SIZE(solid_velocity_x) )
+        CALL parallel_sum_real(solid_velocity_y, SIZE(solid_velocity_y) )
       END IF
       CALL parallel_sum_real(solid_velocity_z, SIZE(solid_velocity_z) )
       CALL parallel_sum_real(gc_mass_fraction, SIZE(gc_mass_fraction))

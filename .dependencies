@@ -63,7 +63,7 @@ nondim.o : atmosphere.o dimensions.o gas.o grid.o indijk.o particles.o  \
     time.o 
 
 outp.o : control.o dens.o dimensions.o eosg.o gas.o parallel.o particles.o  \
-    press.o temp.o tilde.o time.o turbo.o velocity.o 
+    press.o temp.o time.o turbo.o velocity.o 
 
 parallel.o : 
 
@@ -109,5 +109,5 @@ velocity.o : control.o dimensions.o grid.o
 visc.o : dens.o dimensions.o gas.o grid.o indijk.o particles.o press.o  \
     subscr.o turbo.o velocity.o 
 
-ygas.o : dimensions.o eosg.o fluxes.o grid.o indijk.o subscr.o time.o  \
+ygas.o : dimensions.o eosg.o fluxes.o gas.o grid.o indijk.o subscr.o time.o  \
     velocity.o 

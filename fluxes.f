@@ -676,7 +676,7 @@
       ft = upwnd * cs
 !
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE fsc
 !----------------------------------------------------------------------
       SUBROUTINE masf(fe, fn, ft, fw, fs, fb, dens, u, v, w, ijk)
 !
@@ -732,7 +732,7 @@
       ENDIF
 !
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE masf
 !----------------------------------------------------------------------
       SUBROUTINE fmas(fe, fn, ft, fw, fs, fb, dens, u, v, w, ijk)
 !
