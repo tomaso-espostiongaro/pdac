@@ -414,16 +414,16 @@
       CALL bcast_real(tau,1,root)
 
       SELECT CASE ( TRIM(restart_mode) )
+        CASE ('check_geom')
+          itd = -1
+        CASE ('check_init')
+          itd = 0
         CASE ('from_scratch', 'default')
           itd = 1 
         CASE ('restart')
           itd = 2
         CASE ('outp_recover')
           itd = 3
-        CASE ('check_geom')
-          itd = 4
-        CASE ('check_init')
-          itd = 5
         CASE DEFAULT
           CALL error(' input ',' unknown restart_mode '//TRIM(restart_mode), 1 )
       END SELECT

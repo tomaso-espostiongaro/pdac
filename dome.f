@@ -294,7 +294,10 @@
           END DO
         END IF
       END IF
-
+!
+! ... Set initial conditions in the dome cells
+! ... (Immersed Boundaries are NOT considered within the dome!)
+!
       mesh_loop: DO ijk = 1, ncint      
       IF(flag(ijk) == dome_cell) THEN
           CALL meshinds(ijk,imesh,i,j,k)

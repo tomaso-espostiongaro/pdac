@@ -527,7 +527,7 @@
       
       present_gas = .FALSE.
 
-      IF (itd == 1 .OR. itd > 2) THEN
+      IF (itd <= 1 .OR. itd > 2) THEN
 
         ig = 0
         DO igg = 1, max_ngas

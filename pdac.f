@@ -155,7 +155,7 @@
 !
       IF (itp >= 1) CALL write_profile
 !
-      IF (itd == 4) THEN
+      IF (itd == -1) THEN
         CALL parallel_hangup
         STOP
       END IF

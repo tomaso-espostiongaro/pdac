@@ -142,7 +142,7 @@
 
         ! ... write initial conditions
         IF (sweep == 1) CALL outp
-        IF (itd == 5) EXIT time_sweep
+        IF (itd == 0) EXIT time_sweep
 
         IF( timing ) then
           s2 = cpclock()
