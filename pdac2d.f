@@ -85,10 +85,10 @@
       errnb = 'pdac2d.err'//gnb1//gnb2//gnb3
       testnb = 'pdac2d.test'//gnb1//gnb2//gnb3
       IF(mpime .EQ. root) THEN
-        OPEN(UNIT=5,FILE='pdac2d.dat',STATUS='UNKNOWN')
-        OPEN(UNIT=6,FILE='pdac2d.log',STATUS='UNKNOWN')
-        OPEN(UNIT=7,FILE='pdac2d.test',STATUS='UNKNOWN')
-        OPEN(UNIT=8,FILE='pdac2d.err',STATUS='UNKNOWN')
+        OPEN(UNIT=5, FILE='pdac2d.dat', STATUS='UNKNOWN')
+        OPEN(UNIT=6, FILE='pdac2d.log', STATUS='UNKNOWN')
+        OPEN(UNIT=7, FILE='pdac2d.test', STATUS='UNKNOWN')
+        OPEN(UNIT=8, FILE='pdac2d.err', STATUS='UNKNOWN')
       ELSE
         OPEN(UNIT=7,FILE=testnb,STATUS='UNKNOWN')
         OPEN(UNIT=8,FILE=errnb,STATUS='UNKNOWN')
