@@ -94,8 +94,8 @@
       USE control_flags, ONLY: job_type, lpr, run, imr
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
       USE domain_decomposition, ONLY: mesh_partition
-      USE dome_conditions, ONLY: xdome, ydome, dome_volume, t_dome, dome_eps, &
-          idome
+      USE dome_conditions, ONLY: xdome, ydome, dome_volume, temperature, particle_fraction, &
+          idome, gas_flux, permeability, dome_gasvisc
       USE enthalpy_matrix, ONLY: flim
       USE eos_gas, ONLY: update_eosg
       USE flux_limiters, ONLY: beta, muscl
@@ -159,7 +159,8 @@
         p_gas, t_gas, u_solid, v_solid, w_solid, ep_solid, t_solid, &
         vent_O2, vent_N2, vent_CO2, vent_H2, vent_H2O, vent_Air, vent_SO2
 
-      NAMELIST / dome / xdome, ydome, dome_volume, t_dome, dome_eps, idome
+      NAMELIST / dome / xdome, ydome, dome_volume, temperature, particle_fraction, idome, &
+                        gas_flux, permeability, dome_gasvisc
 
       NAMELIST / atmosphere / wind_x, wind_y, wind_z, p_ground, t_ground, &
         void_fraction, max_packing, atm_O2, atm_N2, atm_CO2, atm_H2, atm_H2O, &
@@ -313,8 +314,12 @@
       xdome = 0.0             ! UTM longitude of the dome center
       ydome = 0.0             ! UTM latitude of the dome center
       dome_volume = 0.0        ! total volume of exploded mass
-      t_dome = 288.15         ! temperature of the dome
-      dome_eps = 0.0          ! particle fractions
+      temperature = 288.15         ! temperature of the dome
+      particle_fraction = 0.0          ! particle fractions
+      gas_flux = 400.D0        ! gas flux through the conduit
+      temperature = 1100.D0        ! gas temperature
+      permeability = 1.D-12    ! permeability of the dome
+      dome_gasvisc = 1.D-5        ! viscosity of the gas
       dome_O2  = 0.D0          ! gas components mass fractions
       dome_N2  = 0.D0
       dome_CO2 = 0.D0
@@ -552,8 +557,11 @@
       CALL bcast_real(xdome,1,root)
       CALL bcast_real(ydome,1,root)
       CALL bcast_real(dome_volume,1,root)
-      CALL bcast_real(t_dome,1,root)
-      CALL bcast_real(dome_eps,nsolid,root)
+      CALL bcast_real(temperature,1,root)
+      CALL bcast_real(particle_fraction,nsolid,root)
+      CALL bcast_real(gas_flux,1,root)
+      CALL bcast_real(permeability,1,root)
+      CALL bcast_real(dome_gasvisc,1,root)
       CALL bcast_real(dome_O2,1,root)
       CALL bcast_real(dome_N2,1,root)
       CALL bcast_real(dome_CO2,1,root)
@@ -944,8 +952,11 @@
             CALL iotk_write_dat( iuni_nml, "xdome", xdome )
             CALL iotk_write_dat( iuni_nml, "ydome", ydome )
             CALL iotk_write_dat( iuni_nml, "dome_volume", dome_volume )
-            CALL iotk_write_dat( iuni_nml, "t_gas", t_gas )
-            CALL iotk_write_dat( iuni_nml, "ep_solid", ep_solid )
+            CALL iotk_write_dat( iuni_nml, "temperature", temperature )
+            CALL iotk_write_dat( iuni_nml, "particle_fraction", particle_fraction )
+            CALL iotk_write_dat( iuni_nml, "gas_flux", gas_flux )
+            CALL iotk_write_dat( iuni_nml, "permeability", permeability )
+            CALL iotk_write_dat( iuni_nml, "dome_gasvisc", dome_gasvisc )
             CALL iotk_write_dat( iuni_nml, "dome_O2", dome_O2 )
             CALL iotk_write_dat( iuni_nml, "dome_N2", dome_N2 )
             CALL iotk_write_dat( iuni_nml, "dome_CO2", dome_CO2 )

@@ -10,8 +10,8 @@
       INTEGER :: idome
 
       REAL*8 :: xdome, ydome, dome_volume, dome_radius
-      REAL*8 :: t_dome
-      REAL*8 :: dome_eps(max_nsolid)
+      REAL*8 :: temperature
+      REAL*8 :: particle_fraction(max_nsolid)
       !
       REAL*8 :: dome_ygc(max_ngas)
 
@@ -23,11 +23,9 @@
       TYPE(dome_cell), ALLOCATABLE :: dcell(:)
 
       INTEGER :: ndm
-      REAL*8, PARAMETER :: mu = 2.D-5       ! gas viscosity [Pa s]
-      REAL*8, PARAMETER :: q  = 400.D0      ! gas flux [Kg/s]       
-      REAL*8, PARAMETER :: kappa = 1.D-12   ! permeability [m^-2]
-      REAL*8 :: beta
-      PRIVATE :: mu, q, kappa, beta
+      REAL*8 :: gas_flux
+      REAL*8 :: permeability
+      REAL*8 :: dome_gasvisc
       PUBLIC
       
       SAVE
@@ -175,7 +173,8 @@
       USE array_filters, ONLY: interp
       IMPLICIT NONE
 
-      REAL*8 :: ygcsum, ra, pi, psi, raddo
+      REAL*8 :: ygcsum, ra, pi, psi, raddo, erre
+      REAL*8 :: beta
       INTEGER :: ijk, imesh, i,j,k, is, ig, n, counter
 
       IF (job_type == '2D') RETURN
@@ -184,16 +183,19 @@
 !
       pi = 4.D0 * ATAN(1.D0)
       psi = 2.D0 * pi
-      beta = 2.D0 * mu * q * rgas / 18.D0 * 1.D3 * t_dome
-      beta = beta / ( p_atm(kv)**2 * kappa * psi * dome_radius )
+      erre = rgas / 18.D0 * 1.D3
+      beta = 2.D0 * dome_gasvisc * gas_flux * erre * temperature
+      beta = beta / ( p_atm(kv)**2 * permeability * psi * dome_radius )
 !
       IF (lpr > 1) THEN
-        WRITE(logunit,*) 'Dome Radial pressure profile'
-        raddo = 0.D0
-        DO WHILE (raddo <= dome_radius)
-          IF (mpime == root) WRITE(logunit,*) raddo, p_dome(raddo,p_atm(kv))
-          raddo = raddo + 1.D0
-        END DO
+        IF (mpime == root) THEN
+          WRITE(logunit,*) 'Dome Radial pressure profile'
+          raddo = 0.D0
+          DO WHILE (raddo <= dome_radius)
+            WRITE(logunit,*) raddo, p_dome(raddo,p_atm(kv),beta)
+            raddo = raddo + 1.D0
+          END DO
+        END IF
       END IF
 
       mesh_loop: DO ijk = 1, ncint      
@@ -219,9 +221,9 @@
             IF (job_type == '3D') vg(ijk) = 0.D0 
             wg(ijk) = 0.D0
             !
-            tg(ijk) = t_dome
-            ep(ijk) = 1.D0 - SUM(dome_eps(1:nsolid))
-            p(ijk)  = p_dome(ra,p_atm(kv))
+            tg(ijk) = temperature
+            ep(ijk) = 1.D0 - SUM(particle_fraction(1:nsolid))
+            p(ijk)  = p_dome(ra,p_atm(kv),beta)
             !
             DO ig = 1, ngas
               ygc(ijk,ig) = dome_ygc(gas_type(ig))
@@ -232,8 +234,8 @@
               IF (job_type == '3D') vs(ijk,is)  = 0.D0
               ws(ijk,is) = 0.D0
               !
-              ts(ijk,is)  = t_dome
-              rlk(ijk,is) = dome_eps(is)*rl(is)
+              ts(ijk,is)  = temperature
+              rlk(ijk,is) = particle_fraction(is)*rl(is)
             END DO
 !          
             ! ... check gas components closure relation
@@ -252,12 +254,12 @@
       RETURN
       END SUBROUTINE set_domec
 !-----------------------------------------------------------------------
-      REAL*8 FUNCTION p_dome(r2,pa)
+      REAL*8 FUNCTION p_dome(r2,pa,beta)
       !
       ! ... Dome pressurization model (Woods et al., 2002)
       !
       IMPLICIT NONE
-      REAL*8, INTENT(IN) :: r2, pa
+      REAL*8, INTENT(IN) :: r2, pa, beta
       REAL*8 :: r1, fact
 
       r1 = MAX(r2, 10.D0)
