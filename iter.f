@@ -252,19 +252,23 @@
 
              IF( ABS( dg ) <= conv( ijk ) ) THEN
 
-               n1 = n1 + 1
-              
                ! ... If the residual is lower then the prescribed limit
                ! ... compute the gas and particle densities and proceed 
                ! ... to next cell
                !
                converge( ijk ) = .TRUE.
 
+               ! ... The counter of converging cells is increased
+               !
+               n1 = n1 + 1
+              
                CALL calc_eps( i, j, k, ijk  )
                rgp( ijk ) = ep( ijk ) * rog( ijk )
 
              ELSE IF ( ABS(dg) > conv( ijk ) ) THEN
 
+               ! ... The counter of non-converging cells is increased
+               !
                n2 = n2 + 1
 
                ! ... If the residual is higher then the prescribed limit
@@ -312,7 +316,7 @@
 !
 !*******************************************************************
 ! ... For each iteration on the mesh, write out:
-! --> n1 : the number of cells converged
+! --> n1 : the n umber of cells converged
 ! --> n2 : the number of cells not converged
 ! --> avloop : the averaged number of inner iterations per cells
 ! --> timconv: the time for the whole mesh sweep

@@ -275,7 +275,7 @@
       REAL*8, INTENT(IN) :: delta, sigma
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: g, old_f1
       REAL*8 :: pi, twopi
-      REAL*8 :: fact, rat, summa
+      REAL*8 :: fact, rat, summa, lm2
       INTEGER :: i, j, l, m, lmax, mmax, ssize
       INTEGER :: nsmx, nsmy
 
@@ -299,7 +299,8 @@
       summa = 0.D0
       DO m = -mmax, mmax
         DO l = -lmax, lmax
-          rat = DSQRT(l**2 + m**2) * fact
+          lm2 = l**2 + m**2
+          rat = DSQRT(lm2) * fact
           g(l,m) = EXP(-rat)
           !WRITE(*,*) l, m, g(l,m)
           summa = summa + g(l,m)

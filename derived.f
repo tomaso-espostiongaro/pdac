@@ -172,15 +172,15 @@
       RETURN
       END FUNCTION velm
 !----------------------------------------------------------------------
-      FUNCTION pdyn(rm,velm)
+      FUNCTION pdyn(rm,velom)
       !
       ! ... computes the mixture dynamic pressure
       
       IMPLICIT NONE
-      REAL, INTENT(IN), DIMENSION(:) :: rm, velm
+      REAL, INTENT(IN), DIMENSION(:) :: rm, velom
       REAL, DIMENSION(SIZE(rm)) :: pdyn
 
-      pdyn = 0.5 * rm * velm**2
+      pdyn = 0.5 * rm * velom**2
 
       RETURN
       END FUNCTION pdyn

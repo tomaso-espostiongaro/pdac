@@ -795,7 +795,7 @@
           DO i = 1, nx
             DO k = 1, nz
               ijk = i + (j-1) * nx + (k-1) * nx * ny
-              IF( fl(ijk) == noslip_wall ) topo2d_c(i) = zb(k)
+              IF( fl(ijk) == noslip_wall ) topo2d_c(i,j) = zb(k)
             END DO
             topo2d_x(i,j) = topo2d_c(i,j)
             topo2d_y(i,j) = topo2d_c(i,j)

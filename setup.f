@@ -564,6 +564,7 @@
       DO ig = 1, ngas
         IF( mpime == root ) THEN
           WRITE(logunit,*) ' Gas ', ig, ' is type ', gas_type(ig)
+          IF (gas_type(ig)==0) CALL error('gas_check','control gas species',1)
         END IF
       END DO
 
