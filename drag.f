@@ -108,25 +108,29 @@
       END SUBROUTINE
 !----------------------------------------------------------------------
       SUBROUTINE kdragg(drag,vrel, ep, rgp, rlk, mug, is)
-!----------------------------------------------------------------------
+!
+! ... Wen and Yu expression for dilute regime (ep > 0.8)
+!
       USE particles_constants, ONLY: rl, inrl, phis, dk
       IMPLICIT NONE
 !
       REAL*8, INTENT(OUT) :: drag
       REAL*8, INTENT(IN) :: vrel, ep, rgp, rlk, mug
       INTEGER, INTENT(IN) :: is
-      REAL*8 :: reynum, drvrel, dracoe
+      REAL*8 :: reynum, drvrel, drag_coeff
 !
-      dracoe=4.4D-1
       reynum = rgp * dk(is) * phis(is) * vrel/mug
 ! ... ?
       IF(reynum < 1.D-3) reynum=1.D-3
 !
       IF(reynum <= 1000.D0) THEN
-        dracoe = (24.D0/reynum) * (1.D0 + 0.15D0*reynum**0.687D0)
+        ! ... modified Stokes law
+        drag_coeff = (24.D0/reynum) * (1.D0 + 0.15D0*reynum**0.687D0)
+      ELSE
+        drag_coeff = 0.44D0
       END IF
 
-      drvrel = dracoe * vrel / ep**2.7D0
+      drvrel = drag_coeff * vrel / ep**2.7D0
 
       IF(drvrel > 1.D30) THEN
         drag=1.D30
@@ -139,6 +143,8 @@
       END SUBROUTINE
 !----------------------------------------------------------------------
       SUBROUTINE kdragl(drag, vrel, ep, rgp, rlk, mug, is)
+!
+! ... The famous Ergun [1952] equation for dense regimes
 !
       USE particles_constants, ONLY: rl, inrl, phis, dk
       IMPLICIT NONE
@@ -190,7 +196,7 @@
       IF(ep1 > 0.D0 .AND. ep2 > 0.D0) THEN
         xbar=ep1/epsum
         IF(xbar <= philim(k-1,kk-1)) THEN
-          epkl = epsl(k-1,kk-1)*xbar + phi(k2)
+          epkl = epsl(k-1,kk-1)*xbar/phi(k1) + phi(k2)
         ELSE
           epkl = epsu(k-1,kk-1)*(1.D0-xbar) + phi(k1)
         ENDIF
