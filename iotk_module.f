@@ -56,7 +56,7 @@ module procedure iotk_scan_attr_real8
 module procedure iotk_scan_attr_complex4
 module procedure iotk_scan_attr_complex8
 module procedure iotk_scan_attr_logical
-end interface iotk_scan_attr
+end interface
 
 interface iotk_write_attr
 module procedure iotk_write_attr_char
@@ -67,7 +67,7 @@ module procedure iotk_write_attr_real8
 module procedure iotk_write_attr_complex4
 module procedure iotk_write_attr_complex8
 module procedure iotk_write_attr_logical
-end interface iotk_write_attr
+end interface
 
 interface iotk_write_dat
 module procedure iotk_write_dat_logical_1
@@ -80,7 +80,7 @@ module procedure iotk_write_dat_real8_1
 module procedure iotk_write_dat_real8
 module procedure iotk_write_dat_integer
 module procedure iotk_write_dat_logical
-end interface iotk_write_dat
+end interface
 
 interface iotk_scan_dat
 module procedure iotk_scan_dat_logical_1
@@ -90,7 +90,7 @@ module procedure iotk_scan_dat_complex4_1
 module procedure iotk_scan_dat_complex8_1
 module procedure iotk_scan_dat_real4_1
 module procedure iotk_scan_dat_real8_1
-end interface iotk_scan_dat
+end interface
 
 integer, parameter :: r4 = selected_real_kind(6)
 integer, parameter :: r8 = selected_real_kind(13)

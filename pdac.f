@@ -10,9 +10,9 @@
 ! 3d version implemented by: T. Esposti Ongaro, C. Cavazzoni
 !******************************************************************************
 !
-#if defined __HPM
-#  include "/cineca/prod/hpm/include/f_hpm.h"
-#endif
+!#if defined __HPM
+!#  include "/cineca/prod/hpm/include/f_hpm.h"
+!#endif
       PROGRAM pdac
 
       USE dimensions

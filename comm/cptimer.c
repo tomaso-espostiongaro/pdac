@@ -71,3 +71,14 @@ double CCLOCK2( void )
     return s;
 
 }
+
+
+#ifdef __PGI
+/* This wrapper is used with PGI compilers that do not have the
+   F95 intrinsic subroutine "cpu_time"
+*/
+  int cpu_time_( double * sec ) {
+    *sec = CCLOCK2();
+    return 0;
+  }
+#endif

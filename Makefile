@@ -40,4 +40,4 @@ util :
 
 include .dependencies
 
-include Rules
+include Rules.cpp

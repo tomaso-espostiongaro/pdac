@@ -7,6 +7,13 @@ int float_chk( double *a ) {
 	         return nan;
 }
 
+#elif defined __PGI
+
+int float_chk_( double *a ) {
+	   int nan = 0;
+	      return nan;
+}
+
 #else
 
 int float_chk( double *a ) {
