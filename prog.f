@@ -65,8 +65,8 @@
 
       IF( timing ) then
          s0 = cpclock()
-         call cpu_time(t0)
-         call MP_WALLTIME(p0,myrank)
+         !call cpu_time(t0)
+         !call MP_WALLTIME(p0,myrank)
       END IF
 ! 
 ! ... Print OUTPUT every 'nprint' time-steps
@@ -95,28 +95,28 @@
       timres     = 0.0d0 
       timtot     = 0.0d0
       
-      cptimbdry    = 0.0d0
-      cptimfieldn  = 0.0d0
-      cptimturbo   = 0.0D0
-      cptimtilde   = 0.0d0
-      cptimiter    = 0.0d0
-      cptimtem     = 0.0d0
-      cptimygas    = 0.0d0
-      cptimout     = 0.0d0
-      cptimres     = 0.0d0 
-      cptimtot     = 0.0d0
-      
-      mptimbdry    = 0.0d0
-      mptimfieldn  = 0.0d0
-      mptimturbo   = 0.0D0
-      mptimtilde   = 0.0d0
-      mptimiter    = 0.0d0
-      mptimtem     = 0.0d0
-      mptimygas    = 0.0d0
-      mptimout     = 0.0d0
-      mptimres     = 0.0d0 
-      mptimtot     = 0.0d0
-
+!      cptimbdry    = 0.0d0
+!      cptimfieldn  = 0.0d0
+!      cptimturbo   = 0.0D0
+!      cptimtilde   = 0.0d0
+!      cptimiter    = 0.0d0
+!      cptimtem     = 0.0d0
+!      cptimygas    = 0.0d0
+!      cptimout     = 0.0d0
+!      cptimres     = 0.0d0 
+!      cptimtot     = 0.0d0
+!      
+!      mptimbdry    = 0.0d0
+!      mptimfieldn  = 0.0d0
+!      mptimturbo   = 0.0D0
+!      mptimtilde   = 0.0d0
+!      mptimiter    = 0.0d0
+!      mptimtem     = 0.0d0
+!      mptimygas    = 0.0d0
+!      mptimout     = 0.0d0
+!      mptimres     = 0.0d0 
+!      mptimtot     = 0.0d0
+!
       w0 = elapsed_seconds()
 !
       !CALL set_sampling( 1000.D0, 0.D0, 1500.D0, ismp, psmp)
@@ -135,8 +135,8 @@
 !
         IF( timing ) then
            s1 = cpclock()
-           call cpu_time(t1)
-           call MP_WALLTIME(p1,myrank)
+           !call cpu_time(t1)
+           !call MP_WALLTIME(p1,myrank)
         END IF
 !
 ! ... Compute Boundary Conditions
@@ -144,8 +144,14 @@
         CALL boundary
 
         ! ... write initial conditions
-        IF (sweep == 1) CALL outp
+        !IF (sweep == 1) CALL outp
         IF (.NOT.run) EXIT time_sweep
+
+        IF( timing ) then
+          s2 = cpclock()
+          !call cpu_time(t2)
+          !call MP_WALLTIME(p2,myrank)
+        END IF            
 !
 ! ... If needed, update gas density (check algorithm)
 ! ... Notice that the update of the gas density could
@@ -159,12 +165,6 @@
           END DO
         END IF
 !
-        IF( timing ) then
-          s2 = cpclock()
-          call cpu_time(t2)
-          call MP_WALLTIME(p2,myrank)
-        END IF            
-
 ! ... Store all independent fields at time n*dt 
 ! ... for explicit time integration
 !
@@ -172,8 +172,8 @@
 !
         IF( timing ) then
           s3 = cpclock()
-          call cpu_time(t3)
-          call MP_WALLTIME(p3,myrank)
+          !call cpu_time(t3)
+          !call MP_WALLTIME(p3,myrank)
         END IF
 
 ! ... Compute Turbulent viscosity from sub-grid-stress (sgs) model
@@ -183,21 +183,21 @@
 
         IF( timing ) then
           s4 = cpclock()
-          call cpu_time(t4)
-          call MP_WALLTIME(p4,myrank)
+          !call cpu_time(t4)
+          !call MP_WALLTIME(p4,myrank)
         END IF
 !
         timbdry    = timbdry    + (s2 - s1)
         timfieldn  = timfieldn  + (s3 - s2)
         timturbo   = timturbo   + (s4 - s3)
 !
-        cptimbdry    = cptimbdry    + (t2 - t1)
-        cptimfieldn  = cptimfieldn  + (t3 - t2)
-        cptimturbo   = cptimturbo   + (t4 - t3)
+!        cptimbdry    = cptimbdry    + (t2 - t1)
+!        cptimfieldn  = cptimfieldn  + (t3 - t2)
+!        cptimturbo   = cptimturbo   + (t4 - t3)
 !
-        mptimbdry    = mptimbdry    + (p2 - p1)
-        mptimfieldn  = mptimfieldn  + (p3 - p2)
-        mptimturbo   = mptimturbo   + (p4 - p3)
+!        mptimbdry    = mptimbdry    + (p2 - p1)
+!        mptimfieldn  = mptimfieldn  + (p3 - p2)
+!        mptimturbo   = mptimturbo   + (p4 - p3)
 !
         CALL allocate_fluxes
 
@@ -210,8 +210,8 @@
 !
           IF( timing ) then 
             s5 = cpclock()
-            call cpu_time(t5)
-            call MP_WALLTIME(p5,myrank)
+            !call cpu_time(t5)
+            !call MP_WALLTIME(p5,myrank)
           END IF
 !
 ! ... Momentum fluxes, gas-particle drag, particle-particle interaction
@@ -225,8 +225,8 @@
 
           IF( timing )then
             s6 = cpclock()
-            call cpu_time(t6)
-            call MP_WALLTIME(p6,myrank)
+            !call cpu_time(t6)
+            !call MP_WALLTIME(p6,myrank)
           END IF
 !
 ! ... Iterative solver for momentum-mass pressure coupling
@@ -236,8 +236,8 @@
 !
           IF( timing ) then
             s7 = cpclock()
-            call cpu_time(t7)
-            call MP_WALLTIME(p7,myrank)
+            !call cpu_time(t7)
+            !call MP_WALLTIME(p7,myrank)
           END IF
 
 ! ... Solve the explicit transport equation of gas species
@@ -247,8 +247,8 @@
 !
           IF( timing ) then
             s8 = cpclock()
-            call cpu_time(t8)
-            call MP_WALLTIME(p8,myrank)
+            !call cpu_time(t8)
+            !call MP_WALLTIME(p8,myrank)
           END IF
 
 ! ... Solve explicitly transport equations for enthalpies
@@ -260,8 +260,8 @@
 !
           IF( timing ) then
             s9 = cpclock()
-            call cpu_time(t9)
-            call MP_WALLTIME(p9,myrank)
+            !call cpu_time(t9)
+            !call MP_WALLTIME(p9,myrank)
           END IF
 
           timtilde = timtilde + (s6 - s5)
@@ -269,15 +269,15 @@
           timygas  = timygas  + (s8 - s7)
           timtem   = timtem   + (s9 - s8)
                
-          cptimtilde = cptimtilde + (t6 - t5)
-          cptimiter  = cptimiter  + (t7 - t6)
-          cptimygas  = cptimygas  + (t8 - t7)
-          cptimtem   = cptimtem   + (t9 - t8)
- 
-          mptimtilde = mptimtilde + (p6 - p5)
-          mptimiter  = mptimiter  + (p7 - p6)
-          mptimygas  = mptimygas  + (p8 - p7)
-          mptimtem   = mptimtem   + (p9 - p8)
+!          cptimtilde = cptimtilde + (t6 - t5)
+!          cptimiter  = cptimiter  + (t7 - t6)
+!          cptimygas  = cptimygas  + (t8 - t7)
+!          cptimtem   = cptimtem   + (t9 - t8)
+! 
+!          mptimtilde = mptimtilde + (p6 - p5)
+!          mptimiter  = mptimiter  + (p7 - p6)
+!          mptimygas  = mptimygas  + (p8 - p7)
+!          mptimtem   = mptimtem   + (p9 - p8)
 
         END DO runge_kutta
 !
@@ -297,8 +297,8 @@
 !
         IF( timing ) then
           s10 = cpclock()
-          call cpu_time(t10)
-          call MP_WALLTIME(p10,myrank)
+          !call cpu_time(t10)
+          !call MP_WALLTIME(p10,myrank)
         END IF
 !
 ! ... Write OUTPUT file
@@ -311,8 +311,8 @@
 !
         IF( timing ) then
           s11 = cpclock()
-          call cpu_time(t11)
-          call MP_WALLTIME(p11,myrank)
+          !call cpu_time(t11)
+          !call MP_WALLTIME(p11,myrank)
         END IF
 !
 ! ... Write RESTART file
@@ -334,18 +334,18 @@
 !
         IF( timing ) then
             s12 = cpclock()
-            call cpu_time(t12)
-            call MP_WALLTIME(p12,myrank)
+            !call cpu_time(t12)
+            !call MP_WALLTIME(p12,myrank)
         END IF
 !
         timout    = timout    + (s11 - s10)
         timres    = timres    + (s12 - s11)
 
-        cptimout = cptimout + (t11 - t10)
-        cptimres = cptimres + (t12 - t11)
-
-        mptimout  = mptimout  + (p11 - p10)
-        mptimres  = mptimres  + (p12 - p11)
+!        cptimout = cptimout + (t11 - t10)
+!        cptimres = cptimres + (t12 - t11)
+!
+!        mptimout  = mptimout  + (p11 - p10)
+!        mptimres  = mptimres  + (p12 - p11)
 !
         w1 = elapsed_seconds()
         WRITE(testunit,fmt="('  walltime = ',F10.2,', ',F10.2)") w1, w1-w0
@@ -372,8 +372,8 @@
 !
       IF( timing ) then
           s13 = cpclock()
-          call cpu_time(t13)
-          call MP_WALLTIME(p13,myrank)
+          !call cpu_time(t13)
+          !call MP_WALLTIME(p13,myrank)
       END IF
 
       IF( timing ) THEN
@@ -389,8 +389,8 @@
         timout     = timout / 1000.0d0
         timres     = timres / 1000.0d0
 
-        cptimtot  = ( t13 - t0 ) 
-        mptimtot   = ( p13 - p0 ) 
+!        cptimtot  = ( t13 - t0 ) 
+!        mptimtot   = ( p13 - p0 ) 
                 
         WRITE(testunit,*) '  WALL TIME computed calling SYSTEM_CLOCK (s)'
         WRITE(testunit,900) 'Bdry','Dyn','Tilde','Iter','Ygas','Tem','Out','Restart','Total'

@@ -48,15 +48,15 @@
       REAL*8 :: vel
       INTEGER :: fx, fy, fz
       LOGICAL :: forced
-
-      fx = 0
-      fy = 0 
-      fz = 0
-      forced = .FALSE.
 !
       IF (irand >= 1) CALL random_switch(sweep)
 !
-      DO ijk = 1, ncint
+      mesh_loop: DO ijk = 1, ncint
+
+        fx = 0
+        fy = 0 
+        fz = 0
+        forced = .FALSE.
 
         CALL subscr(ijk)
         CALL meshinds(ijk,imesh,i,j,k)
@@ -177,10 +177,6 @@
                 ws(ijk,:) = vel
               END IF
           
-            ELSE
-
-              CALL error('bdry','Unknown job_type: '//job_type, 1)
-
             END IF
 
           ELSE
@@ -670,21 +666,21 @@
 
             ! ... Set lower corners velocities
             !
-            IF (k == 2) THEN
-              IF( ( i == (nx-1) ) .AND. ( j == (ny-1) ) ) THEN
-                ! ug(ipjm) = ug(ipj)
-              ELSE IF( ( i == 2 ) .AND. ( j == (ny-1) ) ) THEN
-              ELSE IF( ( i == (nx-1) ) .AND. ( j == 2 ) ) THEN
-              ELSE IF( ( i == 2 ) .AND. ( j == 2 ) ) THEN
-                ! ug(imjm) = ug(imj)
-              ENDIF
-            END IF
+!            IF (k == 2) THEN
+!              IF( ( i == (nx-1) ) .AND. ( j == (ny-1) ) ) THEN
+!                ! ug(ipjm) = ug(ipj)
+!              ELSE IF( ( i == 2 ) .AND. ( j == (ny-1) ) ) THEN
+!              ELSE IF( ( i == (nx-1) ) .AND. ( j == 2 ) ) THEN
+!              ELSE IF( ( i == 2 ) .AND. ( j == 2 ) ) THEN
+!                ! ug(imjm) = ug(imj)
+!              ENDIF
+!            END IF
 
           END IF
         END IF
-      END DO
+      END DO mesh_loop
 !
-      IF (lpr > 1 .AND. immb >0) THEN
+      IF (lpr > 1 .AND. immb >= 1) THEN
         IF (mpime == root) THEN
           OPEN(UNIT=tempunit,FILE='fptx.dat',STATUS='UNKNOWN')
           DO np = 1, SIZE(fptx)

@@ -911,7 +911,6 @@
         CALL subscr(ijk)
         CALL meshinds(ijk,imesh,i,j,k)
           
-        !WRITE(tempunit,101) ijk, i, j, k, ugfe(ijk), ugfn(ijk), ugft(ijk)
         WRITE(tempunit,101) ugfe(ijk), ugfn(ijk), ugft(ijk)
 
       END DO

@@ -408,10 +408,6 @@
       DO i = 1, counter
         av_quota(NINT(rad_dist(i))) = rad_quota(i)
       END DO
-      WRITE(*,*) SIZE(rad_dist)
-      DO i = 1, SIZE(rad_dist)
-        WRITE(*,*) cellsize * DSQRT(rad_dist(i)),rad_quota(i)
-      END DO
 !
       ! ... Assign the new averaged values to the
       ! ... topographic arrays
