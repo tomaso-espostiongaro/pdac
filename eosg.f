@@ -51,11 +51,15 @@
       REAL*8 :: mol
 !
       mol = 0.D0
-      DO ig=1,ngas
-        mol = mol + yg(ig)/gmw(ig)
+      DO ig = 1, ngas
+        mol = mol + yg(ig) / gmw(ig)
       END DO
-      DO ig=1,ngas
-        xg(ig)=yg(ig)/(gmw(ig)*mol)
+      IF( mol <= 1.d-10 ) THEN
+        WRITE(6,*) 'WARNING (mole) zero or negative mol ', mol
+        mol = 1.d-10
+      END IF
+      DO ig = 1, ngas
+        xg(ig) = yg(ig) / ( gmw(ig) * mol )
       END DO
 
       RETURN
@@ -104,7 +108,9 @@
       
       RETURN
       END SUBROUTINE csound
+
 !----------------------------------------------------------------------
+
       SUBROUTINE thermal_eosg(rog, tg, p, xg)
 !
 ! ... Compute gas density as a function of temperature and pressure
@@ -121,8 +127,8 @@
       REAL*8 :: mg
       INTEGER :: ig
 !
-      mg=0.D0
-      DO ig=1,ngas
+      mg = 0.D0
+      DO ig = 1, ngas
         mg = mg + xg(ig) * gmw(ig)
       END DO
 !
@@ -130,7 +136,9 @@
 !
       RETURN
       END SUBROUTINE thermal_eosg
+
 !----------------------------------------------------------------------
+
       SUBROUTINE caloric_eosg(cpgc, cgas, tg, yg, sieg, ijk, info)
 !
 ! ... Iterative inversion of the enthalpy-temperature law
@@ -155,23 +163,27 @@
       REAL*8 :: tg0, sieg0, cgas0
       INTEGER :: ii, nlmax
       INTEGER :: ig
-      PARAMETER( nlmax = 4000) 
+      PARAMETER( nlmax = 1000) 
       PARAMETER( ratmin = 1.D-8) 
 
-      IF (fl_l(ijk) == 1) THEN
-          tg0=tg
-          sieg0=sieg
+      IF ( fl_l(ijk) == 1 ) THEN
+          tg0   = tg
+          sieg0 = sieg
           DO ii = 1, nlmax
-           tgnn = tg
-            CALL hcapg(cpgc(:), tg)
-            hc=0.D0
-            DO ig=1,ngas
-              hc=cpgc(ig)*yg(ig)+hc
+            IF( tg < 1.0d0 ) THEN
+              WRITE(6,*) 'WARNING (caloric_eosg) zero or negative temperature'
+              tg = 1.0d0
+            END IF
+            tgnn = tg
+            CALL hcapg( cpgc(:), tg )
+            hc = 0.D0
+            DO ig = 1, ngas
+              hc = cpgc(ig) * yg(ig) + hc
             END DO
             IF (tg == tg0) cgas0 = hc
             cgas = hc
-            tg = tzero+(sieg-hzerog)/cgas
-            IF (DABS((tgnn-tg)/tgnn) <= ratmin) GOTO 223
+            tg = tzero + ( sieg - hzerog ) / cgas
+            IF ( DABS( ( tgnn - tg ) / tgnn ) <= ratmin ) GOTO 223
           END DO
 !**********************************************************************
           WRITE(8,*) 'max number of iteration reached in eosg'

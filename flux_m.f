@@ -139,13 +139,6 @@
 !
 ! ... on West volume boundary
 !
-      !IF( i == 2 .AND. j == 2 .AND. k == 59 ) THEN
-      !  WRITE(6,*) 'from masf_3d_new'
-      !  WRITE(6,*) 'dens ', dens%c, dens%w, dens%e, dens%s, dens%n, dens%b, dens%t
-      !  WRITE(6,*) 'u ', u%c, u%w
-      !  WRITE(6,*) 'v ', v%c, v%s
-      !  WRITE(6,*) 'w ', w%c, w%b
-      !END IF
       cs = u%w
       IF (cs >= 0.D0) THEN
         fou  = dens%w 
@@ -258,6 +251,8 @@
       REAL*8, INTENT(OUT) :: fe, fn, ft, fw, fs, fb
       TYPE(stencil), INTENT(IN) :: dens, u, v, w
       INTEGER, INTENT(IN) :: i, j, k, ijk
+
+      INTEGER :: im2, ip2, jm2, jp2, km2, kp2
 !
       INTEGER, SAVE :: ijk_old = -1
       REAL*8, SAVE :: dxmm, dxm, dxp, dxpp, indxpp, indxp, indxm, indxmm
@@ -267,18 +262,25 @@
 !
       IF( ijk /= ijk_old ) THEN
 !
-         dxmm=dx(i-1)+dx(i-2)
+         im2 = MAX( 1, i-2 )
+         ip2 = MIN( nx, i+2 )
+         jm2 = MAX( 1, j-2 )
+         jp2 = MIN( ny, j+2 )
+         km2 = MAX( 1, k-2 )
+         kp2 = MIN( nz, k+2 )
+
+         dxmm=dx(i-1)+dx(im2)
          dxm=dx(i)+dx(i-1)
          dxp=dx(i)+dx(i+1)
-         dxpp=dx(i+1)+dx(i+2)
-         dymm=dy(j-1)+dy(j-2)
+         dxpp=dx(i+1)+dx(ip2)
+         dymm=dy(j-1)+dy(jm2)
          dym=dy(j)+dy(j-1)
          dyp=dy(j)+dy(j+1)
-         dypp=dy(j+1)+dy(j+2)
-         dzmm=dz(k-1)+dz(k-2)
+         dypp=dy(j+1)+dy(jp2)
+         dzmm=dz(k-1)+dz(km2)
          dzm=dz(k)+dz(k-1)
          dzp=dz(k)+dz(k+1)
-         dzpp=dz(k+1)+dz(k+2)
+         dzpp=dz(k+1)+dz(kp2)
 
          indxmm=1.D0/dxmm
          indxm=1.D0/dxm
@@ -512,6 +514,7 @@
       TYPE(stencil), INTENT(IN) :: u, w, dens
       INTEGER, INTENT(IN) :: ij
       INTEGER :: i,j,imesh
+
 !
       imesh = myijk( ip0_jp0_kp0_, ij)
       j = ( imesh - 1 ) / nx + 1
@@ -563,23 +566,30 @@
       TYPE(stencil), INTENT(IN) :: dens, u, w
       INTEGER, INTENT(IN) :: ij
 !
-      INTEGER :: i,j,imesh
+      INTEGER :: i, k, imesh
       REAL*8 :: dxmm, dxm, dxp, dxpp, indxpp, indxp, indxm, indxmm
       REAL*8 :: dzmm, dzm, dzp, dzpp, indzpp, indzp, indzm, indzmm
       REAL*8 :: gradc, grade, gradw, gradt, gradb
+
+      INTEGER :: im2, ip2, km2, kp2
 !
       imesh = myijk( ip0_jp0_kp0_, ij)
-      j = ( imesh - 1 ) / nx + 1
+      k = ( imesh - 1 ) / nx + 1
       i = MOD( ( imesh - 1 ), nx) + 1
+
+      im2 = MAX( 1, i-2 )
+      ip2 = MIN( nx, i+2 )
+      km2 = MAX( 1, k-2 )
+      kp2 = MIN( nz, k+2 )
 !
-      dxmm=dx(i-1)+dx(i-2)
+      dxmm=dx(i-1)+dx(im2)
       dxm=dx(i)+dx(i-1)
       dxp=dx(i)+dx(i+1)
-      dxpp=dx(i+1)+dx(i+2)
-      dzmm=dz(j-1)+dz(j-2)
-      dzm=dz(j)+dz(j-1)
-      dzp=dz(j)+dz(j+1)
-      dzpp=dz(j+1)+dz(j+2)
+      dxpp=dx(i+1)+dx(ip2)
+      dzmm=dz(k-1)+dz(km2)
+      dzm=dz(k)+dz(k-1)
+      dzp=dz(k)+dz(k+1)
+      dzpp=dz(k+1)+dz(kp2)
 
       indxmm=1.D0/dxmm
       indxm=1.D0/dxm
@@ -670,11 +680,11 @@
       IF (cs >= 0.D0) THEN
 	erre = gradb / gradc
         fou  = dens%b 
-	incr = 0.5D0 * dz(j-1)
+	incr = 0.5D0 * dz(k-1)
       ELSE IF (cs < 0.D0) THEN
 	erre = gradt / gradc
         fou  = dens%c 
-	incr = 0.5D0 * dz(j)
+	incr = 0.5D0 * dz(k)
       ENDIF
 !
       IF ((muscl /= 0) .AND. (gradc /= 0.D0)) THEN
@@ -683,7 +693,7 @@
 !
       upwnd = fou + lim * gradc * incr
 !
-      centrd = (dz(j)*dens%b+dz(j-1)*dens%c)*indzm
+      centrd = (dz(k)*dens%b+dz(k-1)*dens%c)*indzm
       upc_s = upwnd / centrd
 !
       fb = upwnd * cs
@@ -702,20 +712,20 @@
       IF (cs >= 0.D0) THEN
 	erre = gradb / gradc
         fou  = dens%c 
-	incr = 0.5D0 * dz(j)
+	incr = 0.5D0 * dz(k)
       ELSE IF (cs < 0.D0) THEN
 	erre = gradt / gradc
         fou  = dens%t 
-	incr = 0.5D0 * dz(j+1)
+	incr = 0.5D0 * dz(k+1)
       ENDIF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (j /= nz-1)) THEN
+      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (k /= nz-1)) THEN
         CALL limiters(lim,erre)
       END IF
 !
       upwnd = fou + lim * gradc * incr
 !
-      centrd = (dz(j)*dens%t+dz(j+1)*dens%c)*indzp
+      centrd = (dz(k)*dens%t+dz(k+1)*dens%c)*indzp
       upc_n = upwnd / centrd
 !
       ft = upwnd * cs

@@ -48,8 +48,10 @@
 !
       REAL*8 :: bb, aa, cc, sum, om
       REAL*8 :: tst, tr, t1, t2, t3
+      REAL*8 :: trm1, trm2, trm3, trm4, trsrt
       REAL*8 :: m
       REAL*8 :: suminv
+
       INTEGER :: ig, jg
 !
 ! ... Compute Temperature Dependent Viscosity of each gas specie (Reid)
@@ -60,24 +62,25 @@
          tg = 1.0D0
       END IF
 
-      DO ig=1,ngas
-        IF (present_gas(ig) ) THEN
+      DO ig = 1, ngas
+
+        IF ( present_gas(ig) ) THEN
 !
 ! ... non-dimensional temperature 
            
-          tst=tg/mmugek(ig)
+          tst = tg / mmugek(ig)
 !
 ! ... collision integral (omega) 
-          om = 1.16145D0 * tst**(-0.14874D0) +  &
-               0.52487D0*DEXP(-0.77320D0*tst)+  &
-               2.16178D0*DEXP(-2.43787D0*tst)
+          om = 1.16145D0 * tst ** ( -0.14874D0 ) +  &
+               0.52487D0 * DEXP( -0.77320D0 * tst ) +  &
+               2.16178D0 * DEXP( -2.43787D0 * tst )
 !
 ! ... molecular weight (m) expressed in grams per mole
           m = 1.D3 * gmw(ig)
 !
 ! ... semi-empirical consitutive equation for
 ! ... viscosity is expressed in microPoise (cgs unit system)
-          mmug(ig) = 26.69D0 * SQRT(m * tg) / (mmugs(ig)**2 * om)
+          mmug(ig) = 26.69D0 * SQRT( m * tg ) / ( mmugs(ig)**2 * om )
 !
 ! ... conversion to (Pa-s) (mks unit system)
           mmug(ig) = mmug(ig) * 1.D-7 
@@ -87,20 +90,29 @@
 !
 ! ... Temperature Dependent Conductivity (mks unit system)
 !
-      t1=tg
-      t2=tg**2
-      t3=tg**3
-      tr=tg/132.5D0
+      t1 = tg             ! tg
+      t2 = t1 * tg        ! tg**2
+      t3 = t2 * tg        ! tg**3
 
-      ckg(1) = -3.273D-4 + 9.966D-5*t1 - 3.743D-8*t2 + 9.732D-12*t3
-      ckg(2) = 3.919D-4 + 9.816D-5*t1 - 5.067D-8*t2 + 1.504D-11*t3
-      ckg(3) = -7.215D-3 + 8.015D-5*t1 + 5.477D-9*t2 - 1.053D-11*t3
-      ckg(4) = 8.099D-3 + 6.689D-4*t1 - 4.158D-7*t2 + 1.562D-10*t3
-      ckg(5) = 7.341D-3 - 1.013D-5*t1 + 1.801D-7*t2 - 9.100D-11*t3
-      ckg(6) = 25.9778D-3*(0.2395D0*tr+6.4977D-3*tr**0.5D0+1.D0       &
-               -1.92615D0*tr**(-1.D0)+2.00383D0*tr**(-2.D0)           &
-               -1.07553D0*tr**(-3.D0)+0.229414D0*tr**(-4.D0))
-      ckg(7) = -8.086D-3 + 6.344D-5*t1 - 1.382D-8*t2 + 2.303D-12*t3
+      tr = tg / 132.5D0
+
+      trm1 = 1.0d0 / tr   ! tr**(-1)
+      trm2 = trm1 * trm1  ! tr**(-2)
+      trm3 = trm2 * trm1  ! tr**(-3)
+      trm4 = trm3 * trm1  ! tr**(-4)
+
+      trsrt = SQRT( tr )
+
+      ckg(1) = -3.273D-4 + 9.966D-5 * t1 - 3.743D-8 * t2 + 9.732D-12 * t3
+      ckg(2) =  3.919D-4 + 9.816D-5 * t1 - 5.067D-8 * t2 + 1.504D-11 * t3
+      ckg(3) = -7.215D-3 + 8.015D-5 * t1 + 5.477D-9 * t2 - 1.053D-11 * t3
+      ckg(4) =  8.099D-3 + 6.689D-4 * t1 - 4.158D-7 * t2 + 1.562D-10 * t3
+      ckg(5) =  7.341D-3 - 1.013D-5 * t1 + 1.801D-7 * t2 - 9.100D-11 * t3
+      ckg(6) = 25.9778D-3 * ( &
+                0.2395D0 * tr + 6.4977D-3 * trsrt + 1.D0       &
+              - 1.92615D0 * trm1 + 2.00383D0  * trm2           &
+              - 1.07553D0 * trm3 + 0.229414D0 * trm4 )
+      ckg(7) = -8.086D-3 + 6.344D-5 * t1 - 1.382D-8 * t2 + 2.303D-12 * t3
 !
 ! ... Calculation of Mixture Viscosity (Wilke)
 ! ... and Mixture Conductivity (Mason and Saxema)
@@ -134,7 +146,9 @@
 !
       RETURN
       END SUBROUTINE viscon
+
 !----------------------------------------------------------------------
+
       SUBROUTINE viscg
 ! ... This routine computes the components of the viscous diffusion terms
 ! ... in gas momentum transport equations

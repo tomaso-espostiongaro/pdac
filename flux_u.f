@@ -59,21 +59,27 @@
       REAL*8 :: dym, dyp, dypp, indypp, indyp, indym
       REAL*8 :: dzp, indzp, dzm, indzm, dzpp, indzpp
       REAL*8 :: gradc, grade, gradw, gradn, grads, gradt, gradb
+
+      INTEGER :: ip2, jp2, kp2
 !
       imesh = myijk( ip0_jp0_kp0_, ijk)
       i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
       j = MOD( imesh - 1, nx*ny ) / nx + 1
       k = ( imesh - 1 ) / ( nx*ny ) + 1
 !
+      ip2 = MIN( nx, i+2 )
+      jp2 = MIN( ny, j+2 )
+      kp2 = MIN( nz, k+2 )
+!
       dxm=dx(i)+dx(i-1)
       dxp=dx(i)+dx(i+1)
-      dxpp=dx(i+1)+dx(i+2)
+      dxpp=dx(i+1)+dx(ip2)
       dym=dy(j)+dy(j-1)
       dyp=dy(j)+dy(j+1)
-      dypp=dy(j+1)+dy(j+2)
+      dypp=dy(j+1)+dy(jp2)
       dzm=dz(k)+dz(k-1)
       dzp=dz(k)+dz(k+1)
-      dzpp=dz(k+1)+dz(k+2)
+      dzpp=dz(k+1)+dz(kp2)
 
       indxm=1.D0/dxm
       indxp=1.D0/dxp
@@ -88,7 +94,7 @@
 ! ... Compute linearly interpolated values of density on the staggered grid
 !
       dens_c = (dx(i+1) * dens%c + dx(i) * dens%e) * indxp
-      dens_e = (dx(i+2) * dens%e + dx(i+1) * dens%ee) * indxpp
+      dens_e = (dx(ip2) * dens%e + dx(i+1) * dens%ee) * indxpp
       dens_n = (dx(i+1) * dens%n + dx(i) * dens%en) * indxp
       dens_t = (dx(i+1) * dens%t + dx(i) * dens%et) * indxp
       dens_w = (dx(i)   * dens%w + dx(i-1) * dens%c) * indxm
@@ -133,7 +139,7 @@
 !
       gradc = (indx(i+1) * (dens_e * u%e   - dens_c * u%c))
       gradw = (indx(i)   * (dens_c * u%c   - dens_w * u%w))
-      grade = (indx(i+2) * (dens_ee * u%ee - dens_e * u%e))
+      grade = (indx(ip2) * (dens_ee * u%ee - dens_e * u%e))
 !
       lim = 0.D0
       erre = 0.D0
@@ -239,27 +245,27 @@
       TYPE(stencil), INTENT(IN) :: dens, u, v, w
       INTEGER, INTENT(IN) :: i
 !
+      INTEGER :: ip2
+!
       REAL*8 :: dens_c, dens_e, dens_n, dens_t
       REAL*8 :: dens_w, dens_s, dens_b
       REAL*8 :: dxm, dxp, dxpp, indxpp, indxp, indxm
+
+      ip2 = MIN( nx, i+2 )
    
 !
-      !IF( (i+2) > SIZE( dx ) ) THEN
-      !  write(6,*) 'flu_3d_1st: i+2 out of bounds ', i+2, SIZE(dx)
-      !ENDIF
+      dxm  = dx(i)   + dx(i-1)
+      dxp  = dx(i)   + dx(i+1)
+      dxpp = dx(i+1) + dx(ip2)
 
-      dxm=dx(i)+dx(i-1)
-      dxp=dx(i)+dx(i+1)
-      dxpp=dx(i+1)+dx(i+2)
-
-      indxm=1.D0/dxm
-      indxp=1.D0/dxp
-      indxpp=1.D0/dxpp
+      indxm  = 1.D0 / dxm
+      indxp  = 1.D0 / dxp
+      indxpp = 1.D0 / dxpp
 !       
 ! ... Compute linearly interpolated values of density on the staggered grid
 !
       dens_c = (dx(i+1) * dens%c + dx(i) * dens%e) * indxp
-      dens_e = (dx(i+2) * dens%e + dx(i+1) * dens%ee) * indxpp
+      dens_e = (dx(ip2) * dens%e + dx(i+1) * dens%ee) * indxpp
       dens_n = (dx(i+1) * dens%n + dx(i) * dens%en) * indxp
       dens_t = (dx(i+1) * dens%t + dx(i) * dens%et) * indxp
       dens_w = (dx(i)   * dens%w + dx(i-1) * dens%c) * indxm
@@ -271,7 +277,7 @@
 ! ... on West volume bondary
 !
       IF( fl_l(imjk) /= 1 ) THEN
-        cs = 0.5D0*(u%c + u%w)
+        cs = 0.5D0 * ( u%c + u%w )
         IF ( cs >= 0.D0 ) fw = dens_w * u%w * cs
         IF ( cs <  0.D0 ) fw = dens_c * u%c * cs
       END IF
@@ -279,7 +285,7 @@
 ! ... on South volume bondary
 !
       IF( fl_l(ijmk) /= 1 ) THEN
-        cs = (dx(i+1) * v%s + dx(i) * v%es) * indxp
+        cs = ( dx(i+1) * v%s + dx(i) * v%es ) * indxp
         IF ( cs >= 0.D0 ) fs = dens_s * u%s * cs
         IF ( cs <  0.D0 ) fs = dens_c * u%c * cs
       END IF
@@ -287,7 +293,7 @@
 ! ... on Bottom volume bondary
 !
       IF( fl_l(ijkm) /= 1 ) THEN
-        cs = (dx(i+1) * w%b + dx(i) * w%eb) * indxp
+        cs = ( dx(i+1) * w%b + dx(i) * w%eb ) * indxp
         IF ( cs >= 0.D0 ) fb = dens_b * u%b * cs
         IF ( cs <  0.D0 ) fb = dens_c * u%c * cs
       END IF
@@ -332,7 +338,9 @@
 !
       RETURN
       END SUBROUTINE flu_3d_1st
+
 !----------------------------------------------------------------------
+
       SUBROUTINE flu_2d(fe, ft, fw, fb, dens, u, w, ij)
 !
 ! ... Compute the convective fluxes on East, Top sides of the cell
@@ -352,7 +360,7 @@
       REAL*8, INTENT(OUT) :: fe, ft, fw, fb
       TYPE(stencil), INTENT(IN) :: dens, u, w
       INTEGER, INTENT(IN) :: ij
-      INTEGER :: i,j,imesh
+      INTEGER :: i,k,imesh
 !
       REAL*8 :: dens_c, dens_e, dens_t
       REAL*8 :: dens_w, dens_b
@@ -361,16 +369,21 @@
       REAL*8 :: dzp, indzp, dzm, indzm, dzpp, indzpp
       REAL*8 :: gradc, grade, gradw, gradb, gradt
 !
+      INTEGER :: ip2, kp2
+!
       imesh = myijk( ip0_jp0_kp0_, ij)
-      j = ( imesh - 1 ) / nx + 1
+      k = ( imesh - 1 ) / nx + 1
       i = MOD( ( imesh - 1 ), nx) + 1
+
+      ip2 = MIN( nx, i+2 )
+      kp2 = MIN( nz, k+2 )
 !
       dxm=dx(i)+dx(i-1)
       dxp=dx(i)+dx(i+1)
-      dxpp=dx(i+1)+dx(i+2)
-      dzm=dz(j)+dz(j-1)
-      dzp=dz(j)+dz(j+1)
-      dzpp=dz(j+1)+dz(j+2)
+      dxpp=dx(i+1)+dx(ip2)
+      dzm=dz(k)+dz(k-1)
+      dzp=dz(k)+dz(k+1)
+      dzpp=dz(k+1)+dz(kp2)
 
       indxm=1.D0/dxm
       indxp=1.D0/dxp
@@ -383,7 +396,7 @@
 ! ... Compute linearly interpolated values of density on the staggered grid
 !
       dens_c = (dx(i+1) * dens%c + dx(i) * dens%e) * indxp
-      dens_e = (dx(i+2) * dens%e + dx(i+1) * dens%ee) * indxpp
+      dens_e = (dx(ip2) * dens%e + dx(i+1) * dens%ee) * indxpp
       dens_t = (dx(i+1) * dens%t + dx(i) * dens%et) * indxp
       dens_w = (dx(i)   * dens%w + dx(i-1) * dens%c) * indxm
       dens_b = (dx(i+1) * dens%b + dx(i) * dens%eb) * indxp
@@ -417,7 +430,7 @@
 !
       gradc = (indx(i+1) * (dens_e * u%e   - dens_c * u%c))
       gradw = (indx(i)   * (dens_c * u%c   - dens_w * u%w))
-      grade = (indx(i+2) * (dens_ee * u%ee - dens_e * u%e))
+      grade = (indx(ip2) * (dens_ee * u%ee - dens_e * u%e))
 !
       lim = 0.D0
       erre = 0.D0
@@ -456,14 +469,14 @@
       IF (cs >= 0.D0) THEN
         erre = gradb / gradc 
         fou  = dens_c * u%c
-	incr = 0.5D0 * dz(j)
+	incr = 0.5D0 * dz(k)
       ELSE IF (cs < 0.D0) THEN
         erre = gradt / gradc 
         fou  = dens_t * u%t
-	incr = 0.5D0 * dz(j+1)
+	incr = 0.5D0 * dz(k+1)
       END IF 
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (j /= nz-1)) THEN
+      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (k /= nz-1)) THEN
         CALL limiters(lim,erre)
       END IF
 !

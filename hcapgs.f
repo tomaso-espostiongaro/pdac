@@ -23,9 +23,12 @@
 !
       RETURN
       END SUBROUTINE allocate_hcapgs
+
+
 !----------------------------------------------------------------------
       SUBROUTINE hcapg(cpc, tg)
 !----------------------------------------------------------------------
+
 ! ... This routine computes the Temperature-dependent specific heat
 ! ... at constant pressure per kilograms of each gas phase 
 !
@@ -37,11 +40,11 @@
       REAL*8, INTENT(OUT) :: cpc(:)
       REAL*8 :: t1,t2,t3
 !
-        cpc = 0.D0
+      cpc = 0.D0
 
-        t1=tg
-        t2=tg**2
-        t3=tg**3
+      t1 = tg
+      t2 = tg**2
+      t3 = tg**3
 !
 ! ... molar capacity ( joule/(kelvin mole) )
 !
@@ -61,7 +64,7 @@
         cpc(7)=(2.385D1+6.699D-2*t1-4.961D-5*t2+1.328D-8*t3)
 !
 ! ... specific heat ( joule/(kelvin kilogram) )
-        cpc = cpc/gmw
+        cpc = cpc / gmw
 
       RETURN
       END SUBROUTINE hcapg

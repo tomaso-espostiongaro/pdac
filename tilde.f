@@ -115,7 +115,10 @@
         DEALLOCATE(rhs)
         
       END SUBROUTINE deallocate_fluxes
+
+
 !-----------------------------------------------------
+
       SUBROUTINE fieldn
 !
 ! ... Compute explicitly and store all fields and physical parameters
@@ -145,53 +148,55 @@
       REAL*8 :: rgp_e, rgp_n, rgp_t, rlk_e, rlk_n, rlk_t
       INTEGER :: i, j, k, ijk, imesh, is, ig
 !
-      CALL data_exchange(rgp)
-      CALL data_exchange(rlk)
+      CALL data_exchange( rgp )
+      CALL data_exchange( rlk )
 !
       DO ijk = 1, ncint
+
 !       IF(fl_l(ijk) == 1) THEN
+
           CALL meshinds(ijk,imesh,i,j,k)
           CALL subscr_fieldn(ijk)
 !
           IF (job_type == '2D') THEN
 
-            dxp=dx(i)+dx(i+1)
-            dzp=dz(k)+dz(k+1)
-            indxp=1.D0/dxp
-            indzp=1.D0/dzp
+            dxp = dx(i) + dx(i+1)
+            dzp = dz(k) + dz(k+1)
+            indxp = 1.D0 / dxp
+            indzp = 1.D0 / dzp
 
-            rgp_e = (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke))*indxp
-            rgp_t = (dz(k+1)*rgp(ijk)+dz(k)*rgp(ijkt))*indzp
+            rgp_e = ( dx(i+1) * rgp(ijk) + dx(i) * rgp(ijke) ) * indxp
+            rgp_t = ( dz(k+1) * rgp(ijk) + dz(k) * rgp(ijkt) ) * indzp
             rugn(ijk)  = rgp_e * ug(ijk)
             rwgn(ijk)  = rgp_t * wg(ijk)
            
             DO is = 1, nsolid
-               rlk_e = (rlk(ijk,is)*dx(i+1)+rlk(ijke,is)*dx(i))*indxp
-               rlk_t = (rlk(ijk,is)*dz(k+1)+rlk(ijkt,is)*dz(k))*indzp
+               rlk_e = ( rlk(ijk,is) * dx(i+1) + rlk(ijke,is) * dx(i) ) * indxp
+               rlk_t = ( rlk(ijk,is) * dz(k+1) + rlk(ijkt,is) * dz(k) ) * indzp
                rusn(ijk,is)  = rlk_e * us(ijk,is)
                rwsn(ijk,is)  = rlk_t * ws(ijk,is)
             END DO
  
           ELSE IF (job_type == '3D') THEN
 
-            dxp=dx(i)+dx(i+1)
-            dyp=dy(j)+dy(j+1)
-            dzp=dz(k)+dz(k+1)
-            indxp=1.D0/dxp
-            indyp=1.D0/dyp
-            indzp=1.D0/dzp
+            dxp = dx(i) + dx(i+1)
+            dyp = dy(j) + dy(j+1)
+            dzp = dz(k) + dz(k+1)
+            indxp = 1.D0 / dxp
+            indyp = 1.D0 / dyp
+            indzp = 1.D0 / dzp
 
-            rgp_e = (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke))*indxp
-            rgp_n = (dy(j+1)*rgp(ijk)+dy(j)*rgp(ijkn))*indyp
-            rgp_t = (dz(k+1)*rgp(ijk)+dz(k)*rgp(ijkt))*indzp
+            rgp_e = ( dx(i+1) * rgp(ijk) + dx(i) * rgp(ijke) ) * indxp
+            rgp_n = ( dy(j+1) * rgp(ijk) + dy(j) * rgp(ijkn) ) * indyp
+            rgp_t = ( dz(k+1) * rgp(ijk) + dz(k) * rgp(ijkt) ) * indzp
             rugn(ijk)  = rgp_e * ug(ijk)
             rvgn(ijk)  = rgp_n * vg(ijk)
             rwgn(ijk)  = rgp_t * wg(ijk)
 !     
             DO is = 1, nsolid
-              rlk_e = (rlk(ijk,is)*dx(i+1)+rlk(ijke,is)*dx(i))*indxp
-              rlk_n = (rlk(ijk,is)*dy(j+1)+rlk(ijkn,is)*dy(j))*indyp
-              rlk_t = (rlk(ijk,is)*dz(k+1)+rlk(ijkt,is)*dz(k))*indzp
+              rlk_e = ( rlk(ijk,is) * dx(i+1) + rlk(ijke,is) * dx(i) ) * indxp
+              rlk_n = ( rlk(ijk,is) * dy(j+1) + rlk(ijkn,is) * dy(j) ) * indyp
+              rlk_t = ( rlk(ijk,is) * dz(k+1) + rlk(ijkt,is) * dz(k) ) * indzp
               rusn(ijk,is)  = rlk_e * us(ijk,is)
               rvsn(ijk,is)  = rlk_n * vs(ijk,is)
               rwsn(ijk,is)  = rlk_t * ws(ijk,is)
@@ -203,7 +208,7 @@
           rgpn(ijk)  = rgp(ijk)
           siegn(ijk) = sieg(ijk)
  
-          DO ig=1,ngas
+          DO ig = 1, ngas
             rgpgcn(ijk,ig) = rgpgc(ijk,ig)
           END DO
 !
@@ -219,12 +224,15 @@
 ! ... Compute the temperature-dependent gas viscosity and th. conductivity
 !
       DO ijk = 1, ncint
-         CALL viscon(mug(ijk), kapg(ijk), xgc(:,ijk), tg(ijk))
+         CALL viscon( mug(ijk), kapg(ijk), xgc(:,ijk), tg(ijk) )
       END DO
 !
       RETURN
       END SUBROUTINE fieldn
+
+
 !----------------------------------------------------------------------
+
       SUBROUTINE tilde
 !
       USE atmosphere, ONLY: gravz
@@ -264,50 +272,53 @@
 !
 ! ... Allocate and initialize gas and particle viscous stresses
 !
-      ALLOCATE(gvisx(ncint), gvisz(ncint))
-      ALLOCATE(pvisx(ncint,nsolid), pvisz(ncint,nsolid))
+      ALLOCATE( gvisx(ncint), gvisz(ncint) )
+      ALLOCATE( pvisx(ncint,nsolid), pvisz(ncint,nsolid) )
       gvisx = 0.D0; gvisz = 0.D0
       pvisx = 0.D0; pvisz = 0.D0
-      IF (job_type == '3D') THEN
-        ALLOCATE(gvisy(ncint))
-        ALLOCATE(pvisy(ncint,nsolid))
+
+      IF ( job_type == '3D' ) THEN
+        ALLOCATE( gvisy(ncint) )
+        ALLOCATE( pvisy(ncint,nsolid) )
         gvisy = 0.D0
         pvisy = 0.D0
       END IF
 !
-      IF (iturb == 0) THEN
-        CALL data_exchange(ug)
-        CALL data_exchange(wg)
-        IF (job_type == '3D') CALL data_exchange(vg)
+      IF ( iturb == 0 ) THEN
+        CALL data_exchange( ug )
+        CALL data_exchange( wg )
+        IF (job_type == '3D') CALL data_exchange( vg )
       END IF
-      IF (iss == 0) THEN
-        CALL data_exchange(us)
-        CALL data_exchange(ws)
-        IF (job_type == '3D') CALL data_exchange(vs)
+
+      IF ( iss == 0 ) THEN
+        CALL data_exchange( us )
+        CALL data_exchange( ws )
+        IF (job_type == '3D') CALL data_exchange( vs )
       END IF
-      CALL data_exchange(ep)
+
+      CALL data_exchange( ep )
 !
 ! ... Calculate gas viscous stress tensor
 !
-      IF (gas_viscosity) CALL viscg        
+      IF ( gas_viscosity ) CALL viscg        
 !
 ! ... Calculate particles viscous stress tensor
 !
-      IF (part_viscosity) CALL viscs
+      IF ( part_viscosity ) CALL viscs
 !
 ! ... Allocate and initialize gas convective fluxes
 !
-      ALLOCATE(ugfe(ncdom), ugft(ncdom))
-      ALLOCATE(wgfe(ncdom), wgft(ncdom))
+      ALLOCATE( ugfe(ncdom), ugft(ncdom) )
+      ALLOCATE( wgfe(ncdom), wgft(ncdom) )
       ugfe = 0.0D0; ugft = 0.0D0
       ugfw = 0.0D0; ugfb = 0.0D0
       wgfe = 0.0D0; wgft = 0.0D0
       wgfw = 0.0D0; wgfb = 0.0D0
 
       IF (job_type == '3D') THEN
-        ALLOCATE(ugfn(ncdom))
-        ALLOCATE(vgfe(ncdom), vgfn(ncdom), vgft(ncdom))
-        ALLOCATE(wgfn(ncdom))
+        ALLOCATE( ugfn(ncdom) )
+        ALLOCATE( vgfe(ncdom), vgfn(ncdom), vgft(ncdom) )
+        ALLOCATE( wgfn(ncdom) )
         ugfn = 0.0D0
         ugfs = 0.0D0
         vgfe = 0.0D0; vgfn = 0.0D0; vgft = 0.0D0
@@ -318,8 +329,8 @@
 !
 ! ... Allocate and initialize particles convective fluxes
 !
-      ALLOCATE(usfe(ncdom,nsolid), usft(ncdom,nsolid))
-      ALLOCATE(wsfe(ncdom,nsolid), wsft(ncdom,nsolid))
+      ALLOCATE( usfe(ncdom,nsolid), usft(ncdom,nsolid) )
+      ALLOCATE( wsfe(ncdom,nsolid), wsft(ncdom,nsolid) )
 
       usfe = 0.0D0; usft = 0.0D0
       usfw = 0.0D0; usfb = 0.0D0
@@ -327,9 +338,9 @@
       wsfw = 0.0D0; wsfb = 0.0D0
 
       IF (job_type == '3D') THEN
-        ALLOCATE(usfn(ncdom,nsolid))
-        ALLOCATE(vsfe(ncdom,nsolid), vsfn(ncdom,nsolid), vsft(ncdom,nsolid))
-        ALLOCATE(wsfn(ncdom,nsolid))
+        ALLOCATE( usfn(ncdom,nsolid) )
+        ALLOCATE( vsfe(ncdom,nsolid), vsfn(ncdom,nsolid), vsft(ncdom,nsolid) )
+        ALLOCATE( wsfn(ncdom,nsolid) )
         usfn = 0.0D0
         usfs = 0.0D0
         vsfe = 0.0D0; vsfn = 0.0D0; vsft = 0.0D0
@@ -340,12 +351,12 @@
 !
 ! ... Allocate and initialize gas-particle drag coefficient
 !
-      ALLOCATE(kpgv(nsolid))
+      ALLOCATE( kpgv(nsolid) )
       kpgv = 0.0D0
 !
 ! ... (a temporary array used in 2D) ...
 !
-      ALLOCATE(nul( ((nsolid+1)**2+(nsolid+1))/2) )
+      ALLOCATE( nul( ( ( nsolid + 1 )**2 + ( nsolid + 1 ) ) / 2 ) )
       nul = 0.D0
 !
 ! ... Compute all convective East, North, and Top fluxes 
@@ -361,7 +372,9 @@
 ! ... of East, North and Top fluxes from neighbouring cells.
 !
       DO ijk = 1, ncint
+
         IF(fl_l(ijk) == 1) THEN
+
           CALL meshinds(ijk,imesh,i,j,k)
           CALL subscr_tilde(ijk)
 !
@@ -401,33 +414,33 @@
 !
 ! ... compute explicit (tilde) terms in the momentum equation (gas)
 ! 
-          dxp=dx(i)+dx(i+1)
-          dyp=dy(j)+dy(j+1)
-          dzp=dz(k)+dz(k+1)
-          indxp=1.D0/dxp
-          indzp=1.D0/dzp
-          indyp=1.D0/dyp
+          dxp = dx(i) + dx(i+1)
+          dyp = dy(j) + dy(j+1)
+          dzp = dz(k) + dz(k+1)
+          indxp = 1.D0 / dxp
+          indzp = 1.D0 / dzp
+          indyp = 1.D0 / dyp
 !         
-          rug_tmp = rugn(ijk) + dt * gvisx(ijk)                     
-          rug_tmp = rug_tmp - dt * indxp * 2.D0 * ugfx * inxb(i)        
-          rug_tmp = rug_tmp - dt * indy(j) * ugfy                  
-          rug_tmp = rug_tmp - dt * indz(k) * ugfz   
-          rug (ijk) = rug_tmp
+          rug_tmp = gvisx(ijk)                     
+          rug_tmp = rug_tmp - indxp * 2.D0 * ugfx * inxb(i)        
+          rug_tmp = rug_tmp - indy(j) * ugfy                  
+          rug_tmp = rug_tmp - indz(k) * ugfz   
+          rug (ijk) = rugn(ijk) + dt * rug_tmp
 !
-          rwg_tmp = rwgn(ijk) + dt * gvisz(ijk)                     
-          rwg_tmp = rwg_tmp + dt * (dz(k+1)*rgp(ijk)+dz(k)*rgp(ijkt))*indzp * gravz  
-          rwg_tmp = rwg_tmp - dt * indx(i) * wgfx * inx(i)                           
-          rwg_tmp = rwg_tmp - dt * indy(j) * wgfy                                    
-          rwg_tmp = rwg_tmp - dt * indzp * 2.D0 * wgfz
-          rwg(ijk) = rwg_tmp
+          rwg_tmp = gvisz(ijk)                     
+          rwg_tmp = rwg_tmp + (dz(k+1)*rgp(ijk)+dz(k)*rgp(ijkt))*indzp * gravz  
+          rwg_tmp = rwg_tmp - indx(i) * wgfx * inx(i)                           
+          rwg_tmp = rwg_tmp - indy(j) * wgfy                                    
+          rwg_tmp = rwg_tmp - indzp * 2.D0 * wgfz
+          rwg(ijk) = rwgn(ijk) + dt * rwg_tmp
 !
           IF (job_type == '3D') THEN
 
-            rvg_tmp = rvgn(ijk) + dt * gvisy(ijk)                     
-            rvg_tmp = rvg_tmp - dt * indx(i) * vgfx               
-            rvg_tmp = rvg_tmp - dt * indyp * 2.D0 * vgfy   
-            rvg_tmp = rvg_tmp - dt * indz(k) * vgfz    
-            rvg(ijk) = rvg_tmp
+            rvg_tmp = gvisy(ijk)                     
+            rvg_tmp = rvg_tmp - indx(i) * vgfx               
+            rvg_tmp = rvg_tmp - indyp * 2.D0 * vgfy   
+            rvg_tmp = rvg_tmp - indz(k) * vgfz    
+            rvg(ijk) = rvgn(ijk) + dt * rvg_tmp
 
           END IF
 
@@ -456,17 +469,19 @@
 !
 ! ... compute explicit (tilde) terms in the momentum equation (particles)
 ! 
-                rus_tmp = rusn(ijk,is) + dt*pvisx(ijk,is)               
-                rus_tmp = rus_tmp - dt*indxp*2.D0* usfx * inxb(i)   
-                rus_tmp = rus_tmp - dt*indy(j)* usfy  
-                rus_tmp = rus_tmp - dt*indz(k)* usfz 
+                rus_tmp = rusn(ijk,is) + dt * pvisx(ijk,is)               
+                rus_tmp = rus_tmp - dt * indxp * 2.D0 * usfx * inxb(i)   
+                rus_tmp = rus_tmp - dt * indy(j) * usfy  
+                rus_tmp = rus_tmp - dt * indz(k) * usfz 
                 rus(ijk,is) = rus_tmp                   
 !
-                rws_tmp = rwsn(ijk,is) + dt*pvisz(ijk,is)              
-                rws_tmp = rws_tmp + dt*(rlk(ijk,is)*dz(k+1)+rlk(ijkt,is)*dz(k))*indzp*gravz 
-                rws_tmp = rws_tmp - dt*indx(i)* wsfx * inx(i)                 
-                rws_tmp = rws_tmp - dt*indy(j)* wsfy                      
-                rws_tmp = rws_tmp - dt*indzp*2.D0* wsfz  
+                rws_tmp = rwsn(ijk,is) + dt * pvisz(ijk,is)              
+                rws_tmp = rws_tmp + dt * &
+                          ( rlk(ijk,is) * dz(k+1) + rlk(ijkt,is) * dz(k) ) * &
+                          indzp * gravz 
+                rws_tmp = rws_tmp - dt * indx(i) * wsfx * inx(i)                 
+                rws_tmp = rws_tmp - dt * indy(j) * wsfy                      
+                rws_tmp = rws_tmp - dt * indzp * 2.D0 * wsfz  
                 rws(ijk,is) = rws_tmp
 !
 ! ... Compute the gas-particle drag coefficients
@@ -474,8 +489,10 @@
                 dugs = ( (ug(ijk)-us(ijk,is)) + (ug(imjk)-us(imjk,is)) )*0.5D0
                 dwgs = ( (wg(ijk)-ws(ijk,is)) + (wg(ijkm)-ws(ijkm,is)) )*0.5D0
                 dvgs = 0.D0
+
                 CALL kdrags(kpgv(is), dugs, dvgs, dwgs, ep(ijk),         &
                         rgp(ijk), rlk(ijk,is), mug(ijk), is)                  
+
             END DO 
 
           ELSE IF (job_type == '3D') THEN
@@ -505,24 +522,25 @@
 !
 ! ... compute explicit (tilde) terms in the momentum equation (particles)
 ! 
-               rus_tmp = rusn(ijk,is) + dt*pvisx(ijk,is)               
-               rus_tmp = rus_tmp - dt*indxp*2.D0* usfx * inxb(i)   
-               rus_tmp = rus_tmp - dt*indy(j)* usfy  
-               rus_tmp = rus_tmp - dt*indz(k)* usfz 
-               rus(ijk,is) = rus_tmp                   
+               rus_tmp = pvisx(ijk,is)               
+               rus_tmp = rus_tmp - indxp * 2.D0 * usfx * inxb(i)   
+               rus_tmp = rus_tmp - indy(j) * usfy  
+               rus_tmp = rus_tmp - indz(k) * usfz 
+               rus(ijk,is) = rusn(ijk,is) + dt * rus_tmp                   
 !
-               rvs_tmp = rvsn(ijk,is) + dt*pvisy(ijk,is)              
-               rvs_tmp = rvs_tmp - dt*indx(i)* vsfx       
-               rvs_tmp = rvs_tmp - dt*indyp*2.D0* vsfy              
-               rvs_tmp = rvs_tmp - dt*indz(k)* vsfz    
-               rvs(ijk,is) = rvs_tmp
+               rvs_tmp = pvisy(ijk,is)              
+               rvs_tmp = rvs_tmp - indx(i) * vsfx       
+               rvs_tmp = rvs_tmp - indyp * 2.D0 * vsfy              
+               rvs_tmp = rvs_tmp - indz(k) * vsfz    
+               rvs(ijk,is) = rvsn(ijk,is) + dt * rvs_tmp
 !
-               rws_tmp = rwsn(ijk,is) + dt*pvisz(ijk,is)              
-               rws_tmp = rws_tmp + dt*(rlk(ijk,is)*dz(k+1)+rlk(ijkt,is)*dz(k))*indzp*gravz
-               rws_tmp = rws_tmp - dt*indx(i)* wsfx * inx(i)                 
-               rws_tmp = rws_tmp - dt*indy(j)* wsfy                      
-               rws_tmp = rws_tmp - dt*indzp*2.D0* wsfz  
-               rws(ijk,is) = rws_tmp
+               rws_tmp = pvisz(ijk,is)              
+               rws_tmp = rws_tmp + &
+                         ( rlk(ijk,is) * dz(k+1) + rlk(ijkt,is) * dz(k) ) * indzp * gravz
+               rws_tmp = rws_tmp - indx(i) * wsfx * inx(i)                 
+               rws_tmp = rws_tmp - indy(j) * wsfy                      
+               rws_tmp = rws_tmp - indzp * 2.D0 * wsfz  
+               rws(ijk,is) = rwsn(ijk,is) + dt * rws_tmp
 !
 ! ... Compute the gas-particle drag coefficients
 !
@@ -533,10 +551,10 @@
    
                CALL kdrags(kpgv(is), dugs, dvgs, dwgs, ep(ijk),         &
                         rgp(ijk), rlk(ijk,is), mug(ijk), is)                  
+
             END DO
 
           END IF
-
  
 !
 ! ... Compute the particle-particle coefficients and the interphase matrix
@@ -592,7 +610,9 @@
 
       RETURN
       END SUBROUTINE tilde
+
 !----------------------------------------------------------------------
+
       SUBROUTINE compute_all_fluxes
 !
       USE atmosphere, ONLY: gravz
@@ -733,6 +753,7 @@
       END SUBROUTINE compute_all_fluxes
 
 !----------------------------------------------------------------------
+
       SUBROUTINE compute_all_fluxes_3d_3phase
 !
       USE atmosphere, ONLY: gravz

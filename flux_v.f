@@ -61,20 +61,26 @@
       REAL*8 :: dzp, indzp, dzm, indzm, dzpp, indzpp
       REAL*8 :: gradc, grade, gradw, gradn, grads, gradt, gradb
 !
+      INTEGER :: ip2, jp2, kp2
+!
       imesh = myijk( ip0_jp0_kp0_, ijk)
       i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
       j = MOD( imesh - 1, nx*ny ) / nx + 1
       k = ( imesh - 1 ) / ( nx*ny ) + 1
 !
+      ip2 = MIN( nx, i+2 )
+      jp2 = MIN( ny, j+2 )
+      kp2 = MIN( nz, k+2 )
+!
       dxm=dx(i)+dx(i-1)
       dxp=dx(i)+dx(i+1)
-      dxpp=dx(i+1)+dx(i+2)
+      dxpp=dx(i+1)+dx(ip2)
       dym=dy(j)+dy(j-1)
       dyp=dy(j)+dy(j+1)
-      dypp=dy(j+1)+dy(j+2)
+      dypp=dy(j+1)+dy(jp2)
       dzm=dz(k)+dz(k-1)
       dzp=dz(k)+dz(k+1)
-      dzpp=dz(k+1)+dz(k+2)
+      dzpp=dz(k+1)+dz(kp2)
 
       indxm=1.D0/dxm
       indxp=1.D0/dxp
@@ -89,7 +95,7 @@
 ! ... Compute linearly interpolated values of density on the staggered grid
 !
       dens_c = (dy(j+1) * dens%c + dy(j) * dens%n) * indyp
-      dens_n = (dy(j+2) * dens%n + dy(j+1) * dens%nn) * indypp
+      dens_n = (dy(jp2) * dens%n + dy(j+1) * dens%nn) * indypp
       dens_e = (dy(j+1) * dens%e + dy(j) * dens%en) * indyp
       dens_t = (dy(j+1) * dens%t + dy(j) * dens%nt) * indyp
       dens_s = (dy(j)   * dens%s + dy(j-1) * dens%c) * indym
@@ -163,7 +169,7 @@
 !
       gradc = (dens_n * v%n   - dens_c * v%c) * indy(j+1)
       grads = (dens_c * v%c   - dens_s * v%s) * indy(j)
-      gradn = (dens_nn * v%nn - dens_n * v%n) * indy(j+2)
+      gradn = (dens_nn * v%nn - dens_n * v%n) * indy(jp2)
 !
       lim = 0.D0
       erre = 0.D0
@@ -226,7 +232,7 @@
 ! ... Compute the convective fluxes on East, North, and Top sides of the cell
 ! ... for the momentum density along y.
 !
-!      USE dimensions
+      USE dimensions, ONLY: nx, ny, nz
       USE grid, ONLY: fl_l
       USE grid, ONLY: dx, dy, dz, indy
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -245,10 +251,14 @@
       REAL*8 :: dens_w, dens_s, dens_b    
       REAL*8 :: dym, dyp, dypp, indypp, indyp, indym
       REAL*8 :: gradc, grade, gradw, gradn, grads, gradt, gradb
+
+      INTEGER :: jp2
+
+      jp2 = MIN( ny, j+2 )
     
       dym=dy(j)+dy(j-1)
       dyp=dy(j)+dy(j+1)
-      dypp=dy(j+1)+dy(j+2)
+      dypp=dy(j+1)+dy(jp2)
      
       indym=1.D0/dym
       indyp=1.D0/dyp
@@ -258,7 +268,7 @@
 ! ... Compute linearly interpolated values of density on the staggered grid
 !
       dens_c = (dy(j+1) * dens%c + dy(j) * dens%n) * indyp
-      dens_n = (dy(j+2) * dens%n + dy(j+1) * dens%nn) * indypp
+      dens_n = (dy(jp2) * dens%n + dy(j+1) * dens%nn) * indypp
       dens_e = (dy(j+1) * dens%e + dy(j) * dens%en) * indyp
       dens_t = (dy(j+1) * dens%t + dy(j) * dens%nt) * indyp
       dens_s = (dy(j)   * dens%s + dy(j-1) * dens%c) * indym

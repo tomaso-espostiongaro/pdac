@@ -176,10 +176,13 @@
 
       TYPE(stencil) :: sp11, sp12, sp22, sp13, sp23, sp33
 !
-      ALLOCATE(modsr(ncdom));     modsr = 0.0D0
+      ALLOCATE( modsr(ncdom) );     modsr = 0.0D0
+
       IF (modturbo == 2) THEN
-        IF (job_type == '2D') CALL error('sgsg',  &
-          'Dynamic Smagorinsky model applies only to 3D', 1 ) 
+
+        IF (job_type == '2D') &
+          CALL error('sgsg', 'Dynamic Smagorinsky model applies only to 3D', 1 ) 
+
         ALLOCATE(p11(ncdom))  ;     p11 = 0.0D0
         ALLOCATE(p12(ncdom))  ;     p12 = 0.0D0
         ALLOCATE(p22(ncdom))  ;     p22 = 0.0D0
@@ -195,6 +198,7 @@
         ALLOCATE(fuvg(ncdom)) ;     fuvg = 0.0D0
         ALLOCATE(fuwg(ncdom)) ;     fuwg = 0.0D0
         ALLOCATE(fvwg(ncdom)) ;     fvwg = 0.0D0
+
       END IF
 !
       CALL data_exchange(ug)
@@ -202,8 +206,11 @@
       IF (job_type == '3D') CALL data_exchange(vg)
 !
       IF (modturbo == 2 .AND. job_type == '3D' ) THEN
+
         DO ijk = 1, ncint
+
           IF(fl_l(ijk) == 1) THEN
+
             CALL subscr(ijk)
 !
 ! ... compute the modulus and components of the strain rate tensor
@@ -241,14 +248,20 @@
         CALL data_exchange(fuvg)
         CALL data_exchange(fuwg)
         CALL data_exchange(fvwg)
+
       END IF  
 !
-      DO ijk = 1, ncint
-        IF(fl_l(ijk) == 1) THEN
-          CALL meshinds(ijk,imesh,i,j,k)
-          CALL subscr(ijk)
 !
-          IF(modturbo == 1) THEN
+!
+      DO ijk = 1, ncint
+
+        IF( fl_l(ijk) == 1 ) THEN
+
+          CALL meshinds( ijk, imesh, i, j, k )
+
+          CALL subscr( ijk )
+!
+          IF( modturbo == 1 ) THEN
 	  
 	     IF (job_type == '2D') THEN
                CALL strain2d(ug, wg, modsr(ijk), ijk)
@@ -337,9 +350,12 @@
           kapgt(ijk)=mugt(ijk)*cg(ijk)/pranumt
 !
         ELSE IF (fl_l(ijk) /= 1) THEN
+
           mugt(ijk)  = 0.D0
           kapgt(ijk) = 0.D0
+
         END IF
+
       END DO
 !                          
       DEALLOCATE(modsr)

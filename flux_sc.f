@@ -53,21 +53,30 @@
       REAL*8 :: dym, dyp, dypp, indypp, indyp, indym
       REAL*8 :: dzp, indzp, dzm, indzm, dzpp, indzpp
       REAL*8 :: gradc, grade, gradw, gradn, grads, gradt, gradb
+
+      INTEGER :: im2, ip2, jm2, jp2, km2, kp2
 !
       imesh = myijk( ip0_jp0_kp0_, ijk)
       i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
       j = MOD( imesh - 1, nx*ny ) / nx + 1
       k = ( imesh - 1 ) / ( nx*ny ) + 1 
 !
+      im2 = MAX( 1, i-2 )
+      ip2 = MIN( nx, i+2 )
+      jm2 = MAX( 1, j-2 )
+      jp2 = MIN( ny, j+2 )
+      km2 = MAX( 1, k-2 )
+      kp2 = MIN( nz, k+2 )
+!
       dxm=dx(i)+dx(i-1)
       dxp=dx(i)+dx(i+1)
-      dxpp=dx(i+1)+dx(i+2)
+      dxpp=dx(i+1)+dx(ip2)
       dym=dy(j)+dy(j-1)
       dyp=dy(j)+dy(j+1)
-      dypp=dy(j+1)+dy(j+2)
+      dypp=dy(j+1)+dy(jp2)
       dzm=dz(k)+dz(k-1)
       dzp=dz(k)+dz(k+1)
-      dzpp=dz(k+1)+dz(k+2)
+      dzpp=dz(k+1)+dz(kp2)
 
       indxm=1.D0/dxm
       indxp=1.D0/dxp
@@ -327,21 +336,29 @@
       TYPE(stencil), INTENT(IN) :: dens, field, u, w
       INTEGER, INTENT(IN) :: ij
 !
-      INTEGER :: i,j,imesh
+      INTEGER :: im2, ip2, km2, kp2
+
+      INTEGER :: i,k,imesh
       REAL*8 :: dxm, dxp, dxpp, indxpp, indxp, indxm
       REAL*8 :: dzp, indzp, dzm, indzm, dzpp, indzpp
       REAL*8 :: gradc, grade, gradw, gradt, gradb
 !
       imesh = myijk( ip0_jp0_kp0_, ij)
-      j = ( imesh - 1 ) / nx + 1
+      k = ( imesh - 1 ) / nx + 1
       i = MOD( ( imesh - 1 ), nx) + 1
+!
+      im2 = MAX( 1, i-2 )
+      ip2 = MIN( nx, i+2 )
+      km2 = MAX( 1, k-2 )
+      kp2 = MIN( nz, k+2 )
+
 !
       dxm=dx(i)+dx(i-1)
       dxp=dx(i)+dx(i+1)
-      dxpp=dx(i+1)+dx(i+2)
-      dzm=dz(j)+dz(j-1)
-      dzp=dz(j)+dz(j+1)
-      dzpp=dz(j+1)+dz(j+2)
+      dxpp=dx(i+1)+dx(ip2)
+      dzm=dz(k)+dz(k-1)
+      dzp=dz(k)+dz(k+1)
+      dzpp=dz(k+1)+dz(kp2)
 
       indxm=1.D0/dxm
       indxp=1.D0/dxp
@@ -421,14 +438,14 @@
       IF (cs >= 0.D0) THEN
 	erre = gradb / gradc
         fou  = dens%c*field%c 
-	incr = 0.5D0 * dz(j)
+	incr = 0.5D0 * dz(k)
       ELSE IF (cs < 0.D0) THEN
 	erre = gradt / gradc
         fou  = dens%t*field%t 
-	incr = 0.5D0 * dz(j+1)
+	incr = 0.5D0 * dz(k+1)
       ENDIF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (j /= nz-1)) THEN
+      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (k /= nz-1)) THEN
         CALL limiters(lim,erre)
       END IF
 !

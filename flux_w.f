@@ -59,20 +59,26 @@
       REAL*8 :: dens_ee, dens_nn, dens_tt
       REAL*8 :: gradc, grade, gradw, gradn, grads, gradt, gradb
 !
+      INTEGER :: ip2, jp2, kp2
+!
       imesh = myijk( ip0_jp0_kp0_, ijk)
       i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
       j = MOD( imesh - 1, nx*ny ) / nx + 1
       k = ( imesh - 1 ) / ( nx*ny ) + 1
 !
+      ip2 = MIN( nx, i+2 )
+      jp2 = MIN( ny, j+2 )
+      kp2 = MIN( nz, k+2 )
+!
       dxm=dx(i)+dx(i-1)
       dxp=dx(i)+dx(i+1)
-      dxpp=dx(i+1)+dx(i+2)
+      dxpp=dx(i+1)+dx(ip2)
       dym=dy(j)+dy(j-1)
       dyp=dy(j)+dy(j+1)
-      dypp=dy(j+1)+dy(j+2)
+      dypp=dy(j+1)+dy(jp2)
       dzm=dz(k)+dz(k-1)
       dzp=dz(k)+dz(k+1)
-      dzpp=dz(k+1)+dz(k+2)
+      dzpp=dz(k+1)+dz(kp2)
 
       indxm=1.D0/dxm
       indxp=1.D0/dxp
@@ -89,7 +95,7 @@
       dens_c = (dz(k+1) * dens%c + dz(k) * dens%t) * indzp
       dens_e = (dz(k+1) * dens%e + dz(k) * dens%et) * indzp
       dens_n = (dz(k+1) * dens%n + dz(k) * dens%nt) * indzp
-      dens_t = (dz(k+2) * dens%t + dz(k+1) * dens%tt) * indzpp
+      dens_t = (dz(kp2) * dens%t + dz(k+1) * dens%tt) * indzpp
       dens_w = (dz(k+1) * dens%w  + dz(k) * dens%wt) * indzp
       dens_s = (dz(k+1) * dens%s  + dz(k) * dens%st) * indzp
       dens_b = (dz(k-1) * dens%c  + dz(k) * dens%b) * indzm
@@ -187,7 +193,7 @@
 ! ... on Top volume boundary
 !
       gradc = (indz(k+1) * (dens_t * w%t - dens_c * w%c))
-      gradt = (indz(k+2) * (dens_tt * w%tt - dens_t * w%t))
+      gradt = (indz(kp2) * (dens_tt * w%tt - dens_t * w%t))
       gradb = (indz(k) * (dens_c * w%c - dens_b * w%b))
 !
       lim = 0.D0
@@ -235,15 +241,16 @@
       REAL*8, INTENT(OUT) :: fe, fn, ft, fw, fs, fb
       TYPE(stencil), INTENT(IN) :: dens, u, v, w
 !
-     
       REAL*8 :: dzp, indzp, dzm, indzm, dzpp, indzpp
       REAL*8 :: dens_c, dens_e, dens_n, dens_t
       REAL*8 :: dens_w, dens_s, dens_b
+      INTEGER :: kp2
      
+      kp2 = MIN( nz, k+2 )
       
       dzm=dz(k)+dz(k-1)
       dzp=dz(k)+dz(k+1)
-      dzpp=dz(k+1)+dz(k+2)
+      dzpp=dz(k+1)+dz(kp2)
      
       indzm=1.D0/dzm
       indzp=1.D0/dzp
@@ -254,7 +261,7 @@
       dens_c = (dz(k+1) * dens%c + dz(k) * dens%t) * indzp
       dens_e = (dz(k+1) * dens%e + dz(k) * dens%et) * indzp
       dens_n = (dz(k+1) * dens%n + dz(k) * dens%nt) * indzp
-      dens_t = (dz(k+2) * dens%t + dz(k+1) * dens%tt) * indzpp
+      dens_t = (dz(kp2) * dens%t + dz(k+1) * dens%tt) * indzpp
       dens_w = (dz(k+1) * dens%w  + dz(k) * dens%wt) * indzp
       dens_s = (dz(k+1) * dens%s  + dz(k) * dens%st) * indzp
       dens_b = (dz(k-1) * dens%c  + dz(k) * dens%b) * indzm
@@ -352,7 +359,7 @@
       REAL*8, INTENT(OUT) :: fe, ft, fw, fb
       TYPE(stencil), INTENT(IN) :: dens, u, w
       INTEGER, INTENT(IN) :: ij
-      INTEGER :: i,j,imesh
+      INTEGER :: i, k, imesh
 !
       REAL*8 :: dens_c, dens_e, dens_t
       REAL*8 :: dens_w, dens_b
@@ -361,16 +368,22 @@
       REAL*8 :: dzp, indzp, dzm, indzm, dzpp, indzpp
       REAL*8 :: gradc, grade, gradw, gradt, gradb
 !
+      INTEGER :: ip2, kp2
+!
       imesh = myijk( ip0_jp0_kp0_, ij)
-      j = ( imesh - 1 ) / nx + 1
+      k = ( imesh - 1 ) / nx + 1
       i = MOD( ( imesh - 1 ), nx) + 1
+!
+      ip2 = MIN( nx, i+2 )
+      kp2 = MIN( nz, k+2 )
+
 !
       dxm=dx(i)+dx(i-1)
       dxp=dx(i)+dx(i+1)
-      dxpp=dx(i+1)+dx(i+2)
-      dzm=dz(j)+dz(j-1)
-      dzp=dz(j)+dz(j+1)
-      dzpp=dz(j+1)+dz(j+2)
+      dxpp=dx(i+1)+dx(ip2)
+      dzm=dz(k)+dz(k-1)
+      dzp=dz(k)+dz(k+1)
+      dzpp=dz(k+1)+dz(kp2)
 
       indxm=1.D0/dxm
       indxp=1.D0/dxp
@@ -381,11 +394,11 @@
 !       
 ! ... Compute linearly interpolated values of density on the staggered grid
 !
-      dens_c = (dz(j+1) * dens%c + dz(j) * dens%t) * indzp
-      dens_t = (dz(j+2) * dens%t + dz(j+1) * dens%tt) * indzpp
-      dens_e = (dz(j+1) * dens%e + dz(j) * dens%et) * indzp
-      dens_b = (dz(j)   * dens%b + dz(j-1) * dens%c) * indzm
-      dens_w = (dz(j+1) * dens%w + dz(j) * dens%wt) * indzp
+      dens_c = (dz(k+1) * dens%c + dz(k) * dens%t) * indzp
+      dens_t = (dz(kp2) * dens%t + dz(k+1) * dens%tt) * indzpp
+      dens_e = (dz(k+1) * dens%e + dz(k) * dens%et) * indzp
+      dens_b = (dz(k)   * dens%b + dz(k-1) * dens%c) * indzm
+      dens_w = (dz(k+1) * dens%w + dz(k) * dens%wt) * indzp
 !
 ! ... an arbitrary choice !
 !
@@ -397,7 +410,7 @@
 ! ... on West volume bondary
 !
       IF( fl_l(imjk) /= 1 ) THEN
-        cs = (u%wn * dz(j) + u%w * dz(j+1)) * indzp
+        cs = (u%wn * dz(k) + u%w * dz(k+1)) * indzp
         IF ( cs >= 0.D0 ) fw = dens_w * w%w * cs * xb(i-1)
         IF ( cs <  0.D0 ) fw = dens_c * w%c * cs * xb(i-1)
       END IF
@@ -421,7 +434,7 @@
       lim = 0.D0
       erre = 0.D0
 !
-      cs = indzp * (u%c * dz(j+1) + u%t * dz(j))
+      cs = indzp * (u%c * dz(k+1) + u%t * dz(k))
       cn = cs * dt * 2.D0 * indzp
       IF ( cs >= 0.D0 ) THEN
 	erre = gradw / gradc
@@ -443,26 +456,26 @@
 !
 ! ... on Top volume boundary
 !
-      gradc = (dens_t * w%t   - dens_c * w%c) * indz(j+1)
-      gradb = (dens_c * w%c   - dens_b * w%b) * indz(j)
-      gradt = (dens_tt * w%tt - dens_t * w%t) * indz(j+2)
+      gradc = (dens_t * w%t   - dens_c * w%c) * indz(k+1)
+      gradb = (dens_c * w%c   - dens_b * w%b) * indz(k)
+      gradt = (dens_tt * w%tt - dens_t * w%t) * indz(kp2)
 !
       lim = 0.D0
       erre = 0.D0
 !
       cs = 0.5D0 * ( w%t + w%c )
-      cn = cs * dt * indz(j+1)
+      cn = cs * dt * indz(k+1)
       IF (cs >= 0.D0) THEN
 	erre = gradb / gradc
         fou  = dens_c * w%c
-	incr = 0.5D0 * dz(j+1)
+	incr = 0.5D0 * dz(k+1)
       ELSE IF (cs < 0.D0) THEN
 	erre = gradt / gradc
         fou  = dens_t * w%t
-	incr = 0.5D0 * dz(j+1)
+	incr = 0.5D0 * dz(k+1)
       END IF 
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (j /= nz-1)) THEN
+      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (k /= nz-1)) THEN
         CALL limiters(lim,erre)
       END IF
 !
