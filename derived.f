@@ -195,7 +195,7 @@
       IMPLICIT NONE
       REAL, INTENT(IN), DIMENSION(:) :: rgp, rhog, rhom, tg, mg
       REAL, DIMENSION(SIZE(tg)) :: cm
-      REAL, DIMENSION(SIZE(tg)) :: fact, y
+      REAL, DIMENSION(SIZE(rgp)) :: fact, y
 
       y = rgp / rhom
       fact = y + (1.0 - y) * rhog / rl(1)
