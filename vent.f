@@ -120,15 +120,15 @@
         END DO
 !
 ! ... Write out the new DEM file
-!        OPEN(17,FILE='newdem.dat')
-!        WRITE(17,*) vdem%nx
-!        WRITE(17,*) vdem%ny
-!        WRITE(17,*) vdem%xcorner
-!        WRITE(17,*) vdem%ycorner
-!        WRITE(17,*) vdem%cellsize
-!        WRITE(17,*) vdem%nodata_value
-!        WRITE(17,*) NINT(ztop2d*100.D0)
-!        CLOSE(17)
+        OPEN(17,FILE='newdem.dat')
+        WRITE(17,*) vdem%nx
+        WRITE(17,*) vdem%ny
+        WRITE(17,*) vdem%xcorner
+        WRITE(17,*) vdem%ycorner
+        WRITE(17,*) vdem%cellsize
+        WRITE(17,*) vdem%nodata_value
+        WRITE(17,*) NINT(ztop2d*100.D0)
+        CLOSE(17)
 !
         ! ... Re-set the cell flags at the base of the crater 
         ! ... and the 'dist' array

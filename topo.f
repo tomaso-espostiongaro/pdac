@@ -317,9 +317,10 @@
       SUBROUTINE average_dem
 !
       IMPLICIT NONE
-      INTEGER :: i, j, distance, m
-      INTEGER :: dms
+      INTEGER :: i, j, distance, m, l
+      INTEGER :: dms, samp, counter
       REAL*8, ALLOCATABLE :: av_quota(:)
+      REAL*8, ALLOCATABLE :: rad_dist(:), rad_quota(:)
       INTEGER, ALLOCATABLE :: nk(:)
       INTEGER :: noditopx, noditopy
 !
@@ -341,11 +342,40 @@
           nk(distance) = nk(distance) + 1
         END DO
       END DO
-!
+      !
       DO m = 1, dms
         IF( nk(m) > 0 ) av_quota(m) = av_quota(m) / nk(m)
       END DO
+!
+      ! ... Count the number of non-zero quotas
+      !
+      counter = 0
+      DO j = 0, dms
+        IF (av_quota(j) > 0.D0) counter = counter + 1
+      END DO
+      samp = 100
+      !
+      ! ... 'rad_dist' is the sorted array of the squared distances of mesh point
+      ! ... 'rad_quotas' is the array of averaged quotas at 'rad_dist' locations
+      !
+      ALLOCATE( rad_dist(counter), rad_quota(counter) )
+      rad_dist = 0.D0; rad_quota = 0.D0
+      !
+      i = 0
+      DO j = 0, dms
+        IF (av_quota(j) > 0.D0) THEN
+                i = i+1
+                rad_dist(i) = REAL(j,8)
+                rad_quota(i) = av_quota(j)
+        END IF
+      END DO
 !      
+      CALL filter_1d(rad_dist, rad_quota, samp)
+
+      DO i = 1, counter
+        av_quota(NINT(rad_dist(i))) = rad_quota(i)
+      END DO
+!
       ! ... Assign the new averaged values to the
       ! ... topographic arrays
       !
@@ -357,10 +387,96 @@
       END DO
 !
       DEALLOCATE(av_quota)
+      DEALLOCATE(rad_quota, rad_dist)
       DEALLOCATE(nk)
 !
       RETURN
       END SUBROUTINE average_dem
+!----------------------------------------------------------------------
+! ... Filter out high frequency modes by successively subsampling,
+! ... averaging and interpolating 
+!
+      SUBROUTINE filter_1d(x1,y1,nsm)
+
+      IMPLICIT NONE
+      REAL*8, INTENT(INOUT), DIMENSION(:) :: x1, y1
+      INTEGER, INTENT(IN) :: nsm
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: x2, y2
+      INTEGER, ALLOCATABLE :: dummy(:)
+      REAL*8 :: sstep
+      INTEGER :: i,j
+      INTEGER :: counter, cnt
+
+      counter = SIZE(x1)
+
+      ! ... 'x2' is a uniform subsample of 'x1'
+      ! ... 'y2' is an average of 'y1' at 'x2' locations 
+      ALLOCATE( x2(nsm), y2(nsm) )
+      ALLOCATE( dummy(counter) )
+
+      x2 = 0.D0; y2 = 0.D0
+      ! ... Uniformly Subsample and smooth the radial function 
+      ! ... of the averaged quota
+      !
+      sstep = REAL(x1(counter)/(nsm-1),8)
+      x2(1) = x1(1)
+      y2(1) = y1(1)
+      DO i = 2, nsm-1
+        x2(i) = x2(i-1) + sstep
+        cnt = 0
+        jloop: DO j = 1, counter
+          IF (DABS(x1(j)-x2(i)) <= sstep ) THEN
+                  y2(i) = y2(i) + y1(j)
+                  cnt = cnt + 1
+          END IF
+        END DO jloop
+        y2(i) = y2(i) / cnt
+      END DO
+      x2(nsm) = x1(counter)
+      y2(nsm) = y1(counter)
+!
+      ! ... Linearly interpolate quotas
+      !
+      CALL interp_1d(x2, y2, x1, y1, dummy)
+
+      DEALLOCATE(y2, x2, dummy)
+      RETURN
+      END SUBROUTINE filter_1d
+!----------------------------------------------------------------------
+      SUBROUTINE smooth_dem(ft)
+      IMPLICIT NONE
+      REAL*8, INTENT(INOUT) :: ft(:,:)
+      REAL*8, ALLOCATABLE :: gt(:,:)
+      INTEGER :: n1, n2, i, j
+
+      n1 = SIZE(ft,1)
+      n2 = SIZE(ft,2)
+      ALLOCATE( gt(n1,n2) )
+      gt = ft
+
+      j = 1
+      DO i = 2, n1-1
+        gt(i,j) = 0.25D0 * ( ft(i-1,j) + 2.D0 * ft(i,j) + ft(i+1,j) )
+      END DO
+      j = n2
+      DO i = 2, n1-1
+        gt(i,j) = 0.25D0 * ( ft(i-1,j) + 2.D0 * ft(i,j) + ft(i+1,j) )
+      END DO
+      DO j = 2, n2-1
+        i = 1
+        gt(i,j) = 0.25D0 * ( ft(i,j-1) + 2.D0 * ft(i,j) + ft(i,j+1) )
+        DO i = 2, n1-1
+          gt(i,j) = 0.25D0 * ( ft(i,j-1) + 2.D0 * ft(i,j) + ft(i,j+1) )
+        END DO
+        i = n1
+        gt(i,j) = 0.25D0 * ( ft(i,j-1) + 2.D0 * ft(i,j) + ft(i,j+1) )
+      END DO
+
+      ft = gt
+      
+      DEALLOCATE( gt )
+      RETURN
+      END SUBROUTINE smooth_dem
 !----------------------------------------------------------------------
 ! ... Translates the computational mesh accordingly to the
 ! ... specified UTM coordinates of the DEM
