@@ -1,0 +1,24 @@
+#----------------------------------------
+# SGI Origin
+#----------------------------------------
+MACROS= -DMPI
+#----------------------------------------
+FFLAGS= -O2 
+CPPFLAGS= $(MACROS)
+PREPROCESSING = -cpp
+FREEFORM= -freeform
+MODULES= -I ./
+LINKFLAGS= 
+LIBS= -lmpi
+#----------------------------------------
+# scalar compiler
+FC=f90
+# parallel compiler
+MPFC=f90
+#----------------------------------------
+# ... parallel linker
+LINKER= f90
+# ... scalar linker
+#----------------------------------------
+
+.SUFFIXES:.F

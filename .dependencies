@@ -6,7 +6,7 @@ bdry.o : atmosphere.o decomp.o dens.o dimensions.o eosg.o gas.o grid.o  \
 
 control.o : 
 
-decomp.o : control.o dimensions.o grid.o indijk.o parallel.o types.o 
+decomp.o : control.o dimensions.o grid.o indijk.o kinds.o parallel.o types.o 
 
 dens.o : decomp.o dimensions.o 
 
