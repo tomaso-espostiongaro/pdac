@@ -48,7 +48,7 @@
       USE grid, ONLY: bottom, iv, jv, kv, grigen
       USE grid, ONLY: center_x, center_y
       USE volcano_topography, ONLY: itp, iavv, ord2d
-      USE volcano_topography, ONLY: flatten_crater, flatten_dem
+      USE volcano_topography, ONLY: nocrater, flatten_dem
       USE volcano_topography, ONLY: rim_quota
       USE parallel, ONLY: mpime, root
 
@@ -115,7 +115,7 @@
             END DO
           END DO
           kv = kv + dk
-        ELSE IF (flatten_crater) THEN
+        ELSE IF (nocrater) THEN
           DO k = 1, nz
             IF (zb(k) <= rim_quota) kv = k
           END DO

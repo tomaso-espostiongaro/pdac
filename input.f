@@ -104,7 +104,7 @@
      &                            timestart, rungekut, tau
       USE turbulence_model, ONLY: iturb, cmut, iss, modturbo
       USE volcano_topography, ONLY: itp, iavv, cellsize, filtersize, &
-                         dem_file, flatten_crater, rim_quota
+                         dem_file, nocrater, rim_quota
 !
       IMPLICIT NONE
  
@@ -128,7 +128,7 @@
       NAMELIST / boundaries / west, east, south, north, bottom, top, &
         immb, ibl, deltaz
 
-      NAMELIST / topography / dem_file, itp, iavv, flatten_crater, &
+      NAMELIST / topography / dem_file, itp, iavv, nocrater, &
         rim_quota, imap, filtersize, cellsize
       
       NAMELIST / inlet / ivent, iali, irand, ipro, rad_file, wrat, &
@@ -242,7 +242,7 @@
       dem_file = 'topo.dat' ! file containing the topographic profile
       itp   = 0               ! itp = 1 => read topography from file
       iavv   = 0              ! iavv = 1 => average volcano topography
-      flatten_crater = .FALSE. ! flatten the crater
+      nocrater = .FALSE. ! flatten the crater
       rim_quota = 1000.D0     ! index of the rim quota 
       imap  = 0               ! 1: map output
       filtersize  = 50        ! low-pass filter size
@@ -447,7 +447,7 @@
       CALL bcast_character(dem_file,80,root)
       CALL bcast_integer(itp,1,root)
       CALL bcast_integer(iavv,1,root)
-      CALL bcast_logical(flatten_crater,1,root)
+      CALL bcast_logical(nocrater,1,root)
       CALL bcast_real(rim_quota,1,root)
       CALL bcast_integer(imap,1,root)
       CALL bcast_real(filtersize,1,root)
@@ -810,7 +810,7 @@
             CALL iotk_write_dat( iuni_nml, "itp", itp )
             CALL iotk_write_dat( iuni_nml, "iavv", iavv )
             CALL iotk_write_dat( iuni_nml, "imap", imap )
-            CALL iotk_write_dat( iuni_nml, "flatten_crater", flatten_crater )
+            CALL iotk_write_dat( iuni_nml, "nocrater", nocrater )
             CALL iotk_write_dat( iuni_nml, "rim_quota", rim_quota )
             CALL iotk_write_dat( iuni_nml, "filtersize", filtersize )
             CALL iotk_write_dat( iuni_nml, "cellsize", cellsize )

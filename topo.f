@@ -56,7 +56,7 @@
       INTEGER :: itp, iavv
       REAL*8 :: cellsize, filtersize
       REAL*8 :: rim_quota
-      LOGICAL :: flatten_crater
+      LOGICAL :: nocrater
 !
 ! ... file name for the topography
       CHARACTER(LEN=80) :: dem_file
@@ -74,7 +74,6 @@
       USE control_flags, ONLY: job_type
       USE grid, ONLY: fl
       USE parallel, ONLY: mpime, root
-      USE array_filters, ONLY: filter
 
       IMPLICIT NONE
 
@@ -92,23 +91,18 @@
         CALL read_2Dprofile
 
       ELSE IF (job_type == '3D') THEN
+
         ! ... Read the original topography
         !
         CALL read_dem_ascii
 
-        ! ... Crop the dem and change the resolution
+        ! ... Crop the dem and change the resolution + Filtering
         !
         CALL resize_dem
         
-        IF (iavv >= 1) THEN
-                ! ... Radial averaging + Filtering
-                !
-                CALL average_dem
-        ELSE
-                ! ... Just Filter the high frequencies
-                !
-                CALL filter(xtop,ytop,ztop2d,100,100)
-        END IF
+        ! ... Radial averaging + Filtering
+        !
+        IF (iavv >= 1) CALL average_dem
 
         CALL compute_UTM_coords
         
@@ -245,7 +239,7 @@
 !
       USE grid, ONLY: domain_x, domain_y, dxmax, dymax, dxmin, dymin
       USE grid, ONLY: center_x, center_y, alpha_x, alpha_y
-      USE array_filters, ONLY: interp
+      USE array_filters, ONLY: interp, filter
       IMPLICIT NONE
       INTEGER :: noditopx, noditopy
       INTEGER :: nodidemx, nodidemy
@@ -333,6 +327,8 @@
       center_x = xtop(icenter)
       center_y = ytop(jcenter)
 !
+      CALL filter(xtop,ytop,ztop2d,100,100)
+
       DEALLOCATE(ntx)
       DEALLOCATE(nty)
       DEALLOCATE(xdem, ydem, zdem)
@@ -437,7 +433,7 @@
       INTEGER, ALLOCATABLE :: rim_north(:), rim_south(:)
       INTEGER :: i,j,k
 !
-      IF (flatten_crater) THEN
+      IF (nocrater) THEN
         !
         ALLOCATE( rim_east(vdem%ny), rim_west(vdem%ny) )
         ALLOCATE( rim_north(vdem%nx), rim_south(vdem%nx) )
@@ -493,21 +489,11 @@
 !
       END IF
 !
+      ! ... Interpolate the topography on the cell centers.
       ! ... Re-set the cell flags at the base of the crater
       ! ... and the 'ord2d' and 'dist' arrays
       !
       CALL set_profile
-!
-! ... Write out the new DEM file
-      OPEN(17,FILE='newdem.dat')
-      WRITE(17,*) vdem%nx
-      WRITE(17,*) vdem%ny
-      WRITE(17,*) vdem%xcorner
-      WRITE(17,*) vdem%ycorner
-      WRITE(17,*) vdem%cellsize
-      WRITE(17,*) vdem%nodata_value
-      WRITE(17,'(10(I8))') NINT(ztop2d*100.D0)
-      CLOSE(17)
 !
       RETURN
       END SUBROUTINE flatten_dem
@@ -558,9 +544,10 @@
 !
       IF (job_type == '2D') THEN
         !
+        IF (.NOT.ALLOCATED(next)) ALLOCATE(next(nx))
+        IF (.NOT.ALLOCATED(ord)) ALLOCATE(ord(nx))
+        next = 0; ord = 0
         ALLOCATE(topo(nx))
-        ALLOCATE(next(nx))
-        ALLOCATE(ord(nx))
 
         ! ... Interpolate the topography on the cell top 
         ! ... (centered horizontally)
@@ -621,8 +608,8 @@
           DO i = 1, nx
             DO k = 1, nz
               IF (zb(k) <= topo2d(i,j)) ord2d(i,j) = k  
-                ijk = i + (j-1) * nx + (k-1) * nx * ny
-                dist(ijk) = z(k) - topo2d(i,j)
+              ijk = i + (j-1) * nx + (k-1) * nx * ny
+              dist(ijk) = z(k) - topo2d(i,j)
             END DO
           END DO
         END DO
@@ -781,32 +768,43 @@
       IMPLICIT NONE
       INTEGER :: n, i, j, k, ijk
 !
-! ... Write the georeferenced mesh coordinates
+! ... Write out the georeferenced mesh coordinates
 !
-      OPEN(17,FILE='mesh.dat')
-      WRITE(17,*) 'Georeferenced x-y mesh'
-
-      WRITE(17,*) 'x'
-      WRITE(17,17) x
-      WRITE(17,*) 'xb'
-      WRITE(17,17) xb
-      WRITE(17,*) 'y'
-      WRITE(17,17) y
-      WRITE(17,*) 'yb'
-      WRITE(17,17) yb
-      WRITE(17,*) 'z'
-      WRITE(17,17) z
-      WRITE(17,*) 'zb'
-      WRITE(17,17) zb
-      CLOSE(17)
-
- 17   FORMAT(5(F20.6))
+      OPEN(14,FILE='mesh.dat')
+      WRITE(14,*) 'Georeferenced x-y mesh'
+      WRITE(14,*) 'x'
+      WRITE(14,14) x
+      WRITE(14,*) 'xb'
+      WRITE(14,14) xb
+      WRITE(14,*) 'y'
+      WRITE(14,14) y
+      WRITE(14,*) 'yb'
+      WRITE(14,14) yb
+      WRITE(14,*) 'z'
+      WRITE(14,14) z
+      WRITE(14,*) 'zb'
+      WRITE(14,14) zb
+      CLOSE(14)
+!
+ 14   FORMAT(5(F20.6))
 !
 ! ... Write out the implicit profile
 !
       IF (mpime == root) THEN
         OPEN(UNIT=14,FILE='improfile.dat',STATUS='UNKNOWN')
         WRITE(14,fmt='(F9.2)') dist
+        CLOSE(14)
+!
+! ... Write out the new DEM file
+!
+        OPEN(14,FILE='newdem.dat',STATUS='UNKNOWN')
+        WRITE(14,*) vdem%nx
+        WRITE(14,*) vdem%ny
+        WRITE(14,*) vdem%xcorner
+        WRITE(14,*) vdem%ycorner
+        WRITE(14,*) vdem%cellsize
+        WRITE(14,*) vdem%nodata_value
+        WRITE(14,'(10(I8))') NINT(ztop2d*100.D0)
         CLOSE(14)
       END IF
 !
