@@ -2,10 +2,11 @@
 # Linux with Intel compiler
 #----------------------------------------
 #MACROS= -DMPI
-MACROS= -DSCALAR
+MACROS= -D__SCALAR -D__INTEL
 #----------------------------------------
-FFLAGS= -O2 -FR -tpp5 -w90 -w95
+FFLAGS= -O2 -FR -tpp7 -w90 -w95
 CPPFLAGS= -fpp $(MACROS)
+CFLAGS= -O2 $(MACROS)
 LINKFLAGS=
 LIBS= 
 #----------------------------------------

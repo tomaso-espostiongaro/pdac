@@ -169,10 +169,12 @@
       USE grid, ONLY: fl_l
       USE particles_constants, ONLY: inrl, kap
       USE pressure_epsilon, ONLY: ep
-      USE set_indexes, ONLY: stencil, cte
+      !USE set_indexes, ONLY: nb, rnb, stencil, cte
+      !USE set_indexes, ONLY: imjk, ijmk, ijkm
+      USE set_indexes, ONLY: stencil, cte, subscr
       USE set_indexes, ONLY: first_nb, first_rnb, third_nb, third_rnb
-      USE set_indexes, ONLY: imjk, ijmk, ijkm
-      USE set_indexes
+      USE set_indexes, ONLY: imjk, ijmk, ijkm, OPERATOR( * )
+      !USE set_indexes
       USE turbulence_model, ONLY: kapgt, iturb
 
       IMPLICIT NONE
@@ -400,6 +402,7 @@
 
       RETURN
       END SUBROUTINE compute_all_fluxes
+
 !----------------------------------------------------------------------
       END MODULE tilde_energy
 !-----------------------------------------------------------

@@ -1,7 +1,8 @@
 #----------------------------------------
 # LINUX PGI
 #----------------------------------------
-MACROS= -DMPI -D__PGI
+MACROS= -D__MPI -D__PGI
+MACROS= -D__PGI
 FFLAGS= -fast
 MPFFLAGS= -fast -Mnofreeform
 CPPFLAGS= -P -traditional ${MACROS}
@@ -17,9 +18,11 @@ LIBS=
 FC=pgf90
 # parallel compiler
 MPFC=mpif90
+MPFC=pgf90
 #----------------------------------------
 # ... parallel linker
 LINKER= mpif90
+LINKER= pgf90
 #----------------------------------------
 
 .SUFFIXES :

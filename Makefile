@@ -39,4 +39,3 @@ util :
 	(cd utility; cc -O2 -o moduledep.x moduledep.c)
 
 include .dependencies
-include Rules
