@@ -382,7 +382,7 @@
       USE domain_decomposition, ONLY: ncint, meshinds, myijk
       USE eos_gas, ONLY: ygc
       USE gas_constants, ONLY: gmw, rgas, gammaair, gas_type
-      USE gas_solid_density, ONLY: rgp, rlk
+      USE gas_solid_density, ONLY: rlk
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws

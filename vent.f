@@ -232,7 +232,6 @@
 ! ... An aribtrary radial profile can be assigned, as a function
 ! ... of the averaged vertical velocity
 !
-      USE check_residuals, ONLY: compute_mass_flow_rate
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nsolid, ngas
       USE domain_decomposition, ONLY: ncint, meshinds
@@ -348,7 +347,11 @@
           ! ... 'wrat' is the ratio between the maximum
           ! ... vertical velocity and the averaged velocity
           ! ... If 'wrat' is greater than 1, the inlet profile
-          ! ... decreases to 0 towards the vent rim as a power law.
+          ! ... decreases to 0 towards the vent rim as a power law,
+          ! ... and the linear average of the velocity equals the 
+          ! ... input velocity...   ... WARNING!!!! ...
+          ! ... The new profile decreases the mass flow rate by
+          ! ... a factor alpha/(4*alpha-2)
           ! 
           IF (wrat > 1.D0 .AND. ipro == 0) THEN
             beta = 1.D0 / (wrat - 1.D0)
@@ -370,7 +373,7 @@
             ! angle4 = angle*4.D0
             ! fact_r = fact_r + 0.1D0 * COS(angle4)
             !
-            CALL correct_vent_profile(ijk,fact_r)
+            CALL correct_velocity_profile(ijk,fact_r)
           END IF
 
           ! ... determine the initial random seed
@@ -381,9 +384,6 @@
         
         END IF
       END DO
-
-      CALL compute_mass_flow_rate(mfr)
-      IF (mpime==root) WRITE(logunit,*) 'Mass flow rate at vent: ', mfr, 'Kg/s'
 
       RETURN
       END SUBROUTINE set_ventc
@@ -487,7 +487,7 @@
       RETURN
       END SUBROUTINE correct_vent_density
 !-----------------------------------------------------------------------
-      SUBROUTINE correct_vent_profile(ijk,factor)
+      SUBROUTINE correct_velocity_profile(ijk,factor)
 !
 ! ... Compute the steady inlet conditions for a circular vent
 ! ... An aribtrary radial profile can be assigned, as a function
@@ -509,7 +509,7 @@
       END DO
 
       RETURN
-      END SUBROUTINE correct_vent_profile
+      END SUBROUTINE correct_velocity_profile
 !-----------------------------------------------------------------------
       SUBROUTINE update_ventc(ijk,imesh,sweep)
 !
