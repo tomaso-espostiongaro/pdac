@@ -353,7 +353,7 @@
 !
       END DO
 !
-      CALL print_numbers
+!      CALL print_numbers
 !
       DEALLOCATE(ugfr, ugft)
       DEALLOCATE(ugfl, ugfb)
