@@ -153,7 +153,7 @@
 	incr = 0.5D0 * dx(i)
       ELSE IF (cs < 0.D0) THEN
         IF (gradc /= 0) erre = grade / gradc
-	incr = 0.5D0 * dx(i+1)
+	incr = - 0.5D0 * dx(i+1)
       END IF
 !
       CALL limiters(lim,erre)
@@ -178,7 +178,7 @@
         incr = 0.5D0 * dy(j)
       ELSE IF (cs < 0.D0) THEN
         IF (gradc /= 0) erre = gradn / gradc
-        incr = 0.5D0 * dy(j+1)
+        incr = - 0.5D0 * dy(j+1)
       END IF
 !
       CALL limiters(lim,erre)
@@ -203,7 +203,7 @@
         incr = 0.5D0 * dz(k+1)
       ELSE IF (cs < 0.D0) THEN
         IF (gradc /= 0) erre = gradt / gradc
-        incr = 0.5D0 * dz(k+1)
+        incr = - 0.5D0 * dz(k+1)
       END IF 
 !
       CALL limiters(lim,erre)
@@ -320,7 +320,7 @@
         incr = 0.5D0 * dx(i)
       ELSE IF ( cs < 0.D0 ) THEN
         IF (gradc /= 0.D0) erre = grade / gradc
-        incr = 0.5D0 * dx(i+1)
+        incr = - 0.5D0 * dx(i+1)
       END IF
 !
       CALL limiters(lim,erre)
@@ -345,7 +345,7 @@
         incr = 0.5D0 * dz(k+1)
       ELSE IF (cs < 0.D0) THEN
         IF (gradc /= 0.D0) erre = gradt / gradc
-        incr = 0.5D0 * dz(k+1)
+        incr = - 0.5D0 * dz(k+1)
       END IF 
 !
       CALL limiters(lim,erre)

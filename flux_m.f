@@ -184,7 +184,7 @@
 	incr = 0.5D0 * dx(i-1)
       ELSE IF (cs < 0.D0) THEN
 	IF (gradc /= 0.D0) erre = grade / gradc
-	incr = 0.5D0 * dx(i)
+	incr = - 0.5D0 * dx(i)
       ENDIF
 !
       IF (i/=2) CALL limiters(lim,erre)
@@ -212,7 +212,7 @@
 	incr = 0.5D0 * dx(i)
       ELSE IF (cs < 0.D0) THEN
 	IF (gradc /= 0.D0) erre = grade / gradc
-	incr = 0.5D0 * dx(i+1)
+	incr = - 0.5D0 * dx(i+1)
       ENDIF
 !
       IF (i/=nx-1) CALL limiters(lim,erre)
@@ -240,7 +240,7 @@
 	incr = 0.5D0 * dy(j-1)
       ELSE IF (cs < 0.D0) THEN
 	IF (gradc /= 0.D0) erre = gradn / gradc
-	incr = 0.5D0 * dy(j)
+	incr = - 0.5D0 * dy(j)
       ENDIF
 !
       IF (j/=2) CALL limiters(lim,erre)
@@ -268,7 +268,7 @@
 	incr = 0.5D0 * dy(j)
       ELSE IF (cs < 0.D0) THEN
 	IF (gradc /= 0.D0) erre = gradn / gradc
-	incr = 0.5D0 * dy(j+1)
+	incr = - 0.5D0 * dy(j+1)
       ENDIF
 !
       IF (j/=ny-1) CALL limiters(lim,erre)
@@ -296,7 +296,7 @@
 	incr = 0.5D0 * dz(k-1)
       ELSE IF (cs < 0.D0) THEN
 	IF (gradc /= 0.D0) erre = gradt / gradc
-	incr = 0.5D0 * dz(k)
+	incr = - 0.5D0 * dz(k)
       ENDIF
 !
       IF (k/=2) CALL limiters(lim,erre)
@@ -324,7 +324,7 @@
 	incr = 0.5D0 * dz(k)
       ELSE IF (cs < 0.D0) THEN
 	IF (gradc /= 0.D0) erre = gradt / gradc
-	incr = 0.5D0 * dz(k+1)
+	incr = - 0.5D0 * dz(k+1)
       ENDIF
 !
       IF (k/=nz-1) CALL limiters(lim,erre)
@@ -463,7 +463,7 @@
 	incr = 0.5D0 * dx(i-1)
       ELSE IF (cs < 0.D0) THEN
 	IF (gradc /= 0.D0) erre = grade / gradc
-	incr = 0.5D0 * dx(i)
+	incr = - 0.5D0 * dx(i)
       ENDIF
 !
       IF (i/=2) CALL limiters(lim,erre)
@@ -491,7 +491,7 @@
 	incr = 0.5D0 * dx(i)
       ELSE IF (cs < 0.D0) THEN
 	IF (gradc /= 0.D0) erre = grade / gradc
-	incr = 0.5D0 * dx(i+1)
+	incr = - 0.5D0 * dx(i+1)
       ENDIF
 !
       IF (i/=nx-1) CALL limiters(lim,erre)
@@ -519,7 +519,7 @@
 	incr = 0.5D0 * dz(k-1)
       ELSE IF (cs < 0.D0) THEN
 	IF (gradc /= 0.D0) erre = gradt / gradc
-	incr = 0.5D0 * dz(k)
+	incr = - 0.5D0 * dz(k)
       ENDIF
 !
       IF (k/=2) CALL limiters(lim,erre)
@@ -547,7 +547,7 @@
 	incr = 0.5D0 * dz(k)
       ELSE IF (cs < 0.D0) THEN
 	IF (gradc /= 0.D0) erre = gradt / gradc
-	incr = 0.5D0 * dz(k+1)
+	incr = - 0.5D0 * dz(k+1)
       ENDIF
 !
       IF (k/=nz-1) CALL limiters(lim,erre)
