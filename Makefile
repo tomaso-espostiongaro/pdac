@@ -8,10 +8,9 @@ pdac2d.o press.o prog.o reactions.o roughness.o setc.o setup.o \
 subscl.o temp.o tilde.o time.o turbo.o types.o\
 velocity.o visc.o ygas.o $(SYSOBJ)
 
-include .dependencies
 
-pdac2d.x_sc: $(FOBJS) comm/comm.a
-	$(LINKER) -o pdac2d.x_sc $(LINKFLAGS) $(FOBJS) comm/comm.a $(LIBS)
+pdac2d.x: $(FOBJS) comm/comm.a
+	$(LINKER) -o pdac2d.x $(LINKFLAGS) $(FOBJS) comm/comm.a $(LIBS)
 
 clean:
 	rm -f *.o *.mod *.a core core.*
@@ -19,5 +18,7 @@ clean:
 
 comm/comm.a comm.a:
 	(cd comm; make comm.a)
+
+include .dependencies
 
 include Rules
