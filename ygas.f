@@ -62,7 +62,6 @@
       CALL data_exchange(yfn)
       CALL data_exchange(yft)
 
-      rgp = 0.D0
       DO ijk = 1, ncint
        imesh = myijk( ip0_jp0_kp0_, ijk)
        IF( fl_l(ijk) == 1 ) THEN
@@ -71,6 +70,7 @@
          k = ( imesh - 1 ) / ( nx*ny ) + 1
          CALL subscr(ijk)
 	   
+         rgp = 0.D0
          DO ig=1,ngas
 	   
 	   yfw = yfe(imjk,ig)
@@ -90,11 +90,12 @@
            rgp = rgp + rgpgc(ijk,ig)
 
          END DO
+
+       DO ig=1,ngas
+         ygc(ig,ijk)=rgpgc(ijk,ig)/rgp
+       END DO
+
        END IF
-      END DO
-	
-      DO ig=1,ngas
-        ygc(ig,ijk)=rgpgc(ijk,ig)/rgp
       END DO
 !
       DEALLOCATE(yfe, yfn, yft)

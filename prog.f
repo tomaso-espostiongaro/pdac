@@ -1,7 +1,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE prog
 
-      USE boundary_conditions, ONLY: boundary, boundary3d
+      USE boundary_conditions, ONLY: boundary2d, boundary3d
       USE dimensions
       USE eos_gas, ONLY: mole, eosg, rags
       USE eos_gas, ONLY: ygc, rgpgc, xgc, cg
@@ -68,7 +68,7 @@
 ! ... Compute Boundary Conditions
 !
          IF( job_type == '2D' ) THEN
-           CALL boundary 
+           CALL boundary2d 
          ELSE IF( job_type == '3D' ) THEN
            CALL boundary3d
          ELSE
@@ -119,8 +119,8 @@
        ELSE IF( job_type == '3D' ) THEN
          IF(time+0.1D0*dt >= tpri) THEN
            CALL collect
-           CALL outp_bin
-!           CALL outp_3d
+!           CALL outp_bin
+           CALL outp_3d
            tpri=tpri+tpr
          ENDIF
        ELSE
