@@ -4,7 +4,6 @@
 !
       USE dimensions
       USE grid, ONLY: dx, dy, dz
-      USE set_indexes, ONLY: stencil
 
       IMPLICIT NONE
 !
@@ -13,6 +12,7 @@
       CONTAINS
 !----------------------------------------------------------------------
       SUBROUTINE interpolate_x(field, staggered_field, i)
+      USE set_indexes, ONLY: stencil
 !
 ! ... interpolate density on the mesh staggered along x
 !
@@ -50,6 +50,7 @@
       END SUBROUTINE interpolate_x
 !----------------------------------------------------------------------
       SUBROUTINE interpolate_y(field, staggered_field, j)
+      USE set_indexes, ONLY: stencil
 !
 ! ... interpolate density on the mesh staggered along x
 !
@@ -87,6 +88,7 @@
       END SUBROUTINE interpolate_y
 !----------------------------------------------------------------------
       SUBROUTINE interpolate_z(field, staggered_field, k)
+      USE set_indexes, ONLY: stencil
 !
 ! ... interpolate density on the mesh staggered along x
 !

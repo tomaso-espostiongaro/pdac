@@ -20,7 +20,6 @@
       USE io_restart, ONLY: tapewr, max_seconds
       USE iterative_solver, ONLY: iter, nit
       USE output_dump, ONLY: outp, shock_tube_out, outp_map, imap
-      USE output_dump, ONLY: write_radial_profile_2d
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: cps
       USE pressure_epsilon, ONLY: p, ep
@@ -307,7 +306,6 @@
           IF (imap > 0 .AND. itp >= 1) CALL outp_map(array)
           CALL outp
         ENDIF
-        CALL write_radial_profile_2d
 !
         IF( timing ) then
           s11 = cpclock()

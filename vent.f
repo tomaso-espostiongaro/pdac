@@ -244,7 +244,7 @@
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
-      USE volcano_topography, ONLY: interp_1d
+      USE array_filters, ONLY: interp
       IMPLICIT NONE
 
       REAL*8 :: ygcsum
@@ -254,7 +254,11 @@
       REAL*8 :: distance
 
       IF (job_type == '2D') RETURN
-      
+!      
+      IF (ipro >= 1) THEN
+            CALL read_radial_profile
+      END IF
+! 
       DO ijk = 1, ncint      
         IF(flag(ijk) == 8) THEN
           CALL meshinds(ijk,imesh,i,j,k)
@@ -268,33 +272,32 @@
             END IF
           END DO
           
-          IF (ipro >= 1 .AND. job_type == '3D') THEN
+          IF (ipro >= 1) THEN
             !
-            CALL read_radial_profile
             distance = DSQRT( (x(i)-xvent)**2 + (y(j)-yvent)**2 )
             angle    = ATAN2( (y(j)-yvent), (x(i)-xvent) )
             !
-            CALL interp_1d(rad, ug_rad, distance, ug(ijk))
+            CALL interp(rad, ug_rad, distance, ug(ijk))
             vg(ijk) = ug(ijk) * SIN(angle)
             ug(ijk) = ug(ijk) * COS(angle)
-            CALL interp_1d(rad, wg_rad, distance, wg(ijk))
+            CALL interp(rad, wg_rad, distance, wg(ijk))
             !
-            CALL interp_1d(rad, tg_rad, distance, tg(ijk))
-            CALL interp_1d(rad, p_rad,  distance, p(ijk))
+            CALL interp(rad, tg_rad, distance, tg(ijk))
+            CALL interp(rad, p_rad,  distance, p(ijk))
             !
             DO ig = 1, ngas
-              CALL interp_1d(rad, ygc_rad(:,ig), distance, ygc(ijk,ig))
+              CALL interp(rad, ygc_rad(:,ig), distance, ygc(ijk,ig))
             END DO
             !
             ep(ijk) = 1.D0
             DO is = 1,nsolid
-              CALL interp_1d(rad, us_rad(:,is),  distance, us(ijk,is))
+              CALL interp(rad, us_rad(:,is),  distance, us(ijk,is))
               vs(ijk,is) = us(ijk,is) * SIN(angle)
               us(ijk,is) = us(ijk,is) * COS(angle)
-              CALL interp_1d(rad, ws_rad(:,is),  distance, ws(ijk,is))
+              CALL interp(rad, ws_rad(:,is),  distance, ws(ijk,is))
               !
-              CALL interp_1d(rad, ts_rad(:,is),  distance, ts(ijk,is))
-              CALL interp_1d(rad, ep_rad(:,is), distance, rlk(ijk,is))
+              CALL interp(rad, ts_rad(:,is),  distance, ts(ijk,is))
+              CALL interp(rad, ep_rad(:,is), distance, rlk(ijk,is))
               ep(ijk) = ep(ijk) - rlk(ijk,is)
               rlk(ijk,is) = rlk(ijk,is) * rl(is)
             END DO
@@ -385,7 +388,7 @@
       INTEGER :: raddim, is, n, ig
 !
       IF (mpime == root) THEN
-              OPEN(16,FILE=TRIM(rad_file),STATUS='UNKNOWN')
+              OPEN(16,FILE=rad_file,STATUS='OLD')
               READ(16,*) raddim
       END IF
 !

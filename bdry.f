@@ -36,7 +36,7 @@
       USE set_indexes, ONLY: ipjk, imjk, ippjk, immjk, ijpk, ipjpk,    &
         imjpk, ijmk, ipjmk, imjmk, ijppk, ijmmk, ijkp, ipjkp, imjkp,   &
         ijpkp, ijmkp, ijkm, ipjkm, imjkm, ijpkm, ijmkm, ijkpp, ijkmm
-      USE vent_conditions, ONLY: update_ventc, random_switch, irand, ivent, &
+      USE vent_conditions, ONLY: update_ventc, random_switch, irand, &
                                  update_inlet_cell
 !
       IMPLICIT NONE
