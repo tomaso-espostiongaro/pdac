@@ -91,7 +91,7 @@ machines and in parallel.}
 
 \newcommand{\icommand}[1]{#1\index{#1 command}}
 
-\newcommand{\NAMDCONF}[4]{%
+\newcommand{\PDACCONF}[4]{%
 %  \addcontentsline{toc}{subparagraph}{#1}%
   {\bf \tt #1 } $<$ #2 $>$ \\%
   \index{#1 parameter}
@@ -99,7 +99,7 @@ machines and in parallel.}
   {\bf Description: } #4%
 }
 
-\newcommand{\NAMDCONFWDEF}[5]{%
+\newcommand{\PDACCONFWDEF}[5]{%
 %  \addcontentsline{toc}{subparagraph}{#1}%
   {\bf \tt #1 } $<$ #2 $>$ \\%
   \index{#1 parameter}
@@ -107,10 +107,3 @@ machines and in parallel.}
   {\bf Default Value: } #4 \\%
   {\bf Description: } #5%
 }
-
-\newcommand{\XNCOMP}[3]{%
-  {\bf \NAMD\ Parameter: \tt #1 } \\%
-  {\bf X-PLOR Parameter: \tt #2 } \\%
-  #3%
-}
-
