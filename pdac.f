@@ -234,7 +234,7 @@
 !
 ! ... Time advancement loop
 !
-      CALL prog
+      CALL main_prog
 !
           IF (timing ) THEN
             s6 = cpclock()
