@@ -12,6 +12,9 @@
       INTERFACE gaussian_filter
         MODULE PROCEDURE gaussian_filter_2d
       END INTERFACE gaussian_filter
+      INTERFACE barnes_filter
+        MODULE PROCEDURE barnes_filter_2d
+      END INTERFACE barnes_filter
 !
       SAVE
 !----------------------------------------------------------------------
@@ -259,6 +262,70 @@
       DEALLOCATE(g,old_f1)
       RETURN
       END SUBROUTINE gaussian_filter_2d
+!----------------------------------------------------------------------
+! ... Filter out high frequency modes by applying a Gaussian filter
+! ... of sigma standard deviation (cutoff wave-length)
+! ... WARNING!: It can be applied only to evenly-spaced arrays!
+!
+      SUBROUTINE barnes_filter_2d(x1,y1,f1,delta,sigma)
+
+      IMPLICIT NONE
+      REAL*8, INTENT(INOUT), DIMENSION(:) :: x1, y1
+      REAL*8, INTENT(INOUT), DIMENSION(:,:) :: f1
+      REAL*8, INTENT(IN) :: delta, sigma
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: g, old_f1
+      REAL*8 :: pi, twopi
+      REAL*8 :: fact, rat, summa
+      INTEGER :: i, j, l, m, lmax, mmax, ssize
+      INTEGER :: nsmx, nsmy
+
+      nsmx = SIZE(x1)
+      nsmy = SIZE(y1)
+      ALLOCATE(old_f1(nsmx,nsmy))
+      old_f1 = f1
+!
+! ... Build the exponential weight function
+!
+      pi       = 4.D0 * ATAN(1.D0)
+      twopi    = 2.D0 * pi
+      fact     = delta / sigma
+      
+      ! ... number of cells within the kernel
+      !
+      lmax     = 1 / fact
+      mmax     = lmax
+      !
+      ALLOCATE( g(-lmax:lmax,-mmax:mmax) )
+      summa = 0.D0
+      DO m = -mmax, mmax
+        DO l = -lmax, lmax
+          rat = DSQRT(l**2 + m**2) * fact
+          g(l,m) = EXP(-rat)
+          !WRITE(*,*) l, m, g(l,m)
+          summa = summa + g(l,m)
+        END DO
+      END DO
+      WRITE(*,*) 'Barnes filter integral: ', summa
+!
+! ... 2D Filtering
+!
+      DO j = mmax+1, nsmy-mmax-1
+        DO i = lmax+1, nsmx-lmax-1
+          !
+          f1(i,j) = 0.D0
+          DO m = -mmax, mmax
+            DO l = -lmax, lmax
+               f1(i,j) = f1(i,j) + old_f1(i+l,j+m) * g(l,m)
+            END DO
+          END DO
+          f1(i,j) = f1(i,j) / summa
+          !
+        END DO
+      END DO
+!
+      DEALLOCATE(g,old_f1)
+      RETURN
+      END SUBROUTINE barnes_filter_2d
 !----------------------------------------------------------------------
       SUBROUTINE interp_1d_scalar(x1, f1, x2, f2)
       IMPLICIT NONE
