@@ -8,6 +8,7 @@
 \documentclass[11pt]{article}
 \usepackage{graphicx}
 \usepackage{makeidx}
+\usepackage{psfig}
 
 \makeindex
 
@@ -37,31 +38,26 @@
 \begin{document}
 
 % initial pages for the guide - title, TOC, etc.
-\input{pdac_begindoc}
+\input{pdac_beginref}
 
 % Introduction
-\input{pdac_intro}
+\input{pdac_model}
+
+% Getting started
+\newpage
+\input{pdac_fv}
 
 % Input and output files
 \newpage
-\input{pdac_io}
+\input{pdac_flow}
 
 % Input simulation parameters
-% (INPUT)
 \newpage
-\input{pdac_input}
+\input{pdac_ref}
 
 % Sample configuration files
 \newpage
-\input{pdac_sample}
-
-% Description of how to run PDAC
-\newpage
-\input{pdac_runit}
-
-% How to get and install PDAC
-\newpage
-\input{pdac_avail}
+\input{pdac_par}
 
 \newpage
 \addtocontents{toc}{\contentsline {section}{References}{\thepage}}

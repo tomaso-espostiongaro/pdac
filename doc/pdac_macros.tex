@@ -11,7 +11,9 @@
 \newcommand{\PDACDATE} {\today}
 \newcommand{\PDACAUTHORS} {
  A.~Neri, G.~Macedonio, D.~Gidaspow, T.~Esposti Ongaro, C.~Cavazzoni }
-\newcommand{\PDACVERSION} {1.0}
+\newcommand{\PDACVERSION} {2.0}
+\newcommand{\PDACADDRESS} {\underline{pdac@pi.ingv.it}}
+\newcommand{\PDACURL} {\underline{http://www.pi.ingv.it/PDAC}}
 
 %
 % macros for style conventions when describing the program.
@@ -59,17 +61,28 @@
 Structural Biology}
 
 
-\newcommand{\DOCTITLE} {User's Guide}
-\newcommand{\DOCDESC} {
-The \PDAC\ {\em\DOCTITLE\/} describes how to run and use the 
+\newcommand{\UGTITLE} {User's Guide}
+\newcommand{\RMTITLE} {Reference Manual}
+\newcommand{\UGDESC} {
+The \PDAC\ {\em\UGTITLE\/} describes how to run and use the 
 various features of the Piroclastic Density Analysis Code \PDAC.  
 This guide includes the capabilities of the program, how 
 to use these capabilities, the necessary input files and 
 formats, and how to run the program both on uniprocessor 
 machines and in parallel.}
 
+\newcommand{\RMDESC} {
+The \PDAC\ {\em\RMTITLE\/} is intended for the user who wants
+to modify the features of \PDAC or to the programmers who want to 
+cooperate to the \PDAC development. It describes how the model equations
+are discretized and solved, it provides the explicative list of variables 
+used in the numerical code and gives a short description of the 
+parallelization strategy, so that the advanced user can optimize the
+code efficiency on some computational platform.}
+
 \newcommand{\PG}{\PDAC\ {\it Programmer's Guide\/}}
 \newcommand{\UG}{\PDAC\ {\it User's Guide\/}}
+\newcommand{\RM}{\PDAC\ {\it Reference Manual\/}}
 \newcommand{\prettypar}{
 
 \smallskip

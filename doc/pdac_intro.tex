@@ -1,148 +1,181 @@
-
-
 \section{Introduction}
 \label{section:intro}
 
-\PDAC\ is a pyroclastic density analysis program for UNIX 
-platforms designed for high-performance 
-simulations in pyroclastic flows.  This document describes how to use 
+\PDAC\ is a numerical code that has been developed to solve the multiphase
+flow equations for the simulation of pyroclastic atmospheric dispersal dynamics.
+It is designed for high performance computing on UNIX platforms.
+This document describes how to use 
 \PDAC, its features, and the platforms on which it runs.
 The document is divided into several sections:
 \begin{description}
 \item[Section \ref{section:intro}] gives an overview of \PDAC.
-\item[Section \ref{section:start}] lists the basics for getting started.
 \item[Section \ref{section:files}] describes \PDAC\ file formats.
-\item[Section \ref{section:basic}] lists basic simulation options.
-\item[Section \ref{section:add}] lists additional simulation options.
-\item[Section \ref{section:sample}] provides sample configuration files.
+\item[Section \ref{section:input_par}] lists basic simulation options.
+\item[Section \ref{section:input_sample}] provides sample configuration files.
 \item[Section \ref{section:run}] gives details on running \PDAC.
 \item[Section \ref{section:avail}] gives details on installing \PDAC.
 \end{description}
 
-We have attempted to make this document 
-complete and easy to understand and to make \PDAC\ itself
-easy to install and run.
+We have attempted to make this document complete and easy to understand and 
+to make \PDAC\ itself easy to install and run.
 We welcome your suggestions for improving the documentation or code
-at {\tt pdac@..... }.
-
-\subsection{New features in version \PDACVERSION}
-
-\subsubsection*{Improved Parallel Scaling and Serial Performance}
-
-Load balancing sheme and communication improvements that allow
-\PDAC to scale to ... or more processors on ... are
-included in this release. Any machine with a message passing
-library compatible with the MPI standard should be able to run
-\PDAC in parallel.
-Optimized subroutines have been implemented for three phase, 3D and
-first order simulation, with considerable performance gain.
-
-\subsubsection*{Post Processing}
-
-A new post processing command pp.x allows ....
-
+at \PDACADDRESS\
 
 \subsection{\PDAC\ and pyroclastic flows simulations}
 
-Pyroclastic simulations compute scalar and vector fields of ... by solving
-equations of ...... numerically. 
+The \PDAC\ code solves the multiphase flow transport equations for
+density, momentum and energy of a gas-pyroclast mixture in a steady
+standard atmosphere.
+The gas phase can be composed of several chemical components leaving
+the crater - such as water vapor, carbon dioxide, etc. - and
+atmospheric air (considered as a single chemical component).
+The pyroclasts are described by $N$ phases of solid particles,
+each one characterized by a diameter, density, specific
+heat, thermal conductivity, and viscosity, and considered
+representative of a granulometric class commonly present in
+the eruptive mixture. Momentum and energy exchange between the gas
+and the different particulate phases are expressed through semi-empirical
+correlation equations.
 
-..... BREVE DESCRIZIONE DEL FUNZIONAMENTO ...
-
-One way to run fine grain 3D simulation is to utilize parallel computers. 
-In recent 
-years, distributed memory parallel computers have been offering
-cost-effective computational power.  \PDAC\ was designed to run efficiently
-on such parallel machines for simulating large number of cells. 
-\PDAC\ is particularly well suited to the increasingly popular Beowulf-class PC clusters, which are quite similar to the workstation clusters for which is was originally designed.
-Future versions of \PDAC\ will also make efficient use of clusters of multi-processor workstations or PCs.
 \prettypar
-\PDAC\ has several important features: 
+\PDAC\ has several important features that make it a useful tool for the
+simulation of volcanic columns and pyroclastic flows: 
 
 \begin{itemize}
 
-\item{\bf PRIMA CARATTERISTICA}\\
-bla bla bla bla
-bla bla bla bla
-bla bla bla bla
-bla bla bla bla
-bla bla bla bla
-
-\item{\bf SECONDA CARATTERISTICA}\\
-bla bla bla bla
-bla bla bla bla
-bla bla bla bla
-bla bla bla bla
-
-\item{\bf TERZA CARATTERISTICA}\\
-bla bla bla bla
-bla bla bla bla
-bla bla bla bla
-bla bla bla bla
-
-\item{\bf Simulation Options}\\
-MD simulations may be carried out using several options, including
+\item{\bf Robust over a wide range of flow regimes}
 \begin{itemize}
-  \item Constant energy dynamics,
-  \item Constant temperature dynamics via
-  \begin{itemize}
-    \item Velocity rescaling,
-    \item Velocity reassignment,
-    \item Langevin dynamics,
-  \end{itemize}
-  \item Periodic boundary conditions,
-  \item Constant pressure dynamics via
-  \begin{itemize}
-    \item Berendsen pressure coupling,
-    \item Nos\'{e}-Hoover Langevin piston,
-  \end{itemize}
-  \item Energy minimization,
-  \item Fixed atoms,
-  \item Rigid waters,
-  \item Rigid bonds to hydrogen,
-  \item Harmonic restraints,
-  \item Spherical or cylindrical boundary restraints.
+\item from weak to strong gas-particle coupling;
+\item from laminar to turbulent regimes;
+\item from quasi-isothermal to highly buoyant flows;
+\item from subsonic (incompressible) to supersonic (compressible) regimes.
 \end{itemize}
 
-\item{\bf Easy to Modify and Extend}\\
-Another primary design objective for \PDAC\ is extensibility and 
-maintainability. In order to achieve this, it is designed in an 
-modular style with F90. 
-\PDAC's modular design allows one to integrate and test new algorithms 
-easily.  If you are contemplating a particular modification to \PDAC\
-you are encouraged to contact the developers at {\tt PDAC@..... }
+\item{\bf Unlimited number of particles classes}\\
+The number of particle classes used to approximate an observed distribution
+of grain sizes is limited only by the computational resources available.
+Up to 6 particulate phases have been used successfully. The size and density
+of particles is nevertheless constrained by the multiphase flow assumptions,
+that limit the size of solids up to few millimeters and down to about ten 
+microns.
+
+\item{\bf Up to 7 gas species}\\
+Up to 7 gas species can be considered as components of the gas phase. The 
+molecular composition allowed are: $O_2,N_2,CO_2,H_2,H_2O,Air,SO_2$.
+Atmospheric air is considered as a single component with averaged properties.
+Gas species are treated as tracers and no chemical reactions are allowed up to
+now. Future versions of \PDAC\ will hopefully consider gas phase transitions
+(such as water vapour condensation) or chemical reactions.
+
+\item{\bf Atmospheric stratification}\\
+A standard stratified atmosphere can be assigned as initial condition.
+The temperature gradient within the different atmospheric layers are
+the Earth averaged values, whereas pressure is computed by assuming hydrostatic
+equilibrium. No vertical stratification of humidity is assumed. Cross wind
+can be imposed in cartesian reference frames.
+
+\item{\bf Control of simulation options}\\
+The simple textual input file allow \PDAC\ to be started from prescribed
+initial conditions or from binary restart file, representing the state
+of the main flow fields when the code stops for any reason. When code
+is started from scratch, vent inlet flow conditions the volcanic topography 
+and atmospheric conditions are specified as input conditions. When the code
+is restarted, the final state saved in restart file is used as initial 
+conditions. The computational mesh and all numerical parameters are easily
+specified in the input file.
+
+\end{itemize}
+
+\subsection{New features in version \PDACVERSION}
+
+The numerical code \PDAC\ is based on previous numerical codes developed
+by Dobran et al. (1993), Neri and Macedonio (1996) and Neri et al. (2003)
+for the multiphase flow simulation of collapsing volcanic columns. We based
+the present release \PDACVERSION\ on the most recent of these models 
+(considered as version 1.0). If you are interested in knowing more about
+the history of \PDAC\, consult the \PDAC\ web site at 
+\PDACURL\ or contact the development team at 
+\PDACADDRESS\
+
+\subsubsection*{New modular structure}
+The present release \PDACVERSION\ of \PDAC\ has been fully rewritten in 
+Fortran90 by adopting a modular approach. Dynamic allocation of memory
+allows the use of precompiled \PDAC\ code. The more readable source code
+will help the programmers to mantain and develop \PDAC\ more easily.
+If you are contemplating a particular modification to \PDAC\
+you are encouraged to contact the developers team at \PDACADDRESS\
 for guidance.
 
-\item{\bf Load Balancing}\\
-An important factor in parallel applications is the equal distribution
-of computational load among the processors. 
-....
-\PDAC\ addresses this problem by using a simple uniform 
-spatial decomposition where the entire model is split into regular domains of 
-space called {\em blocks}. An initial load balancer assigns blocks
-to processors such that the computational load is balanced as much as possible.
+\subsubsection*{Parallel implementation and improved serial performance}
+The parallel implementation of \PDAC\ includes load balancing sheme 
+and ad-hoc communication routines that allow \PDAC to scale efficiently 
+on many processors, thus reducing the execution time almost linearly.
+Data distribution method can be chosen from input to improve the 
+load-balancing and thus the scalability. All routines have been 
+optimized in order to improve the efficiency of the memory access.
+Optimized subroutines have been implemented for three phase, 3D and
+first order simulation, with considerable performance gain.
 
-\end{itemize}
+\subsubsection*{Portable on most architectures}
+Any machine with a message passing library compatible with the MPI 
+standard should be able to run \PDAC in parallel.
+In recent years, distributed memory parallel computers have been offering
+cost-effective computational power.  \PDAC\ was designed to run efficiently
+on such parallel machines for simulating large number of cells. 
+\PDAC\ is particularly well suited to the increasingly popular Beowulf-class PC 
+clusters, which are quite similar to the workstation clusters for which is was 
+originally designed.
+Future versions of \PDAC\ will also make efficient use of clusters of 
+multi-processor workstations or PCs.
+
+\subsubsection*{Second order spatial and third order temporal discretizations}
+Second order spatial discretization schemes have been introduced in order
+to improve the code accuracy and to reduct the so-called numerical 
+dissipation, that represent a limit in the simulation of turbulent flows.
+High order schemes are implemented as corrections to the first order
+scheme previously used: few parameters must be specified in the input
+file to control numerical accuracy. Up to third order low-storage 
+Runge-Kutta temporal discretization can be selected from input.
+
+\subsubsection*{Improved control on convergence and errors}
+More controls on the convergence and timing are added to reduce or
+easily identify the source of convergence errors.
+
+\subsubsection*{Possible fully implicit solution of model equations}
+Fully implicit solution or implicit pressure coupling of the energy
+equation can be selected by setting few input parameters. This can
+be useful in the evaluation of the accuracy of the numerical solution
+but comes out to be very expensive computationally.
+
+\subsubsection*{Easy model settings}
+Running inviscid simulation, or testing different turbulence models or closure 
+relations can be easily controlled from input files.
+
+\subsubsection*{More friendly I/O}
+More descriptive Input file is now available. Preprocessing of OUTPUT files
+is also introduced. Binary or ascii formatted output files can be selected.
 
 \subsection{User feedback}
 
 If you have problems installing or running \PDAC\ after
 reading this document, please send a
-complete description of the problem by email to {\tt PDAC@.... }.  If
-you discover and fix a problem not described in this manual we would
+complete description of the problem by email to \PDACADDRESS.
+If you discover and fix a problem not described in this manual we would
 appreciate if you would tell us about this as well, so we can alert
 other users and incorporate the fix into the public distribution.
 \prettypar
-We are interested in making \PDAC\ more useful to the .....
-community.  Your suggestions are welcome at {\tt PDAC@.... }.
+We are interested in making \PDAC\ more useful to the volcanological
+community.  Your suggestions are welcome at \PDACADDRESS\ 
 We also appreciate hearing about how you are using \PDAC\ in your work.
+
 
 \subsection{Acknowledgments}
 
-This work is supported by grants from the European Community
-(.....) and ....
+The development of the \PDAC\ release \PDACVERSION\ has been supported 
+by European project EXPLORIS (EUR1-CT2002-40026)
+
+The authors would also like to thank the High Performance Computing
+staff of CINECA-Italy, for the continuous support in making suggestion, pushing
+for new features, testing bug-ridden code, and providing the computational 
+resources for developing and running \PDAC.
 \prettypar
-The authors would particularly like to thank the members of the
-.... Group, past and present, who have helped
-tremendously in making suggestions, pushing for new features, and
-testing bug-ridden code.

@@ -1,68 +1,58 @@
-
 \section{Input and Output Files}
 \label{section:files}
 
-The \PDAC\  code in a simulation run opens several I/O files.
-There are two input files, a textual simulation parameters file 
-"pdac.dat" and a binary restart file "pdac.res". In particular
-"pdac.dat" should be compiled by the user and contains the
-namelists and cards with the parameters of the simulation
-like the time step and mesh size, "pdac.res" is written
-and read by \PDAC\ itself and contain the status of all
-fields and variables required to restart a simulation run
-interrupted for some reasons. The size of "pdac.dat" is
-few hundreds of bytes, while "pdac.res" could be very large,
-depending on the size of the simulated system. 
-
-\PDAC\ writes several output files, there are information
-files and data files. Information files ("pdac.log", "pdac.tst" and
-"pdac.err" ) contains logging, testing and debugging information
-meant for the user to control the progress of the simulations,
-like the number of step performed so far or the number of iteration
-each step takes to converge. Data files ("OUTPUT.nnnn") contains the values of the 
-different fields saved at regular interval of time, in different 
-files distinguished by an auto incremented index ( the "nnnn" in the file name ).
-
-NOTE that the file "pdac.res" is both of input and output, 
-it is opened in read mode at the beginning of a continuation run
-and it opened in write mode at regular interval to save the status
-of the simulation. We suggest to save a copy of "pdac.rea" before
-starting a run, in this way you will not risk to lose the restart
-information, caused by a system problem when the file is opened
-in write mode or caused by an error in the restart configuration file.
-
-The I/O files are always read and written in the running directory,
+This section describes all files that are red or written by \PDAC.
+Release \PDACVERSION\ does not have a post-processing tool integrated,
+so that all interaction you have with the program is through textual files.
+The I/O files are always red and written in the running directory,
 i.e. the directory from which \PDAC\ has been run.
-In a parallel execution all files are opened, read, written and closed
-by the root processor (the one with MPI id equal to 0),
-root processor gather data from other processor before writing
-and scatter data to other processor after having read from file.
-All other processors opens only its own version of pdac.log, pdac.tst
-and pdac.err with the names pdac.logNNN, pdac.tstNNN and pdac.errNNN,
-where NNN is the MPI rank of the processor that open the file.
- 
-\subsection{\PDAC\ file formats}
-\label{section:formats}
+The level of verbosity, controlling the amount of information written
+by the program during the execution, can be set before starting a run.
+Note that a too high level of verbosity for very long-lasting simulations
+could stress the file-system causing the program to stop.
+
+\subsection{\PDAC\ input file formats}
+\label{section:input_files}
+
+\PDAC\ has two possible input files from which it gets the initial
+conditions to start, but only one of these is strictly required to run \PDAC.
+A textual parameters file ``pdac.dat'' should be compiled by the user. 
+It contains the namelists and cards with the parameters of the simulation
+and the various option controlling the program execution.
+\PDAC\ will stop if this file is not present in the directory where the 
+executable is run.\\
+
+The other Input file that can be required by the program is the {\em restart}
+file ``pdac.res''. This is a binary file written by the code itself and
+contains the dump of all independent fields that are saved when a
+simulation run is interrupted for any reason. Therefore it cannot be edited by 
+the user. Depending on the size of the problem envisaged, the restart file can 
+be very large, so that you must ensure that your file-system can manage it.
+
+In a parallel execution all input files are opened, red, and closed
+by the root processor (the one with MPI id equal to 0), that
+is charged of broadcasting data to the other computing units.
 
 \subsubsection{pdac.dat file}
 \label{section:padc_dat}
 
 This file contains the parameters that define the physical system
-you want to simulate with \PDAC\. "pdac.dac" is not read from standard 
-input but is connected explicitly to the fortran unit 5. The file should
-be present in the running directory of \PDAC\, and it is always read
+you want to simulate with \PDAC. ``pdac.dat'' is not red from standard 
+input but is connected explicitly to the fortran {\bf unit 5}. The file should
+be present in the running directory of \PDAC\, and it is always red
 at the beginning of the simulation run even if the run is a 
 continuation/restart of a previous simulation run. 
-The parameters and options in the "pdac.dat" file are specified
-in a set of F90 namelists followed by cards for topology, initial and boundary
-conditions.
+The parameters and options in the ``pdac.dat'' file are specified
+in a set of F90 {\em namelists} followed by {\em cards} for topography, 
+initial and boundary conditions.
 The options and values specified determine the exact behavior of
 \PDAC, what features are active or inactive, how long the simulation
-should continue, etc.  Section \ref{section:configsyntax} describes how
-options are specified within a \PDAC\ configuration file.  Section
-\ref{section:requiredparams} lists the parameters which are required
-to run a basic simulation.
-Several sample \PDAC\ parameter files are shown in section \ref{section:sample}.
+should last, etc.  
+Section \ref{section:input_par} lists the parameters required to run a 
+simulation, their default values and the range of variability.
+Several sample \PDAC\ parameter files are shown in section 
+\ref{section:input_sample}.\\
+
 The layout of pdac.dat file is as follow:
 
 \begin{verbatim}
@@ -105,11 +95,30 @@ initial_conditions_parameters
 
 \end{verbatim}
 
+Within a namelist, the parameters are specified as
+\begin{verbatim}
+keyword      =     value
+\end{verbatim}
+Blank lines in the namelists are ignored.  Comments are prefaced by
+a {\tt !} and may appear after the keyword assignment:
+\begin{verbatim}
+keyword  = value          !  This is a comment
+\end{verbatim}
+or may be at the beginning of a line:
+\begin{verbatim}
+! keyword  = value   This is a keyword commented out
+\end{verbatim}
+Some keywords require several values, that are specified as an array of values
+separated by a comma:
+\begin{verbatim}
+keyword  = value_1, value_2, value_3,
+\end{verbatim}
+
 Note that the namelists ( \&control, \&mesh, \&particles and \&numeric )
-and the cards ( 'ROUGHNESS', 'MESH', 'FIXED\_FLOWS' and 'INITIAL\_CONDIDION' )
+and the cards ( 'ROUGHNESS', 'MESH', 'FIXED\_FLOWS' and 'INITIAL\_CONDITIONS' )
 should appear in exactly this order. 
 Parameters lines in the namelists are optional, if a parameter is omitted
-it will take a default values (see \ref{section:input_parameters} ).
+it will take a default values (see \ref{section:input_par} ).
 On the contrary parameter lines in the cards are not optional and
 should always be present.
 Commet are allowed in the namelist using the "!" character to identify 
@@ -117,143 +126,156 @@ that wath follow is a comment. Commet are not allowed within the cards
 parameter, but you could insert free text (not including cards and namelists names)
 between different namelists and cards.
 Parameters within cards are in general distributed on more lines depending
-on the simulation parameters (i.e. 2D or 3D symulation type), parameter layout 
-within each cards are described in details in section \ref{section:input_parameters}.
-
-\subsubsection{pdac.log file}
-\label{section:padc_log}
-
-The file pdac.log as the extension suggest is used by \PDAC\ to log information
-concerning the advancing of the simulations. pdac.log is excluseively of
-output, it is connected explicitly to the fortran unit 6. Note that \PDAC\ 
-does not use standard output stream, but on many
-system the unit 6 is associated by default to the standard output, therefore
-on these systems pdac.log is actually a redirected standard output stream.
-Is important also to underline that when a new pdac.log is opened \PDAC\ cancel 
-any existing pdac.log file.
-pdac.log is a free text file with self-explanatory informations.
-
-\subsubsection{pdac.tst file}
-\label{section:padc_tst}
-
-This file, like pdac.log, is a free text file, and contains debugging
-and testing informations, that are meant for developers only,
-therefore many informations present there are of no use for the user.
-The file is connected to the fortran unit 7, and is cleared every new run.
-
-\subsubsection{pdac.err file}
-\label{section:padc_err}
-
-Like pdac.log and pdac.tst also pdac.err is a free textual file,
-it is connected to the fortran unit 8. In this file \PDAC\ writes
-all messages related to severe errors that cause the program to stop.
-Note that at variance with pdac.log and pdac.tst this file is not 
-cleared at every run, but it is opened in append mode.
+on the simulation parameters. The layout of the input parameters 
+within each cards is described in details in section \ref{section:input_par}.
 
 \subsubsection{pdac.res file}
-\label{section:padc_res}
+\label{section:pdac_res}
 
-The pdac.res file is the file where \PDAC\ dumps all fields and
-parameters that are required to restart a simulation, from the 
-value of time parameter at which pdac.res has been written, exactly as
-if no interruption occurred. The file is in binary format to maintain
-the numerical accuracy of the internal representation of numbers
-and to save space. This file is not meant for post processing
+\PDAC\ dumps all fields and parameters that are required to restart a 
+simulation from exactly the same instant on the file ``pdac.res'',
+as if no interruption occurred. The file is in double precision 
+binary format to maintain the numerical accuracy of the internal 
+representation of numbers and to save space. 
+This file is not meant for post processing
 and analysis of the fields, since its internal layout could
 vary easily from one version of the code to the other.
-The pdac.res file is connected to the fortran unit 9, it is
-opened in read mode at the beginning of a restart simulation run,
+The restart file is connected to the fortran {\bf unit 9}, it is
+opened in {\it READ} mode at the beginning of a restart simulation run,
 to read in the status of a previous simulation to be continued.
-Then pdac.res file is opened in write mode at regular interval
-of simulated time. The rate at which pdac.res is written
+Then pdac.res file is opened in {\it WRITE} mode at regular interval
+of simulated time. The rate at which pdac.res is overwritten
 with a new dump of the simulation status is specified by
-the user through the control parameter "tdump" (see \ref{section:input_parameters} ).
-It is very inportant to understand the importance of this file,
-and that all the appropriate measure should be taken in order
-not to lose it. We suggest to meke a copy of the file in 
-a safe device (like tapes) before every run, since if somthing appens
-when the file is opened in write mode, you lose the possibility
-to continue the simulation.
+the user through the control parameter "tdump" 
+(see \ref{section:input_par} ).
+All the appropriate measures should be taken in order
+not to lose this file. We suggest to make a copy of the file in 
+a safe device (like tapes) before every run, since any error occurring
+when the file is opened in write mode would make you losing the possibility
+to restart the simulation.
 
+\subsection{\PDAC\ output file formats}
+\label{section:output_files}
 
-\subsubsection{OUTPUT.nnnn file}
+\PDAC\ writes several output files, that can be subdivided into 
+{\em information} and {\em data} files. 
+Information files (``pdac.log'', ``pdac.tst'' and
+``pdac.err'' ) contain logging, testing and debugging information
+meant for the user to control the progress of the simulations.
+Data files (``OUTPUT.nnnn'') contain the values of all the 
+independent physical fields saved at regular interval of time, in different 
+files distinguished by an incremental index (the ``nnnn'' in the file name).
+Obviously the restart file described above can be considered also as an 
+output data file.
+
+Data output files are opened,
+written and closed by the root processor (that having MPI rank 0), 
+that gathers data from other computing units before writing. \\
+All other information output files 
+are opened, written and closed by all processors, and can be distinguished
+by an extension indicating the rank of the process. 
+
+\subsubsection{Log file}
+\label{section:padc_log}
+
+The file pdac.log is used by \PDAC\ to log information
+concerning the advancing of the simulations. pdac.log is 
+connected explicitly to the fortran {\bf unit 6}. 
+pdac.log is a free text file with self-explanatory informations.
+Note that \PDAC\ does not use standard output stream, but on many
+system the unit 6 is associated by default to the standard output, therefore
+on these systems pdac.log is actually a redirected standard output stream.
+It is important also to underline that when a new pdac.log is opened 
+\PDAC\ cancels any existing pdac.log file.
+
+\subsubsection{Test file}
+\label{section:padc_tst}
+
+The file pdac.res, like pdac.log, is a free text file, and contains debugging
+and testing informations, that are meant for developers only,
+therefore many informations present there are of no use for the user.
+The file is connected to the fortran {\bf unit 7}, and is cleared every new run.
+
+\subsubsection{Error file}
+\label{section:padc_err}
+
+Like pdac.log and pdac.tst, pdac.err is a free textual file,
+it is connected to the fortran {\bf unit 8}. In this file \PDAC\ writes
+all messages related to severe errors that cause the program to stop.
+Note that this file is not cleared at every run, but it is opened in 
+{\it APPEND} mode.
+
+\subsubsection{OUTPUT file}
 
 All scalar and vector fields related to the evolution of the simulated
 system are saved into the OUTPUT.nnnn files at regular interval of
 simulated time. The user can choose the interval of time through
-the control parameter "tpr" (see \ref{section:input_parameters} ).
-Fields saved at different simulated time are written in different
-files, with different extension "nnnn". The esxtension "nnnn" is
-a number ranging from 0000 to 9999, \PDAC\ automatically increment 
-the OUTPUT file extension "nnnn" every time the fields are written. 
-The OUTPUT.nnnn files are associated to the fortran unit 12, 
-the format of these file could be selected by the user using
-the control parameter "formatted\_output", if it is set to ".TRUE."
-the OUTPUT files will be written in formatted textual format,
-otherwise the files will be in binary format.
-In general the OUTPUT files are meant for postprocessing analisys,
-it is therefore useful to know their layout.
-In formatted form the layout is as follow:
+the control parameter "tpr" (see \ref{section:input_par} ).
+The extension ``nnnn'' is a progressive number, ranging from 0000 to 9999, 
+incremented each time the fields are written. 
+The OUTPUT files are associated to the fortran {\bf unit 12}. 
+The format of these file can be selected by the user using
+The logical control parameter ``formatted\_output'' controls if the
+output will be written in formatted textual format
+or in binary (single precision) format. In general the OUTPUT files 
+are meant for postprocessing analisys, it is therefore useful to know 
+their layout. In both formatted and binary forms, the fields are saved
+in this order:
 
 \begin{verbatim}
-time
-p
-ug
-vg
-wg
-tg
-xgc(1)
-..
-xgc(ngas)
-rlk(1)*inrl(1)
-us(1)
-vs(1)
-ws(1)
-ts(1)
-..
-..
-..
-..
-..
-rlk(nsolid)*inrl(nsolid)
-us(nsolid)
-vs(nsolid)
-ws(nsolid)
-ts(nsolid)
+
+time            ! Simulated time
+
+p               ! Thermodynamic pressure
+ug              ! Gas velocity along x
+vg              ! Gas velocity along y (only for 3D simulations)
+wg              ! Gas velocity along z
+tg              ! Gas temperature
+
+xgc             ! Molar fraction of gas components
+...             ! (for all gas components)
+
+eps             ! Volumetric fraction of particles
+us              ! Particle velocity along x
+vs              ! Particle velocity along y (only for 3D simulations)
+ws              ! Particle velocity along z
+ts              ! Particle temperature
+...             ! (for all solid phases)
+
 \end{verbatim}
 
 where the first line is a scalar real value representing the 
 simulated time at which the fields are written, the oter lines
-represent the fields (of dimension nx*ny*nz) that are written 
-using the fortran format specifier "FORMAT( 5(G14.6E3,1X) )".
+represent the fields (of dimension {\tt nx*ny*nz}) that are written 
+using the fortran format specifier {\tt FORMAT( 5(G14.6E3,1X) )}.
 The components of the gas and solid velocities in the y dimension
-(vg and vs(.)) are present in the OUTPUT file only if the simulation
+({\tt vg} and {\tt vs}) are present in the OUTPUT file only if the simulation
 type is 3D.
 
 When the file is written in the binary unformatted format,
-the sequence of variables is the same as above, but the time
-parameter and the fields are writtent in separate records.
-In particular "time" is written in a record of lenght "1"
-while all other fields in records of lenght "nx*ny*nz".
-The real variables in the binary OUTPUT file are saved 
-in single precision (i.e. using 4 byte for each real value).
+the time and each variable is written in a separate record.
+In particular "time" is written in a record of lenght 1
+while all other fields in records of lenght {\tt nx*ny*nz}.
 
 \subsection{Post processing files}
-\label{section:file_postprocessing}
+\label{sect:pp}
 
-The post processing program (pp.x) of \PDAC\ package has
-been developed mainly to help the user to manage the
-OUTPUT.nnnn files, pp.x extract from a series of 
-OUTPUT.nnnn files the single fileds and store them 
-in separate files that can be easily plotted with
+\PDAC\ release \PDACVERSION\ provides the \verb#pp.x# utility,
+which is intended to be a preprocessing tool for visualization of
+output files produced by \PDAC. Even if this tool is still under 
+development, its usage is shortly described in order to make it
+useful for the user, especially when the OUTPUT of very large simulations
+are too big to be processed directly by a visualization tool.
+pp.x extracts from a series of OUTPUT.nnnn files the individual single fields,
+with the possibility of {\it downsize}, interpolate and crop the data,
+and store them in separate files that can be easily plotted with
 varius graphical application.
 
 \subsubsection{Post processing input files}
 
-As input file the post processing (pp.x) code 
-takes the file "pdac.dat", the same input of \PDAC\ main code
-with an additional namelist with the parameters that control
-the post processing. The name of the additional namelist is \&pp , and
+The preprocessing tool must read the input file pdac.dat, to which
+an additional namelist with the parameters that control the post processing
+is added. The name of the additional namelist is \&pp , and
 should be typed in between the namelist \&numeric and the first card
 'ROUGHNESS' . The layout of the pdac.dat file for the post processing
 is then:
@@ -281,30 +303,21 @@ roughness_parameters
 ...
 \end{verbatim}
 
-for a detailed description of post processing parameters 
-description see \ref{section:pp_parameters}.
-The parameters are optional (if not specified they take their 
-defauld values) and commend can be inserted as already specified in
-sections \ref{section:pdac_dat}.
-Note that you could leave the \&pp namelist in the pdac.dat file
-for the main program too, it will be simply ignored.
+Note that you can leave the \&pp namelist in the pdac.dat file
+for the usage of main program too, since it will be simply ignored.
 
 \subsubsection{Post processing output files}
 
-The post processing produces  several output files, 
-containing all the fields and other data useful when
-the user want to plot the fields themself.
-In particular post processing (pp.x) read in a sequence
-of OUTPUT.nnnn file ( from "nnnn=first\_out" to "nnnn=last\_out"
-in step of "incr\_out", where "first\_out", "last\_out" and "incr\_out"
-are parameters of the \&pp namelist ) and write out
-a sequence of file for each filed contained in OUTPUT.nnnn.
-The name of these files are of the form filter.FIELDNAME.nnnn .
-These file have the same format of OUTPUT files (i.e.
-if OUTPUT files are formated they are formatted too)
-The layout of the field within its own file is the same
-as within the OUTPUT file.
-List of all file produced by the post processing:
+The post processing produces several output files, 
+containing all individual fields and grid information useful
+for visualization.
+In particular post processing (pp.x) read a sequence
+of OUTPUT.nnnn files (the numbers indicating the first, the last, and
+the increment of ``nnnn'' are red in input)
+and write out a sequence of files for each individual field.
+The name of new files are of the form ``filter.FIELDNAME.nnnn''.
+The format of these file is the same of OUTPUT, as specified above.
+A list of all file produced by the post processing is following:
 
 \begin{itemize}
 
@@ -324,32 +337,32 @@ List of all file produced by the post processing:
       contains the list of cell centers (excluding border cells) 
       in z direction
 
-\item filter.epGG.nnnn \\
-      these files contain the gas ... field for all the gas 
-      phases ( GG run from 01 to ngas ) 
-
-\item filter.xgGG.nnnn \\
-      these files contain the gas ... field for all the gas 
-      phases ( GG run from 01 to ngas ) 
-
 \item filter.pgas.nnnn \\
       these files contain the gas pressure field 
+
+\item filter.ug.nnnn \\
+      these files contain the gas velocity field in x direction
+      for the gas phase
+
+\item filter.vg.nnnn \\
+      these files contain the gas velocity field in y direction
+      for the gas phase
+      This file is not present in 2D simulations
+
+\item filter.wg.nnnn \\
+      these files contain the gas velocity field in z direction
+for the gas phase
 
 \item filter.tgas.nnnn \\
       these files contain the gas temperature field 
 
-\item filter.ugGG.nnnn \\
-      these files contain the gas velocity field in x direction
-      for all gas phases ( GG run from 01 to ngas )
+\item filter.xgGG.nnnn \\
+      these files contain the molar fraction fields for all the gas 
+      components ( GG runs from 01 to ngas ) 
 
-\item filter.vgGG.nnnn \\
-      these files contain the gas velocity field in y direction
-      for all gas phases ( GG run from 01 to ngas ).
-      These files are not present when job\_type = 2D
-
-\item filter.wgGG.nnnn \\
-      these files contain the gas velocity field in z direction
-      for all gas phases ( GG run from 01 to ngas )
+\item filter.epSS.nnnn \\
+      these files contain the gas ... field for all the gas 
+      phases ( SS runs from 01 to nsolid ) 
 
 \item filter.tsSS.nnnn \\
       these files contain the particles temperature field 
@@ -362,7 +375,7 @@ List of all file produced by the post processing:
 \item filter.vsSS.nnnn \\
       these files contain the particles velocity field in y direction
       for all solid phases ( SS run from 01 to nsolid )
-      These files are not present when job\_type = 2D
+      These files are not present in 2D simulations
 
 \item filter.wsSS.nnnn \\
       these files contain the particles velocity field in z direction
@@ -371,13 +384,9 @@ List of all file produced by the post processing:
 
 \end{itemize}
 
-In all the files listed above the suffix "nnnn" run from
-"first\_out" to "last\_out" in step of "incr\_out".
 Note that when running the post processing all 
 OUTPUT.nnnn files in the selected range should 
 be present in the running directory of "pp.x"
-
-
 
 \subsection{General remark}
 

@@ -1,24 +1,36 @@
 \section{Running \PDAC}
 \label{section:run}
 
-PDAC runs on a variety of serial and parallel platforms.  While it is
-trivial to launch a serial program, a parallel program depends on a
-platform-specific library such as MPI to launch copies of itself on
-other nodes and to provide access to a high performance network such
-as Myrinet if one is available.
+\subsection{Getting started: what is needed}
 
-On all parallel systems, either cluster of workstations or 
-parallel supercomputers, \PDAC\ relais on the local implementation
-of MPI for its communications, and standard system tools such as
-mpirun are used to launch jobs. Therefore a working installation
-of MPI is a prerequisite in order to run \PDAC\ .
-The \PDAC\ serial binaries can also be
-run directly (known as standalone mode) for single process runs,
-on most platforms.
-Since MPI libraries are very often
-incompatible between versions, you will likely need to recompile \PDAC\
-to use these machines in parallel
-(the provided non-MPI binaries should still work for serial runs.)
+Before running \PDAC\ the following elements are needed:
+\begin{itemize}
+\item The \PDAC\ executable pdac.x
+\item The \PDAC\ parameter file pdac.dat.
+\end{itemize}
+
+Here it is assumed that you either succeded in compiling the source
+code or that you got a precompiled executable suited for your architecture.
+Be sure to have the authorization for running the executable on the
+directory where it is installed. For further informations on compiling and 
+on code portability, see section \ref{section:avail}.\\
+
+PDAC runs on a variety of serial and parallel platforms.  While it is
+trivial to launch a serial program, the execution of a parallel program 
+depends on a platform-specific library such as MPI that allows to launch 
+copies of the executable on other nodes and to provide access to a high 
+performance network such as Myrinet (if available) or to a Ethernet connection.
+
+On all parallel systems, either cluster of workstations or parallel 
+supercomputers, \PDAC\ execution is relied to the local implementation
+of MPI for data communications, and to standard system tools such as
+mpirun to launch jobs. Therefore a working installation of MPI is a 
+prerequisite in order to run \PDAC\ in parallel.
+The \PDAC\ serial binaries can nevertheless be run directly (this is known 
+as {\it standalone} mode) for single process runs, on most platforms
+Since different versions of MPI libraries are very often incompatible, you will 
+likely need to recompile \PDAC\ to run it in parallel. For serial runs
+the provided non-MPI binaries should still work.
 
 \subsection{Individual Unix Workstations}
 
@@ -34,31 +46,31 @@ To run \PDAC\ then follow the steps:
 
 \item create a running directory\
 \begin{verbatim}
-  mkdir sample_run
+> mkdir sample_run
 \end{verbatim}
 
 \item copy executable (pdac.x) and input file (pdac.dat)
       to the running directory\
 \begin{verbatim}
-  cp pdac.x pdac.dat sample_run
+> cp pdac.x pdac.dat sample_run
 \end{verbatim}
 
 \item run pdac.x ( possibly in background )
 \begin{verbatim}
-  pdac.x &
+> pdac.x &
 \end{verbatim}
 
 \end{itemize}
 
-Nevertheless you are the only user of your workstation,
-we suggest to brokeup the simulation in shorter partial
+Nonetheless you are the only user of your workstation,
+we suggest you to breakup the simulation in shorter partial
 simulations ( few days maximum each ) and use the
-restart capability od \PDAC. In this way you 
-reduce the probability of data/work loss due to 
+restart capability od \PDAC\ (see section \ref{section:pdac_res}). 
+In this way you reduce the probability of data/work loss due to 
 unforseenable events (a system crash, a blackout, ecc...).
 When restarting a simulation, remember to set the 
-restart mode to "restart" and to save the pdac.res file,
-in case somthing goes wrong in the new simulation step.
+restart mode to ``restart'' and to save the pdac.res file,
+in case that something goes wrong in the new simulation step.
 
 For multiprocessor workstations, if you have a working MPI
 library, you can compile \PDAC\ in parallel mode to use
@@ -68,27 +80,28 @@ to run \PDAC\ in parallel you should use an MPI loader
 your MPI library is MPICH you can run \PDAC\ using the commad:
 
 \begin{verbatim}
-  mpirun -np 2 pdac.x
+> mpirun -np 2 pdac.x
 \end{verbatim}
 
-where the command parameter "-np 2" specify that you want
+where the command parameter ``-np 2'' specifies that you want
 to run on two processors.
 
 \subsection{Server and Parallel Supercomputers}
 
 In this section we explain how to run \PDAC\ on Unix servers
-and parallel supercomputing, giving you some practical example
+and parallel supercomputers, giving you some practical example
 on most popular architectures (at the time of writing).
-The main differences with respect running on individual workstations
+The main differences you will find, with respect to running on 
+individual workstations,
 is represented by the presence of a queuing system that
-manage the users rtequests. Usually you should also 
+manage the users requests. Usually you should also 
 consider the limits the administrator has set to your user,
-like disk space, memory or available running que. 
-If this limits are not taken in to account could cause
+like disk space, memory or available running queues. 
+If this limits are not taken in to account, this could cause
 the simulation not to run or complete.
-Below, as anticipated, we give you few example on how to run
-on popular server and supercomputers, but remember that 
-this system are highly customizable and what is presented 
+Below, as anticipated, we will give you few examples on how to run
+on popular servers and supercomputers, but remember that 
+these systems are highly customizable and what is presented 
 probably should be modified to run on other supercomputers.
 
 \subsubsection{IBM RS/6000 servers and parallel supercomputers}
@@ -105,7 +118,7 @@ As an example for interactive mode run on the RS/6000 supercomputer
 command:
 
 \begin{verbatim}
-  poe ./pdac.x -procs 4 -nodes 1 
+> poe ./pdac.x -procs 4 -nodes 1 
 \end{verbatim}
 
 to run on a single node using 4 procs.
@@ -139,7 +152,7 @@ with a limit of 1024Mbyte each for 6 hours on the parallel queue.
 Then you should submit the job (suppose its filename is myjobfile):
 
 \begin{verbatim}
-llsubmit myjobfile
+> llsubmit myjobfile
 \end{verbatim}
 
 \subsubsection{Linux Clusters (Beowulf)}
@@ -150,7 +163,7 @@ and mpirun/mpiexec MPI loaders .
 For this kind of machine you could find an almost infinite number
 of environments and system softwares, therefore keep the example below
 as an indication, most probably it would not work on other systems. 
-As for other server you need to write a job script with
+As for other servers, you need to write a job script with
 the request for the queuing system and with the command you 
 want to execute.
 
@@ -169,7 +182,7 @@ and 6 hours of execution time in the queue. Then you need to
 submit the job to the queuing system, for OpenPBS the command is:
 
 \begin{verbatim}
-qsub myjobscript
+> qsub myjobscript
 \end{verbatim}
 
 here we have supposed that the filename of the above script is
@@ -184,7 +197,7 @@ to mpirun of MPICH, but with prun you could run both job scripts
 and interactive commands. Here there is an example :
 
 \begin{verbatim}
-prun -n 8 ./pdac.x
+> prun -n 8 ./pdac.x
 \end{verbatim}
 
 this command will run pdac.x on 8 processors, as soon as they will
@@ -196,34 +209,34 @@ There are additional options.  Consult your local documentation.
 
 SGI Origin system are shared memory parallel machines, with
 real single system image framework, in other words the user
-could see or access all the processors directly from the 
-login environment. At variance with othe architectures,
-there is no distinction between login and execution node.
-This as some benefits and drowback, the benefits come from
+can see or access all the processors directly from the 
+login environment. Differently from other architectures,
+there is no distinction between login and execution nodes.
+This has some benefits and drawbacks: benefits come from
 the possibility to use the whole machine as a multiprocessors
-workstation with an high number of processors, the drowback
-are related to the possibility that a different jobs running
-at the same time on the machine interfere with each others.
-In general you could run then parallel applications 
+workstation with an high number of processors, the drawbacks
+are related to the possibility that a different job running
+at the same time on the machine interfere with your job.
+In general you can run there parallel applications 
 in two different way, using a shell command like in your own
 workstation and using a queuing system, which is usually NQS.
 To run from the shell prompt use mpirun, i.e.: 
 
 \begin{verbatim}
-  mpirun -np 8 ./pdac.x
+> mpirun -np 8 ./pdac.x
 \end{verbatim}
 
-this will execute pdac.x with 8 MPI task, that not necessarily
+This will execute pdac.x with 8 MPI task, that not necessarily
 goes to different processors, it depends on system loads.
 Although this way of execute parallel applications is very
 friendly, it could cause a lot of interferences with system
 activities and other applications, with the result of slowing
-down the system. Then quite often the system administrator
+down the system. Then, quite often, the system administrator
 set severe limits to this way of run, mainly on the number of
-real available processors (no matter how many MPI task you ask for) 
-execution time and memory usage.
-To run large application then on many system you need to 
-interface with the NQS queuing system, then as for other architectures
+real available processors (no matter how many MPI tasks you are asking
+for), execution time and memory usage.
+Therefore on many systems to run large applications you need to 
+interface with the NQS queuing system, so that
 you have to write a script with the requests for processors and
 memory and the submit the script to NQS.
 An example of job script for NQS is 
@@ -244,29 +257,35 @@ you could submit the script with
 (suppose its filename is myjobfile):
 
 \begin{verbatim}
-  qsub myjobfile
+> qsub myjobfile
 \end{verbatim}
 
 \subsection{Grid environment}
 
-\subsection{Memory Usage}
+Few simulations on a Grid environment (such as Condor) have been performed.
+Some attention must be payed to the settings of MPI environment in Condor,
+to the need of static compiling and to possible errors relied to the
+read-write opening of the restart file. Further study will be devoted in
+the next future to the possibility of running \PDAC\ on a distributed
+system.
 
-.... Memory usage consideration ...
+\subsection{Memory usage considerations}
+The use of parallel supercomputers or PC clusters is mandatory not only
+for the purpose of decreasing simulation time, but also since memory
+occupation can be to high for a single workstation. As a rough estimate,
+consider that, for a ``standard'' 3D simulation (with 2 solid phases) 
+\PDAC\ requires a memory occupation of about 2.0 KBytes/cell. 
 
-\subsection{Improving Parallel Scaling}
-
-.... Choosing the correct number of processors
+\subsection{Monitoring parallel speedup and scaling}
 
 While \PDAC\ is designed to be a scalable program, particularly for
-large simulations ( 100,000 cells or more), at some point adding additional
-processors to a simulation will provide little or no extra performance.
-If you are lucky enough to have access to a parallel machine you should
+large simulations (100,000 cells or more), increasing the number of
+processors to a simulation will provide little or no extra performance
+above a certain threshold. This is known as ``speedup saturation'' and is
+due to the increase of the ratio between the communication and computation
+time. If you have access to a parallel machine you should
 measure \PDAC\'s parallel speedup for a variety of processor counts when
-running your particular simulation.  The easiest and most accurate way
-to do this is to look at the ``Prog'' time printed in the "pdac.dat" file.
-You can monitor performance during the entire simulation looking at
-the "walltime" line in the "pdac.log" file.
-
-Extremely short cycle lengths (less than 10 steps) will also limit
-parallel scaling, since the ghost cells migration at the end of each cycle
-sends too many messages.
+running your particular simulation. The easiest and most accurate way
+to do this is to look at the information contained in the timing report
+in the Log files for the different routines. On many parallel architectures
+fine-tuned performance monitoring can be performed through appropriate programs.
