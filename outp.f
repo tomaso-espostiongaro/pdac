@@ -140,7 +140,7 @@
       
       REAL*8, INTENT(IN), DIMENSION(:) :: array
       REAL*8 :: alpha
-      REAL*8, DIMENSION(:,:) :: array_map
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: array_map
       INTEGER :: i, j, k, ijk, imesh
       CHARACTER( LEN = 4 ) :: lettera
       CHARACTER( LEN = 8 ) :: filnam
@@ -173,6 +173,8 @@
       END IF
 
  122  FORMAT(10(1x,G14.6E3))
+
+      DEALLOCATE(array_map)
 
       RETURN
       END SUBROUTINE

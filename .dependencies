@@ -90,8 +90,9 @@ matrix.o : control.o decomp.o dens.o dimensions.o grid.o indijk.o  \
 nondim.o : atmosphere.o decomp.o dimensions.o gas.o grid.o indijk.o  \
     particles.o time.o 
 
-outp.o : control.o decomp.o dens.o dimensions.o eosg.o gas.o grid.o io.o  \
-    kinds.o parallel.o particles.o press.o temp.o time.o turbo.o velocity.o 
+outp.o : control.o decomp.o dens.o dimensions.o eosg.o gas.o grid.o immb.o  \
+    io.o kinds.o parallel.o particles.o press.o subscr.o temp.o time.o turbo.o  \
+    velocity.o 
 
 parallel.o : 
 
