@@ -6,7 +6,7 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE eosl(tk, cps, ck, siek)
+      SUBROUTINE caloric_eosl(tk, cps, ck, siek)
 !
       USE dimensions
       USE gas_constants, ONLY: tzero, hzeros
@@ -25,7 +25,7 @@
       END IF
 
       RETURN
-      END SUBROUTINE eosl
+      END SUBROUTINE caloric_eosl
 !----------------------------------------------------------------------
       SUBROUTINE cnverts(ijk)
 !

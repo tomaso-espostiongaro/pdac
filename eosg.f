@@ -105,29 +105,23 @@
 !----------------------------------------------------------------------
       SUBROUTINE csound(sqc, rog, p)
 !
-! ... Compute gas density as a function of temperature and pressure
 ! ... Compute squared gas sound speed
 !
       USE gas_constants, ONLY: gammaair
       IMPLICIT NONE
 !
       REAL*8, INTENT(OUT) :: sqc
-!      REAL*8, INTENT(OUT) :: sqcinv
       REAL*8, INTENT(IN) :: rog, p
 !
       sqc = gammaair * p / rog
 !
-!      sqcinv = rog / (gammaair * p )
       
       RETURN
       END SUBROUTINE csound
-
 !----------------------------------------------------------------------
-
       SUBROUTINE thermal_eosg(rog, tg, p, xg)
 !
 ! ... Compute gas density as a function of temperature and pressure
-! ... Compute sqared gas sound speed
 !
       USE dimensions, ONLY: ngas
       USE gas_constants, ONLY: gmw, rgas, gas_type
@@ -138,8 +132,6 @@
       REAL*8, INTENT(IN) :: xg(:)
 !
       REAL*8 :: mg
-      REAL*8 :: teff
-      REAL*8, PARAMETER :: tlim = 1.d-4
       INTEGER :: ig
 !
       mg = 0.D0
@@ -147,13 +139,7 @@
         mg = mg + xg(ig) * gmw(gas_type(ig))
       END DO
 
-      !  Carlo consistency check
-      teff = rgas * tg
-      IF( teff > tlim ) THEN
-        rog = p / ( rgas * tg ) * mg
-      ELSE
-        rog = p / ( tlim ) * mg
-      END IF
+      rog = p / ( rgas * tg ) * mg
 !
       RETURN
       END SUBROUTINE thermal_eosg
@@ -217,8 +203,7 @@
             tg = tzero + ( sieg - hzerog ) / cgas
             IF ( DABS( ( tgnn - tg ) / tgnn ) <= ratmin ) GOTO 223
           END DO
-
-          !**********************************************************************
+!**********************************************************************
           !  Error report
           WRITE(8,*) 'max number of iteration reached in eosg'
           WRITE(8,*) 'time:', time, 'proc:', mpime, 'cell:', ijk 
@@ -231,6 +216,7 @@
           info = 1
           CALL error( 'eosg', 'max number of iteration reached in eosg', 1)
   223     CONTINUE
+!**********************************************************************
 
           IF( tg <= 0.0d0 ) THEN
             WRITE(6,*) 'WARNING (caloric_eosg) zero or negative temperature'
@@ -268,7 +254,6 @@
 ! ... gas density (from equation of state)
 !
       rog(ijk)   = p(ijk) / ( rgas * tg(ijk) ) * mg
-
       rgp(ijk)   = rog(ijk) * ep(ijk)
 
       DO ig = 1, ngas

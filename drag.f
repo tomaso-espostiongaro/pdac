@@ -6,13 +6,12 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE kdrags(kpgv,du,dv,dw,ep,rgp,rlk,mug,is)
+      SUBROUTINE kdrags(drag,du,dv,dw,ep,rgp,rlk,mug,is)
 !----------------------------------------------------------------------
 ! ... This routine computes the gas-particles drag coefficient 
 !
       IMPLICIT NONE
 !
-      REAL*8, INTENT(OUT) :: kpgv
       REAL*8, INTENT(IN) ::  du, dv, dw
       REAL*8, INTENT(IN) :: ep,rgp,mug
       REAL*8, INTENT(IN) :: rlk
@@ -26,7 +25,6 @@
       ELSE
         CALL kdragg(drag,vrel,ep,rgp,rlk,mug,is)
       END IF
-      kpgv = drag
 !
       RETURN
       END SUBROUTINE
@@ -196,7 +194,7 @@
       IF(ep1 > 0.D0 .AND. ep2 > 0.D0) THEN
         xbar=ep1/epsum
         IF(xbar <= philim(k-1,kk-1)) THEN
-          epkl = epsl(k-1,kk-1)*xbar/phi(k1) + phi(k2)
+          epkl = epsl(k-1,kk-1)*xbar + phi(k2)
         ELSE
           epkl = epsu(k-1,kk-1)*(1.D0-xbar) + phi(k1)
         ENDIF
@@ -206,15 +204,14 @@
         espo = 1.D0/3.D0  
         m1 = epkl**espo
         m2 = epsum**espo
-        !effe=(3.D0*epkl**(1.D0/3.D0)+epsum**(1.D0/3.D0))/ &
-        !     (2.D0*(epkl**(1.D0/3.D0)-epsum**(1.D0/3.D0)))
-        effe = (3.D0*m1+m2) / (2.D0*(m1-m2))
+        effe = ( 3.D0*m1 + m2 ) / ( 2.D0*( m1 - m2 ) )
         ppdr = fac*(1.D0+restc)*rlk(k-1)*rlk(kk-1)*dkf(k-1,kk-1)*effe
       ELSE
         ppdr = 0.D0
       ENDIF
+              
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE ppdrag
 !------------------------------------------------------------------------
       END MODULE momentum_transfer
 !------------------------------------------------------------------------

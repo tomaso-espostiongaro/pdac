@@ -8,6 +8,7 @@
 
         USE indijk_module
         USE grid, ONLY: fl, fl_l
+        USE control_flags, ONLY: lpr
 !
         IMPLICIT NONE
         SAVE
@@ -128,7 +129,7 @@
         countfl(i) = COUNT( (fl == i) )
       END DO
 !
-      WRITE(7,'(a13,5i7)') ' # countfl ', countfl
+      IF (lpr >= 1) WRITE(7,'(a13,5i7)') ' # countfl ', countfl
 !
 ! ... domain decomposition (build maps)
 !
@@ -154,13 +155,15 @@
         ncdif(ipe) = ncfl1(ipe) - ncell(ipe)
       END DO
 !
-      WRITE(7,*) '---  partition  -----'
-      WRITE(7,*) '  '
-      DO ipe = 0, nproc - 1
-        WRITE(7,*) ' # nctot( ',ipe, ' )', nctot(ipe)
-        WRITE(7,*) ' # ncfl1( ',ipe, ' )', ncfl1(ipe),' -', ncell(ipe),' =', ncdif(ipe)
-        WRITE(7,*) 'proc(', ipe,')_map:', proc_map(ipe)%lay(1), proc_map(ipe)%lay(2)
-      END DO
+      IF (lpr >= 1) THEN
+        WRITE(7,*) '---  partition  -----'
+        WRITE(7,*) '  '
+        DO ipe = 0, nproc - 1
+          WRITE(7,*) ' # nctot( ',ipe, ' )', nctot(ipe)
+          WRITE(7,*) ' # ncfl1( ',ipe, ' )', ncfl1(ipe),' -', ncell(ipe),' =', ncdif(ipe)
+          WRITE(7,*) 'proc(', ipe,')_map:', proc_map(ipe)%lay(1), proc_map(ipe)%lay(2)
+        END DO
+      END IF
 !
       RETURN
       END SUBROUTINE partition
@@ -497,7 +500,8 @@
               IF (fl(ijk) == 1) ncfl1(ipe) = ncfl1(ipe) + 1
             END DO
           END DO
-          WRITE(7,*)'proc_map(',ipe,'):',proc_map(ipe)%corner1(:),proc_map(ipe)%corner2(:)
+          IF (lpr >= 1) WRITE(7,*)'proc_map(',ipe,'):', &
+                      & proc_map(ipe)%corner1(:),proc_map(ipe)%corner2(:)
         END DO
       END DO
 
@@ -528,7 +532,6 @@
       INTEGER :: localdim
       INTEGER :: layer, k2, k1, j2, j1, i2, i1, nkt
       INTEGER :: me
-      LOGICAL :: testcom = .TRUE.
 !
       IF(ALLOCATED(rcv_map)) DEALLOCATE(rcv_map)
       IF(ALLOCATED(snd_map)) DEALLOCATE(snd_map)
@@ -680,22 +683,26 @@
 ! ... array of sorted global cell indexes to be sent to 'mpime' 
 ! .... (see test below)
 
-      DO ipe = 0, nproc - 1
-        WRITE(7,300) nset(ipe), ipe
-        IF ( nset(ipe) > 0 ) THEN
-          IF (testcom) WRITE(7,310) rcv_cell_set(ipe)%i(1,:)
-        END IF
- 300    FORMAT(' # neighbours set SIZE ',i5,' from ',i3)
- 310    FORMAT(10i8)
-      END DO
+      IF (lpr >= 1) THEN
+        DO ipe = 0, nproc - 1
+          WRITE(7,300) nset(ipe), ipe
+          IF ( nset(ipe) > 0 ) THEN
+            WRITE(7,310) rcv_cell_set(ipe)%i(1,:)
+          END IF
+ 300      FORMAT(' # neighbours set SIZE ',i5,' from ',i3)
+ 310      FORMAT(10i8)
+        END DO
+      END IF
 
 ! ... the number cells required to update the physical quantities
 ! ... 'ncdom' is the sum of the local and neighbour cells
 !
       ncext = SUM( nrcv ) 
       ncdom = ncint + ncext
-      WRITE(7,* ) ' # ncext ', ncext
-      WRITE(7,* ) ' # ncdom ', ncdom
+      IF (lpr >= 1) THEN
+        WRITE(7,* ) ' # ncext ', ncext
+        WRITE(7,* ) ' # ncdom ', ncdom
+      END IF
 !
 ! ... prepare the receive map 
 !
@@ -719,9 +726,11 @@
 
 ! ... print out basic information on the map
 !
-      DO ipe = 0, nproc - 1
-        WRITE(7,*) ' # nrcv ', nrcv(ipe), ' from ', ipe
-      END DO
+      IF (lpr >= 1) THEN
+        DO ipe = 0, nproc - 1
+          WRITE(7,*) ' # nrcv ', nrcv(ipe), ' from ', ipe
+        END DO
+      END IF
 !
 ! ... using the receive maps fill in the sending maps
 !
@@ -782,33 +791,33 @@
 
       END DO
 !
-      DO ipe = 0, nproc - 1
-        WRITE(7,100) rcv_map(ipe)%nrcv, ipe
-        IF(rcv_map(ipe)%nrcv > 0 ) THEN
-          IF (testcom) THEN
+      IF (lpr >= 1) THEN
+        DO ipe = 0, nproc - 1
+          WRITE(7,100) rcv_map(ipe)%nrcv, ipe
+          IF(rcv_map(ipe)%nrcv > 0 ) THEN
             WRITE(7,110) rcv_map(ipe)%ircv(:)
             WRITE(7,*) ' ---- '
             WRITE(7,110) rcv_map(ipe)%iloc(:)
           END IF
-        END IF
- 100    FORMAT(' # receiving ',i5,' cells from ',i3)
- 110    FORMAT(10i8)
-      END DO
+ 100      FORMAT(' # receiving ',i5,' cells from ',i3)
+ 110      FORMAT(10i8)
+        END DO
+      END IF
 
-      DO ipe = 0, nproc - 1
-        WRITE(7,200) snd_map(ipe)%nsnd, ipe
-        IF (snd_map(ipe)%nsnd > 0 ) THEN
-          IF (testcom) THEN
+      IF (lpr >= 1) THEN
+        DO ipe = 0, nproc - 1
+          WRITE(7,200) snd_map(ipe)%nsnd, ipe
+          IF (snd_map(ipe)%nsnd > 0 ) THEN
             WRITE(7,210) snd_map(ipe)%isnd(:)
             WRITE(7,*) ' ---- '
             WRITE(7,210) snd_map(ipe)%iloc(:)
           END IF
-        END IF
- 200    FORMAT(' # sending ',i5,' cells to ',i3)
- 210    FORMAT(10i8)
-      END DO
+ 200      FORMAT(' # sending ',i5,' cells to ',i3)
+ 210      FORMAT(10i8)
+        END DO
+      END IF  
 
-      IF (testcom) CALL test_comm
+      IF (lpr >= 1) CALL test_comm
       
 ! ... fill in the array myinds using myijk
 !
@@ -1776,10 +1785,7 @@
 
         RETURN
       END SUBROUTINE data_distribute_sr
-
-
-
-
+!----------------------------------------------------------------------
       SUBROUTINE test_comm()
         IMPLICIT NONE
         INTEGER, ALLOCATABLE :: itest(:)

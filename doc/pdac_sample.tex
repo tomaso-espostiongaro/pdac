@@ -4,7 +4,7 @@ This section contains some simple example \PDAC\ configuration files to serve
 as templates.
 \prettypar
 This file shows a simple configuration file for simulation of an axisymmetric
-Plinian column with one particle class and withount topography.  
+Plinian column with one particle class and without topography.  
 
 \begin{verbatim}
 &control
@@ -134,15 +134,224 @@ Plinian column with one particle class and withount topography.
 \end{verbatim}
 
 \newpage
-The next is the input file for inviscid simulation of a 2D axisymmetric
-supersonic jet of pure water vapour into a tank of still air 
-at atmospheric pressure, without particles. 
+Input file for the simulation of the classical
+Sod problem (analogous to the laboratory shock-tube experiment)
+used to check numerical discretization schemes on the standard
+1D Riemann problem.
 
-\newpage
-The next is the input file for 2D axisymmetric simulation of pyroclastic
-flows generation and propagation on the Northern flank of Vesuvius,
-including the section of the volcano topography.
+\begin{verbatim}
 
+&control
+ run_name = 'shock_tube',
+ job_type = '2D',
+ restart_mode = 'from_scratch',
+ time =  0.00,
+ tstop = 0.20,
+ dt    = 0.001,
+ tpr   = 0.05,
+ tdump = 5.0,
+ nfil = 0
+/
+
+&model
+ density_specified = T,
+ gas_viscosity = F,
+ iturb = 0,
+ gravz = 0,
+ ngas = 1
+/
+
+&mesh
+  iuni = 1,
+  nx = 3,
+  nz = 102,
+  dx0 = 1.0d-2,
+  dz0 = 1.0d-2
+/
+
+&particles
+  nsolid = 1, 
+  diameter = 200.D0,
+  density = 1500.D0,
+  sphericity = 1.0,
+  viscosity = 1.0,
+  specific_heat = 1.2D3,
+  thermal_conductivity = 2.0D0,
+/
+
+&numeric
+  rungekut = 1,
+  beta = 0.25,
+  lim_type = 4,
+  muscl = 0,
+  omega = 1.00
+/
+
+'ROUGHNESS'
+
+'MESH'
+
+'FIXED_FLOWS'
+6
+2, 1, 3, 102, 102
+2, 1, 1, 1, 102
+2, 3, 3, 1, 102
+1, 2, 2, 2, 31
+0.0, 0.75, 1.D0, 1.0, 1.0  ! Last value is the density !
+0.0, 0.0, 0.0, 0.0
+0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0
+1, 2, 2, 32, 101
+0.0, 0.0, 1.D-1, 1.0, 0.125  ! Last value is the density !
+0.0, 0.0, 0.0, 0.0
+0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0
+5, 2, 2, 1, 1
+0.0, 0.75, 1.D0, 1.0, 1.0  ! Last value is the density !
+0.0, 0.0, 0.0, 0.0
+0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0
+
+'INITIAL_CONDITIONS'
+0.0, 0.0, 1.0D0, 1.0 0.6413, 288.15 
+0.0, 0.0
+0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0
+
+\end{verbatim}
+
+%\newpage
+%Input file for inviscid simulation of a 2D axisymmetric
+%supersonic jet of pure water vapour into a tank of still air 
+%at atmospheric pressure, without particles. 
+%
+%\newpage
+%Input file for 2D axisymmetric simulation of pyroclastic
+%flows generation and propagation on the Northern flank of Vesuvius,
+%including the section of the volcano topography.
+%
+%
 \newpage
-The next is the input file for fully 3D simulation of a volcanic column,
+Input file for fully 3D simulation of a volcanic column,
 without topography included.
+
+\begin{verbatim}
+
+&control
+ run_name = 'Sub_Plinian',
+ job_type = '3D',
+ restart_mode = 'from_scratch',
+ time =  0.00,
+ tstop = 600.0,
+ dt    = 0.01,
+ tpr   = 10.0,
+ tdump = 50.0
+/
+
+&model
+/
+
+&mesh
+  nx = 100,
+  nx = 100,
+  nz = 100
+/
+
+&particles
+  nsolid = 1, 
+  diameter = 50.
+  density = 1500.
+  sphericity = 1.0
+  viscosity = 0.5
+  specific_heat = 1.2D3
+  thermal_conductivity = 2.0D0
+/
+
+&numeric
+  rungekut = 1,
+  muscl = 0,
+  omega = 1.00
+/
+
+'ROUGHNESS'
+
+'MESH'
+
+ 200.00D0 200.00D0 196.39D0 192.02D0 187.64D0 
+ 183.26D0 178.88D0 174.50D0 170.12D0 165.74D0
+ 161.36D0 156.98D0 152.61D0 148.23D0 143.85D0 
+ 139.47D0 135.09D0 130.71D0 126.33D0 121.95D0
+ 117.58D0 113.20D0 108.82D0 104.44D0 100.06D0 
+  95.68D0  91.30D0  86.92D0  82.55D0  78.17D0
+  73.79D0  69.41D0  65.03D0  60.65D0  56.27D0
+  51.89D0  47.52D0  43.14D0  38.76D0  34.38D0
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  30.00D0  30.00D0  30.00D0  30.00D0  23.17D0
+  23.17D0  30.00D0  30.00D0  30.00D0  30.00D0
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  34.38D0  38.76D0  43.14D0  47.52D0  51.89D0
+  56.27D0  60.65D0  65.03D0  69.41D0  73.79D0
+  78.17D0  82.55D0  86.92D0  91.30D0  95.68D0
+ 100.06D0 104.44D0 108.82D0 113.20D0 117.58D0
+ 121.95D0 126.33D0 130.71D0 135.09D0 139.47D0 
+ 143.85D0 148.23D0 152.61D0 156.98D0 161.36D0
+ 165.74D0 170.12D0 174.50D0 178.88D0 183.26D0 
+ 187.64D0 192.02D0 196.39D0 200.00D0 200.00D0
+
+ 200.00D0 200.00D0 196.39D0 192.02D0 187.64D0 
+ 183.26D0 178.88D0 174.50D0 170.12D0 165.74D0
+ 161.36D0 156.98D0 152.61D0 148.23D0 143.85D0 
+ 139.47D0 135.09D0 130.71D0 126.33D0 121.95D0
+ 117.58D0 113.20D0 108.82D0 104.44D0 100.06D0 
+  95.68D0  91.30D0  86.92D0  82.55D0  78.17D0
+  73.79D0  69.41D0  65.03D0  60.65D0  56.27D0
+  51.89D0  47.52D0  43.14D0  38.76D0  34.38D0
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  30.00D0  30.00D0  30.00D0  30.00D0  23.17D0
+  23.17D0  30.00D0  30.00D0  30.00D0  30.00D0
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  34.38D0  38.76D0  43.14D0  47.52D0  51.89D0
+  56.27D0  60.65D0  65.03D0  69.41D0  73.79D0
+  78.17D0  82.55D0  86.92D0  91.30D0  95.68D0
+ 100.06D0 104.44D0 108.82D0 113.20D0 117.58D0
+ 121.95D0 126.33D0 130.71D0 135.09D0 139.47D0 
+ 143.85D0 148.23D0 152.61D0 156.98D0 161.36D0
+ 165.74D0 170.12D0 174.50D0 178.88D0 183.26D0 
+ 187.64D0 192.02D0 196.39D0 200.00D0 200.00D0
+
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  30.00D0  30.00D0  30.00D0  30.00D0  30.00D0
+  32.95D0  35.90D0  38.85D0  41.80D0  44.74D0
+  47.69D0  50.64D0  53.59D0  56.54D0  59.49D0
+  62.44D0  65.39D0  68.34D0  71.29D0  74.23D0
+  77.18D0  80.13D0  83.08D0  86.03D0  88.98D0
+  91.93D0  94.88D0  97.83D0 100.78D0 103.72D0 
+ 106.67D0 109.62D0 112.57D0 115.52D0 118.47D0
+ 121.42D0 124.37D0 127.32D0 130.27D0 133.21D0 
+ 136.16D0 139.11D0 142.06D0 145.01D0 147.96D0
+ 150.91D0 153.86D0 156.81D0 159.76D0 162.70D0 
+ 165.65D0 168.60D0 171.55D0 174.50D0 177.45D0
+ 180.40D0 183.35D0 186.30D0 189.24D0 192.19D0 
+ 195.14D0 198.09D0 200.00D0 200.00D0 200.00D0
+ 200.00D0 200.00D0 200.00D0 200.00D0 200.00D0 
+ 200.00D0 200.00D0 200.00D0 200.00D0 200.00D0
+
+'FIXED_FLOWS'
+7
+3, 1  , 100, 1 , 100, 1, 1
+5, 49 , 52, 49, 52, 1, 1
+0.0, 0.0, 110.00, 1.01325D5, 0.999, 900.0
+0.0, 0.0, 110.00, 0.001, 900.0
+0.D0, 0.D0, 0.D0, 0.D0, 1.D0, 0.D0, 0.D0
+6, 1  , 1  , 1  , 100, 2  , 100
+6, 100, 100, 1  , 100, 2  , 100
+6, 1  , 100, 1  , 1  , 2  , 100
+6, 1  , 100, 100, 100, 2  , 100
+4, 1  , 100, 1  , 100, 100, 100
+
+'INITIAL_CONDITIONS'
+0.0, 0.0, 1.01325D5, 1. 0.6413, 288.15 
+0.0, 0.0
+0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0
+
+\end{verbatim}

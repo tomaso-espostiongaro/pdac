@@ -200,10 +200,6 @@
 
       END IF
 !
-      CALL data_exchange(ug)
-      CALL data_exchange(wg)
-      IF (job_type == '3D') CALL data_exchange(vg)
-!
       IF (modturbo == 2 .AND. job_type == '3D' ) THEN
 
         DO ijk = 1, ncint
@@ -484,10 +480,7 @@
 !
       INTEGER :: ijk, is
       REAL*8 :: modsr, sr11,sr12,sr22,sr13,sr23,sr33
-!
-      CALL data_exchange(us)
-      CALL data_exchange(ws)
-      IF (job_type == '3D') CALL data_exchange(vs)
+      REAL*8 :: exp, fact, cst
 !
       DO ijk = 1, ncint
         IF(fl_l(ijk) == 1) THEN
@@ -501,8 +494,12 @@
                            modsr,sr11,sr12,sr22,sr13,sr23,sr33, ijk)
            END IF
 !
-           must(ijk,is) = 0.5D0*DSQRT(2.D0) * cmus(is) * rl(is) * dk(is)**2 * &
-                          10.D0**(3.98D0*rlk(ijk,is)*inrl(is)-1.69D0) * modsr
+           cst  = 0.5D0*DSQRT(2.D0)
+           exp  = ( 3.98D0*rlk(ijk,is)*inrl(is)-1.69D0 )
+           fact = 10.D0**(exp)
+           
+           must(ijk,is) = cst * cmus(is) * rl(is) * dk(is)**2 * fact * modsr
+
          END DO
         END IF
       END DO

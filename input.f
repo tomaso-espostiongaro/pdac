@@ -81,13 +81,16 @@
       INTEGER :: last_out = 1
       INTEGER :: incr_out = 1
 
+      SAVE
 !-----------------------------------------------------------------------
       CONTAINS
 !-----------------------------------------------------------------------
       SUBROUTINE input( iunit, which )
 
-      USE atmosphere, ONLY: w0, u0, p0, temp0, us0, ws0, ep0, epsmx0, gravx, gravy, gravz
-      USE control_flags, ONLY: nfil, job_type
+      USE atmosphere, ONLY: w0, u0, p0, temp0, us0, ws0, ep0, epsmx0
+      USE atmosphere, ONLY: gravx, gravy, gravz, zzero
+      USE control_flags, ONLY: nfil, job_type, lpr
+      USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
       USE domain_decomposition, ONLY: mesh_partition
       USE flux_limiters, ONLY: beta, muscl, lim_type
       USE gas_constants, ONLY: default_gas
@@ -95,7 +98,7 @@
       USE gas_solid_viscosity, ONLY: repulsive_model
       USE grid, ONLY: dx, dy, dz, itc
       USE initial_conditions, ONLY: setup, epsob, wpob, tpob, ygc0, &
-     &    ygcob, upob, wgob, ugob, pob, tgob, epob, lpr, zzero
+     &    ygcob, upob, wgob, ugob, pob, tgob, epob, density_specified
       USE iterative_solver, ONLY: inmax, maxout, omega
       USE io_restart, ONLY: old_restart, max_seconds
       USE output_dump, ONLY: formatted_output
@@ -124,7 +127,7 @@
 
       NAMELIST / model / irex, gas_viscosity, part_viscosity,      &
         iss, repulsive_model, iturb, modturbo, cmut, rlim,         &
-        gravx, gravy, gravz, default_gas
+        gravx, gravy, gravz, default_gas, ngas, density_specified
 
       NAMELIST / pp / first_out, last_out, incr_out
 !
@@ -134,7 +137,8 @@
       NAMELIST / particles / nsolid, diameter, density, sphericity, &
         viscosity, specific_heat, thermal_conductivity
 !
-      NAMELIST / numeric / rungekut, beta, muscl, lim_type, inmax, maxout, omega
+      NAMELIST / numeric / rungekut, beta, muscl, lim_type, &
+        inmax, maxout, omega, implicit_fluxes, implicit_enthalpy
 !
       INTEGER :: i, j, k, n, m, ig, ierr
       REAL*8, ALLOCATABLE :: grx(:), gry(:), grz(:)
@@ -165,6 +169,7 @@
       irex = 1          ! ( 1 no reaction, 2 use hrex. Not used )
       gas_viscosity  = .TRUE. ! include molecular gas viscosity
       part_viscosity = .TRUE. ! include collisional particle viscosity
+      density_specified = .FALSE. ! density specified instead of temperature
       iss  = 0          ! ( 0 no solid turbulent stress, 1 sub-grid stress) 
       repulsive_model = 1 ! ( 0 no Coulombic repulsive model )
       iturb = 1         ! turbulence  ( 0 no turbo, 1 turbo, 2 turbo + rough )
@@ -173,6 +178,7 @@
       rlim = 1.0D-8     ! limit for off-diagonal contribution in matrix 
                         ! inversion
       gravx = 0.0D0     ! gravity along x
+      gravy = 0.0D0     ! gravity along y
       gravz = -9.81D0   ! gravity along z
       ngas = 2          ! max number of gas components
       default_gas = 6   ! atmospheric air
@@ -212,7 +218,8 @@
       inmax = 8         !  maximum number of pressure correction steps
       maxout = 1000     !  maximum number of solver iteration
       omega = 1.0       !  relaxation parameter  ( 0.5 under - 2.0 over)
-
+      implicit_fluxes   = .FALSE. ! fluxes are computed implicitly
+      implicit_enthalpy = .FALSE. ! enthalpy solved implicitly
 !
 ! reading of input file
 !
@@ -251,19 +258,6 @@
             CALL iotk_write_dat( iuni_nml, "tpr", tpr )
             CALL iotk_write_dat( iuni_nml, "tdump", tdump )
             CALL iotk_write_dat( iuni_nml, "nfil", irex )
-            CALL iotk_write_dat( iuni_nml, "gas_viscosity", gas_viscosity )
-            CALL iotk_write_dat( iuni_nml, "part_viscosity", part_viscosity )
-            CALL iotk_write_dat( iuni_nml, "iss", iss )
-            CALL iotk_write_dat( iuni_nml, "repulsive_model",repulsive_model )
-            CALL iotk_write_dat( iuni_nml, "iturb", iturb )
-            CALL iotk_write_dat( iuni_nml, "modturbo", modturbo )
-            CALL iotk_write_dat( iuni_nml, "cmut", cmut )
-            CALL iotk_write_dat( iuni_nml, "rlim", rlim )
-            CALL iotk_write_dat( iuni_nml, "gravx", gravx )
-            CALL iotk_write_dat( iuni_nml, "gravz", gravz )
-            CALL iotk_write_dat( iuni_nml, "ngas", ngas )
-            CALL iotk_write_dat( iuni_nml, "default_gas", default_gas )
-            CALL iotk_write_dat( iuni_nml, "formatted_output", formatted_output )
             CALL iotk_write_dat( iuni_nml, "old_restart", old_restart )
             CALL iotk_write_dat( iuni_nml, "max_seconds", max_seconds )
           CALL iotk_write_end( iuni_nml, "control" )
@@ -280,22 +274,9 @@
       CALL bcast_real(tpr,1,root)
       CALL bcast_real(tdump,1,root)
       CALL bcast_integer(nfil,1,root)
-      CALL bcast_integer(irex,1,root)
-      CALL bcast_integer(iss,1,root)
-      CALL bcast_integer(repulsive_model,1,root)
-      CALL bcast_integer(iturb,1,root)
-      CALL bcast_integer(modturbo,1,root)
-      CALL bcast_real(cmut,1,root)
-      CALL bcast_real(rlim,1,root)
-      CALL bcast_real(gravx,1,root)
-      CALL bcast_real(gravz,1,root)
-      CALL bcast_integer(ngas,1,root)
-      CALL bcast_integer(default_gas,1,root)
       CALL bcast_logical(formatted_output,1,root)
-      CALL bcast_real(max_seconds,1,root)
-      CALL bcast_logical(gas_viscosity,1,root)
-      CALL bcast_logical(part_viscosity,1,root)
       CALL bcast_logical(old_restart,1,root)
+      CALL bcast_real(max_seconds,1,root)
 
       SELECT CASE ( TRIM(restart_mode) )
         CASE ('from_scratch', 'default')
@@ -319,6 +300,43 @@
       END SELECT
 
       CALL subsc_setup( job_type )
+
+      IF(mpime == root) THEN
+        READ(iunit, model) 
+        IF( which == 'PP' ) THEN
+          CALL iotk_write_begin( iuni_nml, "model" )
+            CALL iotk_write_dat( iuni_nml, "gas_viscosity", gas_viscosity )
+            CALL iotk_write_dat( iuni_nml, "part_viscosity", part_viscosity )
+            CALL iotk_write_dat( iuni_nml, "iss", iss )
+            CALL iotk_write_dat( iuni_nml, "repulsive_model",repulsive_model )
+            CALL iotk_write_dat( iuni_nml, "iturb", iturb )
+            CALL iotk_write_dat( iuni_nml, "modturbo", modturbo )
+            CALL iotk_write_dat( iuni_nml, "cmut", cmut )
+            CALL iotk_write_dat( iuni_nml, "rlim", rlim )
+            CALL iotk_write_dat( iuni_nml, "gravx", gravx )
+            CALL iotk_write_dat( iuni_nml, "gravz", gravz )
+            CALL iotk_write_dat( iuni_nml, "ngas", ngas )
+            CALL iotk_write_dat( iuni_nml, "default_gas", default_gas )
+            CALL iotk_write_dat( iuni_nml, "density_specified", density_specified )
+          CALL iotk_write_end( iuni_nml, "model" )
+        END IF
+      END IF
+
+      CALL bcast_integer(irex,1,root)
+      CALL bcast_integer(iss,1,root)
+      CALL bcast_integer(repulsive_model,1,root)
+      CALL bcast_integer(iturb,1,root)
+      CALL bcast_integer(modturbo,1,root)
+      CALL bcast_real(cmut,1,root)
+      CALL bcast_real(rlim,1,root)
+      CALL bcast_real(gravx,1,root)
+      CALL bcast_real(gravy,1,root)
+      CALL bcast_real(gravz,1,root)
+      CALL bcast_integer(ngas,1,root)
+      CALL bcast_integer(default_gas,1,root)
+      CALL bcast_logical(gas_viscosity,1,root)
+      CALL bcast_logical(part_viscosity,1,root)
+      CALL bcast_logical(density_specified,1,root)
 
       IF(mpime == root) THEN
         READ(iunit, mesh) 
@@ -394,6 +412,10 @@
             CALL iotk_write_dat( iuni_nml, "linmax", inmax )
             CALL iotk_write_dat( iuni_nml, "maxout", maxout )
             CALL iotk_write_dat( iuni_nml, "omega", omega )
+            CALL iotk_write_dat( iuni_nml, "implicit_fluxes",   &
+                                          & implicit_fluxes )
+            CALL iotk_write_dat( iuni_nml, "implicit_enthalpy", &
+                                          & implicit_enthalpy )
           CALL iotk_write_end( iuni_nml, "numeric" )
         END IF
       END IF
@@ -405,6 +427,8 @@
       CALL bcast_integer(inmax,1,root)
       CALL bcast_integer(maxout,1,root)
       CALL bcast_real(omega,1,root)
+      CALL bcast_logical(implicit_fluxes,1,root)
+      CALL bcast_logical(implicit_enthalpy,1,root)
 
       IF( which == 'PP' ) THEN
         IF(mpime == root) THEN
@@ -749,17 +773,16 @@
       SUBROUTINE initc
 
       USE atmosphere, ONLY: v0, u0, w0, p0, temp0, us0, vs0, ws0, &
-     &                      ep0, epsmx0, gravx, gravy, gravz
+     &                      ep0, epsmx0, zzero
+      USE control_flags, ONLY: job_type, lpr
       USE dimensions
       USE grid, ONLY: dx, dy, dz, itc
       USE grid, ONLY: iob
       USE initial_conditions, ONLY: epsob, tpob, ygc0, ygcob,   &
-     &     ugob, vgob, wgob, upob, vpob, wpob, pob, tgob, epob, &
-     &     lpr, zzero
+     &     ugob, vgob, wgob, upob, vpob, wpob, pob, tgob, epob
       USE initial_conditions, ONLY: ugpr, wgpr, ppr, eppr, tgpr, &
                                     uppr,wppr,epspr,tppr, ygcpr, npr
       USE particles_constants, ONLY: rl, inrl, kap, cmus, phis, cps, dk
-      USE control_flags, ONLY: job_type
 
       IMPLICIT NONE
 

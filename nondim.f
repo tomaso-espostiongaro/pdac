@@ -71,7 +71,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE richardson(p,rgp,rhog,rlk,ug,wg,uk,wk,ijk,ijpk)
 !
-        USE atmosphere, ONLY : gravz, atm
+        USE atmosphere, ONLY : gravz, p_atm, t_atm
         USE domain_decomposition, ONLY: myijk
         USE gas_constants, ONLY: gmw, rgas, gammaair, gamn
         USE grid, ONLY: zb, dz
@@ -98,7 +98,9 @@
         j = ( imesh - 1 ) / nx + 1
 
         zrif=zb(j)+0.5D0*(dz(1)-dz(j))
-        CALL atm(zrif,prif,trif)
+        prif = p_atm(j)
+        trif = t_atm(j)
+
         rhorif = prif*gmw(6)/(rgas*trif)
 
         p0 = p(ijk)

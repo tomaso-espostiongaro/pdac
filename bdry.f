@@ -29,7 +29,7 @@
       USE grid, ONLY: fl_l
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE parallel, ONLY: mpime
-      USE set_indexes, ONLY: subscr, subscr_bdry
+      USE set_indexes, ONLY: subscr
       USE set_indexes, ONLY: ipjk, imjk, ippjk, immjk, ijpk, ipjpk,    &
         imjpk, ijmk, ipjmk, imjmk, ijppk, ijmmk, ijkp, ipjkp, imjkp,   &
         ijpkp, ijmkp, ijkm, ipjkm, imjkm, ijpkm, ijmkm, ijkpp, ijkmm
@@ -51,20 +51,19 @@
         IF( fl_l(ijk) == 1 ) THEN
 
             CALL meshinds(ijk,imesh,i,j,k)
-            !CALL subscr(ijk)
-            CALL subscr_bdry(ijk)
-
-            ! ***** East boundary conditions ***** !
-            !
+            CALL subscr(ijk)
+!
+! ***** East boundary conditions ***** !
+!
 
             n2   = ipjk
 	    n1   = ijk
 	    n0   = imjk
 
             SELECT CASE ( fl_l( n2 ) ) 
-
+!
             CASE (2) 
-
+!
               wg(n2)   = wg(n1)
               ws(n2,:) = ws(n1,:)
 
@@ -72,9 +71,9 @@
                 vg(n2)   = vg(n1)
                 vs(n2,:) = vs(n1,:)
               END IF
-
+!
             CASE (3)
-
+!
               wg(n2)   = -wg(n1)
               ws(n2,:) = -ws(n1,:)
 
@@ -82,20 +81,20 @@
                 vg(n2)   = -vg(n1)
                 vs(n2,:) = -vs(n1,:)
               END IF
-
+!
             CASE (4)
-
+!
               d1 = dx(i)
 	      d2 = dx(i+1)
-!
-              ! ... Compute the normal component of the velocities and scalar fields
-!
+
+              ! ... Compute the normal component of the velocities 
+              ! ... and scalar fields
+              !
               CALL inoutflow( ug(n0), ug(n1), ug(n2),              &
                       us(n0,:), us(n1,:), us(n2,:), d1, d2, gravx, k )
 
-
               ! ... Compute tangential components of velocities
-
+              !
               IF(fl_l(ipjkp) == 4) THEN
                 wg(n2) = wg(n1)
         	ws(n2,:)=ws(n1,:)
@@ -106,50 +105,49 @@
 	      END IF
 !              
             CASE DEFAULT
-
+!
               CONTINUE
 
             END SELECT
-
 !
-            ! ***** West boundary conditions ***** !
-            !
-
+! ***** West boundary conditions ***** !
+!
             n2 = imjk
 	    n1 = ijk
 	    n0 = ipjk
 
             SELECT CASE ( fl_l( n2 ) )
-
+!
             CASE (2)
-
+!
               wg(n2)   = wg(n1)
               ws(n2,:) = ws(n1,:)
 	      IF (job_type == '3D') THEN
                 vg(n2)   = vg(n1)
                 vs(n2,:) = vs(n1,:)
 	      END IF
-
+!
             CASE (3)
-
+!
               wg(n2)   = -wg(n1)
               ws(n2,:) = -ws(n1,:)
 	      IF (job_type == '3D') THEN
                 vg(n2)   = -vg(n1)
                 vs(n2,:) = -vs(n1,:)
 	      END IF
-
+!
             CASE (4)
-	    
+!	    
               d1 = dx(i)
               d2 = dx(i-1)
-!
-              ! ... Compute the normal component of the velocities and scalar fields
-!
+
+              ! ... Compute the normal component of the velocities 
+              ! ... and scalar fields
+              !
               CALL outinflow( ug(n1), ug(n2), us(n1,:), us(n2,:), d1, d2, k )
 
               ! ... Compute tangential components of velocities
-!              
+              !
               IF(fl_l(imjkp) == 4) THEN
                 wg(n2)   = wg(n1)
         	ws(n2,:) = ws(n1,:)
@@ -160,7 +158,7 @@
 	      END IF
 !              
             CASE DEFAULT
-
+!
               CONTINUE
 
             END SELECT
@@ -174,33 +172,34 @@
   	      n0   = ijmk
   
               SELECT CASE (  fl_l( n2 ) )
-  
+!  
               CASE (2)
-  
+!  
                 ug(n2)   = ug(n1)
                 us(n2,:) = us(n1,:)
                 wg(n2)   = wg(n1)
                 ws(n2,:) = ws(n1,:)
-  
+!  
               CASE (3)
-  
+!  
                 ug(n2)   = -ug(n1)
                 us(n2,:) = -ws(n1,:)
                 wg(n2)   = -wg(n1)
                 ws(n2,:) = -ws(n1,:)
-  
+!  
               CASE (4)
-  
+!  
                 d1 = dy(j)
   	        d2 = dy(j+1)
-!
-! ... Compute the normal component of the velocities and scalar fields
-!
+          
+                ! ... Compute the normal component of the velocities 
+                ! ... and scalar fields
+                !
                 CALL inoutflow( vg(n0), vg(n1), vg(n2),              &
                              vs(n0,:), vs( n1,:), vs(n2,:), d1, d2, gravy, k )
 
-! ... Compute tangential components of velocities
-
+                ! ... Compute tangential components of velocities
+                !
                 IF(fl_l(ijpkp) == 4) THEN
                   wg(n2)   = wg(n1)
         	  ws(n2,:) = ws(n1,:)
@@ -209,9 +208,9 @@
                   ug(n2)   = ug(n1)
           	  us(n2,:) = us(n1,:)
 	        END IF
-
+!
               CASE DEFAULT
-
+!
                 CONTINUE
 
               END SELECT
@@ -224,32 +223,33 @@
               n0 = ijpk
 
               SELECT CASE (  fl_l( n2 ) )
-
+!
               CASE (2)
-
+!
                 ug( n2 ) = ug( n1 )
                 us(n2,:) = us(n1,:)
                 wg( n2 ) = wg( n1 )
                 ws(n2,:) = ws(n1,:)
-
+!
               CASE (3)
-
+!
                 ug(n2)   = -ug(n1)
                 us(n2,:) = -us(n1,:)
                 wg(n2)   = -wg(n1)
                 ws(n2,:) = -ws(n1,:)
-  
+!  
               CASE (4)
-  	    
+!  	    
                 d1 = dy(j)
                 d2 = dy(j-1)
-!
-! ... Compute the normal component of the velocities and scalar fields
-!
+
+                ! ... Compute the normal component of the velocities 
+                ! ... and scalar fields
+                !
                 CALL outinflow( vg(n1), vg(n2), vs(n1,:), vs(n2,:), d1, d2, k )
 
-! ... Compute tangential components of velocities
-!              
+                ! ... Compute tangential components of velocities
+                !             
                 IF(fl_l(ijmkp) == 4) THEN
                   wg(n2)   = wg(n1)
         	  ws(n2,:) = ws(n1,:)
@@ -258,9 +258,9 @@
                   ug(n2)   = ug(n1)
         	  us(n2,:) = us(n1,:)
 	        END IF
-
+!
               CASE DEFAULT
-
+!
                 CONTINUE
 
               END SELECT
@@ -275,37 +275,38 @@
             n0   =  ijkm
 
             SELECT CASE ( fl_l( n2 ) )
-
+!
             CASE (2)
-
+!
               ug(n2)   = ug(n1)
               us(n2,:) = us(n1,:)
 	      IF (job_type == '3D') THEN
                 vg(n2)   = vg(n1)
                 vs(n2,:) = vs(n1,:)
 	      END IF
-
+!
             CASE (3)
-  
+!  
               ug(n2)   = -ug(n1)
               us(n2,:) = -us(n1,:)
 	      IF (job_type == '3D') THEN
                 vg(n2)   = -vg(n1)
                 vs(n2,:) = -vs(n1,:)
 	      END IF
-
+!
             CASE (4)
-
+!
               d1 = dz(k)
 	      d2 = dz(k+1)
-!
-! ... Compute the normal component of the velocities and scalar fields
-!
+
+              ! ... Compute the normal component of the velocities 
+              ! ... and scalar fields
+              !
               CALL inoutflow( wg(n0), wg(n1), wg(n2),              &
                              ws(n0,:), ws(n1,:), ws(n2,:), d1, d2, gravz, k )
 
-! ... Compute tangential components of velocities
-!
+              ! ... Compute tangential components of velocities
+              !
               IF(fl_l(ipjkp) == 4) THEN
 	         ug(n2)   = ug(n1)
 		 us(n2,:) = us(n1,:)
@@ -314,15 +315,15 @@
 	         vg(n2)   = vg(n1)
 		 vs(n2,:) = vs(n1,:)
               END IF
-
+!
             CASE DEFAULT
-
+!
               CONTINUE
 
             END SELECT
 
-! ... set upper corners velocities
-!
+            ! ... set upper corners velocities
+            !
             IF ( k == (nz-1) ) THEN
               IF( ( i == (nx-1) ) .AND. ( j == (ny-1) ) ) THEN
                 ! ug(ipjp) = ug(ipj)
@@ -336,37 +337,41 @@
 ! ***** Bottom boundary conditions ***** !
 !
 !
+            n1 = ijk
             n2 = ijkm
 
+            IF(fl_l(ipjkm) /= 1) THEN
+
             SELECT CASE (  fl_l( n2 ) )
-
+!
             CASE (2)
-
+!
               ug( n2 ) = ug( n1 )
               us(n2,:) = us(n1,:)
 	      IF (job_type == '3D') THEN
                 vg( n2 ) = vg( n1 )
                 vs(n2,:) = vs(n1,:)
 	      END IF
-
+!
             CASE (3)
-
+!
               ug(n2)   = -ug(n1)
               us(n2,:) = -us(n1,:)
 	      IF (job_type == '3D') THEN
                 vg(n2)   = -vg(n1)
                 vs(n2,:) = -vs(n1,:)
 	      END IF
-
+!
             CASE DEFAULT
-
+!
               CONTINUE
 
             END SELECT
 
-!
-! ... Set lower corners velocities
-!
+            END IF
+
+            ! ... Set lower corners velocities
+            !
             IF (k == 2) THEN
               IF( ( i == (nx-1) ) .AND. ( j == (ny-1) ) ) THEN
                 ! ug(ipjm) = ug(ipj)
@@ -376,24 +381,20 @@
                 ! ug(imjm) = ug(imj)
               ENDIF
             END IF
-!
+
         END IF
       END DO
 !
       RETURN
       END SUBROUTINE boundary
-
-
-
 !----------------------------------------------------------------------
-
       SUBROUTINE inoutflow(umn, ucn, upn, usmn, uscn, uspn, d1, d2, grav, k)
 !
 ! ... This routine computes the free in/outflow conditions in the boundary
 ! ... cell, i.e. the normal component of the velocity and the scalar fields
 ! ... for /// E a s t , N o r t h , T o p /// boundaries
 
-      USE atmosphere, ONLY: atm
+      USE atmosphere, ONLY: p_atm, t_atm
       USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
       USE gas_constants, ONLY: gas_type
 
@@ -534,7 +535,8 @@
         upn = upnn
 !
         zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )  ! DOMANDA perche dz(1)
-        CALL atm( zrif, prif, trif )
+        prif = p_atm(k)
+        trif = t_atm(k)
 
         rhorifm1 = rgas * trif / ( prif * gmw(6) )   !  rhorif ** (-1)
         cost  = prif ** ( 1.D0 / gammaair ) * rhorifm1
@@ -602,18 +604,14 @@
 !                
       RETURN
       END SUBROUTINE inoutflow
-
-
 !----------------------------------------------------------------------
-
-
       SUBROUTINE outinflow(upn, ucn, uspn, uscn, d1, d2, k)
 !
 ! ... This routine computes the free in/outflow conditions in the boundary
 ! ... cell, i.e. the normal component of the velocity and the scalar fields
 ! ... for /// W e s t,  S o u t h ///  boundaries
 
-      USE atmosphere, ONLY: atm
+      USE atmosphere, ONLY: p_atm, t_atm
       USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
       USE gas_constants, ONLY: gas_type
 
@@ -755,7 +753,8 @@
         ucn = ucn - upn*dt*d1inv * (u1n - 0.D0)
 
         zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )  ! DOMANDA perche√ dz(1)
-        CALL atm( zrif, prif, trif )
+        prif = p_atm(k)
+        trif = t_atm(k)
         
         !rhorif = prif*gmw(6)/(rgas*trif)
         !cost = prif/(rhorif**gammaair)

@@ -173,7 +173,7 @@
 
     END SUBROUTINE subscr
 !-----------------------------------------------------------------------
-    SUBROUTINE subscr_iter( ijk )
+      SUBROUTINE first_subscr( ijk )
       IMPLICIT NONE
 !
       INTEGER, INTENT(IN) :: ijk
@@ -192,42 +192,11 @@
 
       ELSE IF( job_type_flag == 3 ) THEN
 
-        imjk   = myijk( im1_jp0_kp0_ , ijk )
-        ijmk   = myijk( ip0_jm1_kp0_ , ijk )
-        ijkm   = myijk( ip0_jp0_km1_ , ijk )
         ipjk   = myijk( ip1_jp0_kp0_ , ijk )
+        imjk   = myijk( im1_jp0_kp0_ , ijk )
         ijpk   = myijk( ip0_jp1_kp0_ , ijk )
-        ijkp   = myijk( ip0_jp0_kp1_ , ijk )
-
-        ijke = myinds( ip1_jp0_kp0_ , ijk )
-        ijkw = myinds( im1_jp0_kp0_ , ijk )
-        ijkn = myinds( ip0_jp1_kp0_ , ijk )
-        ijks = myinds( ip0_jm1_kp0_ , ijk )
-        ijkt = myinds( ip0_jp0_kp1_ , ijk )
-        ijkb = myinds( ip0_jp0_km1_ , ijk )
-
-      END IF
-
-    END SUBROUTINE subscr_iter
-!-----------------------------------------------------------------------
-    SUBROUTINE subscr_red( ijk )
-      IMPLICIT NONE
-!
-      INTEGER, INTENT(IN) :: ijk
-!
-      IF( job_type_flag == 2 ) THEN
-        ijkm  = myijk( ip0_jp0_km1_, ijk )
-        imjk  = myijk( im1_jp0_kp0_, ijk )
-
-        ijke  = myinds(ip1_jp0_kp0_, ijk )
-        ijkt  = myinds(ip0_jp0_kp1_, ijk )
-        ijkw  = myinds(im1_jp0_kp0_, ijk )
-        ijkb  = myinds(ip0_jp0_km1_, ijk )
-
-      ELSE IF( job_type_flag == 3 ) THEN
-
-        imjk   = myijk( im1_jp0_kp0_ , ijk )
         ijmk   = myijk( ip0_jm1_kp0_ , ijk )
+        ijkp   = myijk( ip0_jp0_kp1_ , ijk )
         ijkm   = myijk( ip0_jp0_km1_ , ijk )
 
         ijke = myinds( ip1_jp0_kp0_ , ijk )
@@ -236,150 +205,37 @@
         ijks = myinds( ip0_jm1_kp0_ , ijk )
         ijkt = myinds( ip0_jp0_kp1_ , ijk )
         ijkb = myinds( ip0_jp0_km1_ , ijk )
+
       END IF
 
-    END SUBROUTINE subscr_red
-
-!---------------------------------------------------------------------------
-    SUBROUTINE subscr_bdry( ijk )
+    END SUBROUTINE first_subscr
+!-----------------------------------------------------------------------
+      SUBROUTINE third_subscr( ijk )
       IMPLICIT NONE
 !
       INTEGER, INTENT(IN) :: ijk
 !
       IF( job_type_flag == 2 ) THEN
 
-        ijkm  = myijk( ip0_jp0_km1_, ijk )
-        imjk  = myijk( im1_jp0_kp0_, ijk )
-        ipjk  = myijk( ip1_jp0_kp0_, ijk )
-        ijkp  = myijk( ip0_jp0_kp1_, ijk )
-        ipjkm = myijk( ip1_jp0_km1_, ijk )
-        ipjkp = myijk( ip1_jp0_kp1_, ijk )
-        imjkm = myijk( im1_jp0_km1_, ijk )
-        imjkp = myijk( im1_jp0_kp1_, ijk )
-        ijkpp = myijk( ip0_jp0_kp2_, ijk )
-        ippjk = myijk( ip2_jp0_kp0_, ijk )
-        immjk = myijk( im2_jp0_kp0_, ijk )
-        ijkmm = myijk( ip0_jp0_km2_, ijk )
-
-      ELSE  IF( job_type_flag == 3 ) THEN
-
-        ipjk   = myijk( ip1_jp0_kp0_ , ijk )
-        imjk   = myijk( im1_jp0_kp0_ , ijk )
         ippjk  = myijk( ip2_jp0_kp0_ , ijk )
         immjk  = myijk( im2_jp0_kp0_ , ijk )
-        ijpk   = myijk( ip0_jp1_kp0_ , ijk )
-        ipjpk  = myijk( ip1_jp1_kp0_ , ijk )
-        imjpk  = myijk( im1_jp1_kp0_ , ijk )
-        ijmk   = myijk( ip0_jm1_kp0_ , ijk )
-        ipjmk  = myijk( ip1_jm1_kp0_ , ijk )
-        imjmk  = myijk( im1_jm1_kp0_ , ijk )
-        ijppk  = myijk( ip0_jp2_kp0_ , ijk )
-        ijmmk  = myijk( ip0_jm2_kp0_ , ijk )
-        ijkp   = myijk( ip0_jp0_kp1_ , ijk )
-        ipjkp  = myijk( ip1_jp0_kp1_ , ijk )
-        imjkp  = myijk( im1_jp0_kp1_ , ijk )
-        ijpkp  = myijk( ip0_jp1_kp1_ , ijk )
-        ijmkp  = myijk( ip0_jm1_kp1_ , ijk )
-        ijkm   = myijk( ip0_jp0_km1_ , ijk )
-        ipjkm  = myijk( ip1_jp0_km1_ , ijk )
-        imjkm  = myijk( im1_jp0_km1_ , ijk )
-        ijpkm  = myijk( ip0_jp1_km1_ , ijk )
-        ijmkm  = myijk( ip0_jm1_km1_ , ijk )
         ijkpp  = myijk( ip0_jp0_kp2_ , ijk )
         ijkmm  = myijk( ip0_jp0_km2_ , ijk )
 
-      END IF
-
-     END SUBROUTINE subscr_bdry
-!-----------------------------------------------------------------------
-      SUBROUTINE subscr_fieldn( ijk )
-      IMPLICIT NONE
-!
-      INTEGER, INTENT(IN) :: ijk
-!
-      IF( job_type_flag == 2 ) THEN
-      
-        ijke  = myinds(ip1_jp0_kp0_, ijk )
-        ijkt  = myinds(ip0_jp0_kp1_, ijk )
-        ijkw  = myinds(im1_jp0_kp0_, ijk )
-        ijkb  = myinds(ip0_jp0_km1_, ijk )
+        ijkee = myinds( ip2_jp0_kp0_ , ijk )
+        ijkww = myinds( im2_jp0_kp0_ , ijk )
+        ijktt = myinds( ip0_jp0_kp2_ , ijk )
+        ijkbb = myinds( ip0_jp0_km2_ , ijk )
 
       ELSE IF( job_type_flag == 3 ) THEN
 
-        ijke = myinds( ip1_jp0_kp0_ , ijk )
-        ijkw = myinds( im1_jp0_kp0_ , ijk )
-        ijkn = myinds( ip0_jp1_kp0_ , ijk )
-        ijks = myinds( ip0_jm1_kp0_ , ijk )
-        ijkt = myinds( ip0_jp0_kp1_ , ijk )
-        ijkb = myinds( ip0_jp0_km1_ , ijk )
+        ippjk  = myijk( ip2_jp0_kp0_ , ijk )
+        immjk  = myijk( im2_jp0_kp0_ , ijk )
+        ijppk  = myijk( ip0_jp2_kp0_ , ijk )
+        ijmmk  = myijk( ip0_jm2_kp0_ , ijk )
+        ijkpp  = myijk( ip0_jp0_kp2_ , ijk )
+        ijkmm  = myijk( ip0_jp0_km2_ , ijk )
 
-      END IF
-
-    END SUBROUTINE subscr_fieldn
-
-!----------------------------------------------------------------------------
-    SUBROUTINE subscr_tilde( ijk )
-      IMPLICIT NONE
-!
-      INTEGER, INTENT(IN) :: ijk
-!
-      IF( job_type_flag == 2 ) THEN
-      
-        imjk   = myijk( im1_jp0_kp0_, ijk )
-        ijkm   = myijk( ip0_jp0_km1_ , ijk )
-        ijkt   = myinds(ip0_jp0_kp1_, ijk )
-       
-      ELSE IF( job_type_flag == 3 ) THEN
-
-        imjk   = myijk( im1_jp0_kp0_ , ijk )
-        ijmk   = myijk( ip0_jm1_kp0_ , ijk )
-        ijkm   = myijk( ip0_jp0_km1_ , ijk )
-        ijkt   = myinds( ip0_jp0_kp1_ , ijk )
-      
-      END IF
-
-    END SUBROUTINE subscr_tilde
-
-!----------------------------------------------------------------------------
-    SUBROUTINE subscr_ygas_1st( ijk )
-
-!   The same as subscr_red but only for job_type = 3D 
-
-      IMPLICIT NONE
-!
-      INTEGER, INTENT(IN) :: ijk
-!
-        imjk   = myijk( im1_jp0_kp0_ , ijk )
-        ijmk   = myijk( ip0_jm1_kp0_ , ijk )
-        ijkm   = myijk( ip0_jp0_km1_ , ijk )
-
-        ijke = myinds( ip1_jp0_kp0_ , ijk )
-        ijkw = myinds( im1_jp0_kp0_ , ijk )
-        ijkn = myinds( ip0_jp1_kp0_ , ijk )
-        ijks = myinds( ip0_jm1_kp0_ , ijk )
-        ijkt = myinds( ip0_jp0_kp1_ , ijk )
-        ijkb = myinds( ip0_jp0_km1_ , ijk )
-     
-
-  END SUBROUTINE subscr_ygas_1st
-
-!----------------------------------------------------------------------------
-   SUBROUTINE subscr_ygas( ijk )
-
-      IMPLICIT NONE
-!
-      INTEGER, INTENT(IN) :: ijk
-!
-        imjk   = myijk( im1_jp0_kp0_ , ijk )
-        ijmk   = myijk( ip0_jm1_kp0_ , ijk )
-        ijkm   = myijk( ip0_jp0_km1_ , ijk )
-
-        ijke = myinds( ip1_jp0_kp0_ , ijk )
-        ijkw = myinds( im1_jp0_kp0_ , ijk )
-        ijkn = myinds( ip0_jp1_kp0_ , ijk )
-        ijks = myinds( ip0_jm1_kp0_ , ijk )
-        ijkt = myinds( ip0_jp0_kp1_ , ijk )
-        ijkb = myinds( ip0_jp0_km1_ , ijk )
         ijkee = myinds( ip2_jp0_kp0_ , ijk )
         ijkww = myinds( im2_jp0_kp0_ , ijk )
         ijknn = myinds( ip0_jp2_kp0_ , ijk )
@@ -387,10 +243,10 @@
         ijktt = myinds( ip0_jp0_kp2_ , ijk )
         ijkbb = myinds( ip0_jp0_km2_ , ijk )
 
+      END IF
 
-    END SUBROUTINE subscr_ygas
-
-!----------------------------------------------------------------------------
+    END SUBROUTINE third_subscr
+!-----------------------------------------------------------------------
 
       FUNCTION cte(c)
 ! ... build a stencil with constant values c at each location
@@ -604,153 +460,9 @@
         fracstencil%bb = st1%bb / st2%bb
       
       END FUNCTION fracstencil
-
 !-----------------------------------------------------------------------
-
-      SUBROUTINE chkstencil(st1,info)
-
-! ... check the stancil
-!
-      IMPLICIT NONE
-
-        TYPE(stencil), INTENT(INOUT) :: st1
-        INTEGER, INTENT(OUT) :: info
-        INTEGER :: float_chk
-
-        info = 0
-
-        IF( float_chk( st1%c ) /= 0 ) THEN
-          WRITE(6,*) 'chk: c'
-          st1%c = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%e) /= 0 ) THEN
-          WRITE(6,*) 'chk: e'
-          st1%e = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%w) /= 0 ) THEN
-          WRITE(6,*) 'chk: w'
-          st1%w = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%ee)/= 0 ) THEN
-          WRITE(6,*) 'chk: ee'
-          st1%ee = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%ww)/= 0 ) THEN
-          WRITE(6,*) 'chk: ww'
-          st1%ww = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%n )/= 0 ) THEN
-          WRITE(6,*) 'chk: n'
-          st1%n = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%en)/= 0 ) THEN
-          WRITE(6,*) 'chk: en'
-          st1%en = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%wn)/= 0 ) THEN
-          WRITE(6,*) 'chk: wn'
-          st1%wn = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%s)/= 0 ) THEN
-          WRITE(6,*) 'chk: s'
-          st1%s = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%es)/= 0 ) THEN
-          WRITE(6,*) 'chk: es'
-          st1%es = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%ws)/= 0 ) THEN
-          WRITE(6,*) 'chk: ws'
-          st1%ws = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%nn)/= 0 ) THEN
-          WRITE(6,*) 'chk: nn'
-          st1%nn = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%ss)/= 0 ) THEN
-          WRITE(6,*) 'chk: ss'
-          st1%ss = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%t )/= 0 ) THEN
-          WRITE(6,*) 'chk: t'
-          st1%t = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%et)/= 0 ) THEN
-          WRITE(6,*) 'chk: et'
-          st1%et = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%wt)/= 0 ) THEN
-          WRITE(6,*) 'chk: wt'
-          st1%wt = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%nt)/= 0 ) THEN
-          WRITE(6,*) 'chk: nt'
-          st1%nt = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%st)/= 0 ) THEN
-          WRITE(6,*) 'chk: st'
-          st1%st = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%b )/= 0 ) THEN
-          WRITE(6,*) 'chk: b'
-          st1%b = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%eb)/= 0 ) THEN
-          WRITE(6,*) 'chk: eb'
-          st1%eb = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%wb)/= 0 ) THEN
-          WRITE(6,*) 'chk: wb'
-          st1%wb = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%nb)/= 0 ) THEN
-          WRITE(6,*) 'chk: nb'
-          st1%nb = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%sb)/= 0 ) THEN
-          WRITE(6,*) 'chk: sb'
-          st1%sb = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%tt)/= 0 ) THEN
-          WRITE(6,*) 'chk: tt'
-          st1%tt = 0.0d0
-          info = info + 1
-        ENDIF
-        IF( float_chk( st1%bb)/= 0 ) THEN
-          WRITE(6,*) 'chk: bb'
-          st1%bb = 0.0d0
-          info = info + 1
-        ENDIF
-      
-      END SUBROUTINE
-
-!-----------------------------------------------------------------------
-!-----------------------------------------------------------------------
-      SUBROUTINE nb( stncl, array, ijk )
-! ... This routine compute the stencil around a grid point
+      SUBROUTINE full_nb( stncl, array, ijk )
+! ... This routine compute the complete stencil around a grid point
 ! ... considering the boundary conditions
 !
       IMPLICIT NONE 
@@ -807,59 +519,10 @@
       END IF
 
       RETURN
-      END SUBROUTINE nb
-
-
-      SUBROUTINE nb_13( stncl, array, ijk )
-! ... This routine compute the stencil around a grid point
-! ... considering the boundary conditions
-!
-      IMPLICIT NONE 
-!
-      TYPE(stencil) :: stncl
-      REAL*8, INTENT(IN) :: array(:)
-      INTEGER, INTENT(IN) :: ijk
-!
-      IF( job_type_flag == 2 ) THEN
-
-        stncl%c  = array(ijk)
-
-        stncl%e  = array(ijke)
-        stncl%t  = array(ijkt)
-        stncl%w  = array(ijkw)
-        stncl%b  = array(ijkb)
-        stncl%et  = array(ijket)
-        stncl%wt  = array(ijkwt)
-        stncl%eb  = array(ijkeb)
-        stncl%wb  = array(ijkwb)
-        stncl%ee  = array(ijkee)
-        stncl%tt  = array(ijktt)
-        stncl%ww  = array(ijkww)
-        stncl%bb  = array(ijkbb)
-
-      ELSE IF( job_type_flag == 3 ) THEN
-
-        stncl%c = array( ijk )
-        stncl%e = array( ijke )
-        stncl%w = array( ijkw )
-        stncl%ee = array( ijkee )
-        stncl%ww = array( ijkww )
-        stncl%n = array( ijkn )
-        stncl%s = array( ijks )
-        stncl%nn = array( ijknn )
-        stncl%ss = array( ijkss )
-        stncl%t = array( ijkt )
-        stncl%b = array( ijkb )
-        stncl%tt = array( ijktt )
-        stncl%bb = array( ijkbb )
-
-      END IF
-
-      RETURN
-      END SUBROUTINE nb_13
+      END SUBROUTINE full_nb
 !-----------------------------------------------------------------------
-      SUBROUTINE rnb(stncl,array,ijk)
-! ... This routine compute the stencil around a grid point
+      SUBROUTINE full_rnb(stncl,array,ijk)
+! ... This routine compute the complete stencil around a grid point
 ! ... without considering the boundary conditions
 !
       USE dimensions
@@ -916,61 +579,10 @@
       END IF
 
       RETURN
-      END SUBROUTINE rnb
-
-!-----------------------------------------------------------------------
-
-      SUBROUTINE rnb_13(stncl,array,ijk)
-! ... This routine compute the stencil around a grid point
-! ... without considering the boundary conditions
-!
-      USE dimensions
-      IMPLICIT NONE 
-!
-      TYPE(stencil) :: stncl
-      REAL*8, INTENT(IN) :: array(:)
-      INTEGER, INTENT(IN) :: ijk
-!
-      IF( job_type_flag == 2 ) THEN
-
-        stncl%c  = array(ijk)
-        stncl%e  = array(ipjk)
-        stncl%t  = array(ijkp)
-        stncl%w  = array(imjk)
-        stncl%b  = array(ijkm)
-        stncl%et  = array(ipjkp)
-        stncl%wt  = array(imjkp)
-        stncl%eb  = array(ipjkm)
-        stncl%wb  = array(imjkm)
-        stncl%ee  = array(ippjk)
-        stncl%tt  = array(ijkpp)
-        stncl%ww  = array(immjk)
-        stncl%bb  = array(ijkmm)
-
-      ELSE IF( job_type_flag == 3 ) THEN
-
-         stncl%c = array( ijk )
-         stncl%e = array( ipjk )
-         stncl%w = array( imjk )
-         stncl%ee = array( ippjk )
-         stncl%ww = array( immjk )
-         stncl%n = array( ijpk )
-         stncl%s = array( ijmk )
-         stncl%nn = array( ijppk )
-         stncl%ss = array( ijmmk )
-         stncl%t = array( ijkp )
-         stncl%b = array( ijkm )
-         stncl%tt = array( ijkpp )
-         stncl%bb = array( ijkmm )
-
-      END IF
-
-      RETURN
-      END SUBROUTINE rnb_13
-
+      END SUBROUTINE full_rnb
 !-----------------------------------------------------------------------
       SUBROUTINE first_nb( stncl, array, ijk )
-! ... first neighbours
+! ... only first neighbours
 
       IMPLICIT NONE 
 !
@@ -1000,11 +612,42 @@
 
       RETURN
       END SUBROUTINE first_nb
-
 !-----------------------------------------------------------------------
+      SUBROUTINE third_nb( stncl, array, ijk )
+! ... This routine compute the complete stencil around a grid point
+! ... considering the boundary conditions
+!
+      IMPLICIT NONE 
+!
+      TYPE(stencil) :: stncl
+      REAL*8, INTENT(IN) :: array(:)
+      INTEGER, INTENT(IN) :: ijk
+!
+      IF( job_type_flag == 2 ) THEN
 
+        stncl%c  = array(ijk)
+
+        stncl%ee  = array(ijkee)
+        stncl%tt  = array(ijktt)
+        stncl%ww  = array(ijkww)
+        stncl%bb  = array(ijkbb)
+
+      ELSE IF( job_type_flag == 3 ) THEN
+
+        stncl%ee = array( ijkee )
+        stncl%ww = array( ijkww )
+        stncl%nn = array( ijknn )
+        stncl%ss = array( ijkss )
+        stncl%tt = array( ijktt )
+        stncl%bb = array( ijkbb )
+
+      END IF
+
+      RETURN
+      END SUBROUTINE third_nb
+!-----------------------------------------------------------------------
       SUBROUTINE first_rnb(stncl,array,ijk)
-! ... first neighbours
+! ... only first neighbours
 
       IMPLICIT NONE 
 !
@@ -1034,6 +677,135 @@
 
       RETURN
       END SUBROUTINE first_rnb
+!-----------------------------------------------------------------------
+      SUBROUTINE third_rnb(stncl,array,ijk)
+! ... This routine compute only the second order stencil elements
+! ... without considering the boundary conditions
+!
+      USE dimensions
+      IMPLICIT NONE 
+!
+      TYPE(stencil) :: stncl
+      REAL*8, INTENT(IN) :: array(:)
+      INTEGER, INTENT(IN) :: ijk
+!
+      IF( job_type_flag == 2 ) THEN
+
+        stncl%ee  = array(ippjk)
+        stncl%tt  = array(ijkpp)
+        stncl%ww  = array(immjk)
+        stncl%bb  = array(ijkmm)
+
+      ELSE IF( job_type_flag == 3 ) THEN
+
+         stncl%ee = array( ippjk )
+         stncl%ww = array( immjk )
+         stncl%nn = array( ijppk )
+         stncl%ss = array( ijmmk )
+         stncl%tt = array( ijkpp )
+         stncl%bb = array( ijkmm )
+
+      END IF
+
+      RETURN
+      END SUBROUTINE third_rnb
+!-----------------------------------------------------------------------
+      SUBROUTINE nb( stncl, array, ijk )
+! ... This routine compute the complete stencil around a grid point
+! ... considering the boundary conditions
+!
+      IMPLICIT NONE 
+!
+      TYPE(stencil) :: stncl
+      REAL*8, INTENT(IN) :: array(:)
+      INTEGER, INTENT(IN) :: ijk
+!
+      IF( job_type_flag == 2 ) THEN
+
+        stncl%c  = array(ijk)
+        stncl%e  = array(ijke)
+        stncl%t  = array(ijkt)
+        stncl%w  = array(ijkw)
+        stncl%b  = array(ijkb)
+        stncl%et  = array(ijket)
+        stncl%wt  = array(ijkwt)
+        stncl%eb  = array(ijkeb)
+        stncl%ee  = array(ijkee)
+        stncl%tt  = array(ijktt)
+
+      ELSE IF( job_type_flag == 3 ) THEN
+
+        stncl%c = array( ijk )
+        stncl%e = array( ijke )
+        stncl%w = array( ijkw )
+        stncl%ee = array( ijkee )
+        stncl%n = array( ijkn )
+        stncl%en = array( ijken )
+        stncl%wn = array( ijkwn )
+        stncl%s = array( ijks )
+        stncl%es = array( ijkes )
+        stncl%nn = array( ijknn )
+        stncl%t = array( ijkt )
+        stncl%et = array( ijket )
+        stncl%wt = array( ijkwt )
+        stncl%nt = array( ijknt )
+        stncl%st = array( ijkst )
+        stncl%b = array( ijkb )
+        stncl%eb = array( ijkeb )
+        stncl%nb = array( ijknb )
+        stncl%tt = array( ijktt )
+
+      END IF
+
+      RETURN
+      END SUBROUTINE nb
+!-----------------------------------------------------------------------
+      SUBROUTINE rnb(stncl,array,ijk)
+! ... This routine compute the complete stencil around a grid point
+! ... without considering the boundary conditions
+!
+      USE dimensions
+      IMPLICIT NONE 
+!
+      TYPE(stencil) :: stncl
+      REAL*8, INTENT(IN) :: array(:)
+      INTEGER, INTENT(IN) :: ijk
+!
+      IF( job_type_flag == 2 ) THEN
+
+        stncl%c  = array(ijk)
+        stncl%e  = array(ipjk)
+        stncl%ee = array( ippjk )
+        stncl%t  = array(ijkp)
+        stncl%w  = array(imjk)
+        stncl%b  = array(ijkm)
+        stncl%wt  = array(imjkp)
+        stncl%eb  = array(ipjkm)
+        stncl%tt  = array( ijkpp )
+
+      ELSE IF( job_type_flag == 3 ) THEN
+
+        stncl%c = array( ijk )
+        stncl%e = array( ipjk )
+        stncl%w = array( imjk )
+        stncl%ee = array( ippjk )
+        stncl%n = array( ijpk )
+        stncl%wn = array( imjpk )
+        stncl%nn = array( ijppk )
+        stncl%s = array( ijmk )
+        stncl%es = array( ipjmk )
+        stncl%t = array( ijkp )
+        stncl%wt = array( imjkp )
+        stncl%st = array( ijmkp )
+        stncl%b = array( ijkm )
+        stncl%eb = array( ipjkm )
+        stncl%nb = array( ijpkm )
+        stncl%tt = array( ijkpp )
+
+      END IF
+
+      RETURN
+      END SUBROUTINE rnb
 !-----------------------------------------------------------------------
       END MODULE set_indexes
 !-----------------------------------------------------------------------

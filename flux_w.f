@@ -8,15 +8,10 @@
 ! ... The computational stencil is defined in the `set_indexes' module
 !
 !----------------------------------------------------------------------
-!
-      USE flux_limiters, ONLY: muscl, limiters
-
       IMPLICIT NONE
-      SAVE
 !
       REAL*8, PRIVATE :: cs                      ! convective stream   !
       REAL*8, PRIVATE :: cn                      ! Courant number      !
-      REAL*8, PRIVATE :: fou                     ! first order upwind  !
       REAL*8, PRIVATE :: upwnd                   ! upwinded variable   !
       REAL*8, PRIVATE :: lim                     ! limiter             !
       REAL*8, PRIVATE :: erre                    ! gradients ratio     !
@@ -25,46 +20,36 @@
       INTERFACE flw
         MODULE PROCEDURE flw_2d, flw_3d
       END INTERFACE
-      INTERFACE flw_1st
-        MODULE PROCEDURE flw_3d_1st
+      INTERFACE muscl_flw
+        MODULE PROCEDURE muscl_flw_2d, muscl_flw_3d
       END INTERFACE
      
+      SAVE
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE flw_3d(fe, fn, ft, fw, fs, fb, dens, u, v, w, ijk)
+      SUBROUTINE muscl_flw_3d(fe, fn, ft, dens, u, v, w, i, j, k)
 !
 ! ... Compute the convective fluxes on East, North, and Top sides of the cell
 ! ... for the momentum density along z.
 !
-      USE dimensions
-      USE domain_decomposition, ONLY: myijk
+      USE dimensions, ONLY: nx, ny, nz
+      USE flux_limiters, ONLY: limiters
       USE grid, ONLY: dx, dy, dz, indz, fl_l
-      USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt
       IMPLICIT NONE
 !
-      INTEGER, INTENT(IN) :: ijk
-      REAL*8, INTENT(OUT) :: fe, fn, ft, fw, fs, fb
+      REAL*8, INTENT(INOUT) :: fe, fn, ft
       TYPE(stencil), INTENT(IN) :: dens, u, v, w
+      INTEGER, INTENT(IN) :: i, j, k
 !
-      INTEGER :: i,j,k, imesh
       REAL*8 :: dxm, dxp, dxpp, indxpp, indxp, indxm
       REAL*8 :: dym, dyp, dypp, indypp, indyp, indym
       REAL*8 :: dzp, indzp, dzm, indzm, dzpp, indzpp
-      REAL*8 :: dens_c, dens_e, dens_n, dens_t
-      REAL*8 :: dens_w, dens_s, dens_b
-      REAL*8 :: dens_ee, dens_nn, dens_tt
       REAL*8 :: gradc, grade, gradw, gradn, grads, gradt, gradb
 !
       INTEGER :: ip2, jp2, kp2
-!
-      imesh = myijk( ip0_jp0_kp0_, ijk)
-      i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
-      j = MOD( imesh - 1, nx*ny ) / nx + 1
-      k = ( imesh - 1 ) / ( nx*ny ) + 1
 !
       ip2 = MIN( nx, i+2 )
       jp2 = MIN( ny, j+2 )
@@ -76,9 +61,7 @@
       dym=dy(j)+dy(j-1)
       dyp=dy(j)+dy(j+1)
       dypp=dy(j+1)+dy(jp2)
-      dzm=dz(k)+dz(k-1)
       dzp=dz(k)+dz(k+1)
-      dzpp=dz(k+1)+dz(kp2)
 
       indxm=1.D0/dxm
       indxp=1.D0/dxp
@@ -86,420 +69,290 @@
       indym=1.D0/dym
       indyp=1.D0/dyp
       indypp=1.D0/dypp
-      indzm=1.D0/dzm
       indzp=1.D0/dzp
-      indzpp=1.D0/dzpp
-!       
-! ... values of density interpolated linearly on the staggered grid
-!
-      dens_c = (dz(k+1) * dens%c + dz(k) * dens%t) * indzp
-      dens_e = (dz(k+1) * dens%e + dz(k) * dens%et) * indzp
-      dens_n = (dz(k+1) * dens%n + dz(k) * dens%nt) * indzp
-      dens_t = (dz(kp2) * dens%t + dz(k+1) * dens%tt) * indzpp
-      dens_w = (dz(k+1) * dens%w  + dz(k) * dens%wt) * indzp
-      dens_s = (dz(k+1) * dens%s  + dz(k) * dens%st) * indzp
-      dens_b = (dz(k-1) * dens%c  + dz(k) * dens%b) * indzm
-!
-      dens_ee = dens_e
-      dens_nn = dens_n
-      dens_tt = dens_t
-!
-! ... On boundary mantain first order accuracy (1st order Upwind).
-!
-! ... on West volume bondary
-!
-      IF (fl_l(imjk) /= 1) THEN
-        cs = (dz(k+1)*u%w + dz(k)*u%wt) * indzp
-        IF ( cs >= 0.D0 ) fw = dens_w * w%w * cs
-        IF ( cs <  0.D0 ) fw = dens_c * w%c * cs
-      END IF
-!
-! ... on South volume bondary
-!
-      IF (fl_l(ijmk) /= 1) THEN
-        cs = (dz(k+1)*v%s + dz(k)*v%st) * indzp
-        IF ( cs >= 0.D0 ) fs = dens_s * w%s * cs
-        IF ( cs <  0.D0 ) fs = dens_c * w%c * cs
-      END IF
-!
-! ... on Bottom volume bondary
-!
-      IF (fl_l(ijkm) /= 1) THEN
-        cs=0.5D0*(w%b+w%c)
-        IF ( cs >= 0.D0 ) fb = dens_b * w%b * cs
-        IF ( cs <  0.D0 ) fb = dens_c * w%c * cs
-      END IF
 !
 ! ... MUSCL reconstruction of momentum
 !
 ! ... on East volume boundary
 !
-      gradc = (2.0 * indxp * (dens_e * w%e - dens_c * w%c))
-      gradw = (2.0 * indxm * (dens_c * w%c - dens_w * w%w))
-      grade = (2.0 * indxpp * (dens_ee * w%ee - dens_e * w%e))
+      gradc = (2.0 * indxp * (dens%e * w%e - dens%c * w%c))
+      gradw = (2.0 * indxm * (dens%c * w%c - dens%w * w%w))
+      grade = (2.0 * indxpp * (dens%ee * w%ee - dens%e * w%e))
 !
       lim = 0.D0
       erre = 0.D0
 !
-      cs = (dz(k+1)*u%c+dz(k)*u%t)*indzp
-      cn = cs * dt * 2.0 * indxp
+      cs = ( dz(k+1) * u%c + dz(k) * u%t ) * indzp
+      !cn = cs * dt * 2.0 * indxp
       IF (cs >= 0.D0) THEN
-        IF (gradc /= 0) THEN
-	  erre = gradw / gradc
-        END IF
-	!erre = gradw / gradc
-        fou  = dens_c * w%c
+        IF (gradc /= 0) erre = gradw / gradc
 	incr = 0.5D0 * dx(i)
       ELSE IF (cs < 0.D0) THEN
-        IF (gradc /= 0) THEN
-	  erre = grade / gradc
-        END IF
-	!erre = grade / gradc
-        fou  = dens_e * w%e
+        IF (gradc /= 0) erre = grade / gradc
 	incr = 0.5D0 * dx(i+1)
       END IF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (i /= nx-1)) THEN
-        CALL limiters(lim,erre)
-      END IF
+      CALL limiters(lim,erre)
 !
-      upwnd = fou + lim * gradc * incr
+      upwnd = lim * gradc * incr
 !
-      fe = upwnd * cs
+      fe = fe + upwnd * cs
 !
 ! ... on North volume boundary
 !
-      gradc = (2.0 * indyp * (dens_n * w%n - dens_c * w%c))
-      grads = (2.0 * indym * (dens_c * w%c - dens_s * w%s))
-      gradn = (2.0 * indypp * (dens_nn * w%nn - dens_n * w%n))
+      gradc = (2.0 * indyp * (dens%n * w%n - dens%c * w%c))
+      grads = (2.0 * indym * (dens%c * w%c - dens%s * w%s))
+      gradn = (2.0 * indypp * (dens%nn * w%nn - dens%n * w%n))
 !
       lim = 0.D0
       erre = 0.D0
 !
-      cs = (dz(k+1)*v%c+dz(k)*v%t)*indzp
-      cn = cs * dt * 2.0 * indyp
+      cs = ( dz(k+1) * v%c + dz(k) * v%t ) * indzp
+      !cn = cs * dt * 2.0 * indyp
       IF (cs >= 0.D0) THEN
-        IF (gradc /= 0) THEN
-	  erre = grads / gradc
-        END IF
-	!erre = grads / gradc
-        fou  = dens_c * w%c
+        IF (gradc /= 0) erre = grads / gradc
 	incr = 0.5D0 * dy(j)
       ELSE IF (cs < 0.D0) THEN
-        IF (gradc /= 0) THEN
-	  erre = gradn / gradc
-        END IF
-	!erre = gradn / gradc
-        fou  = dens_n * w%n
+        IF (gradc /= 0) erre = gradn / gradc
 	incr = 0.5D0 * dy(j+1)
       END IF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (j /= ny-1)) THEN
-        CALL limiters(lim,erre)
-      END IF
+      CALL limiters(lim,erre)
 !
-      upwnd = fou + lim * gradc * incr
+      upwnd = lim * gradc * incr
 !
-      fn = upwnd * cs
+      fn = fn + upwnd * cs
 !
 ! ... on Top volume boundary
 !
-      gradc = (indz(k+1) * (dens_t * w%t - dens_c * w%c))
-      gradt = (indz(kp2) * (dens_tt * w%tt - dens_t * w%t))
-      gradb = (indz(k) * (dens_c * w%c - dens_b * w%b))
+      gradc = (indz(k+1) * (dens%t * w%t - dens%c * w%c))
+      gradt = (indz(kp2) * (dens%tt * w%tt - dens%t * w%t))
+      gradb = (indz(k) * (dens%c * w%c - dens%b * w%b))
 !
       lim = 0.D0
       erre = 0.D0
 !
-      cs = 0.5D0*(w%c+w%t)
-      cn = cs * dt * indz(k+1)
+      cs = 0.5D0 * ( w%c + w%t )
+      !cn = cs * dt * indz(k+1)
       IF (cs >= 0.D0) THEN
-	IF (gradc /= 0) THEN
-	  erre = gradb / gradc
-        END IF
-        !erre = gradb / gradc
-        fou  = dens_c * w%c
+	IF (gradc /= 0) erre = gradb / gradc
 	incr = 0.5D0 * dz(k+1)
       ELSE IF (cs < 0.D0) THEN
-        IF (gradc /= 0) THEN
-	  erre = gradt / gradc
-        END IF
-	!erre = gradt / gradc
-        fou  = dens_t * w%t
+        IF (gradc /= 0) erre = gradt / gradc
 	incr = 0.5D0 * dz(k+1)
       END IF 
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (k /= nz-1)) THEN
-        CALL limiters(lim,erre)
-      END IF
+      CALL limiters(lim,erre)
 !
-      upwnd = fou + lim * gradc * incr
+      upwnd = lim * gradc * incr
 !
-      ft = upwnd * cs
+      ft = ft + upwnd * cs
 !
       RETURN
-      END SUBROUTINE flw_3d
-
+      END SUBROUTINE muscl_flw_3d
 !------------------------------------------------------
-      SUBROUTINE flw_3d_1st(fe, fn, ft, fw, fs, fb, dens, u, v, w, k)
+      SUBROUTINE flw_3d(fe, fn, ft, fw, fs, fb, dens, u, v, w, k)
 !
 ! ... Compute the convective fluxes on East, North, and Top sides of the cell
 ! ... for the momentum density along z.
 !
-      USE dimensions
-      USE domain_decomposition, ONLY: myijk
-      USE grid, ONLY: dx, dy, dz, indz, fl_l
-      USE indijk_module, ONLY: ip0_jp0_kp0_
+      USE grid, ONLY: dz, fl_l
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE set_indexes, ONLY: stencil
-      USE time_parameters, ONLY: dt
       IMPLICIT NONE
 !
-      INTEGER, INTENT(IN) :: k
       REAL*8, INTENT(OUT) :: fe, fn, ft, fw, fs, fb
       TYPE(stencil), INTENT(IN) :: dens, u, v, w
+      INTEGER, INTENT(IN) :: k
+
+      REAL*8 :: dzp, indzp
 !
-      REAL*8 :: dzp, indzp, dzm, indzm, dzpp, indzpp
-      REAL*8 :: dens_c, dens_e, dens_n, dens_t
-      REAL*8 :: dens_w, dens_s, dens_b
-      INTEGER :: kp2
-     
-      kp2 = MIN( nz, k+2 )
-      
-      dzm=dz(k)+dz(k-1)
       dzp=dz(k)+dz(k+1)
-      dzpp=dz(k+1)+dz(kp2)
-     
-      indzm=1.D0/dzm
       indzp=1.D0/dzp
-      indzpp=1.D0/dzpp
-!       
-! ... values of density interpolated linearly on the staggered grid
-!
-      dens_c = (dz(k+1) * dens%c + dz(k) * dens%t) * indzp
-      dens_e = (dz(k+1) * dens%e + dz(k) * dens%et) * indzp
-      dens_n = (dz(k+1) * dens%n + dz(k) * dens%nt) * indzp
-      dens_t = (dz(kp2) * dens%t + dz(k+1) * dens%tt) * indzpp
-      dens_w = (dz(k+1) * dens%w  + dz(k) * dens%wt) * indzp
-      dens_s = (dz(k+1) * dens%s  + dz(k) * dens%st) * indzp
-      dens_b = (dz(k-1) * dens%c  + dz(k) * dens%b) * indzm
-!
-!
-! ... On boundary mantain first order accuracy (1st order Upwind).
 !
 ! ... on West volume bondary
 !
       IF (fl_l(imjk) /= 1) THEN
         cs = (dz(k+1)*u%w + dz(k)*u%wt) * indzp
-        IF ( cs >= 0.D0 ) fw = dens_w * w%w * cs
-        IF ( cs <  0.D0 ) fw = dens_c * w%c * cs
+        IF ( cs >= 0.D0 ) fw = dens%w * w%w * cs
+        IF ( cs <  0.D0 ) fw = dens%c * w%c * cs
       END IF
 !
 ! ... on South volume bondary
 !
       IF (fl_l(ijmk) /= 1) THEN
         cs = (dz(k+1)*v%s + dz(k)*v%st) * indzp
-        IF ( cs >= 0.D0 ) fs = dens_s * w%s * cs
-        IF ( cs <  0.D0 ) fs = dens_c * w%c * cs
+        IF ( cs >= 0.D0 ) fs = dens%s * w%s * cs
+        IF ( cs <  0.D0 ) fs = dens%c * w%c * cs
       END IF
 !
 ! ... on Bottom volume bondary
 !
       IF (fl_l(ijkm) /= 1) THEN
         cs=0.5D0*(w%b+w%c)
-        IF ( cs >= 0.D0 ) fb = dens_b * w%b * cs
-        IF ( cs <  0.D0 ) fb = dens_c * w%c * cs
+        IF ( cs >= 0.D0 ) fb = dens%b * w%b * cs
+        IF ( cs <  0.D0 ) fb = dens%c * w%c * cs
       END IF
+!
+! ... on East volume boundary
+!
+      cs = (dz(k+1)*u%c+dz(k)*u%t)*indzp
+      IF (cs >= 0.D0) fe  = dens%c * w%c * cs
+      IF (cs <  0.D0) fe  = dens%e * w%e * cs
+!
+! ... on North volume boundary
+!
+      cs = (dz(k+1)*v%c+dz(k)*v%t)*indzp
+      IF (cs >= 0.D0) fn  = dens%c * w%c * cs
+      IF (cs <  0.D0) fn  = dens%n * w%n * cs
+!
+! ... on Top volume boundary
+!
+      cs = 0.5D0*(w%c+w%t)
+      IF (cs >= 0.D0) ft  = dens%c * w%c * cs
+      IF (cs <  0.D0) ft  = dens%t * w%t * cs
+!
+      RETURN
+      END SUBROUTINE flw_3d
+!------------------------------------------------------    
+      SUBROUTINE muscl_flw_2d(fe, ft, dens, u, w, i, k)
+!
+! ... Compute the convective fluxes on East, Top, sides of the cell
+! ... for the momentum density along z.
+!
+      USE dimensions, ONLY: nx, ny, nz
+      USE flux_limiters, ONLY: limiters
+      USE grid, ONLY: dx, xb, dz, indz, fl_l
+      USE set_indexes, ONLY: stencil
+      USE time_parameters, ONLY: dt
+
+      IMPLICIT NONE
+!
+      REAL*8, INTENT(INOUT) :: fe, ft
+      TYPE(stencil), INTENT(IN) :: dens, u, w
+      INTEGER, INTENT(IN) :: i, k
+
+      REAL*8 :: dxm, dxp, dxpp, indxpp, indxp, indxm
+      REAL*8 :: dzp, indzp
+      REAL*8 :: gradc, grade, gradw, gradt, gradb
+
+      INTEGER :: ip2, kp2
+!
+      ip2 = MIN( nx, i+2 )
+      kp2 = MIN( nz, k+2 )
+!
+      dxm=dx(i)+dx(i-1)
+      dxp=dx(i)+dx(i+1)
+      dxpp=dx(i+1)+dx(ip2)
+      dzp=dz(k)+dz(k+1)
+
+      indxm=1.D0/dxm
+      indxp=1.D0/dxp
+      indxpp=1.D0/dxpp
+      indzp=1.D0/dzp
 !
 ! ... MUSCL reconstruction of momentum
 !
 ! ... on East volume boundary
 !
-      
+      gradc = 2.D0 * indxp  * (dens%e * w%e   - dens%c * w%c)
+      gradw = 2.D0 * indxm  * (dens%c * w%c   - dens%w * w%w)
+      grade = 2.D0 * indxpp * (dens%ee * w%ee - dens%e * w%e)
+!
       lim = 0.D0
       erre = 0.D0
 !
-      cs = (dz(k+1)*u%c+dz(k)*u%t)*indzp
-      !cn = cs * dt * 2.0 * indxp
-      IF (cs >= 0.D0) THEN
-        fou  = dens_c * w%c
-      ELSE IF (cs < 0.D0) THEN
-        fou  = dens_e * w%e
+      cs = indzp * (u%c * dz(k+1) + u%t * dz(k))
+      !cn = cs * dt * 2.D0 * indzp
+      IF ( cs >= 0.D0 ) THEN
+	IF (gradc /= 0.D0) erre = gradw / gradc
+	incr = 0.5D0 * dx(i)
+      ELSE IF ( cs < 0.D0 ) THEN
+	IF (gradc /= 0.D0) erre = grade / gradc
+	incr = 0.5D0 * dx(i+1)
       END IF
 !
-      fe = fou * cs
+      CALL limiters(lim,erre)
 !
-! ... on North volume boundary
+      upwnd = lim * gradc * incr
 !
-     
-      cs = (dz(k+1)*v%c+dz(k)*v%t)*indzp
-      !cn = cs * dt * 2.0 * indyp
-      IF (cs >= 0.D0) THEN
-        fou  = dens_c * w%c
-      ELSE IF (cs < 0.D0) THEN
-        fou  = dens_n * w%n
-      END IF
-!
-      fn = fou * cs
+      fe = fe + upwnd * cs * xb(i)
 !
 ! ... on Top volume boundary
 !
-      cs = 0.5D0*(w%c+w%t)
+      gradc = (dens%t * w%t   - dens%c * w%c) * indz(k+1)
+      gradb = (dens%c * w%c   - dens%b * w%b) * indz(k)
+      gradt = (dens%tt * w%tt - dens%t * w%t) * indz(kp2)
+!
+      lim = 0.D0
+      erre = 0.D0
+!
+      cs = 0.5D0 * ( w%t + w%c )
       !cn = cs * dt * indz(k+1)
       IF (cs >= 0.D0) THEN
-        fou  = dens_c * w%c
+	IF (gradc /= 0.D0) erre = gradb / gradc
+	incr = 0.5D0 * dz(k+1)
       ELSE IF (cs < 0.D0) THEN
-        fou  = dens_t * w%t
+	IF (gradc /= 0.D0) erre = gradt / gradc
+	incr = 0.5D0 * dz(k+1)
       END IF 
 !
-      ft = fou * cs
+      CALL limiters(lim,erre)
+!
+      upwnd = lim * gradc * incr
+!
+      ft = ft + upwnd * cs
 !
       RETURN
-      END SUBROUTINE flw_3d_1st
-
+      END SUBROUTINE muscl_flw_2d
 !------------------------------------------------------    
-
-      SUBROUTINE flw_2d(fe, ft, fw, fb, dens, u, w, ij)
+      SUBROUTINE flw_2d(fe, ft, fw, fb, dens, u, w, i, k)
 !
 ! ... Compute the convective fluxes on East, Top, sides of the cell
 ! ... for the momentum density along z.
 !
-      USE dimensions
-      USE domain_decomposition, ONLY: myijk
-      USE grid, ONLY: dx, xb, dz, indz, fl_l
-      USE indijk_module, ONLY: ip0_jp0_kp0_
+      USE grid, ONLY: dz, xb, fl_l
       USE set_indexes, ONLY: imjk, ijkm
       USE set_indexes, ONLY: stencil
-      USE time_parameters, ONLY: dt
 
       IMPLICIT NONE
 !
       REAL*8, INTENT(OUT) :: fe, ft, fw, fb
       TYPE(stencil), INTENT(IN) :: dens, u, w
-      INTEGER, INTENT(IN) :: ij
-      INTEGER :: i, k, imesh
-!
-      REAL*8 :: dens_c, dens_e, dens_t
-      REAL*8 :: dens_w, dens_b
-      REAL*8 :: dens_ee, dens_tt
-      REAL*8 :: dxm, dxp, dxpp, indxpp, indxp, indxm
-      REAL*8 :: dzp, indzp, dzm, indzm, dzpp, indzpp
-      REAL*8 :: gradc, grade, gradw, gradt, gradb
-!
-      INTEGER :: ip2, kp2
-!
-      imesh = myijk( ip0_jp0_kp0_, ij)
-      k = ( imesh - 1 ) / nx + 1
-      i = MOD( ( imesh - 1 ), nx) + 1
-!
-      ip2 = MIN( nx, i+2 )
-      kp2 = MIN( nz, k+2 )
+      INTEGER, INTENT(IN) :: i, k
 
+      REAL*8 :: dzp, indzp
 !
-      dxm=dx(i)+dx(i-1)
-      dxp=dx(i)+dx(i+1)
-      dxpp=dx(i+1)+dx(ip2)
-      dzm=dz(k)+dz(k-1)
       dzp=dz(k)+dz(k+1)
-      dzpp=dz(k+1)+dz(kp2)
-
-      indxm=1.D0/dxm
-      indxp=1.D0/dxp
-      indxpp=1.D0/dxpp
-      indzm=1.D0/dzm
       indzp=1.D0/dzp
-      indzpp=1.D0/dzpp
-!       
-! ... Compute linearly interpolated values of density on the staggered grid
-!
-      dens_c = (dz(k+1) * dens%c + dz(k) * dens%t) * indzp
-      dens_t = (dz(kp2) * dens%t + dz(k+1) * dens%tt) * indzpp
-      dens_e = (dz(k+1) * dens%e + dz(k) * dens%et) * indzp
-      dens_b = (dz(k)   * dens%b + dz(k-1) * dens%c) * indzm
-      dens_w = (dz(k+1) * dens%w + dz(k) * dens%wt) * indzp
-!
-! ... an arbitrary choice !
-!
-      dens_ee = dens_e
-      dens_tt = dens_t
-!
-! ... On boundary mantain first order accuracy (1st order Upwind).
 !
 ! ... on West volume bondary
 !
       IF( fl_l(imjk) /= 1 ) THEN
-        cs = (u%wn * dz(k) + u%w * dz(k+1)) * indzp
-        IF ( cs >= 0.D0 ) fw = dens_w * w%w * cs * xb(i-1)
-        IF ( cs <  0.D0 ) fw = dens_c * w%c * cs * xb(i-1)
+        cs = (u%wt * dz(k) + u%w * dz(k+1)) * indzp
+        IF ( cs >= 0.D0 ) fw = dens%w * w%w * cs * xb(i-1)
+        IF ( cs <  0.D0 ) fw = dens%c * w%c * cs * xb(i-1)
       END IF
 !
 ! ... on Bottom volume bondary
 !
       IF( fl_l(ijkm) /= 1 ) THEN
         cs = 0.5D0 * ( w%c + w%b ) 
-        IF ( cs >= 0.D0 ) fb = dens_b * w%b * cs
-        IF ( cs <  0.D0 ) fb = dens_c * w%c * cs
+        IF ( cs >= 0.D0 ) fb = dens%b * w%b * cs
+        IF ( cs <  0.D0 ) fb = dens%c * w%c * cs
       END IF
-!
-! ... MUSCL reconstruction of momentum
 !
 ! ... on East volume boundary
 !
-      gradc = 2.D0 * indxp  * (dens_e * w%e   - dens_c * w%c)
-      gradw = 2.D0 * indxm  * (dens_c * w%c   - dens_w * w%w)
-      grade = 2.D0 * indxpp * (dens_ee * w%ee - dens_e * w%e)
-!
-      lim = 0.D0
-      erre = 0.D0
-!
       cs = indzp * (u%c * dz(k+1) + u%t * dz(k))
-      cn = cs * dt * 2.D0 * indzp
-      IF ( cs >= 0.D0 ) THEN
-	erre = gradw / gradc
-        fou  = dens_c * w%c
-	incr = 0.5D0 * dx(i)
-      ELSE IF ( cs < 0.D0 ) THEN
-	erre = grade / gradc
-        fou  = dens_e * w%e
-	incr = 0.5D0 * dx(i+1)
-      END IF
-!
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (i /= nx-1)) THEN
-        CALL limiters(lim,erre)
-      END IF
-!
-      upwnd = fou + lim * gradc * incr
-!
-      fe = upwnd * cs * xb(i)
+      IF ( cs >= 0.D0 ) fe  = dens%c * w%c * cs * xb(i)
+      IF ( cs <  0.D0 ) fe  = dens%e * w%e * cs * xb(i)
 !
 ! ... on Top volume boundary
 !
-      gradc = (dens_t * w%t   - dens_c * w%c) * indz(k+1)
-      gradb = (dens_c * w%c   - dens_b * w%b) * indz(k)
-      gradt = (dens_tt * w%tt - dens_t * w%t) * indz(kp2)
-!
-      lim = 0.D0
-      erre = 0.D0
-!
       cs = 0.5D0 * ( w%t + w%c )
-      cn = cs * dt * indz(k+1)
-      IF (cs >= 0.D0) THEN
-	erre = gradb / gradc
-        fou  = dens_c * w%c
-	incr = 0.5D0 * dz(k+1)
-      ELSE IF (cs < 0.D0) THEN
-	erre = gradt / gradc
-        fou  = dens_t * w%t
-	incr = 0.5D0 * dz(k+1)
-      END IF 
-!
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (k /= nz-1)) THEN
-        CALL limiters(lim,erre)
-      END IF
-!
-      upwnd = fou + lim * gradc * incr
-!
-      ft = upwnd * cs
+      IF (cs >= 0.D0) ft  = dens%c * w%c * cs
+      IF (cs <  0.D0) ft  = dens%t * w%t * cs
 !
       RETURN
       END SUBROUTINE flw_2d

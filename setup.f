@@ -9,10 +9,9 @@
                                              tpob, ygcob
       REAL*8, DIMENSION(:), ALLOCATABLE   :: ugpr, wgpr, ppr, eppr, tgpr
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: uppr,wppr,epspr,tppr, ygcpr
-      INTEGER :: npr
+      LOGICAL :: density_specified
 
-      INTEGER :: lpr
-      REAL*8 :: zzero
+      INTEGER :: npr
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
@@ -39,15 +38,14 @@
 
       RETURN
       END SUBROUTINE
-
 !----------------------------------------------------------------------
-
       SUBROUTINE setup
 ! ... Set initial conditions
 ! ... (2D/3D_Compliant and fully parallel)
 !
-      USE atmosphere, ONLY: u0, v0, w0, p0, temp0, us0, vs0, ws0, ep0
-      USE atmosphere, ONLY: atm, controlatm
+      USE atmosphere, ONLY: u0, v0, w0, p0, temp0, us0, vs0, ws0, ep0, zzero
+      USE atmosphere, ONLY: control_atmosphere, set_atmosphere
+      USE atmosphere, ONLY: p_atm, t_atm
       USE control_flags, ONLY: job_type
       USE dimensions
       USE domain_decomposition, ONLY: ncint, meshinds, myijk
@@ -55,7 +53,7 @@
       USE eos_solid, ONLY: cnverts
       USE gas_constants, ONLY: gmw, rgas, gammaair
       USE gas_constants, ONLY: default_gas, gas_type
-      USE gas_solid_density, ONLY: rgp, rlk
+      USE gas_solid_density, ONLY: rlk
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_temperature, ONLY: sieg
       USE gas_solid_velocity, ONLY: ug, wg, vg
@@ -71,15 +69,16 @@
 !
       INTEGER :: i, j, k, ijk, ikpr, kpr, n, imesh
       INTEGER :: ig, is
-      REAL*8 :: zrif, prif, trif
+      REAL*8 :: zrif
       REAL*8 :: mass, tem
-      LOGICAL :: density_specified
 !
       CALL grid_setup( zzero )
       CALL setc
 !
 ! ... Control that atmospheric stratification is consistent
-      CALL controlatm
+! ... Set the pressure and temperature profile
+      CALL control_atmosphere
+      CALL set_atmosphere
 !
 ! ... Check gas species
       CALL gas_check
@@ -92,15 +91,12 @@
 ! ... domain (including boundary cells)
 !
         DO ijk = 1, ncint
-          imesh = myijk( ip0_jp0_kp0_ , ijk )
           CALL meshinds(ijk,imesh,i,j,k)
           
           zrif=zb(k)+0.5D0*(dz(1)-dz(k))
-            
-          CALL atm( zrif, prif, trif )
-            
-          p( ijk ) = prif
-          tg( ijk ) = trif
+
+          p( ijk ) = p_atm(k)
+          tg( ijk ) = t_atm(k)
 !
 ! ... Set initial gas composition and particle concentrations
 !
@@ -161,12 +157,13 @@
 !
 ! ... Compute thermodynamic quantities
 !
-        density_specified = .FALSE.  ! specify density instead of !
-                                     ! temperature                !
         DO  ijk = 1, ncint
 !
           CALL mole( xgc(:,ijk), ygc(:,ijk) )
-
+          
+          ! ... If density is specified tg(ijk) is a density
+          ! ... that must be converted into a temperature
+          !
           IF (density_specified) THEN
             mass = 0.D0
             DO ig=1,ngas
@@ -196,9 +193,7 @@
 !
       RETURN
       END SUBROUTINE setup
-
-
-
+!----------------------------------------------------------------------
       SUBROUTINE resetup
 
 ! ... Set initial conditions
@@ -248,7 +243,7 @@
           END DO
           xgc(dfg,ijk) = xgc_def
 
-          DO is = 1, nsolid
+          DO is=1,nsolid
             ep(ijk) = ep(ijk) - rlk(ijk,is)*inrl(is)
           END DO
 
@@ -263,8 +258,6 @@
 
       RETURN
       END SUBROUTINE resetup
-!----------------------------------------------------------------------
-
 !----------------------------------------------------------------------
 
       SUBROUTINE specified_flow(n)
@@ -336,8 +329,8 @@
               END IF
             END IF
           END IF
+        END DO 
 
-            END DO 
       END SUBROUTINE specified_flow
 !----------------------------------------------------------------------
       SUBROUTINE specified_profile(n)
@@ -474,14 +467,15 @@
 !
 ! set useful constants 
 !
-      gammaair = 1.33D0                          ! air adiabatic constant
+      !gammaair = 1.33D0                          ! monoatomic gas 
+      gammaair = 1.4D0                           ! air adiabatic constant
       gamn     = (gammaair - 1.D0) / gammaair    ! useful constant ! 
       c_joule = 4.186D0                          ! cal per joule
       c_erg   = 4.186D7                          ! cal per erg
       tzero  = 0.0D0                             ! costant reference temperature
       hzerog = 0.D0                              ! gas enthalpy at tzero
       hzeros = 0.D0                              ! particles enthalpy at tzero
-      rgas  = 8.31432                            ! perfect gas constant
+      rgas  = 8.31432D0                          ! perfect gas constant
       h1 = 0.D0                                  !
       h2 = 0.D0                                  !
       h3 = 0.D0                                  ! reaction enthalpies

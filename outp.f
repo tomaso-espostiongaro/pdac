@@ -85,7 +85,7 @@
       USE gas_constants, ONLY: gas_type, default_gas, gammaair
       USE gas_solid_density, ONLY: rog
       USE gas_solid_velocity, ONLY: ug, wg
-      USE gas_solid_temperature, ONLY: sieg
+      USE gas_solid_temperature, ONLY: sieg, tg
       USE parallel, ONLY: nproc, mpime, root, group
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p
@@ -97,12 +97,13 @@
       IMPLICIT NONE
 !
       CHARACTER( LEN = 15 ) :: filnam
-      CHARACTER( LEN = 44 ) :: lettera
+      CHARACTER( LEN = 4 ) :: lettera
 !
       INTEGER :: i,j,ijk
       INTEGER :: ig
       REAL*8 :: energy
 !
+      nfil=nfil+1
       filnam='shtube.'//lettera(nfil)
 
       IF( mpime .EQ. root ) THEN
@@ -112,7 +113,7 @@
       DO ijk = 1, ncint
       IF (fl_l(ijk) == 1) THEN
         energy = p(ijk)/(rog(ijk)*(gammaair - 1.D0))
-        WRITE(11,550)rog(ijk),wg(ijk),p(ijk),energy
+        WRITE(11,550)rog(ijk),wg(ijk),p(ijk),energy,tg(ijk)
       END IF
       END DO
 !

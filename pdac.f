@@ -179,7 +179,6 @@
           s4 = cpclock()
           call MP_WALLTIME(pt4,mpime)
       END IF
-
 !
 ! ... Read restart file
 !
@@ -188,12 +187,10 @@
       ELSE IF (itd > 2) THEN
         CALL error('setup','Output recovering not implemented',1)         
       END IF
-
 !
 ! ... Re-compute initial conditions depending on restart mode
 ! ... (i.e. when itd > 2 )
 !
-
       CALL resetup
 
       IF (timing) then
@@ -247,7 +244,6 @@
 !
 ! ... Finalize parallel environment
 !
-
       CALL parallel_hangup
 !
       STOP

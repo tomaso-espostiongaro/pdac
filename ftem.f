@@ -20,18 +20,21 @@
       USE control_flags, ONLY: job_type
       USE dimensions
       USE domain_decomposition, ONLY: ncint, meshinds
-      USE eos_gas, ONLY: cg
+      USE eos_gas, ONLY: cg, ygc, caloric_eosg, thermal_eosg
+      USE eos_solid, ONLY: caloric_eosl
       USE gas_solid_density, ONLY: rgp, rgpn, rlk, rlkn, rog
       USE gas_solid_temperature, ONLY: sieg, siegn, sies, siesn
+      USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_viscosity, ONLY: mug, kapg
       USE grid, ONLY: fl_l
       USE grid, ONLY: dx, dy, dz
-      USE specific_heat_module, ONLY: ck
+      USE specific_heat_module, ONLY: ck, cp
       USE heat_transfer, ONLY: hvs
+      USE particles_constants, ONLY: cps
       USE pressure_epsilon, ONLY: ep, p, pn
       USE reactions, ONLY: hrex, irex
-      USE set_indexes, ONLY: subscr, subscr_red, imjk, ijmk, ijkm
+      USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
       USE set_indexes, ONLY: ijke, ijkn, ijkt, ijkw, ijks, ijkb
       USE tilde_energy, ONLY: rhg, rhs
       USE time_parameters, ONLY: time, dt
@@ -43,9 +46,8 @@
       REAL*8 :: dpxyz, deltap
       REAL*8 :: indxc, indyc, indzc
       REAL*8 :: ugc, vgc, wgc
-      REAL*8 :: bt1
       INTEGER :: is, is1
-      INTEGER :: ijk, i, j, k, imesh
+      INTEGER :: ijk, i, j, k, imesh, info
 !
       ALLOCATE(at(nphase, nphase))
       ALLOCATE(bt(nphase))
@@ -67,12 +69,12 @@
 
         IF(fl_l(ijk) == 1) THEN
           CALL meshinds(ijk,imesh,i,j,k)
-          !CALL subscr(ijk)
-          CALL subscr_red(ijk)
+          CALL subscr(ijk)
 !
           IF(irex == 2) CALL hrex(ijk,hrexg,hrexs)
 !
 ! ... The pressure contribution can be treated implicitly
+! ... (coupled with momentum equation into the iterative solver)
 !
           indxc = 1.D0/(dx(i)+(dx(i+1)+dx(i-1))*0.5D0)
           indzc = 1.D0/(dz(k)+(dz(k+1)+dz(k-1))*0.5D0)
@@ -84,6 +86,8 @@
             vgc = (vg(ijk)+vg(ijmk))/2.D0
           END IF
 !
+! ... Pressure term (can be coupled in pressure algorithm)
+!
           dpxyz= dt * indxc * ugc * (p(ijke)-p(ijkw)) +   &
                  dt * indyc * vgc * (p(ijkn)-p(ijks)) +   &
                  dt * indzc * wgc * (p(ijkt)-p(ijkb))
@@ -92,7 +96,6 @@
 !
           at(1,1) = rgp(ijk)
           bt(1)   = siegn(ijk) * rgpn(ijk) + rhg(ijk) + deltap - hrexg
-          bt1     = bt(1)
 
           DO is=1, nsolid
             is1=is+1
@@ -117,31 +120,27 @@
             at(is1,is1) = rlk(ijk,is) + dt * hv / ck(is,ijk)
 !
             bt(is1) = rlkn(ijk,is) * siesn(ijk,is) + rhs(ijk, is)
+
           END DO
-!
+!            
 ! ... Solve the interphase enthalpy matrix by using Gauss inversion
 !
           CALL invdm(at, bt, ijk)
-!
-          IF ( bt(1) <= 0.0) THEN
-            WRITE(6,*)'From ftem: sieg prima = ',sieg(ijk)
-            WRITE(6,*)'From ftem: ', bt1, siegn(ijk), rgpn(ijk)
-            WRITE(6,*)'From ftem: ', rhg(ijk), deltap, hrexg
-            WRITE(6,*)'From ftem: ', ep(ijk), p(ijk), pn(ijk), dpxyz
-            WRITE(6,*)'From ftem: ',indxc , ugc ,  p(ijke),p(ijkw)
-            WRITE(6,*)'From ftem: ',indyc , vgc ,  p(ijkn),p(ijks)
-            WRITE(6,*)'From ftem: ',indzc , wgc ,  p(ijkt),p(ijkb) 
 
-            sieg(ijk) = bt(1)
-            WRITE(6,*)'From ftem:  sieg dopo = ',sieg(ijk)
-          ELSE
-            sieg(ijk) = bt(1)
-          END IF
-
+          sieg(ijk) = bt(1)
           DO is=1, nsolid
             sies(ijk,is) = bt(is+1)
           END DO
 !
+! ... Compute specific heat for gas (cp, cg) and particles (ck)
+! ... Update temperature of gas (tg ) and particles (ts)
+! ... from caloric Equation of State
+!
+          CALL caloric_eosg(cp(:,ijk), cg(ijk), tg(ijk), ygc(:,ijk), &
+                            sieg(ijk), ijk, info)
+
+          CALL caloric_eosl(ts(ijk,:), ck(:,ijk), cps(is), sies(ijk,:)) 
+
         END IF
       END DO
 !

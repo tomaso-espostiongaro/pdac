@@ -159,7 +159,7 @@
       USE domain_decomposition, ONLY: ncint, meshinds
       USE eos_gas, ONLY: cnvertg
       USE eos_solid, ONLY: cnverts
-      USE atmosphere, ONLY: atm
+      USE atmosphere, ONLY: p_atm, t_atm
       USE grid, ONLY: zb, dz
       USE specific_heat_module, ONLY: hcapg
       USE gas_constants, ONLY: tzero, hzerog, gas_type
@@ -449,9 +449,8 @@
 !          WRITE(6,*) ' P : ', tg(ijk), sieg(ijk), cp(:,ijk)
 !          CALL meshinds( ijk, imesh, i, j, k )
 !          zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )
-!          CALL atm( zrif, prif, trif)
-!          p(ijk) = prif
-!          tg(ijk) = trif
+!          p(ijk) = p_atm(k)
+!          tg(ijk) = t_atm(k)
 !          CALL hcapg( cp(:,ijk), tg(ijk))
 !          WRITE(6,*) ' I : ', tg(ijk), sieg(ijk), cp(:,ijk)
 !          hc = 0.D0

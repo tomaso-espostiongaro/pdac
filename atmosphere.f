@@ -1,26 +1,46 @@
 !------------------------------------------------------------------------
       MODULE atmosphere
 !------------------------------------------------------------------------
-        IMPLICIT NONE
-        SAVE
+      IMPLICIT NONE
+      PUBLIC
 !
 ! ... Initial atmospheric variables
 !
-        REAL*8 :: u0, v0, w0, p0, temp0, us0, vs0, ws0
-        REAL*8 :: ep0, epsmx0
-        REAL*8 :: gravx, gravy, gravz
-        LOGICAL :: stratification
+      REAL*8 :: u0, v0, w0, p0, temp0, us0, vs0, ws0
+      REAL*8 :: ep0, epsmx0
+      REAL*8 :: zzero
+      REAL*8 :: gravx, gravy, gravz
+      REAL*8, ALLOCATABLE :: p_atm(:), t_atm(:)
+
+      LOGICAL :: stratification
+
+      TYPE atmospheric_layer
+        REAL*8 :: ztop
+        REAL*8 :: ptop
+        REAL*8 :: ttop
+        REAL*8 :: gradt
+        CHARACTER(LEN=20) :: name
+      END TYPE
+
+      INTEGER, PARAMETER :: num_layers = 7
+      TYPE(atmospheric_layer) :: layer(num_layers)
+
+      SAVE
 !------------------------------------------------------------------------
       CONTAINS
 !------------------------------------------------------------------------
-      SUBROUTINE controlatm
+      SUBROUTINE control_atmosphere
+
+      IMPLICIT NONE
 
       stratification = .TRUE.
-      IF (ABS(gravz) < 0.01) THEN
+      IF (gravz == 0.0) THEN
          stratification = .FALSE.
       ELSE IF (gravz /= -9.81D0) THEN
          WRITE(*,*) 'WARNING!! control atmospheric stratification'
       END IF
+      WRITE(*,*) 'Atmospheric stratification: ', stratification
+      WRITE(*,*) 'Gravity: ', gravz
 !
       IF (stratification) THEN
         IF (temp0 /= 288.15D0) WRITE(*,*) 'WARNING! control atmospheric &
@@ -29,105 +49,191 @@
                                           & pressure profile'
       END IF	
 !
-      END SUBROUTINE controlatm
+      END SUBROUTINE control_atmosphere
 !------------------------------------------------------------------------
-      SUBROUTINE atm( za, pa, ta )
+      SUBROUTINE set_atmosphere
 !------------------------------------------------------------------------
 ! ... This routine computes atmospheric stratification accordingly with
-! ... teh description of a standard, quiet atmosphere
+! ... the description of a standard, quiet atmosphere
+! ... For each atmospheric region, the upper limit (in metres) and the
+! ... Temperature gradient must be set.
 !
-      USE dimensions
-      USE gas_constants, ONLY: gmw,rgas
+      USE control_flags, ONLY: lpr
+      USE dimensions, ONLY: nz
+      USE grid, ONLY: dz
 !
       IMPLICIT NONE
 
-      REAL*8, INTENT(IN) :: za 
-      REAL*8, INTENT(OUT) :: pa, ta
-      REAL*8 :: p1, t1, p2, t2, p3, t3, p4, t4, p5, t5, p6, t6
+      REAL*8 :: zbot, pbot, tbot
+      REAL*8 :: ztop, ptop, ttop
+      REAL*8 :: gradt
+
+      INTEGER :: l
 !
-      REAL*8 :: erreair, gradt, cost
+! ... Initialize atmospheric layers
 !
-      erreair=rgas/gmw(6)
+      layer(1)%name = 'Troposphere'   
+      layer(2)%name = 'Tropopause'    
+      layer(3)%name = 'Lower_Stratosphere' 
+      layer(4)%name = 'Upper_Stratosphere' 
+      layer(5)%name = 'Ozone_layer'   
+      layer(6)%name = 'Lower_Mesosphere'   
+      layer(7)%name = 'Upper_Mesosphere'   
 !
-!pe------------------------------
-! zone 0
-      IF(za <= 0.D0 .OR. .NOT.stratification) THEN
-        ta=temp0
-        pa=p0
-!pe------------------------------
+! ... Top of the layer (height a.s.l.)
 !
-! zone 1: constant (negative) temperature gradient (Troposphere)
+      layer(1)%ztop = 1.1D4
+      layer(2)%ztop = 2.0D4
+      layer(3)%ztop = 3.2D4
+      layer(4)%ztop = 4.7D4
+      layer(5)%ztop = 5.1D4
+      layer(6)%ztop = 7.1D4
+      layer(7)%ztop = 8.0D4
 !
-      ELSE IF(za <= 1.1D4) THEN
-        gradt = - 6.5D-3
-        cost = gravz/(erreair*gradt)
-        ta    = temp0 + gradt*za
-        pa    = p0 * (ta/temp0)**cost
+! ... Temperature gradient (T is assumed to vary linearly)
 !
-! zone 2: constant temperature (Tropopause)
+      layer(1)%gradt = -6.5D-3
+      layer(2)%gradt = 0.D0
+      layer(3)%gradt = 1.D-3
+      layer(4)%gradt = 2.8D-3
+      layer(5)%gradt = 0.D0
+      layer(6)%gradt = -2.8D-3
+      layer(7)%gradt = -2.0D-3
 !
-      ELSE IF(za <= 2.0D4) THEN
-	p1    = 22620.45D0
-	t1    = 216.65D0
-        ta    = 216.65D0
-        cost  = gravz/(erreair*ta)
-        pa    = p1*DEXP(cost*(za-1.1D4))
+      ALLOCATE(p_atm(nz), t_atm(nz))
 !
-! zone 3: constant (positive) temperature gradient (Stratosphere)
+      ptop = p0
+      ttop = temp0
 !
-      ELSE IF(za <= 3.2D4) THEN
-        p2    = 5477.79D0
-	t2    = 216.65D0
-        gradt = 1.D-3
-        cost  = gravz/(erreair*gradt)
-        ta    = t2 + gradt*(za - 2.0D4)
-        pa    = p2*(ta/t2)**cost
+! ... For each layer, compute the bottom and top 
+! ... pressure and temperature
 !
-! zone 4: constant (positive) temperature gradient (Stratosphere)
+      DO l = 1, num_layers
+
+        IF (l>1) THEN
+          zbot = layer(l-1)%ztop
+        ELSE
+          zbot = zzero
+        END IF
+        ztop = layer(l)%ztop
+        gradt = layer(l)%gradt
+
+        pbot = ptop
+        tbot = ttop
 !
-      ELSE IF(za <= 4.7D4) THEN
-        p3    = 869.19D0
-	t3    = 228.65D0
-	gradt = 2.8D-5
-        cost  = gravz/(erreair*gradt)
-        ta    = t3 + gradt*(za - 3.2D4)
-        pa    = p3*(ta/t3)**cost
+! ... Temperature is assumed to vary linearly
+! ... Pressure is computed by assuming hydrostatic equilibrium
 !
-! zone 5: constant temperature (Ozone layer)
+        CALL hydrostatic(zbot, ztop, gradt, tbot, pbot, ttop, ptop)
+
+        layer(l)%ptop = ptop
+        layer(l)%ttop = ttop
+
+        IF (lpr > 1) THEN
+          WRITE(*,*) layer(l)%name
+          WRITE(*,*) layer(l)%gradt
+          WRITE(*,*) layer(l)%ztop
+          WRITE(*,*) pbot, layer(l)%ptop
+          WRITE(*,*) tbot, layer(l)%ttop
+        END IF
+
+      END DO
 !
-      ELSE IF(za <= 5.1D4) THEN
-	p4    = 111.19D0
-	t4    = 270.65D0
-        ta    = 270.65D0
-        cost  = gravz/(erreair*ta)
-        pa    = p4*DEXP(cost*(za-4.7D4))
+! ... Compute the discrete atmospheric profile
 !
-! zone 6: constant (negative) temperature gradient (Mesosphere)
+      CALL compute_profile
+
+      END SUBROUTINE set_atmosphere
+!------------------------------------------------------------------------
+      SUBROUTINE compute_profile
+!------------------------------------------------------------------------
+! ... This routine computes the standard atmospheric condition in each
+! ... cell of the computational domain 
 !
-        ELSE IF(za <= 7.1D4) THEN
-	p5    = 67.24D0
-	t5    = 270.65D0
-	gradt = - 2.8D-3
-        cost  = gravz/(erreair*gradt)
-        ta    = t5 + gradt*(za - 5.1D4)
-        pa    = p5*(ta/t5)**cost
+      USE dimensions, ONLY: nz
+      USE grid, ONLY: dz, zb
 !
-! zone 7: constant(negative) temperature gradient (Mesosphere)
+      IMPLICIT NONE
 !
-      ELSE IF(za <= 8.0D4) THEN
-	p6    = 3.97D0
-	t6    = 214.65D0
-	gradt = - 2.0D-3
-        cost = gravz/(erreair*gradt)
-        ta    = t6 + gradt*(za - 7.1D4)
-        pa    = p6*(ta/t6)**cost
+      REAL*8 :: za, pa, ta
+      REAL*8 :: zbot, pbot, tbot
+      REAL*8 :: ztop, ptop, ttop
+      REAL*8 :: gradt
+      INTEGER :: k, l
 !
-      ELSE
-        CALL error('atm','altitude out of range',1)
-      ENDIF
+      l = 1
+
+      DO k = 1, nz
+
+        za = zb(k) + 0.5D0*(dz(1)-dz(k))
+
+        IF (za <= 0.D0 .OR. .NOT.stratification) THEN
+          ta=temp0
+          pa=p0
+          GOTO 100
+        ELSE IF (za > layer(l)%ztop) THEN
+          l = l + 1
+        END IF
+
+        IF (l > num_layers) CALL error('atm','altitude out of range',1)
+
+        IF (l>1) THEN
+          zbot = layer(l-1)%ztop
+          pbot = layer(l-1)%ptop
+          tbot = layer(l-1)%ttop
+        ELSE
+          zbot = zzero
+          pbot = p0
+          tbot = temp0
+        END IF
+        gradt = layer(l)%gradt
+!
+! ... Temperature is assumed to vary linearly
+! ... Pressure is computed by assuming hydrostatic equilibrium
+!
+        CALL hydrostatic(zbot, za, gradt, tbot, pbot, ta, pa)
+
+ 100    CONTINUE
+!
+! ... Store the cell values of atmospheric pressure and temperature 
+!
+        t_atm(k) = ta
+        p_atm(k) = pa
+
+      END DO
 !
       RETURN
-      END SUBROUTINE atm
+      END SUBROUTINE compute_profile
+!----------------------------------------------------------------------
+      SUBROUTINE hydrostatic(zb, z, grad, tb, pb, t, p)
+!
+! ... integrate the hydrostatic law  dP/dz = rho(z) * gravz
+! ... using the thermal equation of state to express the 
+! ... density as a function of P(z) and T(z) and
+! ... by assuming that T(z) = T0 + gradt * (z-z0)
+!
+      USE gas_constants, ONLY: gmw,rgas
+
+      IMPLICIT NONE
+
+      REAL*8, INTENT(IN) :: zb, z, grad, tb, pb 
+      REAL*8, INTENT(OUT) :: t, p
+      REAL*8 :: erreair, cost
+      
+      erreair=rgas/gmw(6)
+
+      IF (grad /= 0.D0) THEN
+        cost = gravz/(erreair*grad)
+        t = tb + grad*(z-zb)
+        p = pb * (t/tb)**cost
+      ELSE IF (grad == 0.D0) THEN
+        cost = gravz/(erreair*tb)
+        t = tb  
+        p = pb * DEXP(cost*(z-zb))
+      END IF
+
+      RETURN
+      END SUBROUTINE hydrostatic
 !----------------------------------------------------------------------
       END MODULE atmosphere
 !------------------------------------------------------------------------

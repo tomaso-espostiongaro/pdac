@@ -102,6 +102,8 @@
 
         USE control_flags, ONLY: job_type
         USE tilde_energy, ONLY: rhg, rhs
+
+        IMPLICIT NONE
         
         DEALLOCATE(rug, rwg)
         DEALLOCATE(rus, rws)
@@ -116,52 +118,61 @@
         
       END SUBROUTINE deallocate_fluxes
 !-----------------------------------------------------
-
       SUBROUTINE fieldn
 !
+! ... Data_exchange +
 ! ... Compute explicitly and store all fields and physical parameters
 ! ... at time ndt for explicit time-advancement
 ! ... (2D-3D-Compliant)
 !
       USE control_flags, ONLY: job_type
       USE dimensions
-      USE domain_decomposition, ONLY: ncint, myijk, ncdom, data_exchange
-      USE domain_decomposition, ONLY: meshinds
+      USE domain_decomposition, ONLY: ncint, myijk, ncdom
+      USE domain_decomposition, ONLY: meshinds, data_exchange
       USE eos_gas, ONLY: rgpgc, rgpgcn, xgc
       USE gas_solid_density, ONLY: rgp, rgpn, rlk, rlkn
-      USE gas_solid_temperature, ONLY: sieg, siegn, sies, siesn, tg
+      USE gas_solid_temperature, ONLY: sieg, siegn, sies, siesn, tg, ts
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_viscosity, ONLY: viscon, mug, kapg
       USE gas_solid_viscosity, ONLY: gas_viscosity, part_viscosity
       USE grid, ONLY: dz, dy, dx, fl_l
       USE grid, ONLY: indx, indy, indz
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE pressure_epsilon, ONLY: p, pn
-      USE set_indexes
+      USE pressure_epsilon, ONLY: p, pn, ep
+      USE set_indexes, ONLY: first_subscr, ijke, ijkn, ijkt
 !
       IMPLICIT NONE
-      SAVE
 !
       REAL*8 :: dxp, dyp, dzp, indxp, indyp, indzp
       REAL*8 :: rgp_e, rgp_n, rgp_t, rlk_e, rlk_n, rlk_t
       INTEGER :: i, j, k, ijk, imesh, is, ig, info
 !
-      CALL data_exchange( rgp )
-      CALL data_exchange( rlk )
+! ... Data_exchange of primary fields
 !
-      !CALL array_chk( rgp( 1 ), ncint, info )
-      !IF( info /= 0 ) WRITE(6,*) 'fieldn wrong rgp '
-      !CALL array_chk( rlk( 1, 1 ), ncint, info )
-      !IF( info /= 0 ) WRITE(6,*) 'fieldn wrong rlk 1'
-      !CALL array_chk( rlk( 1, 2 ), ncint, info )
-      !IF( info /= 0 ) WRITE(6,*) 'fieldn wrong rlk 2'
+      CALL data_exchange(ug)
+      CALL data_exchange(wg)
+      IF (job_type == '3D') CALL data_exchange(vg)
+
+      CALL data_exchange(us)
+      CALL data_exchange(ws)
+      IF (job_type == '3D') CALL data_exchange(vs)
+
+      CALL data_exchange(p)
+      CALL data_exchange(ep)
+      CALL data_exchange(rgp)
+      CALL data_exchange(rlk)
+
+      CALL data_exchange(sieg)
+      CALL data_exchange(sies)
+      CALL data_exchange(tg)
+      CALL data_exchange(ts)
 !
       DO ijk = 1, ncint
 
 !       IF(fl_l(ijk) == 1) THEN
 
           CALL meshinds(ijk,imesh,i,j,k)
-          CALL subscr_fieldn(ijk)
+          CALL first_subscr(ijk)
 !
           IF (job_type == '2D') THEN
 
@@ -227,6 +238,8 @@
       END DO
 !
 ! ... Compute the temperature-dependent gas viscosity and th. conductivity
+! ... For inviscid simulation (gas_viscosity = FALSE) mug is used only
+! ... to compute the gas-particle drag coefficient
 !
       DO ijk = 1, ncint
          CALL viscon( mug(ijk), kapg(ijk), xgc(:,ijk), tg(ijk) )
@@ -234,10 +247,7 @@
 !
       RETURN
       END SUBROUTINE fieldn
-
-
 !----------------------------------------------------------------------
-
       SUBROUTINE tilde
 !
       USE atmosphere, ONLY: gravz
@@ -258,10 +268,9 @@
       USE gas_solid_viscosity, ONLY: mug
       USE gas_solid_viscosity, ONLY: gvisx, gvisy, gvisz, pvisx, pvisy, pvisz
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE set_indexes, ONLY: subscr, subscr_tilde, imjk, ijmk, ijkm, ijkt
+      USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm, ijkt
 !
       IMPLICIT NONE
-      SAVE
 !
       INTEGER :: i, j, k, is, imesh
       INTEGER :: ijk
@@ -288,20 +297,6 @@
         gvisy = 0.D0
         pvisy = 0.D0
       END IF
-!
-      IF ( iturb == 0 ) THEN
-        CALL data_exchange( ug )
-        CALL data_exchange( wg )
-        IF (job_type == '3D') CALL data_exchange( vg )
-      END IF
-
-      IF ( iss == 0 ) THEN
-        CALL data_exchange( us )
-        CALL data_exchange( ws )
-        IF (job_type == '3D') CALL data_exchange( vs )
-      END IF
-
-      CALL data_exchange( ep )
 !
 ! ... Calculate gas viscous stress tensor
 !
@@ -367,54 +362,45 @@
 ! ... Compute all convective East, North, and Top fluxes 
 ! ... in the physical domain and ghost cells
 
-      IF ( ( nsolid == 2 ) .AND. ( job_type == '3D' ) ) THEN   
-        CALL compute_all_fluxes_3d_3phase
-      ELSE
-        CALL compute_all_fluxes
-      END IF
+      CALL compute_all_fluxes
 !
 ! ... Fluxes on West, South and Bottom sides keep values 
 ! ... of East, North and Top fluxes from neighbouring cells.
 !
       DO ijk = 1, ncint
-
         IF(fl_l(ijk) == 1) THEN
 
           CALL meshinds(ijk,imesh,i,j,k)
-          CALL subscr_tilde(ijk)
+          CALL subscr(ijk)
 !
           ugfw = ugfe(imjk)
           ugfb = ugft(ijkm)
           wgfw = wgfe(imjk)
           wgfb = wgft(ijkm)
-!
+
           ugfx = ugfe(ijk) - ugfw
           ugfz = ugft(ijk) - ugfb
           wgfx = wgfe(ijk) - wgfw
           wgfz = wgft(ijk) - wgfb
 !
           IF (job_type == '2D') THEN
-
             ugfy = 0.D0
             vgfx = 0.D0
             vgfy = 0.D0
             vgfz = 0.D0
             wgfy = 0.D0
-
           ELSE IF (job_type == '3D') THEN
-
             ugfs = ugfn(ijmk)
             vgfw = vgfe(imjk)
             vgfs = vgfn(ijmk)
             vgfb = vgft(ijkm)
             wgfs = wgfn(ijmk)
-!
+
             ugfy = ugfn(ijk) - ugfs
             vgfx = vgfe(ijk) - vgfw
             vgfy = vgfn(ijk) - vgfs
             vgfz = vgft(ijk) - vgfb
             wgfy = wgfn(ijk) - wgfs
-            
           END IF
 !
 ! ... compute explicit (tilde) terms in the momentum equation (gas)
@@ -423,14 +409,22 @@
           dyp = dy(j) + dy(j+1)
           dzp = dz(k) + dz(k+1)
           indxp = 1.D0 / dxp
-          indzp = 1.D0 / dzp
           indyp = 1.D0 / dyp
+          indzp = 1.D0 / dzp
 !         
           rug_tmp = gvisx(ijk)                     
           rug_tmp = rug_tmp - indxp * 2.D0 * ugfx * inxb(i)        
           rug_tmp = rug_tmp - indy(j) * ugfy                  
           rug_tmp = rug_tmp - indz(k) * ugfz   
           rug (ijk) = rugn(ijk) + dt * rug_tmp
+!
+          IF (job_type == '3D') THEN
+            rvg_tmp = gvisy(ijk)                     
+            rvg_tmp = rvg_tmp - indx(i) * vgfx               
+            rvg_tmp = rvg_tmp - indyp * 2.D0 * vgfy   
+            rvg_tmp = rvg_tmp - indz(k) * vgfz    
+            rvg(ijk) = rvgn(ijk) + dt * rvg_tmp
+          END IF
 !
           rwg_tmp = gvisz(ijk)                     
           rwg_tmp = rwg_tmp + (dz(k+1)*rgp(ijk)+dz(k)*rgp(ijkt))*indzp * gravz  
@@ -439,128 +433,81 @@
           rwg_tmp = rwg_tmp - indzp * 2.D0 * wgfz
           rwg(ijk) = rwgn(ijk) + dt * rwg_tmp
 !
-          IF (job_type == '3D') THEN
-
-            rvg_tmp = gvisy(ijk)                     
-            rvg_tmp = rvg_tmp - indx(i) * vgfx               
-            rvg_tmp = rvg_tmp - indyp * 2.D0 * vgfy   
-            rvg_tmp = rvg_tmp - indz(k) * vgfz    
-            rvg(ijk) = rvgn(ijk) + dt * rvg_tmp
-
-          END IF
-
-! ... same procedure carried out for particulate phases
-
-
-          IF (job_type == '2D') THEN
-
-             DO is = 1, nsolid
+! ... same procedure carried out for each particulate phases
+!
+          DO is = 1, nsolid
 !
 ! ... West, South and Bottom fluxes (particles)
 !
-                usfw = usfe(imjk,is)
-                usfx = usfe(ijk,is) - usfw
-                usfb = usft(ijkm,is)
-                usfz = usft(ijk,is) - usfb
-                wsfw = wsfe(imjk,is)
-                wsfx = wsfe(ijk,is) - wsfw
-                wsfb = wsft(ijkm,is)
-                wsfz = wsft(ijk,is) - wsfb
-                usfy = 0.D0
-                vsfx = 0.D0
-                vsfy = 0.D0
-                vsfz = 0.D0
-                wsfy = 0.D0
+            usfw = usfe(imjk,is)
+            usfb = usft(ijkm,is)
+            wsfw = wsfe(imjk,is)
+            wsfb = wsft(ijkm,is)
+
+            usfx = usfe(ijk,is) - usfw
+            usfz = usft(ijk,is) - usfb
+            wsfx = wsfe(ijk,is) - wsfw
+            wsfz = wsft(ijk,is) - wsfb
+
+            IF (job_type == '2D') THEN
+              usfy = 0.D0
+              vsfx = 0.D0
+              vsfy = 0.D0
+              vsfz = 0.D0
+              wsfy = 0.D0
+            ELSE IF (job_type == '3D') THEN
+              usfs = usfn(ijmk,is)
+              vsfw = vsfe(imjk,is)
+              vsfs = vsfn(ijmk,is)
+              vsfb = vsft(ijkm,is)
+              wsfs = wsfn(ijmk,is)             
+
+              usfy = usfn(ijk,is) - usfs
+              vsfx = vsfe(ijk,is) - vsfw
+              vsfy = vsfn(ijk,is) - vsfs
+              vsfz = vsft(ijk,is) - vsfb
+              wsfy = wsfn(ijk,is) - wsfs
+            END IF
 !
 ! ... compute explicit (tilde) terms in the momentum equation (particles)
 ! 
-                rus_tmp = rusn(ijk,is) + dt * pvisx(ijk,is)               
-                rus_tmp = rus_tmp - dt * indxp * 2.D0 * usfx * inxb(i)   
-                rus_tmp = rus_tmp - dt * indy(j) * usfy  
-                rus_tmp = rus_tmp - dt * indz(k) * usfz 
-                rus(ijk,is) = rus_tmp                   
+            rus_tmp = pvisx(ijk,is)               
+            rus_tmp = rus_tmp - indxp * 2.D0 * usfx * inxb(i)   
+            rus_tmp = rus_tmp - indy(j) * usfy  
+            rus_tmp = rus_tmp - indz(k) * usfz 
+            rus(ijk,is) = rusn(ijk,is) + dt * rus_tmp
 !
-                rws_tmp = rwsn(ijk,is) + dt * pvisz(ijk,is)              
-                rws_tmp = rws_tmp + dt * &
-                          ( rlk(ijk,is) * dz(k+1) + rlk(ijkt,is) * dz(k) ) * &
-                          indzp * gravz 
-                rws_tmp = rws_tmp - dt * indx(i) * wsfx * inx(i)                 
-                rws_tmp = rws_tmp - dt * indy(j) * wsfy                      
-                rws_tmp = rws_tmp - dt * indzp * 2.D0 * wsfz  
-                rws(ijk,is) = rws_tmp
+            IF (job_type == '3D') THEN
+              rvs_tmp = pvisy(ijk,is)              
+              rvs_tmp = rvs_tmp - indx(i) * vsfx       
+              rvs_tmp = rvs_tmp - indyp * 2.D0 * vsfy              
+              rvs_tmp = rvs_tmp - indz(k) * vsfz    
+              rvs(ijk,is) = rvsn(ijk,is) + dt * rvs_tmp
+            END IF
 !
-! ... Compute the gas-particle drag coefficients
-!
-                dugs = ( (ug(ijk)-us(ijk,is)) + (ug(imjk)-us(imjk,is)) )*0.5D0
-                dwgs = ( (wg(ijk)-ws(ijk,is)) + (wg(ijkm)-ws(ijkm,is)) )*0.5D0
-                dvgs = 0.D0
-
-                CALL kdrags(kpgv(is), dugs, dvgs, dwgs, ep(ijk),         &
-                        rgp(ijk), rlk(ijk,is), mug(ijk), is)                  
-
-            END DO 
-
-          ELSE IF (job_type == '3D') THEN
-
-            DO is = 1, nsolid
-!
-! ... West, South and Bottom fluxes (particles)
-!
-               usfw = usfe(imjk,is)
-               usfx = usfe(ijk,is) - usfw
-               usfs = usfn(ijmk,is)
-               usfy = usfn(ijk,is) - usfs
-               usfb = usft(ijkm,is)
-               usfz = usft(ijk,is) - usfb
-               vsfw = vsfe(imjk,is)
-               vsfx = vsfe(ijk,is) - vsfw
-               vsfs = vsfn(ijmk,is)
-               vsfy = vsfn(ijk,is) - vsfs
-               vsfb = vsft(ijkm,is)
-               vsfz = vsft(ijk,is) - vsfb
-               wsfw = wsfe(imjk,is)
-               wsfx = wsfe(ijk,is) - wsfw
-               wsfb = wsft(ijkm,is)
-               wsfz = wsft(ijk,is) - wsfb 
-               wsfs = wsfn(ijmk,is)             
-               wsfy = wsfn(ijk,is) - wsfs
-!
-! ... compute explicit (tilde) terms in the momentum equation (particles)
-! 
-               rus_tmp = pvisx(ijk,is)               
-               rus_tmp = rus_tmp - indxp * 2.D0 * usfx * inxb(i)   
-               rus_tmp = rus_tmp - indy(j) * usfy  
-               rus_tmp = rus_tmp - indz(k) * usfz 
-               rus(ijk,is) = rusn(ijk,is) + dt * rus_tmp                   
-!
-               rvs_tmp = pvisy(ijk,is)              
-               rvs_tmp = rvs_tmp - indx(i) * vsfx       
-               rvs_tmp = rvs_tmp - indyp * 2.D0 * vsfy              
-               rvs_tmp = rvs_tmp - indz(k) * vsfz    
-               rvs(ijk,is) = rvsn(ijk,is) + dt * rvs_tmp
-!
-               rws_tmp = pvisz(ijk,is)              
-               rws_tmp = rws_tmp + &
-                         ( rlk(ijk,is) * dz(k+1) + rlk(ijkt,is) * dz(k) ) * indzp * gravz
-               rws_tmp = rws_tmp - indx(i) * wsfx * inx(i)                 
-               rws_tmp = rws_tmp - indy(j) * wsfy                      
-               rws_tmp = rws_tmp - indzp * 2.D0 * wsfz  
-               rws(ijk,is) = rwsn(ijk,is) + dt * rws_tmp
+            rws_tmp = pvisz(ijk,is)              
+            rws_tmp = rws_tmp + indzp * gravz * &
+                      ( rlk(ijk,is) * dz(k+1) + rlk(ijkt,is) * dz(k) )
+            rws_tmp = rws_tmp - indx(i) * wsfx * inx(i)                 
+            rws_tmp = rws_tmp - indy(j) * wsfy                      
+            rws_tmp = rws_tmp - indzp * 2.D0 * wsfz  
+            rws(ijk,is) = rwsn(ijk,is) + dt * rws_tmp
 !
 ! ... Compute the gas-particle drag coefficients
 !
-               dugs = ( (ug(ijk)-us(ijk,is)) + (ug(imjk)-us(imjk,is)) )*0.5D0
-               dvgs = ( (vg(ijk)-vs(ijk,is)) + (vg(ijmk)-vs(ijmk,is)) )*0.5D0
-               dwgs = ( (wg(ijk)-ws(ijk,is)) + (wg(ijkm)-ws(ijkm,is)) )*0.5D0  
-           
-   
-               CALL kdrags(kpgv(is), dugs, dvgs, dwgs, ep(ijk),         &
-                        rgp(ijk), rlk(ijk,is), mug(ijk), is)                  
+            dugs = ( (ug(ijk)-us(ijk,is)) + (ug(imjk)-us(imjk,is)) )*0.5D0
+            dwgs = ( (wg(ijk)-ws(ijk,is)) + (wg(ijkm)-ws(ijkm,is)) )*0.5D0
+            IF (job_type == '2D') THEN
+              dvgs = 0.D0
+            ELSE IF (job_type == '3D') THEN
+              dvgs = ( (vg(ijk)-vs(ijk,is)) + (vg(ijmk)-vs(ijmk,is)) )*0.5D0
+            END IF
 
-            END DO
-
-          END IF
- 
+            CALL kdrags(kpgv(is), dugs, dvgs, dwgs, ep(ijk),         &
+                    rgp(ijk), rlk(ijk,is), mug(ijk), is)                  
+!
+          END DO
+!
 !
 ! ... Compute the particle-particle coefficients and the interphase matrix
 !
@@ -574,8 +521,6 @@
 !
         END IF
       END DO
-!
-!      CALL test_fluxes
 !
       DEALLOCATE(ugfe, ugft)
       DEALLOCATE(wgfe, wgft)
@@ -615,37 +560,32 @@
 
       RETURN
       END SUBROUTINE tilde
-
 !----------------------------------------------------------------------
-
       SUBROUTINE compute_all_fluxes
 !
-      USE atmosphere, ONLY: gravz
-      USE dimensions
+      USE dimensions, ONLY: nsolid, nx, ny, nz
       USE domain_decomposition, ONLY: meshinds
       USE domain_decomposition, ONLY: ncint, myijk, data_exchange
-      USE convective_fluxes_u, ONLY: flu
-      USE convective_fluxes_v, ONLY: flv
-      USE convective_fluxes_w, ONLY: flw
+      USE convective_fluxes_u, ONLY: flu, muscl_flu
+      USE convective_fluxes_v, ONLY: flv, muscl_flv
+      USE convective_fluxes_w, ONLY: flw, muscl_flw
       USE control_flags, ONLY: job_type
+      USE flux_limiters, ONLY: muscl
       USE gas_solid_density, ONLY: rog, rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      USE grid, ONLY: dx, dy, dz, fl_l
-      USE grid, ONLY: indx, indy, indz, inx, inxb
+      USE grid, ONLY: fl_l
+      USE interpolate_fields, ONLY: interpolate_x, interpolate_y, interpolate_z
       USE pressure_epsilon, ONLY: ep, p
-      USE time_parameters, ONLY: dt, time
-      USE turbulence_model, ONLY: iss, iturb
-      USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm, ijkt, imjpk, imjkp, ipjmk, ijmkp, ipjkm, ijpkm 
-      USE set_indexes, ONLY: stencil, nb, rnb, rnb_13
+      USE set_indexes, ONLY: subscr, stencil
+      USE set_indexes, ONLY: imjk, ijmk, ijkm
+      USE set_indexes, ONLY: nb, rnb
 !
       IMPLICIT NONE
-      SAVE
 !
-      INTEGER :: i, j, k, is, imesh
       INTEGER :: ijk
-      REAL*8 :: dxp, dyp, dzp, indxp, indyp, indzp
+      INTEGER :: i, j, k, is, imesh
       TYPE(stencil) :: u, v, w, dens
+      TYPE(stencil) :: dens_stagx, dens_stagy, dens_stagz
 !
 ! ... Compute fluxes on East, North and Top sides of a cell
 ! ... in the whole computational domain.
@@ -653,82 +593,163 @@
       DO ijk = 1, ncint
         IF(fl_l(ijk) == 1) THEN
           CALL subscr(ijk)
-          CALL meshinds(ijk, imesh,i,j,k)
+          CALL meshinds(ijk,imesh,i,j,k)
 !
           IF (job_type == '2D') THEN
-
-            CALL nb(dens,rgp,ijk)
+!
+! ... (GAS) ...
+!
+! ... Compute convective fluxes by using First Order Upwind
+!
+            ! ... Assemble computational stencil
             CALL rnb(u,ug,ijk)
             CALL rnb(w,wg,ijk)
+            CALL nb(dens,rgp,ijk)
+!
+            ! ... Interpolate density on the staggered grid
+            CALL interpolate_x(dens, dens_stagx, i)
+            CALL interpolate_z(dens, dens_stagz, k)
 
-            CALL flu(ugfe(ijk), ugft(ijk),                  &
-                     ugfe(imjk), ugft(ijkm), dens, u, w, ijk)
-            CALL flw(wgfe(ijk), wgft(ijk),                   &
-                      wgfe(imjk), wgft(ijkm), dens, u, w, ijk)
+            CALL flu(ugfe(ijk), ugft(ijk), ugfe(imjk), ugft(ijkm),  & 
+                     dens_stagx, u, w, i)
 
+            CALL flw(wgfe(ijk), wgft(ijk), wgfe(imjk), wgft(ijkm),  &
+                     dens_stagz, u, w, i, k)
+!
+! ... Second order MUSCL correction
+!
+            IF (muscl > 0) THEN
+              IF ( i /= nx-1 ) CALL muscl_flu(ugfe(ijk), ugft(ijk),   &
+                                        dens_stagx, u, w, i, k)
+              IF ( k /= nz-1 ) CALL muscl_flw(wgfe(ijk), wgft(ijk),   &
+                                        dens_stagz, u, w, i, k)
+            END IF
+
+! ... (PARTICLES) ...
+!
+! ... Compute convective fluxes by using First Order Upwind
+!
             DO is = 1, nsolid
-              CALL nb(dens,rlk(:,is),ijk)
+
+              ! ... Assemble computational stencil
               CALL rnb(u,us(:,is),ijk)
               CALL rnb(w,ws(:,is),ijk)
+              CALL nb(dens,rlk(:,is),ijk)
 
-              CALL flu(usfe(ijk,is), usft(ijk,is),                     &
-                       usfe(imjk,is), usft(ijkm,is), dens, u, w, ijk)
-              CALL flw(wsfe(ijk,is), wsft(ijk,is),                     &
-                       wsfe(imjk,is), wsft(ijkm,is), dens, u, w, ijk)
+              ! ... Interpolate density on the staggered grid
+              CALL interpolate_x(dens, dens_stagx, i)
+              CALL interpolate_z(dens, dens_stagz, k)
+
+              CALL flu(usfe(ijk,is), usft(ijk,is), usfe(imjk,is), usft(ijkm,is), &
+                       dens_stagx, u, w, i)
+
+              CALL flw(wsfe(ijk,is), wsft(ijk,is), wsfe(imjk,is), wsft(ijkm,is), &
+                       dens_stagz, u, w, i, k)
+!
+! ... Second order MUSCL correction
+!
+              IF (muscl > 0) THEN
+                IF ( i /= nx-1 ) CALL muscl_flu(usfe(ijk,is), usft(ijk,is),  &
+                                          dens_stagx, u, w, i, k)
+                IF ( k /= nz-1 ) CALL muscl_flw(wsfe(ijk,is), wsft(ijk,is),  &
+                                          dens_stagz, u, w, i, k)
+              END IF
+
             END DO
             
           ELSE IF (job_type == '3D') THEN
-
+!
+! ... (GAS) ...
+!
+! ... Compute convective fluxes by using First Order Upwind
+!
+            ! ... Assemble computational stencil
+            CALL rnb(u,ug,ijk)
+            CALL rnb(w,wg,ijk) 
+            CALL rnb(v,vg,ijk)
             CALL nb ( dens, rgp, ijk )
-            !CALL rnb(u,ug,ijk)
-            CALL rnb_13 ( u, ug, ijk )
-            u%wn = ug ( imjpk ) 
-            u%wt = ug ( imjkp )
-            !CALL rnb(w,wg,ijk) 
-            CALL rnb_13( v, vg, ijk )
-            v%es = vg ( ipjmk )
-            v%st = vg ( ijmkp )
-            !CALL rnb(v,vg,ijk)
-            CALL rnb_13( w, wg, ijk )
-            w%eb = wg ( ipjkm )
-            w%nb = wg ( ijpkm )
 
-            CALL flu(ugfe(ijk), ugfn(ijk), ugft(ijk),                     &
-                    ugfe(imjk), ugfn(ijmk), ugft(ijkm), dens, u, v, w, ijk)
+            ! ... Interpolate density on the staggered grid
+            CALL interpolate_x(dens, dens_stagx, i)
+            CALL interpolate_y(dens, dens_stagy, j)
+            CALL interpolate_z(dens, dens_stagz, k)
+
+            CALL flu(ugfe(ijk), ugfn(ijk), ugft(ijk),                        &
+                     ugfe(imjk), ugfn(ijmk), ugft(ijkm),                     &
+                     dens_stagx, u, v, w, i)
+
             CALL flv(vgfe(ijk), vgfn(ijk), vgft(ijk),                        &
-                    vgfe(imjk), vgfn(ijmk), vgft(ijkm), dens, u, v, w, ijk)
+                     vgfe(imjk), vgfn(ijmk), vgft(ijkm),                     &
+                     dens_stagy, u, v, w, j)
+
             CALL flw(wgfe(ijk), wgfn(ijk), wgft(ijk),                        &
-                    wgfe(imjk), wgfn(ijmk), wgft(ijkm), dens, u, v, w, ijk)
+                     wgfe(imjk), wgfn(ijmk), wgft(ijkm),                     &
+                     dens_stagz, u, v, w, k)
+!
+! ... Second order MUSCL correction
+!
+            IF (muscl > 0) THEN
+              IF ( i /= nx-1 ) &
+                CALL muscl_flu(ugfe(ijk), ugfn(ijk), ugft(ijk), &
+                         dens_stagx, u, v, w, i, j, k)
+              IF ( j /= ny-1 ) &
+                CALL muscl_flv(vgfe(ijk), vgfn(ijk), vgft(ijk), &
+                         dens_stagy, u, v, w, i, j, k)
+              IF ( k /= nz-1 ) &
+                CALL muscl_flw(wgfe(ijk), wgfn(ijk), wgft(ijk), &
+                         dens_stagz, u, v, w, i, j, k)
+            END IF
+!
+! ... (PARTICLES) ...
+!
+! ... Compute convective fluxes by using First Order Upwind
 !
             DO is = 1, nsolid
 
+              ! ... Assemble computational stencil
+              CALL rnb(u,us(:,is),ijk)      
+              CALL rnb(v,vs(:,is),ijk)
+              CALL rnb(w,ws(:,is),ijk)
               CALL nb ( dens, rlk(:,is), ijk ) 
-              !CALL rnb(u,us(:,is),ijk)      
-              CALL rnb_13 ( u, us(:,is), ijk )
-              u%wn = us ( imjpk, is ) 
-              u%wt = us ( imjkp, is) 
-              !CALL rnb(v,vs(:,is),ijk)
-              CALL rnb_13( v, vs(:,is), ijk )
-              v%es = vs ( ipjmk, is )
-              v%st = vs ( ijmkp, is )
-              !CALL rnb(w,ws(:,is),ijk)
-              CALL rnb_13( w, ws(:,is) , ijk )
-              w%eb = ws ( ipjkm, is )
-              w%nb = ws ( ijpkm, is )
 !
+              ! ... Interpolate density on the staggered grid
+              CALL interpolate_x(dens, dens_stagx, i)
+              CALL interpolate_y(dens, dens_stagy, j)
+              CALL interpolate_z(dens, dens_stagz, k)
+
               CALL flu(usfe(ijk,is), usfn(ijk,is), usft(ijk,is),           &
                       usfe(imjk,is), usfn(ijmk,is), usft(ijkm,is),        &
-                      dens, u, v, w, ijk)
+                      dens_stagx, u, v, w, i)
+
               CALL flv(vsfe(ijk,is), vsfn(ijk,is), vsft(ijk,is),           &
                       vsfe(imjk,is), vsfn(ijmk,is), vsft(ijkm,is),        &
-                      dens, u, v, w, ijk)
+                      dens_stagy, u, v, w, j)
+
               CALL flw(wsfe(ijk,is), wsfn(ijk,is), wsft(ijk,is),           &
                       wsfe(imjk,is), wsfn(ijmk,is), wsft(ijkm,is),        &
-                      dens, u, v, w, ijk)
+                      dens_stagz, u, v, w, k)
+!
+! ... Second order MUSCL correction
+!
+              IF (muscl > 0) THEN
+                IF ( i /= nx-1 ) &
+                  CALL muscl_flu(usfe(ijk,is), usfn(ijk,is), usft(ijk,is), &
+                           dens_stagx, u, v, w, i, j, k)
+                IF ( j /= ny-1 ) &
+                  CALL muscl_flv(vsfe(ijk,is), vsfn(ijk,is), vsft(ijk,is), &
+                           dens_stagy, u, v, w, i, j, k)
+                IF ( k /= nz-1 ) &
+                  CALL muscl_flw(wsfe(ijk,is), wsfn(ijk,is), wsft(ijk,is), &
+                           dens_stagz, u, v, w, i, j, k)
+              END IF
+
             END DO
+
           END IF         
+
         END IF         
-      END DO
+
+      END DO 
 !
       CALL data_exchange(ugfe)
       CALL data_exchange(ugft)
@@ -756,466 +777,6 @@
 !
       RETURN
       END SUBROUTINE compute_all_fluxes
-
-!----------------------------------------------------------------------
-
-      SUBROUTINE compute_all_fluxes_3d_3phase
-!
-      USE atmosphere, ONLY: gravz
-      USE dimensions
-      USE domain_decomposition, ONLY: meshinds
-      USE domain_decomposition, ONLY: ncint, myijk, data_exchange
-      USE convective_fluxes_u, ONLY: flu, flu_1st
-      USE convective_fluxes_v, ONLY: flv, flv_1st
-      USE convective_fluxes_w, ONLY: flw, flw_1st
-      USE flux_limiters, ONLY: muscl
-      USE gas_solid_density, ONLY: rog, rgp, rlk
-      USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      USE grid, ONLY: dx, dy, dz, fl_l
-      USE grid, ONLY: indx, indy, indz, inx, inxb
-      USE pressure_epsilon, ONLY: ep, p
-      USE time_parameters, ONLY: dt, time
-      USE turbulence_model, ONLY: iss, iturb
-      USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE set_indexes
-!
-      IMPLICIT NONE
-      SAVE
-!
-      INTEGER :: i, j, k, is, imesh
-      INTEGER :: ijk
-      REAL*8 :: dxp, dyp, dzp, indxp, indyp, indzp
-      TYPE(stencil) :: u, v, w, dens
-      TYPE(stencil) :: u1, v1, w1, dens1
-      TYPE(stencil) :: u2, v2, w2, dens2
-!
-! ... Compute fluxes on East, North and Top sides of a cell
-! ... in the whole computational domain.
-!
-      DO ijk = 1, ncint
-
-        IF(fl_l(ijk) == 1) THEN
-
-          CALL subscr(ijk)
-          CALL meshinds(ijk, imesh,i,j,k)
-!
-          IF ( muscl == 0) THEN
-
-            !CALL nb ( dens, rgp, ijk )
-            dens%c = rgp ( ijk ) 
-            dens%w = rgp ( ijkw ) 
-            dens%s = rgp ( ijks ) 
-            dens%b = rgp ( ijkb ) 
-            dens%e = rgp ( ijke ) 
-            dens%n = rgp ( ijkn ) 
-            dens%t = rgp ( ijkt )  
-            dens%ee = rgp ( ijkee ) 
-            dens%en = rgp ( ijken ) 
-            dens%et = rgp ( ijket ) 
-            dens%es = rgp ( ijkes ) 
-            dens%eb = rgp ( ijkeb ) 
-            dens%nn = rgp ( ijknn ) 
-            dens%nb = rgp ( ijknb ) 
-            dens%nt = rgp ( ijknt ) 
-            dens%wn = rgp ( ijkwn ) 
-            dens%wt = rgp ( ijkwt ) 
-            dens%tt = rgp ( ijktt ) 
-            dens%st = rgp ( ijkst ) 
-
-            !CALL rnb(u,ug,ijk)
-            u%c = ug ( ijk ) 
-            u%w = ug ( imjk ) 
-            u%s = ug ( ijmk ) 
-            u%b = ug ( ijkm ) 
-            u%e = ug ( ipjk ) 
-            u%n = ug ( ijpk ) 
-            u%t = ug ( ijkp )    
-            u%wn = ug ( imjpk ) 
-            u%wt = ug ( imjkp )
-          
-            !CALL rnb(v,vg,ijk)
-            v%c = vg ( ijk )
-            v%w = vg ( imjk ) 
-            v%s = vg ( ijmk ) 
-            v%b = vg ( ijkm ) 
-            v%e = vg ( ipjk ) 
-            v%n = vg ( ijpk ) 
-            v%t = vg ( ijkp ) 
-            v%es = vg ( ipjmk )
-            v%st = vg ( ijmkp )         
-          
-            !CALL rnb(w,wg,ijk) 
-            w%c = wg ( ijk )
-            w%w = wg ( imjk ) 
-            w%s = wg ( ijmk ) 
-            w%b = wg ( ijkm ) 
-            w%e = wg ( ipjk ) 
-            w%n = wg ( ijpk ) 
-            w%t = wg ( ijkp ) 
-            w%eb = wg ( ipjkm )
-            w%nb = wg ( ijpkm )
-
-            CALL flu_1st(ugfe(ijk), ugfn(ijk), ugft(ijk), ugfe(imjk),         &
-                   ugfn(ijmk), ugft(ijkm), dens, u, v, w, i)
-            CALL flv_1st(vgfe(ijk), vgfn(ijk), vgft(ijk), vgfe(imjk),         &
-                    vgfn(ijmk), vgft(ijkm), dens, u, v, w, j)
-            CALL flw_1st(wgfe(ijk), wgfn(ijk), wgft(ijk),                     &
-                    wgfe(imjk), wgfn(ijmk), wgft(ijkm), dens, u, v, w, k)
-
-
-!             DO is = 1, nsolid
-!             Unrolled loop       
-
-            !CALL nb ( dens1, rlk(:,1), ijk ) 
-            !CALL nb ( dens2, rlk(:,2), ijk )       
-            dens1%c = rlk ( ijk,1 ) 
-            dens1%w = rlk ( ijkw,1 ) 
-            dens1%s = rlk ( ijks,1 )
-            dens1%b = rlk ( ijkb,1 ) 
-            dens1%e = rlk ( ijke,1 )
-            dens1%n = rlk ( ijkn,1 ) 
-            dens1%t = rlk ( ijkt,1 )
-            dens1%ee = rlk ( ijkee,1 ) 
-            dens1%en = rlk ( ijken,1 ) 
-            dens1%et = rlk ( ijket,1 )
-            dens1%es = rlk ( ijkes,1 ) 
-            dens1%eb = rlk ( ijkeb,1 ) 
-            dens1%nn = rlk ( ijknn,1 ) 
-            dens1%nb = rlk ( ijknb,1 )
-            dens1%nt = rlk ( ijknt,1 )
-            dens1%wn = rlk ( ijkwn,1 ) 
-            dens1%wt = rlk ( ijkwt,1 ) 
-            dens1%tt = rlk ( ijktt,1 )         
-            dens1%st = rlk ( ijkst,1 )  
-
-            dens2%c = rlk ( ijk,2 ) 
-            dens2%w = rlk ( ijkw,2 ) 
-            dens2%s = rlk ( ijks,2 )
-            dens2%b = rlk ( ijkb,2 ) 
-            dens2%e = rlk ( ijke,2 ) 
-            dens2%n = rlk ( ijkn,2 ) 
-            dens2%t = rlk ( ijkt,2 )
-            dens2%ee = rlk ( ijkee,2 ) 
-            dens2%en = rlk ( ijken,2 ) 
-            dens2%et = rlk ( ijket,2 ) 
-            dens2%es = rlk ( ijkes,2 ) 
-            dens2%eb = rlk ( ijkeb,2 )
-            dens2%nn = rlk ( ijknn,2 )
-            dens2%nb = rlk ( ijknb,2 ) 
-            dens2%nt = rlk ( ijknt,2 )
-            dens2%wn = rlk ( ijkwn,2 )
-            dens2%wt = rlk ( ijkwt,2 ) 
-            dens2%tt = rlk ( ijktt,2 )          
-            dens2%st = rlk ( ijkst,2 )
-
-            !CALL rnb_13 ( u1, us(:,1), ijk )
-            !CALL rnb_13 ( u2, us(:,2), ijk ) 
-            u1%c = us ( ijk,1 )   
-            u1%w = us ( imjk,1 ) 
-            u1%s = us ( ijmk,1 ) 
-            u1%b = us ( ijkm,1 ) 
-            u1%e = us ( ipjk,1 )
-            u1%n = us ( ijpk,1 ) 
-            u1%t = us ( ijkp,1 ) 
-            u1%wn = us ( imjpk,1 ) 
-            u1%wt = us ( imjkp,1 )
-
-            u2%c = us ( ijk,2 ) 
-            u2%w = us ( imjk,2 ) 
-            u2%w = us ( imjk,2 ) 
-            u2%s = us ( ijmk,2 ) 
-            u2%b = us ( ijkm,2 ) 
-            u2%e = us ( ipjk,2 ) 
-            u2%n = us ( ijpk,2 ) 
-            u2%t = us ( ijkp,2 ) 
-            u2%wn = us ( imjpk,2 ) 
-            u2%wt = us ( imjkp,2 )
-
-
-            !CALL rnb_13( v1, vs(:,1), ijk )
-            !CALL rnb_13( v2, vs(:,2), ijk )
-            v1%c = vs ( ijk,1 )      
-            v1%w = vs ( imjk,1 ) 
-            v1%s = vs ( ijmk,1 ) 
-            v1%b = vs ( ijkm,1 ) 
-            v1%e = vs ( ipjk,1 )
-            v1%n = vs ( ijpk,1 ) 
-            v1%t = vs ( ijkp,1 ) 
-            v1%es = vs ( ipjmk, 1 )
-            v1%st = vs ( ijmkp, 1 )
-      
-            v2%c = vs ( ijk,2 )
-            v2%w = vs ( imjk,2 ) 
-            v2%s = vs ( ijmk,2 ) 
-            v2%b = vs ( ijkm,2 ) 
-            v2%e = vs ( ipjk,2 ) 
-            v2%n = vs ( ijpk,2 ) 
-            v2%t = vs ( ijkp,2 ) 
-            v2%es = vs ( ipjmk, 2 )
-            v2%st = vs ( ijmkp, 2 ) 
-            
-            !CALL rnb_13( w1, ws(:,1) , ijk )             
-            !CALL rnb_13( w2, ws(:,2) , ijk )
-            w1%c = ws ( ijk,1 )
-            w1%w = ws ( imjk,1 ) 
-            w1%s = ws ( ijmk,1 ) 
-            w1%b = ws ( ijkm,1 ) 
-            w1%e = ws ( ipjk,1 )
-            w1%n = ws ( ijpk,1 ) 
-            w1%t = ws ( ijkp,1 ) 
-            w1%eb = ws ( ipjkm, 1 )
-            w1%nb = ws ( ijpkm, 1 ) 
-          
-            w2%c = ws ( ijk,2 )
-            w2%w = ws ( imjk,2 ) 
-            w2%s = ws ( ijmk,2 ) 
-            w2%b = ws ( ijkm,2 ) 
-            w2%e = ws ( ipjk,2 ) 
-            w2%n = ws ( ijpk,2 ) 
-            w2%t = ws ( ijkp,2 )
-            w2%eb = ws ( ipjkm, 2 )
-            w2%nb = ws ( ijpkm, 2 ) 
-
-            CALL flu_1st (usfe(ijk,1), usfn(ijk,1), usft(ijk,1),    &
-                     usfe(imjk,1), usfn(ijmk,1), usft(ijkm,1),        &
-                     dens1, u1, v1, w1, i)
-            CALL flu_1st (usfe(ijk,2), usfn(ijk,2), usft(ijk,2),    &
-                     usfe(imjk,2), usfn(ijmk,2), usft(ijkm,2),        &
-                     dens2, u2, v2, w2, i)
-            
-            CALL flv_1st(vsfe(ijk,1), vsfn(ijk,1), vsft(ijk,1),     &
-                     vsfe(imjk,1), vsfn(ijmk,1), vsft(ijkm,1),        &
-                     dens1, u1, v1, w1, j)
-            CALL flv_1st(vsfe(ijk,2), vsfn(ijk,2), vsft(ijk,2),     &
-                     vsfe(imjk,2), vsfn(ijmk,2), vsft(ijkm,2),        &
-                     dens2, u2, v2, w2, j)
-            
-            CALL flw_1st(wsfe(ijk,1), wsfn(ijk,1), wsft(ijk,1),     &
-                     wsfe(imjk,1), wsfn(ijmk,1), wsft(ijkm,1),        &
-                     dens1, u1, v1, w1, k)   
-            CALL flw_1st(wsfe(ijk,2), wsfn(ijk,2), wsft(ijk,2),     &
-                     wsfe(imjk,2), wsfn(ijmk,2), wsft(ijkm,2),        &
-                     dens2, u2, v2, w2, k)
-
-
-          ELSE
-
-            CALL nb ( dens, rgp, ijk )
-
-            CALL first_rnb(u,ug,ijk)
-            u%nn = ug ( ijppk ) 
-            u%tt = ug ( ijkpp )
-            u%ee = ug ( ippjk )
-            u%wn = ug ( imjpk ) 
-            u%wt = ug ( imjkp )
-
-            CALL first_rnb(v,vg,ijk)
-            v%nn = vg ( ijppk ) 
-            v%tt = vg ( ijkpp )
-            v%ee = vg ( ippjk )
-            v%es = vg ( ipjmk )
-            v%st = vg ( ijmkp ) 
-
-            CALL first_rnb(w,wg,ijk) 
-            w%nn = wg ( ijppk ) 
-            w%tt = wg ( ijkpp )
-            w%ee = wg ( ippjk )
-            w%eb = wg ( ipjkm )
-            w%nb = wg ( ijpkm )
-
-            CALL flu(ugfe(ijk), ugfn(ijk), ugft(ijk), ugfe(imjk),             &
-                    ugfn(ijmk), ugft(ijkm), dens, u, v, w, ijk )
-            CALL flv(vgfe(ijk), vgfn(ijk), vgft(ijk), vgfe(imjk),             &
-                    vgfn(ijmk), vgft(ijkm), dens, u, v, w, ijk)
-            CALL flw(wgfe(ijk), wgfn(ijk), wgft(ijk),                        &
-                    wgfe(imjk), wgfn(ijmk), wgft(ijkm), dens, u, v, w, ijk)
-
-
-!            DO is = 1, nsolid
-!            Unrolled loop
-
-
-            CALL nb ( dens1, rlk(:,1), ijk ) 
-            CALL nb ( dens2, rlk(:,2), ijk )       
-         
-            CALL first_rnb ( u1, us(:,1), ijk )
-            CALL first_rnb ( u2, us(:,2), ijk ) 
-            u1%nn = us ( ijppk,1 )
-            u1%tt = us ( ijkpp,1 )
-            u1%ee = us ( ippjk,1 )
-            u1%wn = us ( imjpk,1 ) 
-            u1%wt = us ( imjkp,1 )
-           
-            u2%nn = us ( ijppk,2 ) 
-            u2%tt = us ( ijkpp,2 )
-            u2%ee = us ( ippjk,2 )
-            u2%wn = us ( imjpk,2 ) 
-            u2%wt = us ( imjkp,2 )
-
-            CALL first_rnb( v1, vs(:,1), ijk )
-            CALL first_rnb( v2, vs(:,2), ijk )
-            v1%nn = vs ( ijppk,1 )
-            v1%tt = vs ( ijkpp,1 )
-            v1%ee = vs ( ippjk,1 )
-            v1%es = vs ( ipjmk,1 )
-            v1%st = vs ( ijmkp,1 )
-
-            v2%nn = vs ( ijppk,2 )
-            v2%tt = vs ( ijkpp,2 )
-            v2%ee = vs ( ippjk,2 )
-            v2%es = vs ( ipjmk,2 )
-            v2%st = vs ( ijmkp,2 )    
-
-            CALL first_rnb( w1, ws(:,1) , ijk )             
-            CALL first_rnb( w2, ws(:,2) , ijk )
-            w1%nn = ws ( ijppk,1 )
-            w1%tt = ws ( ijkpp,1 )
-            w1%ee = ws ( ippjk,1 )         
-            w1%eb = ws ( ipjkm,1 )
-            w1%nb = ws ( ijpkm,1 ) 
-          
-            w2%nn = ws ( ijppk,2 )
-            w2%tt = ws ( ijkpp,2 )
-            w2%ee = ws ( ippjk,2 )
-            w2%eb = ws ( ipjkm,2 )
-            w2%nb = ws ( ijpkm,2 ) 
-
-            CALL flu(usfe(ijk,1), usfn(ijk,1), usft(ijk,1),         &
-                     usfe(imjk,1), usfn(ijmk,1), usft(ijkm,1),        &
-                     dens1, u1, v1, w1, ijk)
-            CALL flu(usfe(ijk,2), usfn(ijk,2), usft(ijk,2),         &
-                     usfe(imjk,2), usfn(ijmk,2), usft(ijkm,2),        &
-                    dens2, u2, v2, w2, ijk)
-            
-            CALL flv(vsfe(ijk,1), vsfn(ijk,1), vsft(ijk,1),         &
-                     vsfe(imjk,1), vsfn(ijmk,1), vsft(ijkm,1),        &
-                     dens1, u1, v1, w1, ijk)
-            CALL flv(vsfe(ijk,2), vsfn(ijk,2), vsft(ijk,2),         &
-                     vsfe(imjk,2), vsfn(ijmk,2), vsft(ijkm,2),        &
-                     dens2, u2, v2, w2, ijk)
-            
-            CALL flw(wsfe(ijk,1), wsfn(ijk,1), wsft(ijk,1),         &
-                     wsfe(imjk,1), wsfn(ijmk,1), wsft(ijkm,1),        &
-                     dens1, u1, v1, w1, ijk)   
-            CALL flw(wsfe(ijk,2), wsfn(ijk,2), wsft(ijk,2),         &
-                     wsfe(imjk,2), wsfn(ijmk,2), wsft(ijkm,2),        &
-                     dens2, u2, v2, w2, ijk)
-
-          END IF
-!                   
-        END IF
-         
-      END DO
-!
-      CALL data_exchange(ugfe)
-      CALL data_exchange(ugft)
-      CALL data_exchange(wgfe)
-      CALL data_exchange(wgft)
-
-      CALL data_exchange(usfe)
-      CALL data_exchange(usft)
-      CALL data_exchange(wsfe)
-      CALL data_exchange(wsft)
-     
-      CALL data_exchange(ugfn)
-      CALL data_exchange(vgfe)
-      CALL data_exchange(vgfn)
-      CALL data_exchange(vgft)
-      CALL data_exchange(wgfn)
-
-      CALL data_exchange(usfn)
-      CALL data_exchange(vsfe)
-      CALL data_exchange(vsfn)
-      CALL data_exchange(vsft)
-      CALL data_exchange(wsfn)
-    
-!
-      RETURN
-      END SUBROUTINE compute_all_fluxes_3d_3phase
-!----------------------------------------------------------------------
-
-      SUBROUTINE test_fluxes
-!
-      USE control_flags, ONLY: job_type
-      USE dimensions, ONLY: nsolid
-      USE io_restart, ONLY: write_array
-      USE kinds
-      USE parallel, ONLY: nproc, mpime, root, group
-      USE time_parameters, ONLY: time
-!
-      IMPLICIT NONE
-!
-      CHARACTER :: filnam*11
-!
-      INTEGER :: ig,is
-      LOGICAL :: lform = .TRUE.
-!
-      filnam='output.test'
-
-      IF( mpime == root ) THEN
-
-        IF (lform) THEN
-          OPEN(UNIT=12,FILE=filnam)
-          WRITE(12,*) time
-        ELSE 
-          OPEN(UNIT=12,FORM='UNFORMATTED',FILE=filnam)
-          WRITE(12) REAL(time,4)
-        END IF
- 
-      END IF
-!
-      IF (job_type == '2D') THEN
-        CALL write_array( 12, rug, sgl, lform )
-        CALL write_array( 12, rwg, sgl, lform )
-        CALL write_array( 12, ugfe, sgl, lform )
-        CALL write_array( 12, ugft, sgl, lform )
-        CALL write_array( 12, wgfe, sgl, lform )
-        CALL write_array( 12, wgft, sgl, lform )
-      ELSE IF (job_type == '3D') THEN
-        CALL write_array( 12, rug, sgl, lform )
-        CALL write_array( 12, rvg, sgl, lform )
-        CALL write_array( 12, rwg, sgl, lform )
-        CALL write_array( 12, ugfe, sgl, lform )
-        CALL write_array( 12, ugfn, sgl, lform )
-        CALL write_array( 12, ugft, sgl, lform )
-        CALL write_array( 12, vgfe, sgl, lform )
-        CALL write_array( 12, vgfn, sgl, lform )
-        CALL write_array( 12, vgft, sgl, lform )
-        CALL write_array( 12, wgfe, sgl, lform )
-        CALL write_array( 12, wgfn, sgl, lform )
-        CALL write_array( 12, wgft, sgl, lform )
-      END IF
-!
-      DO is = 1, nsolid
-        IF (job_type == '2D') THEN
-          CALL write_array( 12, rus(:,is), sgl, lform )
-          CALL write_array( 12, rws(:,is), sgl, lform )
-          CALL write_array( 12, usfe(:,is), sgl, lform )
-          CALL write_array( 12, usft(:,is), sgl, lform )
-          CALL write_array( 12, wsfe(:,is), sgl, lform )
-          CALL write_array( 12, wsft(:,is), sgl, lform )
-        ELSE IF (job_type == '3D') THEN
-          CALL write_array( 12, rus(:,is), sgl, lform )
-          CALL write_array( 12, rvs(:,is), sgl, lform )
-          CALL write_array( 12, rws(:,is), sgl, lform )
-          CALL write_array( 12, usfe(:,is), sgl, lform )
-          CALL write_array( 12, usfn(:,is), sgl, lform )
-          CALL write_array( 12, usft(:,is), sgl, lform )
-          CALL write_array( 12, vsfe(:,is), sgl, lform )
-          CALL write_array( 12, vsfn(:,is), sgl, lform )
-          CALL write_array( 12, vsft(:,is), sgl, lform )
-          CALL write_array( 12, wsfe(:,is), sgl, lform )
-          CALL write_array( 12, wsfn(:,is), sgl, lform )
-          CALL write_array( 12, wsft(:,is), sgl, lform )
-        END IF
-      END DO
-
-      IF( mpime == root ) THEN
-        CLOSE (12)
-      END IF
-!
-      RETURN
-      END SUBROUTINE test_fluxes
 !----------------------------------------------------------------------
       END MODULE tilde_momentum
 !----------------------------------------------------------------------

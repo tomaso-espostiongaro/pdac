@@ -30,13 +30,13 @@
         MODULE PROCEDURE fmas_2d, fmas_3d
       END INTERFACE
       INTERFACE masf
-        MODULE PROCEDURE masf_2d, masf_3d, masf_3d_new
+        MODULE PROCEDURE masf_2d, masf_3d
       END INTERFACE
 
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE masf_3d( fe, fn, ft, fw, fs, fb, dens, u, v, w )
+      SUBROUTINE masf_3d( fe, fn, ft, fw, fs, fb, dens, u, v, w, ijk )
 !
 ! ... This routine computes convective mass fluxes by using
 ! ... Donor Cell technique for first order upwind
@@ -47,6 +47,14 @@
 !
       REAL*8, INTENT(OUT) :: fe, fn, ft, fw, fs, fb
       TYPE(stencil), INTENT(IN) :: u, v, w, dens
+      INTEGER, INTENT(IN) :: ijk
+!
+      upc_e = 1.D0
+      upc_w = 1.D0
+      upc_t = 1.D0
+      upc_b = 1.D0
+      upc_n = 1.D0
+      upc_s = 1.D0
 !
 ! ... West, South and Bottom fluxes
 !
@@ -90,162 +98,23 @@
 !
       RETURN
       END SUBROUTINE masf_3d
-
 !----------------------------------------------------------------------
-
-      SUBROUTINE masf_3d_new(fe, fn, ft, fw, fs, fb, dens, u, v, w, i, j, k, ijk)
+      SUBROUTINE fmas_3d(fe, fn, ft, fw, fs, fb, dens, u, v, w, ijk)
 !
-! ... This routine computes convective mass fluxes by using
-! ... Donor Cell technique for first order upwind
-! ... This subroutine only if muscl == 0
-
       USE dimensions
-      USE domain_decomposition, ONLY: myijk
+      USE domain_decomposition, ONLY: myijk, meshinds
       USE grid, ONLY: dx, dy, dz, fl_l
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt
       IMPLICIT NONE
 !
-      REAL*8, INTENT(OUT) :: fe, fn, ft, fw, fs, fb
+      REAL*8, INTENT(INOUT) :: fe, fn, ft, fw, fs, fb
       TYPE(stencil), INTENT(IN) :: dens, u, v, w
-      INTEGER, INTENT(IN) :: i, j, k, ijk
-!
-      INTEGER, SAVE :: ijk_old = -1
-      REAL*8, SAVE :: indxp, indxm
-      REAL*8, SAVE :: indyp, indym
-      REAL*8, SAVE :: indzp, indzm
-!
-      IF( ijk /= ijk_old ) THEN
-!
-         indxm=1.D0/(dx(i)+dx(i-1))
-         indxp=1.D0/(dx(i)+dx(i+1))
-         indym=1.D0/(dy(j)+dy(j-1))
-         indyp=1.D0/(dy(j)+dy(j+1))
-         indzm=1.D0/(dz(k)+dz(k-1))
-         indzp=1.D0/(dz(k)+dz(k+1))
-     
-         ijk_old = ijk
-      END IF
-!
-! ... MUSCL reconstruction of fields
-!
-! ... on West volume boundary
-!
-      cs = u%w
-      IF (cs >= 0.D0) THEN
-        fou  = dens%w 
-      ELSE IF (cs < 0.D0) THEN
-        fou  = dens%c 
-      ENDIF
-!
-      upwnd = fou 
-!
-      centrd = ( dx(i) * dens%w + dx(i-1) * dens%c ) * indxm
-      upc_w = upwnd / centrd
-!
-      fw = upwnd * cs
-!
-! ... on East volume boundary
-!
-      cs = u%c
-      IF (cs >= 0.D0) THEN
-        fou  = dens%c 
-      ELSE IF (cs < 0.D0) THEN
-        fou  = dens%e 
-      ENDIF
-!
-      upwnd = fou 
-!
-      centrd = ( dx(i) * dens%e + dx(i+1) * dens%c ) * indxp
-      upc_e = upwnd / centrd
-!
-      fe = upwnd * cs
-!
-! ... on South volume boundary
-!
-!
-      cs = v%s
-      IF (cs >= 0.D0) THEN
-        fou  = dens%s 
-      ELSE IF (cs < 0.D0) THEN
-        fou  = dens%c 
-      ENDIF
-!
-      upwnd = fou
-!
-      centrd = ( dy(j) * dens%s + dy(j-1) * dens%c ) * indym
-      upc_s = upwnd / centrd
-!
-      fs = upwnd * cs
-!
-! ... on North volume boundary
-!
-      cs = v%c
-      IF (cs >= 0.D0) THEN
-        fou  = dens%c 
-      ELSE IF (cs < 0.D0) THEN
-        fou  = dens%n 
-      ENDIF
-!
-      upwnd = fou 
-!
-      centrd = ( dy(j) * dens%n + dy(j+1) * dens%c ) * indyp
-      upc_n = upwnd / centrd
-!
-      fn = upwnd * cs
-!
-! ... on Bottom volume boundary
-!
-      cs = w%b
-      IF (cs >= 0.D0) THEN
-        fou  = dens%b 
-      ELSE IF (cs < 0.D0) THEN
-        fou  = dens%c 
-      ENDIF
-!
-      upwnd = fou
-!
-      centrd = ( dz(k) * dens%b + dz(k-1) * dens%c ) * indzm
-      upc_b = upwnd / centrd
-!
-      fb = upwnd * cs
-!
-! ... on Top volume boundary
-!
-      cs = w%c
-      IF (cs >= 0.D0) THEN
-        fou  = dens%c 
-      ELSE IF (cs < 0.D0) THEN
-        fou  = dens%t 
-      ENDIF
-!
-      upwnd = fou
-!
-      centrd = ( dz(k) * dens%t + dz(k+1) * dens%c ) * indzp
-      upc_t = upwnd / centrd
-!
-      ft = upwnd * cs
-!
-      RETURN
-      END SUBROUTINE masf_3d_new
-
-
-      SUBROUTINE fmas_3d(fe, fn, ft, fw, fs, fb, dens, u, v, w, i, j, k, ijk)
-!
-      USE dimensions
-      USE domain_decomposition, ONLY: myijk
-      USE grid, ONLY: dx, dy, dz, fl_l
-      USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE set_indexes, ONLY: stencil
-      USE time_parameters, ONLY: dt
-      IMPLICIT NONE
-!
-      REAL*8, INTENT(OUT) :: fe, fn, ft, fw, fs, fb
-      TYPE(stencil), INTENT(IN) :: dens, u, v, w
-      INTEGER, INTENT(IN) :: i, j, k, ijk
+      INTEGER, INTENT(IN) :: ijk
 
       INTEGER :: im2, ip2, jm2, jp2, km2, kp2
+      INTEGER :: i,j,k,imesh
 !
       INTEGER, SAVE :: ijk_old = -1
       REAL*8, SAVE :: dxmm, dxm, dxp, dxpp, indxpp, indxp, indxm, indxmm
@@ -253,6 +122,8 @@
       REAL*8, SAVE :: dzmm, dzm, dzp, dzpp, indzpp, indzp, indzm, indzmm
       REAL*8, SAVE :: gradc, grade, gradw, gradn, grads, gradt, gradb
 !
+      CALL meshinds(ijk,imesh,i,j,k)
+
       IF( ijk /= ijk_old ) THEN
 !
          im2 = MAX( 1, i-2 )
@@ -303,27 +174,25 @@
       erre = 0.D0
 !
       cs = u%w
-      cn = cs * dt * 2.0 * indxm
+      !cn = cs * dt * 2.0 * indxm
       IF (cs >= 0.D0) THEN
 	erre = gradw / gradc
-        fou  = dens%w 
 	incr = 0.5D0 * dx(i-1)
       ELSE IF (cs < 0.D0) THEN
 	erre = grade / gradc
-        fou  = dens%c 
 	incr = 0.5D0 * dx(i)
       ENDIF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (i /= 2)) THEN
+      IF ((gradc /= 0.D0) .AND. (i /= 2)) THEN
         CALL limiters(lim,erre)
       END IF
 !
-      upwnd = fou + lim * gradc * incr
-!
+      upwnd = lim * gradc * incr
       centrd = ( dx(i) * dens%w + dx(i-1) * dens%c ) * indxm
-      upc_w = upwnd / centrd
-!
-      fw = upwnd * cs
+
+      fw = fw + upwnd * cs
+
+      upc_w = fw / cs / centrd
 !
 ! ... on East volume boundary
 !
@@ -335,27 +204,25 @@
       erre = 0.D0
 !
       cs = u%c
-      cn = cs * dt * 2.0 * indxp
+      !cn = cs * dt * 2.0 * indxp
       IF (cs >= 0.D0) THEN
 	erre = gradw / gradc
-        fou  = dens%c 
 	incr = 0.5D0 * dx(i)
       ELSE IF (cs < 0.D0) THEN
 	erre = grade / gradc
-        fou  = dens%e 
 	incr = 0.5D0 * dx(i+1)
       ENDIF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (i /= nx-1)) THEN
+      IF ((gradc /= 0.D0) .AND. (i /= nx-1)) THEN
         CALL limiters(lim,erre)
       END IF
 !
-      upwnd = fou + lim * gradc * incr
-!
+      upwnd = lim * gradc * incr
       centrd = ( dx(i) * dens%e + dx(i+1) * dens%c ) * indxp
-      upc_e = upwnd / centrd
-!
-      fe = upwnd * cs
+
+      fe = fe + upwnd * cs
+
+      upc_e = fe / cs / centrd
 !
 ! ... on South volume boundary
 !
@@ -367,27 +234,25 @@
       erre = 0.D0
 !
       cs = v%s
-      cn = cs * dt * 2.0 * indym
+      !cn = cs * dt * 2.0 * indym
       IF (cs >= 0.D0) THEN
 	erre = grads / gradc
-        fou  = dens%s 
 	incr = 0.5D0 * dy(j-1)
       ELSE IF (cs < 0.D0) THEN
 	erre = gradn / gradc
-        fou  = dens%c 
 	incr = 0.5D0 * dy(j)
       ENDIF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (j /= 2)) THEN
+      IF ((gradc /= 0.D0) .AND. (j /= 2)) THEN
         CALL limiters(lim,erre)
       END IF
 !
-      upwnd = fou + lim * gradc * incr
-!
+      upwnd = lim * gradc * incr
       centrd = ( dy(j) * dens%s + dy(j-1) * dens%c ) * indym
-      upc_s = upwnd / centrd
-!
-      fs = upwnd * cs
+
+      fs = fs + upwnd * cs
+
+      upc_s = fs / cs / centrd
 !
 ! ... on North volume boundary
 !
@@ -399,27 +264,25 @@
       erre = 0.D0
 !
       cs = v%c
-      cn = cs * dt * 2.0 * indyp
+      !cn = cs * dt * 2.0 * indyp
       IF (cs >= 0.D0) THEN
 	erre = grads / gradc
-        fou  = dens%c 
 	incr = 0.5D0 * dy(j)
       ELSE IF (cs < 0.D0) THEN
 	erre = gradn / gradc
-        fou  = dens%n 
 	incr = 0.5D0 * dy(j+1)
       ENDIF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (j /= ny-1)) THEN
+      IF ((gradc /= 0.D0) .AND. (j /= ny-1)) THEN
         CALL limiters(lim,erre)
       END IF
 !
-      upwnd = fou + lim * gradc * incr
-!
+      upwnd = lim * gradc * incr
       centrd = ( dy(j) * dens%n + dy(j+1) * dens%c ) * indyp
-      upc_n = upwnd / centrd
-!
-      fn = upwnd * cs
+
+      fn = fn + upwnd * cs
+
+      upc_n = fn / cs / centrd
 !
 ! ... on Bottom volume boundary
 !
@@ -431,27 +294,25 @@
       erre = 0.D0
 !
       cs = w%b
-      cn = cs * dt * 2.0 * indzm
+      !cn = cs * dt * 2.0 * indzm
       IF (cs >= 0.D0) THEN
 	erre = gradb / gradc
-        fou  = dens%b 
 	incr = 0.5D0 * dz(k-1)
       ELSE IF (cs < 0.D0) THEN
 	erre = gradt / gradc
-        fou  = dens%c 
 	incr = 0.5D0 * dz(k)
       ENDIF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (k /= 2)) THEN
+      IF ((gradc /= 0.D0) .AND. (k /= 2)) THEN
         CALL limiters(lim,erre)
       END IF
 !
-      upwnd = fou + lim * gradc * incr
-!
+      upwnd = lim * gradc * incr
       centrd = ( dz(k) * dens%b + dz(k-1) * dens%c ) * indzm
-      upc_b = upwnd / centrd
-!
-      fb = upwnd * cs
+
+      fb = fb + upwnd * cs
+
+      upc_b = fb / cs / centrd
 !
 ! ... on Top volume boundary
 !
@@ -463,33 +324,29 @@
       erre = 0.D0
 !
       cs = w%c
-      cn = cs * dt * 2.0 * indzp
+      !cn = cs * dt * 2.0 * indzp
       IF (cs >= 0.D0) THEN
 	erre = gradb / gradc
-        fou  = dens%c 
 	incr = 0.5D0 * dz(k)
       ELSE IF (cs < 0.D0) THEN
 	erre = gradt / gradc
-        fou  = dens%t 
 	incr = 0.5D0 * dz(k+1)
       ENDIF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (k /= nz-1)) THEN
+      IF ((gradc /= 0.D0) .AND. (k /= nz-1)) THEN
         CALL limiters(lim,erre)
       END IF
 !
-      upwnd = fou + lim * gradc * incr
-!
+      upwnd = lim * gradc * incr
       centrd = ( dz(k) * dens%t + dz(k+1) * dens%c ) * indzp
-      upc_t = upwnd / centrd
-!
-      ft = upwnd * cs
+
+      ft = ft + upwnd * cs
+
+      upc_t = ft / cs / centrd
 !
       RETURN
       END SUBROUTINE fmas_3d
-
 !-----------------------------------------------------------------------
-
       SUBROUTINE masf_2d(fe, ft, fw, fb, dens, u, w, ij)
 !
 ! ... This routine computes convective mass fluxes by using
@@ -507,12 +364,15 @@
       TYPE(stencil), INTENT(IN) :: u, w, dens
       INTEGER, INTENT(IN) :: ij
       INTEGER :: i,j,imesh
-
 !
       imesh = myijk( ip0_jp0_kp0_, ij)
       j = ( imesh - 1 ) / nx + 1
       i = MOD( ( imesh - 1 ), nx) + 1
 !
+      upc_e = 1.D0
+      upc_w = 1.D0
+      upc_t = 1.D0
+      upc_b = 1.D0
 !
 ! ... West, Bottom fluxes
 !
@@ -542,11 +402,6 @@
         ft = w%c * dens%t
       ENDIF
 !
-      upc_e = 1.D0
-      upc_w = 1.D0
-      upc_t = 1.D0
-      upc_b = 1.D0
-
       RETURN
       END SUBROUTINE masf_2d
 !----------------------------------------------------------------------
@@ -560,7 +415,7 @@
       USE time_parameters, ONLY: dt
       IMPLICIT NONE
 !
-      REAL*8, INTENT(OUT) :: fe, ft, fw, fb
+      REAL*8, INTENT(INOUT) :: fe, ft, fw, fb
       TYPE(stencil), INTENT(IN) :: dens, u, w
       INTEGER, INTENT(IN) :: ij
 !
@@ -600,11 +455,6 @@
 !
 ! ... MUSCL reconstruction of fields
 !
-      upc_e = 1.D0
-      upc_w = 1.D0
-      upc_t = 1.D0
-      upc_b = 1.D0
-!
 ! ... on West volume boundary
 !
       gradc = 2.D0 * indxm * (dens%c - dens%w)
@@ -615,27 +465,25 @@
       erre = 0.D0
 !
       cs = u%w
-      cn = cs * dt * 2.D0 * indxm
+      !cn = cs * dt * 2.D0 * indxm
       IF (cs >= 0.D0) THEN
 	erre = gradw / gradc
-        fou  = dens%w 
 	incr = 0.5D0 * dx(i-1)
       ELSE IF (cs < 0.D0) THEN
 	erre = grade / gradc
-        fou  = dens%c 
 	incr = 0.5D0 * dx(i)
       ENDIF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (i /= 2)) THEN
+      IF ((gradc /= 0.D0) .AND. (i /= 2)) THEN
         CALL limiters(lim,erre)
       END IF
 !
-      upwnd = fou + lim * gradc * incr
-!
+      upwnd = lim * gradc * incr
       centrd = (dx(i)*dens%w+dx(i-1)*dens%c)*indxm
-      upc_w = upwnd / centrd
-!
-      fw = upwnd * cs * xb(i-1)
+
+      fw = fw + upwnd * cs * xb(i-1)
+
+      upc_w = fw / (cs * xb(i-1)) / centrd
 !
 ! ... on East volume boundary
 !
@@ -647,27 +495,25 @@
       erre = 0.D0
 !
       cs = u%c
-      cn = cs * dt * 2.0 * indxp
+      !cn = cs * dt * 2.0 * indxp
       IF (cs >= 0.D0) THEN
 	erre = gradw / gradc
-        fou  = dens%c 
 	incr = 0.5D0 * dx(i)
       ELSE IF (cs < 0.D0) THEN
 	erre = grade / gradc
-        fou  = dens%e 
 	incr = 0.5D0 * dx(i+1)
       ENDIF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (i /= nx-1)) THEN
+      IF ((gradc /= 0.D0) .AND. (i /= nx-1)) THEN
         CALL limiters(lim,erre)
       END IF
 !
-      upwnd = fou + lim * gradc * incr
-!
+      upwnd = lim * gradc * incr
       centrd = (dx(i)*dens%e+dx(i+1)*dens%c)*indxp
-      upc_e = upwnd / centrd
-!
-      fe = upwnd * cs * xb(i)
+      
+      fe = fe + upwnd * cs * xb(i)
+
+      upc_e = fe / (cs * xb(i)) / centrd
 !
 ! ... on Bottom volume boundary
 !
@@ -679,27 +525,25 @@
       erre = 0.D0
 !
       cs = w%b
-      cn = cs * dt * 2.D0 * indzm
+      !cn = cs * dt * 2.D0 * indzm
       IF (cs >= 0.D0) THEN
 	erre = gradb / gradc
-        fou  = dens%b 
 	incr = 0.5D0 * dz(k-1)
       ELSE IF (cs < 0.D0) THEN
 	erre = gradt / gradc
-        fou  = dens%c 
 	incr = 0.5D0 * dz(k)
       ENDIF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (k /= 2)) THEN
+      IF ((gradc /= 0.D0) .AND. (k /= 2)) THEN
         CALL limiters(lim,erre)
       END IF
 !
-      upwnd = fou + lim * gradc * incr
-!
+      upwnd = lim * gradc * incr
       centrd = (dz(k)*dens%b+dz(k-1)*dens%c)*indzm
-      upc_b = upwnd / centrd
-!
-      fb = upwnd * cs
+
+      fb = fb + upwnd * cs
+
+      upc_b = fb / cs  / centrd
 !
 ! ... on Top volume boundary
 !
@@ -711,27 +555,25 @@
       erre = 0.D0
 !
       cs = w%c
-      cn = cs * dt * 2.D0 * indzp
+      !cn = cs * dt * 2.D0 * indzp
       IF (cs >= 0.D0) THEN
 	erre = gradb / gradc
-        fou  = dens%c 
 	incr = 0.5D0 * dz(k)
       ELSE IF (cs < 0.D0) THEN
 	erre = gradt / gradc
-        fou  = dens%t 
 	incr = 0.5D0 * dz(k+1)
       ENDIF
 !
-      IF ((muscl /= 0) .AND. (gradc /= 0.D0) .AND. (k /= nz-1)) THEN
+      IF ((gradc /= 0.D0) .AND. (k /= nz-1)) THEN
         CALL limiters(lim,erre)
       END IF
 !
-      upwnd = fou + lim * gradc * incr
-!
+      upwnd = lim * gradc * incr
       centrd = (dz(k)*dens%t+dz(k+1)*dens%c)*indzp
-      upc_t = upwnd / centrd
-!
-      ft = upwnd * cs
+
+      ft = ft + upwnd * cs
+
+      upc_t = ft / cs / centrd
 !
       RETURN
       END SUBROUTINE fmas_2d

@@ -37,12 +37,12 @@
       IMPLICIT NONE
 !
       INTEGER :: k2, k1, k, kk
-      REAL*8  :: a
+      REAL*8  :: a, fact
 !
 ! ... set the maximum packing volume fraction for particles
 ! ... (here assumed to be the same for all phases)
 !
-        phi = 0.63
+      phi(:) = 0.63
 !
 ! ... Syamlal's particle-particle interaction coefficients
 !
@@ -56,11 +56,16 @@
             k2=k
           ENDIF
           a = DSQRT(dk(k2)/dk(k1))
+          
           philim(k,kk) = phi(k1) / ( phi(k1) + ( 1.D0 - phi(k1)) * phi(k2) )
-          epsl(k,kk) = ( phi(k1) - phi(k2) + &
-                       ( 1.D0 - a ) * ( 1.D0 - phi(k1) ) * phi(k2) ) * &
-                       ( phi(k1) + ( 1.D0 - phi(k2) ) * phi(k1) ) / phi(k1)
-          epsu(k,kk) = ( 1.D0 - a ) * (phi(k1) + ( 1.D0 - phi(k1)) * phi(k2) )
+
+          epsl(k,kk) = (phi(k1)-phi(k2))+((1.D0-a)*(1.D0-phi(k1))*phi(k2)) 
+
+          fact = ( phi(k1) + ( 1.D0 - phi(k2) ) * phi(k1) ) / phi(k1)
+
+          epsl(k,kk) = epsl(k,kk) * fact
+
+          epsu(k,kk) = ( 1.D0 - a ) * ( phi(k1) + ( 1.D0 - phi(k1) ) * phi(k2) )
 !
           dkf(k,kk)=(dk(k)+dk(kk))**2/(rl(k)*dk(k)**3+rl(kk)*dk(kk)**3)
           dkf(kk,k)=dkf(k,kk)

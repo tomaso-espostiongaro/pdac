@@ -19,6 +19,7 @@
 
       REAL*8, INTENT(OUT) :: limiter
       REAL*8, INTENT(IN)  :: erre
+      REAL*8 :: beta_unlimited
       
       SELECT CASE (lim_type)
 
@@ -36,13 +37,15 @@
 
       CASE (4) !(ultrabeta)
 
-        limiter = MAX( 0.D0, MIN( 2.D0*erre, ((1.D0-beta) + beta*erre), 2.D0 ))
+        beta_unlimited = (1.D0-beta) + beta*erre 
 
-      CASE (0) !(beta unlimited)
+        limiter = MAX( 0.D0, MIN( 2.D0*erre, beta_unlimited , 2.D0 ))
+
+      CASE (0) !(beta_unlimited)
 
         limiter = (1.D0-beta) + beta*erre
 
-      CASE DEFAULT
+      CASE DEFAULT !(mantain First Order Upwind)
 
         limiter = 0.D0
       

@@ -193,6 +193,7 @@
 !
       INTEGER :: is 
 !
+      REAL*8 :: a, b
       REAL*8 :: dxp, dyp, dzp, indxp, indyp, indzp
       REAL*8 :: epsx, epsy, epsz, gepx, gepy, gepz
       INTEGER :: imesh, i, j, k, ijk
@@ -223,6 +224,9 @@
 !
       IF ( repulsive_model == 1 ) THEN
 
+        a = -8.76D0
+        b = -0.27D0
+
         DO ijk = 1, ncint
           IF(fl_l(ijk) == 1) THEN
             CALL meshinds(ijk,imesh,i,j,k)
@@ -243,14 +247,16 @@
 ! ... Coulombic x-gradient
 !
               epsx=(dx(i+1)*rlk(ijk,is) + dx(i)*rlk(ijke,is)) * indxp * inrl(is)
-              gepx=10.D0**(8.76D0*epsx-0.27D0)
+              gepx=10.D0**( -a * epsx + b )
+
               pvisx(ijk,is) = pvisx(ijk,is) -  & 
                             gepx*indxp*2.D0*(rlk(ijke,is)-rlk(ijk,is))*inrl(is)
 !
 ! ... Coulombic z-gradient
 !
               epsz=(dz(j+1)*rlk(ijk,is) + dz(j)*rlk(ijkt,is)) * indzp * inrl(is)
-              gepz=10.D0**(8.76D0*epsz-0.207D0)
+              gepz=10.D0**( -a * epsz + b )
+
               pvisz(ijk,is) = pvisz(ijk,is) -  & 
                             gepz*indzp*2.D0*(rlk(ijkt,is)-rlk(ijk,is))*inrl(is)
               END DO
@@ -262,22 +268,25 @@
 !
 ! ... Coulombic x-gradient
 !
-                epsx=(dx(i+1)*rlk(ijk,is) + dx(i)*rlk(ijke,is)) * indxp * inrl(is)
-                gepx=10.D0**(8.76D0*epsx-0.27D0)
+                epsx=(dx(i+1)*rlk(ijk,is) + dx(i)*rlk(ijke,is))*indxp * inrl(is)
+                gepx=10.D0**( -a * epsx + b )
+
                 pvisx(ijk,is) = pvisx(ijk,is) -  & 
                             gepx*indxp*2.D0*(rlk(ijke,is)-rlk(ijk,is))*inrl(is)
 !
 ! ... Coulombic y-gradient
 !
-                epsy=(dy(j+1)*rlk(ijk,is) + dy(j)*rlk(ijkn,is)) * indyp * inrl(is)
-                gepy=10.D0**(8.76D0*epsy-0.207D0)
+                epsy=(dy(j+1)*rlk(ijk,is) + dy(j)*rlk(ijkn,is))*indyp * inrl(is)
+                gepy=10.D0**( -a * epsy + b )
+
                 pvisy(ijk,is) = pvisy(ijk,is) -  & 
                             gepy*indyp*2.D0*(rlk(ijkn,is)-rlk(ijk,is))*inrl(is)
 !
 ! ... Coulombic z-gradient
 !
-                epsz=(dz(k+1)*rlk(ijk,is) + dz(k)*rlk(ijkt,is)) * indzp * inrl(is)
-                gepz=10.D0**(8.76D0*epsz-0.207D0)
+                epsz=(dz(k+1)*rlk(ijk,is) + dz(k)*rlk(ijkt,is))*indzp * inrl(is)
+                gepz=10.D0**( -a * epsz + b )
+
                 pvisz(ijk,is) = pvisz(ijk,is) -  & 
                             gepz*indzp*2.D0*(rlk(ijkt,is)-rlk(ijk,is))*inrl(is)
               END DO
@@ -588,8 +597,8 @@
       visz = 0.D0
 !
       DO ij = 1, ncint
-        imesh = myijk( ip0_jp0_kp0_, ij)
         IF(fl_l(ij) == 1) THEN
+         imesh = myijk( ip0_jp0_kp0_, ij)
          CALL subscr(ij)
          j = ( imesh - 1 ) / nx + 1
          i = MOD( ( imesh - 1 ), nx) + 1
@@ -667,7 +676,7 @@
 ! ... x-gradient of the stress tensor
 !
          gradxx   = (eps(ijke)*txx2*x(i+1)-eps(ij)*txx1*x(i))
-         gradxx   = gradxx * indxp * 2.D0*inxb(i)
+         gradxx   = gradxx * indxp * 2.D0 * inxb(i)
          gradyx   = (epsmu2*tyx2-epsmu1*tyx1)
          gradyx   = gradyx * indz(j)
 
