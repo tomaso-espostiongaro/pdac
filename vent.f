@@ -258,8 +258,9 @@
           ! ... determine the initial random seed
           !
           IF (irand >= 1) THEN
-            IF (mpime == root) seed = cpclock()
-            CALL bcast_integer(seed,1,root)
+            !IF (mpime == root) seed = INT(cpclock())
+            !CALL bcast_integer(seed,1,root)
+            seed = 0
           END IF
         
         END IF

@@ -149,14 +149,6 @@
             sz = dy(j)*dx(i)
           END IF
           
-          WRITE(*,*) ijk
-          WRITE(*,*) wg(ijk), ws(ijk,:)
-          WRITE(*,*) ep(ijk), p(ijk)
-          WRITE(*,*) tg(ijk), ts(ijk,:)
-          WRITE(*,*) rgp(ijk), rlk(ijk,:)
-          WRITE(*,*) ygc(ijk,:)
-          WRITE(*,*) 
-          
           flux = rgp(ijk) * wg(ijk) * sz
           mfr = mfr + flux
 
