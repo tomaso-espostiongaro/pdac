@@ -170,6 +170,14 @@
 ! ... (for fully implicit solution)
 !         CALL tilde
 
+!   *** TIMING (Convergence in the ijk cell) ***
+!
+
+         IF( timing ) THEN
+            st0 = cclock_wall()
+            ! call system_clock (st0,ratc)
+         END IF  
+
          mesh_loop: DO ijk = 1, ncint
 
            converge(ijk) = .FALSE.
@@ -205,12 +213,6 @@
                 ! ... start the inner (in-cell) iterative loop
                 ! ... to correct pressure and velocities.
 !
-!   *** TIMING (Convergence in the ijk cell) ***
-!
-                IF( timing ) THEN
-                   st0 = cclock_wall()
-                   ! call system_clock (st0,ratc)
-                END IF  
 !
                 d3 = dg
                 p3 = p(ijk)
@@ -269,22 +271,24 @@
 
 !   *** END TIMING (Convergence in the ijk cell) ***
 
-                 IF( timing ) THEN
-                   st1 = cclock_wall()
-                   ! call system_clock(st1,ratc)
-                 END IF
-
               END IF
 
    
            END IF
 
-!IF (TIMING)
-             ! write(6,*)  nit, st1, st0
-             ! timconv(nit) = timconv(nit) + real(st1-st0)/ratc         
-             timconv(nit) = timconv(nit) + real(st1-st0)         
-    
          END DO mesh_loop
+
+         IF( timing ) THEN
+            st1 = cclock_wall()
+            ! call system_clock(st1,ratc)
+         END IF
+
+
+!IF (TIMING)
+         ! write(6,*)  nit, st1, st0
+         ! timconv(nit) = timconv(nit) + real(st1-st0)/ratc         
+         timconv(nit) = timconv(nit) + real(st1-st0)         
+    
 !
 ! ... Update gas and particles enthalpy
 ! ... (for fully implicit solution)
@@ -797,7 +801,7 @@
 !
 ! ... rbeta = dD_g/dP
 
-          rbeta = ep(ijk) * rags + dt**2.D0 * (iepx+iepy+iepz)
+          rbeta = ep(ijk) * rags + dt**2 * (iepx+iepy+iepz)
 !
           abt = 1.D0 / rbeta
           cnv = delg * rgp(ijk)

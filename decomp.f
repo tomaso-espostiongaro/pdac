@@ -1507,7 +1507,7 @@
         IMPLICIT NONE
         REAL*8 :: array(:)
         REAL*8, ALLOCATABLE :: sndbuf(:), rcvbuf(:) 
-        INTEGER :: ip, isour, idest, ib
+        INTEGER :: ip, isour, idest, ib, itag, ihand
 !
         DO ip = 1, (nproc - 1)
           isour = MOD(mpime - ip + nproc, nproc)
@@ -1517,8 +1517,17 @@
           DO ib = 1, snd_map(idest)%nsnd
             sndbuf(ib) = array( snd_map(idest)%iloc(ib) )
           END DO 
-          CALL sendrecv_real(sndbuf(1), snd_map(idest)%nsnd, idest,  &
-            rcvbuf, rcv_map(isour)%nrcv, isour, ip)
+          IF( snd_map(idest)%nsnd > 0 ) THEN
+            CALL isend_real( sndbuf(1), snd_map(idest)%nsnd, idest, ip, ihand )
+          END IF
+          IF( rcv_map(isour)%nrcv > 0 ) THEN
+            CALL recv_real( rcvbuf, rcv_map(isour)%nrcv, isour, ip )
+          END IF
+          IF( snd_map(idest)%nsnd > 0 ) THEN
+            CALL mp_wait( ihand )
+          END IF
+          !CALL sendrecv_real(sndbuf(1), snd_map(idest)%nsnd, idest,  &
+          !  rcvbuf, rcv_map(isour)%nrcv, isour, ip)
           DO ib = 1, rcv_map(isour)%nrcv
             array( rcv_map(isour)%iloc(ib) ) = rcvbuf(ib)
           END DO 

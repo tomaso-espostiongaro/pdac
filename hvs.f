@@ -29,9 +29,9 @@
       ENDIF
 !pe-------------
       eps  =  rlk * inrl(k)
-      eps2 = (rlk * inrl(k))**2.D0
-      asurf = 6.D0 * kapg * eps / (dk(k)**2.D0)
-      vrel = DSQRT(du**2.D0+dv**2.D0+dw**2.D0)
+      eps2 = (rlk * inrl(k))**2
+      asurf = 6.D0 * kapg * eps / (dk(k)**2)
+      vrel = DSQRT(du**2+dv**2+dw**2)
       reynum = dk(k) * vrel * rog / mug
       pranum = cg * mug / kapg
 !
@@ -44,7 +44,7 @@
 !
 ! Gunn's correlation
 !
-!      nusselt = ((7.D0 - 10.D0 * ep + 5.D0 * ep**2.D0) *                &
+!      nusselt = ((7.D0 - 10.D0 * ep + 5.D0 * ep**2) *                &
 !                (1.D0 + 0.7D0 * reynum**0.2 * pranum**(1.D0/3.D0)) +    &
 !                (1.33D0 - 2.4D0 * ep + 1.2 * ep**2) *                   &
 !                reynum**0.7D0 * pranum**(1.D0/3.D0))

@@ -308,8 +308,8 @@
              num = l11*m11 + l22*m22 + l33*m33 + &
 	           2.D0*l12*m12 + 2.D0*l13*m13 + 2.D0*l23*m23
 
-             den = delt**2.D0*( m11**2.D0 + m22**2.D0 + m33**2.D0 + &
-	                        2.D0*m12**2.D0 + 2.D0*m13**2.D0 + 2.D0*m23**2.D0 )
+             den = delt**2 * ( m11**2 + m22**2 + m33**2 + &
+	                        2.D0*m12**2 + 2.D0*m13**2 + 2.D0*m23**2 )
 !
              IF(den == 0.0D0) THEN
                cdyn = 0.0D0
@@ -318,7 +318,7 @@
              END IF
 !
 ! ... squared Smagorinsky length scale
-             smag(ijk) = cdyn * (delt**2.D0)
+             smag(ijk) = cdyn * (delt**2)
 
           END IF
 !
@@ -484,7 +484,7 @@
                            modsr,sr11,sr12,sr22,sr13,sr23,sr33, ijk)
            END IF
 !
-           must(ijk,is) = 0.5D0*DSQRT(2.D0) * cmus(is) * rl(is) * dk(is)**2.D0 * &
+           must(ijk,is) = 0.5D0*DSQRT(2.D0) * cmus(is) * rl(is) * dk(is)**2 * &
                           10.D0**(3.98D0*rlk(ijk,is)*inrl(is)-1.69D0) * modsr
          END DO
         END IF
@@ -551,8 +551,8 @@
       sr13 = (uzp - uzm) / (dzp+dzm) + (wxp - wxm) / (dxp+dxm)
       sr23 = (vzp - vzm) / (dzp+dzm) + (wyp - wym) / (dyp+dym)
 !        
-      modsr = DSQRT(2.D0 * (sr11**2.D0 + sr22**2.D0 + sr33**2.D0 +             &
-	                   2.D0*sr12**2.D0 + 2.D0*sr13**2.D0 + 2.D0*sr23**2.D0) )
+      modsr = DSQRT(2.D0 * (sr11**2 + sr22**2 + sr33**2 +             &
+	                   2.D0*sr12**2 + 2.D0*sr13**2 + 2.D0*sr23**2) )
 !
       RETURN
       END SUBROUTINE strain3d
@@ -618,8 +618,8 @@
 
         sr12 =((um2-um1)*indz(j)+(wm2-wm1)*indx(i))*0.5D0
 !        
-        modsr = DSQRT(2.D0 * (sr1**2.D0 + sr2**2.D0 + 2.D0 * sr12**2.D0 +   &
-                              d33**2.D0) )
+        modsr = DSQRT(2.D0 * (sr1**2 + sr2**2 + 2.D0 * sr12**2 +   &
+                              d33**2) )
 !
       RETURN
       END SUBROUTINE strain2d

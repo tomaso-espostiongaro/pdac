@@ -40,6 +40,7 @@
       INTEGER :: myrank
       REAL*8 :: tdump1, tpri
       REAL*8 :: s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10
+      REAL*8 :: w0, w1, wmax
       REAL*8 :: t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10
       REAL*8 :: p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10
       REAL*8 :: timbdry, timout, timrestart, timtilde, timiter, &
@@ -57,6 +58,8 @@
                 call cpu_time(t0)
                 call MP_WALLTIME(p0,myrank)
              END IF
+
+      w0 = elapsed_seconds()
 !
       timbdry = 0.0d0
       timout = 0.0d0
@@ -88,8 +91,6 @@
       mptimtem= 0.0d0
       mptimtot= 0.0d0
       
-      
-
       tdump1=time+tdump
       tpri=time+tpr
       irest = 0
@@ -184,7 +185,10 @@
 !
 ! ... Write RESTART file
 !
-       stop_now = ( elapsed_seconds() > max_seconds )
+       wmax = elapsed_seconds() 
+       call parallel_max_real( wmax, 1 )
+
+       stop_now = ( wmax > max_seconds )
 
        IF( stop_now ) THEN
          WRITE(6,fmt="('  elapsed_seconds exceed max_second',/, &
@@ -202,7 +206,9 @@
                 call MP_WALLTIME(p4,myrank)
               END IF 
 
-       WRITE(6,fmt="('  walltime = ',F10.2)") elapsed_seconds()
+       w1 = elapsed_seconds()
+       WRITE(6,fmt="('  walltime = ',F10.2,', ',F10.2)") w1, w1-w0
+       w0 = w1
 !
 !------------------------------------------------------------ 
        IF ( ( time + 0.1D0*dt >= tstop ) .OR. stop_now )     EXIT time_sweep

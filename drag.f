@@ -19,7 +19,7 @@
       INTEGER, INTENT(IN) :: is
       REAL*8 :: drag, vrel
 !
-      vrel = DSQRT(du**2.D0 + dv**2.D0 + dw**2.D0)
+      vrel = DSQRT(du**2 + dv**2 + dw**2)
 
       IF(ep < 0.8D0) THEN
         CALL kdragl(drag,vrel,ep,rgp,rlk,mug,is)
