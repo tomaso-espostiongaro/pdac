@@ -27,6 +27,7 @@
       USE gas_solid_velocity, ONLY: ug, vg, uk, vk
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: sieg, siek, tg, tk
+      USE gas_solid_viscosity, ONLY: kapg
       USE grid, ONLY: r, rb, dr, zb, dz, inr, indr, indz 
       USE grid, ONLY: fl_l
       USE grid, ONLY: nij_l, nijx_l, myij, data_exchange
@@ -35,7 +36,7 @@
       USE pressure_epsilon, ONLY: p, pn, ep
       USE time_parameters, ONLY: dt
       USE set_indexes
-      USE turbulence, ONLY: kapgt
+      USE turbulence, ONLY: kapgt, iturb
       IMPLICIT NONE
 !
       REAL*8 :: c3, hrexs, hrexg, c2, upxy, c1
@@ -67,6 +68,12 @@
 !
       rhg = 0.0D0
       rhk = 0.0D0      
+!
+      IF (iturb .GE. 1) THEN
+        kapgt = kapgt + kapg
+      ELSE
+        kapgt = kapg
+      END IF
 !
       CALL data_exchange(sieg)
       CALL data_exchange(siek)

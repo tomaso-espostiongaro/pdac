@@ -17,7 +17,9 @@
 !
       ALLOCATE(gas_bulk_density(nr*nz), gas_density(nr*nz))
       ALLOCATE(solid_bulk_density(nsolid,nr*nz))
-
+      gas_bulk_density   = 0.D0
+      gas_density        = 0.D0
+      solid_bulk_density = 0.D0
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
@@ -27,6 +29,12 @@
 !
       ALLOCATE(rgp(nijx_l), rgpn(nij_l), rog(nij_l))
       ALLOCATE(rlk(nsolid,nijx_l), rlkn(nsolid,nij_l))
+      rgp = 0.D0
+      rgpn = 0.D0
+      rog = 0.D0
+      rlk = 0.D0
+      rlkn = 0.D0
+      
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------

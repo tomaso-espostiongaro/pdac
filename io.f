@@ -13,7 +13,7 @@
       USE pressure_epsilon, ONLY: gas_pressure, void_fraction
       USE heat_capacity, ONLY: gc_heat_capacity, solid_heat_capacity
       USE time_parameters, ONLY: time
-
+!
         IMPLICIT NONE
         PRIVATE
 
@@ -30,20 +30,12 @@
       INTEGER :: i, j, k, nrnz, ij
       INTEGER :: kg
 !
-      CHARACTER*27 sysdump
-      CHARACTER*22 sysdumpc
+      CHARACTER*13 restart_file
+      restart_file = 'pdac.res'
 !
       IF( mpime .EQ. root ) THEN
 !
-! ... non standard fortran CALL (can be omitted)
-!*************
-          WRITE (sysdump,4445) char(0)
-! ... IBM 
-!          CALL system(sysdump)
- 4445     FORMAT ('mv pdac.res.Z pdac.bak.Z',a1)
-!*************
-!
-        OPEN(UNIT=9,form='unformatted',FILE='pdac.res')
+        OPEN(UNIT=9,form='unformatted', FILE = restart_file)
 !
         WRITE(9) time,nr,nz,nsolid
         nrnz=nr*nz
@@ -74,14 +66,6 @@
 !
         CLOSE(9)
 ! 
-! ... non standard fortran CALL (can be omitted)
-!*************
-        WRITE (sysdumpc,4446) char(0)
-! ... IBM 
-!        CALL system(sysdumpc)
- 4446   FORMAT ('compress -f pdac.res',a1)
-!*************
-!
       END IF
       RETURN
       END SUBROUTINE
@@ -91,18 +75,9 @@
       USE dimensions
       IMPLICIT NONE
 !
-      CHARACTER*23 sysdumpu
       INTEGER :: i, j, k, nrnz, ij
       INTEGER :: kg
       IF( mpime .EQ. root ) THEN
-!
-! non standard fortran CALL (can be omitted)
-!*************
-         WRITE (sysdumpu,4447) char(0)
- 4447    FORMAT ('uncompress pdac.res.Z',a1)
-! ... IBM 
-!         CALL system(sysdumpu)
-!*************
 !
         OPEN(UNIT=9,form='unformatted',FILE='pdac.res')
 !  

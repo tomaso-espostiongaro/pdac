@@ -28,6 +28,10 @@
 !
       ALLOCATE(cp(ngas,nij_l))
       ALLOCATE(ck(nsolid,nij_l))
+!
+      cp = 0.D0 
+      ck = 0.D0
+!
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------

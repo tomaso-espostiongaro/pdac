@@ -69,22 +69,19 @@
         REAL*8 :: delt
 !
         IF (iturb .EQ. 2) THEN
-! ... zbt(i) is the function of the elevations
-!
-        ALLOCATE(jt(nr), it(nr), zbt(nr))
-        it = 0; jt = 0
-        zbt = 0.D0
-!
-         DO n=1,no
-          IF(nso(n).EQ.3) THEN
-            i1=iob(1,n)
-            i2=iob(2,n)
-            j2=iob(4,n)
-            it(i1:i2) = 1
-            jt(i)=j2
-            zbt(i)=zb(j2)
-          ENDIF
-         END DO
+          ALLOCATE(jt(nr), it(nr), zbt(nr))
+          it = 0; jt = 0
+          zbt = 0.D0
+          DO n=1,no
+           IF(nso(n).EQ.3) THEN
+             i1=iob(1,n)
+             i2=iob(2,n)
+             j2=iob(4,n)
+             it(i1:i2) = 1
+             jt(i)=j2
+             zbt(i)=zb(j2)
+           ENDIF
+          END DO
         ENDIF
 !
         DO j=2, (nz-1)
@@ -159,38 +156,41 @@
       ALLOCATE(p1(nijx_l))   ;     p1 = 0.0D0
       ALLOCATE(p2(nijx_l))   ;     p2 = 0.0D0
       ALLOCATE(p12(nijx_l))  ;     p12 = 0.0D0
-      ALLOCATE(fug(nijx_l))  ;     fug = 0.0D0
-      ALLOCATE(fvg(nijx_l))  ;     fvg = 0.0D0
-      ALLOCATE(fu2g(nijx_l)) ;     fu2g = 0.0D0
-      ALLOCATE(fv2g(nijx_l)) ;     fv2g = 0.0D0
-      ALLOCATE(fuvg(nijx_l)) ;     fuvg = 0.0D0
 !
       CALL data_exchange(ug)
       CALL data_exchange(vg)
 !
       CALL strain(modsr, sr1, sr2, sr12, p1, p2, p12)
 !
-      CALL vel_hat(fug, fvg, fu2g, fv2g, fuvg)        
+      IF (modturbo .EQ. 2) THEN
+        ALLOCATE(fug(nijx_l))  ;     fug = 0.0D0
+        ALLOCATE(fvg(nijx_l))  ;     fvg = 0.0D0
+        ALLOCATE(fu2g(nijx_l)) ;     fu2g = 0.0D0
+        ALLOCATE(fv2g(nijx_l)) ;     fv2g = 0.0D0
+        ALLOCATE(fuvg(nijx_l)) ;     fuvg = 0.0D0
 !
-      CALL data_exchange(p1)
-      CALL data_exchange(p2)
-      CALL data_exchange(p12)
-      CALL data_exchange(fug)
-      CALL data_exchange(fvg)
-      CALL data_exchange(fu2g)
-      CALL data_exchange(fv2g)
-      CALL data_exchange(fuvg)
+        CALL vel_hat(fug, fvg, fu2g, fv2g, fuvg)        
+!
+        CALL data_exchange(p1)
+        CALL data_exchange(p2)
+        CALL data_exchange(p12)
+        CALL data_exchange(fug)
+        CALL data_exchange(fvg)
+        CALL data_exchange(fu2g)
+        CALL data_exchange(fv2g)
+        CALL data_exchange(fuvg)
+      END IF
 !
        DO ij = 1, nij_l
         IF(fl_l(ij).EQ.1) THEN
-         CALL subscl(ij)
-         imesh = myij(0,0,ij)
-         j = ( imesh - 1 ) / nr + 1
-         i = MOD( ( imesh - 1 ), nr) + 1
+          CALL subscl(ij)
+          imesh = myij(0,0,ij)
+          j = ( imesh - 1 ) / nr + 1
+          i = MOD( ( imesh - 1 ), nr) + 1
 !
 ! ... Dynamic computation of the Smagorinsky length scale
 !
-         IF(modturbo.EQ.2) THEN
+          IF(modturbo.EQ.2) THEN
              delt = DSQRT(dz(j)*dr(i))
              CALL strain_hat(fsr1, fsr2, fsr12, fmodsr, fug, fvg, ij)
 !
@@ -231,7 +231,10 @@
           kapgt(ij)=mugt(ij)*cg(ij)/pranumt
 !-turb-heat**********************
 
-         END IF
+        ELSE
+          mugt(ij)  = 0.D0
+          kapgt(ij) = 0.D0
+        END IF
        END DO
 !                          
       DEALLOCATE(modsr)
@@ -241,11 +244,13 @@
       DEALLOCATE(p1)
       DEALLOCATE(p2)
       DEALLOCATE(p12)
-      DEALLOCATE(fug)
-      DEALLOCATE(fvg)
-      DEALLOCATE(fu2g)
-      DEALLOCATE(fv2g)
-      DEALLOCATE(fuvg)
+      IF (modturbo .EQ. 2) THEN
+        DEALLOCATE(fug)
+        DEALLOCATE(fvg)
+        DEALLOCATE(fu2g)
+        DEALLOCATE(fv2g)
+        DEALLOCATE(fuvg)
+      END IF
 
       RETURN 
       END SUBROUTINE sgsg
@@ -321,7 +326,6 @@
       END SUBROUTINE
 !----------------------------------------------------------------------
       SUBROUTINE vel_hat(fug, fvg, fu2g, fv2g, fuvg) 
-!
 !
 !... the filtered components of the velocity are calculated...
 !... before filtering the product of the components of the velocity we 

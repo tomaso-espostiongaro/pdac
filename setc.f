@@ -8,7 +8,7 @@
       USE particles_constants, ONLY: particles_constants_set, cmus
       USE reactions, ONLY: h1, h2, h3, h4, h5
       USE roughness_module, ONLY: zrough
-      USE turbulence, ONLY: turbulence_setup
+      USE turbulence, ONLY: turbulence_setup, iturb
       USE gas_solid_viscosity, ONLY: particle_viscosity
       IMPLICIT NONE
       INTEGER :: k
@@ -66,7 +66,9 @@
       h4 = 0.D0                                  !
       h5 = 0.D0                                  !
 !
-      CALL turbulence_setup( zrough )
+      IF (iturb .GT. 0) THEN
+        CALL turbulence_setup( zrough )
+      END IF
 !
       RETURN
 !----------------------------------------------------------------------

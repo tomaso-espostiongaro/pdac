@@ -53,11 +53,10 @@
       IMPLICIT NONE
       CHARACTER(LEN=13) :: errnb
       CHARACTER(LEN=14) :: testnb
-      CHARACTER(LEN=1)  :: gnb1, gnb2, gnb3
+      CHARACTER(LEN=3) :: procnum
 !
       INTEGER :: n, m, i, j, k
       INTEGER :: kg
-      INTEGER :: hun, ten, one
       REAL*8 :: s0, s1, s2, s3, s4
       REAL*8 :: timtot, timprog, timdist, timsetup, timinit
 !
@@ -73,15 +72,8 @@
 !
 ! ... I/O files
 !
-      hun = (mpime/100)
-      ten = (mpime - 100*hun)/10
-      one = mpime - 100*hun - 10*ten
-
-      gnb1 = CHAR(hun + 48)      ! the ASCII position of digits
-      gnb2 = CHAR(ten + 48)
-      gnb3 = CHAR(one + 48)
-      errnb = 'pdac2d.err'//gnb1//gnb2//gnb3
-      testnb = 'pdac2d.test'//gnb1//gnb2//gnb3
+      errnb = 'pdac2d.err'//procnum(mpime)
+      testnb = 'pdac2d.test'//procnum(mpime)
       IF(mpime .EQ. root) THEN
         OPEN(UNIT=5, FILE='pdac2d.dat', STATUS='UNKNOWN')
         OPEN(UNIT=6, FILE='pdac2d.log', STATUS='UNKNOWN')
@@ -155,50 +147,14 @@
       cps(1:nsolid) = specific_heat(1:nsolid)
       kap(1:nsolid) = thermal_conductivity(1:nsolid)
 !
+      inrl(:)=1.D0/rl(:)
+!
 ! ... Read restart file
 !
       IF(itd.GE.2) THEN 
         CALL taperd
         CALL tapebc
       END IF
-!
-! ...  Writing log file
-! 
-      IF (mpime .EQ. root) THEN
-        WRITE(6,200) run_name
-        WRITE(6,220) itc,nr,nz,dr0,dz0,zzero,iturb,modturbo,iss,irex,ngas
-        WRITE(6,611) (dr(i),i=1,nr)
-        WRITE(6,622) (dz(j),j=1,nz)
-        WRITE(6,221) cmut,inmax,maxout,omega
-        IF(lpr.LT.2) THEN
-         WRITE(6,250) no
-          IF(no .NE. 0) THEN
-           WRITE(6,252)
-            DO  n=1,no
-              WRITE(6,254) nso(n),(iob(m,n),m=1,4)
-!pe------------------------------
-!            IF(nso(n).EQ.5) THEN 
-              IF(nso(n).EQ.1.OR.nso(n).eq.5) THEN 
-!pe------------------------------
-                WRITE(6,253) n,ugob(n),vgob(n),pob(n),epob(n)
-                WRITE(6,255) (k,upob(k,n),vpob(k,n), epsob(k,n),tpob(k,n),k=1,nsolid)
-                WRITE(6,256) (kg,ygcob(kg,n),kg=1,ngas)
-              ENDIF
-            END DO
-          END IF
-         WRITE(6,251) gravx,gravz
-         WRITE(6,260) u0,v0,p0,ep0,epsmx0,temp0
-         WRITE(6,274)
-         WRITE(6,275) (dk(i),rl(i),phis(i),cmus(i),cps(i), kap(i),i=1,nsolid)
-         WRITE(6,271) uk0,vk0
-         WRITE(6,261) (kg,ygc0(kg),kg=1,ngas)
-         WRITE(6,280) itd,time,tstop,dt,tpr,tdump
-        END IF
-      END IF
-!
-        DO k=1, nsolid
-          inrl(k)=1.D0/rl(k)
-        END DO
 !
 ! ... Set boundary flags
 !
@@ -251,16 +207,51 @@
 
 ! ... terminate the IBM HW performance monitor session
 !      call f_hpmterminate( mpime )
+!
+! ...  Writing log file
+! 
+      IF (mpime .EQ. root) THEN
+        WRITE(6,200) run_name
+        WRITE(6,220) itc,nr,nz,dr0,dz0,zzero,iturb,modturbo,iss,irex,ngas
+        WRITE(6,611) (dr(i),i=1,nr)
+        WRITE(6,622) (dz(j),j=1,nz)
+        WRITE(6,221) cmut,inmax,maxout,omega
+        IF(lpr.LT.2) THEN
+         WRITE(6,250) no
+          IF(no .NE. 0) THEN
+           WRITE(6,252)
+            DO  n=1,no
+              WRITE(6,254) nso(n),(iob(m,n),m=1,4)
+!pe------------------------------
+!            IF(nso(n).EQ.5) THEN 
+              IF(nso(n).EQ.1.OR.nso(n).eq.5) THEN 
+!pe------------------------------
+                WRITE(6,253) n,ugob(n),vgob(n),pob(n),epob(n)
+                WRITE(6,255) (k,upob(k,n),vpob(k,n), epsob(k,n),tpob(k,n),k=1,nsolid)
+                WRITE(6,256) (kg,ygcob(kg,n),kg=1,ngas)
+              ENDIF
+            END DO
+          END IF
+         WRITE(6,251) gravx,gravz
+         WRITE(6,260) u0,v0,p0,ep0,epsmx0,temp0
+         WRITE(6,274)
+         WRITE(6,275) (dk(i),rl(i),phis(i),cmus(i),cps(i), kap(i),i=1,nsolid)
+         WRITE(6,271) uk0,vk0
+         WRITE(6,261) (kg,ygc0(kg),kg=1,ngas)
+         WRITE(6,280) itd,time,tstop,dt,tpr,tdump
+        END IF
+      END IF
+!
+      CLOSE(5)
       CLOSE(6)
-       CLOSE(7)
+      CLOSE(7)
       CLOSE(8)
-
+!
       CALL deallocate_roughness( zrough )
 ! 
 ! ... Finalize parallel environment
 !
       CALL parallel_hangup
-!
       STOP
 !
 ! ... log format
@@ -317,4 +308,6 @@
  611  FORMAT('dr(i) = '/,7(2x,1p7e11.4/))
  622  FORMAT('dz(j) = '/,7(2x,1p7e11.4/))
 !
+!**************************************************************
       END PROGRAM pdac2d
+!**************************************************************

@@ -21,6 +21,13 @@
 !
       ALLOCATE(phij(ngas,ngas))
       ALLOCATE(ckg(ngas), mmug(ngas), mmugs(ngas), mmugek(ngas), gmw(ngas))
+!
+      phij   = 0.D0
+      ckg    = 0.D0
+      mmug   = 0.D0
+      mmugs  = 0.D0
+      mmugek = 0.D0
+      gmw    = 0.D0
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------

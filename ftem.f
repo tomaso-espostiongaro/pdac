@@ -42,6 +42,10 @@
       ALLOCATE(bt(nphase))
       ALLOCATE(hv(nsolid, nij_l))
 !
+          at = 0.D0
+          bt = 0.D0
+          hv = 0.D0
+!
 !pdac------------
 ! Control heat reactions
       hrexg=0.D0
@@ -54,9 +58,6 @@
           CALL subscl(ij)
 !
           IF(irex.EQ.2) CALL hrex(ij,hrexg,hrexs)
-!
-          at = 0.D0
-          bt = 0.D0
 ! ....
           at(1,1) = rgp(ij)
           bt(1)   = siegn(ij) * rgpn(ij) + rhg(ij) - hrexg

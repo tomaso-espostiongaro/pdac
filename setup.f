@@ -51,7 +51,8 @@
 !
       IF(itd.LE.1) THEN
 !
-! ... Set initial ambient pressure and temperature
+! ... Set initial ambient pressure and temperature within computational domain
+! ... and boundary cells
 !
         DO  j=1,nz
           zrif=zb(j)+0.5D0*(dz(1)-dz(j))

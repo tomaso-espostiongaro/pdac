@@ -8,7 +8,7 @@
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: uk, vk
 
       REAL*8, DIMENSION(:),   ALLOCATABLE :: gas_velocity_r, gas_velocity_z
-      REAL*8, DIMENSION(:,:),   ALLOCATABLE :: solid_velocity_r, solid_velocity_z
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: solid_velocity_r, solid_velocity_z
 !
       SAVE
 !-----------------------------------------------------

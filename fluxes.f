@@ -160,17 +160,17 @@
       j  = ( imesh - 1 ) / nr + 1
       i  = MOD( ( imesh - 1 ), nr) + 1
 !
+      dzp=dz(j)+dz(j+1)
+      dzm=dz(j)+dz(j-1)
+      indzp=1.D0/dzp
+      indzm=1.D0/dzm
+!
 ! ... Compute linearly interpolated values of density
 ! ... where not available.
 !
       dens_n = (dz(j+1) * dens%c  + dz(j) * dens%n) * indzp
       dens_s = (dz(j-1) * dens%c  + dz(j) * dens%s) * indzm
       dens_wn = (dz(j+1) * dens%w  + dz(j) * dens%nw) * indzp
-!
-      dzp=dz(j)+dz(j+1)
-      dzm=dz(j)+dz(j-1)
-      indzp=1.D0/dzp
-      indzm=1.D0/dzm
 !
 ! ... On boundary mantain first order accuracy (1st order Upwind).
 !
@@ -210,15 +210,15 @@
       j  = ( imesh - 1 ) / nr + 1
       i  = MOD( ( imesh - 1 ), nr) + 1
 !
-! ... values of density interpolated at cell boundaries
-        dens_n = (dz(j+1) * dens%c + dz(j) * dens%n) * indzp
-        dens_en = (dz(j+1) * dens%e + dz(j) * dens%ne) * indzp
-        dens_nn = (dz(j+2) * dens%n + dz(j+1) * dens%nn) * indzpp
-!
         dzp=dz(j)+dz(j+1)
         dzpp=dz(j+1)+dz(j+2)
         indzp=1.D0/dzp
         indzpp=1.D0/dzpp
+!
+! ... values of density interpolated at cell boundaries
+        dens_n = (dz(j+1) * dens%c + dz(j) * dens%n) * indzp
+        dens_en = (dz(j+1) * dens%e + dz(j) * dens%ne) * indzp
+        dens_nn = (dz(j+2) * dens%n + dz(j+1) * dens%nn) * indzpp
 !
 ! ... on right volume boundary
 !

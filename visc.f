@@ -47,7 +47,7 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE viscon(mug, kapg, xgc, tg)
+      SUBROUTINE viscon(mu, kap, xgc, tg)
 !----------------------------------------------------------------------
 ! ... This routine computes molecular viscosity and thermal conductivity
 ! ... of the gas mixture as a function of temperature
@@ -57,7 +57,7 @@
       IMPLICIT NONE
 !
       REAL*8, INTENT(IN) :: xgc(:), tg
-      REAL*8, INTENT(OUT) :: mug, kapg
+      REAL*8, INTENT(OUT) :: mu, kap
 !
       REAL*8 :: bb, aa, cc, sum, c2, tst, om, tr, c1 
       INTEGER :: ik, jk
@@ -129,8 +129,8 @@
                                              !
       END DO
 !
-      mug = c1*1.D-6
-      kapg = c2*1.D5
+      mu = c1*1.D-6
+      kap = c2*1.D5
 !
       RETURN
       END SUBROUTINE
@@ -140,16 +140,22 @@
 ! ... This routine computes the components of the viscous diffusion terms
 ! ... in gas momentum transport equations
 !
+      USE grid, ONLY: nij_l
       USE gas_solid_velocity, ONLY: ug, vg
       USE grid, ONLY: data_exchange
       USE pressure_epsilon, ONLY: ep
-      USE turbulence, ONLY: mugt
+      USE turbulence, ONLY: mugt, iturb
       IMPLICIT NONE
+      INTEGER :: ij
 !
       CALL data_exchange(mug)
       CALL data_exchange(mugt)
 !
-      mugt = mug + mugt
+      IF (iturb .GE. 1) THEN
+        mugt = mug + mugt
+      ELSE
+        mugt = mug
+      END IF
 !
 ! ... Newtonian stress tensor
 !
@@ -164,7 +170,7 @@
 ! ... in particle momentum transport equations
 !
       USE dimensions
-      USE grid, ONLY: fl_l, nij_l, data_exchange
+      USE grid, ONLY: fl_l, nij_l, nijx_l, data_exchange
       USE grid, ONLY: dz, dr
       USE gas_solid_density, ONLY: rlk
       USE gas_solid_velocity, ONLY:  uk, vk
@@ -173,37 +179,40 @@
       USE turbulence, ONLY: must
       IMPLICIT NONE
 !
-      REAL*8, ALLOCATABLE :: epsk(:)
+      REAL*8, ALLOCATABLE :: epk(:)
       INTEGER, INTENT(IN) :: k 
 !
       REAL*8 :: drp, dzp, indrp, indzp
       REAL*8 :: epsx, epsz, gepx, gepz
       INTEGER :: imesh, i, j, ij
+      LOGICAL :: repulsive_model
 !
-      ALLOCATE(epsk(nij_l))
-      epsk(:) = rlk(k,:)*inrl(k)
-!
-      drp=(dr(i)+dr(i+1))
-      dzp=(dz(j)+dz(j+1))
-!
-      indrp=1.D0/drp
-      indzp=1.D0/dzp
+      ALLOCATE(epk(nijx_l))
+      epk(:) = rlk(k,:)*inrl(k)
 !
       CALL data_exchange(mus)
 !
 ! ... Newtonian stress tensor
 !
-      CALL stress(pvisx(k,:), pvisz(k,:), mus(k,:), mus(k,:), epsk(:), &
+      CALL stress(pvisx(k,:), pvisz(k,:), mus(k,:), mus(k,:), epk(:), &
                          uk(k,:), vk(k,:))
 !
-! ... Repulsive model
+! ... Repulsive model (Gidaspow and Ettehadieh, 1983)
 !
+      repulsive_model = .TRUE.
+      IF ( repulsive_model ) THEN
         DO ij = 1, nij_l
          imesh = myij(0, 0, ij)
          IF(fl_l(ij).EQ.1) THEN
            CALL subscl(ij)
            j = ( imesh - 1 ) / nr + 1
            i = MOD( ( imesh - 1 ), nr) + 1
+!
+           drp=(dr(i)+dr(i+1))
+           dzp=(dz(j)+dz(j+1))
+!
+           indrp=1.D0/drp
+           indzp=1.D0/dzp
 !
 ! ... Coulombic x-gradient
 !
@@ -220,13 +229,15 @@
                          gepz*indzp*2.D0*(rlk(k,ijt)-rlk(k,ij))*inrl(k)
          END IF
         END DO
+      END IF
 !
-      DEALLOCATE(epsk)
+      DEALLOCATE(epk)
 !
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
       SUBROUTINE stress(visx, visz, mu, lambda, eps, u, v)
+!----------------------------------------------------------------------
 ! ... This routine computes the components of the viscous stress tensor
 !
       USE dimensions

@@ -40,6 +40,13 @@
        ALLOCATE(cg(nij_l))
        ALLOCATE(ygc(ngas,nij_l),xgc(ngas,nij_l),             &
                 rgpgc(ngas,nijx_l), rgpgcn(ngas,nij_l))
+!
+      cg     = 0.D0
+      ygc    = 0.D0
+      xgc    = 0.D0
+      rgpgc  = 0.D0
+      rgpgcn = 0.D0
+!
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------

@@ -4,7 +4,6 @@
 ! ... This routine computes boundary conditions 
 !
       USE atmosphere, ONLY: gravx, gravz, atm
-      USE grid, ONLY: fl_l
       USE dimensions
       USE eos_gas, ONLY: rgpgc
       USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
@@ -13,6 +12,7 @@
       USE gas_solid_velocity, ONLY: ug, vg, uk, vk
       USE grid, ONLY: zb, dz, rb, dr, r, inr, inrb
       USE grid, ONLY: nij_l, myij, data_exchange
+      USE grid, ONLY: fl_l
       USE parallel, ONLY: mpime
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p, ep
@@ -22,20 +22,18 @@
 !
       IMPLICIT NONE
 !
-      REAL*8 :: prif, pnn2, p1nn,             &
-       zrif, trif, rhorif, cost, costc,       &
-       rm1n, rmcn, rmcnn, rmc1n, rm0n,        &
-       rm1nn, rm1knn, rm2n,                   &
-       v2n, vg2, vcnn, vcn, v1n, vc1n,        &
-       ucn, u1n, uc1n, ug2, u2n, ucnn,        &
-       epk, epc, epcn, ep1nn,                 &
-       t1nn, tc1n, tcn                        
+      REAL*8 :: prif, pnn2, p1nn
+      REAL*8 :: zrif, trif, rhorif, cost, costc
+      REAL*8 :: rm1n, rmcn, rmcnn, rmc1n, rm0n, rm1nn, rm1knn, rm2n
+      REAL*8 :: v2n, vg2, vcnn, vcn, v1n, vc1n
+      REAL*8 :: ucn, u1n, uc1n, ug2, u2n, ucnn
+      REAL*8 :: epk, epc, epcn, ep1nn
+      REAL*8 :: t1nn, tc1n, tcn                        
       REAL*8 :: dz1, dzc, dr1, drc, indrc
 
-      INTEGER :: i, j, imesh, k, kg
+      INTEGER :: ij, i, j, imesh, k, kg
       INTEGER :: n2, nflr, nflt, nfll, nflb
       INTEGER :: nflbr, nfltr, nfllt, nfllb
-      INTEGER :: ij
       INTEGER :: mm
 !
       DO ij = 1, nij_l
@@ -46,13 +44,13 @@
           CALL subscl(ij)
 !
           nflr=fl_l(ipj)
-          nfltr=fl_l(ipjp)
           nflt=fl_l(ijp)
           nfll=fl_l(imj)
-          nfllb=fl_l(imjm)
-          nfllt=fl_l(imjp)
           nflb=fl_l(ijm)
+          nfltr=fl_l(ipjp)
+          nfllt=fl_l(imjp)
           nflbr=fl_l(ipjm)
+          nfllb=fl_l(imjm)
 !
 ! ***** right boundary conditions
 !
@@ -82,8 +80,8 @@
 
             CASE (4)
 
+              IF(ug(ij).GT.0.D0) THEN
 ! ... OUTFLOW ...
-              IF(ug(ij).GE.0.D0) THEN
 !
 ! ... definitions
                 drc=(dr(nr)+dr(nr-1))*0.5D0
@@ -102,7 +100,6 @@
 ! ... extrapolation of radial velocity to time (n+1)dt
                 ucnn=u1n*r(i)*inrb(i)
                 ug(n2)=u2n*r(i+1)*inrb(i+1)
-                IF(j.EQ.2) ug(ipjm)=-ug(n2)
 !
 ! ... calculation of the gas volumetric fraction at time (n+1)dt
 ! ... from the mass balance equation of solids in cell (ij)
@@ -152,40 +149,45 @@
                          ( r(i+1)*u2n*ucn*rmcn - r(i)*u1n*uc1n*rmc1n) + &
                           dt*p1nn*indrc
                 p(n2)=p(n2)/(dt*indrc)
+                ep(n2) = ep(ij)
 !
 ! ... Correct non-physical pressure
                 IF (p(n2).LT.0.0D0) p(n2) = p(ij)
 !
-! ... extrapolation of the temperature and solid fraction to time (n+1)dt
-                ep(n2)=epcn
-                tg(n2)=tcn
+              ELSE IF (ug(ij) .LT. 0.D0) THEN
 ! ... INFLOW ...
-              ELSE
                 zrif=zb(j)+0.5D0*(dz(1)-dz(j))
                 CALL atm(zrif,prif,trif)
                 rhorif=prif*gmw(6)/(rgas*trif)
                 cost=prif/(rhorif**gammaair)
                 costc=(gammaair*cost**(1.D0/gammaair))/(gammaair-1.D0)
-                tg(n2)=trif
-                ep(n2)=1.D0
                 ug(n2)=ug(ij)*rb(i)*inrb(i+1)
                 ug2=ug(n2)*rb(i+1)*inr(i+1)
 !
 ! ... Adiabatic inflow
                 p(n2)=(prif**gamn-(ug2**2)/(2.D0*costc))**(1.D0/gamn)
 !
+                ep(n2) = 1.D0
 ! ... Correct non-physical pressure
                 IF (p(n2).LT.0.0D0) p(n2) = p(ij)
+!
+              ELSE IF (ug(ij) .EQ. 0.D0) THEN
+!
+                ug(n2) = ug(ij)
+                vg(n2) = vg(ij)
+                p(n2)  = p(ij)
+                ep(n2) = ep(ij)
               ENDIF
 !
-              rgp(n2)=p(n2)*ep(n2)*gmw(6)/(rgas*tg(n2))
+! ... Set primary variables
 !
               IF(nfltr.EQ.4) vg(n2)=vg(ij)
+              IF(nfltr.EQ.3) ug(ipjp) = -ug(n2)
               DO k=1,nsolid
                 IF(nfltr.EQ.4) vk(k,n2)=vk(k,ij)
-                IF(uk(k,ij).GT.0.D0) THEN
+                IF(uk(k,ij).GE.0.D0) THEN
                   rlk(k,n2)=rlk(k,ij)
-                  uk(k,n2)=uk(k,ij)*rb(i)*inrb(i+1)
+                  uk(k,n2)=uk(k,ij)
                 ELSE
                   rlk(k,n2)=0.0D0
                   uk(k,n2) =0.0D0
@@ -200,10 +202,9 @@
                 sieg(n2)=sieg(ij)
                 DO k=1,nsolid
                   siek(k,n2)=siek(k,ij)
-                  tk(k,n2)=tk(k,ij)
                 END DO
               ENDIF
-
+!              
             CASE DEFAULT
               CONTINUE
             END SELECT
@@ -240,7 +241,7 @@
             CASE (4)
 !
 ! ... OUTFLOW ...
-              IF(vg(ij).GE.0.D0) THEN
+              IF(vg(ij).GT.0.D0) THEN
 !
 ! ... 
 !                pnn2=p(n2)
@@ -312,15 +313,14 @@
                 p(n2)=-rmcnn*vcnn + rmcn*vcn-dt/dzc*(v2n*vcn*rmcn-v1n*vc1n*rmc1n) + &
                        dt*p1nn/dzc+gravz*dt*rmcn
                 p(n2)=p(n2)/(dt/dzc)
+                ep(n2) = ep(ij)
 !
 ! ... (Correct non-physical pressure)
                 IF(p(n2).LE.0.D0) THEN
                 p(n2)=pnn2
                 END IF
 !
-                ep(n2)=epcn
-                tg(n2)=2.D0*tg(ij)-tg(ijm)
-              ELSE
+              ELSEIF(vg(ij).LT.0.D0) THEN
 ! ... INFLOW ...
 !                pnn2=p(n2)
                 pnn2=p(ij)
@@ -333,7 +333,6 @@
                 vg(n2)=vg(ij)
                 vg2=vg(ij)
                 ep(n2)=1.D0
-                tg(n2)=trif
                 p(n2)=(prif**gamn-(vg2**2/2.D0)/costc)**(1.D0/gamn)
 !
 ! ... (Correct non-physical pressure)
@@ -341,20 +340,22 @@
                 p(n2)=pnn2
                 END IF
 !
+              ELSEIF(vg(ij).EQ.0.D0) THEN
+                vg(n2) = vg(ij) 
+                ug(n2) = ug(ij)
+                p(n2)  = p(ij)
+                ep(n2) = ep(ij)
               ENDIF
 !
-              rgp(n2)=p(n2)*ep(n2)*gmw(6)/(rgas*tg(n2))
-!
-              IF(nfltr.EQ.4) ug(n2)=ug(ij)
-              IF(i .EQ. (nr-1) .AND. j .EQ. (nz-1)) THEN
-                vg(ipjp)=vg(n2)
-                ug(ipjp)=ug(n2)
-              ENDIF
+              IF(nfltr.EQ.4) ug(n2)   = ug(ij)
               DO k=1,nsolid
                 IF(nfltr.EQ.4) uk(k,n2)=uk(k,ij)
-                IF(vk(k,ij).GT.0.D0) THEN
+                IF(vk(k,ij).GE.0.D0) THEN
                   rlk(k,n2)=rlk(k,ij)
                   vk(k,n2)=vk(k,ij)
+                ELSE
+                  rlk(k,n2)=0.D0
+                  vk(k,n2)=0.D0
                 ENDIF
                 IF(i .EQ. (nr-1) .AND. j .EQ. (nz-1)) THEN
                   vk(k,ipjp)=vk(k,n2)
@@ -368,17 +369,14 @@
              
               IF(irex.GE.0) THEN
                 sieg(n2)=sieg(ij)
-                IF (i .EQ. (nr-1) .AND. j .EQ. (nz-1)) THEN
-                  tg(ipjp)=tg(n2)
-                END IF
                 DO k=1,nsolid
                   siek(k,n2)=siek(k,ij)
-                  tk(k,n2)=tk(k,ij)
                   IF (i .EQ. (nr-1) .AND. j .EQ. (nz-1)) THEN
                     tk(k,ipjp)=tk(k,n2)
                   END IF
                 END DO
               ENDIF
+
 !
             CASE DEFAULT
               CONTINUE
@@ -389,10 +387,11 @@
 ! ***** left boundary conditions
 !
           IF(nfll.NE.1.AND.nfllt.NE.1) THEN
+
             n2 = imj
             IF (imj .GT. nij_l .AND. time .EQ. dt) THEN
              WRITE(8,*) 'left bdry'
-       WRITE(8,*) 'warning: boundary cell not belonging to proc', mpime
+             WRITE(8,*) 'warning: boundary cell not belonging to proc', mpime
              WRITE(8,*) 'ij, i, j, imesh', ij, i, j, imesh
             END IF
             SELECT CASE (nfll)
@@ -478,28 +477,24 @@
 ! ... An arbitrary choice
                 p(n2)=p1nn
 !
+                ep(n2) = ep(ij)
 ! ... extrapolation of the temperature and solid fraction to time (n+1)dt
-                ep(n2)=epcn
-                tg(n2)=tcn
                 DO k=1,nsolid
-                  IF(nfltr.EQ.4) vk(k,n2)=vk(k,ij)
+                  IF(nfllt.EQ.4) vk(k,n2)=vk(k,ij)
                   rlk(k,n2)=rlk(k,ij)
-                  tk(k,n2)=tk(k,ij)
                   uk(k,n2)=uk(k,ij)
                 END DO
 ! ... INFLOW ...
               ELSE
                 zrif=zb(j)+0.5D0*(dz(1)-dz(j))
                 CALL atm(zrif,prif,trif)
-                tg(n2)=trif
-                ep(n2)=1.D0
 !
+                ep(n2) = 1.D0
                 p(n2)=prif
                 ug(n2)=ug(ij)
                 DO k=1,nsolid
-                  IF(nfltr.EQ.4) vk(k,n2)=vk(k,ij)
+                  IF(nfllt.EQ.4) vk(k,n2)=vk(k,ij)
                   rlk(k,n2)=rlk(k,ij)
-                  tk(k,n2)=trif
                   uk(k,n2)=uk(k,ij)
                 END DO
               ENDIF
@@ -507,8 +502,7 @@
                        dt*indrc*inrb(i-1)*(r(i)*u1n*uc1n*rmc1n-r(i-1)*u2n*ucn*rmcn)
                 ug(n2) = ucnn / rmcnn
 !
-              rgp(n2)=p(n2)*ep(n2)*gmw(6)/(rgas*tg(n2))
-              IF(nfltr.EQ.4) vg(n2)=vg(ij)
+              IF(nfllt.EQ.4) vg(n2)=vg(ij)
               DO kg=1,ngas
                 rgpgc(kg,n2)=rgpgc(kg,ij)
               END DO
@@ -525,6 +519,7 @@
 ! ***** bottom boundary conditions
 !
           IF(nflb.NE.1.AND.nflbr.NE.1) THEN
+!
             n2 = ijm
             IF (ijm .GT. nij_l .AND. time .EQ. dt) THEN
              WRITE(8,*) 'bottom bdry'

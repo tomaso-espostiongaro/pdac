@@ -16,6 +16,12 @@
       ALLOCATE(bu1(nphase), bv1(nphase), bu(nphase), bv(nphase))
       ALLOCATE(au1(nphase,nphase), av1(nphase,nphase),           &
                 au(nphase,nphase),  av(nphase,nphase))
+!
+      au = 0.D0;   av = 0.D0
+      au1 = 0.D0;  av1 = 0.D0
+      bu = 0.D0;   bv = 0.D0
+      bu1 = 0.D0;  bv1 = 0.D0
+!
       RETURN
       END SUBROUTINE
 

@@ -66,14 +66,13 @@
 !
 ! ... Compute Boundary Conditions
 !
-          CALL boundary 
+        CALL boundary 
 !
 ! ... Compute derived fields from closure equations
 ! ... (must be dumped into restart file)
 !
         DO ij = 1, nij_l
-         imesh = myij(0, 0, ij)
-         IF(fl_l(ij).EQ.1) THEN
+           imesh = myij(0, 0, ij)
            j = ( imesh - 1 ) / nr + 1
            i = MOD( ( imesh - 1 ), nr) + 1
 ! 
@@ -81,7 +80,7 @@
 !
            CALL mole(xgc(:,ij), ygc(:,ij))
 !
-! ... Compute gas density and gas temperature from gas Equation of State
+! ... Compute gas specific heat, density and temperature from gas Equation of State
 !
            CALL eosg(rags, rog(ij), cp(:,ij), cg(ij),   &
                      tg(ij), ygc(:,ij), xgc(:,ij),      &
@@ -92,42 +91,16 @@
              rgpgc(kg,ij)=ygc(kg,ij)*rgp(ij)
            END DO
 ! 
-! ... Compute particle temperatures from eq. of state
+! ... Compute particle specific heat and temperatures from Equation of State
 !
            DO k=1,nsolid
              IF (irex.GE.0) THEN
                CALL eosl(tk(k,ij),ck(k,ij),cps(k),siek(k,ij),1,1)
              ENDIF
            END DO
-!
-         END IF
         END DO
 !
        END IF
-!
-       DO ij = 1, nij_l
-         IF(fl_l(ij).EQ.1) THEN
-!
-! ... Store fields at time n*dt
-!
-           pn(ij) = p(ij)
-           rgpn(ij) = rgp(ij)
-           IF(irex.GE.0) siegn(ij) = sieg(ij)
-           DO k=1,nsolid
-             rlkn(k,ij) = rlk(k,ij)
-             IF (irex.GE.0) siekn(k,ij) = siek(k,ij)
-           END DO
-           DO kg=1,ngas
-             rgpgcn(kg,ij) = rgpgc(kg,ij)
-           END DO
-!
-! ... Compute the temperature-dependent gas viscosity and th. conductivity
-! 
-           IF(irex.GE.0) THEN
-             CALL viscon(mug(ij), kapg(ij), xgc(:,ij), tg(ij))
-           ENDIF
-         END IF
-       END DO
 !
               IF( timing ) s2 = cpclock()
 !
@@ -155,13 +128,36 @@
        IF (time + 0.1D0*dt .GE. tstop)     EXIT time_sweep
 !------------------------------------------------------------ 
 !
+       DO ij = 1, nij_l
+!
+! ... Store fields at time n*dt
+!
+           pn(ij) = p(ij)
+           rgpn(ij) = rgp(ij)
+           IF(irex.GE.0) siegn(ij) = sieg(ij)
+           DO k=1,nsolid
+             rlkn(k,ij) = rlk(k,ij)
+             IF (irex.GE.0) siekn(k,ij) = siek(k,ij)
+           END DO
+           DO kg=1,ngas
+             rgpgcn(kg,ij) = rgpgc(kg,ij)
+           END DO
+!
+! ... Compute the temperature-dependent gas viscosity and th. conductivity
+! 
+           IF(irex.GE.0) THEN
+             CALL viscon(mug(ij), kapg(ij), xgc(:,ij), tg(ij))
+           ENDIF
+       END DO
+!
 ! ... Compute Turbulent viscosity from Smagorinsky LES model
 !
          IF (iturb .GE. 1)  CALL sgsg
          IF (iss .GE. 1)    CALL sgss
+!
               IF( timing ) s5 = cpclock()
 ! 
-! ... store gas and particle momentum densities at time n*dt
+! ... Store gas and particle momentum densities at time n*dt
 !
          CALL euvel
 !

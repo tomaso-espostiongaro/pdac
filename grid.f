@@ -1161,11 +1161,6 @@
               END IF
             END IF
 !
-! ... Free In-Out Flow on the corner
-            IF( (i.EQ.(nr-1)) .AND. (j.EQ.(nz-1)) .AND. (nfltr.EQ.4) ) THEN
-              ijtr = ij
-            END IF
-!
 ! ... Second neighbours are not available on boundaries
 !
             ijrr = ippj

@@ -120,6 +120,8 @@
 !
       ALLOCATE(gvisx(nij_l), gvisz(nij_l))
       ALLOCATE(pvisx(nsolid, nij_l), pvisz(nsolid, nij_l))
+      gvisx = 0.D0; gvisz = 0.D0
+      pvisx = 0.D0; pvisz = 0.D0
 
       IF (iturb .LT. 1) THEN
         CALL data_exchange(ug)
@@ -142,6 +144,10 @@
       DO k=1,nsolid
         CALL viscs(k)   
       END DO
+!      gvisx = 0.D0
+!      gvisz = 0.D0
+!      pvisx = 0.D0
+!      pvisz = 0.D0
 !
 ! ... Allocate and initialize local arrays (gas).
 !

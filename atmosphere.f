@@ -30,7 +30,12 @@
 !
       erreair=rgas/gmw(6)
 !
-      stratification = .FALSE.
+      stratification = .TRUE.
+      IF (gravz == 0.D0) THEN
+         stratification = .FALSE.
+      ELSE IF (gravz .NE. -981.0D0) THEN
+         WRITE(*,*) 'WARNING!! control atmospheric stratification'
+      END IF
 !
 ! sostituire le costanti numeriche con dei PARAMETER !!
 !

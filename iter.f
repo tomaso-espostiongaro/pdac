@@ -330,7 +330,6 @@
        cvg = .FALSE.                            
 !
       END DO iterative_loop
-                         WRITE(*,*) nit, loop, p(2933), dg
 
 ! ... stop the HW performance monitor
       !call f_hpmstop( 1 )
