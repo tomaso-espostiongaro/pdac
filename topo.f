@@ -71,16 +71,25 @@
         WRITE(6,*)
         WRITE(6,*) 'Importing topographic matrix ...'
       END IF
-
+!
+! ... Read external topography files.
+! ... In 3D translate horizontally the  computational mesh 
+! ... (geographic UTM coordinates).
+!
       IF (job_type == '2D') THEN
         CALL read_2Dprofile
       ELSE IF (job_type == '3D') THEN
         CALL read_dem_ascii
         CALL compute_UTM_coords
       END IF
-
+!
+! ... Interpolate the topography on the cell centers.
+! ... Set the cell flags = 3 below the topographic level.
+! ... Compute the distance of each cell center from the ground. 
+! ... Translate vertically the mesh.
+!
       CALL set_profile
-
+!
       IF( mpime == root ) THEN
         WRITE(6,*) 'END Import topography'
       END IF
@@ -95,83 +104,72 @@
 
       INTEGER :: n
 
-      REAL*8 :: ratio
-      REAL*8 :: xmin, xmax, zmin, zmax
       CHARACTER(LEN=80) :: topo_file
 !
-! ... read the topography, as defined on a generic rectilinear
-! ... mesh "xtop"
+! ... Processor 'root' reads the topography defined on a 
+! ... (generic) rectilinear mesh "xtop". Then broadcast
+! ... to all processors.
 !
       topo_file = TRIM(topography)
-
       IF (mpime == root) THEN
         OPEN(UNIT=3, FILE=topo_file, STATUS='OLD')
         READ(3,*) noditop
       END IF
-
+!
       CALL bcast_integer(noditop,1,root)
-
+!
       ALLOCATE(xtop(noditop))
       ALLOCATE(ztop(noditop))
-
+!
       IF (mpime == root) THEN
         DO n=1, noditop
           READ(3,*) xtop(n),ztop(n)
         END DO
         CLOSE(3)
       END IF
-
+!
       CALL bcast_real(xtop,noditop,root)
       CALL bcast_real(ztop,noditop,root)
 !
-      xmin = MINVAL(xtop)
-      xmax = MAXVAL(xtop)
-      zmin = MINVAL(ztop)
-      zmax = MAXVAL(ztop)
-
-      ratio=(xmax-xmin)/(zmax-zmin)
-
+      RETURN
       END SUBROUTINE read_2Dprofile
 !----------------------------------------------------------------------
       SUBROUTINE read_dem_ascii
-!
-! ... Read the standard ASCII DEM format
 !
       USE grid, ONLY: topography
       USE parallel, ONLY: mpime, root
       IMPLICIT NONE
 
       CHARACTER(LEN=80) :: topo_file
-      INTEGER :: p
-      INTEGER :: i, j
-      
       REAL    :: xll, yll
       REAL    :: dd
       INTEGER :: noval
       INTEGER :: elevation
-
+      INTEGER :: p
+      INTEGER :: i, j
+!
+! ... Processor 'root' reads the standard header of the
+! ... ASCII DEM format, then broadcasts it to all processors.
+!
       IF (mpime == root) THEN
         topo_file = TRIM(topography)
         OPEN(UNIT=3, FILE=topo_file, STATUS='OLD')
-  
         WRITE(6,*) 'Reading topography file: ', topo_file
-
         READ(3,*) noditopx
         READ(3,*) noditopy
         READ(3,*) xll
         READ(3,*) yll
         READ(3,*) dd
         READ(3,*) noval
-
       END IF
-
+!
       CALL bcast_integer(noditopx,1,root)
       CALL bcast_integer(noditopy,1,root)
       CALL bcast_real(xll,1,root)
       CALL bcast_real(yll,1,root)
       CALL bcast_real(dd,1,root)
       CALL bcast_integer(noval,1,root)
-
+!
       vdem%nx           = noditopx
       vdem%ny           = noditopy
       vdem%xcorner      = xll
@@ -180,18 +178,21 @@
       vdem%nodata_value = noval
 !
       ALLOCATE(ztop2d(vdem%nx,vdem%ny))
-!
       ALLOCATE(xtop(vdem%nx))
       ALLOCATE(ytop(vdem%ny))
+!
+! ... Compute the UTM coordinates of each element of the topography
 !
       DO i = 1, vdem%nx
         xtop(i) = vdem%xcorner + (i-1) * vdem%cellsize
       END DO
-
       DO j = vdem%ny, 1, -1
         ytop(j) = vdem%ycorner - (vdem%ny - j) * vdem%cellsize
       END DO
-
+!
+! ... Processor 'root' reads the matrix of the elevation
+! ... ( in centimeters ) and broadcasts.
+!
       IF (mpime == root) THEN
         DO j = vdem%ny, 1, -1
           DO i = 1, vdem%nx
@@ -200,23 +201,26 @@
           END DO
         END DO
       END IF
-
+!
       CALL bcast_real(ztop2d,noditopx*noditopy,root)
 !
       RETURN
       END SUBROUTINE read_dem_ascii
 !----------------------------------------------------------------------
       SUBROUTINE compute_UTM_coords
+
       USE grid, ONLY: center_x, center_y
       USE grid, ONLY: x, y, xb, yb
       USE grid, ONLY: iv, jv
       IMPLICIT NONE
 
       REAL*8 :: transl_x, transl_y
-
+!
       transl_x = center_x - x(iv)
       transl_y = center_y - y(jv)
-
+!
+! ... Translate all mesh horizontally
+!
       x  = x  + transl_x
       xb = xb + transl_x
       y  = y  + transl_y
@@ -226,10 +230,6 @@
       END SUBROUTINE compute_UTM_coords
 !----------------------------------------------------------------------
       SUBROUTINE set_profile
-!
-! ... Import the topography from standard ascii formats.
-! ... Interpolate topography on cell centers and write the
-! ... implicit profile
 !
       USE control_flags, ONLY: job_type, lpr
       USE grid, ONLY: x, xb, y, yb, z, zb, iv, jv, kv
@@ -242,53 +242,53 @@
       REAL*8 :: transl_z = 0.D0
 !
       ALLOCATE (dummy(ntot))
-      ! ... dist defines implicitly the profile
-      !
+!
+! ... Allocate and initialize 'dist' (defines implicitly the profile).
+!
       ALLOCATE (dist(ntot))
       dist = 1.0D10
 !
       IF (job_type == '2D') THEN
-  
+        !
         ALLOCATE(topo(nx))
-
         ALLOCATE(next(nx))
         ALLOCATE(ord(nx))
 
-        CALL interpolate_2d(x, zb, topo, dummy)
+        ! ... Interpolate the topography on the cell top 
+        ! ... (centered horizontally)
         !
-        ! ... Translate vertically the numerical mesh to minimize the
+        CALL interpolate_2d(x, zb, topo, dummy)
+        
+        ! ... Translate vertically the mesh to minimize the
         ! ... number of topographic cells
         !
         transl_z = MINVAL(topo)
-
         IF( mpime == root ) THEN
           WRITE(6,*) 'Translating mesh vertically'
-          WRITE(6,*) '     minimum topographic quota: ', transl_z
+          WRITE(6,*) 'Minimum topographic quota: ', transl_z
         END IF
-
         z  = z  + transl_z
         zb = zb + transl_z
-        !
-        ! ... Reset the 'ord2d' array and set the implicit profile
+        
+        ! ... Re-set the 'ord' array and set the implicit profile
         !
         IF (lpr > 1 .AND. mpime == root) &
           WRITE(7,*) 'topographic ordinates'
         DO i = 1, nx
           DO k = 1, nz
-	    IF (zb(k) <= topo(i)) ord(i) = k  
+            IF (zb(k) <= topo(i)) ord(i) = k  
             ijk = i + (k-1) * nx
             dist(ijk) = z(k) - topo(i)
           END DO
           IF (lpr > 1 .AND. mpime == root) &
             WRITE(7,*) i, ord(i)
         END DO
-
+        !
         DEALLOCATE(topo)
-
+        !
       ELSE IF (job_type == '3D') THEN
-
+        !
         ALLOCATE(topo2d(nx,ny))
-
         ALLOCATE(nextx(nx))
         ALLOCATE(nexty(ny))
         ALLOCATE(ord2d(nx,ny))
@@ -299,34 +299,31 @@
         ! ... number of topographic cells
         !
         transl_z = MINVAL(topo2d)
-
-        IF( mpime == root ) WRITE(*,*) 'Minimum topographic quota: ', transl_z
-
+        IF( mpime == root ) THEN
+          WRITE(6,*) 'Translating mesh vertically'
+          WRITE(6,*) 'Minimum topographic quota: ', transl_z
+        END IF
         z  = z  + transl_z
         zb = zb + transl_z
-        !
+        
         ! ... Reset the 'ord2d' array and set the implicit profile
         !
-        IF (lpr > 1 .AND. mpime == root) &
-          WRITE(7,*) 'topographic ordinates'
-	DO j = 1, ny
-	  DO i = 1, nx
-	    DO k = 1, nz
-	      IF (zb(k) <= topo2d(i,j)) ord2d(i,j) = k  
-              ijk = i + (j-1) * nx + (k-1) * nx * ny
-              dist(ijk) = z(k) - topo2d(i,j)
-	    END DO
-            IF (lpr > 1 .AND. mpime == root) &
-              WRITE(7,*) i, j, ord2d(i,j)
-	  END DO
-	END DO
+        DO j = 1, ny
+          DO i = 1, nx
+            DO k = 1, nz
+              IF (zb(k) <= topo2d(i,j)) ord2d(i,j) = k  
+                ijk = i + (j-1) * nx + (k-1) * nx * ny
+                dist(ijk) = z(k) - topo2d(i,j)
+            END DO
+          END DO
+        END DO
         kv = ord2d(iv,jv)
-
+        !
         DEALLOCATE(topo2d)
-
+        !
       END IF
 !
-! ... set flags on topography
+! ... set cell flags on topography
 !
       CALL set_flag3
 
@@ -383,8 +380,7 @@
             itopo = NINT(topo(i))
             topo(i) = itopo * 1.D-2
 
-	    l=l+1
-
+            l=l+1
           ENDIF
         ENDDO
       ENDDO
@@ -567,13 +563,16 @@
       END SUBROUTINE interpolate_dem
 !----------------------------------------------------------------------
       SUBROUTINE write_profile
+
       USE control_flags, ONLY: job_type
       USE grid, ONLY: x, xb, y, yb, z, zb
       USE grid, ONLY: iob, fl, bottom
 !
       IMPLICIT NONE
       INTEGER :: n, i, j, k, ijk
-
+!
+! ... Write the georeferenced mesh coordinates
+!
       OPEN(17,FILE='mesh.dat')
       WRITE(17,*) 'Georeferenced x-y mesh'
 
@@ -589,11 +588,9 @@
       WRITE(17,17) z
       WRITE(17,*) 'zb'
       WRITE(17,17) zb
-      
       CLOSE(17)
 
  17   FORMAT(5(F20.6))
-
 !
 ! ... Write out the implicit profile
 !
@@ -603,7 +600,8 @@
         CLOSE(14)
       END IF
 !
-! ... Control the cells below the flag = 5 blocks 
+! ... Control that the cells below the flag = 5 blocks
+! ... have flag = 'bottom'
 !
       IF( job_type == '2D') THEN
         DO n = 1, no

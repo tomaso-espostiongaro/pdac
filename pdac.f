@@ -65,10 +65,10 @@
 !
       t0 = elapsed_seconds()
 
-      IF(timing) then
-         s0 = cpclock()
-         call MP_WALLTIME(pt0,mpime)
-      END IF
+          IF(timing) then
+             s0 = cpclock()
+             call MP_WALLTIME(pt0,mpime)
+          END IF
 
 ! ... date and time
       CALL date_and_time( values = mydate )
@@ -137,10 +137,10 @@
 !
       CALL grid_setup
 
-      IF (timing) then
-          s1 = cpclock()
-          call MP_WALLTIME(pt1,mpime)
-      END IF   
+          IF (timing) then
+              s1 = cpclock()
+              call MP_WALLTIME(pt1,mpime)
+          END IF   
 
 ! ... Import the topography from dem file and interpolate
 ! ... on the computational mesh
@@ -161,20 +161,20 @@
 !
       CALL partition
 
-      IF (timing) then
-          s2 = cpclock()
-          call MP_WALLTIME(pt2,mpime)
-      END IF
+          IF (timing) then
+              s2 = cpclock()
+              call MP_WALLTIME(pt2,mpime)
+          END IF
 !
 ! ... Setting the ghost cells for parallel data exchange
 ! ... and the indexes
 !
       CALL ghost
 
-      IF (timing) then
-          s3 = cpclock()
-          call MP_WALLTIME(pt3,mpime)
-      END IF
+          IF (timing) then
+              s3 = cpclock()
+              call MP_WALLTIME(pt3,mpime)
+          END IF
 !
       IF (ibl >= 1) CALL set_blunt
 !
@@ -198,10 +198,10 @@
       CALL setpar
       CALL setup
 
-      IF (timing) then
-          s4 = cpclock()
-          call MP_WALLTIME(pt4,mpime)
-      END IF
+          IF (timing) then
+              s4 = cpclock()
+              call MP_WALLTIME(pt4,mpime)
+          END IF
 !
 ! ... Read restart file or recover initial
 ! ... conditions from an output file
@@ -217,42 +217,42 @@
 !
       CALL cnvert
 
-      IF (timing) then
-          s5 = cpclock()
-          call MP_WALLTIME(pt5,mpime)
-      END IF
+          IF (timing) then
+              s5 = cpclock()
+              call MP_WALLTIME(pt5,mpime)
+          END IF
 !
 ! ... Time advancement loop
 !
       CALL prog
 !
-      IF (timing ) THEN
-        s6 = cpclock()
-        call MP_WALLTIME(pt6,mpime)
-        timtot     = (s6 - s0)/1000.D0
-        timprog    = (s6 - s5)/1000.D0
-        timres     = (s5 - s4)/1000.D0
-        timsetup   = (s4 - s3)/1000.D0
-        timghost   = (s3 - s1)/1000.D0
-        timinit    = (s1 - s0)/1000.D0
-        mptimtot   = (pt6 - pt0)
-        mptimprog  = (pt6 - pt5)          
-        mptimres   = (pt5 - pt4)          
-        mptimsetup = (pt4 - pt3)
-        mptimghost = (pt3 - pt1)         
-        mptiminit  = (pt1 - pt0)
-         
-        IF (mpime == root) THEN
-          WRITE(6,*)' (From main) WALL TIME computed calling SYSTEM_CLOCK (s)'
-          WRITE(6,900) 'Init', 'Ghost', 'Rest', 'Setup', 'Prog', 'Total'
-          WRITE(6,999) timinit, timghost, timres, timsetup, timprog, timtot
-!          WRITE(6,*)'             WALL TIME computed calling MP_WALLTIME (s)'
-!          WRITE(6,900) 'Init', 'Ghost', 'Rest', 'Setup', 'Prog', 'Total'
-!          WRITE(6,999) mptiminit, mptimghost, mptimres, mptimsetup, mptimprog, mptimtot
-        END IF
+          IF (timing ) THEN
+            s6 = cpclock()
+            call MP_WALLTIME(pt6,mpime)
+            timtot     = (s6 - s0)/1000.D0
+            timprog    = (s6 - s5)/1000.D0
+            timres     = (s5 - s4)/1000.D0
+            timsetup   = (s4 - s3)/1000.D0
+            timghost   = (s3 - s1)/1000.D0
+            timinit    = (s1 - s0)/1000.D0
+            mptimtot   = (pt6 - pt0)
+            mptimprog  = (pt6 - pt5)          
+            mptimres   = (pt5 - pt4)          
+            mptimsetup = (pt4 - pt3)
+            mptimghost = (pt3 - pt1)         
+            mptiminit  = (pt1 - pt0)
+             
+          IF (mpime == root) THEN
+            WRITE(6,*)' (From main) WALL TIME computed calling SYSTEM_CLOCK (s)'
+            WRITE(6,900) 'Init', 'Ghost', 'Rest', 'Setup', 'Prog', 'Total'
+            WRITE(6,999) timinit, timghost, timres, timsetup, timprog, timtot
+!            WRITE(6,*)'             WALL TIME computed calling MP_WALLTIME (s)'
+!            WRITE(6,900) 'Init', 'Ghost', 'Rest', 'Setup', 'Prog', 'Total'
+!            WRITE(6,999) mptiminit, mptimghost, mptimres, mptimsetup, mptimprog, mptimtot
+          END IF
 999     FORMAT(6(1X,F10.2),/)
 900     FORMAT(6(1X,A10))
-      END IF
+          END IF
 
 ! ... date and time
       CALL date_and_time( values = mydate )
