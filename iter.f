@@ -1,7 +1,8 @@
 !----------------------------------------------------------------------
       MODULE iterative_solver
 !----------------------------------------------------------------------
-      USE grid, ONLY: dx, dy, dz, indx, indy, indz, inr
+      USE grid, ONLY: dx, dy, dz
+      USE grid, ONLY: indx, indy, indz, inr
       USE set_indexes, ONLY: stencil
       USE io_files, ONLY: testunit
 
