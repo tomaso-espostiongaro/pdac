@@ -93,63 +93,158 @@ probably should be modified to run on other supercomputers.
 
 \subsubsection{IBM RS/6000 servers and parallel supercomputers}
 
-On most of IBM servers and supercomputers, to run your code you
+On most of IBM servers and RS/6000 supercomputers, to run a simulation you
 should write a job script to be submitted to the Loadleveler which
 is the IBM queuing system.
-You can run the MPI version of \PDAC\ as you would any POE program.  
+Many systems allows you to run MPI program in interactive mode for
+testing and debug, through the POE program.  
 The options and environment variables for poe are various and arcane, 
 so you should consult your local documentation for recommended settings.  
-As an example, to run on CINECA machine you would use the following script:
+As an example for interactive mode run on the RS/6000 supercomputer
+(Sp4) installed at CINECA at the shell prompt you should give the
+command:
 
 \begin{verbatim}
+  poe ./pdac.x -procs 4 -nodes 1 
 \end{verbatim}
 
+to run on a single node using 4 procs.
+For long run and simulation it is required that you write a job script,
+and submit it to the loadleveler, here there is an example.
+
+\begin{verbatim}
+#!/bin/ksh
+#@ job_type = parallel
+#@ output = job.out
+#@ error = job.err
+#@ notification = never
+#@ checkpoint = no
+#@ restart = no
+#@ wall_clock_limit =6:00:00
+#@ resources = ConsumableCpus(1) ConsumableMemory(1024 mb)
+#@ class = parallel
+#@ network.MPI = csss,shared,US
+#@ total_tasks = 8
+#@ blocking = unlimited
+#@ queue
+
+cp pdac.dat /scratch/myrundir/pdac.dat
+cp pdac.x /scratch/myrundir/pdac.x
+cd /scratch/myrundir/
+./pdac.x
+\end{verbatim}
+
+The above script ask for 8 processors to run 8 MPI tasks
+with a limit of 1024Mbyte each for 6 hours on the parallel queue.
+Then you should submit the job (suppose its filename is myjobfile):
+
+\begin{verbatim}
+llsubmit myjobfile
+\end{verbatim}
 
 \subsubsection{Linux Clusters (Beowulf)}
 
 The most common way to run program on a linux cluster 
 is through the use of the combination of OpenPBS, MAUI scheduler
-and mpirun/mpiexec loaders .
+and mpirun/mpiexec MPI loaders .
 For this kind of machine you could find an almost infinite number
 of environments and system softwares, therefore keep the example below
-as an indication, most probably it wan't work on other system. 
+as an indication, most probably it would not work on other systems. 
+As for other server you need to write a job script with
+the request for the queuing system and with the command you 
+want to execute.
 
 \begin{verbatim}
+#!/bin/sh
+#PBS -l nodes=16:ppn=2,walltime=6:00:00
+
+cp pdac.dat /myrundir
+cp pdac.x /myrundir
+cd /myrundir
+mpiexec -no-shmem -np 32 ./pdac.x
 \end{verbatim}
 
-For best performance, ...
+with this script we are asking 16 nodes with 2 processor per node
+and 6 hours of execution time in the queue. Then you need to
+submit the job to the queuing system, for OpenPBS the command is:
+
+\begin{verbatim}
+qsub myjobscript
+\end{verbatim}
+
+here we have supposed that the filename of the above script is
+myjobscript.
 
 \subsubsection{Compaq AlphaServer SC}
 
-If your machine as a Quadrics interconnect you should use the Elan
-version of \PDAC\, other wise select the normal MPI version.  In either
-case, parallel jobs are run using the ``prun'' command as follows:
+If your machine as a Quadrics interconnect you should use the 
+Elan communication subsystem commands to run your parallel applications
+or jobs. The main command is the ``prun'' command, that is similar
+to mpirun of MPICH, but with prun you could run both job scripts
+and interactive commands. Here there is an example :
 
 \begin{verbatim}
+prun -n 8 ./pdac.x
 \end{verbatim}
 
+this command will run pdac.x on 8 processors, as soon as they will
+be free, infact if there are other job (or commands) already running
+your command will be queued.
 There are additional options.  Consult your local documentation.
 
-\subsubsection{Origin 2000}
+\subsubsection{SGI Origin systems}
 
-For small numbers of processors (1-8) use the non-MPI version of PDAC2.
-If your stack size limit is unlimited, which DQS may do, you will need
-to set it with ``limit stacksize 64M'' to run on multiple processors.
-To run on <procs> processors call the binary directly with the +p option:
+SGI Origin system are shared memory parallel machines, with
+real single system image framework, in other words the user
+could see or access all the processors directly from the 
+login environment. At variance with othe architectures,
+there is no distinction between login and execution node.
+This as some benefits and drowback, the benefits come from
+the possibility to use the whole machine as a multiprocessors
+workstation with an high number of processors, the drowback
+are related to the possibility that a different jobs running
+at the same time on the machine interfere with each others.
+In general you could run then parallel applications 
+in two different way, using a shell command like in your own
+workstation and using a queuing system, which is usually NQS.
+To run from the shell prompt use mpirun, i.e.: 
 
 \begin{verbatim}
-  PDAC2 +p<procs> <configfile>
+  mpirun -np 8 ./pdac.x
 \end{verbatim}
 
+this will execute pdac.x with 8 MPI task, that not necessarily
+goes to different processors, it depends on system loads.
+Although this way of execute parallel applications is very
+friendly, it could cause a lot of interferences with system
+activities and other applications, with the result of slowing
+down the system. Then quite often the system administrator
+set severe limits to this way of run, mainly on the number of
+real available processors (no matter how many MPI task you ask for) 
+execution time and memory usage.
+To run large application then on many system you need to 
+interface with the NQS queuing system, then as for other architectures
+you have to write a script with the requests for processors and
+memory and the submit the script to NQS.
+An example of job script for NQS is 
+
 \begin{verbatim}
-  setenv MPI_REQUEST_MAX 10240
-  setenv MPI_TYPE_MAX 10240
+#!/bin/sh
+#QSUB -l mpp_p=8
+#QSUB -l p_mpp_t=2:00:00
+
+cp pdac.dat /myrundir
+cp pdac.x /myrundir
+cd /myrundir
+mpirun -np 8 ./pdac.x
 \end{verbatim}
 
-Then run PDAC with the following command:
+with this script you ask 8 processors for 2 hours, then
+you could submit the script with 
+(suppose its filename is myjobfile):
 
 \begin{verbatim}
-  mpirun -np <procs> PDAC2 <configfile>
+  qsub myjobfile
 \end{verbatim}
 
 \subsection{Grid environment}
