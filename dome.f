@@ -10,7 +10,7 @@
       INTEGER :: idome
 
       REAL*8 :: xdome, ydome, zdome, dome_volume, dome_radius
-      REAL*8 :: temperature, deltap
+      REAL*8 :: temperature, overpressure
       REAL*8 :: particle_fraction(max_nsolid)
       !
       REAL*8 :: dome_ygc(max_ngas)
@@ -19,7 +19,7 @@
         INTEGER :: imesh
         REAL*8  :: radius
         REAL*8  :: angle
-        REAL*8  :: overp
+        REAL*8  :: p_hydro
       END TYPE icdome_cell
 
       TYPE(icdome_cell), ALLOCATABLE :: dcell(:)
@@ -93,7 +93,7 @@
         END IF
         zdome = z(kv)
 !
-! ... Count the cells of the dome
+! ... Count the cells of the dome and set the 'dome-cell' flags
 !
         ndm = 0
         DO k = 1, nz
@@ -127,7 +127,7 @@
                     ELSE
                             dcell(n)%angle = 0.D0
                     END IF
-                    dcell(n)%overp  = rlks * DABS(gravz) * dh(distance,dcell(n)%angle)
+                    dcell(n)%p_hydro  = rlks * DABS(gravz) * dh(distance,dcell(n)%angle)
             END IF
           END DO
         END DO
@@ -215,7 +215,7 @@
                       ELSE
                             dcell(n)%angle = 0.D0
                       END IF
-                      dcell(n)%overp  = rlks * gravz * dh(distance, dcell(n)%angle)
+                      dcell(n)%p_hydro  = rlks * gravz * dh(distance, dcell(n)%angle)
               END IF
             END DO
           END DO
@@ -256,7 +256,7 @@
 !
       USE atmospheric_conditions, ONLY: p_atm
       USE control_flags, ONLY: job_type, lpr
-      USE dimensions, ONLY: nsolid, ngas
+      USE dimensions, ONLY: nsolid, ngas, nx
       USE domain_decomposition, ONLY: ncint, meshinds
       USE environment, ONLY: cpclock
       USE eos_gas, ONLY: ygc
@@ -273,7 +273,7 @@
       IMPLICIT NONE
 
       REAL*8 :: ygcsum, ra, pi, psi, raddo, erre
-      REAL*8 :: beta, deltap
+      REAL*8 :: beta, p_hydro
       INTEGER :: ijk, imesh, i,j,k, is, ig, n, counter
 !      
 ! ... Set constant for the computation of dome pressure
@@ -312,7 +312,7 @@
 
           IF (n/=0) THEN
             ra = dcell(n)%radius
-            deltap = dcell(n)%overp
+            p_hydro = dcell(n)%p_hydro
          
             ! ... Set the initial conditions, as
             ! ... specified in the input file on 
@@ -327,12 +327,12 @@
             IF (idome == 1) THEN
               p(ijk)  = p_dome(ra,p_atm(kv),beta)
             ELSE IF (idome == 2) THEN
-              p(ijk) = deltap
+              p(ijk) = overpressure
             END IF
             !
             ! ... Add the hydrostatic pressure due to dome mass
             !
-            p(ijk)  = p(ijk) + deltap
+            p(ijk)  = p(ijk) + p_hydro
             !
             DO ig = 1, ngas
               ygc(ijk,ig) = dome_ygc(gas_type(ig))

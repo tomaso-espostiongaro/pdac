@@ -94,7 +94,7 @@
       USE control_flags, ONLY: job_type, lpr, imr
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
       USE domain_decomposition, ONLY: mesh_partition
-      USE dome_conditions, ONLY: xdome, ydome, dome_volume, temperature, particle_fraction, deltap, &
+      USE dome_conditions, ONLY: xdome, ydome, dome_volume, temperature, particle_fraction, overpressure, &
           idome, gas_flux, permeability, dome_gasvisc
       USE enthalpy_matrix, ONLY: flim
       USE eos_gas, ONLY: update_eosg
@@ -159,7 +159,7 @@
         p_gas, t_gas, u_solid, v_solid, w_solid, ep_solid, t_solid, &
         vent_O2, vent_N2, vent_CO2, vent_H2, vent_H2O, vent_Air, vent_SO2
 
-      NAMELIST / dome / xdome, ydome, dome_volume, temperature, particle_fraction, idome, deltap, &
+      NAMELIST / dome / xdome, ydome, dome_volume, temperature, particle_fraction, idome, overpressure, &
                         gas_flux, permeability, dome_gasvisc
 
       NAMELIST / atmosphere / wind_x, wind_y, wind_z, p_ground, t_ground, &
@@ -313,7 +313,7 @@
       xdome = 0.0             ! UTM longitude of the dome center
       ydome = 0.0             ! UTM latitude of the dome center
       dome_volume = 0.0        ! total volume of exploded mass
-      deltap = 1.D5             ! overpressure of the dome
+      overpressure = 100.D5             ! overpressure of the dome
       particle_fraction = 0.0          ! particle fractions
       gas_flux = 400.D0        ! gas flux through the conduit
       temperature = 1100.D0        ! gas temperature
@@ -562,7 +562,7 @@
       CALL bcast_real(ydome,1,root)
       CALL bcast_real(dome_volume,1,root)
       CALL bcast_real(temperature,1,root)
-      CALL bcast_real(deltap,1,root)
+      CALL bcast_real(overpressure,1,root)
       CALL bcast_real(particle_fraction,nsolid,root)
       CALL bcast_real(gas_flux,1,root)
       CALL bcast_real(permeability,1,root)
@@ -931,7 +931,7 @@
             CALL iotk_write_dat( iuni_nml, "ydome", ydome )
             CALL iotk_write_dat( iuni_nml, "dome_volume", dome_volume )
             CALL iotk_write_dat( iuni_nml, "temperature", temperature )
-            CALL iotk_write_dat( iuni_nml, "deltap", deltap )
+            CALL iotk_write_dat( iuni_nml, "overpressure", overpressure )
             CALL iotk_write_dat( iuni_nml, "particle_fraction", particle_fraction )
             CALL iotk_write_dat( iuni_nml, "gas_flux", gas_flux )
             CALL iotk_write_dat( iuni_nml, "permeability", permeability )

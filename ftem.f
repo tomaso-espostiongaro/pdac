@@ -33,7 +33,7 @@
       USE gas_solid_viscosity, ONLY: mug, kapg
       USE grid, ONLY: flag
       USE grid, ONLY: dx, dy, dz
-      USE immersed_boundaries, ONLY: numx, numy, numz, immb, faces
+      USE immersed_boundaries, ONLY: faces, immb
       USE specific_heat_module, ONLY: ck, cp
       USE heat_transfer, ONLY: hvs
       USE particles_constants, ONLY: cps
