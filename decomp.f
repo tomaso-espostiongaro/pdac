@@ -1118,10 +1118,14 @@
 ! ... of forcing points among processors.
 !
       ALLOCATE( x_forced(ncdom) )
-      IF (job_type == '3D') ALLOCATE( y_forced(ncdom) )
-      ALLOCATE( z_forced(ncdom) )
       x_forced = .FALSE.
-      y_forced = .FALSE.
+
+      IF (job_type == '3D') THEN
+        ALLOCATE( y_forced(ncdom) )
+        y_forced = .FALSE.
+      END IF
+
+      ALLOCATE( z_forced(ncdom) )
       z_forced = .FALSE.
 
       IF (immb >= 1) THEN
@@ -1171,6 +1175,8 @@ set_numx: IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
               x_forced(ijkl) = .FALSE.
             END IF
             IF (x_forced(ijkl)) numx(ijkl) = n 
+          ELSE
+            CALL error('decomp','control numx',1)
           END IF set_numx
 
         END DO
@@ -1193,6 +1199,8 @@ set_numy:   IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
                 y_forced(ijkl) = .FALSE.
               END IF
               IF (y_forced(ijkl)) numy(ijkl) = n 
+            ELSE
+              CALL error('decomp','control numy',1)
             END IF set_numy
           END IF
 
@@ -1215,6 +1223,8 @@ set_numz: IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
               z_forced(ijkl) = .FALSE.
             END IF
             IF(z_forced(ijkl)) numz(ijkl) = n 
+          ELSE
+            CALL error('decomp','control numz',1)
           END IF set_numz
         
         END DO

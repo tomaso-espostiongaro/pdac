@@ -74,36 +74,22 @@
               IF( fx ) THEN
 
                 fp = numx(ijk)
-                IF (fp > 0) THEN
-                  vel = velint(fptx(fp), ug, ijk, xb, y, z)  
-                ELSE
-                  WRITE(6,*) 'WARNING fp=0 '
-                  vel = 0.D0
-                END IF
+                vel = velint(fptx(fp), ug, ijk, xb, y, z)  
                 fptx(fp)%vel = vel
 
                 ! ... Initialize x-velocity in the forced points
-                IF (sweep >= 1) THEN
-                  ug(ijk) = vel
-                  us(ijk,:) = vel
-                END IF
+                ug(ijk) = vel
+                us(ijk,:) = vel
 
               ELSE IF( fz ) THEN
 
                 fp = numz(ijk)
-                IF (fp > 0) THEN
-                  vel = velint(fptz(fp), wg, ijk, x, y, zb)  
-                ELSE
-                  WRITE(6,*) 'WARNING fp=0 '
-                  vel = 0.D0
-                END IF
+                vel = velint(fptz(fp), wg, ijk, x, y, zb)  
                 fptz(fp)%vel = vel
 
                 ! ... Initialize z-velocity in the forced points
-                IF (sweep >= 1) THEN
-                  wg(ijk) = vel
-                  ws(ijk,:) = vel
-                END IF
+                wg(ijk) = vel
+                ws(ijk,:) = vel
 
               END IF
 
@@ -112,53 +98,32 @@
               IF( fx ) THEN
 
                 fp = numx(ijk)
-                IF (fp > 0) THEN
-                  vel = velint3d(fptx(fp), ug, ijk, xb, y, z)  
-                ELSE
-                  WRITE(6,*) 'WARNING fp=0 '
-                  vel = 0.D0
-                END IF
+                vel = velint3d(fptx(fp), ug, ijk, xb, y, z)  
                 fptx(fp)%vel = vel
 
                 ! ... Initialize x-velocity in the forced points
-                IF (sweep >= 1) THEN
-                  ug(ijk) = vel
-                  us(ijk,:) = vel
-                END IF
+                ug(ijk) = vel
+                us(ijk,:) = vel
 
               ELSE IF( fy ) THEN
 
                 fp = numy(ijk)
-                IF (fp > 0) THEN
-                  vel = velint3d(fpty(fp), vg, ijk, x, yb, z)  
-                ELSE
-                  WRITE(6,*) 'WARNING fp=0 '
-                  vel = 0.D0
-                END IF
+                vel = velint3d(fpty(fp), vg, ijk, x, yb, z)  
                 fpty(fp)%vel = vel
 
                 ! ... Initialize y-velocity in the forced points
-                IF (sweep >= 1) THEN
-                  vg(ijk) = vel
-                  vs(ijk,:) = vel
-                END IF
+                vg(ijk) = vel
+                vs(ijk,:) = vel
 
               ELSE IF( fz ) THEN
 
                 fp = numz(ijk)
-                IF (fp > 0) THEN
-                  vel = velint3d(fptz(fp), wg, ijk, x, y, zb)  
-                ELSE
-                  WRITE(6,*) 'WARNING fp=0 '
-                  vel = 0.D0
-                END IF
+                vel = velint3d(fptz(fp), wg, ijk, x, y, zb)  
                 fptz(fp)%vel = vel
 
                 ! ... Initialize z-velocity in the forced points
-                IF (sweep >= 1) THEN
-                  wg(ijk) = vel
-                  ws(ijk,:) = vel
-                END IF
+                wg(ijk) = vel
+                ws(ijk,:) = vel
 
               END IF
           
