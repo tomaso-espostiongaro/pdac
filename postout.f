@@ -54,7 +54,7 @@
 !
       IF (formatted_output) THEN 
         ! ... number of lines for each block
-        lbl = ntot / 10 + MIN(1,MOD(ntot,10)) + 4
+        lbl = nz * (INT(nx*ny / 10) + MIN(1,MOD(nx*ny,10))) + 4
       ELSE
         ! ... number of bytes for each block
         lbl = ntot * 4 + 8
