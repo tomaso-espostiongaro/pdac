@@ -540,7 +540,7 @@
                  already = .FALSE.
               ENDIF
               beta = beta * dbeta 
-              IF( lpr > 1 .AND. ionode) &
+              IF( lpr > 2 .AND. ionode) &
                  WRITE(7,*) 'Reducing beta = ', beta, ' n = ', &
               (n01+m1+n11)+(n02+m2+n12)+1 
            ENDIF
@@ -550,7 +550,7 @@
               already = .TRUE.
            ENDIF
            beta = beta / dbeta
-           IF( lpr > 1 .AND. ionode ) &
+           IF( lpr > 2 .AND. ionode ) &
              WRITE(7,*) 'Increasing beta = ', beta, ' n = ', &
              (n01+m1+n11)+(n02+m2+n12)+1
         ELSE 
@@ -561,7 +561,7 @@
            ELSE
              already = .TRUE.
              beta = beta / dbeta
-             IF( lpr > 1 .AND. ionode) &
+             IF( lpr > 2 .AND. ionode) &
                WRITE(7,*) 'Increasing beta = ', beta, ' n = ', (n01+m1+n11)+(n02+m2+n12)+1
            ENDIF
         ENDIF

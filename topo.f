@@ -271,11 +271,15 @@
         !
         ! ... Reset the 'ord2d' array and set the implicit profile
         !
+        IF (lpr > 1 .AND. mpime == root) &
+          WRITE(7,*) 'topographic ordinates'
         DO i = 1, nx
           DO k = 1, nz
 	    IF (zb(k) <= topo(i)) ord(i) = k  
             ijk = i + (k-1) * nx
             dist(ijk) = z(k) - topo(i)
+            IF (lpr > 1 .AND. mpime == root) &
+              WRITE(7,*) i, ord(i)
           END DO
         END DO
 
@@ -303,6 +307,8 @@
         !
         ! ... Reset the 'ord2d' array and set the implicit profile
         !
+        IF (lpr > 1 .AND. mpime == root) &
+          WRITE(7,*) 'topographic ordinates'
 	DO j = 1, ny
 	  DO i = 1, nx
 	    DO k = 1, nz
@@ -310,6 +316,8 @@
               ijk = i + (j-1) * nx + (k-1) * nx * ny
               dist(ijk) = z(k) - topo2d(i,j)
 	    END DO
+            IF (lpr > 1 .AND. mpime == root) &
+              WRITE(7,*) i, j, ord2d(i,j)
 	  END DO
 	END DO
         kv = ord2d(iv,jv)

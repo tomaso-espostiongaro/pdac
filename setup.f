@@ -546,7 +546,6 @@
 
       DO ig = 1, ngas
         IF( mpime == root ) THEN
-          WRITE(6,*) ' Gas Species '
           WRITE(6,*) ' Gas ', ig, ' is type ', gas_type(ig)
         END IF
       END DO

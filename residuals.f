@@ -23,7 +23,7 @@
       INTEGER :: ijk, i, j, k, imesh
       INTEGER :: ig, is
       REAL*8 :: volume, sx, sy, sz, flux
-      REAL*8 :: res_g
+      REAL*8 :: res_g, mfr
       REAL*8, ALLOCATABLE :: res_s(:), res_gc(:)
 
       ALLOCATE(res_s(nsolid))
@@ -97,9 +97,11 @@
       CALL parallel_sum_real(res_s, nsolid)
       CALL parallel_sum_real(res_gc,ngas)
 
+      CALL compute_mass_flow_rate(nswp, mfr)
+
       IF (mpime == root) THEN
         WRITE(13,55) nswp, res_g, (res_s(is),  is=1,nsolid), &
-                                  (res_gc(ig), ig=1, ngas)
+                                  (res_gc(ig), ig=1, ngas), mfr
       END IF
 
  55   FORMAT(I8,15(G30.20E3))
@@ -110,7 +112,7 @@
       RETURN
       END SUBROUTINE print_mass_residuals
 !----------------------------------------------------------------------
-      SUBROUTINE print_mass_flow_rate(nswp)
+      SUBROUTINE compute_mass_flow_rate(nswp, mfr)
 
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: ngas, nsolid
@@ -163,14 +165,8 @@
 
       CALL parallel_sum_real(mfr, 1)
 
-      IF (mpime == root) THEN
-        WRITE(13,55) nswp, mfr
-      END IF
-
- 55   FORMAT(I8,G30.20E3)
-
       RETURN
-      END SUBROUTINE print_mass_flow_rate
+      END SUBROUTINE compute_mass_flow_rate
 !----------------------------------------------------------------------
       END MODULE check_residuals
 !----------------------------------------------------------------------

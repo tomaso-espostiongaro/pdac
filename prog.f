@@ -4,8 +4,7 @@
 
       USE blunt_body, ONLY: bluntb, ibl
       USE boundary_conditions, ONLY: boundary
-      USE check_residuals, ONLY: print_mass_residuals, &
-                                 print_mass_flow_rate
+      USE check_residuals, ONLY: print_mass_residuals
       USE control_flags, ONLY: job_type, lpr, run, imr
       USE control_flags, ONLY: implicit_enthalpy, implicit_fluxes
       USE dimensions
@@ -315,7 +314,8 @@
 
         IF( stop_now ) THEN
           IF( mpime == root ) &
-            WRITE(6,fmt="('  elapsed_seconds exceed max_second',/,'  program stopping')" )
+            WRITE(6,fmt="('  elapsed_seconds exceed max_second',/,'  &
+                          &  program stopping')" )
         END IF
 
         IF((MOD(sweep,ndump) == 0) .OR. stop_now) THEN
@@ -338,17 +338,13 @@
         mptimres  = mptimres  + (p12 - p11)
 !
         w1 = elapsed_seconds()
-        IF( mpime == root ) &
-          WRITE(6,fmt="('  walltime = ',F10.2,', ',F10.2)") w1, w1-w0
+        WRITE(7,fmt="('  walltime = ',F10.2,', ',F10.2)") w1, w1-w0
         w0 = w1
 !
 ! ... Print the total residuals of the mass conservation equation
+! ... and the mass-flow rate
 !
         IF ( imr >= 1 ) CALL print_mass_residuals(sweep)
-!
-! ... Print the mass flow-rate
-!
-        CALL print_mass_flow_rate(sweep)
 !
         !IF (mpime == psmp) CALL sample_pressure(ismp)
 !

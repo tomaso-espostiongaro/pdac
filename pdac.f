@@ -250,9 +250,9 @@
           WRITE(6,*)' (From main) WALL TIME computed calling SYSTEM_CLOCK (s)'
           WRITE(6,900) 'Init', 'Ghost', 'Rest', 'Setup', 'Prog', 'Total'
           WRITE(6,999) timinit, timghost, timres, timsetup, timprog, timtot
-          WRITE(6,*)'             WALL TIME computed calling MP_WALLTIME (s)'
-          WRITE(6,900) 'Init', 'Ghost', 'Rest', 'Setup', 'Prog', 'Total'
-          WRITE(6,999) mptiminit, mptimghost, mptimres, mptimsetup, mptimprog, mptimtot
+!          WRITE(6,*)'             WALL TIME computed calling MP_WALLTIME (s)'
+!          WRITE(6,900) 'Init', 'Ghost', 'Rest', 'Setup', 'Prog', 'Total'
+!          WRITE(6,999) mptiminit, mptimghost, mptimres, mptimsetup, mptimprog, mptimtot
         END IF
 999     FORMAT(6(1X,F10.2),/)
 900     FORMAT(6(1X,A10))
