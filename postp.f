@@ -8,6 +8,7 @@
       USE input_module, ONLY: input, initc, number_of_block
       USE particles_constants, ONLY: allocate_part_constants
       USE postp_input, ONLY: postin
+      USE postp_output, ONLY: write_avs_files
       USE process_outp, ONLY: filter, process
 !
       IMPLICIT NONE
@@ -60,6 +61,7 @@
 !
       CALL setpar
 
+      CALL write_avs_files
       !CALL filter
       CALL process
 !

@@ -56,7 +56,7 @@
       CHARACTER(LEN = 2 ) :: lettera2
       LOGICAL :: lform
 !
-      INTEGER :: ig, is
+      INTEGER :: ig, is, i
       INTEGER :: iunit
       REAL   :: time
       REAL   :: stime
@@ -69,52 +69,97 @@
 
       IF (lform) THEN
         OPEN( UNIT=12, FILE=filnam, STATUS='OLD')
-        READ (12,*) time
+        READ(12,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
       ELSE 
         OPEN(UNIT=12,FORM='UNFORMATTED',FILE=filnam, STATUS='OLD')
         READ (12) stime
       END IF
 
+      IF( lform ) THEN
+        DO i=1,4; READ(12,*); END DO
+      END IF
       CALL read_array( 12, p, lform )  ! gas_pressure
 
       IF (job_type == '2D') THEN
 
+        IF( lform ) THEN
+          DO i=1,4; READ(12,*); END DO
+        END IF
         CALL read_array( 12, ug, lform ) ! gas_velocity_r
+        IF( lform ) THEN
+          DO i=1,4; READ(12,*); END DO
+        END IF
         CALL read_array( 12, wg, lform ) ! gas_velocity_z
 
       ELSE IF (job_type == '3D') THEN
 
+        IF( lform ) THEN
+          DO i=1,4; READ(12,*); END DO
+        END IF
         CALL read_array( 12, ug, lform ) ! gas_velocity_x
+        IF( lform ) THEN
+          DO i=1,4; READ(12,*); END DO
+        END IF
         CALL read_array( 12, vg, lform ) ! gas_velocity_y
+        IF( lform ) THEN
+          DO i=1,4; READ(12,*); END DO
+        END IF
         CALL read_array( 12, wg, lform ) ! gas_velocity_z
 
       ELSE
         CALL error('outp_','Unknown job type',1)
       END IF
 
+      IF( lform ) THEN
+        DO i=1,4; READ(12,*); END DO
+      END IF
       CALL read_array( 12, tg, lform )  ! gas_temperature
 
       DO ig=1,ngas
-          CALL read_array( 12, xgc(:,ig), lform )  ! gc_molar_fraction
+        IF( lform ) THEN
+          DO i=1,4; READ(12,*); END DO
+        END IF
+        CALL read_array( 12, xgc(:,ig), lform )  ! gc_molar_fraction
       END DO
 
       DO is = 1, nsolid
 
+        IF( lform ) THEN
+          DO i=1,4; READ(12,*); END DO
+        END IF
         CALL read_array( 12, eps(:,is), lform )  ! solid_bulk_density
 
         IF (job_type == '2D') THEN
 
+          IF( lform ) THEN
+            DO i=1,4; READ(12,*); END DO
+          END IF
           CALL read_array( 12, us(:,is), lform )  ! solid_velocity_r
+          IF( lform ) THEN
+            DO i=1,4; READ(12,*); END DO
+          END IF
           CALL read_array( 12, ws(:,is), lform )  ! solid_velocity_z
 
         ELSE IF (job_type == '3D') THEN
 
+          IF( lform ) THEN
+            DO i=1,4; READ(12,*); END DO
+          END IF
           CALL read_array( 12, us(:,is), lform )  ! solid_velocity_x
+          IF( lform ) THEN
+            DO i=1,4; READ(12,*); END DO
+          END IF
           CALL read_array( 12, vs(:,is), lform )  ! solid_velocity_y
+          IF( lform ) THEN
+            DO i=1,4; READ(12,*); END DO
+          END IF
           CALL read_array( 12, ws(:,is), lform )  ! solid_velocity_z
 
         END IF
 
+        IF( lform ) THEN
+          DO i=1,4; READ(12,*); END DO
+        END IF
         CALL read_array( 12, ts(:,is), lform )  ! solid_temperature
 
       END DO
@@ -164,7 +209,7 @@
 
         mc = mach(mvm,c)
 
-        CALL write_array( 13, mc, lform )
+        CALL write_array( 13, c, lform )
 
       END DO
 !
@@ -277,7 +322,8 @@
           CALL crop_array( var )  
       END DO
 
-      WRITE( 6, fmt="('  filtering solid density, velocities and temperature')")
+      WRITE( 6, fmt="('  filtering solid density, velocities and  &
+                        & temperature')")
 !
       DO is = 1, nsolid
         CALL read_array( 12, array, lform )  ! solid_bulk_density
@@ -323,7 +369,7 @@
         IF (lform) THEN
           OPEN( UNIT=iunit, FILE=filwri, STATUS='UNKNOWN' )
         ELSE 
-          OPEN( UNIT=iunit, FORM='UNFORMATTED', FILE=filwri, STATUS='UNKNOWN' )
+          OPEN(UNIT=iunit,FORM='UNFORMATTED',FILE=filwri)
         END IF
         WRITE(6,fmt="('  crop_array: writing file ',A16)") filwri
 
