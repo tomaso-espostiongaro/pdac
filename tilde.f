@@ -734,7 +734,7 @@
 !
 ! ... Second order MUSCL correction
 !
-            IF (muscl > 1) THEN
+            IF (muscl > 0) THEN
               IF ( i /= nx-1 ) CALL muscl_flu(ugfe(ijk), ugft(ijk),   &
                                         dens_stagx, u, w, i, k)
               IF ( k /= nz-1 ) CALL muscl_flw(wgfe(ijk), wgft(ijk),   &
@@ -764,7 +764,7 @@
 !
 ! ... Second order MUSCL correction
 !
-              IF (muscl > 1) THEN
+              IF (muscl > 0) THEN
                 IF ( i /= nx-1 ) CALL muscl_flu(usfe(ijk,is), usft(ijk,is),  &
                                           dens_stagx, u, w, i, k)
                 IF ( k /= nz-1 ) CALL muscl_flw(wsfe(ijk,is), wsft(ijk,is),  &
@@ -804,7 +804,7 @@
 !
 ! ... Second order MUSCL correction
 !
-            IF (muscl > 1) THEN
+            IF (muscl > 0) THEN
               IF ( i /= nx-1 ) &
                 CALL muscl_flu(ugfe(ijk), ugfn(ijk), ugft(ijk), &
                          dens_stagx, u, v, w, i, j, k)
@@ -847,7 +847,7 @@
 !
 ! ... Second order MUSCL correction
 !
-              IF (muscl > 1) THEN
+              IF (muscl > 0) THEN
                 IF ( i /= nx-1 ) &
                   CALL muscl_flu(usfe(ijk,is), usfn(ijk,is), usft(ijk,is), &
                            dens_stagx, u, v, w, i, j, k)
