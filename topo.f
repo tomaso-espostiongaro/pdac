@@ -797,15 +797,17 @@
 !
 ! ... Write out the new DEM file
 !
-        OPEN(14,FILE='newdem.dat',STATUS='UNKNOWN')
-        WRITE(14,*) vdem%nx
-        WRITE(14,*) vdem%ny
-        WRITE(14,*) vdem%xcorner
-        WRITE(14,*) vdem%ycorner
-        WRITE(14,*) vdem%cellsize
-        WRITE(14,*) vdem%nodata_value
-        WRITE(14,'(10(I8))') NINT(ztop2d*100.D0)
-        CLOSE(14)
+        IF( job_type == '3D') THEN
+          OPEN(14,FILE='newdem.dat',STATUS='UNKNOWN')
+          WRITE(14,*) vdem%nx
+          WRITE(14,*) vdem%ny
+          WRITE(14,*) vdem%xcorner
+          WRITE(14,*) vdem%ycorner
+          WRITE(14,*) vdem%cellsize
+          WRITE(14,*) vdem%nodata_value
+          WRITE(14,'(10(I8))') NINT(ztop2d*100.D0)
+          CLOSE(14)
+        END IF
       END IF
 !
 ! ... Control that the cells below the flag = 5 blocks

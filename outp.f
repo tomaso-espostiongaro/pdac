@@ -188,7 +188,7 @@
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE gas_solid_temperature, ONLY: tg, ts
-      USE grid, ONLY: zb, x
+      USE grid, ONLY: zb, r
       USE io_restart, ONLY: write_array
       USE parallel, ONLY: nproc, mpime, root, group
       USE particles_constants, ONLY: rl, inrl
@@ -198,7 +198,7 @@
       USE control_flags, ONLY: job_type
       USE volcano_topography, ONLY: rim_quota
       IMPLICIT NONE
-      INTEGER :: n, is, ig, kq, k
+      INTEGER :: n, is, ig, kq, k, nq
 
       DO k = 1, nz
         IF (zb(k) <= rim_quota) kq = k
@@ -206,7 +206,7 @@
       
         OPEN(16,FILE='radial_profile.dat')
         WRITE(16,*) nx
-        WRITE(16,*) (x(n), n=1, nx)
+        WRITE(16,*) (r(n), n=1, nx)
         WRITE(16,*) (ug(n + (kq-1)*nx), n=1, nx)
         WRITE(16,*) (wg(n + (kq-1)*nx), n=1, nx)
         WRITE(16,*) (tg(n + (kq-1)*nx), n=1, nx)
@@ -221,7 +221,19 @@
           WRITE(16,*) (rlk(n + (kq-1)*nx,is)*inrl(is), n=1, nx)
         END DO
         CLOSE(16)
+      OPEN(18,FILE='radial_profile_gas.dat')
+      OPEN(19,FILE='radial_profile_part.dat')
+      DO n = 1, nx
+        nq = n + (kq-1)*nx
+        WRITE(18,188) r(n), ug(nq), wg(nq), tg(nq), p(nq), (ygc(nq,ig), ig=1, ngas)
+        WRITE(19,199) r(n), (us(nq), ws(nq), ts(nq), rlk(nq,is)*inrl(is), is=1,nsolid)
+      END DO
+        CLOSE(18)
+        CLOSE(19)
 
+ 188  FORMAT(7(F15.5))       
+ 199  FORMAT(9(F15.5))       
+        
       RETURN
       END SUBROUTINE write_radial_profile_2d
 !----------------------------------------------------------------------
