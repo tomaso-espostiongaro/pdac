@@ -49,8 +49,7 @@
       USE control_flags, ONLY: job_type
       USE dimensions
       USE domain_decomposition, ONLY: ncint, meshinds, myijk
-      USE eos_gas, ONLY: mas, mole, cnvertg, xgc, ygc
-      USE eos_solid, ONLY: cnverts
+      USE eos_gas, ONLY: mas, mole, xgc, ygc
       USE gas_constants, ONLY: gmw, rgas, gammaair
       USE gas_constants, ONLY: gas_type
       USE gas_solid_density, ONLY: rlk
@@ -177,38 +176,40 @@
       END SUBROUTINE setup
 !----------------------------------------------------------------------
       SUBROUTINE resetup
-
-! ... Set initial conditions
+!
+! ... Compute thermodynamic quantities from initial conditions
 ! ... (2D/3D_Compliant)
 !
       USE control_flags, ONLY: job_type
-      USE grid, ONLY: flag
       USE dimensions
       USE domain_decomposition, ONLY: ncint
-      USE eos_gas, ONLY: mas, cnvertg, xgc, ygc, rgpgc
-      USE eos_solid, ONLY: cnverts, caloric_eosl
-      USE gas_constants, ONLY: gas_type, gmw, rgas
+      USE eos_gas, ONLY: mas, xgc, ygc, rgpgc
+      USE eos_gas, ONLY: cg, caloric_eosg, thermal_eosg, mole
+      USE eos_solid, ONLY: caloric_eosl
+      USE gas_constants, ONLY: gas_type, gmw, rgas, tzero, hzerog, hzeros
       USE gas_solid_density, ONLY: rlk, rog, rgp
+      USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
+      USE grid, ONLY: flag
+      USE io_restart, ONLY: dump_all
       USE particles_constants, ONLY: inrl, cps
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: itd
-      USE io_restart, ONLY: dump_all
-      USE specific_heat_module, ONLY: ck, cp
-      USE eos_gas, ONLY: cg, caloric_eosg, thermal_eosg, mole
-      USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
+      USE specific_heat_module, ONLY: ck, cp, hcapg, hcaps
 
       IMPLICIT NONE
 !
       INTEGER :: ijk, info
       INTEGER :: ig, is, dfg
       REAL*8  :: xgc_def, mass, tem, rls
+      REAL*8  :: hc, mg , xg(1:max_ngas), eps
 !
       IF (itd <= 1) THEN
 !
-! ... Compute thermodynamic quantities
-!
         DO  ijk = 1, ncint
 !
+          ! ... compute gas components molar fractions 
+          ! ... from mass fractions
+          !
           CALL mole( xgc(:,ijk), ygc(:,ijk) )
           
           ! ... If density is specified tg(ijk) is a density
@@ -223,71 +224,66 @@
             tg(ijk) = tem
           END IF
 
-          CALL cnvertg( ijk )
-          CALL cnverts( ijk )
+          ! ... compute gas density from thermal equation of state
+          ! ... compute gas and gas components bulk densities
+          !
+          CALL thermal_eosg( rog(ijk), tg(ijk), p(ijk), xgc(:,ijk) )
+          rgp(ijk) = rog(ijk) * ep(ijk)
+          DO ig = 1, ngas
+            rgpgc(ijk,ig) = ygc(ig,ijk) * rgp(ijk)
+          END DO
+
+          ! ... compute specific heat  from temperature
+          !
+          CALL hcapg( cp(:,ijk), tg(ijk))
+          hc = 0.D0
+          DO ig = 1, ngas
+            hc = hc + cp(gas_type(ig),ijk) * ygc(ig,ijk)
+          END DO
+          cg(ijk) = hc
+
+          ! ... compute gas Enthalpy from temperature
+          !
+          sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
+
+          ! ... compute particle specific heat and entahlpy 
+          ! ... from temperature
+          !
+          DO is = 1, nsolid
+            CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
+            sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
+          END DO
+
         END DO
-!
-! ... initial conditions already set from RESTART file
 !
       ELSE IF (itd == 2) THEN 
 !
-        ep  = 0.0d0
-        xgc = 0.0d0
-        ! cp  = 0.0d0
-        DO ijk = 1, ncint
-            ! CALL caloric_eosg(cp(:,ijk), cg(ijk), tg(ijk), ygc(:,ijk), sieg(ijk), ijk, info)
+        IF( .NOT. dump_all ) THEN
+          DO ijk = 1, ncint
+            
             CALL mole( xgc(:,ijk), ygc(:,ijk) )
             rls = 0.0d0
             DO is = 1, nsolid
               rls = rls + rlk(ijk,is) * inrl(is)
             END DO
             ep(ijk) = 1.D0 - rls
-            DO is = 1, nsolid
-              CALL caloric_eosl( ts(ijk,is), cps(is), ck(is,ijk), sies(ijk,is) )
-            END DO
-        END DO
 
-        IF( .NOT. dump_all ) THEN
-          DO ijk = 1, ncint
-            CALL caloric_eosg(cp(:,ijk), cg(ijk), tg(ijk), ygc(:,ijk), sieg(ijk), ijk, info)
-            CALL mole( xgc(:,ijk), ygc(:,ijk) )
-            CALL thermal_eosg( rog(ijk), tg(ijk), p(ijk), xgc(:,ijk) )
-            ep(ijk) = 1.D0
-            DO is = 1, nsolid
-              ep(ijk) = ep(ijk) - rlk(ijk,is) * inrl(is)
-            END DO
-            rgp(ijk) = rog(ijk) * ep(ijk)
             DO ig = 1, ngas
               rgpgc(ijk,ig) = ygc(ig,ijk) * rgp(ijk)
             END DO
+
+            CALL caloric_eosg(cp(:,ijk), cg(ijk), tg(ijk), ygc(:,ijk), &
+                              sieg(ijk), ijk, info)
             DO is = 1, nsolid
-              CALL caloric_eosl( ts(ijk,is), cps(is), ck(is,ijk), sies(ijk,is) )
+              CALL caloric_eosl(ts(ijk,is), cps(is), ck(is,ijk), sies(ijk,is))
             END DO
+
           END DO
         END IF
 !
-! ... set initial conditions from OUTPUT file
-!
       ELSE IF (itd >= 3) THEN 
 
-        DO ijk = 1, ncint
-
-          ep(ijk) = 1.D0
-          IF (SUM(xgc(:,ijk)) /= 1.D0) THEN
-            xgc(ngas,ijk) = 1.D0 - SUM( xgc(1:ngas-1,ijk) )
-          END IF
-                  
-
-          DO is=1,nsolid
-            ep(ijk) = ep(ijk) - rlk(ijk,is)*inrl(is)
-          END DO
-
-          CALL mas( ygc(:,ijk), xgc(:,ijk)) 
-
-          CALL cnvertg(ijk)
-          CALL cnverts(ijk)
-
-        END DO
+        CONTINUE
 
       END IF
 
@@ -363,8 +359,7 @@
 
       USE dimensions
       USE domain_decomposition, ONLY: ncint, meshinds, myijk
-      USE eos_gas, ONLY: ygc, xgc, mole, cnvertg
-      USE eos_solid, ONLY: cnverts
+      USE eos_gas, ONLY: ygc, xgc, mole
       USE gas_constants, ONLY: rgas, gammaair
       USE gas_constants, ONLY: gas_type
       USE gas_solid_density, ONLY: rgp, rlk

@@ -21,7 +21,7 @@
         PRIVATE
 
         LOGICAL :: old_restart = .FALSE.
-        LOGICAL :: dump_all = .TRUE.
+        LOGICAL :: dump_all = .FALSE.
 
         REAL*8 :: max_seconds
 
@@ -117,11 +117,11 @@
         CALL write_array( 9, ygc(ig,:), dbl, lform )
       END DO
 !
+      CALL write_array( 9, rgp, dbl, lform )
+
+      CALL write_array( 9, rog, dbl, lform )
+
       IF( dump_all ) THEN
-
-        CALL write_array( 9, rgp, dbl, lform )
-
-        CALL write_array( 9, rog, dbl, lform )
 
         CALL write_array( 9, ep, dbl, lform )
 
@@ -163,8 +163,6 @@
 !
       USE dimensions
       USE domain_decomposition, ONLY: ncint, meshinds
-      USE eos_gas, ONLY: cnvertg
-      USE eos_solid, ONLY: cnverts
       USE atmosphere, ONLY: p_atm, t_atm
       USE grid, ONLY: zb, dz
       USE specific_heat_module, ONLY: hcapg
@@ -317,7 +315,6 @@
       !  read gas components
 
       ygc = 0.0d0
-
       DO ig = 1, ngas
         CALL read_array( 9, ygc(ig,:), dbl, lform )
       END DO
@@ -326,19 +323,19 @@
          WRITE(6,*) 'WARNING reading restart, ycg < 0'
       END IF
 
+      rgp = 0.0d0
+      CALL read_array( 9, rgp, dbl, lform )
+      IF( ANY( rgp < 0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, rgp < 0'
+      END IF
+
+      rog = 0.0d0
+      CALL read_array( 9, rog, dbl, lform )
+      IF( ANY( rog < 0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, rog < 0'
+      END IF
+
       IF( dump_all ) THEN
-
-        rgp = 0.0d0
-        CALL read_array( 9, rgp, dbl, lform )
-        IF( ANY( rgp < 0 ) ) THEN
-           WRITE(6,*) 'WARNING reading restart, rgp < 0'
-        END IF
-
-        rog = 0.0d0
-        CALL read_array( 9, rog, dbl, lform )
-        IF( ANY( rog < 0 ) ) THEN
-           WRITE(6,*) 'WARNING reading restart, rog < 0'
-        END IF
 
         ep = 0.0d0
         CALL read_array( 9, ep, dbl, lform )

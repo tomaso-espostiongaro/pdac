@@ -9,13 +9,11 @@
       USE domain_decomposition, ONLY: ncint, myijk
       USE enthalpy_matrix, ONLY: ftem
       USE environment, ONLY: cpclock, timing, elapsed_seconds
-      USE eos_gas, ONLY: mole, caloric_eosg, thermal_eosg
-      USE eos_gas, ONLY: ygc, rgpgc, xgc, cg
-      USE eos_solid, ONLY: caloric_eosl
+      USE eos_gas, ONLY: thermal_eosg
+      USE eos_gas, ONLY: ygc, rgpgc, xgc
       USE gas_components, ONLY: ygas
       USE gas_solid_density, ONLY: rog, rgp, rlk
       USE gas_solid_temperature, ONLY: sieg, sies, ts, tg
-      USE specific_heat_module, ONLY: cp, ck
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE io_restart, ONLY: tapewr, max_seconds
       USE iterative_solver, ONLY: iter

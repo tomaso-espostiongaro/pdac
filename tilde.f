@@ -255,7 +255,7 @@
       USE domain_decomposition, ONLY: meshinds
       USE domain_decomposition, ONLY: ncint, myijk, ncdom, data_exchange
       USE control_flags, ONLY: job_type, immb
-      USE gas_solid_density, ONLY: rog, rgp, rlk
+      USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: dx, dy, dz, flag
       USE grid, ONLY: indx, indy, indz, inr, inrb
@@ -647,7 +647,7 @@
       USE convective_fluxes_w, ONLY: flw, muscl_flw
       USE control_flags, ONLY: job_type
       USE flux_limiters, ONLY: muscl
-      USE gas_solid_density, ONLY: rog, rgp, rlk
+      USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: flag
       USE interpolate_fields, ONLY: interpolate_x, interpolate_y, interpolate_z

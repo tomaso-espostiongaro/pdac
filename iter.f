@@ -59,7 +59,6 @@
       USE set_indexes, ONLY: imjk, ijmk, ijkm, ijkn, &
                              ijke, ijkw, ijkt, ijkb
       USE set_indexes, ONLY: subscr, first_subscr
-      USE specific_heat_module, ONLY: cp
       USE tilde_energy, ONLY: htilde
       USE tilde_momentum, ONLY: tilde, appu, appv, appw
       USE time_parameters, ONLY: time, dt, timestart, tpr

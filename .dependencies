@@ -1,5 +1,5 @@
 
-atmosphere.o : control.o dimensions.o gas.o grid.o 
+atmosphere.o : control.o dimensions.o gas.o grid.o parallel.o 
 
 bdry.o : atmosphere.o control.o decomp.o dens.o dimensions.o eosg.o gas.o  \
     grid.o immb.o indijk.o parallel.o particles.o press.o setup.o subscr.o  \

@@ -227,53 +227,5 @@
       RETURN
       END SUBROUTINE caloric_eosg
 !----------------------------------------------------------------------
-      SUBROUTINE cnvertg( ijk )
-!
-! ... setup thermodynamic mean quantities
-!
-      USE dimensions
-      USE gas_constants, ONLY: gmw, c_joule, rgas, tzero, hzerog
-      USE gas_constants, ONLY: gas_type
-      USE gas_solid_density, ONLY: rog, rgp
-      USE gas_solid_temperature, ONLY: sieg, tg
-      USE pressure_epsilon, ONLY: p, ep
-      USE specific_heat_module, ONLY: cp, hcapg
-!
-      IMPLICIT NONE
-!
-      INTEGER, INTENT(IN) :: ijk
-      INTEGER :: ig
-!
-      REAL*8 :: mg, hc
-!
-      mg = 0.D0
-      DO ig = 1, ngas
-        mg = mg + xgc( ig, ijk ) * gmw(gas_type(ig))
-      END DO
-!
-! ... gas density (from equation of state)
-!
-      rog(ijk)   = p(ijk) / ( rgas * tg(ijk) ) * mg
-      rgp(ijk)   = rog(ijk) * ep(ijk)
-
-      DO ig = 1, ngas
-        rgpgc(ijk,ig) = ygc(ig,ijk) * rgp(ijk)
-      END DO
-!
-! compute heat capacity (constant volume) for gas mixture
-!
-      CALL hcapg( cp(:,ijk), tg(ijk))
-
-      hc = 0.D0
-      DO ig = 1, ngas
-        hc = hc + cp(gas_type(ig),ijk) * ygc(ig,ijk)
-      END DO 
-      cg(ijk) = hc
-
-      sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
-!
-      RETURN
-      END SUBROUTINE cnvertg
-!----------------------------------------------------------------------
       END MODULE eos_gas
 !----------------------------------------------------------------------
