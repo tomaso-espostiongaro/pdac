@@ -148,8 +148,6 @@
       ELSE IF (iturb == 0) THEN
         mugt = mug
       END IF
-      mug  = 0.D0
-      mugt = 0.D0
 !
 ! ... Newtonian stress tensor
 !

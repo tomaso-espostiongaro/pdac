@@ -80,8 +80,6 @@
       ELSE IF (iturb == 0) THEN
         kapgt = kapg
       END IF
-      kapg  = 0.D0
-      kapgt = 0.D0
 !
       CALL data_exchange(sieg)
       CALL data_exchange(sies)
