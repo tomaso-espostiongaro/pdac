@@ -34,8 +34,8 @@
 !
       IMPLICIT NONE
 !
-      CHARACTER :: filnam*15
-      CHARACTER*4 :: lettera
+      CHARACTER( LEN = 15 ) :: filnam
+      CHARACTER( LEN = 44 ) :: lettera
 !
       INTEGER :: i,j,ijk
       INTEGER :: ig
@@ -83,8 +83,8 @@
 !
       IMPLICIT NONE
 !
-      CHARACTER :: filnam*11
-      CHARACTER*4 :: lettera
+      CHARACTER( LEN = 11 ) :: filnam
+      CHARACTER( LEN =  4 ) :: lettera
       LOGICAL :: lform
 !
       INTEGER :: ig,is
@@ -161,35 +161,33 @@
 
       SUBROUTINE filter_outp( irest )
 !
-      USE dimensions, ONLY: nsolid, ngas, nx, ny, nz
-      USE io_restart, ONLY: read_array, write_array
+      USE dimensions, ONLY: nsolid, ngas, nx, ny, nz, ntot
+      USE io_restart, ONLY: read_array
       USE parallel, ONLY: nproc, mpime, root, group
       USE control_flags, ONLY: job_type
+      USE domain_decomposition, ONLY: ncint, meshinds
       USE gas_constants, ONLY: present_gas, default_gas, gammaair
-      USE domain_decomposition, ONLY: ncdom, ncint, meshinds
       USE grid, ONLY: dx, dy, dz
 !
       IMPLICIT NONE
 !
       INTEGER, INTENT(IN) :: irest
       CHARACTER(LEN = 11) :: filnam
-      CHARACTER(LEN = 11) :: filwri
       CHARACTER(LEN = 4 ) :: lettera
       CHARACTER(LEN = 2 ) :: lettera2
       CHARACTER(LEN = 4 ) :: var
       LOGICAL :: lform
 !
-      INTEGER :: ig, is, i, k, j, ii, imesh
+      INTEGER :: ig, is
       INTEGER :: iunit
-      INTEGER :: ijk
       REAL*8 :: time
-      REAL :: stime
+      REAL   :: stime
 
-      REAL*8, ALLOCATABLE :: array(:)
-      REAL*4, ALLOCATABLE :: sarray(:)
+      REAL, ALLOCATABLE :: array(:)
+!
 !
       filnam='output.'//lettera(irest)
-      filwri='filter.'//lettera(irest)
+      WRITE(6,fmt="('  filter: reading file ',A11)") filnam
 
       lform = formatted_output
 
@@ -207,88 +205,86 @@
 
       END IF
 
-      ALLOCATE( array( ncdom ) )
-      ALLOCATE( sarray( ncdom ) )
+      ALLOCATE( array( ntot ) )
 
-      WRITE(6,fmt="('  from filter_outp: reading gas pressure ')")
+      WRITE(6,fmt="('  filtering gas pressure ')")
 !
-      CALL read_array( 12, array, sgl, lform )  ! gas_pressure
+      CALL read_array( 12, array, lform )  ! gas_pressure
 
       CALL crop_array( 'pgas' )  ! gas_pressure
 
-      WRITE(6,fmt="('  from filter_outp: reading gas velocities ')")
+      WRITE(6,fmt="('  filtering reading gas velocities ')")
 
       IF (job_type == '2D') THEN
 
-        CALL read_array( 12, array, sgl, lform ) ! gas_velocity_r
+        CALL read_array( 12, array, lform ) ! gas_velocity_r
         CALL inte_array_x( 'ugas' )  
 
-        CALL read_array( 12, array, sgl, lform ) ! gas_velocity_z
+        CALL read_array( 12, array, lform ) ! gas_velocity_z
         CALL inte_array_z( 'wgas' ) 
 
       ELSE IF (job_type == '3D') THEN
 
-        CALL read_array( 12, array, sgl, lform ) ! gas_velocity_x
+        CALL read_array( 12, array, lform ) ! gas_velocity_x
         CALL inte_array_x( 'ugas' )  
 
-        CALL read_array( 12, array, sgl, lform ) ! gas_velocity_y
+        CALL read_array( 12, array, lform ) ! gas_velocity_y
         CALL inte_array_y( 'vgas' )  
 
-        CALL read_array( 12, array, sgl, lform ) ! gas_velocity_z
+        CALL read_array( 12, array, lform ) ! gas_velocity_z
         CALL inte_array_z( 'wgas' )  
 
       ELSE
         CALL error('outp_','Unknown job type',1)
       END IF
 
-      WRITE(6,fmt="('  from filter_outp: reading gas temperature ')")
+      WRITE(6,fmt="('  filtering gas temperature ')")
 
-      CALL read_array( 12, array, sgl, lform )  ! gas_temperature
+      CALL read_array( 12, array, lform )  ! gas_temperature
       CALL crop_array( 'tgas' )  
 
-      WRITE(6,fmt="('  from filter_outp: reading molarfraction ')")
+      WRITE(6,fmt="('  filtering molarfraction ')")
 !
       DO ig=1,ngas
         IF( present_gas(ig) .AND. (ig /= default_gas) ) THEN
           ! otmp = xgc(ig,:)
           var = 'xg'//lettera2( ig )
-          CALL read_array( 12, array, sgl, lform )  ! gc_molar_fraction
+          CALL read_array( 12, array, lform )  ! gc_molar_fraction
           CALL crop_array( var )  
         END IF
       END DO
 
-      WRITE(6,fmt="('  from filter_outp: reading solid density, velocities and temperature')")
+      WRITE( 6, fmt="('  filtering solid density, velocities and temperature')")
 !
       DO is = 1, nsolid
         ! otmp = rlk(:,is)*inrl(is)
-        CALL read_array( 12, array, sgl, lform )  ! solid_bulk_density
+        CALL read_array( 12, array, lform )  ! solid_bulk_density
         var = 'ep'//lettera2( is )
         CALL crop_array( var )  
         IF (job_type == '2D') THEN
-          CALL read_array( 12, array, sgl, lform )  ! solid_velocity_r
+          CALL read_array( 12, array, lform )  ! solid_velocity_r
           var = 'us'//lettera2( is )
           CALL inte_array_x( var )  
-          CALL read_array( 12, array, sgl, lform )  ! solid_velocity_z
+          CALL read_array( 12, array, lform )  ! solid_velocity_z
           var = 'ws'//lettera2( is )
           CALL inte_array_z( var )  
         ELSE IF (job_type == '3D') THEN
-          CALL read_array( 12, array, sgl, lform )  ! solid_velocity_x
+          CALL read_array( 12, array, lform )  ! solid_velocity_x
           var = 'us'//lettera2( is )
           CALL inte_array_x( var )  
-          CALL read_array( 12, array, sgl, lform )  ! solid_velocity_y
+          CALL read_array( 12, array, lform )  ! solid_velocity_y
           var = 'vs'//lettera2( is )
           CALL inte_array_y( var )  
-          CALL read_array( 12, array, sgl, lform )  ! solid_velocity_z
+          CALL read_array( 12, array, lform )  ! solid_velocity_z
           var = 'ws'//lettera2( is )
           CALL inte_array_z( var )  
         END IF
-        CALL read_array( 12, array, sgl, lform )  ! solid_temperature
+        CALL read_array( 12, array, lform )  ! solid_temperature
         var = 'ts'//lettera2( is )
         CALL crop_array( var )  
       END DO
 
       DEALLOCATE( array )
-      DEALLOCATE( sarray )
 
       IF( mpime == root ) THEN
         CLOSE (12)
@@ -299,39 +295,51 @@
       CONTAINS
  
       SUBROUTINE crop_array( var )
-        CHARACTER(LEN = 15) :: filwri
+        CHARACTER(LEN = 16) :: filwri
         CHARACTER(LEN = 4) :: var
-        filwri='filter.' // var // '.' // lettera(irest)
+        INTEGER :: ii, i, j, k, ijk, imesh
+        REAL, ALLOCATABLE :: sarray(:)
+        filwri = 'filter.' // var // '.' // lettera(irest)
         IF (lform) THEN
           OPEN( UNIT=iunit, FILE=filwri, STATUS='UNKNOWN' )
         ELSE 
           OPEN( UNIT=iunit, FORM='UNFORMATTED', FILE=filwri, STATUS='UNKNOWN' )
         END IF
+        WRITE(6,fmt="('  crop_array: writing file ',A16)") filwri
+
+        ALLOCATE( sarray( ntot ) )
+        sarray = 0.0
         ii = 1
-        DO ijk = 1, ncint
-           CALL meshinds( ijk, imesh, i, j, k )
-           IF( job_type == '2D' ) THEN
-              IF( (i >= 2) .AND. (i <= (nx-1)) .AND.   &
-                  (k >= 2) .AND. (k <= (nz-1))      ) THEN
-                array( ii ) = array( ijk )
+
+        IF( job_type == '2D' ) THEN
+          DO k = 2, nz-1
+             DO i = 2, nx-1
+                imesh = i + ( k-1 ) * nx 
+                sarray( ii ) = array( imesh )
                 ii = ii + 1
-              END IF
-           ELSE 
-              IF( (i >= 2) .AND. (i <= (nx-1)) .AND.   &
-                  (j >= 2) .AND. (j <= (ny-1)) .AND.   &
-                  (k >= 2) .AND. (k <= (nz-1))      ) THEN
-                array( ii ) = array( ijk )
-                ii = ii + 1
-              END IF
-           END IF
-        END DO
+             END DO
+          END DO
+        ELSE 
+          DO k = 2, nz-1
+             DO j = 2, ny-1
+                DO i = 2, nx-1
+                   imesh = i + ( j-1 ) * nx + ( k-1 ) * nx * ny
+                   sarray( ii ) = array( imesh )
+                   ii = ii + 1
+                END DO
+             END DO
+          END DO
+        END IF
+
         IF( mpime == root ) THEN
            IF( lform ) THEN
-             WRITE(iunit,10) ( array(ijk), ijk = 1, (ii-1) )
+             WRITE(iunit,10) ( sarray(ijk), ijk = 1, (ii-1) )
            ELSE
-             WRITE(iunit) REAL( array( 1 : (ii-1) ), sgl )
+             WRITE(iunit) sarray( 1 : (ii-1) )
            END IF
         END IF
+
+        DEALLOCATE( sarray )
 
         CLOSE( iunit )
 
@@ -341,15 +349,19 @@
 
  
       SUBROUTINE inte_array_x( var )
-        CHARACTER(LEN = 15) :: filwri
+        CHARACTER(LEN = 16) :: filwri
         CHARACTER(LEN = 4) :: var
+        INTEGER :: ii, i, j, k, ijk, imesh
         REAL*8 :: u1, u2, u3, u4, uu1, uu2, uu3, uu4, s, r
+        REAL, ALLOCATABLE :: sarray(:)
         filwri='filter.' // var // '.' // lettera(irest)
         IF (lform) THEN
           OPEN( UNIT=iunit, FILE=filwri, STATUS='UNKNOWN' )
         ELSE 
           OPEN( UNIT=iunit, FORM='UNFORMATTED', FILE=filwri, STATUS='UNKNOWN' )
         END IF
+        WRITE(6,fmt="('  inte_array_x: writing file ',A16)") filwri
+        ALLOCATE( sarray( ntot ) )
         imesh = 0
         sarray = 0.0
         ii = 1
@@ -386,6 +398,7 @@
              WRITE(iunit) REAL( sarray( 1 : (ii-1) ), sgl )
            END IF
         END IF
+        DEALLOCATE( sarray )
 
         CLOSE( iunit )
 
@@ -394,15 +407,19 @@
 
  
       SUBROUTINE inte_array_y( var )
-        CHARACTER(LEN = 15) :: filwri
+        CHARACTER(LEN = 16) :: filwri
         CHARACTER(LEN = 4) :: var
+        INTEGER :: ii, i, j, k, ijk, imesh
         REAL*8 :: v1, v2, v3, v4, vv1, vv2, vv3, vv4, s, r
+        REAL, ALLOCATABLE :: sarray(:)
         filwri='filter.' // var // '.' // lettera(irest)
         IF (lform) THEN
           OPEN( UNIT=iunit, FILE=filwri, STATUS='UNKNOWN' )
         ELSE 
           OPEN( UNIT=iunit, FORM='UNFORMATTED', FILE=filwri, STATUS='UNKNOWN' )
         END IF
+        WRITE(6,fmt="('  inte_array_y: writing file ',A16)") filwri
+        ALLOCATE( sarray( ntot ) )
         imesh = 0
         sarray = 0.0
         ii = 1
@@ -439,6 +456,7 @@
              WRITE(iunit) REAL( sarray( 1 : (ii-1) ), sgl )
            END IF
         END IF
+        DEALLOCATE( sarray )
 
         CLOSE( iunit )
 
@@ -448,15 +466,19 @@
 
  
       SUBROUTINE inte_array_z( var )
-        CHARACTER(LEN = 15) :: filwri
+        CHARACTER(LEN = 16) :: filwri
         CHARACTER(LEN = 4) :: var
+        INTEGER :: ii, i, j, k, ijk, imesh
         REAL*8 :: w1, w2, w3, w4, ww1, ww2, ww3, ww4, s, r
+        REAL, ALLOCATABLE :: sarray(:)
         filwri='filter.' // var // '.' // lettera(irest)
         IF (lform) THEN
           OPEN( UNIT=iunit, FILE=filwri, STATUS='UNKNOWN' )
         ELSE 
           OPEN( UNIT=iunit, FORM='UNFORMATTED', FILE=filwri, STATUS='UNKNOWN' )
         END IF
+        WRITE(6,fmt="('  inte_array_z: writing file ',A16)") filwri
+        ALLOCATE( sarray( ntot ) )
         imesh = 0
         sarray = 0.0
         ii = 1
@@ -493,6 +515,7 @@
              WRITE(iunit) REAL( sarray( 1 : (ii-1) ), sgl )
            END IF
         END IF
+        DEALLOCATE( sarray )
 
         CLOSE( iunit )
 

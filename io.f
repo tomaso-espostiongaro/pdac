@@ -23,6 +23,10 @@
 
         REAL*8 :: max_seconds
 
+        INTERFACE read_array
+           MODULE PROCEDURE read_array_dpara, read_array_sserial
+        END INTERFACE
+
         PUBLIC :: old_restart
         PUBLIC :: taperd, tapewr
         PUBLIC :: write_array, read_array
@@ -351,7 +355,20 @@
 
 !----------------------------------------------------------------------
 
-      SUBROUTINE read_array( iunit, array, prec, lform )
+      SUBROUTINE read_array_dpara( iunit, array, prec, lform )
+
+      !  This subroutine reads a REAL*8 array ( array ) of
+      !  ntot elements from file iunit.
+      !  Only root processor read the data, then the array
+      !  is distributed across other processors
+      !  iunit  (input)  file to be read
+      !  array  (output) data read from file and distributed to processors
+      !  prec   (input)  precision of the data to be read
+      !                  sgl  = single precision data
+      !                  dbl  = double precision data
+      !  lform  (input)  format of the file 
+      !                  .TRUE.  = formatted
+      !                  .FALSE. = unformatted
 
       INTEGER, INTENT(IN) :: iunit, prec
       LOGICAL, INTENT(IN) :: lform
@@ -367,41 +384,76 @@
       IF( prec /= sgl .AND. prec /= dbl ) &
         CALL error(' read_array ', ' unknown precision ', prec )
 
-      IF( ( prec == sgl ) .AND. ( .NOT. lform ) ) THEN
-        ALLOCATE( io_bufs( ntot ), STAT=ierr )
-      ELSE
-        ALLOCATE( io_buf( ntot ), STAT=ierr )
-      END IF
-
-      IF( ierr /= 0 ) &
-        CALL error(' read_array ', ' cannot allocate io_buf ', ntot )
-
-      IF( mpime == root ) THEN
-         IF( lform ) THEN
-           READ(iunit,*) ( io_buf(ijk), ijk = 1, ntot )
-         ELSE
-           IF( prec == sgl ) THEN
-             READ(iunit) ( io_bufs(ijk), ijk = 1, ntot )
-           ELSE
-             READ(iunit) ( io_buf(ijk), ijk = 1, ntot )
-           END IF
+      IF( lform ) THEN
+         ALLOCATE( io_buf( ntot ), STAT=ierr )
+         IF( ierr /= 0 ) &
+            CALL error(' read_array ', ' cannot allocate io_buf ', ntot )
+         IF( mpime == root ) THEN
+            READ(iunit,*) ( io_buf(ijk), ijk = 1, ntot )
          END IF
-      END IF
-
-      IF( ( prec == sgl ) .AND. ( .NOT. lform ) ) THEN
-        CALL data_distribute( io_bufs, array, 1, ntot )
+         CALL data_distribute( io_buf, array, 1, ntot )
+         DEALLOCATE( io_buf )
       ELSE
-        CALL data_distribute( io_buf, array, 1, ntot )
-      END IF
-
-      IF( ( prec == sgl ) .AND. ( .NOT. lform ) ) THEN
-        DEALLOCATE( io_bufs )
-      ELSE
-        DEALLOCATE( io_buf )
+         IF( prec == sgl ) THEN
+            ALLOCATE( io_bufs( ntot ), STAT=ierr )
+            IF( ierr /= 0 ) &
+               CALL error(' read_array ', ' cannot allocate io_buf ', ntot )
+            IF( mpime == root ) THEN
+               READ(iunit) ( io_bufs(ijk), ijk = 1, ntot )
+            END IF
+            CALL data_distribute( io_bufs, array, 1, ntot )
+            DEALLOCATE( io_bufs )
+         ELSE
+            ALLOCATE( io_buf( ntot ), STAT=ierr )
+            IF( ierr /= 0 ) &
+               CALL error(' read_array ', ' cannot allocate io_buf ', ntot )
+            IF( mpime == root ) THEN
+               READ(iunit) ( io_buf(ijk), ijk = 1, ntot )
+            END IF
+            CALL data_distribute( io_buf, array, 1, ntot )
+            DEALLOCATE( io_buf )
+         END IF
       END IF
 
       RETURN
       END SUBROUTINE
+
+!----------------------------------------------------------------------
+
+      SUBROUTINE read_array_sserial( iunit, sarray, lform )
+
+      !  This subroutine reads a REAL array ( sarray ) of
+      !  ntot elements from file iunit
+      !  NOTE only root processor read the data
+      !  iunit  (input)  file to be read
+      !  array  (output) data read from file and distributed to processors
+      !  lform  (input)  format of the file 
+      !                  .TRUE.  = formatted
+      !                  .FALSE. = unformatted
+
+      INTEGER, INTENT(IN) :: iunit
+      LOGICAL, INTENT(IN) :: lform
+      REAL :: sarray(:)
+
+      INTEGER :: ijk, ierr
+
+      IF( ntot < 1 ) &
+        CALL error(' read_array ', ' ntot too small ', ntot )
+
+      IF( lform ) THEN
+         IF( mpime == root ) THEN
+            READ(iunit,*) ( sarray(ijk), ijk = 1, ntot )
+         END IF
+      ELSE
+         IF( mpime == root ) THEN
+            READ(iunit) ( sarray(ijk), ijk = 1, ntot )
+         END IF
+      END IF
+
+      RETURN
+      END SUBROUTINE
+
+
 !----------------------------------------------------------------------
       END MODULE io_restart
 !----------------------------------------------------------------------

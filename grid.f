@@ -39,7 +39,7 @@
 
       SUBROUTINE allocate_grid
 !
-        USE dimensions
+        USE dimensions, ONLY: nx, ny, nz, ntot
         USE control_flags, ONLY: job_type
 !
         IMPLICIT NONE
