@@ -51,10 +51,6 @@
 !
       INTEGER :: itp
 !
-      INTERFACE vertical_shift
-          MODULE PROCEDURE vertical_shift2d, vertical_shift3d
-      END INTERFACE
-
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
@@ -64,6 +60,7 @@
 ! ... Read the topography file
 !
       USE control_flags, ONLY: job_type
+      USE grid, ONLY: fl
       IMPLICIT NONE
 
       IF (job_type == '2D') THEN
@@ -74,6 +71,7 @@
       END IF
 
       CALL set_profile
+
 !
       RETURN
       END SUBROUTINE import_topography
@@ -112,7 +110,7 @@
       END IF
 
       CALL bcast_real(xtop,noditop,root)
-      CALL bcast_real(ytop,noditop,root)
+      CALL bcast_real(ztop,noditop,root)
 !
       xmin = MINVAL(xtop)
       xmax = MAXVAL(xtop)
@@ -214,76 +212,106 @@
       y  = y  + transl_y
       yb = yb + transl_y
 !
-      OPEN(17,FILE='mesh.dat')
-!
-      WRITE(17,*) 'Georeferenced x-y mesh'
-
-      WRITE(17,*) 'x'
-      WRITE(17,*) x
-      WRITE(17,*) 'xb'
-      WRITE(17,*) xb
-      WRITE(17,*) 'y'
-      WRITE(17,*) y
-      WRITE(17,*) 'yb'
-      WRITE(17,*) yb
-      
-      WRITE(6,*) 'mesh center: ', iv, jv
-      WRITE(6,*) 'center coordinates: ', x(iv), y(jv)
-      
       RETURN
       END SUBROUTINE compute_UTM_coords
 !----------------------------------------------------------------------
-      SUBROUTINE vertical_shift2d(topo)
-      USE grid, ONLY: z, zb, dz, dzmin
+      SUBROUTINE set_profile
+!
+! ... Import the topography from standard ascii formats.
+! ... Interpolate topography on cell centers and write the
+! ... implicit profile
+!
+      USE control_flags, ONLY: job_type, lpr
+      USE grid, ONLY: x, xb, y, yb, z, zb, iv, jv, kv
+
       IMPLICIT NONE
-      REAL*8, INTENT(IN), DIMENSION(:) :: topo
+      INTEGER :: i,j,k,ijk
+      LOGICAL, ALLOCATABLE :: dummy(:)
+      REAL*8, ALLOCATABLE  :: topo(:)
+      REAL*8, ALLOCATABLE  :: topo2d(:,:)
       REAL*8 :: transl_z
-
+!
+      ALLOCATE (dummy(ntot))
+      ! ... dist defines implicitly the profile
       !
-      ! ... Translate vertically the numerical mesh to minimize the
-      ! ... number of topographic cells
-      !
-      transl_z = MINVAL(topo)
-      WRITE(*,*) 'Minimum topographic quota: ', transl_z
+      ALLOCATE (dist(ntot))
+      dist = 1.0D10
+!
+      IF (job_type == '2D') THEN
+  
+        ALLOCATE(topo(nx))
 
-      z  = z  + transl_z
-      zb = zb + transl_z
+        ALLOCATE(next(nx))
+        ALLOCATE(ord(nx))
 
-      WRITE(17,*) 'z'
-      WRITE(17,*) z
-      WRITE(17,*) 'zb'
-      WRITE(17,*) zb
+        CALL interpolate_2d(x, zb, topo, dummy)
+        !
+        ! ... Translate vertically the numerical mesh to minimize the
+        ! ... number of topographic cells
+        !
+        transl_z = MINVAL(topo)
+        WRITE(6,*) 'Translating mesh vertically: '
+        WRITE(6,*) '     minimum topographic quota: ', transl_z
 
-      CLOSE(17)
+        z  = z  + transl_z
+        zb = zb + transl_z
+        !
+        ! ... Reset the 'ord2d' array and set the implicit profile
+        !
+        DO i = 1, nx
+          DO k = 1, nz
+	    IF (z(k) <= topo(i)) ord(i) = k  
+            ijk = i + (k-1) * nx
+            dist(ijk) = zb(k) - topo(i)
+          END DO
+        END DO
+
+        DEALLOCATE(topo)
+
+      ELSE IF (job_type == '3D') THEN
+
+        ALLOCATE(topo2d(nx,ny))
+
+        ALLOCATE(nextx(nx))
+        ALLOCATE(nexty(ny))
+        ALLOCATE(ord2d(nx,ny))
+
+        CALL interpolate_dem(x, y, zb, topo2d, dummy)
+        !
+        ! ... Translate vertically the numerical mesh to minimize the
+        ! ... number of topographic cells
+        !
+        transl_z = MINVAL(topo2d)
+        WRITE(*,*) 'Minimum topographic quota: ', transl_z
+
+        z  = z  + transl_z
+        zb = zb + transl_z
+        !
+        ! ... Reset the 'ord2d' array and set the implicit profile
+        !
+	DO j = 1, ny
+	  DO i = 1, nx
+	    DO k = 1, nz
+	      IF (z(k) <= topo2d(i,j)) ord2d(i,j) = k  
+              ijk = i + (j-1) * nx + (k-1) * nx * ny
+              dist(ijk) = zb(k) - topo2d(i,j)
+	    END DO
+	  END DO
+	END DO
+        kv = ord2d(iv,jv)
+
+        DEALLOCATE(topo2d)
+
+      END IF
+!
+! ... set flags on topography
+!
+      CALL set_flag3
+
+      DEALLOCATE (dummy)
 
       RETURN
-      END SUBROUTINE vertical_shift2d
-!----------------------------------------------------------------------
-      SUBROUTINE vertical_shift3d(topo2d)
-      USE grid, ONLY: z, zb, dz, dzmin
-      IMPLICIT NONE
-      REAL*8, INTENT(IN), DIMENSION(:,:) :: topo2d
-      REAL*8 :: transl_z
-
-      !
-      ! ... Translate vertically the numerical mesh to minimize the
-      ! ... number of topographic cells
-      !
-      transl_z = MINVAL(topo2d)
-      WRITE(*,*) 'Minimum topographic quota: ', transl_z
-
-      z  = z  + transl_z
-      zb = zb + transl_z
-
-      WRITE(17,*) 'z'
-      WRITE(17,*) z
-      WRITE(17,*) 'zb'
-      WRITE(17,*) zb
-
-      CLOSE(17)
-
-      RETURN
-      END SUBROUTINE vertical_shift3d
+      END SUBROUTINE set_profile
 !----------------------------------------------------------------------
       SUBROUTINE interpolate_2d(cx, cz, topo, ff)
 !
@@ -343,55 +371,23 @@
 ! ... locate forced point on the mesh (more than one forcing points can
 ! ... lay on the same coordinate on the plane)
 !
-      ijk = 1 + (ord(1)-1)*nx
-      ff(ijk) = .FALSE.
-
-      ijk = nx + (ord(1)-1)*nx
-      ff(ijk) = .FALSE.
-
-      WRITE(*,*) 'forcing points'
       DO i = 2, nx - 1
         IF ((ord(i)-ord(i-1) > 0).AND.(ord(i+1)-ord(i) >= 0)) THEN
           DO k = ord(i-1), ord(i)
             ijk = i + (k-1) * nx
             ff(ijk) = .TRUE.
-            WRITE(*,*) i,k,ord(i),ijk,'1'
           END DO
         ELSEIF (ord(i+1)-ord(i) < 0) THEN
           DO k = ord(i+1), ord(i)
             ijk = i + (k-1) * nx
             ff(ijk) = .TRUE.
-            WRITE(*,*) i,k,ord(i),ijk,'2'
           END DO
         ELSE
           k = ord(i)
           ijk = i + (k-1) * nx
           ff(ijk) = .TRUE.
-          WRITE(*,*) i,k,ord(i),ijk,'3'
         END IF
       END DO
-                                                             
-!      DO i = 2, nx - 1
-!        IF (ord(i) >= ord(i-1)) THEN
-!          DO k = ord(i-1), ord(i)
-!            ijk = i + (k-1) * nx
-!            ff(ijk) = .TRUE.
-!            WRITE(*,*) i,k,ord(i),ijk,'1'
-!          END DO
-!        ELSE IF ( ord(i) < ord(i-1) ) THEN
-!          k = ord(i)
-!          ijk = i + (k-1) * nx
-!          ff(ijk) = .TRUE.
-!          WRITE(*,*) i,k,ord(i),ijk,'2'
-!          IF (i>2) THEN
-!            DO k = ord(i), ord(i-1)
-!              ijk = (i-1) + (k-1) * nx
-!              ff(ijk) = .TRUE.
-!              WRITE(*,*) i-1,k,ord(i-1),ijk,'3'
-!            END DO
-!          END IF
-!        END IF
-!      END DO
 !
       RETURN
       END SUBROUTINE interpolate_2d
@@ -534,97 +530,29 @@
       RETURN
       END SUBROUTINE interpolate_dem
 !----------------------------------------------------------------------
-      SUBROUTINE set_profile
-!
-! ... Import the topography from standard ascii formats.
-! ... Interpolate topography on cell centers and write the
-! ... implicit profile
-!
-      USE control_flags, ONLY: job_type, lpr
-      USE grid, ONLY: x, xb, y, yb, z, zb, iv, jv, kv
-
-      IMPLICIT NONE
-      INTEGER :: i,j,k,ijk
-      LOGICAL, ALLOCATABLE :: dummy(:)
-      REAL*8, ALLOCATABLE  :: topo(:)
-      REAL*8, ALLOCATABLE  :: topo2d(:,:)
-
-      ALLOCATE (dummy(ntot))
-      ! ... dist defines implicitly the profile
-      !
-      ALLOCATE (dist(ntot))
-      dist = 1.0D10
-!
-      IF (job_type == '2D') THEN
-  
-        ALLOCATE(topo(nx))
-
-        ALLOCATE(next(nx))
-        ALLOCATE(ord(nx))
-
-        CALL interpolate_2d(x, zb, topo, dummy)
-        CALL vertical_shift(topo)
-!
-! ... Reset the 'ord' array and set the implicit profile
-!
-        DO i = 1, nx
-          DO k = 1, nz
-            IF (z(k) <= topo(i))  ord(i) = k
-            ijk = i + (k-1) * nx
-            dist(ijk) = zb(k) - topo(i)
-          END DO
-        END DO
-        kv = ord(iv)
-!
-! ... set flags on topography
-!
-        CALL set_flag3
-
-      ELSE IF (job_type == '3D') THEN
-
-        ALLOCATE(topo2d(nx,ny))
-
-        ALLOCATE(nextx(nx))
-        ALLOCATE(nexty(ny))
-        ALLOCATE(ord2d(nx,ny))
-
-        CALL interpolate_dem(x, y, zb, topo2d, dummy)
-        CALL vertical_shift(topo2d)
-!
-! ... Reset the 'ord2d' array and set the implicit profile
-!
-	DO j = 1, ny
-	  DO i = 1, nx
-	    DO k = 1, nz
-	      IF (z(k) <= topo2d(i,j)) ord2d(i,j) = k  
-              ijk = i + (j-1) * nx + (k-1) * nx * ny
-              dist(ijk) = zb(k) - topo2d(i,j)
-	    END DO
-	  END DO
-	END DO
-        kv = ord2d(iv,jv)
-!
-! ... set flags on topography
-!
-        CALL set_flag3
-
-      END IF
-
-      IF (job_type == '2D') THEN
-        DEALLOCATE(topo)
-      ELSE IF (job_type == '3D') THEN
-        DEALLOCATE(topo2d)
-      END IF
-      DEALLOCATE (dummy)
-
-      RETURN
-      END SUBROUTINE set_profile
-!----------------------------------------------------------------------
       SUBROUTINE write_profile
       USE control_flags, ONLY: job_type
-      USE grid, ONLY: iv, jv, kv
+      USE grid, ONLY: x, xb, y, yb, z, zb
 !
       IMPLICIT NONE
+
+      OPEN(17,FILE='mesh.dat')
+      WRITE(17,*) 'Georeferenced x-y mesh'
+
+      WRITE(17,*) 'x'
+      WRITE(17,*) x
+      WRITE(17,*) 'xb'
+      WRITE(17,*) xb
+      WRITE(17,*) 'y'
+      WRITE(17,*) y
+      WRITE(17,*) 'yb'
+      WRITE(17,*) yb
+      WRITE(17,*) 'z'
+      WRITE(17,*) z
+      WRITE(17,*) 'zb'
+      WRITE(17,*) zb
+      
+      CLOSE(17)
 !
 ! ... Write out the implicit profile
 !
@@ -652,21 +580,21 @@
 !----------------------------------------------------------------------
       SUBROUTINE set_flag3
 !
-! ... Set cell-flag = 3 in those cells belonging to the topography
-! ... where forcing is not applied. Values of fields in these cells
-! ... are set to zero when initialized or kept undefined
+! ... Set cell-flag = 3 in cells laying below the topography
 !
       USE control_flags, ONLY: lpr, job_type
-      USE grid, ONLY: fl, z
+      USE grid, ONLY: fl
       IMPLICIT NONE
 
       INTEGER :: i, j, k, ijk
+      INTEGER :: quota
 !
       IF( job_type == '2D') THEN
-        DO i=2, nx-1
+        DO i = 1, nx
+          quota = ord(i)
           DO k = 1, nz
             ijk = i + (k-1) * nx
-            IF (ord(i) >= k) THEN
+            IF (quota >= k) THEN
               fl(ijk) = 3
             ELSE
               EXIT
@@ -674,11 +602,12 @@
           END DO
         END DO
       ELSE IF( job_type == '3D') THEN
-        DO j=2, ny-1
-          DO i=2, nx-1
+        DO j = 1, ny
+          DO i = 1, nx
+            quota = ord2d(i,j)
             DO k = 1, nz
               ijk = i + (j-1) * nx + (k-1) * nx * ny
-              IF (ord2d(i,j) >= k) THEN
+              IF (quota >= k) THEN
                 fl(ijk) = 3
               ELSE
                 EXIT

@@ -2,6 +2,7 @@
       MODULE immersed_boundaries
 !----------------------------------------------------------------------
       USE dimensions, ONLY: nx, ny, nz, ntot, ntr
+      USE grid, ONLY: fl
       USE parallel, ONLY: mpime, root
       USE volcano_topography, ONLY: xtop, ytop, ztop, ztop2d
 
@@ -53,23 +54,20 @@
 !----------------------------------------------------------------------
       SUBROUTINE set_forcing
       USE control_flags, ONLY: job_type, lpr
-      USE volcano_topography, ONLY: vertical_shift
       USE volcano_topography, ONLY: interpolate_2d, interpolate_dem
       USE volcano_topography, ONLY: ord, next
       USE volcano_topography, ONLY: ord2d, nextx, nexty
-      USE grid, ONLY: z, fl, x, xb, y, yb, z, zb
+      USE grid, ONLY: z, x, xb, y, yb, z, zb
 
       IMPLICIT NONE
-      INTEGER :: p
+      INTEGER :: p, np
       INTEGER :: i,j,k,ijk
       INTEGER :: nfpx, nfpy, nfpz
 !
 ! ... Conditional array to be used in loops:
 ! ... this value is .TRUE. when force has to be computed at a given location
 !
-      LOGICAL, ALLOCATABLE :: forcex(:)
-      LOGICAL, ALLOCATABLE :: forcey(:)
-      LOGICAL, ALLOCATABLE :: forcez(:)
+      LOGICAL, ALLOCATABLE :: force(:)
 !
 ! ... If Immersed Boundaries are used, identify the forcing points
 ! ... and set interpolation parameters
@@ -78,32 +76,48 @@
       ! ... Allocate the logical arrays that are used to 
       ! ... identify the forcing points
       !
-      ALLOCATE(forcex(ntot))
-      IF (job_type == '3D') ALLOCATE(forcey(ntot))
-      ALLOCATE(forcez(ntot))
+      ALLOCATE(force(ntot)); force = .FALSE.
 
       IF (job_type == '2D') THEN
 
         ALLOCATE(topo_c(nx))
         ALLOCATE(topo_x(nx))
+
         !
         ! ... interpolate the topography on x-staggered mesh
         !
-        CALL interpolate_2d(xb, z, topo_x, forcex)
-        nfpx = COUNT(forcex)
+        CALL interpolate_2d(xb, z, topo_x, force)
+        nfpx = COUNT(force)
         ALLOCATE(fptx(nfpx))
         !
         ! ... Forcing along x
         CALL forcing2d(xb, z, topo_x, fptx)
         !
+        ! ... Set flag = 1 on forcing points
+        DO np = 1, nfpx
+          i = fptx(np)%i
+          k = fptx(np)%k
+          ijk = i + (k-1) * nx
+          IF (k>1) fl(ijk) = 1
+        END DO
+
+        !
         ! ... interpolate the topography on z-staggered mesh
         !
-        CALL interpolate_2d(x, zb, topo_c, forcez)
-        nfpz = COUNT(forcez)
+        CALL interpolate_2d(x, zb, topo_c, force)
+        nfpz = COUNT(force)
         ALLOCATE(fptz(nfpz))
         !
         ! ... Forcing along z
         CALL forcing2d(x, zb, topo_c, fptz)
+        !
+        ! ... Set flag = 1 on forcing points
+        DO np = 1, nfpz
+          i = fptz(np)%i
+          k = fptz(np)%k
+          ijk = i + (k-1) * nx
+          IF (k>1) fl(ijk) = 1
+        END DO
         !
       ELSE IF (job_type == '3D') THEN
 
@@ -113,49 +127,65 @@
         !
         ! ... interpolate the topography on x-staggered mesh
         !
-        CALL interpolate_dem(xb, y, z, topo2d_x, forcex)
-        nfpx = COUNT(forcex)
+        CALL interpolate_dem(xb, y, z, topo2d_x, force)
+        nfpx = COUNT(force)
         ALLOCATE(fptx(nfpx))
         !
         ! ... Forcing along x
         CALL forcing3d(xb, y, z, topo2d_x, fptx)
         !
+        ! ... Set flag = 1 on forcing points
+        DO np = 1, nfpx
+          i = fptx(np)%i
+          j = fptx(np)%j
+          k = fptx(np)%k
+          ijk = i + (j-1) * nx + (k-1) * nx * ny
+          IF (k>1) fl(ijk) = 1
+        END DO
+        
+        !
         ! ... interpolate the topography on y-staggered mesh
         !
-        CALL interpolate_dem(x, yb, z, topo2d_y, forcey)
-        nfpy = COUNT(forcey)
+        CALL interpolate_dem(x, yb, z, topo2d_y, force)
+        nfpy = COUNT(force)
         ALLOCATE(fpty(nfpy))
         !
         ! ... Forcing along y
         CALL forcing3d(x, yb, z, topo2d_y, fpty)
         !
+        ! ... Set flag = 1 on forcing points
+        DO np = 1, nfpy
+          i = fpty(np)%i
+          j = fpty(np)%j
+          k = fpty(np)%k
+          ijk = i + (j-1) * nx + (k-1) * nx * ny
+          IF (k>1) fl(ijk) = 1
+        END DO
+        
+        !
         ! ... interpolate the topography on z-staggered mesh
         !
-        CALL interpolate_dem(x, y, zb, topo2d_c, forcez)
-        nfpz = COUNT(forcez)
+        CALL interpolate_dem(x, y, zb, topo2d_c, force)
+        nfpz = COUNT(force)
         ALLOCATE(fptz(nfpz))
         !
         ! ... Forcing along z
         CALL forcing3d(x, y, zb, topo2d_c, fptz)
         !
+        ! ... Set flag = 1 on forcing points
+        DO np = 1, nfpz
+          i = fptz(np)%i
+          j = fptz(np)%j
+          k = fptz(np)%k
+          ijk = i + (j-1) * nx + (k-1) * nx * ny
+          IF (k>1) fl(ijk) = 1
+        END DO
+        
       END IF
 !
-! ... Set flag = 1 on forcing points
+      DEALLOCATE (force)
 !
-      DO ijk = 1, ntot
-        IF( forcex(ijk) .OR. forcez(ijk) ) fl(ijk) = 1
-        IF( job_type == '3D') THEN
-          IF( forcey(ijk) ) fl(ijk) = 1
-        END IF
-      END DO
-!
-      IF (job_type == '2D') THEN
-        DEALLOCATE (forcex, forcez)
-      ELSE IF (job_type == '3D') THEN
-        DEALLOCATE (forcex, forcey, forcez)
-      END IF
-!
-      IF (lpr >= 2) THEN
+      IF (lpr > 2) THEN
         IF (mpime == root) THEN
           OPEN(UNIT=15,FILE='fptx.dat',STATUS='UNKNOWN')
           IF (job_type == '3D') &
@@ -164,14 +194,16 @@
           DO p = 1, SIZE(fptx)
             WRITE(15,33) p, fptx(p)
           END DO
-          DO p = 1, SIZE(fpty)
-            IF (job_type == '3D') WRITE(16,33) p, fpty(p)
-          END DO
+          CLOSE(15)
+          IF (job_type == '3D') THEN
+            DO p = 1, SIZE(fpty)
+              WRITE(16,33) p, fpty(p)
+            END DO
+            CLOSE(16)
+          END IF
           DO p = 1, SIZE(fptz)
             WRITE(17,33) p, fptz(p)
           END DO
-          CLOSE(15)
-          CLOSE(16)
           CLOSE(17)
         END IF
  33   FORMAT(5(I6),4(F18.3))
@@ -216,7 +248,6 @@
         END IF
 
       END DO
-      WRITE(*,*) 'number of forcing points: ', fp
 !
 ! ... Skip the -- last grid point -- 
 !

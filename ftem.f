@@ -72,7 +72,7 @@
 !
       DO ijk = 1, ncint
 
-        IF (immb >= 1) THEN
+        IF (immb == 1) THEN
           fx = numx(ijk)
           IF (job_type == '2D') THEN
             fy = 0

@@ -153,7 +153,7 @@
 
 ! ... Set immersed boundary parameters if prescribed
 !
-      IF (immb >= 1) CALL set_forcing
+      IF (immb == 1) CALL set_forcing
 
 ! ... Write the implicit topographic profile
 !

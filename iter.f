@@ -812,7 +812,7 @@
           WRITE(8,*) ' rls, volfrac ', rls, vf
         END IF
 
-        IF (immb >= 1) THEN
+        IF (immb == 1) THEN
           fx = numx(ijk)
           IF (job_type == '2D') THEN
             fy = 0
@@ -1109,7 +1109,7 @@
         ALLOCATE(b_s(ncint)); b_s = 1
       END IF
 !
-      IF (immb >= 1) THEN
+      IF (immb == 1) THEN
         DO ijk=1, ncint
           IF( flag(ijk) == 1 ) THEN
             CALL meshinds(ijk,imesh,i,j,k)

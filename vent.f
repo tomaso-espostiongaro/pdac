@@ -72,6 +72,9 @@
         END DO
       END IF
       quota = kv
+
+      WRITE(6,*) 'vent center: ', iv, jv, kv
+      WRITE(6,*) 'center coordinates: ', x(iv), y(jv), z(kv)
 !
       nvt = (ieast-iwest+1)*(jnorth-jsouth+1)
       ALLOCATE(vcell(nvt))
@@ -145,7 +148,7 @@
       REAL*8 :: alpha, ep0, ra, beta
       INTEGER :: ijk, imesh, i,j,k, is, ig, n
 
-      area = ACOS(-1.D0) * radius**2
+      IF (job_type == '2D') RETURN
       
       DO ijk = 1, ncint      
         IF(flag(ijk) == 8) THEN
@@ -230,6 +233,8 @@
       REAL*8 :: f1, f2, fact
       INTEGER :: is
 
+      IF (job_type == '2D') RETURN
+      
       f1 = ft(sweep)
       f2 = ft(sweep-1)
       IF (sweep == 1) THEN

@@ -125,6 +125,8 @@
 !
 ! ... generate the non-uniform mesh (without geographic referencing)
 !
+      iv = 1; jv = 1; kv = 1
+
       IF (grigen > 0) THEN
 
         WRITE(7,*) 'Generate grid along x'
@@ -408,8 +410,6 @@
         l2 = 0.D0
         
       END IF
-
-      IF( lpr > 2 ) WRITE(7,*) 'n01,n02,l1,l2',n01,n02,l1,l2
 !
       der = demax / demin
       beta = 1.2D0

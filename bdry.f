@@ -66,7 +66,7 @@
 ! ... If (ijk) is a forcing point, compute the pseudo-velocities
 ! ... that are used in the "immersed boundary" technique ...
 !
-          IF (immb >= 1) THEN
+          IF (immb == 1) THEN
             fx = numx(ijk)
             IF (job_type == '3D') fy = numy(ijk)
             fz = numz(ijk)
@@ -635,28 +635,29 @@
         END IF
       END DO
 
-!     IF (lpr > 2) THEN
-!       IF (mpime == root) THEN
-!          OPEN(UNIT=15,FILE='fptx.dat',STATUS='UNKNOWN')
-!          IF (job_type == '3D') &
-!            OPEN(UNIT=16,FILE='fpty.dat',STATUS='UNKNOWN')
-!          OPEN(UNIT=17,FILE='fptz.dat',STATUS='UNKNOWN')
-!          DO p = 1, SIZE(fptx)
-!            WRITE(15,33) p, fptx(p)
-!          END DO
-!          DO p = 1, SIZE(fpty)
-!            IF (job_type == '3D') WRITE(16,33) p, fpty(p)
-!          END DO
-!          DO p = 1, SIZE(fptz)
-!            WRITE(17,33) p, fptz(p)
-!          END DO
-!          CLOSE(15)
-!          CLOSE(16)
-!          CLOSE(17)
-!        END IF
-! 33   FORMAT(5(I6),4(F18.3))
-!      END IF
-
+    IF (lpr > 1 .AND. immb == 1) THEN
+       IF (mpime == root) THEN
+          OPEN(UNIT=15,FILE='fptx.dat',STATUS='UNKNOWN')
+          IF (job_type == '3D') &
+            OPEN(UNIT=16,FILE='fpty.dat',STATUS='UNKNOWN')
+          OPEN(UNIT=17,FILE='fptz.dat',STATUS='UNKNOWN')
+          DO p = 1, SIZE(fptx)
+            WRITE(15,33) p, fptx(p)
+          END DO
+          CLOSE(15)
+          IF (job_type == '3D') THEN
+            DO p = 1, SIZE(fpty)
+              WRITE(16,33) p, fpty(p)
+            END DO
+            CLOSE(16)
+          END IF
+          DO p = 1, SIZE(fptz)
+            WRITE(17,33) p, fptz(p)
+          END DO
+          CLOSE(17)
+        END IF
+ 33   FORMAT(5(I6),4(F18.3))
+      END IF
 !
       RETURN
       END SUBROUTINE boundary

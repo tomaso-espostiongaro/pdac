@@ -1114,7 +1114,7 @@
 ! ... by using array numx/z. Scatter the array
 ! ... of forcing points among processors.
 !
-      IF (immb >= 1) THEN
+      IF (immb == 1) THEN
 
         ALLOCATE( numx(ncint) ); numx = 0
         nfpx = SIZE(fptx)
@@ -1207,10 +1207,6 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
           END IF set_numz
         
         END DO
-
-        CALL data_exchange(numx)
-        IF (job_type == '3D') CALL data_exchange(numy)
-        CALL data_exchange(numz)
 
       END IF
 !

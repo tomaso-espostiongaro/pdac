@@ -136,7 +136,7 @@
 
           CASE (1,4,6)
 
-            IF (immb >= 1) THEN
+            IF (immb == 1) THEN
               fx = numx(ijk)
               IF (job_type == '2D') THEN
                 fy = 0
