@@ -14,7 +14,7 @@
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: amats
 
       REAL*8  :: omega, dg
-      INTEGER :: inmax, maxout
+      INTEGER :: inmax, maxout, nit
       INTEGER :: optimization
 
       INTEGER :: b_e, b_w, b_t, b_b, b_n, b_s
@@ -85,7 +85,7 @@
       REAL*8 ::  timiter
       REAL*8 ::  timconv(maxout)   
 !
-      INTEGER :: nit, nloop, mustit
+      INTEGER :: nloop, mustit
       INTEGER :: n1, n2
       REAL*8  :: avloop
       INTEGER :: i, j, k, ijk
@@ -380,7 +380,6 @@
            WRITE(7, fmt="('  new value = ',F12.4)") omega
          END IF
        END IF
-       IF (lpr > 1) call myflush( 6 )
 !
       END DO sor_loop
 !

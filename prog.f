@@ -18,7 +18,7 @@
       USE gas_solid_temperature, ONLY: sieg, sies, ts, tg
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE io_restart, ONLY: tapewr, max_seconds
-      USE iterative_solver, ONLY: iter
+      USE iterative_solver, ONLY: iter, nit
       USE output_dump, ONLY: outp, shock_tube_out, outp_map, imap
       USE particles_constants, ONLY: cps
       USE pressure_epsilon, ONLY: p, ep
@@ -284,7 +284,9 @@
 !
 ! ... Force the writing on the standard output
 !
+        WRITE(6,fmt="(/,'Iteration: ',I6,' nit: ', I5)" ) sweep, nit
         CALL myflush( 6 )
+        IF (lpr > 1) CALL myflush( 7 )
 !
         IF( timing ) then
           s10 = cpclock()
