@@ -51,10 +51,10 @@
       USE environment, ONLY: cpclock, timing
 !
       IMPLICIT NONE
-      CHARACTER*13 errnb
-      CHARACTER*14 testnb
-      CHARACTER*1 gnb1, gnb2, gnb3
-      CHARACTER*30 name
+      CHARACTER(LEN=13) :: errnb
+      CHARACTER(LEN=14) :: testnb
+      CHARACTER(LEN=1)  :: gnb1, gnb2, gnb3
+      CHARACTER(LEN=30) :: name
 !
       INTEGER :: n, m, iuni, i, j, k
       INTEGER :: kg

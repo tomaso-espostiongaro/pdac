@@ -44,7 +44,9 @@
         INTEGER, ALLOCATABLE :: nij1(:), n1(:), diff(:)
         INTEGER, ALLOCATABLE :: nij(:)
 !
-        REAL*8, DIMENSION(:), ALLOCATABLE :: r,   rb,   zb,   dr,   dz
+        REAL*8, DIMENSION(:), ALLOCATABLE :: r, rb, dr
+        REAL*8, DIMENSION(:), ALLOCATABLE :: dx, dy, dz
+        REAL*8, DIMENSION(:), ALLOCATABLE :: xb, yb, zb
         REAL*8, DIMENSION(:), ALLOCATABLE :: inr, inrb, inzb, indr, indz
 !
         INTEGER :: itc, part
