@@ -159,8 +159,6 @@
 !
       IF (ivent >= 1) CALL locate_vent
 !
-! ... Domain decomposition for parallelization 
-!
       CALL partition
 
       IF (timing) then

@@ -218,7 +218,7 @@
         !
         ! ... interpolate the topography on x-staggered mesh
         ! ... and count the forcing points along x
-        ! ... (do not change the order of the calls!)
+        ! ... (do not change the order of these calls!)
         !
         CALL interpolate_dem(x, yb, z, topo2d_y, forcey)
         CALL interpolate_dem(x, y, zb, topo2d_c, forcez)
@@ -226,9 +226,9 @@
 
         !
         ! ... Add external Forcing 
-        DO i = 2, nx - 1
+        DO k = 2, nz - 1
           DO j = 2, ny - 1
-            DO k = 2, nz-1
+            DO i = 2, nx - 1
               ijk = i + (j-1) * nx + (k-1) * nx * ny
               imjk = (i-1) + (j-1) * nx + (k-1) * nx * ny
               ijk = i + (j-1) * nx + (k-1) * nx * ny
@@ -293,9 +293,9 @@
         !
         ! ... External forcing along x
         fp0=0
-        DO i = 2, nx - 1
-          DO j = 2, ny - 1
-            DO k = 2, nz-1
+        DO k = 1, nz
+          DO j = 1, ny
+            DO i = 1, nx
               ijk = i + (j-1) * nx + (k-1) * nx * ny
               IF (extfx(ijk)) CALL ext_forcing3d(i, j, k, xb, y, topo2d_x, fptx)
             END DO
@@ -324,9 +324,9 @@
         !
         ! ... External forcing along y
         fp0=0 
-        DO i = 2, nx - 1
-          DO j = 2, ny - 1
-            DO k = 2, nz-1
+        DO k = 1, nz
+          DO j = 1, ny
+            DO i = 1, nx
               ijk = i + (j-1) * nx + (k-1) * nx * ny
               IF (extfy(ijk)) CALL ext_forcing3d(i, j, k, x, yb, topo2d_y, fpty)
             END DO
@@ -356,9 +356,9 @@
         !
         ! ... External forcing along z
         fp0=0
-        DO i = 2, nx - 1
-          DO j = 2, ny - 1
-            DO k = 2, nz - 1
+        DO k = 1, nz
+          DO j = 1, ny
+            DO i = 1, nx
               ijk = i + (j-1) * nx + (k-1) * nx * ny
               IF (extfz(ijk)) CALL ext_forcing3d(i, j, k, x, y, topo2d_c, fptz)
             END DO
@@ -756,8 +756,8 @@
       fpt(fp0)%nsl%y = cy(j)
       fpt(fp0)%nsl%z = topo2d(i,j)
 
+      RETURN
       END SUBROUTINE ext_forcing3d
-
 !----------------------------------------------------------------------
       SUBROUTINE forcing3d(cx, cy, cz, topo2d, fpt)
       USE volcano_topography, ONLY: ord2d, next
