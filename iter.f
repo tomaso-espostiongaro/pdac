@@ -30,7 +30,7 @@
       USE tilde_momentum, ONLY: appu, appv, appw
       USE parallel, ONLY: mpime
       USE particles_constants, ONLY: rl, inrl
-      USE phases_matrix, ONLY: mats, mats2, velsk, velsk2
+      USE phases_matrix, ONLY: mats, mats_3phase, mats2, velsk, velsk2
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes
       USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
@@ -233,7 +233,12 @@
 
                 !IF( MOD( ijk, 100 ) == 0 ) call f_hpmstart( 5, ' ITER_masf ')
 !
-                CALL mats(ijk)
+                IF( nphase == 3 ) THEN
+                  CALL mats_3phase(ijk)
+                ELSE
+                  CALL mats(ijk)
+                END IF
+
                 CALL velsk(ijk)
 !
 ! ... Put the new biassed velocities into the Particle Mass Balance
