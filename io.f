@@ -3,7 +3,7 @@
 !----------------------------------------------------------------------
 
       USE kinds
-      USE eos_gas, ONLY: rgpgc, xgc, ygc, cg
+      USE eos_gas, ONLY: rgpgc, xgc, ygc
       USE gas_solid_density, ONLY: rog, rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE gas_solid_velocity, ONLY: us, vs, ws
@@ -11,7 +11,6 @@
       USE gas_constants, ONLY: gas_type, present_gas
       USE parallel, ONLY: mpime, root
       USE pressure_epsilon, ONLY: ep, p
-      USE specific_heat_module, ONLY: cp, ck
       USE time_parameters, ONLY: time
       USE control_flags, ONLY: job_type, nfil
       USE domain_decomposition, ONLY: data_collect, data_distribute, ncint
@@ -121,15 +120,16 @@
 
       CALL write_array( 9, rog, dbl, lform )
 
+
       IF( dump_all ) THEN
 
-        CALL write_array( 9, ep, dbl, lform )
-
-        CALL write_array( 9, tg, dbl, lform ) 
-
+        CALL write_array( 9, tg, dbl, lform )
+      
         DO is = 1, nsolid
           CALL write_array( 9, ts(:,is), dbl, lform )
         END DO
+
+        CALL write_array( 9, ep, dbl, lform )
 
         DO ig = 1, ngas
           CALL write_array( 9, rgpgc(:,ig), dbl, lform )
@@ -137,16 +137,6 @@
 
         DO ig = 1, ngas
           CALL write_array( 9, xgc(ig,:), dbl, lform )
-        END DO
-
-        CALL write_array( 9, cg, dbl, lform ) 
-
-        DO is = 1, nsolid
-          CALL write_array( 9, ck(is,:), dbl, lform )
-        END DO
-
-        DO ig = 1, ngas
-          CALL write_array( 9, cp(gas_type(ig),:), dbl, lform )
         END DO
 
       END IF
@@ -318,9 +308,8 @@
       DO ig = 1, ngas
         CALL read_array( 9, ygc(ig,:), dbl, lform )
       END DO
-
       IF( ANY( ygc < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, ycg < 0'
+         WRITE(6,*) 'WARNING reading restart, ygc < 0'
       END IF
 
       rgp = 0.0d0
@@ -337,12 +326,6 @@
 
       IF( dump_all ) THEN
 
-        ep = 0.0d0
-        CALL read_array( 9, ep, dbl, lform )
-        IF( ANY( ep < 0 ) ) THEN
-           WRITE(6,*) 'WARNING reading restart, ep < 0'
-        END IF
-
         tg = 0.0d0
         CALL read_array( 9, tg, dbl, lform ) 
         IF( ANY( tg < 0 ) ) THEN
@@ -355,6 +338,12 @@
         END DO
         IF( ANY( ts < 0 ) ) THEN
            WRITE(6,*) 'WARNING reading restart, ts < 0'
+        END IF
+
+        ep = 0.0d0
+        CALL read_array( 9, ep, dbl, lform )
+        IF( ANY( ep < 0 ) ) THEN
+           WRITE(6,*) 'WARNING reading restart, ep < 0'
         END IF
 
         rgpgc = 0.0d0
@@ -371,28 +360,6 @@
         END DO
         IF( ANY( xgc < 0 ) ) THEN
            WRITE(6,*) 'WARNING reading restart, xgc < 0'
-        END IF
-
-        cg = 0.0d0
-        CALL read_array( 9, cg, dbl, lform ) 
-        IF( ANY( cg < 0 ) ) THEN
-           WRITE(6,*) 'WARNING reading restart, cg < 0'
-        END IF
-
-        ck = 0.0d0
-        DO is = 1, nsolid
-          CALL read_array( 9, ck(is,:), dbl, lform )
-        END DO
-        IF( ANY( ck < 0 ) ) THEN
-           WRITE(6,*) 'WARNING reading restart, ck < 0'
-        END IF
-
-        cp = 0.0d0
-        DO ig = 1, ngas
-          CALL read_array( 9, cp(gas_type(ig),:), dbl, lform )
-        END DO
-        IF( ANY( cp < 0 ) ) THEN
-           WRITE(6,*) 'WARNING reading restart, cp < 0'
         END IF
 
       END IF

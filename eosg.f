@@ -172,8 +172,6 @@
       PARAMETER( nlmax = 1000) 
       PARAMETER( ratmin = 1.D-8) 
 
-      IF ( flag(ijk) == 1 ) THEN
-
           tg0   = tg
           sieg0 = sieg
 
@@ -220,9 +218,8 @@
 
           IF( tg <= 0.0d0 ) THEN
             WRITE(6,*) 'WARNING (caloric_eosg) zero or negative temperature'
-            WRITE(6,*) ' tg = ', ijk, tg
+            WRITE(6,*) ' tg( ',ijk,' ) = ', tg
           END IF
-      END IF
 
       RETURN
       END SUBROUTINE caloric_eosg

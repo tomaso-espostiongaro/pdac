@@ -128,8 +128,6 @@
 !
         CALL boundary
 
-        WRITE(6,*) 'DEBUG 1'
-
         ! ... write initial conditions
         IF (sweep == 1) CALL outp
 !
@@ -147,8 +145,6 @@
           call MP_WALLTIME(p2,myrank)
         END IF            
 
-        WRITE(6,*) 'DEBUG 2'
-! 
 ! ... Store all independent fields at time n*dt 
 ! ... for explicit time integration
 !
@@ -160,15 +156,11 @@
           call MP_WALLTIME(p3,myrank)
         END IF
 
-        WRITE(6,*) 'DEBUG 3'
-!
 ! ... Compute Turbulent viscosity from sub-grid-stress (sgs) model
 !
         IF ( iturb >= 1 )  CALL sgsg
         IF ( iss   == 1 )  CALL sgss
 
-        WRITE(6,*) 'DEBUG 4'
-!
         IF( timing ) then
           s4 = cpclock()
           call cpu_time(t4)
@@ -189,8 +181,6 @@
 !
         CALL allocate_fluxes
 
-        WRITE(6,*) 'DEBUG 5'
-!
 ! ... Start the explicit Runge-Kutta iteration
 !
         dt0 = dt
@@ -211,8 +201,6 @@
             IF ( implicit_enthalpy ) CALL htilde
           END IF
 
-          WRITE(6,*) 'DEBUG 6'
-!
           IF( timing )then
             s6 = cpclock()
             call cpu_time(t6)
@@ -230,8 +218,6 @@
             call MP_WALLTIME(p7,myrank)
           END IF
 
-          WRITE(6,*) 'DEBUG 7'
-! 
 ! ... Solve the explicit transport equation of gas species
 !
           IF ( irex > 2 ) CALL rexion
@@ -243,8 +229,6 @@
             call MP_WALLTIME(p8,myrank)
           END IF
 
-          WRITE(6,*) 'DEBUG 8'
-!
 ! ... Solve explicitly transport equations for enthalpies
 !
           IF (.NOT.implicit_enthalpy) THEN
@@ -258,8 +242,6 @@
             call MP_WALLTIME(p9,myrank)
           END IF
 
-          WRITE(6,*) 'DEBUG 9'
-!
           timtilde = timtilde + (s6 - s5)
           timiter  = timiter  + (s7 - s6)
           timygas  = timygas  + (s8 - s7)
@@ -284,8 +266,6 @@
 !
         CALL deallocate_fluxes
 
-        WRITE(6,*) 'DEBUG 10'
-!
         CALL myflush( 6 )
 !
         IF( timing ) then
@@ -341,7 +321,6 @@
         WRITE(6,fmt="('  walltime = ',F10.2,', ',F10.2)") w1, w1-w0
         w0 = w1
 
-        WRITE(6,*) 'DEBUG 11'
 !
 !//////////////////////////////////////////////////////////////////////
 !

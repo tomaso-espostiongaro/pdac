@@ -89,7 +89,7 @@
       IF (itd <= 1) THEN
 !
 ! ... Set initial atmospheric conditions in all computational 
-! ... domain (including boundary cells)
+! ... domain (---> including boundary cells <---)
 !
         DO ijk = 1, ncint
           CALL meshinds(ijk,imesh,i,j,k)
@@ -99,7 +99,7 @@
           p( ijk ) = p_atm(k)
           tg( ijk ) = t_atm(k)
 !
-! ... Set initial gas composition and particle concentrations
+! ... Set initial gas composition, particle concentrations and temperature
 !
           ep(ijk) = ep0
           DO ig = 1, ngas
@@ -233,9 +233,9 @@
             rgpgc(ijk,ig) = ygc(ig,ijk) * rgp(ijk)
           END DO
 
-          ! ... compute specific heat  from temperature
+          ! ... compute specific heat from temperature
           !
-          CALL hcapg( cp(:,ijk), tg(ijk))
+          CALL hcapg(cp(:,ijk), tg(ijk))
           hc = 0.D0
           DO ig = 1, ngas
             hc = hc + cp(gas_type(ig),ijk) * ygc(ig,ijk)
@@ -259,8 +259,8 @@
       ELSE IF (itd == 2) THEN 
 !
         IF( .NOT. dump_all ) THEN
+
           DO ijk = 1, ncint
-            
             CALL mole( xgc(:,ijk), ygc(:,ijk) )
             rls = 0.0d0
             DO is = 1, nsolid
@@ -272,13 +272,31 @@
               rgpgc(ijk,ig) = ygc(ig,ijk) * rgp(ijk)
             END DO
 
+            !
+            ! ... An error is introduced in temperature
+            !
+            WRITE(6,*) 'Warning!: Temperature in restart could be slightly different!'
             CALL caloric_eosg(cp(:,ijk), cg(ijk), tg(ijk), ygc(:,ijk), &
-                              sieg(ijk), ijk, info)
-            DO is = 1, nsolid
+                            sieg(ijk), ijk, info)
+            DO is=1, nsolid
               CALL caloric_eosl(ts(ijk,is), cps(is), ck(is,ijk), sies(ijk,is))
             END DO
-
           END DO
+
+        ELSE
+
+          DO ijk = 1, ncint
+            CALL hcapg(cp(:,ijk), tg(ijk))
+            hc = 0.D0
+            DO ig = 1, ngas
+              hc = hc + cp(gas_type(ig),ijk) * ygc(ig,ijk)
+            END DO
+            cg(ijk) = hc
+            DO is = 1, nsolid
+              CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
+            END DO
+          END DO
+
         END IF
 !
       ELSE IF (itd >= 3) THEN 
