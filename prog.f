@@ -20,7 +20,6 @@
       USE io_restart, ONLY: tapewr, max_seconds
       USE iterative_solver, ONLY: iter
       USE output_dump, ONLY: outp, shock_tube_out, outp_map, imap
-      USE parallel, ONLY: mpime
       USE particles_constants, ONLY: cps
       USE pressure_epsilon, ONLY: p, ep
       USE reactions, ONLY: rexion, irex
