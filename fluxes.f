@@ -60,7 +60,7 @@
 !
       dens_e = (dr(i+1) * dens%c + dr(i) * dens%e) * indrp
       dens_w = (dr(i-1) * dens%c + dr(i) * dens%w) * indrm
-      dens_se =(dr(i+1) * dens%s + dr(i) * dens%se) * indrp
+      dens_se =(dr(i+1) * dens%s + dr(i) * dens%es) * indrp
 !
 ! ... On boundary mantain first order accuracy (1st order Upwind).
 !
@@ -73,7 +73,7 @@
 
       ijm = myijk( ip0_jm1_kp0_, ij)
       IF( fl_l(ijm) .NE. 1 ) THEN
-        cs=(dr(i+1) * w%s + dr(i) * w%se) * indrp
+        cs=(dr(i+1) * w%s + dr(i) * w%es) * indrp
         IF(cs.GE.0.D0) fb = dens_se * u%s * cs
         IF(cs.LT.0.D0) fb = dens_e * u%c * cs
       END IF
@@ -122,7 +122,7 @@
 ! ... Values of density interpolated at cell boundaries
 !
       dens_e = (dr(i+1) * dens%c + dr(i) * dens%e) * indrp
-      dens_ne = (dr(i+1) * dens%n + dr(i) * dens%ne) * indrp
+      dens_ne = (dr(i+1) * dens%n + dr(i) * dens%en) * indrp
       dens_ee = (dr(i+2) * dens%e + dr(i+1) * dens%ee) * indrpp
 !
 ! ... on right volume boundary
@@ -198,13 +198,13 @@
 !
       dens_n = (dz(j+1) * dens%c  + dz(j) * dens%n) * indzp
       dens_s = (dz(j-1) * dens%c  + dz(j) * dens%s) * indzm
-      dens_wn = (dz(j+1) * dens%w  + dz(j) * dens%nw) * indzp
+      dens_wn = (dz(j+1) * dens%w  + dz(j) * dens%wn) * indzp
 !
 ! ... On boundary mantain first order accuracy (1st order Upwind).
 !
       imj = myijk( im1_jp0_kp0_, ij)
       IF(fl_l(imj).NE.1) THEN
-        cs=(dz(j+1)*u%w+dz(j)*u%nw)*indzp
+        cs=(dz(j+1)*u%w+dz(j)*u%wn)*indzp
         IF(cs.GE.0.D0) fl = dens_wn * w%w * cs * rb(i-1)
         IF(cs.LT.0.D0) fl = dens_n * w%c * cs * rb(i-1)
       END IF
@@ -254,7 +254,7 @@
 !
 ! ... values of density interpolated at cell boundaries
       dens_n = (dz(j+1) * dens%c + dz(j) * dens%n) * indzp
-      dens_en = (dz(j+1) * dens%e + dz(j) * dens%ne) * indzp
+      dens_en = (dz(j+1) * dens%e + dz(j) * dens%en) * indzp
       dens_nn = (dz(j+2) * dens%n + dz(j+1) * dens%nn) * indzpp
 !
 ! ... on right volume boundary

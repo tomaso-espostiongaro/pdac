@@ -1624,56 +1624,109 @@
             j = MOD( ijk - 1, nx*ny ) / nx + 1
             k = ( ijk - 1 ) / ( nx*ny ) + 1
 
-            ijk = myijk( ip0_jp0_kp0_ , ijk )
-            ipjk = myijk( ip1_jp0_kp0_ , ijk )
-            imjk = myijk( im1_jp0_kp0_ , ijk )
-            ippjk = myijk( ip2_jp0_kp0_ , ijk )
-            immjk = myijk( im2_jp0_kp0_ , ijk )
-            ijpk = myijk( ip0_jp1_kp0_ , ijk )
-            ipjpk = myijk( ip1_jp1_kp0_ , ijk )
-            imjpk = myijk( im1_jp1_kp0_ , ijk )
-            ijmk = myijk( ip0_jm1_kp0_ , ijk )
-            ipjmk = myijk( ip1_jm1_kp0_ , ijk )
-            imjmk = myijk( im1_jm1_kp0_ , ijk )
-            ijppk = myijk( ip0_jp2_kp0_ , ijk )
-            ijmmk = myijk( ip0_jm2_kp0_ , ijk )
-            ijkp = myijk( ip0_jp0_kp1_ , ijk )
-            ipjkp = myijk( ip1_jp0_kp1_ , ijk )
-            imjkp = myijk( im1_jp0_kp1_ , ijk )
-            ijpkp = myijk( ip0_jp1_kp1_ , ijk )
-            ijmkp = myijk( ip0_jm1_kp1_ , ijk )
-            ijkm = myijk( ip0_jp0_km1_ , ijk )
-            ipjkm = myijk( ip1_jp0_km1_ , ijk )
-            imjkm = myijk( im1_jp0_km1_ , ijk )
-            ijpkm = myijk( ip0_jp1_km1_ , ijk )
-            ijmkm = myijk( ip0_jm1_km1_ , ijk )
-            ijkpp = myijk( ip0_jp0_kp2_ , ijk )
-            ijkmm = myijk( ip0_jp0_km2_ , ijk )
+            IF( (i >= 2) .AND. (i <= (nx-1)) .AND.   &
+                (j >= 2) .AND. (j <= (ny-1)) .AND.   &
+                (k >= 2) .AND. (k <= (nz-1))         ) THEN
+  
+              ipjk   = myijk( ip1_jp0_kp0_ , ijk )
+              imjk   = myijk( im1_jp0_kp0_ , ijk )
+              ippjk  = myijk( ip2_jp0_kp0_ , ijk )
+              immjk  = myijk( im2_jp0_kp0_ , ijk )
+              ijpk   = myijk( ip0_jp1_kp0_ , ijk )
+              ipjpk  = myijk( ip1_jp1_kp0_ , ijk )
+              imjpk  = myijk( im1_jp1_kp0_ , ijk )
+              ijmk   = myijk( ip0_jm1_kp0_ , ijk )
+              ipjmk  = myijk( ip1_jm1_kp0_ , ijk )
+              imjmk  = myijk( im1_jm1_kp0_ , ijk )
+              ijppk  = myijk( ip0_jp2_kp0_ , ijk )
+              ijmmk  = myijk( ip0_jm2_kp0_ , ijk )
+              ijkp   = myijk( ip0_jp0_kp1_ , ijk )
+              ipjkp  = myijk( ip1_jp0_kp1_ , ijk )
+              imjkp  = myijk( im1_jp0_kp1_ , ijk )
+              ijpkp  = myijk( ip0_jp1_kp1_ , ijk )
+              ijmkp  = myijk( ip0_jm1_kp1_ , ijk )
+              ijkm   = myijk( ip0_jp0_km1_ , ijk )
+              ipjkm  = myijk( ip1_jp0_km1_ , ijk )
+              imjkm  = myijk( im1_jp0_km1_ , ijk )
+              ijpkm  = myijk( ip0_jp1_km1_ , ijk )
+              ijmkm  = myijk( ip0_jm1_km1_ , ijk )
+              ijkpp  = myijk( ip0_jp0_kp2_ , ijk )
+              ijkmm  = myijk( ip0_jp0_km2_ , ijk )
+  
+              ijke  =  ipjk
+              ijkw  =  imjk
+              ijkee =  ippjk
+              ijkww =  immjk
+              ijkn  =  ijpk
+              ijken =  ipjpk
+              ijkwn =  imjpk
+              ijks  =  ijmk
+              ijkes =  ipjmk
+              ijkws =  imjmk
+              ijknn =  ijppk
+              ijkss =  ijmmk
+              ijkt  =  ijkp
+              ijket =  ipjkp
+              ijkwt =  imjkp
+              ijknt =  ijpkp
+              ijkst =  ijmkp
+              ijkb  =  ijkm
+              ijkeb =  ipjkm
+              ijkwb =  imjkm
+              ijknb =  ijpkm
+              ijksb =  ijmkm
+              ijktt =  ijkpp
+              ijkbb =  ijkmm
+  
+              if( fl_l( ipjk  ) == 2 .OR. fl_l( ipjk )  == 3 ) ijke = ijk
+              if( fl_l( imjk  ) == 2 .OR. fl_l( imjk )  == 3 ) ijkw = ijk
+              if( (i /= (nx-1)) .AND. ( fl_l( ippjk ) == 2 .OR. fl_l( ippjk ) == 3 ) ) ijkee = ijke
+              if( (i == (nx-1)) ) ijkee = ijke
+              if( (i /= 2) .AND. ( fl_l( immjk ) == 2 .OR. fl_l( immjk ) == 3 ) ) ijkww = ijkw
+              if( (i == 2) ) ijkww = ijkw
+              if( fl_l( ijpk ) == 2 .OR. fl_l( ijpk ) == 3 ) ijkn = ijk
+              ! check corners   ijken ijkwn
+              if( fl_l( ijmk ) == 2 .OR. fl_l( ijmk ) == 3 ) ijks = ijk
+              ! check corners   ijkes ijkws
+              if( (j /= (ny-1)) .AND. ( fl_l( ijppk ) == 2 .OR. fl_l( ijppk ) == 3 ) ) ijknn = ijkn
+              if( (j == (ny-1)) ) ijknn = ijkn
+              if( (j /= 2) .AND. ( fl_l( ijmmk ) == 2 .OR. fl_l( ijmmk ) == 3 ) ) ijkss = ijks
+              if( (j == 2) ) ijkss = ijks
+              if( fl_l( ijkp ) == 2 .OR. fl_l( ijkp ) == 3 ) ijkt = ijk
+              ! check corners   ijket ijkwt ijknt ijkst
+              if( fl_l( ijkm ) == 2 .OR. fl_l( ijkm ) == 3 ) ijkb = ijk
+              ! check corners   ijkeb ijkwb ijknb ijksb
+              if( (k /= (nz-1)) .AND. ( fl_l( ijkpp ) == 2 .OR. fl_l( ijkpp ) == 3 ) ) ijktt = ijkt
+              if( (k == (nz-1)) ) ijktt = ijkt
+              if( (k /= 2) .AND. ( fl_l( ijkmm ) == 2 .OR. fl_l( ijkmm ) == 3 ) ) ijkbb = ijkb
+              if( (k == 2) ) ijkbb = ijkb
 
-            myinds( ip1_jp0_kp0_ , ijk ) = ijke
-            myinds( im1_jp0_kp0_ , ijk ) = ijkw
-            myinds( ip2_jp0_kp0_ , ijk ) = ijkee
-            myinds( im2_jp0_kp0_ , ijk ) = ijkww
-            myinds( ip0_jp1_kp0_ , ijk ) = ijkn
-            myinds( ip1_jp1_kp0_ , ijk ) = ijken
-            myinds( im1_jp1_kp0_ , ijk ) = ijkwn
-            myinds( ip0_jm1_kp0_ , ijk ) = ijks
-            myinds( ip1_jm1_kp0_ , ijk ) = ijkes
-            myinds( im1_jm1_kp0_ , ijk ) = ijkws
-            myinds( ip0_jp2_kp0_ , ijk ) = ijknn
-            myinds( ip0_jm2_kp0_ , ijk ) = ijkss
-            myinds( ip0_jp0_kp1_ , ijk ) = ijkt
-            myinds( ip1_jp0_kp1_ , ijk ) = ijket
-            myinds( im1_jp0_kp1_ , ijk ) = ijkwt
-            myinds( ip0_jp1_kp1_ , ijk ) = ijknt
-            myinds( ip0_jm1_kp1_ , ijk ) = ijkst
-            myinds( ip0_jp0_km1_ , ijk ) = ijkb
-            myinds( ip1_jp0_km1_ , ijk ) = ijkeb
-            myinds( im1_jp0_km1_ , ijk ) = ijkwb
-            myinds( ip0_jp1_km1_ , ijk ) = ijknb
-            myinds( ip0_jm1_km1_ , ijk ) = ijksb
-            myinds( ip0_jp0_kp2_ , ijk ) = ijktt
-            myinds( ip0_jp0_km2_ , ijk ) = ijkbb
+              myinds( ip1_jp0_kp0_ , ijk ) = ijke
+              myinds( im1_jp0_kp0_ , ijk ) = ijkw
+              myinds( ip2_jp0_kp0_ , ijk ) = ijkee
+              myinds( im2_jp0_kp0_ , ijk ) = ijkww
+              myinds( ip0_jp1_kp0_ , ijk ) = ijkn
+              myinds( ip1_jp1_kp0_ , ijk ) = ijken
+              myinds( im1_jp1_kp0_ , ijk ) = ijkwn
+              myinds( ip0_jm1_kp0_ , ijk ) = ijks
+              myinds( ip1_jm1_kp0_ , ijk ) = ijkes
+              myinds( im1_jm1_kp0_ , ijk ) = ijkws
+              myinds( ip0_jp2_kp0_ , ijk ) = ijknn
+              myinds( ip0_jm2_kp0_ , ijk ) = ijkss
+              myinds( ip0_jp0_kp1_ , ijk ) = ijkt
+              myinds( ip1_jp0_kp1_ , ijk ) = ijket
+              myinds( im1_jp0_kp1_ , ijk ) = ijkwt
+              myinds( ip0_jp1_kp1_ , ijk ) = ijknt
+              myinds( ip0_jm1_kp1_ , ijk ) = ijkst
+              myinds( ip0_jp0_km1_ , ijk ) = ijkb
+              myinds( ip1_jp0_km1_ , ijk ) = ijkeb
+              myinds( im1_jp0_km1_ , ijk ) = ijkwb
+              myinds( ip0_jp1_km1_ , ijk ) = ijknb
+              myinds( ip0_jm1_km1_ , ijk ) = ijksb
+              myinds( ip0_jp0_kp2_ , ijk ) = ijktt
+              myinds( ip0_jp0_km2_ , ijk ) = ijkbb
+  
+            END IF
 
 
           ELSE

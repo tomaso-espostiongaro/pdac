@@ -28,7 +28,7 @@
 !
       IMPLICIT NONE
 !
-      INTEGER :: ij, ij_l
+      INTEGER :: ijk, imesh
 !       
 ! ... distribute arrays among processors
 !
@@ -63,46 +63,46 @@
         smag = 0.D0
         mus = 0.D0
 !        
-      DO ij_l = 1, ncint
-        ij = myijk( ip0_jp0_kp0_, ij_l)
+      DO ijk = 1, ncint
+        imesh = myijk( ip0_jp0_kp0_, ijk)
 !
-        p(ij_l) = gas_pressure(ij)
-        rlk(:,ij_l) = solid_bulk_density(:,ij)
-        sieg(ij_l) = gas_enthalpy(ij)
+        p(ijk) = gas_pressure(imesh)
+        rlk(:,ijk) = solid_bulk_density(:,imesh)
+        sieg(ijk) = gas_enthalpy(imesh)
 
         IF( job_type == '2D' ) THEN
-          ug(ij_l) = gas_velocity_r(ij)
+          ug(ijk) = gas_velocity_r(imesh)
         ELSE
-          ug(ij_l) = gas_velocity_x(ij)
-          vg(ij_l) = gas_velocity_y(ij)
+          ug(ijk) = gas_velocity_x(imesh)
+          vg(ijk) = gas_velocity_y(imesh)
         END IF
-        wg(ij_l) = gas_velocity_z(ij)
+        wg(ijk) = gas_velocity_z(imesh)
 
-        sies(:,ij_l) = solid_enthalpy(:,ij)
+        sies(:,ijk) = solid_enthalpy(:,imesh)
 
         IF( job_type == '2D' ) THEN
-          us(:,ij_l) = solid_velocity_r(:,ij)
+          us(:,ijk) = solid_velocity_r(:,imesh)
         ELSE
-          us(:,ij_l) = solid_velocity_x(:,ij)
-          vs(:,ij_l) = solid_velocity_y(:,ij)
+          us(:,ijk) = solid_velocity_x(:,imesh)
+          vs(:,ijk) = solid_velocity_y(:,imesh)
         END IF
-        ws(:,ij_l) = solid_velocity_z(:,ij)
+        ws(:,ijk) = solid_velocity_z(:,imesh)
 
-        ygc(:, ij_l) = gc_mass_fraction(:, ij)
+        ygc(:, ijk) = gc_mass_fraction(:, imesh)
 !
-        rgp(ij_l) = gas_bulk_density(ij)
-        rog(ij_l) = gas_density(ij)
-        ep(ij_l) = void_fraction(ij)
-        tg(ij_l) = gas_temperature(ij)
-        ts(:,ij_l) = solid_temperature(:,ij)
-        rgpgc(:, ij_l) = gc_bulk_density(:, ij)
-        xgc(:, ij_l) = gc_molar_fraction(:, ij)
+        rgp(ijk) = gas_bulk_density(imesh)
+        rog(ijk) = gas_density(imesh)
+        ep(ijk) = void_fraction(imesh)
+        tg(ijk) = gas_temperature(imesh)
+        ts(:,ijk) = solid_temperature(:,imesh)
+        rgpgc(:, ijk) = gc_bulk_density(:, imesh)
+        xgc(:, ijk) = gc_molar_fraction(:, imesh)
 !
-        ck(:,ij_l) = solid_heat_capacity(:,ij)
-        cp(:,ij_l) =gc_heat_capacity(:,ij)
-        cg(ij_l) = gas_heat_capacity(ij)
-        smag(ij_l) = smag_factor(ij)
-        mus(:,ij_l) = particle_viscosity(:,ij)
+        ck(:,ijk) = solid_heat_capacity(:,imesh)
+        cp(:,ijk) =gc_heat_capacity(:,imesh)
+        cg(ijk) = gas_heat_capacity(imesh)
+        smag(ijk) = smag_factor(imesh)
+        mus(:,ijk) = particle_viscosity(:,imesh)
       END DO
 !
       END SUBROUTINE

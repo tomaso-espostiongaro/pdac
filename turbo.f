@@ -17,9 +17,6 @@
       REAL*8, DIMENSION(:), ALLOCATABLE :: smag_factor, smag_coeff
       REAL*8, DIMENSION(:), ALLOCATABLE :: smag, scoeff
 !
-      INTEGER, DIMENSION(:), ALLOCATABLE :: jt, it
-      REAL*8,  DIMENSION(:), ALLOCATABLE :: zbt
-!
       INTEGER :: iturb, iss, modturbo
       REAL*8 :: cmut                       ! Smagorinsky constant
       REAL*8 :: pranumt                    ! Prandtl number
@@ -59,74 +56,144 @@
 ! ... MODIFICARE_X3D ( fino fine file )
 
 !----------------------------------------------------------------------
+
        SUBROUTINE turbulence_setup( zrough )
+
 ! ... sets the Smagorinsky turbulence length scale
 !
-        USE dimensions, ONLY: nr, nz, no
+        USE dimensions, ONLY: nr, nz, no, nx, ny
         USE grid, ONLY: iob
-        USE grid, ONLY: dz, dr, zb, rb
+        USE grid, ONLY: dz, dr, zb, rb, dx, dy
         USE roughness_module, ONLY: roughness
+        USE control_flags, ONLY: job_type
 !
         TYPE (roughness), INTENT(IN) :: zrough
 
-        INTEGER :: i, j, i1, i2, j2, n, ij
+        INTEGER :: i, j, k, i1, i2, j2, n, ijk
         REAL*8  :: sl, sgsl0, zsgsl, zrou, sgslb
         REAL*8 :: delt
+
+        INTEGER, DIMENSION(:), ALLOCATABLE :: jt, it
+        REAL*8,  DIMENSION(:), ALLOCATABLE :: zbt
 !
+!
+        ALLOCATE( jt( MAX(nr,1) ), it( MAX(nr,1) ), zbt( MAX(nr,1) ) )
+
         IF (iturb .EQ. 2) THEN
-          ALLOCATE(jt(nr), it(nr), zbt(nr))
-          it = 0; jt = 0
-          zbt = 0.D0
-          DO n=1,no
-           IF( iob(n)%typ == 3 ) THEN
-             it( iob(n)%rlo : iob(n)%rhi ) = 1
-             jt(i)  = iob(n)%zhi
-             zbt(i) = zb( iob(n)%zhi )
-           ENDIF
-          END DO
+
+          IF( job_type == '2D' ) THEN
+
+            it = 0; jt = 0
+            zbt = 0.D0
+            DO n=1,no
+             IF( iob(n)%typ == 3 ) THEN
+               it( iob(n)%rlo : iob(n)%rhi ) = 1
+               jt(i)  = iob(n)%zhi
+               zbt(i) = zb( iob(n)%zhi )
+             ENDIF
+            END DO
+
+          END IF
+
         ENDIF
 !
-        DO j=2, (nz-1)
-         DO i=2, (nr-1) 
-           ij=i+(j-1)*nr
-           delt=DSQRT(dz(j)*dr(i))
-           IF (iturb .EQ. 1) THEN
-             sl = cmut * delt
-           ELSE IF (iturb .EQ. 2) THEN
-!
-             IF(j.LE.jt(i)) THEN
-               sl = 0.D0
-             ELSE
-               sgsl0 = cmut * delt
-               IF(it(i).EQ.1) THEN
-                 zsgsl=zb(j)-zbt(i)-dz(j)*0.5D0
-                 IF( zrough%ir .EQ. 1 ) THEN
-                   zrou = zrough%r(1)
-                 ELSE
-                   IF( rb(i) .LE. zrough%roucha ) THEN
-                     zrou = zrough%r(1)
-                   ELSE
-                     zrou = zrough%r(2)
-                   ENDIF
-                 ENDIF
-                 sgslb=0.4D0*(zsgsl+zrou)
-!
-! ... use the smallest between the smag length and the roughness length
-                 sl = dmin1(sgsl0,sgslb)
+        IF( job_type == '2D' ) THEN
 
-               ELSE
-                 sl = sgsl0
-               ENDIF
-             ENDIF
-           ENDIF
+          DO j = 2, (nz-1)
+
+            DO i = 2, (nr-1) 
+
+              ijk = i+(j-1)*nr
+
+              delt = DSQRT( dz(j)*dr(i) )
+
+              IF ( iturb == 1 ) THEN
+
+                sl = cmut * delt
+
+              ELSE IF ( iturb == 2 ) THEN
 !
-! ... Squared turbulence length scale is used into Smagorinsky model
-           smag_factor(ij) = sl**2
+                IF( j <= jt(i) ) THEN
+
+                  sl = 0.D0
+
+                ELSE
+
+                  sgsl0 = cmut * delt
+
+                  IF( it(i) == 1 ) THEN
+
+                    zsgsl = zb(j)-zbt(i)-dz(j)*0.5D0
+                    IF( zrough%ir == 1 ) THEN
+                      zrou = zrough%r(1)
+                    ELSE
+                      IF( rb(i) <= zrough%roucha ) THEN
+                        zrou = zrough%r(1)
+                      ELSE
+                        zrou = zrough%r(2)
+                      ENDIF
+                    ENDIF
+                    sgslb=0.4D0*(zsgsl+zrou)
 !
-         END DO
-        END DO
+                    ! ... use the smallest between the smag length and the roughness length
+
+                    sl = dmin1(sgsl0,sgslb)
+  
+                  ELSE
+
+                    sl = sgsl0
+
+                  ENDIF
+
+                ENDIF
+
+              ENDIF
+!
+              ! ... Squared turbulence length scale is used into Smagorinsky model
+
+              smag_factor(ijk) = sl**2
+!
+            END DO
+
+          END DO
+
+        ELSE IF( job_type == '3D' ) THEN
+
+          DO k = 1, nz
+
+            DO j = 1, ny
+
+              DO i = 1, nx
+
+                ijk = i + (j-1)*nx + (k-1)*nx*ny
+                delt = ( dz(k)*dy(j)*dx(i) )**(1.0d0/3.0d0)
+
+                IF ( iturb == 1 ) THEN
+
+                  sl = cmut * delt
+
+                ELSE IF ( iturb == 2 ) THEN
+
+                  CALL error( ' turbo_setup ' , ' undefined 3D roughness ', 1 )
+
+                END IF
+
+                ! ... Squared turbulence length scale is used into Smagorinsky model
+
+                smag_factor(ijk) = sl**2
+
+              END DO
+
+            END DO
+
+          END DO
+
+        END IF
+
+        DEALLOCATE(jt, it, zbt)
 
        END  SUBROUTINE 
+
 !----------------------------------------------------------------------
       SUBROUTINE sgsg
 

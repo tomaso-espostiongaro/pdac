@@ -214,7 +214,6 @@
 !
       CALL ghost
       IF(timing) s3 = cpclock()
-      IF (job_type == '3D') CALL error('main','3D routines not yet implemented',1)
 !
       CALL local_bounds_velocity
       CALL local_bounds_density
@@ -224,14 +223,18 @@
       CALL local_bounds_viscosity
       CALL local_bounds_hcapgs
       CALL local_bounds_turbo
+
 !
 ! ... Set initial conditions
 !
       CALL setup
+
 !
 ! ... Distribute inital data among processes
 !
       CALL distribute
+
+      IF (job_type == '3D') CALL error('main','3D routines not yet implemented',1)
 !
 ! ... Time advancement loop
 !

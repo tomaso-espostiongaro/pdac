@@ -95,11 +95,13 @@ int plot_indexes( int ni, int nj, int nk, int max)
                                           str,si,abs(i),sj,abs(j),sk,abs(k),t,sdi,sdj,sdk,dj,di);
 					printf(" i%sj%sk%s = myijk( i%c%d_j%c%d_k%c%d_ , ijk )\n",
                                           sdi, sdj, sdk, si, abs(i), sj, abs(j), sk, abs(k) );
-					printf("              myinds( i%c%d_j%c%d_k%c%d_ , ijk ) = ijk%s%s%s\n",
-                                          si, abs(i), sj, abs(j), sk, abs(k), di, dj, dk );
 					printf(" i%sj%sk%s, ", sdi, sdj, sdk );
-					*/
 					printf(" ijk%s%s%s, ", di, dj, dk );
+					printf("            ijk%s%s%s =  i%sj%sk%s\n", di, dj, dk, sdi, sdj, sdk  );
+					printf("        ijk%s%s%s = myinds( i%c%d_j%c%d_k%c%d_ , ijk )\n",
+                                           di, dj, dk, si, abs(i), sj, abs(j), sk, abs(k) );
+					*/
+					printf("        rnb%%%s%s%s = array( i%sj%sk%s )\n", di, dj, dk, sdi, sdj, sdk  );
 				}
 			}
 		}

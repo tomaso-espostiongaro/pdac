@@ -46,7 +46,7 @@ indijk.o :
 
 input.o : atmosphere.o control_flags.o dimensions.o fluxes.o gas.o grid.o  \
     iter.o matrix.o outp.o parallel.o particles.o reactions.o roughness.o  \
-    setup.o time.o turbo.o 
+    setup.o subscr.o time.o turbo.o 
 
 io.o : dens.o dimensions.o eosg.o hcapgs.o parallel.o press.o temp.o time.o  \
     velocity.o 
@@ -75,9 +75,10 @@ pdac2d.o : atmosphere.o control_flags.o dens.o dimensions.o environment.o  \
 
 press.o : dimensions.o grid.o 
 
-prog.o : bdry.o dens.o dimensions.o environment.o eosg.o eosl.o ftem.o grid.o  \
-    hcapgs.o htilde.o indijk.o io.o iter.o outp.o particles.o press.o  \
-    reactions.o temp.o tilde.o time.o turbo.o visc.o ygas.o 
+prog.o : bdry.o control_flags.o dens.o dimensions.o environment.o eosg.o  \
+    eosl.o ftem.o grid.o hcapgs.o htilde.o indijk.o io.o iter.o outp.o  \
+    particles.o press.o reactions.o temp.o tilde.o time.o turbo.o visc.o  \
+    ygas.o 
 
 reactions.o : dimensions.o grid.o indijk.o time.o 
 
@@ -86,8 +87,8 @@ roughness.o : dimensions.o
 setc.o : dimensions.o gas.o particles.o reactions.o roughness.o turbo.o  \
     visc.o 
 
-setup.o : atmosphere.o dens.o dimensions.o eosg.o eosl.o gas.o grid.o  \
-    particles.o press.o temp.o time.o velocity.o visc.o 
+setup.o : atmosphere.o control_flags.o dens.o dimensions.o eosg.o eosl.o  \
+    gas.o grid.o particles.o press.o temp.o time.o velocity.o visc.o 
 
 subscr.o : dimensions.o grid.o indijk.o 
 
@@ -100,8 +101,8 @@ tilde.o : atmosphere.o dens.o dimensions.o drag.o fluxes.o grid.o indijk.o  \
 
 time.o : 
 
-turbo.o : bdry.o dens.o dimensions.o environment.o eosg.o grid.o indijk.o  \
-    particles.o roughness.o subscr.o velocity.o 
+turbo.o : bdry.o control_flags.o dens.o dimensions.o environment.o eosg.o  \
+    grid.o indijk.o particles.o roughness.o subscr.o velocity.o 
 
 types.o : 
 

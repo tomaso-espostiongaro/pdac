@@ -79,6 +79,7 @@
      &                            timestart, rungekut
       USE turbulence, ONLY: iturb, cmut, iss, modturbo
       USE control_flags, ONLY: job_type
+      USE set_indexes, ONLY: subsc_setup
 !
       IMPLICIT NONE
  
@@ -207,6 +208,7 @@
           CALL error(' input ',' unknown job_type '//TRIM(job_type), 1 )
       END SELECT
 
+      CALL subsc_setup( job_type )
 
       IF(mpime .EQ. root) THEN
         READ(iunit, mesh) 

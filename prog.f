@@ -1,7 +1,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE prog
 
-      USE boundary_conditions, ONLY: boundary
+      USE boundary_conditions, ONLY: boundary, boundary3d
       USE dimensions
       USE eos_gas, ONLY: mole, eosg, rags
       USE eos_gas, ONLY: ygc, rgpgc, rgpgcn, xgc, cg
@@ -27,6 +27,7 @@
       USE gas_components, ONLY: ygas
       USE heat_capacity, ONLY: ck, cp
       USE environment, ONLY: cpclock, timing
+      USE control_flags, ONLY: job_type
 !
       IMPLICIT NONE
 !
@@ -67,7 +68,13 @@
 !
 ! ... Compute Boundary Conditions
 !
-        CALL boundary 
+         IF( job_type == '2D' ) THEN
+           CALL boundary 
+         ELSE IF( job_type == '3D' ) THEN
+           CALL boundary3d
+         ELSE
+           CALL error(' prog ',' wrong job_type ',1)
+         END IF
 !
 ! ... Compute derived fields from closure equations
 ! ... (must be dumped into restart file)
@@ -78,7 +85,7 @@
 ! 
 ! ... Compute molar fractions of gas species
 !
-           CALL mole(xgc(:,ijk), ygc(:,ijk))
+           CALL mole( xgc(:,ijk), ygc(:,ijk) )
 !
 ! ... Compute gas specific heat, density and temperature from gas Equation of State
 !
