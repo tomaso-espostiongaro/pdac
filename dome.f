@@ -10,7 +10,7 @@
       INTEGER :: idome
 
       REAL*8 :: xdome, ydome, zdome, dome_volume, dome_radius
-      REAL*8 :: temperature
+      REAL*8 :: temperature, deltap
       REAL*8 :: particle_fraction(max_nsolid)
       !
       REAL*8 :: dome_ygc(max_ngas)
@@ -318,7 +318,11 @@
             !
             tg(ijk) = temperature
             ep(ijk) = 1.D0 - SUM(particle_fraction(1:nsolid))
-            p(ijk)  = p_dome(ra,p_atm(kv),beta)
+            IF (idome == 1) THEN
+              p(ijk)  = p_dome(ra,p_atm(kv),beta)
+            ELSE IF (idome == 2) THEN
+              p(ijk) = deltap
+            END IF
             !
             ! ... Add the hydrostatic pressure due to dome mass
             !

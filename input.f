@@ -94,7 +94,7 @@
       USE control_flags, ONLY: job_type, lpr, run, imr
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
       USE domain_decomposition, ONLY: mesh_partition
-      USE dome_conditions, ONLY: xdome, ydome, dome_volume, temperature, particle_fraction, &
+      USE dome_conditions, ONLY: xdome, ydome, dome_volume, temperature, particle_fraction, deltap, &
           idome, gas_flux, permeability, dome_gasvisc
       USE enthalpy_matrix, ONLY: flim
       USE eos_gas, ONLY: update_eosg
@@ -114,7 +114,7 @@
           crater_radius, vent_radius, xvent, yvent, ivent, iali, irand, &
           ipro, rad_file
       USE immersed_boundaries, ONLY: immb
-      USE iterative_solver, ONLY: inmax, maxout, omega, optimization
+      USE iterative_solver, ONLY: inmax, maxout, omega, optimization, delg
       USE io_restart, ONLY: max_seconds, nfil
       USE output_dump, ONLY: formatted_output
       USE parallel, ONLY: mpime, root
@@ -159,7 +159,7 @@
         p_gas, t_gas, u_solid, v_solid, w_solid, ep_solid, t_solid, &
         vent_O2, vent_N2, vent_CO2, vent_H2, vent_H2O, vent_Air, vent_SO2
 
-      NAMELIST / dome / xdome, ydome, dome_volume, temperature, particle_fraction, idome, &
+      NAMELIST / dome / xdome, ydome, dome_volume, temperature, particle_fraction, idome, deltap, &
                         gas_flux, permeability, dome_gasvisc
 
       NAMELIST / atmosphere / wind_x, wind_y, wind_z, p_ground, t_ground, &
@@ -174,7 +174,7 @@
         viscosity, specific_heat, thermal_conductivity
 
       NAMELIST / numeric / rungekut, beta, muscl, mass_limiter, vel_limiter, &
-        inmax, maxout, omega, implicit_fluxes, implicit_enthalpy, &
+        inmax, maxout, omega, delg, implicit_fluxes, implicit_enthalpy, &
         update_eosg, optimization, lim_type
 
       INTEGER :: i, j, k, n, m, ig, ierr, lim_type
@@ -312,7 +312,7 @@
       xdome = 0.0             ! UTM longitude of the dome center
       ydome = 0.0             ! UTM latitude of the dome center
       dome_volume = 0.0        ! total volume of exploded mass
-      temperature = 288.15         ! temperature of the dome
+      deltap = 1.D5             ! overpressure of the dome
       particle_fraction = 0.0          ! particle fractions
       gas_flux = 400.D0        ! gas flux through the conduit
       temperature = 1100.D0        ! gas temperature
@@ -377,6 +377,7 @@
       muscl = 0         !  0 first order, 1 muscl ( high order )
       inmax = 8         !  maximum number of pressure correction steps
       maxout = 500      !  maximum number of solver iteration
+      delg = 1.D-8      !  residual limit relative to gas bulk density
       omega = 1.1       !  relaxation parameter  ( 0.5 under - 2.0 over)
       optimization = 1  !  optimization degree on iterative solver
       implicit_fluxes   = .FALSE. ! fluxes are computed implicitly
@@ -555,6 +556,7 @@
       CALL bcast_real(ydome,1,root)
       CALL bcast_real(dome_volume,1,root)
       CALL bcast_real(temperature,1,root)
+      CALL bcast_real(deltap,1,root)
       CALL bcast_real(particle_fraction,nsolid,root)
       CALL bcast_real(gas_flux,1,root)
       CALL bcast_real(permeability,1,root)
@@ -627,6 +629,7 @@
       CALL bcast_integer(vel_limiter,1,root)
       CALL bcast_integer(muscl,1,root)
       CALL bcast_integer(inmax,1,root)
+      CALL bcast_integer(delg,1,root)
       CALL bcast_integer(maxout,1,root)
       CALL bcast_integer(optimization,1,root)
       CALL bcast_real(omega,1,root)
@@ -949,6 +952,7 @@
             CALL iotk_write_dat( iuni_nml, "ydome", ydome )
             CALL iotk_write_dat( iuni_nml, "dome_volume", dome_volume )
             CALL iotk_write_dat( iuni_nml, "temperature", temperature )
+            CALL iotk_write_dat( iuni_nml, "deltap", deltap )
             CALL iotk_write_dat( iuni_nml, "particle_fraction", particle_fraction )
             CALL iotk_write_dat( iuni_nml, "gas_flux", gas_flux )
             CALL iotk_write_dat( iuni_nml, "permeability", permeability )
@@ -1012,6 +1016,7 @@
             CALL iotk_write_dat( iuni_nml, "mass_limiter", mass_limiter )
             CALL iotk_write_dat( iuni_nml, "vel_limiter", vel_limiter )
             CALL iotk_write_dat( iuni_nml, "inmax", inmax )
+            CALL iotk_write_dat( iuni_nml, "delg", delg )
             CALL iotk_write_dat( iuni_nml, "lim_type", lim_type )
             CALL iotk_write_dat( iuni_nml, "maxout", maxout )
             CALL iotk_write_dat( iuni_nml, "optimization", optimization )

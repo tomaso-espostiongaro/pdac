@@ -15,7 +15,7 @@
 
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: amats
 
-      REAL*8  :: omega, dg
+      REAL*8  :: omega, dg, delg
       INTEGER :: inmax, maxout, nit
       INTEGER :: optimization
       INTEGER :: ierr
@@ -318,7 +318,7 @@
            ELSE
              avloop = REAL(nloop)
            END IF
-           WRITE(testunit, fmt="( I10, 2X, F4.2, 2X, I10, 2X, F10.3)" ) &
+           WRITE(testunit, fmt="( I10, 2X, F5.2, 2X, I10, 2X, F10.3)" ) &
                             n2, avloop, n1, timconv(nit)
          END IF
 !*******************************************************************
@@ -951,7 +951,6 @@
       INTEGER, INTENT(IN) :: ijk
       REAL*8, INTENT(OUT) :: cnv, abt
 !
-      REAL*8, PARAMETER :: delg=1.D-8
       INTEGER :: i,j,k,imesh
 !
           CALL meshinds(ijk,imesh,i,j,k)

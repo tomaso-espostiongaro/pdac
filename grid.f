@@ -427,6 +427,7 @@
       IF (demin == demax) THEN
               delta = demin
               alpha = 1.D0
+              center = nd/2
               RETURN
       END IF
       IF ( domain_size/demin < nd )  CALL error('grid_generator', &
