@@ -383,19 +383,111 @@ The following XML tags have been defined:
 \item \FIL{<file> filename </file>} \\
 
 \item \FIL{<attributes> </attributes>} \\
+      identify a section the attributes of the discretized grid
 
 \item \FIL{<profile> </profile>} \\
+      identify a section containig information abount profile
 
 \item \FIL{<scalar> </scalar>} \\
+      identify a section containig scalar field data
 
 \item \FIL{<staggered> </staggered>} \\
+      identify a section containig staggered vector field data
 
 \item \FIL{<frames> </frames>} \\
+      identify a section containig information abount time frame
 
 \item \FIL{<timestep> </timestep>} \\
+      specify a time frame
        
 
 \end{itemize}
+
+
+example of post-processing XML output file:
+
+\begin{verbatim}
+<?xml version="1.0" encoding="UTF-8"?>
+<dataset name="jet_simulation">
+  <grid>
+    <structure>
+      <x>
+        <dim type="integer" size="1">64</dim>
+        <cfile type="ascii" linetoskip="2">mesh.dat</cfile>
+        <file type="ascii" linetoskip="16">mesh.dat</file>
+      </x>
+      <z>
+        <dim type="integer" size="1">128</dim>
+        <cfile type="ascii" linetoskip="34">mesh.dat</cfile>
+        <file type="ascii" linetoskip="61">mesh.dat</file>
+      </z>
+    </structure>
+    <attributes>
+      <profile name="profile">
+        <file type="ascii">improfile.dat</file>
+      </profile>
+      <scalar name="P">
+        <file type="ascii" linetoskip="8">output</file>
+      </scalar>
+      <staggered name="VG">
+        <x>
+          <file type="ascii" linetoskip="908">output</file>
+        </x>
+        <z>
+          <file type="ascii" linetoskip="1808">output</file>
+        </z>
+      </staggered>
+      <scalar name="TG">
+        <file type="ascii" linetoskip="2708">output</file>
+      </scalar>
+      <scalar name="XGC1">
+        <file type="ascii" linetoskip="3608">output</file>
+      </scalar>
+      <scalar name="XGC2">
+        <file type="ascii" linetoskip="4508">output</file>
+      </scalar>
+      <scalar name="EPS1">
+        <file type="ascii" linetoskip="5408">output </file>
+      </scalar>
+      <staggered name=" VS1">
+        <x>
+          <file type="ascii" linetoskip="6308">output</file>
+        </x>
+        <z>
+          <file type="ascii" linetoskip="7208">output</file>
+        </z>
+      </staggered>
+      <scalar name="TS1">
+        <file type="ascii" linetoskip="8108">output</file>
+      </scalar>
+      <scalar name="EPS2">
+        <file type="ascii" linetoskip="9008">output</file>
+      </scalar>
+      <staggered name=" VS2">
+        <x>
+          <file type="ascii" linetoskip="9908">output</file>
+        </x>
+        <z>
+          <file type="ascii" linetoskip="10808">output</file>
+        </z>
+      </staggered>
+      <scalar name="TS2">
+        <file type="ascii" linetoskip="11708">output</file>
+      </scalar>
+    </attributes>
+  </grid>
+  <frames timestart=".0000000D+00" timescale=".1000000D-01">
+    <timestep type="integer" size="1">1000</timestep>
+  </frames>
+</dataset>
+\end{verbatim}
+
+A dataset consists in a certain number of frames defined over a simulation grid. 
+A grid involves a structure (a geometry and therefore coordinates) and attributes: 
+scalars, vectors, staggered vectors and a profile of the terrain.
+The spatial dimension of the grid depends by the number of specified coordinates. 
+In the previous example only x and z appears therefore the grid is assumed 2D.
+
 
 
 %\subsection{General remark}
