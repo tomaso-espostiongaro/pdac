@@ -118,7 +118,11 @@
       END SUBROUTINE locate_vent
 !-----------------------------------------------------------------------
       SUBROUTINE set_ventc
-! ... 
+!
+! ... Compute the steady inlet conditions for a circular vent
+! ... An aribtrary radial profile can be assigned, as a function
+! ... of the averaged vertical velocity
+!
       USE atmospheric_conditions, ONLY: p_ground, t_ground
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nsolid, ngas

@@ -5,8 +5,6 @@
       USE set_indexes, ONLY: stencil
 
       IMPLICIT NONE
-
-      SAVE
 !
 ! ... convective mass fluxes
 !
@@ -17,13 +15,15 @@
 
       REAL*8  :: omega, dg
       INTEGER :: inmax, maxout
+      INTEGER :: optimization
 
       INTEGER, ALLOCATABLE, DIMENSION(:) :: b_e, b_w, b_t, b_b, b_n, b_s
 
       TYPE(stencil) :: u, v, w, dens         
 
       PRIVATE :: u, v, w, dens
-!
+
+      SAVE
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
@@ -91,7 +91,6 @@
 
       LOGICAL, ALLOCATABLE :: converge(:)
       LOGICAL :: cvg
-      LOGICAL :: optimization
 !
       ALLOCATE(conv(ncint), abeta(ncint))
       conv = 0.0D0
@@ -141,9 +140,13 @@
 !
 ! ... In 3D use optimized routines with two particle classes
 !
-      optimization = ( nsolid == 2 ) .AND. ( job_type == '3D' ) .AND. &
-                     ( immb < 1 )
-      IF( optimization ) THEN
+      IF( (nsolid == 2) .AND. (job_type == '3D') .AND. (immb < 1) ) THEN
+        optimization = 3
+      ELSE IF( immb >= 1) THEN
+        optimization = 1
+      END IF
+
+      IF( optimization == 3 ) THEN
         ALLOCATE( amats( 6, 6, ncint ) )
       END IF
 !
@@ -163,7 +166,7 @@
           ! ... with respect to gas pressure
           CALL betas( conv( ijk ), abeta( ijk ), ijk )
 
-          IF(optimization) THEN
+          IF(optimization==3) THEN
             CALL meshinds(ijk,imesh,i,j,k)
             CALL matspre_3phase(amats(:,1,ijk),amats(:,2,ijk),amats(:,3,ijk),&
                                 amats(:,4,ijk),amats(:,5,ijk),amats(:,6,ijk),&
@@ -203,7 +206,7 @@
          END IF
 
          ! TIMING (Convergence in the ijk cell)
-!
+         !
          IF( timing ) THEN
             st0 = cpclock()
             !st0 = cclock_wall()
@@ -235,12 +238,6 @@
 
              dgorig = dg
 
-
-
-
-
-
-
              IF( ABS( dg ) <= conv( ijk ) ) THEN
 
                n1 = n1 + 1
@@ -265,14 +262,23 @@
                d3 = dg
                p3 = p( ijk )
 
-               IF (optimization) THEN
-                 CALL opt3_inner_loop(i, j, k, ijk, nit, d3, p3, &
-                                  abeta(ijk), conv(ijk), &
-                                  dgorig, nloop, cvg)
-               ELSE
+               IF (optimization == 1) THEN
+
                  CALL inner_loop(i, j, k, ijk, nit, d3, p3, &
                                  abeta(ijk),conv(ijk), &
                                  dgorig, nloop, cvg)
+
+               ELSE IF (optimization == 2) THEN
+
+                 CALL opt_inner_loop(i, j, k, ijk, nit, d3, p3, &
+                                 abeta(ijk),conv(ijk), &
+                                 dgorig, nloop, cvg)
+
+               ELSE IF (optimization == 3) THEN
+
+                 CALL opt3_inner_loop(i, j, k, ijk, nit, d3, p3, &
+                                  abeta(ijk), conv(ijk), &
+                                  dgorig, nloop, cvg)
                END IF
 
              END IF

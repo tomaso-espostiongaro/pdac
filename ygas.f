@@ -48,15 +48,17 @@
         yfn = 0.D0
       END IF
 ! 
-! ... Convective mass fluxes
+! ... Compute the convective mass fluxes
 !
       CALL compute_all_fluxes
-
+!
       IF (lpr > 1) THEN
         WRITE(8,*) 'ygas report at time: ', time
-        WRITE(8,*) 'Gas mass is not conserved at cells: '
       END IF
-
+!
+! ... Mass conservation of each gas component is solved
+! ... explicitly in each cell
+!
       DO ijk = 1, ncint
        IF( flag(ijk) == 1 ) THEN
          CALL meshinds(ijk,imesh,i,j,k)
@@ -132,8 +134,9 @@
       USE convective_fluxes_sc, ONLY: fsc, muscl_fsc
       USE dimensions, ONLY: ngas
       USE domain_decomposition, ONLY: ncint, data_exchange
-      USE eos_gas, ONLY: rgpgc
+      USE eos_gas, ONLY: rgpgc, ygc
       USE flux_limiters, ONLY: muscl
+      USE gas_solid_density, ONLY: rgp
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE grid, ONLY: flag
       USE set_indexes, ONLY: stencil, cte

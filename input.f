@@ -87,7 +87,7 @@
       USE vent_conditions, ONLY: ivent, u_gas, v_gas, w_gas, p_gas, t_gas, &
           u_solid, v_solid, w_solid,  ep_solid, t_solid, radius
       USE immersed_boundaries, ONLY: immb
-      USE iterative_solver, ONLY: inmax, maxout, omega
+      USE iterative_solver, ONLY: inmax, maxout, omega, optimization
       USE io_restart, ONLY: max_seconds, nfil
       USE output_dump, ONLY: formatted_output
       USE parallel, ONLY: mpime, root
@@ -137,7 +137,7 @@
 
       NAMELIST / numeric / rungekut, beta, muscl, lim_type, &
         inmax, maxout, omega, implicit_fluxes, implicit_enthalpy, &
-        update_eosg
+        update_eosg, optimization
 
       INTEGER :: i, j, k, n, m, ig, ierr
       CHARACTER(LEN=80) :: card
@@ -286,6 +286,7 @@
       inmax = 8         !  maximum number of pressure correction steps
       maxout = 1000     !  maximum number of solver iteration
       omega = 1.0       !  relaxation parameter  ( 0.5 under - 2.0 over)
+      optimization = 2  !  optimization degree on iterative solver
       implicit_fluxes   = .FALSE. ! fluxes are computed implicitly
       implicit_enthalpy = .FALSE. ! enthalpy solved implicitly
       update_eosg       = .TRUE.  ! update density after temperature
@@ -473,6 +474,7 @@
       CALL bcast_integer(muscl,1,root)
       CALL bcast_integer(inmax,1,root)
       CALL bcast_integer(maxout,1,root)
+      CALL bcast_integer(optimization,1,root)
       CALL bcast_real(omega,1,root)
       CALL bcast_logical(implicit_fluxes,1,root)
       CALL bcast_logical(implicit_enthalpy,1,root)
@@ -742,6 +744,7 @@
             CALL iotk_write_dat( iuni_nml, "lim_type", lim_type )
             CALL iotk_write_dat( iuni_nml, "linmax", inmax )
             CALL iotk_write_dat( iuni_nml, "maxout", maxout )
+            CALL iotk_write_dat( iuni_nml, "optimization", optimization )
             CALL iotk_write_dat( iuni_nml, "omega", omega )
             CALL iotk_write_dat( iuni_nml, "implicit_fluxes",   &
                                           & implicit_fluxes )
