@@ -158,7 +158,7 @@
 ! ... Compute Turbulent viscosity from Smagorinsky LES model
 !
          IF (iturb .GE. 1)  CALL sgsg
-         IF (iss .EQ. 1)    CALL sgss
+         IF (iss .GE. 1)    CALL sgss
               IF( timing ) s5 = cpclock()
 ! 
 ! ... store gas and particle momentum densities at time n*dt

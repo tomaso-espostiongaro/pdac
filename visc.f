@@ -173,11 +173,15 @@
       USE turbulence, ONLY: must
       IMPLICIT NONE
 !
+      REAL*8, ALLOCATABLE :: epsk(:)
       INTEGER, INTENT(IN) :: k 
 !
       REAL*8 :: drp, dzp, indrp, indzp
       REAL*8 :: epsx, epsz, gepx, gepz
       INTEGER :: imesh, i, j, ij
+!
+      ALLOCATE(epsk(nij_l))
+      epsk(:) = rlk(k,:)*inrl(k)
 !
       drp=(dr(i)+dr(i+1))
       dzp=(dz(j)+dz(j+1))
@@ -189,7 +193,7 @@
 !
 ! ... Newtonian stress tensor
 !
-      CALL stress(pvisx(k,:), pvisz(k,:), mus(k,:), mus(k,:), rlk(k,:)*inrl(k), &
+      CALL stress(pvisx(k,:), pvisz(k,:), mus(k,:), mus(k,:), epsk(:), &
                          uk(k,:), vk(k,:))
 !
 ! ... Repulsive model
@@ -217,6 +221,8 @@
          END IF
         END DO
 !
+      DEALLOCATE(epsk)
+!
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
@@ -239,6 +245,9 @@
       REAL*8 :: epsmu2, epsmu11, epsmu22, epsmu1, epsmu12, epsmu21
       REAL*8 :: drm, drp, dzm, dzp, indrm, indrp, indzm, indzp
       INTEGER :: imesh, i, j, ij
+!
+      visx = 0.D0
+      visz = 0.D0
 !
       DO ij = 1, nij_l
         imesh = myij(0, 0, ij)
@@ -293,7 +302,7 @@
            eps0=(eps(ij)*dr(i+1)+eps(ijr)*dr(i))*indrp
            mu0=(mu(ij)*dr(i+1)+mu(ijr)*dr(i))*indrp
            lambda0=(lambda(ij)*dr(i+1)+lambda(ijr)*dr(i))*indrp
-           t0 = u(ij) * inrb(i)
+           t0 = 2.D0 * u(ij) * inrb(i)
 !
 ! ... divergence of the velocity field at cell boundary
 !
