@@ -2,8 +2,8 @@
 atmosphere.o : control.o dimensions.o gas.o grid.o parallel.o 
 
 bdry.o : atmosphere.o control.o decomp.o dens.o dimensions.o eosg.o gas.o  \
-    grid.o immb.o indijk.o parallel.o particles.o press.o setup.o subscr.o  \
-    temp.o time.o velocity.o 
+    grid.o immb.o indijk.o outp.o parallel.o particles.o press.o setup.o  \
+    subscr.o temp.o time.o velocity.o 
 
 control.o : 
 

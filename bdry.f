@@ -493,21 +493,24 @@
 !
             CASE (2)
 !
-              ug( n2 ) = ug( n1 )
-              us(n2,:) = us(n1,:)
-	      IF (job_type == '3D') THEN
+              IF(flag(ipjkm) == 2) THEN 
+                ug( n2 ) = ug( n1 )
+                us(n2,:) = us(n1,:)
+              END IF
+
+	      IF (flag(ijpkm) == 2 .AND. job_type == '3D') THEN
                 vg( n2 ) = vg( n1 )
                 vs(n2,:) = vs(n1,:)
 	      END IF
 !
             CASE (3)
 !
-              IF(flag(ipjkm) /= 1) THEN
+              IF(flag(ipjkm) == 3) THEN 
                 ug(n2)   = -ug(n1)
                 us(n2,:) = -us(n1,:)
               END IF
 
-              IF(flag(ijpkm) /= 1 .AND. job_type == '3D') THEN
+              IF(flag(ijpkm) == 3 .AND. job_type == '3D') THEN
                 vg(n2)   = -vg(n1)
                 vs(n2,:) = -vs(n1,:)
               END IF
@@ -531,9 +534,9 @@
             END IF
 
           END IF
-
         END IF
       END DO
+
 !
       RETURN
       END SUBROUTINE boundary
