@@ -22,7 +22,7 @@ environment.o :
 
 eosg.o : decomp.o dimensions.o gas.o grid.o hcapgs.o parallel.o time.o 
 
-eosl.o : dimensions.o gas.o hcapgs.o 
+eosl.o : decomp.o dimensions.o gas.o hcapgs.o 
 
 filter.o : outp.o 
 

@@ -52,6 +52,7 @@
 
       surfp(:,:)%p   = 0.D0
       surfp(:,:)%ds  = 0.D0
+      surfp(:,:)%ijk = 0
 
       m = 0
       DO n = 1, no
@@ -65,11 +66,9 @@
           imesh = i + (k-1) * nx
           IF (cell_owner(imesh) == mpime) THEN
             ijk = cell_g2l(imesh,mpime)
-            IF (flag(ijk) == 1) THEN
-              surfp(m,l)%np   = mpime
-              surfp(m,l)%ijk  = ijk
-              surfp(m,l)%ds   = dz(k)
-            END IF
+            surfp(m,l)%np   = mpime
+            surfp(m,l)%ijk  = ijk
+            IF (flag(ijk) == 1) surfp(m,l)%ds   = dz(k)
           END IF
           surfp(m,l)%n(1) = +1
           surfp(m,l)%n(2) = 0
@@ -82,11 +81,9 @@
           imesh = i + (k-1) * nx
           IF (cell_owner(imesh) == mpime) THEN
             ijk = cell_g2l(imesh,mpime)
-            IF (flag(ijk) == 1) THEN
-              surfp(m,l)%np   = mpime
-              surfp(m,l)%ijk  = ijk
-              surfp(m,l)%ds   = dx(i)
-            END IF
+            surfp(m,l)%np   = mpime
+            surfp(m,l)%ijk  = ijk
+            IF (flag(ijk) == 1) surfp(m,l)%ds   = dx(i)
           END IF
           surfp(m,l)%n(1) = 0
           surfp(m,l)%n(2) = 0
@@ -99,11 +96,9 @@
           imesh = i + (k-1) * nx
           IF (cell_owner(imesh) == mpime) THEN
             ijk = cell_g2l(imesh,mpime)
-            IF (flag(ijk) == 1) THEN
-              surfp(m,l)%np   = mpime
-              surfp(m,l)%ijk  = ijk
-              surfp(m,l)%ds   = dz(k)
-            END IF
+            surfp(m,l)%np   = mpime
+            surfp(m,l)%ijk  = ijk
+            IF (flag(ijk) == 1) surfp(m,l)%ds   = dz(k)
           END IF
           surfp(m,l)%n(1) = -1
           surfp(m,l)%n(2) = 0
@@ -116,11 +111,9 @@
           imesh = i + (k-1) * nx
           IF (cell_owner(imesh) == mpime) THEN
             ijk = cell_g2l(imesh,mpime)
-            IF (flag(ijk) == 1) THEN
-              surfp(m,l)%np   = mpime
-              surfp(m,l)%ijk  = ijk
-              surfp(m,l)%ds   = dx(i)
-            END IF
+            surfp(m,l)%np   = mpime
+            surfp(m,l)%ijk  = ijk
+            IF (flag(ijk) == 1) surfp(m,l)%ds   = dx(i)
           END IF
           surfp(m,l)%n(1) = 0
           surfp(m,l)%n(2) = 0
@@ -138,7 +131,7 @@
       USE dimensions, ONLY: no
 !
       IMPLICIT NONE
-      INTEGER :: n, m
+      INTEGER :: n, m, pp
 !
 ! ... Integrate the gas pressure field around
 ! ... the body to compute the drag and the lift 

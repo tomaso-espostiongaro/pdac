@@ -173,6 +173,8 @@
             ygc(ngas,ijk) = 1.D0 - SUM( ygc(1:ngas-1,ijk) )
           END IF
           
+          WRITE(6,*) i,j,k, alpha
+          WRITE(6,*) p(ijk), ep(ijk), rlk(ijk,:)
         END IF
       END DO
 
