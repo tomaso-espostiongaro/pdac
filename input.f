@@ -159,7 +159,7 @@
         atm_Air, atm_SO2, troposphere_grad, tropopause_grad, &
         lower_stratosphere_grad, upper_stratosphere_grad, ozone_layer_grad, &
         lower_mesosphere_grad, upper_mesosphere_grad, troposphere_z, &
-        tropopause_z lower_stratosphere_z, upper_stratosphere_z, &
+        tropopause_z, lower_stratosphere_z, upper_stratosphere_z, &
         ozone_layer_z, lower_mesosphere_z, upper_mesosphere_z
 
       NAMELIST / particles / nsolid, diameter, density, sphericity, &

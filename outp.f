@@ -206,7 +206,6 @@
 
       DO k = 1, nz
 ! ... Check
-        WRITE(*,*) zb(k), p(102 + (k-1)*nx)
         IF (zb(k) <= rim_quota) kq = k
       END DO
       
