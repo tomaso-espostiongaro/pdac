@@ -213,18 +213,20 @@
       OPEN(17,FILE='mesh.dat')
             WRITE(17,*) 'Georeferenced x-y mesh'
             WRITE(17,*) 'x'
-            WRITE(17,*) x
+            WRITE(17,17) x
             WRITE(17,*) 'xb'
-            WRITE(17,*) xb
+            WRITE(17,17) xb
             WRITE(17,*) 'y'
-            WRITE(17,*) y
+            WRITE(17,17) y
             WRITE(17,*) 'yb'
-            WRITE(17,*) yb
+            WRITE(17,17) yb
             WRITE(17,*) 'z' 
-            WRITE(17,*) z 
+            WRITE(17,17) z 
             WRITE(17,*) 'zb' 
-            WRITE(17,*) zb
+            WRITE(17,17) zb
       CLOSE(17)
+
+ 17   FORMAT(5(F20.6))
 
       RETURN 
       END SUBROUTINE grid_setup
