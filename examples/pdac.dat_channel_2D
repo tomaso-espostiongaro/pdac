@@ -1,0 +1,69 @@
+&control
+ run_name = 'channel',
+ job_type = '2D',
+ restart_mode = 'from_scratch', ! ( from_scratch | restart )
+ time =  0.00,
+ tstop = 0.5,
+ dt    = 0.005,
+ tpr   = 0.5,
+ tdump = 5.0,
+ nfil = 0
+/
+
+&model
+ iturb = 0,
+ gravz = 0
+/
+
+&mesh
+  nx = 45,
+  nz = 30,
+  dx0 = 1.0d1,
+  dz0 = 1.0d1
+/
+
+&particles
+  nsolid = 2, 
+  diameter = 200.D0, 30.D0,
+  density = 1500.D0, 2500.D0,
+  sphericity = 1.0, 1.0,
+  viscosity = 1.0, 0.5, 
+  specific_heat = 1.2D3, 1.2D3, 
+  thermal_conductivity = 2.0D0, 2.0D0
+/
+
+&numeric
+  rungekut = 1,
+  omega = 1.00
+/
+
+'ROUGHNESS'
+1, 1.D0, 5.D3  % IR(1/2),ZROUGH(I),ROUCHA
+
+'MESH'
+
+1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 
+1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 
+1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 
+1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 
+1.0D0 1.0D0 1.0D0 1.0D0 1.0D0
+
+1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 
+1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 
+1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 1.0D0 
+
+'FIXED_FLOWS'
+4
+5, 1, 1, 1, 30
+20.0, 0.0, 1.0D5, 0.98, 288.15   
+20.0, 0.0, 0.01, 288.15
+20.0, 0.0, 0.01, 288.15
+0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0  
+4, 45, 45, 1, 30
+2, 1, 45, 1, 1
+2, 1, 45, 30, 30
+
+'INITIAL_CONDITIONS'
+20.0, 0.0, 1.0D5, 1.0 0.6413, 288.15 
+20.0, 0.0
+0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0

@@ -1,0 +1,70 @@
+&control
+ run_name = 'shock_tube',
+ job_type = '2D',
+ restart_mode = 'from_scratch', ! ( from_scratch | restart )
+ time =  0.00,
+ tstop = 0.012,
+ dt    = 0.001,
+ tpr   = 0.002,
+ tdump = 5.0,
+ nfil = 0
+/
+
+&model
+ density_specified = T,
+ gas_viscosity = F,
+ iturb = 0,
+ gravz = 0,
+ ngas = 1
+/
+
+&mesh
+  iuni = 1,
+  nx = 102,
+  nz = 3,
+  dx0 = 1.0d-2,
+  dz0 = 1.0d-2
+/
+
+&particles
+  nsolid = 1, 
+  diameter = 200.D0,
+  density = 1500.D0,
+  sphericity = 1.0,
+  viscosity = 1.0,
+  specific_heat = 1.2D3,
+  thermal_conductivity = 2.0D0,
+/
+
+&numeric
+  rungekut = 1,
+  beta = 0.25,
+  lim_type = 4,
+  muscl = 1,
+  omega = 1.00
+/
+
+'ROUGHNESS'
+1, 1.D0, 5.D3  % IR(1/2),ZROUGH(I),ROUCHA
+
+'MESH'
+
+'FIXED_FLOWS'
+6
+2, 1, 102, 1, 1
+2, 1, 102, 3, 3
+2, 1, 1, 2, 2
+2, 102, 102, 2, 2
+1, 2, 51, 2, 2
+0.0, 0.0, 1000.0D0, 1.0, 1.0
+0.0, 0.0, 0.0, 0.0
+0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0
+1, 52, 101, 2, 2
+0.0, 0.0, 0.01D0, 1.0, 1.0
+0.0, 0.0, 0.0, 0.0
+0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0
+
+'INITIAL_CONDITIONS'
+0.0, 0.0, 1.0D0, 1.0 0.6413, 288.15 
+0.0, 0.0
+0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0

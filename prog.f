@@ -62,13 +62,13 @@
          call MP_WALLTIME(p0,myrank)
       END IF
 
-      nprint = INT(tpr/dt)
-      ndump  = INT(tdump/dt)
+      nprint = NINT(tpr/dt)
+      ndump  = NINT(tdump/dt)
 
       WRITE(6,*) 'Print OUTPUT every ', nprint, ' time steps'
       WRITE(6,*) 'Print RESTART every ', ndump, ' time steps'
 
-      irest = 0
+      irest = NINT(time/dt)
 
       !
       !   set timing variables to 0

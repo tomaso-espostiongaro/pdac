@@ -2,8 +2,8 @@
 # AIX
 #----------------------------------------
 
-MACROS= -DMPI,-D__SP4,-D__HPM,-D__SISLIN
-#MACROS= -DSCALAR
+MACROS= -D__MPI,-D__SP4,-D__HPM,-D__SISLIN
+#MACROS= -D__SCALAR
 
 #----------------------------------------
 

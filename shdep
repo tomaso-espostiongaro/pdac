@@ -2,7 +2,8 @@
 
 rm -f .dependencies
 SOURCES=`ls *.f`
-for file in $SOURCES
+for file in ${SOURCES}
 do
-  utility/moduledep.x $file *.f >> ./.dependencies
+  echo ${file}
+  utility/moduledep.x ${file} *.f >> ./.dependencies
 done

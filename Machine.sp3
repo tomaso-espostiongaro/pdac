@@ -1,8 +1,8 @@
 #----------------------------------------
 # AIX
 #----------------------------------------
-MACROS= -DMPI
-#MACROS= -DSCALAR
+MACROS= -D__MPI
+#MACROS= -D__SCALAR
 #----------------------------------------
 OMPITRACE_HOME= /cineca/prod/OMPItrace
 OMPILIB= -L $(OMPITRACE_HOME)/lib -lompitrace

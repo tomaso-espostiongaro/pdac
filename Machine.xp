@@ -1,6 +1,6 @@
 #----------------------------------------
-#MACROS= -DMPI
-MACROS= -DSCALAR
+#MACROS= -D__MPI
+MACROS= -D__SCALAR
 #----------------------------------------
 CPPFLAGS= -WF,$(MACROS)
 LINKFLAGS= 
