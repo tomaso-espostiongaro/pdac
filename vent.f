@@ -118,8 +118,6 @@
           
         END DO
       END DO
-      
-      WRITE(19,'(80(I3))') (fl(ijk), ijk=1,nx*ny*nz)
 !
       RETURN
       END SUBROUTINE locate_vent
@@ -198,7 +196,6 @@
             !
             ws(ijk,is) = w_solid(is) * fact_r
 
-            ws(ijk,is)  = w_solid(is) 
             ts(ijk,is)  = t_solid(is)
             rlk(ijk,is) = ep_solid(is)*rl(is) * alpha
           END DO

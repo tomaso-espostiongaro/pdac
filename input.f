@@ -238,7 +238,7 @@
       u_gas = 0.D0            ! gas velocity x
       v_gas = 0.D0            ! gas velocity y
       w_gas = 0.D0            ! gas velocity z
-      wrat = 1.D0             ! maximum vertical velocity
+      wrat = 1.D0             ! maximum/mean vertical velocity ratio
       p_gas = 1.01325D5       ! gas pressure
       t_gas  = 288.15D0       ! gas temperature
       u_solid = 0.D0           ! particle velocity x (array)
@@ -288,7 +288,7 @@
       lim_type = 2      !  limiter type 
       muscl = 0         !  0 first order, 1 muscl ( high order )
       inmax = 8         !  maximum number of pressure correction steps
-      maxout = 1000     !  maximum number of solver iteration
+      maxout = 500      !  maximum number of solver iteration
       omega = 1.0       !  relaxation parameter  ( 0.5 under - 2.0 over)
       optimization = 1  !  optimization degree on iterative solver
       implicit_fluxes   = .FALSE. ! fluxes are computed implicitly
@@ -424,11 +424,11 @@
       CALL bcast_real(w_gas,1,root)
       CALL bcast_real(p_gas,1,root)
       CALL bcast_real(t_gas,1,root)
-      CALL bcast_real(u_solid,1,root)
-      CALL bcast_real(v_solid,1,root)
-      CALL bcast_real(w_solid,1,root)
-      CALL bcast_real(ep_solid,1,root)
-      CALL bcast_real(t_solid,1,root)
+      CALL bcast_real(u_solid,nsolid,root)
+      CALL bcast_real(v_solid,nsolid,root)
+      CALL bcast_real(w_solid,nsolid,root)
+      CALL bcast_real(ep_solid,nsolid,root)
+      CALL bcast_real(t_solid,nsolid,root)
       CALL bcast_real(vent_O2,1,root)
       CALL bcast_real(vent_N2,1,root)
       CALL bcast_real(vent_CO2,1,root)

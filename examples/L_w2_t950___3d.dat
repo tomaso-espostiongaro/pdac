@@ -1,13 +1,14 @@
 &control
- run_name = 'LL_w2_t950_A'
+ run_name = 'L_w2_t950___3d'
  job_type = '3D',
  restart_mode = 'from_scratch', ! ( from_scratch | restart )
  time =  0.0D0,
- tstop = 100.0D0,
+ tstop = 0.01D0,
  dt    = 0.01D0,
- tpr   = 2.0D0,
- tdump = 10.0D0,
- nfil = 0
+ tpr   = 1.0D0,
+ tdump = 5.0D0,
+ nfil = 0,
+ formatted_output = .FALSE.
 /
 
 &model
@@ -18,30 +19,31 @@
 /
 
 &mesh
-  nx = 64,
-  ny = 64,
+  nx = 128,
+  ny = 128,
   nz = 128,
   itc = 0,
   iuni = 0,
   grigen = 1,
   center_x =  451632.D0,
   center_y = 4519267.D0,
-  domain_x = 6.D3,
-  domain_y = 6.D3,
-  domain_z = 6.D3,
+  domain_x = 12.D3,
+  domain_y = 12.D3,
+  domain_z = 8.D3,
   alpha_x = 0.5D0,
   alpha_y = 0.5D0,
-  alpha_z = 0.0D0,
+  alpha_z = 0.125D0,
   dxmin = 10.D0,
-  dxmax = 100.D0,
+  dxmax = 250.D0,
   dymin = 10.D0,
-  dymax = 100.D0,
+  dymax = 250.D0,
   dzmin = 20.D0,
-  dzmax = 200.D0,
-  n0x = 15,
-  n0y = 15,
+  dzmax = 250.D0,
+  n0x = 10,
+  n0y = 10,
   n0z = 50,
-  maxbeta = 1.5D0
+  maxbeta = 1.5D0,
+  mesh_partition = 2
 /
 
 &boundaries
@@ -58,15 +60,15 @@
 
 &inlet
   ivent = 1,
-  radius = 57.5,
+  radius = 28.8D0,
   u_gas = 0.D0,
   v_gas = 0.D0,
-  w_gas = 137.D0,
+  w_gas = 137.1D0,
   p_gas = 17.D5,
   t_gas  = 1223.15D0,
   u_solid = 0.D0, 0.D0
   v_solid = 0.D0, 0.D0
-  w_solid = 137.D0, 137.D0
+  w_solid = 137.1D0, 137.1D0
   ep_solid = 0.0245D0, 0.0686D0
   t_solid  = 1223.15D0, 1223.15D0
   vent_H2O = 1.D0,
@@ -88,7 +90,7 @@
 
 &numeric
   rungekut = 1,
-  omega = 1.0D0
+  omega = 1.2D0
 /
 
 'ROUGHNESS'

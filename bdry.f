@@ -58,7 +58,7 @@
 
         IF (flag(ijk) == 8) THEN
 
-          CALL update_ventc(sweep,ijk)
+          !CALL update_ventc(sweep,ijk)
 
         ELSE IF( flag(ijk) == 1 ) THEN
           CALL subscr(ijk)
