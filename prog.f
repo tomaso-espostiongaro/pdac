@@ -1,7 +1,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE prog
 
-      USE boundary_conditions, ONLY: boundary2d, boundary3d
+      USE boundary_conditions, ONLY: boundary
       USE control_flags, ONLY: job_type
       USE dimensions
       USE domain_decomposition, ONLY: ncint, myijk
@@ -114,13 +114,7 @@
 !
 ! ... Compute Boundary Conditions
 !
-         IF( job_type == '2D' ) THEN
-           CALL boundary2d 
-         ELSE IF( job_type == '3D' ) THEN
-           CALL boundary3d
-         ELSE
-           CALL error(' prog ',' wrong job_type ',1)
-         END IF
+         CALL boundary
 !
 ! ... Compute derived fields from closure equations
 ! ... (all these fields must be dumped into restart file)
