@@ -47,6 +47,7 @@
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
       USE grid, ONLY: flag
+      USE immersed_boundaries, ONLY: immb
       USE indijk_module
       USE parallel, ONLY: mpime
       USE particles_constants, ONLY: rl, inrl
@@ -113,16 +114,11 @@
         rsfn = 0.0D0
       END IF
 !
-! ... An approximate value for gas density fluxes is guessed, 
-! ... using estimates of velocity and pressure.
-! ... The best esitmates for new velocities and pressure
-! ... are their values at previous time-step.
-!
-!
-!
 ! ... Assemble and solve the explicit phase matrix 
 ! ... to update velocity fields. New velocities are
-! ... biassed by the wrong (old) pressure field.
+! ... biassed by the wrong pressure field. The best
+! ... estimate for the pressure field is given by
+! ... the pressure at previous time-step.
 !
       DO ijk = 1, ncint
         IF ( flag( ijk ) == 1) THEN
@@ -145,21 +141,24 @@
 !
 ! ... In 3D use optimized routines with two particle classes
 !
-      optimization = ( nsolid == 2 ) .AND. ( job_type == '3D' )
+      optimization = ( nsolid == 2 ) .AND. ( job_type == '3D' ) .AND. &
+                     ( immb < 1 )
       IF( optimization ) THEN
         ALLOCATE( amats( 6, 6, ncint ) )
       END IF
 !
 ! ... compute the fraction of partially filled boundary cells
+!
       CALL fill_cells
 !
-! ... Compute the gas mass fluxes using the guessed velocities 
+! ... Guess an approximate value for gas density fluxes
+! ... using the estimates of velocity and pressure.
 !
       DO ijk = 1, ncint
         IF ( flag( ijk ) == 1 ) THEN
           CALL first_subscr( ijk )
           CALL calc_gas_mass_flux( ijk )
-
+          !
           ! ... compute the derivative of the gas mass residual
           ! ... with respect to gas pressure
           CALL betas( conv( ijk ), abeta( ijk ), ijk )
@@ -173,8 +172,8 @@
         END IF
       END DO
 !
-!/////////////////////////////////////////////////////////////////////
 ! ... Here Start the external iterative sweep.
+!/////////////////////////////////////////////////////////////////////
 !
 ! ... The correction equation are iterated on the mesh
 ! ... to propagate the updated velocities and pressure
@@ -210,7 +209,6 @@
             !st0 = cclock_wall()
             !call system_clock (st0,ratc)
             !CALL f_hpmstart( 1, ' sor ' )
-            
          END IF  
 
          nloop  = 0
@@ -230,8 +228,8 @@
              CALL meshinds(ijk,imesh,i,j,k)
              CALL first_subscr(ijk)
 
-             ! ...   Compute the residual of the mass balance 
-             ! ...   equation of the gas phase
+             ! ... Compute locally the residual 'dg' of the
+             ! ... mass balance equation of the gas phase
              !
              CALL calc_res(i,j,k,ijk,dg)
 
@@ -253,11 +251,11 @@
              ELSE IF ( ABS(dg) > conv( ijk ) ) THEN
 
                n2 = n2 + 1
-!
+
                ! ... If the residual is higher then the prescribed limit
                ! ... start the inner (in-cell) iterative loop
                ! ... to correct pressure and velocities.
-!
+               !
                d3 = dg
                p3 = p( ijk )
 
@@ -311,7 +309,7 @@
         CALL data_exchange(p)
         CALL data_exchange(ep)
 !
-! ... Enthalpy equations can be solved implicitly
+! ... Here the enthalpy equations can be solved implicitly
 !
         IF (implicit_enthalpy) THEN
           !
@@ -371,7 +369,6 @@
 ! ... End the iterative sweep
 !/////////////////////////////////////////////////////////////////////
 !
-
 ! IF (TIMING)
       timiter = 0.0d0
       DO itim = 1, nit
@@ -479,7 +476,7 @@
 !
         ! ... Use equation of state to calculate gas density 
         ! ... from (new) pressure and (old) temperature.
-        ! ... (note that the explicit solution of the enthalpy
+        ! ... (notice that the explicit solution of the enthalpy
         ! ... equations affects only this updating)
 !
         CALL thermal_eosg(rog(ijk),tg(ijk),p(ijk),xgc(:,ijk))
@@ -508,6 +505,9 @@
         ! ... update residual of the Mass Balance equation of the gas phase
         ! ... using guessed velocities and pressure.
 
+        ! ... WARNING! Only the local values of the stencil have to be updated!
+        ! ... This procedure can be optimized!
+        !
         CALL calc_gas_mass_flux( ijk )
         CALL calc_res( i, j, k, ijk, dg)
 !
@@ -1161,9 +1161,10 @@
         TYPE(stencil) :: rgp_, rlk_(max_nsolid) 
 
         INTEGER :: loop, kros, ig, is
-
-        kros = -1
-
+!
+        ! ... These values of the mass fluxes will be updated
+        ! ... in the inner_loop.
+        !
         fse_(1:nsolid) = rsfe( ijk, 1:nsolid )
         fsw_(1:nsolid) = rsfe( imjk, 1:nsolid )
         fst_(1:nsolid) = rsft( ijk, 1:nsolid )
@@ -1181,6 +1182,10 @@
           fs_ = rgfn( ijmk )
         END IF
 
+        ! ... These are the stencil used in the inner_loop
+        ! ... Only some values in the stencil are updated
+        ! ... in the inner_loop
+        !
         CALL first_nb(rgp_,rgp,ijk)
         CALL first_rnb(ug_,ug,ijk)
         CALL first_rnb(wg_,wg,ijk)
@@ -1204,9 +1209,10 @@
             IF (job_type == '3D') CALL third_rnb(vs_(is),vs(:,is),ijk)
           END IF
         END DO
-
-        DO loop = 1, inmax
 !
+        kros = -1
+        DO loop = 1, inmax
+
           ! ... Correct the pressure at current cell
           ! ... by using successively the Newton's method
           ! ... (or the secant method where Newton is not
@@ -1225,8 +1231,6 @@
           CALL thermal_eosg(rog(ijk),tg(ijk),p(ijk),xgc(:,ijk))
 !
           rgp(ijk) = ep(ijk) * rog(ijk)
-
-          !rgp_%c = rgp(ijk)
 !
           ! ... Update gas and particles velocities using the 
           ! ... corrected pressure at current location. 
@@ -1235,6 +1239,8 @@
           CALL assemble_all_matrix(ijk)
           CALL solve_all_velocities(ijk)
 !
+          ! ... Update the stencils
+          !
           ug_%c = ug( ijk )
           ug_%w = ug( imjk )
           wg_%c = wg( ijk )
@@ -1253,10 +1259,11 @@
               vs_(is)%s = vs( ijmk, is )
             END IF
           END DO
-
-          ! ... update particle and gas densities and the 
-          ! ... gas mass residual 'dg'
 !
+          ! ... By using the new velocity fields
+          ! ... update particle gas mass fluxes and
+          ! ... solid volumetric fractions
+          !
           rls = 0.D0
           DO is = 1, nsolid
 
@@ -1297,8 +1304,6 @@
 
             rls = rls + rlk( ijk, is ) * inrl(is)
 
-            rlk_(is)%c = rlk( ijk, is )
-
           END DO
 
           IF( rls > 1.D0 ) THEN
@@ -1310,13 +1315,15 @@
           ep( ijk ) = 1.D0 - rls
           rgp( ijk ) = ep( ijk ) * rog( ijk )
 
+          ! ... Update the stencil
+          !
+          rlk_(:)%c = rlk(ijk,:)
           rgp_%c = rgp(ijk)
+
 
           ! ... update residual of the Mass Balance equation of the gas phase
           ! ... using guessed velocities and pressure.
-
-          ! ... update the particle volumetric fractions and the void fraction
-
+          !
           IF (job_type == '2D') THEN
 
             CALL masf( fe_, ft_, fw_, fb_, rgp_, ug_, wg_, ijk )
@@ -1327,10 +1334,10 @@
 
           ELSE IF (job_type == '3D') THEN
 
-            CALL masf( fe_, fn_, ft_, fw_, fs_, fb_, rgp_, ug_, vg_, wg_, ijk )
+            CALL masf( fe_, fn_, ft_, fw_, fs_, fb_, rgp_, ug_, vg_, wg_, ijk)
 
             IF (muscl /= 0) THEN
-              CALL fmas( fe_, fn_, ft_, fw_, fs_, fb_, rgp_, ug_, vg_, wg_, ijk )
+              CALL fmas( fe_, fn_, ft_, fw_, fs_, fb_, rgp_, ug_, vg_, wg_, ijk)
             END IF
 
           END IF
@@ -1362,6 +1369,9 @@
 
         END DO 
 
+        ! ... Update the mass fluxes
+        ! ... (used in the next outer iteration)
+        !
         rsfe( ijk, 1:nsolid ) = fse_(1:nsolid) 
         rsfe( imjk, 1:nsolid ) = fsw_(1:nsolid) 
         rsft( ijk, 1:nsolid ) = fst_(1:nsolid)

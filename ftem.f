@@ -89,7 +89,7 @@
 !
           IF(irex == 2) CALL hrex(ijk,hrexg,hrexs)
 !
-! ... The pressure contribution can be treated implicitly
+! ... The pressure terms can be treated implicitly
 ! ... (coupled with momentum equation into the iterative solver)
 !
           indxc = 1.D0/(dx(i)+(dx(i+1)+dx(i-1))*0.5D0)
@@ -136,7 +136,6 @@
             at(is1,is1) = rlk(ijk,is) + dt * hv / ck(is,ijk)
 !
             bt(is1) = rlkn(ijk,is) * siesn(ijk,is) + rhs(ijk, is)
-
           END DO
 !            
 ! ... Solve the interphase enthalpy matrix by using Gauss inversion
@@ -160,6 +159,7 @@
           END DO
 
         END IF
+
       END DO
 !
       DEALLOCATE(at)

@@ -171,7 +171,8 @@
 !
       DO ijk = 1, ncint
 
-       ! ... WARNING: in the old code was done only in fluid cells
+       ! ... WARNING: in the old code this was done only in fluid cells,
+       ! ... but it is now preferable to loop over the whole domain
        !
        !IF(flag(ijk) == 1) THEN
 
@@ -276,6 +277,7 @@
       USE immersed_boundaries, ONLY: immb
       USE particles_constants, ONLY: inrl
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm, ijkt, ijke, ijkn
+      USE turbulence_model, ONLY: mugt
 !
       IMPLICIT NONE
 !
@@ -629,12 +631,11 @@
                 force = force - presn - dragn
                 rws(ijk,is) = rws(ijk,is) + dt * force
               END DO
-
             END IF
 
           END IF
+
         END IF
-        
       END DO
 !
       DEALLOCATE(ugfe, ugft)

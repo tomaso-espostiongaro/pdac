@@ -148,7 +148,7 @@
         layer(l)%ptop = ptop
         layer(l)%ttop = ttop
 
-        IF (lpr > 1) THEN
+        IF (lpr > 1 .AND. stratification) THEN
           IF( mpime == root ) THEN
             WRITE(6,*) layer(l)%name
             WRITE(6,*) layer(l)%gradt
