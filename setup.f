@@ -62,12 +62,12 @@
       CALL grid_setup( zzero )
       CALL setc
 !
+! ... Control that atmospheric stratification is consistent
+      CALL controlatm
+!
 ! ... set initial conditions from prescribed input data
 !
       IF (itd <= 1) THEN
-!
-! ... Control that atmospheric stratification is consistent
-        CALL controlatm
 !
 ! ... Set initial atmospheric conditions in all computational 
 ! ... domain (including boundary cells)
@@ -399,7 +399,7 @@
       gamn     = (gammaair - 1.D0) / gammaair    ! useful constant ! 
       c_joule = 4.186D0                          ! cal per joule
       c_erg   = 4.186D7                          ! cal per erg
-      tzero  = 0.D0                              ! costant reference temperature
+      tzero  = 0.0D0                             ! costant reference temperature
       hzerog = 0.D0                              ! gas enthalpy at tzero
       hzeros = 0.D0                              ! particles enthalpy at tzero
       rgas  = 8.31432                            ! perfect gas constant

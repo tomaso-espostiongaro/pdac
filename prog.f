@@ -18,7 +18,7 @@
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE io_restart, ONLY: tapewr, max_seconds
       USE iterative_solver, ONLY: iter
-      USE output_dump, ONLY: outp, shock_tube_out
+      USE output_dump, ONLY: outp
       USE particles_constants, ONLY: cps
       USE pressure_epsilon, ONLY: p, ep
       USE reactions, ONLY: rexion, irex
@@ -167,7 +167,6 @@
 !
        IF(time+0.1D0*dt >= tpri) THEN
          CALL outp
-!         CALL shock_tube_out
          tpri=tpri+tpr
        ENDIF
 
