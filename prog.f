@@ -308,7 +308,6 @@
           IF (imap > 0 .AND. itp >= 1) CALL outp_map(array)
           CALL outp
         ENDIF
-        CALL write_radial_profile_2d
 !
         IF( timing ) then
           s11 = cpclock()

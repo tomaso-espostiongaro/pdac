@@ -205,7 +205,6 @@
       INTEGER :: n, is, ig, kq, k, nq
 
       DO k = 1, nz
-! ... Check
         IF (zb(k) <= rim_quota) kq = k
       END DO
       
