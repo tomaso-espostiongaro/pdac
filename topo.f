@@ -26,6 +26,8 @@
         REAL*8  :: cellsize   
         REAL*8  :: nodata_value
       END TYPE dem_header
+
+      TYPE(dem_header) :: vdem
 !
 ! ... arrays used for the interpolation
 !
@@ -147,8 +149,6 @@
       REAL    :: dd
       INTEGER :: noval
       INTEGER :: elevation
-
-      TYPE(dem_header) :: vdem
 
       IF (mpime == root) THEN
         topo_file = TRIM(topography)

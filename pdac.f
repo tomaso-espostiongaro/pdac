@@ -147,17 +147,17 @@
 !
       IF (itp >= 1)  CALL import_topography
 
-! ... Set immersed boundary parameters if prescribed
+! ... Define volcanic vent position on the 3D topography
+!
+      IF (ivent >= 1) CALL locate_vent
+
+! ... Set immersed boundary parameters (if prescribed)
 !
       IF (immb == 1) CALL set_forcing
 
 ! ... Write the implicit topographic profile
 !
       IF (itp >= 1)  CALL write_profile
- 
-! ... Define volcanic vent position on the 3D topography
-!
-      IF (ivent >= 1) CALL locate_vent
 !
       CALL partition
 

@@ -86,8 +86,8 @@
       USE grid, ONLY: maxbeta, grigen
       USE initial_conditions, ONLY: density_specified
       USE vent_conditions, ONLY: u_gas,v_gas,w_gas,p_gas,t_gas, wrat, &
-          u_solid, v_solid, w_solid,  ep_solid, t_solid, radius, xvent,&
-          yvent, ivent, iali, irand
+          u_solid, v_solid, w_solid,  ep_solid, t_solid, base_radius, &
+          radius, xvent, yvent, ivent, iali, irand
       USE immersed_boundaries, ONLY: immb
       USE iterative_solver, ONLY: inmax, maxout, omega, optimization
       USE io_restart, ONLY: max_seconds, nfil
@@ -127,7 +127,7 @@
         itp, topography, immb, ibl, deltaz, imap
       
       NAMELIST / inlet / ivent, iali, irand, wrat, &
-        xvent, yvent, radius, u_gas, v_gas, w_gas,  &
+        xvent, yvent, radius, base_radius, u_gas, v_gas, w_gas,  &
         p_gas, t_gas, u_solid, v_solid, w_solid, ep_solid, t_solid, &
         vent_O2, vent_N2, vent_CO2, vent_H2, vent_H2O, vent_Air, vent_SO2
 
@@ -242,6 +242,7 @@
       xvent  = 0.D0           ! coordinates of the vent
       yvent  = 0.D0           ! coordinates of the vent
       radius = 100.D0         ! vent radius
+      base_radius = 200.D0    ! base radius
       u_gas = 0.D0            ! gas velocity x
       v_gas = 0.D0            ! gas velocity y
       w_gas = 0.D0            ! gas velocity z
@@ -435,6 +436,7 @@
       CALL bcast_real(xvent,1,root)
       CALL bcast_real(yvent,1,root)
       CALL bcast_real(radius,1,root)
+      CALL bcast_real(base_radius,1,root)
       CALL bcast_real(wrat,1,root)
       CALL bcast_real(u_gas,1,root)
       CALL bcast_real(v_gas,1,root)
@@ -783,6 +785,7 @@
             CALL iotk_write_dat( iuni_nml, "xvent", xvent )
             CALL iotk_write_dat( iuni_nml, "yvent", yvent )
             CALL iotk_write_dat( iuni_nml, "radius", radius )
+            CALL iotk_write_dat( iuni_nml, "base_radius", base_radius )
             CALL iotk_write_dat( iuni_nml, "u_gas", u_gas )
             CALL iotk_write_dat( iuni_nml, "v_gas", v_gas )
             CALL iotk_write_dat( iuni_nml, "w_gas", w_gas )
