@@ -337,7 +337,6 @@
 ! set useful constants 
 !
       gammaair = 1.33D0                          ! air adiabatic constant
-      gammaair = 1.4D0                          ! air adiabatic constant
       gamn     = (gammaair - 1.D0) / gammaair    ! useful constant ! 
       c_joule = 4.186D0                          ! cal per joule
       c_erg   = 4.186D7                          ! cal per erg
