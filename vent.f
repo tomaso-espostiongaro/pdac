@@ -44,7 +44,7 @@
         yvent = center_y
       END IF
 !
-      WRITE(6,*) 'Vent conditions imposed in cells: '
+      WRITE(7,*) 'Vent conditions imposed in cells: '
 !
 ! ... define the rectangle containing the vent
 ! ... 'nvt' is the number of vent cells
@@ -100,7 +100,7 @@
             fl(ijk) = bottom
           END IF
           !
-          WRITE(6,10) nv, ijk, i, j, k, vcell(nv)%frac, fl(ijk)
+          WRITE(7,10) nv, ijk, i, j, k, vcell(nv)%frac, fl(ijk)
  10       FORMAT(I3,I7,3(I3),F6.3,I2)
 !
 ! ... fluid cells above the vent

@@ -31,7 +31,7 @@
       USE gas_solid_viscosity, ONLY: mug, kapg
       USE grid, ONLY: flag
       USE grid, ONLY: dx, dy, dz
-      USE immersed_boundaries, ONLY: x_forced, y_forced, z_forced
+      USE immersed_boundaries, ONLY: numx, numy, numz
       USE specific_heat_module, ONLY: ck, cp
       USE heat_transfer, ONLY: hvs
       USE particles_constants, ONLY: cps
@@ -51,13 +51,9 @@
       REAL*8 :: ugc, vgc, wgc
       INTEGER :: is, is1
       INTEGER :: ijk, i, j, k, imesh, info
-      LOGICAL :: fx, fy, fz, forced
+      INTEGER :: fx, fy, fz
+      LOGICAL :: forced = .FALSE.
 !
-      fx = .FALSE.
-      fy = .FALSE.
-      fz = .FALSE.
-      forced = .FALSE.
-
       ALLOCATE(at(nphase, nphase))
       ALLOCATE(bt(nphase))
 !
@@ -76,10 +72,14 @@
 !
       DO ijk = 1, ncint
 
-        fx = x_forced(ijk)
-        IF (job_type == '3D') fy = y_forced(ijk)
-        fz = z_forced(ijk)
-        forced = (fx .OR. fy .OR. fz)
+        fx = numx(ijk)
+        IF (job_type == '2D') THEN
+          fy = 0
+        ELSE IF (job_type == '3D') THEN
+          fy = numy(ijk)
+        END IF
+        fz = numz(ijk)
+        forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
         
         IF(flag(ijk) == 1 .AND. .NOT.forced) THEN
           CALL meshinds(ijk,imesh,i,j,k)

@@ -73,7 +73,7 @@
       USE gas_solid_viscosity, ONLY: mus
       USE grid, ONLY: zb, dz
       USE grid, ONLY: flag, iob
-      USE immersed_boundaries, ONLY: x_forced, y_forced, z_forced
+      USE immersed_boundaries, ONLY: numx, numy, numz
       USE particles_constants, ONLY: rl, inrl, cmus
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: itd
@@ -84,10 +84,10 @@
       IMPLICIT NONE
 !
       INTEGER :: i, j, k, ijk, ikpr, kpr, n, imesh
-      INTEGER :: ig, is
+      INTEGER :: ig, is, fx, fy, fz
       REAL*8 :: zrif
       REAL*8 :: mass, tem
-      LOGICAL :: forced
+      LOGICAL :: forced = .FALSE.
 !
 ! ... Initialize particle's viscosity
 ! 
@@ -134,11 +134,15 @@
           !
           IF ( flag(ijk) == 1 .OR. flag(ijk) == 4 .OR. flag(ijk) == 6 ) THEN
 
-            IF (job_type == '2D') THEN
-              forced = x_forced(ijk) .OR. z_forced(ijk)
-            ELSE IF (job_type == '3D') THEN
-              forced = x_forced(ijk) .OR. y_forced(ijk) .OR. z_forced(ijk)
-            END IF
+          fx = numx(ijk)
+          IF (job_type == '2D') THEN
+            fy = 0
+          ELSE IF (job_type == '3D') THEN
+            fy = numy(ijk)
+          END IF
+          fz = numz(ijk)
+
+          forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
 
             IF( .NOT.forced ) THEN
               ug(ijk) = wind_x

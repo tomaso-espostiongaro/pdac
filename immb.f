@@ -16,10 +16,10 @@
 ! ... Parameters identifying a forcing point: (i,j,k) are the 
 ! ... (x,y,z) discrete coordinates, (int) is the type of interpolation
 ! ... to be done:
-! ... In 2D: -10= extrap z -3=lin sx/top, -2=linsx, -1=bilsx, 
-! ...        0=lintop, 1=bildx, 2=lindx, 3=lin dx/top, 10=extrap x), 
-! ... In 3D: the interpolation is defined by the number of neighbours
-! ...        and identified by the binary numbers form 0 to 255
+! ... In 2D: -3=lin sx/top, -2=linsx, -1=bilsx, 
+! ...        0=lintop, 1=bildx, 2=lindx, 3=lin dx/top 
+! ... In 3D: always linear interpolation with the nerighbour
+! ...        (from 1 to 8) that is more convenient       
 ! ... (nsl) are the coordinates of the noslip point
 !
       TYPE forcing_point
@@ -33,16 +33,6 @@
 !
       TYPE(forcing_point), ALLOCATABLE :: fptx(:), fpty(:), fptz(:)
 !
-! ... Conditional array to be used in loops:
-! ... this value is .TRUE. when force has to be computed at a given location
-!
-      LOGICAL, ALLOCATABLE :: forcex(:)
-      LOGICAL, ALLOCATABLE :: forcey(:)
-      LOGICAL, ALLOCATABLE :: forcez(:)
-      LOGICAL, ALLOCATABLE :: x_forced(:)
-      LOGICAL, ALLOCATABLE :: y_forced(:)
-      LOGICAL, ALLOCATABLE :: z_forced(:)
-!
 ! ... Topographic elevation at the mesh points
 ! ... (centered and staggered)
 !
@@ -54,27 +44,30 @@
 !
 ! ... This function gives the increasing number of local forcing points 
       INTEGER, ALLOCATABLE :: numx(:), numy(:), numz(:)
-      INTEGER :: nfp, nfpx, nfpy, nfpz
 !           
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
       SUBROUTINE set_forcing
-      USE control_flags, ONLY: job_type, lpr, immb, itp
-      USE volcano_topography, ONLY: grid_locations, vertical_shift
+      USE control_flags, ONLY: job_type, lpr
+      USE volcano_topography, ONLY: vertical_shift
       USE volcano_topography, ONLY: interpolate_2d, interpolate_dem
       USE volcano_topography, ONLY: ord, next
       USE volcano_topography, ONLY: ord2d, nextx, nexty
-      USE volcano_topography, ONLY: cx, cy, cz
-      USE grid, ONLY: z
+      USE grid, ONLY: z, fl, x, xb, y, yb, z, zb
 
       IMPLICIT NONE
       INTEGER :: p
       INTEGER :: i,j,k,ijk
-
-      LOGICAL, ALLOCATABLE :: dummy(:)
-      ALLOCATE (dummy(ntot))
+      INTEGER :: nfpx, nfpy, nfpz
+!
+! ... Conditional array to be used in loops:
+! ... this value is .TRUE. when force has to be computed at a given location
+!
+      LOGICAL, ALLOCATABLE :: forcex(:)
+      LOGICAL, ALLOCATABLE :: forcey(:)
+      LOGICAL, ALLOCATABLE :: forcez(:)
 !
 ! ... If Immersed Boundaries are used, identify the forcing points
 ! ... and set interpolation parameters
@@ -94,23 +87,21 @@
         !
         ! ... interpolate the topography on x-staggered mesh
         !
-        CALL grid_locations(1,0,0)
-        CALL interpolate_2d(topo_x,forcex)
+        CALL interpolate_2d(xb, z, topo_x, forcex)
         nfpx = COUNT(forcex)
         ALLOCATE(fptx(nfpx))
         !
         ! ... Forcing along x
-        CALL forcing2d(fptx,topo_x)
+        CALL forcing2d(xb, z, topo_x, fptx)
         !
         ! ... interpolate the topography on z-staggered mesh
         !
-        CALL grid_locations(0,0,1)
-        CALL interpolate_2d(topo_c,forcez)
+        CALL interpolate_2d(x, zb, topo_c, forcez)
         nfpz = COUNT(forcez)
         ALLOCATE(fptz(nfpz))
         !
         ! ... Forcing along z
-        CALL forcing2d(fptz,topo_c)
+        CALL forcing2d(x, zb, topo_c, fptz)
         !
       ELSE IF (job_type == '3D') THEN
 
@@ -120,93 +111,72 @@
         !
         ! ... interpolate the topography on x-staggered mesh
         !
-        CALL grid_locations(1,0,0)
-        CALL interpolate_dem(topo2d_x, forcex)
+        CALL interpolate_dem(xb, y, z, topo2d_x, forcex)
         nfpx = COUNT(forcex)
         ALLOCATE(fptx(nfpx))
         !
         ! ... Forcing along x
-        CALL forcing3d(fptx,topo2d_x)
+        CALL forcing3d(xb, y, z, topo2d_x, fptx)
         !
         ! ... interpolate the topography on y-staggered mesh
         !
-        CALL grid_locations(0,1,0)
-        CALL interpolate_dem(topo2d_y, forcey)
+        CALL interpolate_dem(x, yb, z, topo2d_y, forcey)
         nfpy = COUNT(forcey)
         ALLOCATE(fpty(nfpy))
         !
         ! ... Forcing along y
-        CALL forcing3d(fpty,topo2d_y)
+        CALL forcing3d(x, yb, z, topo2d_y, fpty)
         !
         ! ... interpolate the topography on z-staggered mesh
         !
-        CALL grid_locations(0,0,1)
-        CALL interpolate_dem(topo2d_c, forcez)
+        CALL interpolate_dem(x, y, zb, topo2d_c, forcez)
         nfpz = COUNT(forcez)
         ALLOCATE(fptz(nfpz))
         !
         ! ... Forcing along z
-        CALL forcing3d(fptz,topo2d_c)
+        CALL forcing3d(x, y, zb, topo2d_c, fptz)
         !
       END IF
-
-      IF (mpime == root) THEN
-        OPEN(UNIT=15,FILE='fptx.dat',STATUS='UNKNOWN')
-        IF (job_type == '3D') &
-          OPEN(UNIT=16,FILE='fpty.dat',STATUS='UNKNOWN')
-        OPEN(UNIT=17,FILE='fptz.dat',STATUS='UNKNOWN')
-        DO p = 1, nfpx
-          WRITE(15,33) p, fptx(p)
-        END DO
-        DO p = 1, nfpy
-          IF (job_type == '3D') WRITE(16,33) p, fpty(p)
-        END DO
-        DO p = 1, nfpz
-          WRITE(17,33) p, fptz(p)
-        END DO
-        CLOSE(15)
-        CLOSE(16)
-        CLOSE(17)
-      END IF
- 33   FORMAT(5(I6),4(F18.3))
-
+!
+! ... Set flag = 1 on forcing points
+!
+      DO ijk = 1, ntot
+        IF( forcex(ijk) .OR. forcez(ijk) ) fl(ijk) = 1
+        IF( job_type == '3D') THEN
+          IF( forcey(ijk) ) fl(ijk) = 1
+        END IF
+      END DO
+!
       IF (job_type == '2D') THEN
         DEALLOCATE (topo_c, topo_x)
+        DEALLOCATE (forcex, forcez)
       ELSE IF (job_type == '3D') THEN
         DEALLOCATE (topo2d_c, topo2d_x, topo2d_y)
+        DEALLOCATE (forcex, forcey, forcez)
       END IF
-      DEALLOCATE (dummy)
 !
       RETURN
       END SUBROUTINE set_forcing
 !----------------------------------------------------------------------
-      SUBROUTINE forcing2d(fpt, topo)
-      USE volcano_topography, ONLY: cx, cy, cz
+      SUBROUTINE forcing2d(cx, cz, topo, fpt)
       USE volcano_topography, ONLY: ord, next
 !
 ! ... locate the forcing points and the type of interpolation
 ! ... locate the points where no-slip condition is applied
 
       IMPLICIT NONE
-      INTEGER :: i, fp
+
+      REAL*8, DIMENSION(:), INTENT(IN) :: cx, cz
       REAL*8, DIMENSION(:), INTENT(IN) :: topo
       TYPE(forcing_point), DIMENSION(:), INTENT(OUT) :: fpt
+
+      INTEGER :: i, fp
       REAL*8 :: t,s
 !
-! ... on the -- first grid point -- interpolate   
-! ... linearly along the vertical direction  
+! ... Skip the -- first grid point -- 
+! ... Loop over grid points in x-direction
 !
-      i = 1
-      fp = 1
-
-      fpt(fp)%int = 0	
-      fpt(fp)%nsl%x = cx(i)
-      fpt(fp)%nsl%z = topo(i)
-      fpt(fp)%i  = i
-      fpt(fp)%k  = ord(i)
-!
-! ... loop over grid points in x-direction
-!
+      fp = 0
       DO i=2,nx-1
 
         IF ((ord(i)-ord(i-1) > 0).AND.(ord(i+1)-ord(i) >= 0)) THEN
@@ -225,24 +195,13 @@
 
       END DO
 !
-! ... on the -- last grid point -- interpolate    
-! ... linearly along the vertical direction  
+! ... Skip the -- last grid point -- 
 !
-      i = nx
-      fp = fp + 1
-
-      fpt(fp)%int = 0	
-      fpt(fp)%nsl%x = cx(i)
-      fpt(fp)%nsl%z = topo(i)
-      fpt(fp)%i  = i
-      fpt(fp)%k  = ord(i)
-
       RETURN
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
       SUBROUTINE increasing_profile(i,fp,fpt)
-      USE volcano_topography, ONLY: cx, cy, cz
 
       IMPLICIT NONE
 
@@ -338,7 +297,6 @@
       END SUBROUTINE increasing_profile
 !----------------------------------------------------------------------
       SUBROUTINE decreasing_profile(i,fp,fpt)
-      USE volcano_topography, ONLY: cx, cy, cz
 
       IMPLICIT NONE
 
@@ -436,7 +394,6 @@
       END SUBROUTINE decreasing_profile
 !----------------------------------------------------------------------
       SUBROUTINE stationnary_profile(i,fp,fpt)
-      USE volcano_topography, ONLY: cx, cy, cz
 
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: i
@@ -485,17 +442,19 @@
       END SUBROUTINE forcing2d
 !
 !----------------------------------------------------------------------
-      SUBROUTINE forcing3d(fpt, topo2d)
+      SUBROUTINE forcing3d(cx, cy, cz, topo2d, fpt)
       USE volcano_topography, ONLY: ord2d, next
-      USE volcano_topography, ONLY: cx, cy, cz
 !
 ! ... locate the forcing points and the type of interpolation
 ! ... locate the points where no-slip condition is applied
 !
       IMPLICIT NONE
-      INTEGER :: i, j, k, fp
+
+      REAL*8, DIMENSION(:), INTENT(IN) :: cx, cy, cz
       REAL*8, DIMENSION(:,:), INTENT(IN) :: topo2d
       TYPE(forcing_point), DIMENSION(:), INTENT(OUT) :: fpt
+
+      INTEGER :: i, j, k, fp
       REAL*8 :: g(8)
       INTEGER :: delta_i(8), delta_j(8)
       INTEGER :: gint
@@ -530,64 +489,11 @@
       delta_i(8) = -1
       delta_j(8) = 1
 
-      i = 1
-      DO j = 1, ny
-        k = ord2d(i,j)
-
-        fp = fp + 1 
-        fpt(fp)%i  = i
-        fpt(fp)%j  = j
-        fpt(fp)%k  = k
-        fpt(fp)%int = 0
-        fpt(fp)%nsl%x = cx(i)
-        fpt(fp)%nsl%y = cy(j)
-        fpt(fp)%nsl%z = topo2d(i,j)
-
-      END DO
-
-      i = nx
-      DO j = 1, ny 
-        k = ord2d(i,j)
-
-        fp = fp + 1 
-        fpt(fp)%i  = i
-        fpt(fp)%j  = j
-        fpt(fp)%k  = k
-        fpt(fp)%int = 0
-        fpt(fp)%nsl%x = cx(i)
-        fpt(fp)%nsl%y = cy(j)
-        fpt(fp)%nsl%z = topo2d(i,j)
-
-      END DO
-
+! ... Skip the boundary points
+!
       DO i = 2, nx - 1
-
-        j = 1
-        k = ord2d(i,j)
-
-        fp = fp + 1 
-        fpt(fp)%i  = i
-        fpt(fp)%j  = j
-        fpt(fp)%k  = k
-        fpt(fp)%int = 0
-        fpt(fp)%nsl%x = cx(i)
-        fpt(fp)%nsl%y = cy(j)
-        fpt(fp)%nsl%z = topo2d(i,j)
-
-        j = ny
-        k = ord2d(i,j)
-
-        fp = fp + 1 
-        fpt(fp)%i  = i
-        fpt(fp)%j  = j
-        fpt(fp)%k  = k
-        fpt(fp)%int = 0
-        fpt(fp)%nsl%x = cx(i)
-        fpt(fp)%nsl%y = cy(j)
-        fpt(fp)%nsl%z = topo2d(i,j)
-
         DO j = 2, ny - 1
-          DO k = 1, ord2d(i,j) - 1
+          DO k = 2, ord2d(i,j) - 1
             g = -1
             IF( ord2d(i-1,j)   < k ) g(1) = gamma(i,j,k, 1)
             IF( ord2d(i-1,j-1) < k ) g(2) = gamma(i,j,k, 2)
@@ -636,7 +542,6 @@
       CONTAINS
 !----------------------------------------------------------------------
       REAL*8 FUNCTION gamma(i_,j_,k_,index)
-      USE volcano_topography, ONLY: cx, cy, cz
 
       IMPLICIT NONE
       ! ... (1 < index < 8) according to the relative position of

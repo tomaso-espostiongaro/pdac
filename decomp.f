@@ -7,8 +7,6 @@
 !----------------------------------------------------------------------
         USE grid, ONLY: fl, flag
         USE indijk_module
-        USE immersed_boundaries, ONLY: x_forced, y_forced, z_forced 
-        USE immersed_boundaries, ONLY: forcex, forcey, forcez
         USE immersed_boundaries, ONLY: numx, fptx, numy, fpty, numz, fptz
         USE control_flags, ONLY: lpr, immb, itp
 !
@@ -130,9 +128,10 @@
 !
       DO i = 1, SIZE(countfl)
         countfl(i) = COUNT( (fl == i) )
+        IF (ANY(fl > SIZE(countfl))) CALL error('partition','countfl SIZE too small', SIZE(countfl) )
       END DO
 !
-      IF (lpr >= 1) WRITE(7,'(a13,10i7)') ' # countfl ', countfl
+      IF (lpr >= 1) WRITE(7,'(a13,10I8)') ' # countfl ', countfl
 !
 ! ... domain decomposition (build maps)
 !
@@ -319,6 +318,7 @@
       INTEGER :: nctot(0:)
 !
       INTEGER :: i, k, ijk
+      INTEGER :: l
       INTEGER :: i1, i2, k1, k2, ijk1, ijk2
       INTEGER :: nbl
       INTEGER :: icnt, ipe
@@ -406,6 +406,7 @@
             ncfl1_lay(layer) = NINT(fact)
           END DO
         END IF
+
         IF ( SUM( ncfl1_lay(:) ) /= countfl(1) ) &
               CALL error('partition','control blocks decomposition',1)
 !
@@ -545,7 +546,7 @@
 !
       INTEGER :: i, j, k, ijk
       INTEGER :: i1, i2, j1, j2, ij1, ij2, ij
-      INTEGER :: nbl
+      INTEGER :: nbl, l
       INTEGER :: icnt, ipe
       INTEGER :: bl1
       INTEGER :: rest, skipl, rrest
@@ -621,8 +622,9 @@
             ncfl1_lay(layer) = localdim( countfl(1), nby, layer )
             nbl_lay(layer)   = nbx
           END DO
+          WRITE(*,*) SUM(ncfl1_lay(:)), countfl(1)
 
-        ELSE
+        ELSE IF (rest > 0) THEN
 
           IF( nbx == 1 ) THEN
             CALL error(' partition ',' (nbx == 1) AND (rest /= 0) ??? ', rest )
@@ -645,9 +647,6 @@
           END DO
 
         END IF
-
-        IF ( SUM( ncfl1_lay(:) ) /= countfl(1) ) &
-              CALL error('partition','control blocks decomposition',2)
 !
 ! ... build the layer maps
 !
@@ -1104,6 +1103,7 @@
 !
 ! ... local flags, local arrays for forcing
 !
+
       ALLOCATE( flag(ncdom) )
       DO ijkl = 1, ncint
         ijk = myijk( ip0_jp0_kp0_, ijkl)
@@ -1117,36 +1117,7 @@
 ! ... by using array numx/z. Scatter the array
 ! ... of forcing points among processors.
 !
-      ALLOCATE( x_forced(ncdom) )
-      x_forced = .FALSE.
-
-      IF (job_type == '3D') THEN
-        ALLOCATE( y_forced(ncdom) )
-        y_forced = .FALSE.
-      END IF
-
-      ALLOCATE( z_forced(ncdom) )
-      z_forced = .FALSE.
-
       IF (immb >= 1) THEN
-
-        DO ijkl = 1, ncint
-          ijk = myijk( ip0_jp0_kp0_, ijkl)
-
-          x_forced(ijkl) = forcex(ijk)
-          z_forced(ijkl) = forcez(ijk)
-          IF (job_type == '3D')  y_forced(ijkl) = forcey(ijk)
-
-          IF( x_forced(ijkl) .OR. z_forced(ijkl) ) flag(ijkl) = 1 
-          IF( job_type == '3D') THEN
-            IF( y_forced(ijkl) ) flag(ijkl) = 1 
-          END IF
-
-        END DO
-
-        DEALLOCATE (forcex)
-        IF (job_type == '3D') DEALLOCATE (forcey) 
-        DEALLOCATE (forcez)
 
         ALLOCATE( numx(ncint) ); numx = 0
         IF (job_type == '3D') THEN
@@ -1170,11 +1141,11 @@ set_numx: IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
               ijk = i + (j-1) * nx + (k-1) * nx * ny
             END IF
             ijkl = cell_g2l(ijk,mpime)
-            IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx &
-           .OR. j==1 .OR. j==ny) THEN
-              x_forced(ijkl) = .FALSE.
+            IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
+                j==1 .OR. j==ny) THEN
+              CALL error('decomp','forcing on boundaries!',1)
             END IF
-            IF (x_forced(ijkl)) numx(ijkl) = n 
+            numx(ijkl) = n 
           ELSE
             CALL error('decomp','control numx',1)
           END IF set_numx
@@ -1194,11 +1165,11 @@ set_numy:   IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
                 ijk = i + (j-1) * nx + (k-1) * nx * ny
               END IF
               ijkl = cell_g2l(ijk,mpime)
-              IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx &
-             .OR. j==1 .OR. j==ny) THEN
-                y_forced(ijkl) = .FALSE.
+              IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
+                  j==1 .OR. j==ny) THEN
+                CALL error('decomp','forcing on boundaries!',1)
               END IF
-              IF (y_forced(ijkl)) numy(ijkl) = n 
+              numy(ijkl) = n 
             ELSE
               CALL error('decomp','control numy',1)
             END IF set_numy
@@ -1218,20 +1189,20 @@ set_numz: IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
               ijk = i + (j-1) * nx + (k-1) * nx * ny
             END IF
             ijkl = cell_g2l(ijk,mpime)
-            IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx &
-             .OR. j==1 .OR. j==ny) THEN
-              z_forced(ijkl) = .FALSE.
+            IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
+                j==1 .OR. j==ny) THEN
+              CALL error('decomp','forcing on boundaries!',1)
             END IF
-            IF(z_forced(ijkl)) numz(ijkl) = n 
+            numz(ijkl) = n 
           ELSE
             CALL error('decomp','control numz',1)
           END IF set_numz
         
         END DO
 
-        CALL data_exchange(x_forced)
-        CALL data_exchange(y_forced)
-        CALL data_exchange(z_forced)
+        CALL data_exchange(numx)
+        CALL data_exchange(numy)
+        CALL data_exchange(numz)
 
       END IF
 !

@@ -25,11 +25,10 @@
 !
 ! ... This routine computes (x,y,z) boundary conditions 
 !
-      USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: job_type, lpr
       USE domain_decomposition, ONLY: ncint, myijk, meshinds
       USE grid, ONLY: flag, x, y, z, xb, yb, zb
       USE immersed_boundaries, ONLY: fptx, fpty, fptz
-      USE immersed_boundaries, ONLY: x_forced, y_forced, z_forced
       USE immersed_boundaries, ONLY: numx, numy, numz
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE parallel, ONLY: mpime, root
@@ -44,11 +43,12 @@
       INTEGER :: fp, p
       REAL*8 :: d1, d2 
       REAL*8 :: vel
-      LOGICAL :: fx, fy, fz, forced
+      INTEGER :: fx, fy, fz
+      LOGICAL :: forced
 
-      fx = .FALSE.
-      fy = .FALSE.
-      fz = .FALSE.
+      fx = 0
+      fy = 0 
+      fz = 0
       forced = .FALSE.
 !
       DO ijk = 1, ncint
@@ -61,31 +61,29 @@
 ! ... If (ijk) is a forcing point, compute the pseudo-velocities
 ! ... that are used in the "immersed boundary" technique ...
 !
-          fx = x_forced(ijk)
-          IF (job_type == '3D') fy = y_forced(ijk)
-          fz = z_forced(ijk)
+          fx = numx(ijk)
+          IF (job_type == '3D') fy = numy(ijk)
+          fz = numz(ijk)
           
-          forced = (fx .OR. fy .OR. fz)
+          forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
 
           IF (forced) THEN
 
             IF (job_type == '2D') THEN
 
-              IF( fx ) THEN
+              IF( fx/=0 ) THEN
 
-                fp = numx(ijk)
-                vel = velint(fptx(fp), ug, ijk, xb, y, z)  
-                fptx(fp)%vel = vel
+                vel = velint(fptx(fx), ug, ijk, xb, y, z)  
+                fptx(fx)%vel = vel
 
                 ! ... Initialize x-velocity in the forced points
                 ug(ijk) = vel
                 us(ijk,:) = vel
 
-              ELSE IF( fz ) THEN
+              ELSE IF( fz/=0 ) THEN
 
-                fp = numz(ijk)
-                vel = velint(fptz(fp), wg, ijk, x, y, zb)  
-                fptz(fp)%vel = vel
+                vel = velint(fptz(fz), wg, ijk, x, y, zb)  
+                fptz(fz)%vel = vel
 
                 ! ... Initialize z-velocity in the forced points
                 wg(ijk) = vel
@@ -95,31 +93,28 @@
 
             ELSE IF (job_type == '3D') THEN
 
-              IF( fx ) THEN
+              IF( fx/=0 ) THEN
 
-                fp = numx(ijk)
-                vel = velint3d(fptx(fp), ug, ijk, xb, y, z)  
-                fptx(fp)%vel = vel
+                vel = velint3d(fptx(fx), ug, ijk, xb, y, z)  
+                fptx(fx)%vel = vel
 
                 ! ... Initialize x-velocity in the forced points
                 ug(ijk) = vel
                 us(ijk,:) = vel
 
-              ELSE IF( fy ) THEN
+              ELSE IF( fy/=0 ) THEN
 
-                fp = numy(ijk)
-                vel = velint3d(fpty(fp), vg, ijk, x, yb, z)  
-                fpty(fp)%vel = vel
+                vel = velint3d(fpty(fy), vg, ijk, x, yb, z)  
+                fpty(fy)%vel = vel
 
                 ! ... Initialize y-velocity in the forced points
                 vg(ijk) = vel
                 vs(ijk,:) = vel
 
-              ELSE IF( fz ) THEN
+              ELSE IF( fz/=0 ) THEN
 
-                fp = numz(ijk)
-                vel = velint3d(fptz(fp), wg, ijk, x, y, zb)  
-                fptz(fp)%vel = vel
+                vel = velint3d(fptz(fz), wg, ijk, x, y, zb)  
+                fptz(fz)%vel = vel
 
                 ! ... Initialize z-velocity in the forced points
                 wg(ijk) = vel
@@ -634,25 +629,27 @@
         END IF
       END DO
 
-!     IF (mpime == root) THEN
-!        OPEN(UNIT=15,FILE='fptx.dat',STATUS='UNKNOWN')
-!        IF (job_type == '3D') &
-!          OPEN(UNIT=16,FILE='fpty.dat',STATUS='UNKNOWN')
-!        OPEN(UNIT=17,FILE='fptz.dat',STATUS='UNKNOWN')
-!        DO p = 1, SIZE(fptx)
-!          WRITE(15,33) p, fptx(p)
-!        END DO
-!        DO p = 1, SIZE(fpty)
-!          IF (job_type == '3D') WRITE(16,33) p, fpty(p)
-!        END DO
-!        DO p = 1, SIZE(fptz)
-!          WRITE(17,33) p, fptz(p)
-!        END DO
-!        CLOSE(15)
-!        CLOSE(16)
-!        CLOSE(17)
-!      END IF
-! 33   FORMAT(5(I6),4(F18.3))
+     IF (lpr > 2) THEN
+       IF (mpime == root) THEN
+          OPEN(UNIT=15,FILE='fptx.dat',STATUS='UNKNOWN')
+          IF (job_type == '3D') &
+            OPEN(UNIT=16,FILE='fpty.dat',STATUS='UNKNOWN')
+          OPEN(UNIT=17,FILE='fptz.dat',STATUS='UNKNOWN')
+          DO p = 1, SIZE(fptx)
+            WRITE(15,33) p, fptx(p)
+          END DO
+          DO p = 1, SIZE(fpty)
+            IF (job_type == '3D') WRITE(16,33) p, fpty(p)
+          END DO
+          DO p = 1, SIZE(fptz)
+            WRITE(17,33) p, fptz(p)
+          END DO
+          CLOSE(15)
+          CLOSE(16)
+          CLOSE(17)
+        END IF
+ 33   FORMAT(5(I6),4(F18.3))
+      END IF
 
 !
       RETURN
@@ -1457,6 +1454,8 @@
                            !external node
       REAL*8 :: alpha,beta !coefficients for bilinear interpolation
 
+      velint3d = 0.D0
+
       interp = fpt%int
       i      = fpt%i
       j      = fpt%j
@@ -1476,8 +1475,6 @@
 ! ... 7: north
 ! ... 8: north-west
 
-      delta_k = 0
-
       SELECT CASE (interp)
 
         CASE (0)
@@ -1490,50 +1487,59 @@
         CASE (1)
         delta_i = -1
         delta_j = 0
+        delta_k = 0
         index_q  = imjk
         index_qq = immjk
 
         CASE (2)
         delta_i = -1
         delta_j = -1
+        delta_k = 0
         index_q  = imjmk
 
         CASE (3)
         delta_i = 0
         delta_j = -1
+        delta_k = 0
         index_q  = ijmk
         index_qq = ijmmk
 
         CASE (4)
         delta_i = 1
         delta_j = -1
+        delta_k = 0
         index_q  = ipjmk
 
         CASE (5)
         delta_i = 1
         delta_j = 0
+        delta_k = 0
         index_q  = ipjk
         index_qq = ippjk
 
         CASE (6)
         delta_i = 1
         delta_j = 1
+        delta_k = 0
         index_q  = ipjpk
 
         CASE (7)
         delta_i = 0
         delta_j = 1
+        delta_k = 0
         index_q  = ijpk
         index_qq = ijppk
 
         CASE (8)
         delta_i = -1
         delta_j = 1
+        delta_k = 0
         index_q  = imjpk
 
         CASE DEFAULT
         delta_i = 0
         delta_j = 0
+        delta_k = 0
         index_q  = ijk
         index_qq = ijk
 
@@ -1551,7 +1557,7 @@
       ELSE 
          zB=SQRT( (cx(i+2*delta_i)-nsx)**2 + (cy(j+2*delta_j)-nsy)**2 +  &
                   (cz(k+2*delta_k)-nsz)**2 )
-         velint3d=-((zB-h)*vel(index_q)+(h-zA)*vel(index_qq))/(zB-zA)
+         velint3d = -((zB-h)*vel(index_q)+(h-zA)*vel(index_qq))/(zB-zA)
       ENDIF
         
       RETURN

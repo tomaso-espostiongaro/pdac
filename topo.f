@@ -26,14 +26,6 @@
         REAL*8  :: cellsize   
         REAL*8  :: nodata_value
       END TYPE dem_header
-
-      TYPE(dem_header) :: vdem
-!
-! ... coordinates of the input mesh
-!
-      REAL*8, ALLOCATABLE, DIMENSION(:) :: cx
-      REAL*8, ALLOCATABLE, DIMENSION(:) :: cy
-      REAL*8, ALLOCATABLE, DIMENSION(:) :: cz
 !
 ! ... arrays used for the interpolation
 !
@@ -57,6 +49,10 @@
       REAL*8, ALLOCATABLE :: xtop(:), ytop(:), ztop(:), ztop2d(:,:)
       INTEGER :: noditop, noditopx, noditopy
 !
+      INTERFACE vertical_shift
+          MODULE PROCEDURE vertical_shift2d, vertical_shift3d
+      END INTERFACE
+
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
@@ -141,6 +137,8 @@
       REAL    :: dd
       INTEGER :: noval
       INTEGER :: elevation
+
+      TYPE(dem_header) :: vdem
 
       IF (mpime == root) THEN
         topo_file = TRIM(topography)
@@ -233,7 +231,38 @@
       RETURN
       END SUBROUTINE compute_UTM_coords
 !----------------------------------------------------------------------
-      SUBROUTINE vertical_shift(topo2d)
+      SUBROUTINE vertical_shift2d(topo)
+      USE grid, ONLY: z, zb, dz, dzmin
+      USE grid, ONLY: iv, jv, kv
+      IMPLICIT NONE
+      REAL*8, INTENT(IN), DIMENSION(:) :: topo
+      REAL*8 :: transl_z
+
+      !
+      ! ... Translate vertically the numerical mesh to minimize the
+      ! ... number of topographic cells
+      !
+      transl_z = MINVAL(topo)
+      WRITE(*,*) 'Minimum topographic quota: ', transl_z
+
+      z  = z  + transl_z
+      zb = zb + transl_z
+
+      WRITE(17,*) 'z'
+      WRITE(17,*) z
+      WRITE(17,*) 'zb'
+      WRITE(17,*) zb
+
+      CLOSE(17)
+!
+! ... define the ordinate of the vent
+!
+      kv = ord(iv)
+
+      RETURN
+      END SUBROUTINE vertical_shift2d
+!----------------------------------------------------------------------
+      SUBROUTINE vertical_shift3d(topo2d)
       USE grid, ONLY: z, zb, dz, dzmin
       USE grid, ONLY: iv, jv, kv
       IMPLICIT NONE
@@ -262,9 +291,9 @@
       kv = ord2d(iv,jv)
 
       RETURN
-      END SUBROUTINE vertical_shift
+      END SUBROUTINE vertical_shift3d
 !----------------------------------------------------------------------
-      SUBROUTINE interpolate_2d(topo,ff)
+      SUBROUTINE interpolate_2d(cx, cz, topo, ff)
 !
 ! ... interpolate the topographic profile on a given
 ! ... computational mesh (either centered or staggered)
@@ -272,6 +301,7 @@
 
       IMPLICIT NONE
 
+      REAL*8, INTENT(IN), DIMENSION(:) :: cx, cz
       LOGICAL, INTENT(OUT), DIMENSION(:) :: ff
       REAL*8, INTENT(OUT), DIMENSION(:) :: topo
 
@@ -281,7 +311,6 @@
 ! ... locate the grid points near the topographic points
 ! ... and interpolate linearly the profile  
 !
-      dist = 1.0D10
       ff = .FALSE.
 !
 ! ... interpolate the topography on the mesh
@@ -307,13 +336,6 @@
 
 	    l=l+1
 
-            DO k = 1, nz
-              ! ... dist defines implicitly the profile
-              !
-	      ijk = i + (k-1) * nx
-	      dist(ijk) = cz(k) - topo(i)
-	    ENDDO
-
           ENDIF
         ENDDO
       ENDDO
@@ -330,8 +352,10 @@
 ! ... lay on the same coordinate on the plane)
 !
       ijk = 1 + (ord(1)-1)*nx
-      ff(ijk) = .TRUE.
-      DO i = 2, nx
+        ff(ijk) = .FALSE.
+      ijk = nx + (ord(1)-1)*nx
+        ff(ijk) = .FALSE.
+      DO i = 2, nx - 1
         IF (ord(i) >= ord(i-1)) THEN
           DO k = ord(i-1), ord(i)
             ijk = i + (k-1) * nx
@@ -350,10 +374,11 @@
       RETURN
       END SUBROUTINE interpolate_2d
 !----------------------------------------------------------------------
-      SUBROUTINE interpolate_dem(topo2d, ff)
+      SUBROUTINE interpolate_dem(cx, cy, cz, topo2d, ff)
       USE dimensions, ONLY: nx, ny, nz
       IMPLICIT NONE
 
+      REAL*8, INTENT(IN), DIMENSION(:) :: cx, cy, cz
       REAL*8, INTENT(OUT), DIMENSION(:,:) :: topo2d
       LOGICAL, INTENT(OUT), DIMENSION(:) :: ff
 
@@ -461,36 +486,11 @@
 	ENDDO
 !
 ! ... Identify forcing points
-! ... (check boundaries!)
+! ... (skip boundaries)
 !
-      i = 1
-      DO j = 1, ny
-        k = ord2d(i,j)
-        ijk = i + (j-1) * nx + (k-1) * nx * ny
-        ff(ijk) = .TRUE.
-      END DO
-
-      i = nx
-      DO j = 1, ny 
-        k = ord2d(i,j)
-        ijk = i + (j-1) * nx + (k-1) * nx * ny
-        ff(ijk) = .TRUE.
-      END DO
-
       DO i = 2, nx - 1
-
-        j = 1
-        k = ord2d(i,j)
-        ijk = i + (j-1) * nx + (k-1) * nx * ny
-        ff(ijk) = .TRUE.
-
-        j = ny
-        k = ord2d(i,j)
-        ijk = i + (j-1) * nx + (k-1) * nx * ny
-        ff(ijk) = .TRUE.
-
         DO j = 2, ny - 1
-          DO k = 1, ord2d(i,j) - 1
+          DO k = 2, ord2d(i,j) - 1
             ijk = i + (j-1) * nx + (k-1) * nx * ny
             IF( ( ord2d(i-1,j)   < k ) .OR. &
                 ( ord2d(i-1,j-1) < k ) .OR. &
@@ -512,47 +512,6 @@
       RETURN
       END SUBROUTINE interpolate_dem
 !----------------------------------------------------------------------
-      SUBROUTINE grid_locations(sx,sy,sz)
-      USE grid, ONLY: x, xb, y, yb, z, zb
-      USE dimensions, ONLY: nx, ny, nz
-
-      IMPLICIT NONE
-      INTEGER, INTENT(IN) :: sx, sy, sz
-!
-! ... initialize the grids
-!
-      cx = 0.D0
-      cy = 0.D0
-      cz = 0.D0
-!
-      IF( sx == 1 ) THEN
-
-        cx = xb
-        cy = y
-        cz = z
-
-      ELSE IF( sy == 1 ) THEN
-
-        cx = x
-        cy = yb
-        cz = z
-
-      ELSE IF( sz == 1 ) THEN
-
-        cx = x
-        cy = y
-        cz = zb
-        
-      ELSE 
-        
-        cx = x
-        cy = y
-        cz = z
-
-      END IF
-
-      END SUBROUTINE grid_locations
-!----------------------------------------------------------------------
       SUBROUTINE set_profile
 !
 ! ... Import the topography from standard ascii formats.
@@ -560,7 +519,7 @@
 ! ... implicit profile
 !
       USE control_flags, ONLY: job_type, lpr, immb, itp
-      USE grid, ONLY: z
+      USE grid, ONLY: x, xb, y, yb, z, zb
 
       IMPLICIT NONE
       INTEGER :: i,j,k,ijk
@@ -569,11 +528,10 @@
       REAL*8, ALLOCATABLE  :: topo2d(:,:)
 
       ALLOCATE (dummy(ntot))
+      ! ... dist defines implicitly the profile
+      !
       ALLOCATE (dist(ntot))
-!
-      ALLOCATE (cx(nx))
-      ALLOCATE (cy(ny))
-      ALLOCATE (cz(nz))
+      dist = 1.0D10
 !
       IF (job_type == '2D') THEN
   
@@ -582,8 +540,15 @@
         ALLOCATE(next(nx))
         ALLOCATE(ord(nx))
 
-        CALL grid_locations(0,0,0)
-        CALL interpolate_2d(topo, dummy)
+        CALL interpolate_2d(x, zb, topo, dummy)
+        CALL vertical_shift(topo)
+
+        DO k = 1, nz
+          DO i = 1, nx
+            ijk = i + (k-1) * nx
+            dist(ijk) = zb(k) - topo(i)
+          END DO
+        ENDDO
 
       ELSE IF (job_type == '3D') THEN
 
@@ -593,9 +558,17 @@
         ALLOCATE(nexty(ny))
         ALLOCATE(ord2d(nx,ny))
 
-        CALL grid_locations(0,0,0)
-        CALL interpolate_dem(topo2d, dummy)
+        CALL interpolate_dem(x, y, zb, topo2d, dummy)
         CALL vertical_shift(topo2d)
+
+        DO k=1,nz
+          DO j=1,ny
+            DO i=1,nx
+              ijk = i + (j-1) * nx + (k-1) * nx * ny
+              dist(ijk) = zb(k) - topo2d(i,j)
+            END DO
+          END DO
+        END DO
 
       END IF
 
@@ -613,23 +586,12 @@
       USE control_flags, ONLY: job_type
 !
       IMPLICIT NONE
-
-      INTEGER :: i, j, k, ijk
-
+!
+! ... Write out the implicit profile
+!
       IF (mpime == root) THEN
         OPEN(UNIT=14,FILE='improfile.dat',STATUS='UNKNOWN')
-        
-        DO k=1,nz
-          DO j=1,ny
-            DO i=1,nx
-              ! ... dist defines implicitly the profile
-              !
-              ijk = i + (j-1) * nx + (k-1) * nx * ny
-              WRITE(14,*) dist(ijk)
-            END DO
-          END DO
-        END DO
-
+        WRITE(14,*) dist
         CLOSE(14)
       END IF
 !
@@ -649,7 +611,6 @@
         DEALLOCATE (xtop, ytop, ztop2d)
       END IF
       DEALLOCATE (dist)
-      DEALLOCATE (cx, cy, cz)
 ! 
       RETURN
       END SUBROUTINE write_profile
@@ -660,14 +621,14 @@
 ! ... where forcing is not applied. Values of fields in these cells
 ! ... are set to zero when initialized or kept undefined
 !
-      USE control_flags, ONLY: lpr, job_type
+      USE control_flags, ONLY: lpr, job_type, immb
       USE grid, ONLY: fl, z
       IMPLICIT NONE
 
       INTEGER :: i, j, k, ijk
 !
       IF( job_type == '2D') THEN
-        DO i=2, nx-1
+        DO i=1, nx
           DO k = 1, nz
             ijk = i + (k-1) * nx
             IF (ord(i) >= k) THEN
@@ -678,8 +639,8 @@
           END DO
         END DO
       ELSE IF( job_type == '3D') THEN
-        DO j=2, ny-1
-          DO i=2, nx-1
+        DO j=1, ny
+          DO i=1, nx
             DO k = 1, nz
               ijk = i + (j-1) * nx + (k-1) * nx * ny
               IF (ord2d(i,j) >= k) THEN
@@ -692,6 +653,7 @@
         END DO
       END IF
 !
+      RETURN
       END SUBROUTINE set_flag3
 !----------------------------------------------------------------------
       END MODULE volcano_topography

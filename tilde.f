@@ -273,7 +273,6 @@
       USE gas_solid_viscosity, ONLY: gvisx, gvisy, gvisz, pvisx, pvisy, pvisz
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE immersed_boundaries, ONLY: fptx, fpty, fptz, numx, numy, numz
-      USE immersed_boundaries, ONLY: x_forced, y_forced, z_forced
       USE particles_constants, ONLY: inrl
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm, ijkt, ijke, ijkn
 !
@@ -290,7 +289,7 @@
       REAL*8 :: rus_tmp, rvs_tmp, rws_tmp
       REAL*8 :: force, presn, dragn
       REAL*8 :: pseudou, pseudov, pseudow, ep_e, ep_n, ep_t
-      INTEGER :: fp
+      INTEGER :: fx, fy, fz
       REAL*8, ALLOCATABLE :: dugs(:), dvgs(:), dwgs(:)
       REAL*8, ALLOCATABLE :: nul(:)
 !
@@ -543,10 +542,10 @@
 !
           IF (immb >= 1) THEN
             
-            IF (x_forced(ijk)) THEN
+            fx = numx(ijk)
 
-              fp = numx(ijk)
-              pseudou = fptx(fp)%vel
+            IF (fx/=0) THEN
+              pseudou = fptx(fx)%vel
 
               force = ( indxp * (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke)) * &
                         pseudou - rug(ijk) ) / dt
@@ -572,10 +571,11 @@
             END IF
             !
             IF (job_type == '3D') THEN
-              IF (y_forced(ijk)) THEN
 
-                fp = numy(ijk)
-                pseudov = fpty(fp)%vel
+              fy = numy(ijk)
+
+              IF (fy/=0) THEN
+                pseudov = fpty(fy)%vel
   
                 force = ( indyp * (dy(j+1)*rgp(ijk)+dy(j)*rgp(ijkn)) * &
                           pseudov - rvg(ijk) ) / dt
@@ -601,10 +601,11 @@
               END IF
             END IF
             !
-            IF (z_forced(ijk)) THEN
 
-              fp = numz(ijk)
-              pseudow = fptz(fp)%vel
+            fz = numz(ijk)
+
+            IF (fz/=0) THEN
+              pseudow = fptz(fz)%vel
 
               force = ( indzp * (dz(k+1)*rgp(ijk)+dz(k)*rgp(ijkt)) * &
                         pseudow - rwg(ijk) ) / dt
