@@ -9,7 +9,7 @@
 ! ... This is a standard ascii dem file: the header contains
 ! ... information about the resolution and the geo-referencing.
 ! ... The UTM map number is lost.
-! ... 'ncols' and 'nrows' are the number of pixel in x and y directions
+! ... 'nx' and 'ny' are the number of pixel in x and y directions
 ! ... 'xcorner' is the distance in metres from the reference meridian
 ! ...             of the lowerleft corner + 500,000m !
 ! ... 'ycorner' is the distance in metres from the equator of the
@@ -19,14 +19,16 @@
 ! ... 'elev'      is the elevation (in centimetres)
 !
       TYPE dem_ascii
-        INTEGER :: ncols      
-        INTEGER :: nrows      
+        INTEGER :: nx      
+        INTEGER :: ny      
         REAL*8  :: xcorner  
         REAL*8  :: ycorner  
         REAL*8  :: cellsize   
         REAL*8  :: nodata_value
-        REAL*8, ALLOCATABLE :: elev(:)
+        REAL*8, ALLOCATABLE :: z(:,:) 
       END TYPE dem_ascii
+
+      TYPE(dem_ascii) :: vdem
 !
 ! ... coordinates of the input mesh
 !
@@ -54,7 +56,6 @@
 ! ... input topography points
 !
       REAL*8, ALLOCATABLE :: xtop(:), ytop(:), ztop(:) 
-      REAL*8, ALLOCATABLE :: ztop2d(:,:) 
       INTEGER :: noditop, noditopx, noditopy
 !
       SAVE
@@ -122,45 +123,47 @@
       IMPLICIT NONE
 
       CHARACTER(LEN=20) :: topo_file
-      TYPE(dem_ascii) :: vdem
       INTEGER :: p
       INTEGER :: i, j
+      REAL*8 :: elevation
 
       topo_file = TRIM(topography)
       OPEN(UNIT=3, FILE=topo_file, STATUS='OLD')
 
-      READ(3,*) vdem%ncols
-      READ(3,*) vdem%nrows
+      READ(3,*) vdem%nx
+      READ(3,*) vdem%ny
       READ(3,*) vdem%xcorner
       READ(3,*) vdem%ycorner
       READ(3,*) vdem%cellsize
       READ(3,*) vdem%nodata_value
-
-      noditopx = vdem%ncols
-      noditopy = vdem%nrows
-      ALLOCATE( vdem%elev(noditopx*noditopy) )
-
-      DO p = 1,noditopx*noditopy
-        READ(3,*) vdem%elev(p)
-        vdem%elev(p) = vdem%elev(p) / 100.D0 ! elevation in metres
-      END DO
 !
-      ALLOCATE(xtop(noditopx))
-      ALLOCATE(ytop(noditopy))
-      ALLOCATE(ztop2d(noditopx,noditopy))
+      ALLOCATE(vdem%z(vdem%nx,vdem%ny))
 !
-      DO i = 1, noditopx
+      ALLOCATE(xtop(vdem%nx))
+      ALLOCATE(ytop(vdem%ny))
+!
+      DO i = 1, vdem%nx
         xtop(i) = vdem%xcorner + (i-1) * vdem%cellsize
       END DO
 
-      DO j = noditopy, 1, -1
-        ytop(j) = vdem%ycorner - (noditopy - j) * vdem%cellsize
+      DO j = vdem%ny, 1, -1
+        ytop(j) = vdem%ycorner - (vdem%ny - j) * vdem%cellsize
 
-        DO i = 1, noditopx
-          ztop2d(i,j) = vdem%elev( i + (noditopy - j) * noditopx )
+        DO i = 1, vdem%nx
+
+          READ(3,*) elevation
+          elevation = elevation / 100.D0 ! elevation in metres
+
+          vdem%z(i,j) = elevation
+
         END DO
 
       END DO
+!
+! ... global scope
+!
+      noditopx = vdem%nx
+      noditopy = vdem%ny
 !
       RETURN
       END SUBROUTINE read_dem_ascii
@@ -180,15 +183,18 @@
       xb = xb + transl_x
       y  = y  + transl_y
       yb = yb + transl_y
-
+!
+      OPEN(17,FILE='mesh.dat')
+!
       WRITE(17,*) 'Geoferenced x-y mesh'
 
+      WRITE(17,*) 'x'
       WRITE(17,*) x
-      WRITE(17,*)
-      WRITE(17,*) y
-      WRITE(17,*)
+      WRITE(17,*) 'xb'
       WRITE(17,*) xb
-      WRITE(17,*)
+      WRITE(17,*) 'y'
+      WRITE(17,*) y
+      WRITE(17,*) 'yb'
       WRITE(17,*) yb
       
       WRITE(6,*) 'mesh center: ', iv, jv
@@ -198,18 +204,27 @@
       END SUBROUTINE compute_UTM_coords
 !----------------------------------------------------------------------
       SUBROUTINE vertical_shift(topo2d)
-      USE grid, ONLY: z, zb
+      USE grid, ONLY: z, zb, dz
       IMPLICIT NONE
       REAL*8, INTENT(IN), DIMENSION(:,:) :: topo2d
+      REAL*8 :: transl_z
 
       !
       ! ... Translate vertically the numerical mesh to minimize the
       ! ... number of topographic cells
       !
-      WRITE(*,*) 'Minimum topographic quota: ', MINVAL(topo2d)
+      transl_z = MINVAL(topo2d)
+      WRITE(*,*) 'Minimum topographic quota: ', transl_z
 
-      z   = z   + MINVAL(topo2d)
-      zb  = zb  + MINVAL(topo2d)
+      z  = z  + transl_z
+      zb = zb + transl_z
+
+      WRITE(17,*) 'z'
+      WRITE(17,*) z
+      WRITE(17,*) 'zb'
+      WRITE(17,*) zb
+
+      CLOSE(17)
 
       RETURN
       END SUBROUTINE vertical_shift
@@ -379,11 +394,11 @@
 	      dist2y = ytop(nexty(j)) - cy(j)
 	      beta   = dist1y/(dist1y+dist2y)
 
-              tp1    = alpha * ztop2d(nextx(i),nexty(j))   + &
-                       (1.D0 - alpha) * ztop2d(nextx(i)-1,nexty(j))
+              tp1    = alpha * vdem%z(nextx(i),nexty(j))   + &
+                       (1.D0 - alpha) * vdem%z(nextx(i)-1,nexty(j))
 
-              tp2    = alpha * ztop2d(nextx(i),nexty(j)-1) + &
-                       (1.D0 - alpha) * ztop2d(nextx(i)-1,nexty(j)-1)
+              tp2    = alpha * vdem%z(nextx(i),nexty(j)-1) + &
+                       (1.D0 - alpha) * vdem%z(nextx(i)-1,nexty(j)-1)
 
               topo2d(i,j) = beta * tp1 + (1.D0 - beta) * tp2
 
@@ -400,11 +415,6 @@
 		IF (cz(k) <= topo2d(i,j)) THEN
 		   ord2d(i,j) = k  
 		ENDIF
-
-                ! ... dist defines implicitly the profile
-                !
-	        ijk = i + (j-1) * nx + (k-1) * nx * ny
-	        dist(ijk) = cz(k) - topo2d(i,j)
 
 	      ENDDO
 	   ENDDO

@@ -43,14 +43,16 @@
 ! ... This function gives the increasing number of local forcing points 
       INTEGER, ALLOCATABLE :: numx(:), numz(:)
       INTEGER :: nfp
+!           
+! ... Topographic elevation at the mesh points
+! ... (centered and staggered)
 !
-      REAL*8, ALLOCATABLE  :: topo_c(:)  ! topography on the grid
-      REAL*8, ALLOCATABLE  :: topo_x(:)  ! topography on the grid
-!           
-      REAL*8, ALLOCATABLE  :: topo2d_c(:,:)  ! topography on the grid
-      REAL*8, ALLOCATABLE  :: topo2d_x(:,:)  ! topography on the grid
-      REAL*8, ALLOCATABLE  :: topo2d_y(:,:)  ! topography on the grid
-!           
+      REAL*8, ALLOCATABLE  :: topo_c(:)
+      REAL*8, ALLOCATABLE  :: topo_x(:)
+      REAL*8, ALLOCATABLE  :: topo2d_c(:,:)
+      REAL*8, ALLOCATABLE  :: topo2d_x(:,:)
+      REAL*8, ALLOCATABLE  :: topo2d_y(:,:)
+!
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
@@ -87,7 +89,7 @@
 
         ALLOCATE(topo2d_c(nx,ny))
         ALLOCATE(topo2d_x(nx,ny))
-        ALLOCATE(topo2d_x(nx,ny))
+        ALLOCATE(topo2d_y(nx,ny))
 
         ALLOCATE(nextx(nx))
         ALLOCATE(nexty(ny))
@@ -95,16 +97,12 @@
 
         CALL grid_locations(0,0,0)
         CALL interpolate_dem(topo2d_c)
-!
         CALL vertical_shift(topo2d_c)
-        CALL grid_locations(0,0,0)
-        CALL interpolate_dem(topo2d_c)
 
         WRITE(6,*) 'TOPOGRAPHY'
         DO j= 1, ny
           DO i= 1, nx
-            !WRITE(6,*) i, j, topo2d_c(i,j)
-            WRITE(6,*) i, j, z(ord2d(i,j))
+            WRITE(6,*) i, j, topo2d_c(i,j)
           END DO
         END DO
 !
@@ -112,7 +110,19 @@
 
       IF (mpime == root) THEN
         OPEN(UNIT=14,FILE='improfile.dat',STATUS='UNKNOWN')
-        WRITE(14,*) dist - MINVAL(topo2d_c)
+        
+        DO k=1,nz
+          DO j=1,ny
+            DO i=1,nx
+              ! ... dist defines implicitly the profile
+              !
+              ijk = i + (j-1) * nx + (k-1) * nx * ny
+              dist(ijk) = z(k) - topo2d_c(i,j)
+              WRITE(14,*) dist(ijk)
+            END DO
+          END DO
+        END DO
+
         CLOSE(14)
       END IF
 !
@@ -160,12 +170,12 @@
         CALL grid_locations(1,0,0)
         CALL interpolate_2d(topo_x)
         forx(1:nfpx) = fptx(1:nfpx)
-        CALL extrafx(forx, nfpx)
+        CALL extrafx(forx, nfpx, topo_x)
 
         CALL grid_locations(0,0,1)
         CALL interpolate_2d(topo_c)
         forz(1:nfpz) = fptz(1:nfpz)
-        CALL extrafz(forz, nfpz)
+        CALL extrafz(forz, nfpz, topo_c)
 
         IF (mpime == root) THEN
           OPEN(UNIT=15,FILE='forx.dat',STATUS='UNKNOWN')
@@ -187,6 +197,8 @@
 ! ... Set flags to identify the topography (where transport equations
 ! ... are not solved )
 !
+      CALL grid_locations(0,0,0)
+      CALL interpolate_2d(topo_c)
       CALL set_flag3(topo_c)
 !
       DEALLOCATE (xtop, ztop)
@@ -496,12 +508,13 @@
 !----------------------------------------------------------------------
       END SUBROUTINE forcing
 !----------------------------------------------------------------------
-      SUBROUTINE extrafx(fx, nfpx)
+      SUBROUTINE extrafx(fx, nfpx, topo)
       USE volcano_topography, ONLY: cx, cy, cz, next
 !
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: nfpx
       TYPE(forcing_point), DIMENSION(:), INTENT(INOUT) :: fx
+      REAL*8, DIMENSION(:), INTENT(IN) :: topo
       INTEGER :: ijk, i, j, k
       INTEGER :: npx, n
       REAL*8 :: grad
@@ -525,7 +538,7 @@
   	    ENDIF
           ENDDO
 
-          IF (cz(k) >= topo_x(i)) THEN
+          IF (cz(k) >= topo(i)) THEN
             fx(npx)%int = -10
           ELSE
             fx(npx)%int = -100
@@ -540,12 +553,13 @@
       RETURN
       END SUBROUTINE extrafx
 !----------------------------------------------------------------------
-      SUBROUTINE extrafz(fz, nfpz)
+      SUBROUTINE extrafz(fz, nfpz, topo)
       USE volcano_topography, ONLY: cx, cy, cz, next
 !
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: nfpz
       TYPE(forcing_point), DIMENSION(:), INTENT(INOUT) :: fz
+      REAL*8, DIMENSION(:), INTENT(IN) :: topo
       INTEGER :: ijk, i, j, k
       INTEGER :: npz
         
@@ -558,10 +572,10 @@
           npz = npz + 1
           fz(npz)%i = i
           fz(npz)%k = k
-          IF (cz(k) >= topo_c(i)) THEN
+          IF (cz(k) >= topo(i)) THEN
             fz(npz)%int = 10
             fz(npz)%nsl%x = cx(i)
-            fz(npz)%nsl%z = topo_c(i)
+            fz(npz)%nsl%z = topo(i)
           ELSE
             fz(npz)%int = 100
           END IF

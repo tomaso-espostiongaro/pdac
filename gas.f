@@ -40,7 +40,8 @@
       INTEGER :: ig
 !
       ALLOCATE(phij(max_ngas,max_ngas))
-      ALLOCATE(ckg(max_ngas), gmw(max_ngas)) 
+      ALLOCATE(ckg(max_ngas)) 
+      ALLOCATE(gmw(max_ngas)) 
       ALLOCATE(mmugek(max_ngas), mmug(max_ngas), mmugs(max_ngas))
       ALLOCATE(present_gas(max_ngas))
       ALLOCATE(gas_type(ngas))
