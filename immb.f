@@ -76,6 +76,10 @@
 ! ... Interpolate topography on cell centers and write the
 ! ... implicit profile
 !
+      ALLOCATE (cx(nx))
+      ALLOCATE (cy(ny))
+      ALLOCATE (cz(nz))
+!
       IF (job_type == '2D') THEN
   
         ALLOCATE(topo_c(nx))
@@ -170,6 +174,10 @@
           CALL forcing(fptz,topo_c)
 
         ELSE IF (job_type == '3D') THEN
+
+          WRITE(6,*) 'WARNING!: 3D immersed b. not yet implemented'
+          immb = 0
+          GOTO 111
           !
           ! ... interpolate the topography on x-staggered mesh
           !
@@ -185,10 +193,6 @@
           !
           CALL grid_locations(0,0,1)
           CALL interpolate_dem(topo2d_c)
-
-          WRITE(6,*) 'WARNING!: 3D immersed b. not yet implemented'
-          immb = 0
-          GOTO 111
 
         END IF
 !

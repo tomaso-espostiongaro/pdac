@@ -69,18 +69,19 @@
       USE control_flags, ONLY: job_type
       IMPLICIT NONE
 
-      IF (job_type == '2D') THEN
-        CALL read_2Dprofile
-      ELSE IF (job_type == '3D') THEN
-        CALL read_dem_ascii
-        CALL compute_UTM_coords
-      END IF
+        IF (job_type == '2D') THEN
+          CALL read_2Dprofile
+        ELSE IF (job_type == '3D') THEN
+          CALL read_dem_ascii
+          CALL compute_UTM_coords
+        END IF
 !
       RETURN
       END SUBROUTINE read_topo
 !----------------------------------------------------------------------
       SUBROUTINE read_2Dprofile
       USE grid, ONLY: topography
+      USE parallel, ONLY: mpime, root
       IMPLICIT NONE
 
       INTEGER :: n
@@ -93,18 +94,24 @@
 ! ... mesh "xtop"
 !
       topo_file = TRIM(topography)
-      OPEN(UNIT=3, FILE=topo_file, STATUS='OLD')
 
-      READ(3,*) noditop
+      IF (mpime == root) THEN
+        OPEN(UNIT=3, FILE=topo_file, STATUS='OLD')
+        READ(3,*) noditop
+        CALL bcast_integer(noditop,1,root)
+      END IF
 
       ALLOCATE(xtop(noditop))
       ALLOCATE(ztop(noditop))
 
-      DO n=1, noditop
-        READ(3,*) xtop(n),ztop(n)
-      END DO
-
-      CLOSE(3)
+      IF (mpime == root) THEN
+        DO n=1, noditop
+          READ(3,*) xtop(n),ztop(n)
+        END DO
+        CALL bcast_real(xtop,noditop,root)
+        CALL bcast_real(ytop,noditop,root)
+        CLOSE(3)
+      END IF
 !
       xmin = MINVAL(xtop)
       xmax = MAXVAL(xtop)
@@ -120,22 +127,45 @@
 ! ... Read the standard ASCII DEM format
 !
       USE grid, ONLY: topography
+      USE parallel, ONLY: mpime, root
       IMPLICIT NONE
 
       CHARACTER(LEN=20) :: topo_file
       INTEGER :: p
       INTEGER :: i, j
-      REAL*8 :: elevation
+      
+      REAL    :: xll, yll
+      REAL    :: dd
+      INTEGER :: noval
+      INTEGER :: elevation
 
-      topo_file = TRIM(topography)
-      OPEN(UNIT=3, FILE=topo_file, STATUS='OLD')
+      IF (mpime == root) THEN
+        topo_file = TRIM(topography)
+        OPEN(UNIT=3, FILE=topo_file, STATUS='OLD')
+  
+        WRITE(*,*) 'Reading topography file: ', topo_file
 
-      READ(3,*) vdem%nx
-      READ(3,*) vdem%ny
-      READ(3,*) vdem%xcorner
-      READ(3,*) vdem%ycorner
-      READ(3,*) vdem%cellsize
-      READ(3,*) vdem%nodata_value
+        READ(3,*) noditopx
+        READ(3,*) noditopy
+        READ(3,*) xll
+        READ(3,*) yll
+        READ(3,*) dd
+        READ(3,*) noval
+
+        CALL bcast_integer(noditopx,1,root)
+        CALL bcast_integer(noditopy,1,root)
+        CALL bcast_real(xll,1,root)
+        CALL bcast_real(yll,1,root)
+        CALL bcast_real(dd,1,root)
+        CALL bcast_integer(noval,1,root)
+      END IF
+
+      vdem%nx           = noditopx
+      vdem%ny           = noditopy
+      vdem%xcorner      = xll
+      vdem%ycorner      = yll
+      vdem%cellsize     = dd
+      vdem%nodata_value = noval
 !
       ALLOCATE(ztop2d(vdem%nx,vdem%ny))
 !
@@ -148,22 +178,17 @@
 
       DO j = vdem%ny, 1, -1
         ytop(j) = vdem%ycorner - (vdem%ny - j) * vdem%cellsize
-
-        DO i = 1, vdem%nx
-
-          READ(3,*) elevation
-          elevation = elevation / 100.D0 ! elevation in metres
-
-          ztop2d(i,j) = elevation
-
-        END DO
-
       END DO
-!
-! ... global scope
-!
-      noditopx = vdem%nx
-      noditopy = vdem%ny
+
+      IF (mpime == root) THEN
+        DO j = vdem%ny, 1, -1
+          DO i = 1, vdem%nx
+            READ(3,*) elevation
+            ztop2d(i,j) = DBLE(elevation) / 100.D0
+          END DO
+        END DO
+        CALL bcast_real(ztop2d,noditopx*noditopy,root)
+      END IF
 !
       RETURN
       END SUBROUTINE read_dem_ascii
@@ -470,9 +495,6 @@
 !
 ! ... initialize the grids
 !
-      IF(.NOT.(ALLOCATED(cx))) ALLOCATE(cx(nx))
-      IF(.NOT.(ALLOCATED(cy))) ALLOCATE(cy(ny))
-      IF(.NOT.(ALLOCATED(cz))) ALLOCATE(cz(nz))
       cx = 0.D0
       cy = 0.D0
       cz = 0.D0
