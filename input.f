@@ -39,11 +39,14 @@
       REAL*8 :: fixed_gasconc(max_ngas, max_nblock)
 
 ! ... INITIAL_CONDITIONS
-      REAL*8 :: wind_r, wind_x, wind_z, wind_y
-      REAL*8 :: atmospheric_pressure 
-      REAL*8 :: atmospheric_epsilon  ! atmospheric particle concentration
+      REAL*8 :: initial_vgas_r
+      REAL*8 :: initial_vgas_x
+      REAL*8 :: initial_vgas_y
+      REAL*8 :: initial_vgas_z
+      REAL*8 :: initial_pressure
+      REAL*8 :: initial_void_fraction   
       REAL*8 :: max_packing          ! maximum particle packing (volumetric fraction ~0.67)
-      REAL*8 :: atmospheric_temperature
+      REAL*8 :: initial_temperature
       REAL*8 :: initial_vpart_r      ! initial particle velocities (radial, x, y and z)
       REAL*8 :: initial_vpart_x
       REAL*8 :: initial_vpart_y
@@ -323,7 +326,7 @@
           END IF
         END DO initial_conditions_search
 
-        READ(5,*) wind_r, wind_z, atmospheric_pressure, atmospheric_epsilon, max_packing, atmospheric_temperature
+        READ(5,*) initial_vgas_r, initial_vgas_z, initial_pressure, initial_void_fraction, max_packing, initial_temperature
         READ(5,*) initial_vpart_r, initial_vpart_z
         READ(5,*) (initial_gasconc(kg), kg=1, ngas)
 
@@ -336,12 +339,12 @@
       IF( tend ) THEN
         CALL error( ' input ', ' MESH card not found ', 1 )
       END IF
-      CALL bcast_real(wind_r,1,root)
-      CALL bcast_real(wind_z,1,root)
-      CALL bcast_real(atmospheric_pressure,1,root)
-      CALL bcast_real(atmospheric_epsilon,1,root)
+      CALL bcast_real(initial_vgas_r,1,root)
+      CALL bcast_real(initial_vgas_z,1,root)
+      CALL bcast_real(initial_pressure,1,root)
+      CALL bcast_real(initial_void_fraction,1,root)
       CALL bcast_real(max_packing,1,root)
-      CALL bcast_real(atmospheric_temperature,1,root)
+      CALL bcast_real(initial_temperature,1,root)
       CALL bcast_real(initial_vpart_r,1,root)
       CALL bcast_real(initial_vpart_z,1,root)
       CALL bcast_real(initial_gasconc, SIZE(initial_gasconc),root)

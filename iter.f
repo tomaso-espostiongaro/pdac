@@ -31,8 +31,8 @@
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes
       USE tilde_momentum, ONLY: rug, rvg, ruk, rvk
-      USE time_parameters, ONLY: time, dt, tstop, itd, timestart
-      USE th_capacity, ONLY: cp
+      USE time_parameters, ONLY: time, dt, tstop, timestart
+      USE heat_capacity, ONLY: cp
 !
       IMPLICIT NONE
 !

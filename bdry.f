@@ -1,5 +1,5 @@
 !-----------------------------------------------------------------------
-      SUBROUTINE bdry
+      SUBROUTINE boundary
 !-----------------------------------------------------------------------
 ! ... This routine computes boundary conditions 
 !
@@ -142,13 +142,14 @@
 !
                 rmcnn = rmcn-dt*indrc*inrb(i)*(r(i+1)*u2n*rmcn-r(i)*u1n*rmc1n)
 !
-                p1nn = (1.D0/rm1nn) *                                                  &
-                       (-rm1knn+rm1n-dt/dr1*inr(i)*(rb(i)*rm1n*ucn-rb(i-1)*rm0n*uc1n))
+                p1nn = (1.D0/rm1nn) *                           &
+                       ( - rm1knn + rm1n - dt/dr1*inr(i) *      &
+                       ( rb(i)*rm1n*ucn - rb(i-1)*rm0n*uc1n ) )
 !
 ! ... Calculation of the advanced-time fluid pressure from Momentum balance
 ! ... equation of the mixture
-                p(n2) = -rmcnn*ucnn + rmcn*ucn                                         &
-                        - dt*indrc*inrb(i)*(r(i+1)*u2n*ucn*rmcn-r(i)*u1n*uc1n*rmc1n) + &
+                p(n2) = -rmcnn*ucnn + rmcn*ucn - dt*indrc*inrb(i) *     &
+                         ( r(i+1)*u2n*ucn*rmcn - r(i)*u1n*uc1n*rmc1n) + &
                           dt*p1nn*indrc
                 p(n2)=p(n2)/(dt*indrc)
 !

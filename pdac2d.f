@@ -43,7 +43,7 @@
       USE initial_conditions, ONLY: setup, epsob, vpob, tpob, ygc0, &
      &    ygcob, upob, vgob, ugob, pob, tgob, epob, lpr, zzero, &
      &    bounds_setup
-      USE th_capacity, ONLY: bounds_hcapgs, local_bounds_hcapgs
+      USE heat_capacity, ONLY: bounds_hcapgs, local_bounds_hcapgs
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut
       USE turbulence, ONLY: iturb, cmut, iss, bounds_turbo, &
@@ -65,12 +65,15 @@
 !
       IF(timing) s0 = cpclock()
 
-      CALL parallel_startup  ! inizializza l'ambiente parallelo
+!
+! ... initialize parallel environment
+!
+      CALL parallel_startup  
 
 ! ... Initialize the IBM HW performance monitor
-!      call f_hpminit( mpime, 'pdac' )
-
-! ... only root processor opens input FILE
+!             call f_hpminit( mpime, 'pdac' )
+!
+! ... I/O files
 !
       hun = (mpime/100)
       ten = (mpime - 100*hun)/10
@@ -90,7 +93,9 @@
         OPEN(UNIT=7,FILE=testnb,STATUS='UNKNOWN')
         OPEN(UNIT=8,FILE=errnb,STATUS='UNKNOWN')
       END IF
-
+!
+! ... Read Input file
+!
       CALL input(5)
 
 ! ... set dimensions ...
@@ -139,12 +144,12 @@
       tpob(1:nsolid,1:no) = fixed_parttemp(1:nsolid,1:no)
       ygcob(1:ngas,1:no) = fixed_gasconc(1:ngas,1:no)
 
-      u0 = wind_r
-      v0 = wind_z
-      p0 = atmospheric_pressure
-      ep0 = atmospheric_epsilon
+      u0 = initial_vgas_r
+      v0 = initial_vgas_z
+      p0 = initial_pressure
+      ep0 = initial_void_fraction
       epsmx0 = max_packing
-      temp0 = atmospheric_temperature
+      temp0 = initial_temperature
       uk0 = initial_vpart_r
       vk0 = initial_vpart_z
       ygc0(1:ngas) = initial_gasconc(1:ngas)
@@ -156,12 +161,14 @@
       cps(1:nsolid) = specific_heat(1:nsolid)
       kap(1:nsolid) = thermal_conductivity(1:nsolid)
 !
+! ... Read restart file
+!
       IF(itd.GE.2) THEN 
         CALL taperd
         CALL tapebc
       END IF
 !
-! ...   writing of log file
+! ...  Writing log file
 ! 
       IF (mpime .EQ. root) THEN
         WRITE(6,200) run_name
@@ -204,11 +211,17 @@
         jb=jb2-2
         jb1=jb2-1
 !
+! ... Set boundary flags
+!
       CALL flic
       IF(timing) s1 = cpclock()
 !
+! ... Domain decomposition for parallelization 
+!
       CALL partition
       IF(timing) s2 = cpclock()
+!
+! ... Setting ghost cells
 !
       CALL ghost
       IF(timing) s3 = cpclock()
@@ -222,9 +235,15 @@
       CALL local_bounds_hcapgs
       CALL local_bounds_turbo
 !
+! ... Set initial conditions
+!
       CALL setup
 !
+! ... Distribute inital data among processes
+!
       CALL distribute
+!
+! ... Time advancement loop
 !
       CALL prog
 !
@@ -248,8 +267,14 @@
       CLOSE(8)
 
       CALL deallocate_roughness( zrough )
+! 
+! ... Finalize parallel environment
+!
       CALL parallel_hangup
+!
       STOP
+!
+! ... log format
 !
  100  FORMAT(a30)
  200  FORMAT(1x,'pdac_2d problem identifier -  ',a30)
@@ -303,4 +328,4 @@
  611  FORMAT('dr(i) = '/,7(2x,1p7e11.4/))
  622  FORMAT('dz(j) = '/,7(2x,1p7e11.4/))
 !
-      END
+      END PROGRAM pdac2d

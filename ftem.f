@@ -28,7 +28,7 @@
       USE pressure_epsilon, ONLY: p, pn, ep
       USE reactions, ONLY: hrex, irex
       USE set_indexes
-      USE th_capacity, ONLY: ck
+      USE heat_capacity, ONLY: ck
       USE time_parameters, ONLY: time, dt
       USE gas_solid_viscosity, ONLY: mug, kapg
       IMPLICIT NONE

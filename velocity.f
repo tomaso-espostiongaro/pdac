@@ -7,8 +7,8 @@
       REAL*8, DIMENSION(:),   ALLOCATABLE :: ug, vg
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: uk, vk
 
-      REAL*8, DIMENSION(:),   ALLOCATABLE :: ug_g, vg_g
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: uk_g, vk_g
+      REAL*8, DIMENSION(:),   ALLOCATABLE :: gas_velocity_r, gas_velocity_z
+      REAL*8, DIMENSION(:,:),   ALLOCATABLE :: solid_velocity_r, solid_velocity_z
 !
       SAVE
 !-----------------------------------------------------
@@ -18,12 +18,12 @@
       USE dimensions
       IMPLICIT NONE
 !
-      ALLOCATE(ug_g(ndi*ndj), vg_g(ndi*ndj))
-      ALLOCATE(uk_g(ncl,ndi*ndj), vk_g(ncl,ndi*ndj))
-      ug_g = 0.0d0
-      vg_g = 0.0d0
-      uk_g = 0.0d0
-      vk_g = 0.0d0
+      ALLOCATE(gas_velocity_r(ndi*ndj), gas_velocity_z(ndi*ndj))
+      ALLOCATE(solid_velocity_r(ncl,ndi*ndj), solid_velocity_z(ncl,ndi*ndj))
+      gas_velocity_r = 0.0d0
+      gas_velocity_z = 0.0d0
+      solid_velocity_r = 0.0d0
+      solid_velocity_z = 0.0d0
 !
       RETURN
       END SUBROUTINE

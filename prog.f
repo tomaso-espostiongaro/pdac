@@ -25,7 +25,7 @@
       USE gas_solid_viscosity, ONLY: viscon
       USE gas_solid_viscosity, ONLY: mug, kapg
       USE gas_components, ONLY: ygas
-      USE th_capacity, ONLY: ck, cp
+      USE heat_capacity, ONLY: ck, cp
       USE environment, ONLY: cpclock, timing
 !
       IMPLICIT NONE
@@ -56,8 +56,8 @@
       tpri=time+tpr
       irest = 0
 !
-!--------START time sweep---------------
-      DO
+!---------------------------------------
+      time_sweep: DO
 !---------------------------------------
 !
               IF( timing ) s1 = cpclock()
@@ -67,10 +67,10 @@
 !
 ! ... Compute Boundary Conditions
 !
-        CALL bdry 
+          CALL boundary 
 !
-! ... Compute explicit quantities on the mesh
-! ... from primitive variables
+! ... Compute derived fields from closure equations
+! ... (must be dumped into restart file)
 !
         DO ij = 1, nij_l
          ij_g = myij(0, 0, ij)
@@ -78,47 +78,58 @@
            j = ( ij_g - 1 ) / ndi + 1
            i = MOD( ( ij_g - 1 ), ndi) + 1
 ! 
-! ... Compute mole fractions of gas species
+! ... Compute molar fractions of gas species
 !
            CALL mole(xgc(:,ij), ygc(:,ij))
 !
-! ... Compute gas density from Equation of State
+! ... Compute gas density and gas temperature from gas Equation of State
 !
            CALL eosg(rags, rog(ij), cp(:,ij), cg(ij),   &
                      tg(ij), ygc(:,ij), xgc(:,ij),      &
                      sieg(ij), p(ij), 1, 1, 0, ij_g)
            rgp(ij)=rog(ij)*ep(ij)
 ! 
-! ... Store explicit quantities at time n*dt
-!
-           rgpn(ij)=rgp(ij)
-           pn(ij)=p(ij)
            DO kg=1,ngas
              rgpgc(kg,ij)=ygc(kg,ij)*rgp(ij)
-             rgpgcn(kg,ij)=rgpgc(kg,ij)
            END DO
-!
-! ... Compute the temperature-dependent gas viscosity and conductivity
 ! 
-           IF(irex.GE.0) THEN
-             siegn(ij)=sieg(ij)
-             CALL viscon(mug(ij), kapg(ij), xgc(:,ij), tg(ij))
-           ENDIF
-! 
-! ... Compute Thermodnamic variables for particles
-! ... and store explicit quantitites
+! ... Compute particle temperatures from eq. of state
 !
            DO k=1,nsolid
-             rlkn(k,ij)=rlk(k,ij)
              IF (irex.GE.0) THEN
-               siekn(k,ij) = siek(k,ij)
                CALL eosl(tk(k,ij),ck(k,ij),cps(k),siek(k,ij),1,1)
              ENDIF
            END DO
+!
          END IF
         END DO
-       END IF 
-
+!
+       END IF
+!
+       DO ij = 1, nij_l
+         IF(fl_l(ij).EQ.1) THEN
+!
+! ... Store fields at time n*dt
+!
+           pn(ij) = p(ij)
+           rgpn(ij) = rgp(ij)
+           IF(irex.GE.0) siegn(ij) = sieg(ij)
+           DO k=1,nsolid
+             rlkn(k,ij) = rlk(k,ij)
+             IF (irex.GE.0) siekn(k,ij) = siek(k,ij)
+           END DO
+           DO kg=1,ngas
+             rgpgcn(kg,ij) = rgpgc(kg,ij)
+           END DO
+!
+! ... Compute the temperature-dependent gas viscosity and th. conductivity
+! 
+           IF(irex.GE.0) THEN
+             CALL viscon(mug(ij), kapg(ij), xgc(:,ij), tg(ij))
+           ENDIF
+         END IF
+       END DO
+!
               IF( timing ) s2 = cpclock()
 !
 ! ... Write OUTPUT file
@@ -131,9 +142,9 @@
 
               IF( timing ) s3 = cpclock()
 !
-! ... Write restart file
+! ... Write RESTART file
 !
-       IF ((time+0.1D0*dt.GT.tdump1) .OR. (time+0.1D0*dt.GT.tstop)) THEN  
+       IF (time+0.1D0*dt.GT.tdump1) THEN
          CALL collect
          CALL tapewr
          tdump1=tdump1+tdump
@@ -141,9 +152,9 @@
 
               IF( timing ) s4 = cpclock()
 !
-!--------Exit time sweep------------------- 
-       IF (time + 0.1D0 * dt .GE. tstop) EXIT
-!------------------------------------------ 
+!------------------------------------------------------------ 
+       IF (time + 0.1D0*dt .GE. tstop)     EXIT time_sweep
+!------------------------------------------------------------ 
 !
 ! ... Compute Turbulent viscosity for Smagorinsky LES model
 !
@@ -156,13 +167,13 @@
          IF (iss .EQ. 1)  CALL sgss
               IF( timing ) s5 = cpclock()
 ! 
-! ... Compute gas and particle momentum density at time n*dt
+! ... store gas and particle momentum densities at time n*dt
 !
          CALL euvel
-         dt0 = dt
 !
 ! ... Start the Runge-Kutta iteration
 !
+         dt0 = dt
          DO rk = 1, rungekut
            dt = dt0/(rungekut+1-rk)
 !
@@ -211,8 +222,8 @@
               timtem = timtem + (s9 - s8)
 
 !------------------------------------------
-      END DO
-!--------END time sweep--------------------
+      END DO time_sweep
+!------------------------------------------
 
               IF( timing ) s9 = cpclock()
 

@@ -4,8 +4,8 @@
       IMPLICIT NONE
       SAVE
 !
-      REAL*8, DIMENSION(:), ALLOCATABLE :: rgp_g, rgpn_g, rog_g
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: rlk_g, rlkn_g
+      REAL*8, DIMENSION(:), ALLOCATABLE :: gas_density, gas_bulk_density
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: solid_bulk_density
 
       REAL*8, DIMENSION(:), ALLOCATABLE :: rgp, rgpn, rog
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: rlk, rlkn
@@ -15,8 +15,8 @@
       SUBROUTINE bounds_density
       USE dimensions
 !
-      ALLOCATE(rgp_g(ndi*ndj), rgpn_g(ndi*ndj), rog_g(ndi*ndj))
-      ALLOCATE(rlk_g(ncl,ndi*ndj), rlkn_g(ncl,ndi*ndj))
+      ALLOCATE(gas_bulk_density(ndi*ndj), gas_density(ndi*ndj))
+      ALLOCATE(solid_bulk_density(ncl,ndi*ndj))
 
       RETURN
       END SUBROUTINE

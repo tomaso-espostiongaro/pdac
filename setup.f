@@ -26,18 +26,19 @@
 !
       USE atmosphere, ONLY: u0, v0, p0, temp0, uk0, vk0, ep0, atm
       USE dimensions
-      USE eos_gas, ONLY: mole, cnvertg, xgc_g, ygc_g
+      USE eos_gas, ONLY: mole, cnvertg, gc_molar_fraction, gc_mass_fraction
       USE eos_solid, ONLY: cnverts
       USE gas_constants, ONLY: gmw, rgas
-      USE gas_solid_density, ONLY: rgp_g, rlk_g
-      USE gas_solid_velocity, ONLY: ug_g, vg_g, uk_g, vk_g
-      USE gas_solid_temperature, ONLY: tg_g, tk_g
+      USE gas_solid_density, ONLY: gas_bulk_density, solid_bulk_density
+      USE gas_solid_velocity, ONLY: gas_velocity_r, gas_velocity_z
+      USE gas_solid_velocity, ONLY: solid_velocity_r, solid_velocity_z
+      USE gas_solid_temperature, ONLY: gas_temperature, solid_temperature
       USE grid, ONLY: grid_setup, zb, dz, dr, ib2, ib1, jb2, jb1
       USE grid, ONLY: fl, iob, nso, no
       USE particles_constants, ONLY: rl, nsolid
-      USE pressure_epsilon, ONLY: p_g, ep_g
+      USE pressure_epsilon, ONLY: gas_pressure, void_fraction
       USE time_parameters, ONLY: itd
-      USE gas_solid_viscosity, ONLY: mug_g, kapg_g
+      USE gas_solid_viscosity, ONLY: gas_viscosity, gas_thermal_conductivity
 
       IMPLICIT NONE
 !
@@ -50,50 +51,37 @@
 !
       IF(itd.LE.1) THEN
 !
-! ... set initial atmospheric conditions (pressure/temperature stratification)
+! ... Set initial ambient pressure and temperature
 !
         DO  j=1,jb2
           zrif=zb(j)+0.5D0*(dz(1)-dz(j))
-         DO i=1,ib2
+          DO i=1,ib2
             ij=i+(j-1)*ib2
-            CALL atm(zrif,p_g(ij),tg_g(ij))
-            rgp_g(ij)=p_g(ij)*ep0*gmw(6)/(rgas*tg_g(ij))
-         END DO
-        END DO
+            CALL atm(zrif,gas_pressure(ij),gas_temperature(ij))
 !
-! ... set initial composition and particles concentration in atmosphere
+! ... Set initial gas composition and particles concentration
 !
-        DO j=jb2,1,-1
-        DO i=1,ib2
-          ij=i+(j-1)*ib2
-          ep_g(ij)=ep0
-          DO kg=1,ngas
-            ygc_g(kg,ij)=ygc0(kg)
+            void_fraction(ij)=ep0
+            DO kg=1,ngas
+              gc_mass_fraction(kg,ij)=ygc0(kg)
+            END DO
+            DO k=1,nsolid
+              solid_bulk_density(k,ij)=rl(k)*(1.D0-ep0)/DBLE(nsolid)
+              solid_temperature(k,ij)=gas_temperature(ij)
+            END DO
+!
+! ... Set velocity profiles
+!
+            IF(fl(ij).EQ.1 .OR. fl(ij).EQ.4) THEN
+             gas_velocity_r(ij)=u0
+             gas_velocity_z(ij)=v0
+             DO k=1,nsolid
+               solid_velocity_r(k,ij)=uk0
+               solid_velocity_z(k,ij)=vk0
+             END DO
+            END IF
+!
           END DO
-          DO k=1,nsolid
-            rlk_g(k,ij)=rl(k)*(1.D0-ep0)/DBLE(nsolid)
-            tk_g(k,ij)=tg_g(ij)
-          END DO
-          CALL mole(xgc_g(:,ij), ygc_g(:,ij))
-          CALL cnvertg(ij)
-          CALL cnverts(ij)
-        END DO
-        END DO
-!
-! ... Set the wind profile
-!
-        DO j=1,jb2
-        DO i=1,ib2
-          ij=i+(j-1)*ib2
-          IF(fl(ij).EQ.1 .OR. fl(ij).EQ.4) THEN
-           ug_g(ij)=u0
-           vg_g(ij)=v0
-           DO k=1,nsolid
-             uk_g(k,ij)=uk0
-             vk_g(k,ij)=vk0
-           END DO
-          END IF
-        END DO
         END DO
 ! 
 ! ... Set initial conditions in Boundary cells with imposed fluid flow
@@ -107,37 +95,37 @@
           DO i=i1,i2
             ij=i+(j-1)*ib2
             IF(nso(n).EQ.1 .OR. nso(n).EQ.5) THEN
-              ug_g(ij)=ugob(n)
-              vg_g(ij)=vgob(n)
-              tg_g(ij)=tgob(n)
-              p_g(ij)=pob(n)
-              ep_g(ij)=epob(n)
+              gas_velocity_r(ij)=ugob(n)
+              gas_velocity_z(ij)=vgob(n)
+              gas_temperature(ij)=tgob(n)
+              gas_pressure(ij)=pob(n)
+              void_fraction(ij)=epob(n)
               DO kg=1,ngas
-                ygc_g(kg,ij)=ygcob(kg,n)
+                gc_mass_fraction(kg,ij)=ygcob(kg,n)
               END DO
               DO k=1,nsolid
-                tk_g(k,ij)=tpob(k,n)
-                uk_g(k,ij)=upob(k,n)
-                vk_g(k,ij)=vpob(k,n)
-                rlk_g(k,ij)=epsob(k,n)*rl(k)
+                solid_temperature(k,ij)=tpob(k,n)
+                solid_velocity_r(k,ij)=upob(k,n)
+                solid_velocity_z(k,ij)=vpob(k,n)
+                solid_bulk_density(k,ij)=epsob(k,n)*rl(k)
               END DO
-              CALL mole(xgc_g(:,ij), ygc_g(:,ij))
-              CALL cnvertg(ij)
-              CALL cnverts(ij)
             ENDIF
           END DO
           END DO
         END DO
 !
-! ... initialize molecular viscosity and thermal conductivity of gas
+! ... Compute thermodynamic quantities
 !
-        mug_g = 0.0
-        kapg_g = 0.0
+        DO  j=1,jb2
+          DO i=1,ib2
+           ij=i+(j-1)*ib2
+           CALL mole(gc_molar_fraction(:,ij), gc_mass_fraction(:,ij))
+           CALL cnvertg(ij)
+           CALL cnverts(ij)
+          END DO
+        END DO
 !
       END IF
-!
- 650  FORMAT (1x,80i1)
- 660  FORMAT (//)
 !
       RETURN
       END SUBROUTINE

@@ -8,7 +8,7 @@
       USE particles_constants, ONLY: particles_constants_set, nsolid, cmus
       USE reactions, ONLY: h1, h2, h3, h4, h5
       USE roughness_module, ONLY: zrough
-      USE turbulence, ONLY: turbulence_setup, mus_g
+      USE turbulence, ONLY: turbulence_setup, solid_viscosity
       IMPLICIT NONE
       INTEGER :: k
 !
@@ -46,7 +46,7 @@
 ! Initialize particle's viscosity
 ! 
       DO k = 1, ncl
-        mus_g(k,:) = cmus(k)
+        solid_viscosity(k,:) = cmus(k)
       END DO
 !
 ! set useful constants 
@@ -65,7 +65,7 @@
       h4 = 0.D0                                  !
       h5 = 0.D0                                  !
 !
-      CALL turbulence_setup( zrough )
+!      CALL turbulence_setup( zrough )
 !
       RETURN
 !----------------------------------------------------------------------

@@ -4,9 +4,9 @@
       IMPLICIT NONE
       SAVE
 !
-      REAL*8, DIMENSION(:),   ALLOCATABLE :: sieg_g, siegn_g, tg_g
+      REAL*8, DIMENSION(:),   ALLOCATABLE :: gas_enthalpy, gas_temperature
       REAL*8, DIMENSION(:),   ALLOCATABLE :: sieg, siegn, tg
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: siek_g, siekn_g, tk_g
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: solid_enthalpy, solid_temperature
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: siek, siekn, tk
 !----------------------------------------------------------------------
       CONTAINS
@@ -15,8 +15,9 @@
       USE dimensions
       IMPLICIT NONE
 !
-      ALLOCATE(sieg_g(ndi*ndj), siegn_g(ndi*ndj), tg_g(ndi*ndj))
-      ALLOCATE(siek_g(ncl,ndi*ndj), siekn_g(ncl,ndi*ndj), tk_g(ncl,ndi*ndj))
+      ALLOCATE(gas_enthalpy(ndi*ndj), gas_temperature(ndi*ndj))
+      ALLOCATE(solid_enthalpy(ncl,ndi*ndj), solid_temperature(ncl,ndi*ndj))
+!
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------

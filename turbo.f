@@ -11,8 +11,8 @@
       REAL*8, DIMENSION(:,:),   ALLOCATABLE :: mus   !turbulent viscosity (p.)
       REAL*8, DIMENSION(:),   ALLOCATABLE :: kapgt  !turb. conductivity (gas)
 
-      REAL*8, DIMENSION(:,:),   ALLOCATABLE :: mus_g
-      REAL*8, DIMENSION(:), ALLOCATABLE :: smagl_g, zbt, scoeff_g
+      REAL*8, DIMENSION(:,:),   ALLOCATABLE :: solid_viscosity
+      REAL*8, DIMENSION(:), ALLOCATABLE :: zbt, smag_coeff, smag_length
       REAL*8, DIMENSION(:), ALLOCATABLE :: smagl, scoeff
       REAL*8, DIMENSION(:), ALLOCATABLE :: cdy_n 
       REAL*8, DIMENSION(:), ALLOCATABLE :: delta 
@@ -30,13 +30,13 @@
       USE dimensions
       IMPLICIT NONE
 !
-      ALLOCATE(smagl_g(ndi*ndj))
-      ALLOCATE(mus_g(ncl,ndi*ndj))
+      ALLOCATE(smag_length(ndi*ndj))
+      ALLOCATE(solid_viscosity(ncl,ndi*ndj))
       ALLOCATE(jt(ndi), it(ndi), zbt(ndi))
-      ALLOCATE(scoeff_g(ndi*ndj))
-      smagl_g = 0.0D0
-      mus_g = 0.0D0
-      scoeff_g = 0.0D0
+      ALLOCATE(smag_coeff(ndi*ndj))
+      solid_viscosity = 0.0D0
+      smag_length = 0.0D0
+      smag_coeff = 0.0D0
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
@@ -61,6 +61,7 @@
       END SUBROUTINE
 !----------------------------------------------------------------------
        SUBROUTINE turbulence_setup( zrough )
+! ... sets the Smagorinsky turbulence length scale
 !
         USE grid, ONLY: iob, nso, no
         USE grid, ONLY: ib2, ib1, jb1, dz, dr, zb, rb
@@ -90,13 +91,12 @@
          DO i=2,ib1
            ij=i+(j-1)*ib2
            IF(j.LE.jt(i)) THEN
-             smagl_g(ij)=0.D0
+             smag_length(ij)=0.D0
            ELSE
              delt=DSQRT(dz(j)*dr(i))
-!             WRITE(*,*)'ij, delt', ij, delt
              IF(iturb.EQ.1) THEN
-               smagl_g(ij)=cmut*delt
-             ELSE
+               smag_length(ij)=cmut*delt
+             ELSE IF (iturb .EQ. 2) THEN
                sgsl0=cmut*delt
                IF(it(i).EQ.1) THEN
                  zsgsl=zb(j)-zbt(i)-dz(j)*0.5D0
@@ -110,9 +110,12 @@
                    ENDIF
                  ENDIF
                  sgslb=0.4D0*(zsgsl+zrou)
-                 smagl_g(ij)=dmin1(sgsl0,sgslb)
+!
+! ... use the smallest between the smag length and the roughness length
+                 smag_length(ij)=dmin1(sgsl0,sgslb)
+!
                ELSE
-                 smagl_g(ij)=sgsl0
+                 smag_length(ij)=sgsl0
                ENDIF
              ENDIF
            ENDIF

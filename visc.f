@@ -3,8 +3,8 @@
 !----------------------------------------------------------------------
       IMPLICIT NONE
 !
-      REAL*8, DIMENSION(:),  ALLOCATABLE :: mug_g   ! molecular viscosity (gas)
-      REAL*8, DIMENSION(:),  ALLOCATABLE :: kapg_g  ! thermal conductivity (gas)
+      REAL*8, DIMENSION(:),  ALLOCATABLE :: gas_viscosity
+      REAL*8, DIMENSION(:),  ALLOCATABLE :: gas_thermal_conductivity
 !
       REAL*8, DIMENSION(:),   ALLOCATABLE :: mug   !molecular viscosity (gas)
       REAL*8, DIMENSION(:),   ALLOCATABLE :: kapg  !thermal conductivity (gas)
@@ -22,10 +22,10 @@
       USE dimensions
       IMPLICIT NONE
 !
-      ALLOCATE(mug_g(ndi*ndj))
-      ALLOCATE(kapg_g(ndi*ndj))
-      mug_g = 0.0d0
-      kapg_g = 0.0d0
+      ALLOCATE(gas_viscosity(ndi*ndj))
+      ALLOCATE(gas_thermal_conductivity(ndi*ndj))
+      gas_viscosity = 0.0d0
+      gas_thermal_conductivity = 0.0d0
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------

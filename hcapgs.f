@@ -1,24 +1,23 @@
 !----------------------------------------------------------------------
-      MODULE th_capacity
+      MODULE heat_capacity
 !----------------------------------------------------------------------
       IMPLICIT NONE
       SAVE
 !
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: cp_g  
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: ck_g 
-!
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: cp !thermal capacity of gas comp.
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: ck !thermal capacity of particles
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: gc_heat_capacity  
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: solid_heat_capacity
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: cp ! heat capacity of gas comp.
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: ck ! heat capacity of particles
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
       SUBROUTINE bounds_hcapgs
       USE dimensions
 !
-      ALLOCATE(cp_g(ngas,ndi*ndj))
-      ALLOCATE(ck_g(ncl,ndi*ndj))
-      cp_g = 0.0d0
-      ck_g = 0.0d0
+      ALLOCATE(gc_heat_capacity(ngas,ndi*ndj))
+      ALLOCATE(solid_heat_capacity(ncl,ndi*ndj))
+      gc_heat_capacity = 0.0d0
+      solid_heat_capacity = 0.0d0
 
       RETURN
       END SUBROUTINE
@@ -34,7 +33,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE hcapg(cp, tg)
 !----------------------------------------------------------------------
-! ... This routine computes the Temperature-dependent thermal capacity 
+! ... This routine computes the Temperature-dependent heat capacity 
 ! ... for each gas phase 
 !
       USE dimensions
@@ -66,7 +65,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE hcaps(ck, cps, tk)
 !----------------------------------------------------------------------
-! ... This routine computes the thermal capacity for particles
+! ... This routine computes the heat capacity for particles
 !
       USE dimensions
       IMPLICIT NONE
@@ -81,4 +80,4 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      END MODULE
+      END MODULE heat_capacity

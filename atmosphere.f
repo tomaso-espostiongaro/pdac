@@ -9,6 +9,7 @@
         REAL*8 :: u0, v0, p0, temp0, uk0, vk0
         REAL*8 :: ep0, epsmx0
         REAL*8 :: gravx, gravz
+        LOGICAL :: stratification
 !------------------------------------------------------------------------
       CONTAINS
 !------------------------------------------------------------------------
@@ -28,13 +29,14 @@
       REAL*8 :: cost1, cost2, cost3, cost4, cost5, cost6, cost7
 !
       erreair=rgas/gmw(6)
-
+!
+      stratification = .FALSE.
 !
 ! sostituire le costanti numeriche con dei PARAMETER !!
 !
 !pe------------------------------
 ! zone 0
-      IF(za.LE.0D0 .OR. .TRUE.) THEN
+      IF(za.LE.0D0 .OR. .NOT.stratification) THEN
         ta=temp0
         pa=p0
 !pe------------------------------

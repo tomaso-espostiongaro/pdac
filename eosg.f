@@ -4,9 +4,10 @@
       IMPLICIT NONE
       SAVE
 !
-      REAL*8, DIMENSION(:), ALLOCATABLE :: cg_g
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: ygc_g, xgc_g
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: rgpgc_g, rgpgcn_g
+      REAL*8, DIMENSION(:), ALLOCATABLE :: gas_heat_capacity
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: gc_mass_fraction
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: gc_molar_fraction
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: gc_bulk_density
       REAL*8, DIMENSION(:), ALLOCATABLE :: cg
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: ygc, xgc
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: rgpgc, rgpgcn
@@ -18,15 +19,15 @@
       USE dimensions
       IMPLICIT NONE
 !
-       ALLOCATE(cg_g(ndi*ndj))
-       ALLOCATE(ygc_g(ngas,ndi*ndj),xgc_g(ngas,ndi*ndj),      &
-                rgpgc_g(ngas,ndi*ndj), rgpgcn_g(ngas,ndi*ndj))
+       ALLOCATE(gas_heat_capacity(ndi*ndj))
+       ALLOCATE(gc_mass_fraction(ngas,ndi*ndj),       &
+                gc_molar_fraction(ngas,ndi*ndj),      &
+                gc_bulk_density(ngas,ndi*ndj))
 
-       cg_g     = 0.0d0
-       ygc_g    = 0.0d0
-       xgc_g    = 0.0d0
-       rgpgc_g  = 0.0d0
-       rgpgcn_g = 0.0d0
+       gas_heat_capacity     = 0.0d0
+       gc_mass_fraction      = 0.0d0
+       gc_molar_fraction     = 0.0d0
+       gc_bulk_density       = 0.0d0
 
       RETURN
       END SUBROUTINE
@@ -53,14 +54,14 @@
       REAL*8, INTENT(IN) :: ygc(:)
       REAL*8, INTENT(OUT) :: xgc(:)
       INTEGER :: kg
-      REAL*8 :: c1
+      REAL*8 :: mol
 !
-      c1=0.D0
+      mol = 0.D0
       DO kg=1,ngas
-        c1=c1+ygc(kg)/gmw(kg)
+        mol = mol + ygc(kg)/gmw(kg)
       END DO
       DO kg=1,ngas
-        xgc(kg)=ygc(kg)/gmw(kg)/c1
+        xgc(kg)=ygc(kg)/gmw(kg)/mol
       END DO
       RETURN
       END SUBROUTINE
@@ -70,8 +71,8 @@
 ! ... updates gas density with new pressure
 !
       USE dimensions
-      USE gas_constants, ONLY: gmw, c_erg, rgas, tzero, hzerog
-      USE th_capacity, ONLY:  hcapg
+      USE gas_constants, ONLY: gmw, c_erg, rgas, tzero, hzerog, gammaair
+      USE heat_capacity, ONLY:  hcapg
       USE time_parameters, ONLY: time
       IMPLICIT NONE
 !
@@ -83,7 +84,7 @@
       INTEGER :: nr, nt, nc
 !
       INTEGER :: i,j
-      REAL*8 :: tgnn, c1, c2, ratmin
+      REAL*8 :: tgnn, mg, hc, ratmin
       INTEGER :: ii, nlmax
       INTEGER :: kg
       PARAMETER( nlmax = 2000) 
@@ -94,16 +95,16 @@
 !
       IF(nt.GT.0) THEN
 !
-! ... iterative inversion of the enthalpy-temperature law,
-! ... the gas thermal capacity depending on the temperature (cg=cg(T))
+! ... iterative inversion of the enthalpy-temperature law
+! ... (the gas thermal capacity depends on the temperature cg=cg(T) )
         DO ii = 1, nlmax
           tgnn = tg
           CALL hcapg(cp(:), tg)
-          c2=0.D0
+          hc=0.D0
           DO kg=1,ngas
-            c2=c_erg*cp(kg)*ygc(kg)+c2
+            hc=c_erg*cp(kg)*ygc(kg)+hc
           END DO
-          cg = c2
+          cg = hc
           tg = tzero+(sieg-hzerog)/cg
           IF (DABS((tgnn-tg)/tgnn).LE.ratmin) GOTO 223
         END DO
@@ -113,14 +114,14 @@
       ENDIF
 !
       IF(nr.GT.0) THEN
-        c1=0.D0
+        mg=0.D0
         DO kg=1,ngas
-          c1 = c1 + xgc(kg) * gmw(kg)
+          mg = mg + xgc(kg) * gmw(kg)
         END DO
-        rog = p/(rgas*tg)*c1
+        rog = p/(rgas*tg)*mg
       ENDIF
 !
-      IF(nc.GT.0) rags = rog/p
+      IF(nc.GT.0) rags = rog/p/gammaair
 !
       RETURN
       END SUBROUTINE
@@ -131,33 +132,31 @@
 !
       USE dimensions
       USE gas_constants, ONLY: gmw, c_erg,rgas,tzero,hzerog
-      USE gas_solid_density, ONLY: rog_g, rgp_g, rgpn_g
-      USE gas_solid_temperature, ONLY: sieg_g, siegn_g, tg_g
-      USE pressure_epsilon, ONLY: p_g, ep_g
+      USE gas_solid_density, ONLY: gas_density, gas_bulk_density
+      USE gas_solid_temperature, ONLY: gas_enthalpy, gas_temperature
+      USE pressure_epsilon, ONLY: gas_pressure, void_fraction
       USE reactions, ONLY: irex
-      USE th_capacity, ONLY: cp_g, ck_g, hcapg
+      USE heat_capacity, ONLY: gc_heat_capacity, solid_heat_capacity, hcapg
 !
       IMPLICIT NONE
 !
       INTEGER, INTENT(IN) :: ij
       INTEGER :: kg
 !
-      REAL*8 :: c1, c2
+      REAL*8 :: mg, hc
 !
-      c1 = 0.D0
+      mg = 0.D0
       DO kg = 1, ngas
-        c1 = xgc_g(kg,ij) * gmw(kg) + c1
+        mg = gc_molar_fraction(kg,ij) * gmw(kg) + mg
       END DO
 
-! ... mean gas density
+! ... gas density (equation of state)
 !
-      rog_g(ij) = p_g(ij) / (rgas*tg_g(ij)) * c1
-      rgp_g(ij) = rog_g(ij) * ep_g(ij)
-      rgpn_g(ij) = rgp_g(ij)
+      gas_density(ij) = gas_pressure(ij) / (rgas*gas_temperature(ij)) * mg
+      gas_bulk_density(ij) = gas_density(ij) * void_fraction(ij)
 
       DO kg = 1, ngas
-        rgpgc_g(kg,ij) = ygc_g(kg,ij) * rgp_g(ij)
-        rgpgcn_g(kg,ij) = rgpgc_g(kg,ij)
+        gc_bulk_density(kg,ij) = gc_mass_fraction(kg,ij) * gas_bulk_density(ij)
       END DO
 
 !pdac---------------
@@ -167,15 +166,14 @@
 !
 ! compute heat capacity (constant volume) for gas mixture
 !
-      CALL hcapg(cp_g(:,ij),tg_g(ij))
-      c2=0.D0
+      CALL hcapg(gc_heat_capacity(:,ij),gas_temperature(ij))
+      hc = 0.D0
       DO kg=1,ngas
-        c2=c_erg*cp_g(kg,ij)*ygc_g(kg,ij)+c2
+        hc = c_erg*gc_heat_capacity(kg,ij)*gc_mass_fraction(kg,ij) + hc
       END DO 
 
-      cg_g(ij)=c2
-      sieg_g(ij)=(tg_g(ij)-tzero)*cg_g(ij)+hzerog
-      siegn_g(ij)=sieg_g(ij)
+      gas_heat_capacity(ij) = hc
+      gas_enthalpy(ij)=(gas_temperature(ij)-tzero)*gas_heat_capacity(ij)+hzerog
 !
       RETURN
       END SUBROUTINE
