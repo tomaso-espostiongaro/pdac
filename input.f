@@ -106,57 +106,57 @@
       run_name = 'run2d'
       job_type = '2D'
       restart_mode = 'from_scratch'
-      time = 0.0D0
-      tstop = 1.0D0
-      dt = 0.01D0
-      lpr = 1
-      tpr = 1.0D0
-      tdump = 20.0D0
-      nfil = 0
-      irex = 1
-      iss  = 0
-      iturb = 1
-      modturbo = 1
-      cmut = 0.1D0
-      rlim = 1.0D-8
-      gravx = 0.0D0
-      gravz = -9.81D0
-      ngas = 7
-      default_gas = 6
+      time = 0.0D0      ! start time in seconds
+      tstop = 1.0D0     ! stop time seconds
+      dt = 0.01D0       ! time increment seconds
+      lpr = 1           ! verbosity (not yet implemented)
+      tpr = 1.0D0       ! write to output file every tpr seconds of simulated time
+      tdump = 20.0D0    ! write restart every tdump seconds of simulated time
+      nfil = 0          ! output file index
+      irex = 1          ! ( 1 no reaction, 2 use hrex. Not used )
+      iss  = 0          ! ( 0 no solid turbulent stress, 1 compute stress )
+      iturb = 1         ! turbulence  ( 0 no turbo, 1 turbo, 2 turbo + rough )
+      modturbo = 1      ! turbulence  ( 1 smag, 2 dynamic )
+      cmut = 0.1D0      ! Smagorinsky constant
+      rlim = 1.0D-8     ! limit for off-diagonal contribution in matrix inversion
+      gravx = 0.0D0     ! gravity along x
+      gravz = -9.81D0   ! gravity along z
+      ngas = 7          ! number of gas phase
+      default_gas = 6   ! atmosphere 
       formatted_output = .TRUE.
 
 ! ... Mesh
 
-      nx = 100
-      nz = 100
-      ny = 1
-      itc = 0
-      mesh_partition = 1
-      iuni = 0
-      dz0  = 10.D0
-      dx0  = 10.D0
-      dy0  = 10.D0
-      zzero = 0.0D0
+      nx = 100                !  number of cell in the X directions
+      nz = 100                !  number of cell in the Z directions
+      ny = 1                  !  number of cell in the Y directions
+      itc = 0                 !  itc = 1 cylindrical coordinates are used
+      mesh_partition = 1      !  type of partition ( 1 = layers, 2 = columns, 3 = blocks )
+      iuni = 0                !  1 = uniform grid, 0 = non uniform grid
+      dz0  = 10.D0            !  default cell z size in meters
+      dx0  = 10.D0            !  default cell x size in meters
+      dy0  = 10.D0            !  default cell y size in meters
+      zzero = 0.0D0           !  grid bottom level
 
 ! ... Particles
  
-      nsolid = 2
-      diameter = 100
-      density = 2700
-      sphericity = 1.0
-      viscosity = 0.5
-      specific_heat = 1.2D3
-      thermal_conductivity = 2.D0
+      nsolid = 2              !  numbero of solid components
+      diameter = 100          !  particle diameters in micron
+      density = 2700          !  particle density in kg/m^3
+      sphericity = 1.0        !  sphericity coefficients ( 1.0 sphere )
+      viscosity = 0.5         !  viscosity coefficient ( Pa * sec. )
+      specific_heat = 1.2D3   !  specific heat ( Joule / ( Kelvin * Kg ) )
+      thermal_conductivity = 2.D0 ! thermal_conductivity ( ... ) 
 
 ! ... Numeric
 
-      rungekut = 1
-      beta = 0.25
-      lim_type = 0
-      muscl = 0
-      inmax = 8
-      maxout = 1000
-      omega = 1.0
+      rungekut = 1      !  number of runge-kutta cycles
+      beta = 0.25       !  upwinding degree
+      lim_type = 0      !  limiter type 
+      muscl = 0         !  0 first order, 1 muscl ( high order )
+      inmax = 8         !  maximum number of pressure correction steps
+      maxout = 1000     !  maximum number of solver iteration
+      omega = 1.0       !  relaxation parameter  ( 0.5 under - 2.0 over)
 
 !
 ! reading of input file
@@ -268,6 +268,8 @@
  110    continue
       END IF
 !
+!     Read roughness parameters
+!
       CALL bcast_logical(tend, 1, root)
       IF( tend ) THEN
         CALL error( ' input ', ' ROUGHNESS card not found ', 1 )
@@ -275,6 +277,9 @@
       CALL bcast_integer(zrough%ir, 1, root)
       CALL bcast_real(zrough%r, zrough%ir, root)
       CALL bcast_real(zrough%roucha, 1, root)
+!
+!
+!     Read cell sizes
 !
       tend = .FALSE.
       IF(mpime == root) THEN
@@ -309,6 +314,10 @@
       CALL bcast_real(delta_x,nx,root)
       CALL bcast_real(delta_y,ny,root)
       CALL bcast_real(delta_z,nz,root)
+
+!
+!     Read boundary conditions
+!
 
       tend = .FALSE.
       IF(mpime == root) THEN
@@ -373,6 +382,9 @@
       CALL bcast_real(fixed_parttemp, SIZE(fixed_parttemp), root)
       CALL bcast_real(fixed_gasconc, SIZE(fixed_gasconc), root)
 
+!
+!     Read initial conditions ( atmosphere conditions )
+!
 
       tend = .FALSE.
       IF(mpime == root) THEN
