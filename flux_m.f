@@ -694,7 +694,7 @@
       upwnd = fou + lim * gradc * incr
 !
       centrd = (dz(k)*dens%b+dz(k-1)*dens%c)*indzm
-      upc_s = upwnd / centrd
+      upc_b = upwnd / centrd
 !
       fb = upwnd * cs
 !
@@ -726,7 +726,7 @@
       upwnd = fou + lim * gradc * incr
 !
       centrd = (dz(k)*dens%t+dz(k+1)*dens%c)*indzp
-      upc_n = upwnd / centrd
+      upc_t = upwnd / centrd
 !
       ft = upwnd * cs
 !
