@@ -178,6 +178,7 @@
       USE gas_solid_density, ONLY: rlk, rog, rgp
       USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
       USE grid, ONLY: flag
+      USE immersed_boundaries, ONLY: forced
       USE io_restart, ONLY: dump_all
       USE particles_constants, ONLY: inrl, cps
       USE pressure_epsilon, ONLY: ep, p

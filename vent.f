@@ -62,11 +62,11 @@
       WRITE(6,*) 'Vent conditions imposed in cells: '
 !      
       DO i = 2, nx
-        IF (xb(i-1) < (xvent-radius)) iwest = i
+        IF (xb(i-1) <= (xvent-radius)) iwest = i
         IF (xb(i-1) < (xvent+radius)) ieast = i
       END DO
       DO j = 2, ny
-        IF (yb(j-1) < (yvent-radius)) jsouth = j
+        IF (yb(j-1) <= (yvent-radius)) jsouth = j
         IF (yb(j-1) < (yvent+radius)) jnorth = j
       END DO
 !

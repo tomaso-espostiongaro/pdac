@@ -368,7 +368,7 @@
 
       IF( mpime .EQ. root ) THEN
         CLOSE (9)
-        WRITE(6,*) ' restart file has been read '
+        WRITE(6,*) ' restart file has been red '
       END IF
 !
       RETURN
@@ -511,8 +511,6 @@
 
       RETURN
       END SUBROUTINE
-
-
 !----------------------------------------------------------------------
       END MODULE io_restart
 !----------------------------------------------------------------------

@@ -331,7 +331,8 @@
 
           END IF
 !
-! ... Smagorinsky turbulent viscosity
+! ... Smagorinsky turbulent viscosity: for classical model
+! ... smag is computed during setup
 !
           mugt(ijk) = rog(ijk) * smag(ijk) * modsr(ijk)
 

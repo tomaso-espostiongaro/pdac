@@ -7,7 +7,7 @@
       USE dimensions
       USE grid, ONLY: iob
       USE parallel, ONLY: mpime, root
-      USE pressure_epsilon, ONLY: p
+      USE pressure_epsilon, ONLY: p, ep
       USE time_parameters, ONLY: time, dt
       IMPLICIT NONE
 !      
@@ -32,10 +32,11 @@
 !----------------------------------------------------------------------
       SUBROUTINE set_blunt
 
+      USE control_flags, ONLY: lpr
       USE dimensions
-      USE domain_decomposition, ONLY: cell_g2l, cell_owner
+      USE domain_decomposition, ONLY: cell_g2l, cell_owner, meshinds
       USE grid, ONLY: dx, dz, flag
-      INTEGER :: prm, l, m, n, i, k, ijk, imesh
+      INTEGER :: prm, l, m, n, i, j, k, ijk, imesh
 
       IF (mpime == root) OPEN(15,FILE='body.dat')
       perim = 0
@@ -122,8 +123,26 @@
 
       END IF
       END DO
-      
+!
       IF (m /= SUM(nblu)) CALL error('set_blunt','control nblu',m)
+!
+      m = 0
+      DO n = 1, no
+        IF (nblu(n) == 1) THEN
+          m = m + 1
+          IF (lpr > 1) THEN
+            WRITE(6,*) 'Computing action on block: ', n
+            WRITE(6,*) 'Surface cells: '
+            DO l = 1, perim
+              IF (surfp(m,l)%np == mpime) THEN
+                ijk = surfp(m,l)%ijk
+                CALL meshinds(ijk,imesh,i,j,k)
+                WRITE(6,*) i, j, k, ijk
+              END IF
+            END DO
+          END IF
+        END IF
+      END DO
         
       END SUBROUTINE set_blunt
 !----------------------------------------------------------------------
@@ -171,6 +190,7 @@
       END SUBROUTINE bluntb
 !----------------------------------------------------------------------
       SUBROUTINE dragbl(m,fd)
+      USE domain_decomposition, ONLY: cell_g2l, cell_owner, meshinds
       IMPLICIT NONE
 !
         INTEGER, INTENT(IN) :: m
@@ -182,6 +202,7 @@
           ijk = surfp(m,pp)%ijk
           IF (mpime == surfp(m,pp)%np) surfp(m,pp)%p = p(ijk)
           fd = fd + surfp(m,pp)%ds * surfp(m,pp)%p * surfp(m,pp)%n(1)
+          WRITE(6,*) ijk, surfp(m,pp)%p, ep(ijk)
 	END DO
 !
       END SUBROUTINE dragbl
