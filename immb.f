@@ -103,6 +103,8 @@
 
         ! ... interpolate the topography on z/x-staggered mesh
         !
+        topo_x = 0.D0
+        topo_c = 0.D0
         CALL interpolate_profile(xb, z, topo_x, forcex)
         CALL interpolate_profile(x, zb, topo_c, forcez)
 
@@ -207,6 +209,9 @@
         ! ... Interpolate the topography on the y/z/x-staggered mesh
         ! ... to count the forcing points
         !
+        topo2d_x = 0.D0
+        topo2d_y = 0.D0
+        topo2d_c = 0.D0
         CALL interpolate_dem(xb, y, z, topo2d_x, forcex)
         CALL interpolate_dem(x, yb, z, topo2d_y, forcey)
         CALL interpolate_dem(x, y, zb, topo2d_c, forcez)

@@ -73,9 +73,8 @@
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE gas_solid_viscosity, ONLY: mus
-      USE grid, ONLY: zb, dz, iob
+      USE grid, ONLY: z, dz, iob
       USE grid, ONLY: flag, fluid, int_immb, ext_immb, free_io, nrfree_io
-      USE immersed_boundaries, ONLY: numx, numy, numz, immb
       USE particles_constants, ONLY: rl, inrl, cmus
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: itd
@@ -86,7 +85,7 @@
       IMPLICIT NONE
 !
       INTEGER :: i, j, k, ijk, ikpr, kpr, n, imesh
-      INTEGER :: ig, is, fx, fy, fz
+      INTEGER :: ig, is
       REAL*8 :: zrif
       REAL*8 :: mass, tem
       LOGICAL :: forced = .FALSE.
@@ -113,7 +112,7 @@
         DO ijk = 1, ncint
           CALL meshinds(ijk,imesh,i,j,k)
           
-          zrif=zb(k)+0.5D0*(dz(1)-dz(k))
+          zrif=z(k)
 
           p( ijk ) = p_atm(k)
           tg( ijk ) = t_atm(k)
@@ -138,32 +137,14 @@
 
           CASE (fluid, int_immb, ext_immb, free_io, nrfree_io)
 
-            IF (immb == 1) THEN
-              fx = numx(ijk)
-              IF (job_type == '2D') THEN
-                fy = 0
-              ELSE IF (job_type == '3D') THEN
-                fy = numy(ijk)
-              END IF
-              fz = numz(ijk)
-            ELSE
-              fx = 0
-              fy = 0
-              fz = 0
-            END IF
-
-            IF (fx /= 0) THEN
-              ug(ijk) = wind_x
-              us(ijk,:) = ug(ijk)
-            END IF
-            IF (fz /= 0) THEN
-              wg(ijk) = wind_z
-              ws(ijk,:) = wg(ijk)
-            END IF
-            IF ( job_type == '3D' .AND. fy /= 0) THEN
+            ug(ijk) = wind_x
+            us(ijk,:) = ug(ijk)
+            IF ( job_type == '3D') THEN
               vg(ijk) = wind_y
               vs(ijk,:) = vg(ijk)
             END IF
+            wg(ijk) = wind_z
+            ws(ijk,:) = wg(ijk)
 
           CASE DEFAULT
 
@@ -407,12 +388,6 @@
             IF ( ( j >= iob(n)%ylo .AND. j <= iob(n)%yhi )    &
                                     .OR. job_type == '2D') THEN
               IF ( i >= iob(n)%xlo .AND. i <= iob(n)%xhi  ) THEN
-                
-!              dist = DSQRT( (x(i)-x(iob(n)%xlo))**2 + &
-!                            (z(k)-z(iob(n)%zlo))**2 )
-!
-!              IF( dist < radius ) THEN
-!
                 ug(ijk) = ugob(n)
                 IF (job_type == '3D') vg(ijk) = vgob(n)
                 wg(ijk) = wgob(n)
@@ -435,9 +410,6 @@
                 IF ( ygcsum /= 1.D0 ) THEN
                   ygc(ijk,ngas) = 1.D0 - SUM( ygc(ijk,1:ngas-1) )
                 END IF
-!
-!              END IF
-!
               END IF
             END IF
           END IF

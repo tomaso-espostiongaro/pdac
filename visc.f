@@ -342,7 +342,6 @@
         IF( BTEST(flag(ijk),0) ) THEN
 
          CALL subscr(ijk)
-         !CALL subscr_iter(ijk)
 
          i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
 	 j = MOD( imesh - 1, nx*ny ) / nx + 1
@@ -448,7 +447,6 @@
          txz1 = dwm * indxm2 + dupm2 * indzp2
          tzx2 = txz2
          tzx1 = dwpm2 * indxp2 + dum * indzm2
-
 !
 ! ... compute linearly interpolated values of viscosity on the staggered grid
 !
@@ -545,7 +543,6 @@
          epm1 =   ( dz(k) * epsst * must + dz(k+1) * epss * mus) * indzp
          epm2 =   ( dz(k) * epst * mut + dz(k+1) * epsc * muc ) * indzp
          epmyz1 = ( dy(j) * epm1 + dy(j-1) * epm2 ) * indym
-
 !
 ! ... Z-gradient of the stress tensor
 !
@@ -557,8 +554,6 @@
 
         END IF
       END DO cells
-
-
 !
       RETURN
       END SUBROUTINE stress3D

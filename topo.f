@@ -253,6 +253,7 @@
       INTEGER :: nodidemx, nodidemy
       REAL*8 :: newsizex, newsizey
       REAL*8 :: xll, yll, xur, yur, xul, yul
+      REAL*8 :: zmin
       INTEGER, ALLOCATABLE :: ntx(:), nty(:)
       INTEGER :: i,j
 !
@@ -536,17 +537,21 @@
 !----------------------------------------------------------------------
       SUBROUTINE set_profile
 !
+      USE array_filters, ONLY: interp
       USE control_flags, ONLY: job_type, lpr
-      USE grid, ONLY: x, xb, y, yb, z, zb, iv, jv, kv
+      USE grid, ONLY: x, xb, y, yb, z, zb, iv, jv, kv, dzmax
+      USE grid, ONLY: fl
 
       IMPLICIT NONE
       REAL*8 :: transl_z = 0.D0
       INTEGER :: i,j,k,ijk
+      INTEGER :: itopo
       LOGICAL, ALLOCATABLE :: dummy(:)
       REAL*8, ALLOCATABLE  :: topo(:)
       REAL*8, ALLOCATABLE  :: topo2d(:,:)
 !
       ALLOCATE (dummy(ntot))
+      dummy = .FALSE.
 !
 ! ... Allocate and initialize 'dist' (defines implicitly the profile).
 !
@@ -563,7 +568,15 @@
         ! ... Interpolate the topography on the cell top 
         ! ... (centered horizontally)
         !
-        CALL interpolate_profile(x, zb, topo, dummy)
+        CALL interp(xtop,ztop,x,topo,next)
+
+        DO i = 1, nx
+          ! ... Topography is expressed in centimeters
+          !
+          topo(i) = topo(i) * 1.D2
+          itopo = NINT(topo(i))
+          topo(i) = itopo * 1.D-2
+        ENDDO
         
         ! ... Translate vertically the mesh to minimize the
         ! ... number of topographic cells
@@ -601,7 +614,17 @@
         nextx = 0; nexty = 0; ord2d = 0
         ALLOCATE(topo2d(nx,ny))
 
-        CALL interpolate_dem(x, y, zb, topo2d, dummy)
+        CALL interp(xtop, ytop, ztop2d, x, y, topo2d, nextx, nexty)
+
+        ! ... Topography must be accurate to centimeters
+        !
+        DO j=1,ny
+          DO i=1,nx
+            topo2d(i,j) = topo2d(i,j) * 1.D2
+            itopo = NINT(topo2d(i,j))
+            topo2d(i,j) = itopo * 1.D-2
+          END DO
+        END DO
         !
         ! ... Translate vertically the numerical mesh to minimize the
         ! ... number of topographic cells
@@ -610,7 +633,8 @@
 
         IF( mpime == root ) THEN
           WRITE(logunit,*) 'Translating mesh vertically'
-          WRITE(logunit,*) 'Minimum topographic quota: ', transl_z
+          WRITE(logunit,*) 'Minimum topographic quota: ', MINVAL(topo2d)
+          WRITE(logunit,*) 'Translation: ', transl_z
         END IF
         z  = z  + transl_z
         zb = zb + transl_z
@@ -717,8 +741,8 @@
       REAL*8, INTENT(OUT), DIMENSION(:,:) :: topo2d
       LOGICAL, INTENT(OUT), DIMENSION(:) :: ff
 
-      INTEGER i,j,k,ijk
-      INTEGER itopo
+      INTEGER :: i,j,k,ijk
+      INTEGER :: itopo
 
       CALL interp(xtop, ytop, ztop2d, cx, cy, topo2d, nextx, nexty)
 
@@ -745,7 +769,6 @@
 ! ... Identify forcing points
 ! ... (skip boundaries)
 !
-      ff = .FALSE.
       DO i = 2, nx - 1
         DO j = 2, ny - 1
           DO k = 2, ord2d(i,j) - 1

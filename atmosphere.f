@@ -70,6 +70,7 @@
 ! ... the description of a standard, quiet atmosphere
 ! ... For each atmospheric region, the upper limit (in metres) and the
 ! ... Temperature gradient is set from input.
+! ... Ground pressure and temperature must also be set.
 !
       USE control_flags, ONLY: lpr
       USE dimensions, ONLY: nz
@@ -137,7 +138,7 @@
 ! ... cell of the computational domain 
 !
       USE dimensions, ONLY: nz
-      USE grid, ONLY: dz, zb, zzero
+      USE grid, ONLY: dz, z, zzero
       USE parallel, only: mpime, root
 !
       IMPLICIT NONE
@@ -161,7 +162,7 @@
 ! ... Loop vertically over mesh layers
 !
       DO k = 1, nz
-        za = zb(k) + 0.5D0*(dz(1)-dz(k))
+        za = z(k)
 !
         IF (za > 0.D0) THEN
           IF (.NOT.stratification) THEN
@@ -203,6 +204,7 @@
 !
         t_atm(k) = ta
         p_atm(k) = pa
+WRITE(*,*) k, ta, pa
 
       END DO
 !

@@ -7,7 +7,7 @@
       USE gas_solid_density, ONLY: rgp, rlk, rog
       USE gas_solid_temperature, ONLY: sieg, tg, sies, ts
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      USE grid, ONLY: dx, dy, dz, xb, zb
+      USE grid, ONLY: dx, dy, dz, z
       USE eos_gas, ONLY: xgc, ygc
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p, ep
@@ -833,7 +833,7 @@
 ! ... Extrapolation
         upn = ucn
 !
-        zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )  ! DOMANDA perche dz(1)
+        zrif = z(k) 
         prif = p_atm(k)
         trif = t_atm(k)
 
@@ -1024,7 +1024,7 @@
 
 ! ... INFLOW ...
 !
-        zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )  ! DOMANDA perche√ dz(1)
+        zrif = z(k)
         prif = p_atm(k)
         trif = t_atm(k)
         
@@ -1141,7 +1141,7 @@
 
 ! ... Transport temperature 
 !
-      zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )  ! DOMANDA perche dz(1)
+      zrif = z(k)
       prif = p_atm(k)
       trif = t_atm(k)
 
@@ -1258,7 +1258,7 @@
 
 ! ... Transport temperature
 !
-      zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )  ! DOMANDA perche dz(1)
+      zrif = z(k)
       prif = p_atm(k)
       trif = t_atm(k)
 
