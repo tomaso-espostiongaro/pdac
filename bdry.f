@@ -15,7 +15,7 @@
       USE gas_solid_temperature, ONLY: sieg, tg, sies, ts
       USE gas_solid_velocity, ONLY: ug, wg, us, ws
       USE grid, ONLY: zb, dz, rb, dr, r, inr, inrb
-      USE grid, ONLY: nij_l, myij
+      USE grid, ONLY: nij_l, myijk
       USE grid, ONLY: fl_l
       USE parallel, ONLY: mpime
       USE particles_constants, ONLY: rl, inrl
@@ -44,7 +44,7 @@
 ! ... MODIFICARE_X3D (fino fine file )
 
       DO ij = 1, nij_l
-        imesh = myij(0, 0, ij)
+        imesh = myijk(0, 0, ij)
         j = ( imesh - 1 ) / nr + 1
         i = MOD( ( imesh - 1 ), nr) + 1
         IF(fl_l(ij).EQ.1) THEN

@@ -37,7 +37,7 @@
 !
       USE dimensions
       USE grid, ONLY: dz, dr
-      USE grid, ONLY: myij, myinds
+      USE grid, ONLY: myijk, myinds
       USE grid, ONLY: r_, t_, l_, b_
       USE tilde_momentum, ONLY: appu, appw
       USE particles_constants, ONLY: rl, inrl
@@ -58,11 +58,11 @@
       REAL*8, INTENT(IN) :: rlk(:), rlkr(:), rlkt(:), rlkl(:), rlkb(:)
       REAL*8, INTENT(IN) :: rgp, rgpr, rgpt, rgpl, rgpb
 !
-      imesh = myij(0, 0, ij)
+      imesh = myijk(0, 0, ij)
       j  = ( imesh - 1 ) / nr + 1
       i  = MOD( ( imesh - 1 ), nr) + 1
-      ijm = myij( 0,-1, ij)
-      imj = myij(-1, 0, ij)
+      ijm = myijk( 0,-1, ij)
+      imj = myijk(-1, 0, ij)
       ijr = myinds(r_, ij)
       ijt = myinds(t_, ij)
       ijl = myinds(l_, ij)
@@ -162,7 +162,7 @@
 !
       USE dimensions
       USE grid, ONLY: dz, dr
-      USE grid, ONLY: myij, myinds
+      USE grid, ONLY: myijk, myinds
       USE grid, ONLY: r_, t_
       USE tilde_momentum, ONLY: appu, appw
       USE particles_constants, ONLY: rl, inrl
@@ -182,7 +182,7 @@
       REAL*8 :: ep_e, ep_n
       REAL*8 :: eps_e, eps_n
 !
-      imesh = myij( 0, 0, ij)
+      imesh = myijk( 0, 0, ij)
       j  = ( imesh - 1 ) / nr + 1
       i  = MOD( ( imesh - 1 ), nr) + 1
       ijr = myinds(r_, ij)
@@ -238,7 +238,7 @@
       SUBROUTINE velsk(ug, wg, us, ws, ugm, wgm, usm, wsm, ij)
 !
       USE grid, ONLY: fl_l
-      USE grid, ONLY: myij
+      USE grid, ONLY: myijk
       USE dimensions
       IMPLICIT NONE
 !
@@ -250,13 +250,13 @@
       INTEGER :: imj, ijm, ipj, ijp
       REAL*8 :: flt, flr, fll, div, amul, flb
 !
-      imesh = myij( 0, 0, ij)
+      imesh = myijk( 0, 0, ij)
       j  = ( imesh - 1 ) / nr + 1
       i  = MOD( ( imesh - 1 ), nr) + 1
 !
 ! ... Use Gauss-Jordan method for matrix inversion
 !
-      imj = myij(-1, 0, ij)
+      imj = myijk(-1, 0, ij)
       fll=fl_l(imj)
       IF(.NOT.(fll.EQ.2.OR.fll.eq.3.or.fll.eq.5)) THEN
 
@@ -297,7 +297,7 @@
 
       END IF
 
-      ijm = myij( 0,-1, ij)
+      ijm = myijk( 0,-1, ij)
       flb=fl_l(ijm)
       IF(.NOT.(flb.EQ.2.OR.flb.eq.3.or.flb.eq.5)) THEN
 
@@ -338,7 +338,7 @@
 !
       END IF
 
-      ipj = myij(+1, 0, ij)
+      ipj = myijk(+1, 0, ij)
       flr=fl_l(ipj)
       IF(.NOT.(flr.EQ.2.OR.flr.eq.3.or.flr.eq.5)) THEN
 
@@ -379,7 +379,7 @@
 !
       END IF
 
-      ijp = myij( 0,+1, ij)
+      ijp = myijk( 0,+1, ij)
       flt=fl_l(ijp)
       IF(.NOT.(flt.EQ.2.OR.flt.eq.3.or.flt.eq.5)) THEN
 
@@ -427,7 +427,7 @@
       SUBROUTINE velsk2(ug, wg, us, ws, ij)
 !
       USE grid, ONLY: fl_l
-      USE grid, ONLY: myij
+      USE grid, ONLY: myijk
       USE dimensions
       IMPLICIT NONE
 !
@@ -438,7 +438,7 @@
       INTEGER :: kk, kp1, k, kj, ki
       REAL*8 :: flt, flr, fll, div, amul, flb
 
-      ipj = myij(+1, 0, ij)
+      ipj = myijk(+1, 0, ij)
       flr=fl_l(ipj)
       IF(.NOT.(flr.EQ.2.OR.flr.eq.3.or.flr.eq.5)) THEN
 
@@ -479,7 +479,7 @@
 !
       END IF
 
-      ijp = myij( 0,+1, ij)
+      ijp = myijk( 0,+1, ij)
       flt=fl_l(ijp)
       IF(.NOT.(flt.EQ.2.OR.flt.eq.3.or.flt.eq.5)) THEN
 

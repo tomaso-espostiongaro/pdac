@@ -1,5 +1,5 @@
 .f.o:
-	$(FC) -c $(FREEFORM) $(FFLAGS) $<
+	$(FC) -c $(FREEFORM) $(FFLAGS) $(MODULES) $<
 
 .F.o:
-	$(MPFC) -c $(FFLAGS) $(CPPFLAGS) $<
+	$(MPFC) -c $(FFLAGS) $(CPPFLAGS) $(MODULES) $<

@@ -366,10 +366,12 @@
         END DO initial_conditions_search
 
         IF( job_type == '3D' ) THEN
-          READ(5,*) initial_vgas_x, initial_vgas_y, initial_vgas_z, initial_pressure, initial_void_fraction, max_packing, initial_temperature
+          READ(5,*) initial_vgas_x, initial_vgas_y, initial_vgas_z, initial_pressure, initial_void_fraction, &
+            max_packing, initial_temperature
           READ(5,*) initial_vpart_x, initial_vpart_y, initial_vpart_z
         ELSE IF( job_type == '2D' ) THEN
-          READ(5,*) initial_vgas_r, initial_vgas_z, initial_pressure, initial_void_fraction, max_packing, initial_temperature
+          READ(5,*) initial_vgas_r, initial_vgas_z, initial_pressure, initial_void_fraction, max_packing, &
+            initial_temperature
           READ(5,*) initial_vpart_r, initial_vpart_z
         ENDIF
         READ(5,*) (initial_gasconc(ig), ig=1, ngas)

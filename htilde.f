@@ -30,7 +30,7 @@
       USE gas_solid_viscosity, ONLY: kapg
       USE grid, ONLY: r, rb, dr, zb, dz, inr, indr, indz 
       USE grid, ONLY: fl_l
-      USE grid, ONLY: nij_l, nijx_l, myij, data_exchange
+      USE grid, ONLY: nij_l, nijx_l, myijk, data_exchange
       USE heat_diffusion, ONLY: hotcg, hotck
       USE particles_constants, ONLY: inrl
       USE pressure_epsilon, ONLY: p, pn, ep
@@ -82,7 +82,7 @@
       CALL data_exchange(kapgt)
 !
       DO ij = 1, nij_l
-        imesh = myij(0, 0, ij)
+        imesh = myijk(0, 0, ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)
 !
@@ -128,7 +128,7 @@
 ! ... on boundaries, fluxes on left and bottom sides must be calculated
 !
       DO ij = 1, nij_l
-        imesh = myij(0, 0, ij)
+        imesh = myijk(0, 0, ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)
           j = ( imesh - 1 ) / nr + 1

@@ -9,7 +9,7 @@ coll.o : control_flags.o dens.o eosg.o grid.o hcapgs.o press.o temp.o turbo.o  \
 
 control_flags.o : 
 
-dens.o : control_flags.o dimensions.o grid.o 
+dens.o : dimensions.o grid.o 
 
 dimensions.o : 
 
@@ -32,7 +32,7 @@ ftem.o : dens.o dimensions.o eosg.o grid.o hcapgs.o htilde.o hvs.o  \
 
 gas.o : dimensions.o 
 
-grid.o : control_flags.o dimensions.o parallel.o types.o 
+grid.o : control_flags.o dimensions.o indijk.o parallel.o types.o 
 
 hcapgs.o : dimensions.o gas.o grid.o 
 
@@ -42,6 +42,8 @@ htilde.o : dens.o dimensions.o fluxes.o grid.o hotc.o particles.o press.o  \
     subscr.o temp.o time.o turbo.o velocity.o visc.o 
 
 hvs.o : dimensions.o particles.o 
+
+indijk.o : 
 
 input.o : atmosphere.o control_flags.o dimensions.o fluxes.o gas.o grid.o  \
     iter.o matrix.o outp.o parallel.o particles.o reactions.o roughness.o  \
@@ -71,7 +73,7 @@ pdac2d.o : atmosphere.o control_flags.o dens.o dimensions.o environment.o  \
     particles.o press.o reactions.o roughness.o setup.o temp.o time.o turbo.o  \
     velocity.o visc.o 
 
-press.o : control_flags.o dimensions.o grid.o 
+press.o : dimensions.o grid.o 
 
 prog.o : bdry.o dens.o dimensions.o environment.o eosg.o eosl.o ftem.o grid.o  \
     hcapgs.o htilde.o io.o iter.o outp.o particles.o press.o reactions.o  \

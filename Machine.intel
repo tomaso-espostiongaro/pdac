@@ -1,13 +1,10 @@
 #----------------------------------------
-# Intel Compiler
+# AIX
 #----------------------------------------
 #MACROS= -DMPI
-EXPLORIS_HOME=/home/acv0/Sources/EXPLORIS
 MACROS= -DSCALAR
 #----------------------------------------
-MODULES=-cl,$(EXPLORIS_HOME)/intel.pcl
-FREEFORM=-FR
-FFLAGS= -O2 -tpp6 
+FFLAGS= -O2 -FR -tpp6
 CPPFLAGS= -fpp $(MACROS)
 LINKFLAGS=
 LIBS= 

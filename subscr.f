@@ -1,7 +1,7 @@
 !-----------------------------------------------------------------------
       MODULE set_indexes
 !-----------------------------------------------------------------------
-      USE grid, ONLY: myinds, myij
+      USE grid, ONLY: myinds, myijk
       USE grid, ONLY: r_, t_, l_, b_, tr_, tl_, br_, bl_
       USE grid, ONLY: rr_, tt_, ll_, bb_
       IMPLICIT NONE
@@ -14,7 +14,7 @@
       INTEGER :: ijpp, ippj, ijmm, immj 
 !
 ! ... change scheme => change stencil!
-! ... the compass notation (N,W,S,E) is adopted for both myij and myinds
+! ... the compass notation (N,W,S,E) is adopted for both myijk and myinds
 !
       TYPE stencil
         REAL*8 :: c
@@ -40,18 +40,18 @@
 !
       INTEGER, INTENT(IN) :: ij
 !
-      ijm  = myij( 0,-1, ij)
-      imj  = myij(-1, 0, ij)
-      ipj  = myij(+1, 0, ij)
-      ijp  = myij( 0,+1, ij)
-      ipjm = myij(+1,-1, ij)
-      ipjp = myij(+1,+1, ij)
-      imjm = myij(-1,-1, ij)
-      imjp = myij(-1,+1, ij)
-      ijpp = myij( 0,+2, ij)
-      ippj = myij(+2, 0, ij)
-      immj = myij(-2, 0, ij)
-      ijmm = myij( 0,-2, ij)
+      ijm  = myijk( 0,-1, ij)
+      imj  = myijk(-1, 0, ij)
+      ipj  = myijk(+1, 0, ij)
+      ijp  = myijk( 0,+1, ij)
+      ipjm = myijk(+1,-1, ij)
+      ipjp = myijk(+1,+1, ij)
+      imjm = myijk(-1,-1, ij)
+      imjp = myijk(-1,+1, ij)
+      ijpp = myijk( 0,+2, ij)
+      ippj = myijk(+2, 0, ij)
+      immj = myijk(-2, 0, ij)
+      ijmm = myijk( 0,-2, ij)
 !
       ijr  = myinds(r_, ij)
       ijt  = myinds(t_, ij)
@@ -102,7 +102,7 @@
       INTEGER, INTENT(IN) :: ij
       INTEGER :: i,j,imesh
 !
-      imesh = myij(0,0,ij)
+      imesh = myijk(0,0,ij)
       i  = MOD( ( imesh - 1 ), nr) + 1
       j  = ( imesh - 1 ) / nr + 1
 !

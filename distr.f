@@ -17,7 +17,7 @@
       USE gas_solid_temperature, ONLY: solid_enthalpy, solid_temperature
       USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
       USE gas_solid_viscosity, ONLY: mus, particle_viscosity
-      USE grid, ONLY: nij_l, myij, data_exchange
+      USE grid, ONLY: nij_l, myijk, data_exchange
       USE pressure_epsilon, ONLY: gas_pressure, void_fraction
       USE pressure_epsilon, ONLY: p, ep
       USE heat_capacity, ONLY: gc_heat_capacity, solid_heat_capacity
@@ -25,8 +25,9 @@
       USE turbulence, ONLY: smag, smag_factor
       USE control_flags, ONLY: job_type
 !
-      INTEGER :: ij, ij_l
       IMPLICIT NONE
+!
+      INTEGER :: ij, ij_l
 !       
 ! ... distribute arrays among processors
 !
@@ -62,7 +63,7 @@
         mus = 0.D0
 !        
       DO ij_l = 1, nij_l
-        ij = myij(0, 0, ij_l)
+        ij = myijk(0, 0, ij_l)
 !
         p(ij_l) = gas_pressure(ij)
         rlk(:,ij_l) = solid_bulk_density(:,ij)

@@ -32,7 +32,7 @@
       SUBROUTINE rexion
 !
       USE grid, ONLY: fl_l
-      USE grid, ONLY: nij_l, myij, nijx_l
+      USE grid, ONLY: nij_l, myijk, nijx_l
       USE dimensions
       IMPLICIT NONE
 !
@@ -42,7 +42,7 @@
       ALLOCATE(r1(nijx_l), r2(nijx_l), r3(nijx_l), r4(nijx_l), r5(nijx_l))
 !
       DO ij = 1, nij_l
-          imesh = myij(0, 0, ij)
+          imesh = myijk(0, 0, ij)
           IF(fl_l(ij).EQ.1) THEN
             r1(ij)=0.D0
             r2(ij)=0.D0

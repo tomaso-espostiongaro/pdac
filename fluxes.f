@@ -31,7 +31,7 @@
 !
       USE dimensions
       USE grid, ONLY: fl_l
-      USE grid, ONLY: myij
+      USE grid, ONLY: myijk
 
       IMPLICIT NONE
 !
@@ -45,7 +45,7 @@
       REAL*8 :: dens_e, dens_w, dens_se
       REAL*8 :: drm, drp, indrp, indrm
 !
-      imesh = myij( 0, 0, ij)
+      imesh = myijk( 0, 0, ij)
       i  = MOD( ( imesh - 1 ), nr) + 1
 !
       drp=dr(i)+dr(i+1)
@@ -62,14 +62,14 @@
 !
 ! ... On boundary mantain first order accuracy (1st order Upwind).
 !
-      imj = myij(-1, 0, ij)
+      imj = myijk(-1, 0, ij)
       IF( fl_l(imj) .NE. 1 ) THEN
         cs=0.5D0*(u%c + u%w)
         IF(cs.GE.0.D0) fl = dens_w * u%w * cs * r(i)
         IF(cs.LT.0.D0) fl = dens_e * u%c * cs * r(i)
       END IF
 
-      ijm = myij( 0,-1, ij)
+      ijm = myijk( 0,-1, ij)
       IF( fl_l(ijm) .NE. 1 ) THEN
         cs=(dr(i+1) * w%s + dr(i) * w%se) * indrp
         IF(cs.GE.0.D0) fb = dens_se * u%s * cs
@@ -85,7 +85,7 @@
 ! ... for the r(x)-momentum density.
 !
       USE dimensions
-      USE grid, ONLY: myij
+      USE grid, ONLY: myijk
 
       IMPLICIT NONE
 !
@@ -99,7 +99,7 @@
       REAL*8 :: dzp, indzp, dzm, indzm, dzpp, indzpp
       REAL*8 :: gradc, grade, gradn, gradw, grads, gradgt, gradlt
 !
-      imesh = myij( 0, 0, ij)
+      imesh = myijk( 0, 0, ij)
       i  = MOD( ( imesh - 1 ), nr) + 1
       j  = ( imesh - 1 ) / nr + 1
 !
@@ -170,7 +170,7 @@
 !
       USE dimensions
       USE grid, ONLY: fl_l
-      USE grid, ONLY: myij
+      USE grid, ONLY: myijk
       IMPLICIT NONE
 !
       REAL*8, INTENT(OUT) :: fl, fb
@@ -182,7 +182,7 @@
       REAL*8 :: dzm, dzp, indzm, indzp
       REAL*8 :: dens_n, dens_s, dens_wn
 !
-      imesh = myij( 0, 0, ij)
+      imesh = myijk( 0, 0, ij)
       j  = ( imesh - 1 ) / nr + 1
       i  = MOD( ( imesh - 1 ), nr) + 1
 !
@@ -200,14 +200,14 @@
 !
 ! ... On boundary mantain first order accuracy (1st order Upwind).
 !
-      imj = myij(-1, 0, ij)
+      imj = myijk(-1, 0, ij)
       IF(fl_l(imj).NE.1) THEN
         cs=(dz(j+1)*u%w+dz(j)*u%nw)*indzp
         IF(cs.GE.0.D0) fl = dens_wn * w%w * cs * rb(i-1)
         IF(cs.LT.0.D0) fl = dens_n * w%c * cs * rb(i-1)
       END IF
 !
-      ijm = myij( 0,-1, ij)
+      ijm = myijk( 0,-1, ij)
       IF(fl_l(ijm).NE.1) THEN
         cs=0.5D0*(w%s+w%c)
         IF(cs.GE.0.D0) fb = dens_s * w%s * cs
@@ -221,7 +221,7 @@
 !
       USE dimensions
       USE grid, ONLY: fl_l
-      USE grid, ONLY: myij
+      USE grid, ONLY: myijk
       IMPLICIT NONE
 !
       INTEGER, INTENT(IN) :: ij
@@ -234,7 +234,7 @@
       REAL*8 :: dens_n, dens_nn, dens_en
       REAL*8 :: gradc, grade, gradn, gradw, grads, gradgt, gradlt
 !
-      imesh = myij( 0, 0, ij)
+      imesh = myijk( 0, 0, ij)
       j  = ( imesh - 1 ) / nr + 1
       i  = MOD( ( imesh - 1 ), nr) + 1
 !
@@ -302,7 +302,7 @@
 !
       USE dimensions
       USE grid, ONLY: fl_l
-      USE grid, ONLY: myij
+      USE grid, ONLY: myijk
       IMPLICIT NONE
 !
       REAL*8, INTENT(OUT) :: fl, fb
@@ -314,9 +314,9 @@
       REAL*8  :: drp, drm, drmm, dzp, dzm, dzmm
       REAL*8  :: indrp, indrm, indrmm, indzp, indzm, indzmm
 !
-      imesh = myij( 0, 0, ij)
-      imj = myij(-1, 0, ij)
-      ijm = myij( 0,-1, ij)
+      imesh = myijk( 0, 0, ij)
+      imj = myijk(-1, 0, ij)
+      ijm = myijk( 0,-1, ij)
       i  = MOD( ( imesh - 1 ), nr) + 1
       j  = ( imesh - 1 ) / nr + 1
 !
@@ -350,7 +350,7 @@
       SUBROUTINE fsc_rt(fr, ft, dens, field, u, w, ij)
 !
       USE dimensions
-      USE grid, ONLY: myij
+      USE grid, ONLY: myijk
       IMPLICIT NONE
 !
       REAL*8, INTENT(OUT) :: fr, ft
@@ -362,7 +362,7 @@
       REAL*8  :: indrm, indrp, indzm, indzp , indrpp, indzpp
       REAL*8 :: gradc, grade, gradn, gradw, grads, gradgt, gradlt
 !
-      imesh = myij( 0, 0, ij)
+      imesh = myijk( 0, 0, ij)
       i  = MOD( ( imesh - 1 ), nr) + 1
       j  = ( imesh - 1 ) / nr + 1
 !

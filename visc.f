@@ -205,7 +205,7 @@
       repulsive_model = .TRUE.
       IF ( repulsive_model ) THEN
         DO ij = 1, nij_l
-         imesh = myij(0, 0, ij)
+         imesh = myijk(0, 0, ij)
          IF(fl_l(ij).EQ.1) THEN
            CALL subscr(ij)
            j = ( imesh - 1 ) / nr + 1
@@ -265,7 +265,7 @@
       visz = 0.D0
 !
       DO ij = 1, nij_l
-        imesh = myij(0, 0, ij)
+        imesh = myijk(0, 0, ij)
         IF(fl_l(ij).EQ.1) THEN
          CALL subscr(ij)
          j = ( imesh - 1 ) / nr + 1

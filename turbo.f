@@ -3,7 +3,7 @@
 !----------------------------------------------------------------------
 !
       USE gas_solid_velocity, ONLY: ug,wg 
-      USE grid, ONLY: fl_l, myij,  nij_l, nijx_l, data_exchange
+      USE grid, ONLY: fl_l, myijk,  nij_l, nijx_l, data_exchange
       USE environment, ONLY: timing, cpclock
       IMPLICIT NONE
 !
@@ -196,7 +196,7 @@
        DO ij = 1, nij_l
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)
-          imesh = myij(0,0,ij)
+          imesh = myijk(0,0,ij)
           j = ( imesh - 1 ) / nr + 1
           i = MOD( ( imesh - 1 ), nr) + 1
 !
@@ -289,7 +289,7 @@
       REAL*8 :: d33
       INTEGER :: i, j, imesh 
 !
-        imesh = myij(0,0,ij)
+        imesh = myijk(0,0,ij)
         j = ( imesh - 1 ) / nr + 1
         i = MOD( ( imesh - 1 ), nr) + 1
 
@@ -436,7 +436,7 @@
 !
       d33=0.D0
       DO ij = 1, nij_l
-        imesh = myij(0, 0, ij)
+        imesh = myijk(0, 0, ij)
         IF(fl_l(ij).EQ.1) THEN
          CALL subscr(ij)
          j = ( imesh - 1 ) / nr + 1

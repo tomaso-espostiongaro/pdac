@@ -9,7 +9,7 @@
       USE enthalpy_matrix, ONLY: ftem
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
       USE gas_solid_temperature, ONLY: sieg, siegn, sies, siesn, ts, tg
-      USE grid, ONLY: nij_l, myij, fl_l
+      USE grid, ONLY: nij_l, myijk, fl_l
       USE io_restart, ONLY: tapewr
       USE iterative_solver, ONLY: iter
       USE output_dump, ONLY: outp
@@ -73,7 +73,7 @@
 !
         DO ijk = 1, nij_l
 
-           imesh = myij(0, 0, ijk)
+           imesh = myijk(0, 0, ijk)
 ! 
 ! ... Compute molar fractions of gas species
 !

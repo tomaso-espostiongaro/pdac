@@ -75,7 +75,7 @@
 ! nijx_l -> nijkx -> ncdom
 
 !*******MX3D cambiare nome e struttura 
-        INTEGER, ALLOCATABLE :: myij(:,:,:)
+        INTEGER, ALLOCATABLE :: myijk(:,:,:)
 !
 ! myij -> myijk 
 !
@@ -633,6 +633,8 @@
       USE dimensions
       USE parallel, ONLY: nproc, mpime
       USE basic_types, ONLY: imatrix
+      USE indijk_module
+!
       IMPLICIT NONE
 !
       INTEGER :: icnt, ipe, icnt_ipe
@@ -707,12 +709,13 @@
 !
 ! ... allocate the indexes matrix
 !
-!*****MX3D : cambia myij(:,:,:,:), myinds(25,:)
+!*****MX3D : cambia myijk(:,:,:,:), myinds(25,:)
 !
-      ALLOCATE(myij(-2:2,-2:2,nij_l))
+      ALLOCATE(myijk(-2:2,-2:2,nij_l))
       ALLOCATE(myinds(12,nij_l))
-      myij    = 0
+      myijk    = 0
       myinds  = 0
+      CALL indijk_setup()
 
 ! ... now fill in the receiving map and the indexes matrix
       nset  = 0
@@ -724,7 +727,7 @@
 !
         DO ij = proc_map(mpime)%lay(1), proc_map(mpime)%lay(2)
           IF ( fl(ij) .EQ. 1 ) THEN
-          icnt = icnt + cell_neighbours(ij, mpime, nset, rcv_cell_set, myij)
+          icnt = icnt + cell_neighbours(ij, mpime, nset, rcv_cell_set, myijk)
           END IF
         END DO
       ELSE IF ( proc_map(mpime)%type == 2 ) THEN
@@ -736,7 +739,7 @@
         DO i = i1, i2
           ij = i + nr*(j-1)
           IF (fl(ij).EQ.1) THEN
-          icnt = icnt + cell_neighbours(ij, mpime, nset, rcv_cell_set, myij)
+          icnt = icnt + cell_neighbours(ij, mpime, nset, rcv_cell_set, myijk)
           END IF
         END DO
        END DO
@@ -745,11 +748,11 @@
       END IF
 !
 !
-!*****MX3D : dimensioni di myij
+!*****MX3D : dimensioni di myijk
 !
       DO ijl = 1, nij_l
 ! ...     store the global cell index ij, of the the local cell ijl
-          myij(0, 0, ijl) = cell_l2g(ijl, mpime)
+          myijk(0, 0, ijl) = cell_l2g(ijl, mpime)
       END DO
 
 !
@@ -800,7 +803,7 @@
 !*****MX3D : piccole modifiche a set_rcv_map
 !
 ! ... ALLOCATE and set the receiving map
-      CALL set_rcv_map(rcv_map, myij, rcv_cell_set, nset, nrcv)
+      CALL set_rcv_map(rcv_map, myijk, rcv_cell_set, nset, nrcv)
 
 ! ... print out basic information on the map
       DO ipe = 0, nproc - 1
@@ -892,23 +895,23 @@
 
       CALL test_comm
       
-! ... fill in the array myinds using myij
+! ... fill in the array myinds using myijk
 !
 !*****MX3D : ok
 !
       ALLOCATE(fl_l(nijx_l))
       DO ijl = 1, nij_l
-        ij = myij( 0, 0, ijl)
+        ij = myijk( 0, 0, ijl)
         fl_l(ijl) = fl(ij)
       END DO
       CALL data_exchange(fl_l)
-      CALL set_myinds(myinds, myij)
+      CALL set_myinds(myinds, myijk)
 !
 ! ... Test the indexing (following sweep direction)
 !      DO ijl = 1, nij_l
 !        WRITE(7,*) ijl
 !        WRITE(7,*) (myinds(k,ijl), k=1,12)
-!        WRITE(7,*) ((myij(i,j,ijl),i=-2,2),j=-2,2)
+!        WRITE(7,*) ((myijk(i,j,ijl),i=-2,2),j=-2,2)
 !      END DO
 !
       RETURN
@@ -997,23 +1000,23 @@
 !
 !*****MX3D : aggiungere la terza dimensione nei loop
 !
-      INTEGER FUNCTION cell_neighbours(ij, mpime, nset, rcv_cell_set, myij)
+      INTEGER FUNCTION cell_neighbours(ij, mpime, nset, rcv_cell_set, myijk)
         USE dimensions
         USE basic_types, ONLY: imatrix
         INTEGER, INTENT(IN) :: ij, mpime
         INTEGER, INTENT(INOUT) :: nset(0:)
         TYPE (imatrix), OPTIONAL :: rcv_cell_set(0:)
-        INTEGER, OPTIONAL :: myij(-2:,-2:,:)
+        INTEGER, OPTIONAL :: myijk(-2:,-2:,:)
         INTEGER :: ippj, ijpp, ijmm, immj
         INTEGER :: icnt, ipe, i, j, ije, ijl, ijel
         INTEGER :: im, jm
         LOGICAL :: fill
 
-        IF ( PRESENT(rcv_cell_set) .AND. .NOT. present(myij) ) THEN
+        IF ( PRESENT(rcv_cell_set) .AND. .NOT. present(myijk) ) THEN
           WRITE(8,*) ' error in neighbour - 1 '
           STOP 
         END IF
-        IF( .NOT. PRESENT(rcv_cell_set) .AND. present(myij) ) THEN
+        IF( .NOT. PRESENT(rcv_cell_set) .AND. present(myijk) ) THEN
           WRITE(8,*) ' error in neighbour - 2 '
           STOP 
         END IF
@@ -1021,7 +1024,7 @@
         fill = PRESENT(rcv_cell_set)
         icnt = 0
         IF( fill ) THEN
-          nij_l = SIZE(myij, 3)
+          nij_l = SIZE(myijk, 3)
           ijl   = cell_g2l(ij, mpime)
         END IF
         
@@ -1044,11 +1047,11 @@
               ELSE IF( fill ) THEN
 ! ...           the cell ije is local, set the mapping with cell ijl
                 ijel = cell_g2l(ije, mpime)
-                myij(im,jm,ijl) = ijel
+                myijk(im,jm,ijl) = ijel
               END IF
             ELSE IF( fill ) THEN   
 ! ...         store the global cell index ij, of the the local cell ijl
-              myij(0, 0, ijl) = ij
+              myijk(0, 0, ijl) = ij
             END IF
           END DO
         END DO
@@ -1070,7 +1073,7 @@
           END IF
         ELSE IF( fill ) THEN
           ijel = cell_g2l(immj, mpime)
-          myij(-2,0,ijl) = ijel
+          myijk(-2,0,ijl) = ijel
         END IF
 
         ippj=ij+2
@@ -1087,7 +1090,7 @@
           END IF
         ELSE IF( fill ) THEN
           ijel = cell_g2l(ippj, mpime)
-          myij(2,0,ijl) = ijel
+          myijk(2,0,ijl) = ijel
         END IF
 
         ijmm=ij-nr-nr
@@ -1104,7 +1107,7 @@
           END IF
         ELSE IF( fill ) THEN
           ijel = cell_g2l(ijmm, mpime)
-          myij(0,-2,ijl) = ijel
+          myijk(0,-2,ijl) = ijel
         END IF
 
         ijpp=ij+nr+nr
@@ -1121,7 +1124,7 @@
           END IF
         ELSE IF( fill ) THEN
           ijel = cell_g2l(ijpp, mpime)
-          myij(0,2,ijl) = ijel
+          myijk(0,2,ijl) = ijel
         END IF
 
         cell_neighbours = icnt
@@ -1177,18 +1180,18 @@
 !
 !*****MX3D : aggiungere la terza dimensione
 !
-      SUBROUTINE set_rcv_map(rcv_map, myij, rcv_cell_set, nset, nrcv)
+      SUBROUTINE set_rcv_map(rcv_map, myijk, rcv_cell_set, nset, nrcv)
         USE basic_types, ONLY: imatrix 
         TYPE (rcv_map_type) :: rcv_map(0:)
         TYPE (imatrix) :: rcv_cell_set(0:)
-        INTEGER :: myij(-2:,-2:,:)
+        INTEGER :: myijk(-2:,-2:,:)
         INTEGER, INTENT(IN) :: nrcv(0:), nset(0:)
         INTEGER :: ipe, nproc, icnt, ijl, i, j, ije
         INTEGER :: ic, icnt_rcv
         INTEGER, ALLOCATABLE :: ijsort(:)
 
         nproc = SIZE(rcv_cell_set)
-        nij_l = SIZE(myij,3)
+        nij_l = SIZE(myijk,3)
         icnt  = 0                    ! counts received cells from all processors
 
         DO ipe = 0, nproc - 1
@@ -1213,7 +1216,7 @@
             j   = rcv_cell_set(ipe)%i(4,ic)
             rcv_map(ipe)%ircv(icnt_rcv) = ije
             rcv_map(ipe)%iloc(icnt_rcv) = icnt + nij_l
-            myij(i,j,ijl) = icnt + nij_l
+            myijk(i,j,ijl) = icnt + nij_l
             DO ic = 2, nset(ipe)
               ije = rcv_cell_set(ipe)%i(1,ic)
               ijl = rcv_cell_set(ipe)%i(2,ic)
@@ -1227,7 +1230,7 @@
                 rcv_map(ipe)%ircv(icnt_rcv) = ije
                 rcv_map(ipe)%iloc(icnt_rcv) = icnt + nij_l
               END IF 
-              myij(i,j,ijl) = icnt + nij_l  ! da sostituire con
+              myijk(i,j,ijl) = icnt + nij_l  ! da sostituire con
               ! ... myijk( stind, ijl ) = icnt + nij_l
             END DO
 
@@ -1252,11 +1255,11 @@
 !
 !*****MX3D : cambiare gli stencil
 !
-      SUBROUTINE set_myinds(myinds, myij)
+      SUBROUTINE set_myinds(myinds, myijk)
         USE dimensions
         IMPLICIT NONE
         INTEGER :: myinds(:,:)
-        INTEGER :: myij(-2:,-2:,:)
+        INTEGER :: myijk(-2:,-2:,:)
 !
         INTEGER :: ijl, ijr, ijb, ijt, ijbr, ijtr, ijbl, ijtl, ijrr, ijtt, ijll, ijbb
         INTEGER :: imj, ipj, ijm, ijp, ipjm, ipjp, imjm, imjp, ippj, ijpp, immj, ijmm
@@ -1267,24 +1270,24 @@
         INTEGER :: i, j, ij, imesh
 !
         DO ij = 1, nij_l 
-          imesh = myij(0, 0, ij)
+          imesh = myijk(0, 0, ij)
           j  = ( imesh - 1 ) / nr + 1
           i  = MOD( ( imesh - 1 ), nr) + 1
           IF( (i .GE. 2) .AND. (i .LE. (nr-1)) .AND.   &
               (j .GE. 2) .AND. (j .LE. (nz-1))      ) THEN
 !
-            ijm = myij( 0,-1, ij)
-            imj = myij(-1, 0, ij)
-            ipj = myij(+1, 0, ij)
-            ijp = myij( 0,+1, ij)
-            ipjm= myij(+1,-1, ij)
-            ipjp= myij(+1,+1, ij)
-            imjm= myij(-1,-1, ij)
-            imjp= myij(-1,+1, ij)
-            ippj= myij(+2, 0, ij)
-            ijpp= myij( 0,+2, ij)
-            immj= myij(-2, 0, ij)
-            ijmm= myij( 0,-2, ij)
+            ijm = myijk( 0,-1, ij)
+            imj = myijk(-1, 0, ij)
+            ipj = myijk(+1, 0, ij)
+            ijp = myijk( 0,+1, ij)
+            ipjm= myijk(+1,-1, ij)
+            ipjp= myijk(+1,+1, ij)
+            imjm= myijk(-1,-1, ij)
+            imjp= myijk(-1,+1, ij)
+            ippj= myijk(+2, 0, ij)
+            ijpp= myijk( 0,+2, ij)
+            immj= myijk(-2, 0, ij)
+            ijmm= myijk( 0,-2, ij)
 !
 ! ... indexes labelled Right, Top, Left, Bottom, etc., correspond to those defined 
 ! ...  above, except at boundaries ...
@@ -1473,7 +1476,7 @@
 
         itest = 0
         DO ijl = 1, nij_l
-          itest( ijl ) = myij(0, 0, ijl)
+          itest( ijl ) = myijk(0, 0, ijl)
         END DO
 
         CALL data_exchange(itest)

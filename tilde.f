@@ -39,7 +39,7 @@
       USE gas_solid_velocity, ONLY: ug, wg, us, ws
       USE grid, ONLY: dz, dr, fl_l
       USE grid, ONLY: inr, inrb, indr, indz
-      USE grid, ONLY: nij_l, myij, nijx_l, data_exchange
+      USE grid, ONLY: nij_l, myijk, nijx_l, data_exchange
       USE set_indexes
 !
       IMPLICIT NONE
@@ -64,7 +64,7 @@
       CALL data_exchange(rlk)
 !
       DO ij = 1, nij_l
-       imesh = myij(0,0,ij)
+       imesh = myijk(0,0,ij)
        IF(fl_l(ij).EQ.1) THEN
          CALL subscr(ij)
          j = ( imesh - 1 ) / nr + 1
@@ -110,7 +110,7 @@
       USE gas_solid_viscosity, ONLY: viscg, viscs
       USE gas_solid_viscosity, ONLY: mug
       USE gas_solid_viscosity, ONLY: gvisx, gvisz, pvisx, pvisz
-      USE grid, ONLY: nij_l, myij, nijx_l, data_exchange
+      USE grid, ONLY: nij_l, myijk, nijx_l, data_exchange
       USE parallel, ONLY: mpime
       USE set_indexes
 !
@@ -202,7 +202,7 @@
 ! ... in the whole computational domain.
 !
       DO ij = 1, nij_l
-        imesh = myij(0,0,ij)
+        imesh = myijk(0,0,ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)
           CALL fu_rt(ugfr(ij), ugft(ij), nb(rgp,ij),             &
@@ -233,7 +233,7 @@
 ! ... On boundaries, fluxes on left and bottom sides must be calculated
 !
       DO ij = 1, nij_l
-        imesh = myij(0,0,ij)
+        imesh = myijk(0,0,ij)
         IF(fl_l(ij).EQ.1) THEN
           CALL subscr(ij)
           j = ( imesh - 1 ) / nr + 1
