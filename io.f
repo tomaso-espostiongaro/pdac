@@ -54,6 +54,7 @@
         OPEN(UNIT=9,form='unformatted', FILE = restart_file)
 !
         WRITE(9) time, nx, ny, nz, nsolid, ngas, nfil
+        WRITE(9) gas_type
 
       END IF
 !
@@ -154,7 +155,7 @@
       USE atmospheric_conditions, ONLY: p_atm, t_atm
       USE grid, ONLY: zb, dz
       USE specific_heat_module, ONLY: hcapg
-      USE gas_constants, ONLY: tzero, hzerog, gas_type
+      USE gas_constants, ONLY: tzero, hzerog
 
 
       IMPLICIT NONE
@@ -174,6 +175,7 @@
         OPEN(UNIT=9,form='unformatted',FILE='pdac.res')
 
         READ(9) time, nx_, ny_, nz_, nsolid_, ngas_, nfil
+        READ(9) gas_type
 
         WRITE(6,*) ' time =  ', time
         WRITE(6,*) ' nx   =  ', nx
@@ -182,6 +184,7 @@
         WRITE(6,*) ' nsolid   =  ', nsolid
         WRITE(6,*) ' ngas     =  ', ngas
         WRITE(6,*) ' nfil     =  ', nfil
+        WRITE(6,*) ' gas_type =  ', gas_type
 
       END IF
 
@@ -192,6 +195,7 @@
       CALL bcast_integer(nsolid_, 1, root)
       CALL bcast_integer(ngas_, 1, root)
       CALL bcast_integer(nfil, 1, root)
+      CALL bcast_integer(gas_type, ngas, root)
 
       IF( nx_ /= nx ) &
         CALL error(' taperd ',' inconsistent dimension nx ', nx_ )

@@ -118,12 +118,16 @@
 !
               IF(flag(ipjkp) /= 1) THEN
                 wg(n2)   = -wg(n1)
-                ws(n2,:) = -ws(n1,:)
+                DO is = 1, nsolid
+                  IF (rlk(ijk,is) > 0.D0) ws(n2,is) = -ws(n1,is)
+                END DO
               END IF
 
               IF (flag(ipjpk) /= 1 .AND. job_type == '3D') THEN
                 vg(n2)   = -vg(n1)
-                vs(n2,:) = -vs(n1,:)
+                DO is = 1, nsolid
+                  IF (rlk(ijk,is) > 0.D0) vs(n2,:) = -vs(n1,:)
+                END DO
               END IF
 !
             CASE (4)
@@ -194,14 +198,21 @@
 !
             CASE (3)
 
+              ug(n2)   = 0.D0
+              us(n2,:) = 0.D0
+
               IF ( flag(imjkp) /= 1 ) THEN
                 wg(n2)   = -wg(n1)
-                ws(n2,:) = -ws(n1,:)
+                DO is = 1, nsolid
+                  IF (rlk(ijk,is) > 0.D0) ws(n2,is) = -ws(n1,is)
+                END DO
 	      END IF
 
               IF ( flag(imjkp) /= 1 .AND. job_type == '3D') THEN
-                  vg(n2)   = -vg(n1)
-                  vs(n2,:) = -vs(n1,:)
+                vg(n2)   = -vg(n1)
+                DO is = 1, nsolid
+                  IF (rlk(ijk,is) > 0.D0) vs(n2,is) = -vs(n1,is)
+                END DO
 	      END IF
 !
             CASE (4)
@@ -273,11 +284,16 @@
 !  
                 IF(flag(ipjpk) /= 1) THEN
                   ug(n2)   = -ug(n1)
-                  us(n2,:) = -ws(n1,:)
+                  DO is = 1, nsolid
+                    IF (rlk(ijk,is) > 0.D0) us(n2,is) = -us(n1,is)
+                  END DO
                 END IF
+
                 IF(flag(ijpkp) /= 1) THEN
                   wg(n2)   = -wg(n1)
-                  ws(n2,:) = -ws(n1,:)
+                  DO is = 1, nsolid
+                    IF (rlk(ijk,is) > 0.D0) ws(n2,is) = -ws(n1,is)
+                  END DO
                 END IF
 !  
               CASE (4)
@@ -340,22 +356,30 @@
 !
               CASE (2)
 !
-                IF(flag(ipjmk) /= 1) THEN
-                  ug( n2 ) = ug( n1 )
-                  us(n2,:) = us(n1,:)
-                END IF
-                IF(flag(ijmkp) /= 1) THEN
-                  wg( n2 ) = wg( n1 )
-                  ws(n2,:) = ws(n1,:)
-                END IF
-!
+                ug(n2)   = ug(n1)
+                us(n2,:) = us(n1,:)
+                wg(n2)   = wg(n1)
+                ws(n2,:) = ws(n1,:)
+!  
               CASE (3)
 !
-                ug(n2)   = -ug(n1)
-                us(n2,:) = -us(n1,:)
-                wg(n2)   = -wg(n1)
-                ws(n2,:) = -ws(n1,:)
-!  
+                vg(n2)   = 0.D0
+                vs(n2,:) = 0.D0
+
+                IF(flag(ipjmk) /= 1) THEN
+                  ug( n2 ) = -ug( n1 )
+                  DO is = 1, nsolid
+                    IF (rlk(ijk,is) > 0.D0) us(n2,is) = -us(n1,is)
+                  END DO
+                  
+                END IF
+                IF(flag(ijmkp) /= 1) THEN
+                  wg( n2 ) = -wg( n1 )
+                  DO is = 1, nsolid
+                    IF (rlk(ijk,is) > 0.D0) ws(n2,is) = -ws(n1,is)
+                  END DO
+                END IF
+!
               CASE (4)
 !  	    
                 d1 = dy(j)
@@ -428,12 +452,16 @@
 !  
               IF (flag(ipjkp) /= 1) THEN
                 ug(n2)   = -ug(n1)
-                us(n2,:) = -us(n1,:)
+                DO is = 1, nsolid
+                  IF (rlk(ijk,is) > 0.D0) us(n2,is) = -us(n1,is)
+                END DO
               END IF
 
 	      IF (flag(ijpkp) /= 1 .AND. job_type == '3D') THEN
                 vg(n2)   = -vg(n1)
-                vs(n2,:) = -vs(n1,:)
+                DO is = 1, nsolid
+                  IF (rlk(ijk,is) > 0.D0) vs(n2,is) = -vs(n1,is)
+                END DO
 	      END IF
 !
             CASE (4)
@@ -517,14 +545,21 @@
 !
             CASE (3)
 !
-              IF(flag(ipjkm) == 3) THEN 
+              wg(n2)   = 0.D0
+              ws(n2,:) = 0.D0
+                
+              IF(flag(ipjkm) /= 1) THEN 
                 ug(n2)   = -ug(n1)
-                us(n2,:) = -us(n1,:)
+                DO is = 1, nsolid
+                  IF (rlk(ijk,is) > 0.D0) us(n2,is) = -us(n1,is)
+                END DO
               END IF
 
-              IF(flag(ijpkm) == 3 .AND. job_type == '3D') THEN
+              IF(flag(ijpkm) /= 1 .AND. job_type == '3D') THEN
                 vg(n2)   = -vg(n1)
-                vs(n2,:) = -vs(n1,:)
+                DO is = 1, nsolid
+                  IF (rlk(ijk,is) > 0.D0) vs(n2,is) = -vs(n1,is)
+                END DO
               END IF
 !
             CASE DEFAULT
@@ -955,8 +990,8 @@
       REAL*8 :: zrif, prif, trif, rhorif
       INTEGER :: is, ig
 !
-! ... This value can be "tuned" 
-      kfl = 0.8D0
+! ... This value can be "tuned"  (0.0 <= kfl <= 1.0)
+      kfl = 1.0D0
 
 ! ... Transport normal velocity in boundary cells
 !
@@ -1069,7 +1104,7 @@
 ! ... This value can be "tuned" (0.0 <= kfl <= 1.0)
 ! ... (analogous to CFL number)
 !
-      kfl = 0.8D0
+      kfl = 1.0D0
 
 ! ... Transport normal velocity into boundary cells
 !

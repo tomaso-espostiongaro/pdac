@@ -788,10 +788,7 @@
           WRITE(8,*) ' time, i, j, k ', time, i, j, k
           WRITE(8,*) ' rls, volfrac ', rls, vf
         END IF
-        IF (forced(ijk)) THEN
-        ELSE
-          CALL error('iter', 'warning: mass is not conserved',1)
-        END IF
+        IF (.NOT.forced(ijk)) CALL error('iter','mass is not conserved',1)
       ENDIF
 
       ep( ijk ) = 1.D0 - rls

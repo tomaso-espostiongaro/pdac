@@ -534,7 +534,6 @@
 ! ... by adding a force to mimic the boundary
 !
           IF (immb >= 1) THEN
-
             IF (forced(ijk)) THEN
 
               fp = numx(ijk)
@@ -590,7 +589,6 @@
             END IF
 
           END IF
-      
         END IF
         
       END DO
