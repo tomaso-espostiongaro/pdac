@@ -4,7 +4,7 @@
 !              for the simulation of pyroclastic dispersion
 !              processes
 ! version: 3.0
-! date: June 2003
+! date: Jan 2005
 ! authors: A.Neri, G.Macedonio, D.Gidaspow, T. Esposti Ongaro
 ! parallelized by: T. Esposti Ongaro, C. Cavazzoni, A. Neri
 ! 3d version implemented by: T. Esposti Ongaro, C. Cavazzoni

@@ -158,7 +158,7 @@
 ! ... Compute the initial conditions for a semi-spherical dome
 !
       USE atmospheric_conditions, ONLY: p_atm
-      USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: job_type, lpr
       USE dimensions, ONLY: nsolid, ngas
       USE domain_decomposition, ONLY: ncint, meshinds
       USE environment, ONLY: cpclock
@@ -187,64 +187,65 @@
       beta = 2.D0 * mu * q * rgas / 18.D0 * 1.D3 * t_dome
       beta = beta / ( p_atm(kv)**2 * kappa * psi * dome_radius )
 !
-      raddo = 0.D0
-      DO WHILE (raddo <= dome_radius)
-        IF (mpime == root) WRITE(*,*) raddo, p_dome(raddo,p_atm(kv))
-        raddo = raddo + 1.D0
-      END DO
+      IF (lpr > 1) THEN
+        WRITE(logunit,*) 'Dome Radial pressure profile'
+        raddo = 0.D0
+        DO WHILE (raddo <= dome_radius)
+          IF (mpime == root) WRITE(logunit,*) raddo, p_dome(raddo,p_atm(kv))
+          raddo = raddo + 1.D0
+        END DO
+      END IF
 
       mesh_loop: DO ijk = 1, ncint      
         IF(flag(ijk) == 1) THEN
           CALL meshinds(ijk,imesh,i,j,k)
-          
+          !
           ! ... Loop over the dome cells to find the
           ! ... cell index (must be optimized!!!)
           !
           n = 0
-          count_loop: DO counter = 1, ndm
-            IF (dcell(n)%imesh == imesh) THEN
-              n = counter
-            ELSE
-              GOTO 100
-            END IF
-          END DO count_loop
-          ra = dcell(n)%radius
+          DO counter = 1, ndm
+            IF (dcell(counter)%imesh == imesh) n = counter
+          END DO 
+
+          IF (n/=0) THEN
+            ra = dcell(n)%radius
          
-          ! ... Set the initial conditions, as
-          ! ... specified in the input file on 
-          ! ... all cells enclosing the vent
-          !
-          ug(ijk) = 0.D0
-          IF (job_type == '3D') vg(ijk) = 0.D0 
-          wg(ijk) = 0.D0
-          !
-          tg(ijk) = t_dome
-          ep(ijk) = 1.D0 - SUM(dome_eps(1:nsolid))
-          p(ijk)  = p_dome(ra,p_atm(kv))
-          !
-          DO ig = 1, ngas
-            ygc(ijk,ig) = dome_ygc(gas_type(ig))
-          END DO
-          !
-          DO is = 1,nsolid
-            us(ijk,is)  = 0.D0
-            IF (job_type == '3D') vs(ijk,is)  = 0.D0
-            ws(ijk,is) = 0.D0
+            ! ... Set the initial conditions, as
+            ! ... specified in the input file on 
+            ! ... all cells enclosing the vent
             !
-            ts(ijk,is)  = t_dome
-            rlk(ijk,is) = dome_eps(is)*rl(is)
-          END DO
+            ug(ijk) = 0.D0
+            IF (job_type == '3D') vg(ijk) = 0.D0 
+            wg(ijk) = 0.D0
+            !
+            tg(ijk) = t_dome
+            ep(ijk) = 1.D0 - SUM(dome_eps(1:nsolid))
+            p(ijk)  = p_dome(ra,p_atm(kv))
+            !
+            DO ig = 1, ngas
+              ygc(ijk,ig) = dome_ygc(gas_type(ig))
+            END DO
+            !
+            DO is = 1,nsolid
+              us(ijk,is)  = 0.D0
+              IF (job_type == '3D') vs(ijk,is)  = 0.D0
+              ws(ijk,is) = 0.D0
+              !
+              ts(ijk,is)  = t_dome
+              rlk(ijk,is) = dome_eps(is)*rl(is)
+            END DO
 !          
-          ! ... check gas components closure relation
-          !
-          ygcsum = SUM(ygc(ijk,:))
-          IF ( ygcsum /= 1.D0 ) THEN
-            ygc(ijk,ngas) = 1.D0 - SUM( ygc(ijk,1:ngas-1) )
+            ! ... check gas components closure relation
+            !
+            ygcsum = SUM(ygc(ijk,:))
+            IF ( ygcsum /= 1.D0 ) THEN
+              ygc(ijk,ngas) = 1.D0 - SUM( ygc(ijk,1:ngas-1) )
+            END IF
           END IF
 !          
- 100    CONTINUE
-        END IF
-      END DO mesh_loop
+          END IF
+        END DO mesh_loop
 
       DEALLOCATE(dcell)
 
