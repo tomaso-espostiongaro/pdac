@@ -66,7 +66,7 @@
 !
       IF(timing) s0 = cpclock()
 
-      CALL parallel_startup
+      CALL parallel_startup   ! initialize the parallel environment
 
 ! ... Initialize the IBM HW performance monitor
 !      call f_hpminit( mpime, 'pdac' )
