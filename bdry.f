@@ -67,7 +67,7 @@
 
             wg(n2)=-wg(ij)
             DO is=1,nsolid
-              IF(rlk(is,ij).GT.0.D0) ws(is,n2)=-ws(is,ij)
+              IF(rlk(ij,is).GT.0.D0) ws(is,n2)=-ws(is,ij)
             END DO  
 
           CASE (4)
@@ -107,8 +107,8 @@
 ! ... from the mass balance equation of solids in cell (ij)
               epc=0.D0
               DO is=1,nsolid
-                eps = rlk(is,ij)*inrl(is) - dt*inrl(is)*inr(i)/dr1*          &
-                      (rb(i)*us(is,ij)*rlk(is,ij) - rb(i-1)*us(is,imj)*rlk(is,imj))
+                eps = rlk(ij,is)*inrl(is) - dt*inrl(is)*inr(i)/dr1*          &
+                      (rb(i)*us(is,ij)*rlk(ij,is) - rb(i-1)*us(is,imj)*rlk(imj,is))
                 epc=epc+eps
               END DO
               ep1nn=1.D0-epc
@@ -119,9 +119,9 @@
               rm1n = 0.D0
               rm0n = 0.D0
               DO is=1,nsolid
-                rm2n=rm2n+rlk(is,n2)
-                rm1n=rm1n+rlk(is,ij)
-                rm0n=rm0n+rlk(is,imj)
+                rm2n=rm2n+rlk(n2,is)
+                rm1n=rm1n+rlk(ij,is)
+                rm0n=rm0n+rlk(imj,is)
               END DO
               rm1knn = rm1n
               rm2n = rm2n + rgp(n2)
@@ -205,10 +205,10 @@
             DO is=1,nsolid
               IF( fl_l (ipjp) == 4 ) ws(is,n2)=ws(is,ij)
               IF(us(is,ij).GE.0.D0) THEN
-                rlk(is,n2)=rlk(is,ij)
+                rlk(n2,is)=rlk(ij,is)
                 us(is,n2)=ug(n2)
               ELSE
-                rlk(is,n2)=0.0D0
+                rlk(n2,is)=0.0D0
                 us(is,n2) =0.0D0
               ENDIF
             END DO
@@ -237,7 +237,7 @@
           CASE (3)
             wg(n2)=-wg(ij)
             DO is=1,nsolid
-              IF(rlk(is,ij).GT.0.D0) ws(is,n2)=-ws(is,ij)
+              IF(rlk(ij,is).GT.0.D0) ws(is,n2)=-ws(is,ij)
             END DO 
           CASE (4)
 !
@@ -273,9 +273,9 @@
 ! ... from the mass balance equation of solids in cell (ij)
               epc=0.D0
               DO is=1,nsolid
-               eps=rlk(is,ij)*inrl(is) -                                 &
-                   dt*inrl(is)*inr(i)/dr1*(rb(i)*us(is,ij)*rlk(is,ipj) -  &
-                   rb(i-1)*us(is,imj)*rlk(is,ij))
+               eps=rlk(ij,is)*inrl(is) -                                 &
+                   dt*inrl(is)*inr(i)/dr1*(rb(i)*us(is,ij)*rlk(ipj,is) -  &
+                   rb(i-1)*us(is,imj)*rlk(ij,is))
                epc=epc+eps
               END DO
               ep1nn=1.D0-epc
@@ -285,9 +285,9 @@
               rm1n = 0.D0
               rm0n = 0.D0
               DO is=1,nsolid
-                rm2n=rm2n+rlk(is,n2)
-                rm1n=rm1n+rlk(is,ij)
-                rm0n=rm0n+rlk(is,ipj)
+                rm2n=rm2n+rlk(n2,is)
+                rm1n=rm1n+rlk(ij,is)
+                rm0n=rm0n+rlk(ipj,is)
               END DO
               rm1knn = rm1n
               rm2n=rm2n+rgp(n2)
@@ -330,7 +330,7 @@
 ! ... extrapolation of the temperature and solid fraction to time (n+1)dt
               DO is=1,nsolid
                 IF(fl_l( imjp ) == 4) ws(is,n2)=ws(is,ij)
-                rlk(is,n2)=rlk(is,ij)
+                rlk(n2,is)=rlk(ij,is)
                 us(is,n2)=us(is,ij)
               END DO
 !
@@ -376,10 +376,10 @@
             DO is=1,nsolid
               IF( fl_l ( imjp ) == 4 ) ws(is,n2)=ws(is,ij)
               IF(us(is,ij).GE.0.D0) THEN
-                rlk(is,n2)=rlk(is,ij)
+                rlk(n2,is)=rlk(ij,is)
                 us(is,n2)=ug(n2)
               ELSE
-                rlk(is,n2)=0.0D0
+                rlk(n2,is)=0.0D0
                 us(is,n2) =0.0D0
               ENDIF
               sies(is,n2)=sies(is,ij)
@@ -418,7 +418,7 @@
 
             ug(n2)=-ug(ij)
             DO is=1,nsolid
-              IF(rlk(is,ij).GT.0.D0) us(is,n2)=-us(is,ij)
+              IF(rlk(ij,is).GT.0.D0) us(is,n2)=-us(is,ij)
             END DO
 
           CASE (4)
@@ -454,8 +454,8 @@
 ! ... from the mass balance equation of solids, in cell (ij)
               epc=0.D0
               DO is=1,nsolid
-                eps=rlk(is,ij)*inrl(is) - dt*inrl(is)/dz1*(ws(is,ij)*rlk(is,ij) -  &
-                    ws(is,ijm)*rlk(is,ijm))
+                eps=rlk(ij,is)*inrl(is) - dt*inrl(is)/dz1*(ws(is,ij)*rlk(ij,is) -  &
+                    ws(is,ijm)*rlk(ijm,is))
                 epc=epc+eps
               END DO 
               ep1nn=1.D0-epc
@@ -465,9 +465,9 @@
               rm1n=0.D0
               rm0n=0.D0
               DO is=1,nsolid
-                rm2n=rm2n+rlk(is,n2)
-                rm1n=rm1n+rlk(is,ij)
-                rm0n=rm0n+rlk(is,ijm)
+                rm2n=rm2n+rlk(n2,is)
+                rm1n=rm1n+rlk(ij,is)
+                rm0n=rm0n+rlk(ijm,is)
               END DO 
               rm1knn=rm1n
               rm2n=rm2n+rgp(n2)
@@ -557,10 +557,10 @@
             DO is=1,nsolid
               IF( fl_l( ipjp ) == 4 ) us(is,n2)=us(is,ij)
               IF(ws(is,ij).GE.0.D0) THEN
-                rlk(is,n2)=rlk(is,ij)
+                rlk(n2,is)=rlk(ij,is)
                 ws(is,n2)=ws(is,ij)
               ELSE
-                rlk(is,n2)=0.D0
+                rlk(n2,is)=0.D0
                 ws(is,n2)=0.D0
               ENDIF
               IF(i .EQ. (nr-1) .AND. j .EQ. (nz-1)) THEN
@@ -607,7 +607,7 @@
 
             ug(n2)=-ug(ij)
             DO is=1,nsolid
-              IF(rlk(is,ij).GT.0.D0) us(is,n2)=-us(is,ij)
+              IF(rlk(ij,is).GT.0.D0) us(is,n2)=-us(is,ij)
             END DO 
 
           CASE DEFAULT
@@ -745,8 +745,8 @@
 
                 epc = 0.D0
                 DO is = 1, nsolid
-                  eps = rlk(is,ijk) * inrl(is) - ( dt * inrl(is) / dx1 )  *          &
-                        ( us(is,ijk)*rlk(is,ijk) - us(is,imjk)*rlk(is,imjk) )
+                  eps = rlk(ijk,is) * inrl(is) - ( dt * inrl(is) / dx1 )  *          &
+                        ( us(is,ijk)*rlk(ijk,is) - us(is,imjk)*rlk(imjk,is) )
                   epc = epc + eps
                 END DO
                 ep1nn = 1.D0 - epc
@@ -759,9 +759,9 @@
                 rm1n=0.D0
                 rm0n=0.D0
                 DO is=1,nsolid
-                  rm2n=rm2n+rlk(is,n2)
-                  rm1n=rm1n+rlk(is,ijk)
-                  rm0n=rm0n+rlk(is,imjk)
+                  rm2n=rm2n+rlk(n2,is)
+                  rm1n=rm1n+rlk(ijk,is)
+                  rm0n=rm0n+rlk(imjk,is)
                 END DO
                 rm1knn = rm1n
                 rm2n = rm2n + rgp(n2)
@@ -851,10 +851,10 @@
               DO is = 1, nsolid
                 ! .. IF(nfltr.EQ.4) ws(is,n2)=ws(is,ijk)
                 IF( us(is,ijk) >= 0.D0 ) THEN
-                  rlk(is,n2) = rlk(is,ijk)
+                  rlk(n2,is) = rlk(ijk,is)
                   us(is,n2)  = us(is,ijk)
                 ELSE
-                  rlk(is,n2) = 0.0D0
+                  rlk(n2,is) = 0.0D0
                   us(is,n2)  = 0.0D0
                 ENDIF
               END DO
@@ -935,8 +935,8 @@
 
                 epc = 0.D0
                 DO is = 1, nsolid
-                 eps = rlk(is,ijk) * inrl(is) -                                 &
-                     dt*inrl(is)/dx1*(us(is,ijk)*rlk(is,ipjk) - us(is,imjk)*rlk(is,ijk))
+                 eps = rlk(ijk,is) * inrl(is) -                                 &
+                     dt*inrl(is)/dx1*(us(is,ijk)*rlk(ipjk,is) - us(is,imjk)*rlk(ijk,is))
                  epc=epc+eps
                 END DO
                 ep1nn=1.D0-epc
@@ -946,9 +946,9 @@
                 rm1n=0.D0
                 rm0n=0.D0
                 DO is=1,nsolid
-                  rm2n=rm2n+rlk(is,n2)
-                  rm1n=rm1n+rlk(is,ijk)
-                  rm0n=rm0n+rlk(is,ipjk)
+                  rm2n=rm2n+rlk(n2,is)
+                  rm1n=rm1n+rlk(ijk,is)
+                  rm0n=rm0n+rlk(ipjk,is)
                 END DO
                 rm1knn = rm1n
                 rm2n = rm2n + rgp(n2)
@@ -993,7 +993,7 @@
 
                 DO is=1,nsolid
                   ! IF(nfllt.EQ.4) ws(is,n2)=ws(is,ijk)
-                  rlk(is,n2)=rlk(is,ijk)
+                  rlk(n2,is)=rlk(ijk,is)
                   us(is,n2)=us(is,ijk)
                 END DO
 
@@ -1032,10 +1032,10 @@
               DO is=1,nsolid
                 ! .. IF(nfllt.EQ.4) ws(is,n2)=ws(is,ijk)
                 IF( us(is,ijk) >= 0.D0 ) THEN
-                  rlk(is,n2)=rlk(is,ijk)
+                  rlk(n2,is)=rlk(ijk,is)
                   us(is,n2)=us(is,ijk)
                 ELSE
-                  rlk(is,n2)=0.0D0
+                  rlk(n2,is)=0.0D0
                   us(is,n2) =0.0D0
                 ENDIF
               END DO
@@ -1185,8 +1185,8 @@
 
                 epc = 0.D0
                 DO is = 1, nsolid
-                  eps = rlk(is,ijk)*inrl(is) - dt*inrl(is)/dz1*(ws(is,ijk)*rlk(is,ijk) -  &
-                      ws(is,ijkm)*rlk(is,ijkm))
+                  eps = rlk(ijk,is)*inrl(is) - dt*inrl(is)/dz1*(ws(is,ijk)*rlk(ijk,is) -  &
+                      ws(is,ijkm)*rlk(ijkm,is))
                   epc = epc + eps
                 END DO 
                 ep1nn = 1.D0 - epc
@@ -1197,9 +1197,9 @@
                 rm1n=0.D0
                 rm0n=0.D0
                 DO is=1,nsolid
-                  rm2n=rm2n+rlk(is,n2)
-                  rm1n=rm1n+rlk(is,ijk)
-                  rm0n=rm0n+rlk(is,ijkm)
+                  rm2n=rm2n+rlk(n2,is)
+                  rm1n=rm1n+rlk(ijk,is)
+                  rm0n=rm0n+rlk(ijkm,is)
                 END DO 
                 rm1knn = rm1n
                 rm2n=rm2n+p(n2)*ep(n2)*gmw(6)/(rgas*tg(n2))
@@ -1303,10 +1303,10 @@
               DO is=1,nsolid
                 !  IF(nfltr.EQ.4) us(is,n2)=us(is,ijk)
                 IF( ws(is,ijk) >= 0.D0) THEN
-                  rlk(is,n2)=rlk(is,ijk)
+                  rlk(n2,is)=rlk(ijk,is)
                   ws(is,n2)=ws(is,ijk)
                 ELSE
-                  rlk(is,n2)=0.D0
+                  rlk(n2,is)=0.D0
                   ws(is,n2)=0.D0
                 ENDIF
                 ! IF(i .EQ. (nr-1) .AND. j .EQ. (nz-1)) THEN

@@ -92,15 +92,15 @@
          END DO
 !
          DO is = 1, nsolid
-          rlk_e = (rlk(is,ijk)*dx(i+1)+rlk(is,ijke)*dx(i))*indxp
-          rlk_n = (rlk(is,ijk)*dy(j+1)+rlk(is,ijkn)*dy(j))*indyp
-          rlk_t = (rlk(is,ijk)*dz(k+1)+rlk(is,ijkt)*dz(k))*indzp
+          rlk_e = (rlk(ijk,is)*dx(i+1)+rlk(ijke,is)*dx(i))*indxp
+          rlk_n = (rlk(ijk,is)*dy(j+1)+rlk(ijkn,is)*dy(j))*indyp
+          rlk_t = (rlk(ijk,is)*dz(k+1)+rlk(ijkt,is)*dz(k))*indzp
 !
           rusn(is,ijk)  = rlk_e * us(is,ijk)
           rvsn(is,ijk)  = rlk_n * vs(is,ijk)
           rwsn(is,ijk)  = rlk_t * ws(is,ijk)
 !
-          rlkn(is,ijk)  = rlk(is,ijk)
+          rlkn(ijk,is)  = rlk(ijk,is)
           siesn(is,ijk) = sies(is,ijk)
          END DO
 !
@@ -239,7 +239,7 @@
                   wgfe(imjk), wgfn(ijmk), wgft(ijkm), dens, u, v, w, ijk)
 !
           DO is = 1, nsolid
-            dens = nb(rlk,is,ijk)
+            CALL nb_rank2bis( dens, rlk(:,is), ijk)
             u    = rnb(us,is,ijk)
             v    = rnb(vs,is,ijk)
             w    = rnb(ws,is,ijk)
@@ -379,7 +379,7 @@
               wsfz = wsft(is,ijk) - wsfb
 !
               rws(is,ijk) = rwsn(is,ijk) + dt*pvisz(is,ijk)              &
-     &         + dt*(rlk(is,ijk)*dz(k+1)+rlk(is,ijkt)*dz(k))*indzp*gravz &
+     &         + dt*(rlk(ijk,is)*dz(k+1)+rlk(ijkt,is)*dz(k))*indzp*gravz &
      &         - dt*indx(i)* wsfx                                        &
      &         - dt*indy(j)* wsfy                                        &
      &         - dt*indzp*2.D0* wsfz                          
@@ -391,7 +391,7 @@
             dwgs = ( (wg(ijk)-ws(is,ijk)) + (wg(ijkm)-ws(is,ijkm)) )*0.5D0
 
             CALL kdrags(kpgv(is), dugs, dvgs, dwgs, ep(ijk),         &
-                        rgp(ijk), rlk(is,ijk), mug(ijk), is)                  
+                        rgp(ijk), rlk(ijk,is), mug(ijk), is)                  
 
           END DO 
 !

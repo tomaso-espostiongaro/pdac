@@ -29,7 +29,7 @@
       USE grid, ONLY: ncint, ncdom
 !
       ALLOCATE(rgp(ncdom), rgpn(ncint), rog(ncint))
-      ALLOCATE(rlk(nsolid,ncdom), rlkn(nsolid,ncint))
+      ALLOCATE(rlk(ncdom,nsolid), rlkn(ncint,nsolid))
       rgp = 0.D0
       rgpn = 0.D0
       rog = 0.D0

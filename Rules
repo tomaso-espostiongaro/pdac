@@ -2,4 +2,4 @@
 	$(FC) -c $(FREEFORM) $(FFLAGS) $(MODULES) $<
 
 .F.o:
-	$(MPFC) -c $(FFLAGS) $(CPPFLAGS) $(MODULES) $<
+	$(MPFC) -c $(MPFFLAGS) $(CPPFLAGS) $(MODULES) $<

@@ -464,7 +464,7 @@
            END IF
 !
            must(is,ijk) = 0.5*DSQRT(2.D0) * cmus(is) * rl(is) * dk(is)**2 *   &
-     &                 10.D0**(3.98D0*rlk(is,ijk)*inrl(is)-1.69D0) * modsr
+     &                 10.D0**(3.98D0*rlk(ijk,is)*inrl(is)-1.69D0) * modsr
          END DO
         END IF
       END DO

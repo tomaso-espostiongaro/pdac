@@ -62,11 +62,11 @@
 
 !
 ! ... initialize parallel environment
-!
+
       CALL parallel_startup  
 
 ! ... Initialize the IBM HW performance monitor
-!             call f_hpminit( mpime, 'pdac' )
+!      call f_hpminit( mpime, 'pdac' )
 !
 ! ... I/O files
 !

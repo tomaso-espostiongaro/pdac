@@ -67,7 +67,7 @@
         imesh = myijk( ip0_jp0_kp0_, ijk)
 !
         p(ijk) = gas_pressure(imesh)
-        rlk(:,ijk) = solid_bulk_density(:,imesh)
+        rlk(ijk,:) = solid_bulk_density(:,imesh)
         sieg(ijk) = gas_enthalpy(imesh)
 
         IF( job_type == '2D' ) THEN

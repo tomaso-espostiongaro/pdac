@@ -40,7 +40,9 @@
       IMPLICIT NONE
 !
 ! ... HW performance monitor include file
+
 !#include "f_hpm.h" 
+
 !
 !
       INTEGER :: i, j , k, ijk, is, imesh
@@ -178,10 +180,10 @@
                   rlkx = (rsfe(is,ijk) - rsfe(is,imjk)) * indx(i)
                   rlky = (rsfn(is,ijk) - rsfn(is,ijmk)) * indy(j)
                   rlkz = (rsft(is,ijk) - rsft(is,ijkm)) * indz(k)
-                  rlk(is, ijk) = rlkn(is, ijk) - dt * (rlkx+rlky+rlkz)
+                  rlk( ijk, is) = rlkn( ijk,is ) - dt * (rlkx+rlky+rlkz)
 !                  - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
-                  IF( rlk(is,ijk) < 0.D0 ) rlk(is,ijk) = 0.D0
-                  rls = rls + rlk(is, ijk) * inrl(is)
+                  IF( rlk(ijk,is) < 0.D0 ) rlk(ijk,is) = 0.D0
+                  rls = rls + rlk( ijk,is) * inrl(is)
                 END DO
                 eps=rls
                 IF(eps > 1.D0) THEN
@@ -225,19 +227,20 @@
 
                 rgp(ijk) = ep(ijk) * rog(ijk)
 
-                !call f_hpmstart( 3, ' ITER_CORE ' )
 !
 ! ... Update gas and particles velocities using the corrected pressure
 ! ... at current location. Pressure at neighbour locations
 ! ... could still be wrong.
+
+                ! IF( MOD( ijk, 100 ) == 0 ) call f_hpmstart( 5, ' ITER_masf ' )
+
 !
                 CALL mats(ijk)
+
                 CALL velsk(ug(ijk), vg(ijk), wg(ijk),               &
 		           us(:,ijk), vs(:,ijk), ws(:,ijk),         &
 			   ug(imjk), vg(ijmk), wg(ijkm),            &
 			   us(:,imjk), vs(:,imjk), ws(:,ijkm)) 
-
-                !call f_hpmstop( 3 )
 
 !
 ! ... Put the new biassed velocities into the Particle Mass Balance
@@ -245,23 +248,26 @@
 !
                 rls=0.D0
                 DO is=1,nsolid
-                  dens = nb(rlk,is,ijk)
+                  CALL nb_rank2bis(dens, rlk(:,is),ijk)
                   u    = rnb(us,is,ijk)
                   v    = rnb(vs,is,ijk)
                   w    = rnb(ws,is,ijk)
+
+
                   CALL masf(rsfe(is,imjk), rsfn(is,ijmk), rsft(is,ijkm),   &
 	                     rsfe(is,ijk),  rsfn(is,ijk),  rsft(is,ijk),    &
                              u, v, w, dens)
+
 !
 ! ... and compute the corrected particle densities.
 !
                   rlkx = (rsfe(is,ijk)-rsfe(is,imjk)) * indx(i)
                   rlky = (rsfn(is,ijk)-rsfn(is,ijmk)) * indy(j)
                   rlkz = (rsft(is,ijk)-rsft(is,ijkm)) * indz(k)
-                  rlk(is,ijk) = rlkn(is,ijk) - dt * (rlkx+rlky+rlkz)
+                  rlk(ijk,is) = rlkn(ijk,is) - dt * (rlkx+rlky+rlkz)
 !                             - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
-                  IF (rlk(is,ijk) < 0.D0) rlk(is,ijk)=0.D0
-                  rls=rls+rlk(is,ijk)*inrl(is)
+                  IF (rlk(ijk,is) < 0.D0) rlk(ijk,is)=0.D0
+                  rls=rls+rlk(ijk,is)*inrl(is)
                 END DO
                 eps=rls
                 IF(eps > 1.D0) THEN
@@ -269,6 +275,8 @@
                   WRITE(8,*) 'time,i,j,k,epst',time,i,j,k,eps
                   CALL error('iter', 'warning: mass is not conserved',1)
                 ENDIF
+
+                ! if( MOD(ijk,100) == 0 ) call f_hpmstop( 5 )
 !
 ! ... Update gas volumetric fraction and gas density.
 !
@@ -316,7 +324,7 @@
 
          END DO mesh_loop
 
-      !call f_hpmstop( 2 )
+!        call f_hpmstop( 2 )
 
 ! ... Exchanges all updated physical quantities on boundaries
 ! ... before starting a new sweep on the mesh.
@@ -364,7 +372,7 @@
       END DO sor_loop
 
 ! ... stop the HW performance monitor
-      !call f_hpmstop( 1 )
+!      call f_hpmstop( 1 )
 !
       IF( mustit /= 0) THEN
 !********************************************************************

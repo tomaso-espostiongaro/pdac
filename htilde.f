@@ -114,7 +114,7 @@
 ! ... convective fluxes (particles)
 !
             enth  = nb(sies,is,ijk)
-            dens  = nb(rlk,is,ijk)
+            CALL nb_rank2bis(dens, rlk(:,is),ijk)
             u     = rnb(us,is,ijk)
             v     = rnb(vs,is,ijk)
             w     = rnb(ws,is,ijk)
@@ -124,7 +124,7 @@
 !
 ! ... diffusive fluxes (particles)
 !
-            eps   = inrl(is) * nb(rlk,is,ijk)
+            eps   = inrl(is) * dens
             temp  = nb(ts,is,ijk)
             kappa = cte(kap(is))
             CALL hotc(hsfe(is,ijk), hsfn(is, ijk), hsft(is,ijk),    &
@@ -186,17 +186,17 @@
 ! ... Same procedure carried out for solids
 !
           DO is=1, nsolid
-           IF (rlk(is,imjk) * inrl(is) <= 1.D-9) THEN
+           IF (rlk(imjk,is) * inrl(is) <= 1.D-9) THEN
             esfw = 0.0D0
            ELSE
             esfw = esfe(is, imjk)
            END IF
-           IF (rlk(is,ijmk) * inrl(is) <= 1.D-9) THEN
+           IF (rlk(ijmk,is) * inrl(is) <= 1.D-9) THEN
             esfs = 0.0D0
            ELSE
             esfs = esfn(is, ijmk)
            END IF
-           IF (rlk(is,ijkm) * inrl(is) <= 1.D-9) THEN
+           IF (rlk(ijkm,is) * inrl(is) <= 1.D-9) THEN
             esfb = 0.0D0
            ELSE
             esfb = esft(is, ijkm)

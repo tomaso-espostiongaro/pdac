@@ -70,15 +70,15 @@
             dvgs = ( (vg(ijk)-vs(is,ijk)) + (vg(ijmk)-vs(is,ijmk)) ) * 0.5D0
             dwgs = ( (wg(ijk)-ws(is,ijk)) + (wg(ijkm)-ws(is,ijkm)) ) * 0.5D0
 
-            CALL hvs(hv, rlk(is,ijk), rog(ijk), ep(ijk), &
+            CALL hvs(hv, rlk(ijk,is), rog(ijk), ep(ijk), &
                      dugs, dvgs, dwgs, mug(ijk), kapg(ijk), cg(ijk), is)
 !
             at(1,1)     = at(1,1)     + dt * hv / cg(ijk)
             at(1,is1)   =             - dt * hv / ck(is,ijk)
             at(is1,1)   =             - dt * hv / cg(ijk)
-            at(is1,is1) = rlk(is,ijk) + dt * hv / ck(is,ijk)
+            at(is1,is1) = rlk(ijk,is) + dt * hv / ck(is,ijk)
 !
-            bt(is1) = rlkn(is,ijk) * siesn(is,ijk) + rhs(is, ijk)
+            bt(is1) = rlkn(ijk,is) * siesn(is,ijk) + rhs(is, ijk)
           END DO
 !
 ! ... Solve the interphase enthalpy matrix by using Gauss inversion
@@ -119,7 +119,7 @@
 !
       DO is=nphase,2,-1
 !        IF(abs(a(is,is)) <= 1.D-6) THEN
-        IF(rlk(is-1,ijk)*inrl(is-1) <= 1.D-9) THEN
+        IF(rlk(ijk,is-1)*inrl(is-1) <= 1.D-9) THEN
           a(1,is)=0.D0
           a(is,1)=0.D0
           b(is)=0.D0

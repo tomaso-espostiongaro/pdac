@@ -64,17 +64,17 @@
               ks=ks+1
             IF(kk == 1)THEN
               appu(ks)= - kpgv(k-1) * dt
-!              appu(ks)= 0.D0
+              appu(ks)= 0.D0
               appv(ks)= - kpgv(k-1) * dt
-!              appv(ks)= 0.D0
+              appv(ks)= 0.D0
               appw(ks)= - kpgv(k-1) * dt
-!              appw(ks)= 0.D0
+              appw(ks)= 0.D0
             ELSEIF(kk == k)THEN
               appu(ks)=0.D0
               appv(ks)=0.D0
               appw(ks)=0.D0
             ELSE
-              CALL ppdrag(con,rlk(:,ijk),k,kk)
+              CALL ppdrag(con,rlk(ijk,:),k,kk)
               du=DABS(us(k-1,ijk)-us(kk-1,ijk)+us(k-1,imjk)-us(kk-1,imjk))*0.5D0
               dv=DABS(vs(k-1,ijk)-vs(kk-1,ijk)+vs(k-1,ijmk)-vs(kk-1,ijmk))*0.5D0
               dw=DABS(ws(k-1,ijk)-ws(kk-1,ijk)+ws(k-1,ijkm)-ws(kk-1,ijkm))*0.5D0

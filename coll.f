@@ -68,7 +68,7 @@
         imesh = myijk( ip0_jp0_kp0_, ijk)
 !
         gas_pressure(imesh) = p(ijk)
-        solid_bulk_density(:,imesh) = rlk(:,ijk)
+        solid_bulk_density(:,imesh) = rlk(ijk,:)
         gas_enthalpy(imesh) = sieg(ijk)
         IF( job_type == '2D' ) THEN
           gas_velocity_r(imesh) = ug(ijk)

@@ -109,11 +109,11 @@
         um   = rgp(ijk) * ug
         wm   = rgp(ijk) * wg
         DO is = 1, nsolid
-          epsk = epsk + rlk(is,ijk)*inrl(is)
-          rhom = rhom + rlk(is,ijk)
-          rhom1 = rhom1 + rlk(is,ijpk)
-          um = um + rlk(is,ijk) * uk(is)
-          wm = wm + rlk(is,ijk) * wk(is)
+          epsk = epsk + rlk(ijk,is)*inrl(is)
+          rhom = rhom + rlk(ijk,is)
+          rhom1 = rhom1 + rlk(ijpk,is)
+          um = um + rlk(ijk,is) * uk(is)
+          wm = wm + rlk(ijk,is) * wk(is)
         END DO
         rhok = rhom
         rhom = rhom + rgp(ijk) 

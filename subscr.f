@@ -519,6 +519,7 @@
       RETURN
       END FUNCTION rnb_rank1
 !-----------------------------------------------------------------------
+
       FUNCTION nb_rank2( array, l, ijk )
 
       IMPLICIT NONE 
@@ -575,6 +576,63 @@
 
       RETURN
       END FUNCTION nb_rank2
+
+      SUBROUTINE nb_rank2bis(  nbbis, array, ijk )
+
+      IMPLICIT NONE 
+!
+      TYPE(stencil), INTENT(OUT) :: nbbis
+      REAL*8, INTENT(IN) :: array(:)
+      INTEGER, INTENT(IN) :: ijk
+!
+      IF( job_type_flag == 2 ) THEN
+
+        nbbis%c  = array(ijk)
+        nbbis%e  = array(ijr)
+        nbbis%n  = array(ijt)
+        nbbis%w  = array(ijl)
+        nbbis%s  = array(ijb)
+        nbbis%en  = array(ijtr)
+        nbbis%wn  = array(ijtl)
+        nbbis%es  = array(ijbr)
+        nbbis%ws  = array(ijbl)
+        nbbis%ee  = array(ijrr)
+        nbbis%nn  = array(ijtt)
+        nbbis%ww  = array(ijll)
+        nbbis%ss  = array(ijbb)
+
+      ELSE IF( job_type_flag == 3 ) THEN
+
+        nbbis%c = array( ijk )
+        nbbis%e = array( ijke )
+        nbbis%w = array( ijkw )
+        nbbis%ee = array( ijkee )
+        nbbis%ww = array( ijkww )
+        nbbis%n = array( ijkn )
+        nbbis%en = array( ijken )
+        nbbis%wn = array( ijkwn )
+        nbbis%s = array( ijks )
+        nbbis%es = array( ijkes )
+        nbbis%ws = array( ijkws )
+        nbbis%nn = array( ijknn )
+        nbbis%ss = array( ijkss )
+        nbbis%t = array( ijkt )
+        nbbis%et = array( ijket )
+        nbbis%wt = array( ijkwt )
+        nbbis%nt = array( ijknt )
+        nbbis%st = array( ijkst )
+        nbbis%b = array( ijkb )
+        nbbis%eb = array( ijkeb )
+        nbbis%wb = array( ijkwb )
+        nbbis%nb = array( ijknb )
+        nbbis%sb = array( ijksb )
+        nbbis%tt = array( ijktt )
+        nbbis%bb = array( ijkbb )
+
+      END IF
+
+      RETURN
+      END SUBROUTINE nb_rank2bis
 !-----------------------------------------------------------------------
       FUNCTION rnb_rank2(array, l, ijk)
       USE dimensions
@@ -616,12 +674,12 @@
          j = MOD( ijk - 1, nx*ny ) / nx + 1
          k = ( ijk - 1 ) / ( nx*ny ) + 1
 
+         rnb_rank2%ww = array( l, immjk )
          rnb_rank2%c = array( l, ijk )
          rnb_rank2%e = array( l, ipjk )
          rnb_rank2%w = array( l, imjk )
          rnb_rank2%ee = array( l, ippjk )
-         rnb_rank2%ww = array( l, immjk )
-rnb_rank2%n = array( l, ijpk )
+         rnb_rank2%n = array( l, ijpk )
          rnb_rank2%en = array( l, ipjpk )
          rnb_rank2%wn = array( l, imjpk )
          rnb_rank2%s = array( l, ijmk )
