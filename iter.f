@@ -344,7 +344,7 @@
 
           END IF
           !
-          ! ... solve pressure coupling
+          ! ... solve pressure and interphase coupling
           CALL ftem
 
         END IF

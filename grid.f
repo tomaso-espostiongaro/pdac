@@ -649,9 +649,9 @@
 ! ... accuracy of the mesh down to centimetres (second decimal digit)
 !
       DO i = 1, nd
-        delta(i) = delta(i) * 100.D0
+        delta(i) = delta(i) * 10000.D0
         idelta = NINT(delta(i))
-        delta(i) = idelta / 100.D0
+        delta(i) = idelta / 10000.D0
       END DO
       
       IF (ionode) THEN

@@ -216,7 +216,7 @@
 !
 ! ... Time advancement loop
 !
-STOP
+
       CALL prog
 !
           IF (timing ) THEN
