@@ -77,7 +77,7 @@
      &    bounds_setup
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut
-      USE turbulence, ONLY: iturb, cmut, iss, modturbo
+      USE turbulence_model, ONLY: iturb, cmut, iss, modturbo
       USE control_flags, ONLY: job_type
       USE set_indexes, ONLY: subsc_setup
 !

@@ -33,7 +33,7 @@
       USE pressure_epsilon, ONLY: p, pn, ep
       USE set_indexes
       USE time_parameters, ONLY: dt
-      USE turbulence, ONLY: kapgt, iturb
+      USE turbulence_model, ONLY: kapgt, iturb
       IMPLICIT NONE
 !
       REAL*8 :: egfw, egfs, egfb, esfw, esfs, esfb

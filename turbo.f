@@ -1,5 +1,5 @@
 !----------------------------------------------------------------------
-      MODULE turbulence
+      MODULE turbulence_model
 !----------------------------------------------------------------------
 !
       USE grid, ONLY: fl_l, myijk,  ncint, ncdom, data_exchange
@@ -627,5 +627,5 @@
       RETURN
       END SUBROUTINE strain2d
 !---------------------------------------------------------------------
-       END MODULE turbulence
+       END MODULE turbulence_model
 !---------------------------------------------------------------------

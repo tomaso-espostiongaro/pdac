@@ -44,7 +44,7 @@
       USE heat_capacity, ONLY: bounds_hcapgs, local_bounds_hcapgs
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut
-      USE turbulence, ONLY: bounds_turbo, local_bounds_turbo
+      USE turbulence_model, ONLY: bounds_turbo, local_bounds_turbo
       USE environment, ONLY: cpclock, timing
       USE input_module
       USE control_flags, ONLY: job_type

@@ -23,8 +23,8 @@
       USE tilde_momentum, ONLY: tilde, fieldn
       USE time_parameters, ONLY: time, tpr, tdump, tstop, dt, itd
       USE time_parameters, ONLY: rungekut
-      USE turbulence, ONLY: iturb, iss
-      USE turbulence, ONLY: sgsg, sgss
+      USE turbulence_model, ONLY: iturb, iss
+      USE turbulence_model, ONLY: sgsg, sgss
       USE gas_components, ONLY: ygas
       USE environment, ONLY: cpclock, timing
       USE control_flags, ONLY: job_type

@@ -127,7 +127,7 @@
       USE momentum_transfer, ONLY: kdrags, inter
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: dt
-      USE turbulence, ONLY: iss, iturb
+      USE turbulence_model, ONLY: iss, iturb
       USE gas_solid_viscosity, ONLY: viscg, viscs
       USE gas_solid_viscosity, ONLY: mug
       USE gas_solid_viscosity, ONLY: gvisx, gvisy, gvisz, pvisx, pvisy, pvisz

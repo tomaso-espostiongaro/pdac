@@ -251,7 +251,7 @@
      &    gammaair, gamn, c_joule, c_erg, tzero, hzerog, hzeros, rgas
       USE particles_constants, ONLY: particles_constants_set, cmus
       USE reactions, ONLY: h1, h2, h3, h4, h5
-      USE turbulence, ONLY: turbulence_setup, iturb
+      USE turbulence_model, ONLY: turbulence_setup, iturb
       USE gas_solid_viscosity, ONLY: particle_viscosity
       IMPLICIT NONE
 

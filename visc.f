@@ -134,7 +134,7 @@
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE grid, ONLY: data_exchange
       USE pressure_epsilon, ONLY: ep
-      USE turbulence, ONLY: mugt, iturb
+      USE turbulence_model, ONLY: mugt, iturb
       IMPLICIT NONE
 !
       CALL data_exchange(mug)
@@ -165,7 +165,7 @@
       USE gas_solid_velocity, ONLY:  us, vs, ws
       USE particles_constants, ONLY: rl, inrl
       USE set_indexes
-      USE turbulence, ONLY: must
+      USE turbulence_model, ONLY: must
       USE indijk_module, ONLY: ip0_jp0_kp0_
 
       IMPLICIT NONE

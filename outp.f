@@ -21,7 +21,7 @@
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: gas_pressure
       USE time_parameters, ONLY: time
-      USE turbulence, ONLY: smag_coeff, modturbo
+      USE turbulence_model, ONLY: smag_coeff, modturbo
       USE control_flags, ONLY: job_type
 !
       IMPLICIT NONE
@@ -159,7 +159,7 @@
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: gas_pressure
       USE time_parameters, ONLY: time
-      USE turbulence, ONLY: smag_coeff, modturbo
+      USE turbulence_model, ONLY: smag_coeff, modturbo
 !
       IMPLICIT NONE
 !
@@ -384,7 +384,7 @@
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: gas_pressure
       USE time_parameters, ONLY: time
-      USE turbulence, ONLY: smag_coeff, modturbo
+      USE turbulence_model, ONLY: smag_coeff, modturbo
       USE control_flags, ONLY: job_type
 !
       IMPLICIT NONE
@@ -538,7 +538,7 @@
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: gas_pressure
       USE time_parameters, ONLY: time
-      USE turbulence, ONLY: smag_coeff, modturbo
+      USE turbulence_model, ONLY: smag_coeff, modturbo
       USE control_flags, ONLY: job_type
 !
       IMPLICIT NONE
