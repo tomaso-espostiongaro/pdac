@@ -493,7 +493,6 @@
         CALL assemble_all_matrix(ijk)
         CALL solve_all_velocities(ijk)
 !
-!
         ! ... update particle and gas densities and the 
         ! ... gas mass residual 'dg'
         ! ... update the particle volumetric fractions and the void fraction
@@ -988,34 +987,34 @@
 
           SELECT CASE (nfle)
             CASE(1,4,6)
-              iep_e = 0.D0
-            CASE DEFAULT
               iep_e = ( dx(i+1)*ep(ijk)+dx(i)*ep(ijke) )*indxp*indxp*2.D0
               !iep_e = iep_e * upc_e
+            CASE DEFAULT
+              iep_e = 0.D0
           END SELECT
 
           SELECT CASE (nflw)
             CASE(1,4,6)
-              iep_w = 0.D0
-            CASE DEFAULT
               iep_w = ( dx(i-1)*ep(ijk)+dx(i)*ep(ijkw) )*indxm*indxm*2.D0 
               !iep_w = iep_w * upc_w
+            CASE DEFAULT
+              iep_w = 0.D0
           END SELECT
 !
           SELECT CASE (nflt)
             CASE(1,4,6)
-              iep_t = 0.0D0
-            CASE DEFAULT
               iep_t = ( dz(k+1)*ep(ijk)+dz(k)*ep(ijkt) )*indzp*indzp*2.D0 
               !iep_t = iep_t * upc_t 
+            CASE DEFAULT
+              iep_t = 0.0D0
           END SELECT
 
           SELECT CASE (nflb)
             CASE (1,4,6)
-              iep_b = 0.D0
-            CASE DEFAULT
               iep_b = ( dz(k-1)*ep(ijk)+dz(k)*ep(ijkb) )*indzm*indzm*2.D0
               !iep_b = iep_b * upc_b
+            CASE DEFAULT
+              iep_b = 0.D0
           END SELECT
 !
           IF (job_type == '3D') THEN
@@ -1029,18 +1028,18 @@
 
             SELECT CASE (nfln)
               CASE (1,4,6)
-                iep_n = 0.0D0
-              CASE DEFAULT
                 iep_n = ( dy(j+1)*ep(ijk)+dy(j)*ep(ijkn) )*indyp*indyp*2.D0 
                 !iep_n = iep_n * upc_n 
+              CASE DEFAULT
+                iep_n = 0.0D0
             END SELECT
 
             SELECT CASE (nfls)
               CASE (1,4,6)
-                iep_s = 0.D0
-              CASE DEFAULT
                 iep_s = ( dy(j-1)*ep(ijk)+dy(j)*ep(ijks) )*indym*indym*2.D0
                 !iep_s = iep_s * upc_s
+              CASE DEFAULT
+                iep_s = 0.D0
             END SELECT
 
           END IF
