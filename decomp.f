@@ -1581,7 +1581,7 @@
         END DO
       END IF  
 
-      IF (lpr >= 1) CALL test_comm
+      IF (lpr >= 2) CALL test_comm
 !
 ! ... local flags, local arrays for forcing
 !
@@ -2995,7 +2995,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
 ! ... immersed. b=1 if the cell face is external, b=0 if the
 ! ... cell face is inside the topography.
 !
-      USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: job_type, lpr
       USE grid, ONLY: z, zb, flag, dz
       USE immersed_boundaries, ONLY: immb, bdr, vf
       USE immersed_boundaries, ONLY: topo_c, topo_x
@@ -3068,7 +3068,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               vf(ijk)  = 0.25D0 * vf(ijk)
             END IF
 
-            WRITE( 7, fmt = "( I8,3I4,2X,6F8.4 )" ) ijk, i, j, k, bdr(ijk,:)
+            IF( lpr >= 2 ) WRITE( 7, fmt = "( I8,3I4,2X,6F8.4 )" ) ijk, i, j, k, bdr(ijk,:)
 
           END IF
 
