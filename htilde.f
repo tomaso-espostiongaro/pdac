@@ -23,6 +23,7 @@
       CONTAINS
 !-----------------------------------------------------------------------
       SUBROUTINE htilde
+! ... Compute the convective and diffusive enthalpy fluxes.
 ! ... (2D/3D-Compliant)
 !
       USE control_flags, ONLY: job_type
@@ -37,7 +38,7 @@
       USE grid, ONLY: fl_l
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE particles_constants, ONLY: inrl
-      USE pressure_epsilon, ONLY: p, pn, ep
+      USE pressure_epsilon, ONLY: ep
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
       USE set_indexes, ONLY: ijke, ijkw, ijkn, ijks, ijkt, ijkb
       USE time_parameters, ONLY: dt
@@ -48,8 +49,7 @@
       REAL*8 :: esfx, esfy, esfz
       REAL*8 :: hrexs, hrexg
       REAL*8 :: zero
-      REAL*8 :: flx, deltap, dpxyz
-      REAL*8 :: indxc, indyc, indzc, ugc, vgc, wgc
+      REAL*8 :: flx
       INTEGER :: is, m, l, is1
       INTEGER :: i, j, k, ijk, imesh
 !
@@ -97,8 +97,6 @@
 !
       egfx = 0.D0; egfy = 0.D0; egfz = 0.D0
       esfx = 0.D0; esfy = 0.D0; esfz = 0.D0
-      indxc = 0.D0 ; indyc = 0.D0 ; indzc = 0.D0
-      ugc = 0.D0 ; vgc = 0.D0 ; wgc = 0.D0
 !
       DO ijk = 1, ncint
         IF(fl_l(ijk) == 1) THEN
@@ -116,23 +114,7 @@
                 dt * indy(j) * egfy          +   &
                 dt * indz(k) * egfz
 !
-          indxc = 1.D0/(dx(i)+(dx(i+1)+dx(i-1))*0.5D0)
-          indzc = 1.D0/(dz(k)+(dz(k+1)+dz(k-1))*0.5D0)
-          ugc = (ug(ijk)+ug(imjk))/2.D0
-          wgc = (wg(ijk)+wg(ijkm))/2.D0
-
-          IF (job_type == '3D') THEN
-            indyc = 1.D0 / (dy(j)+(dy(j+1)+dy(j-1))*0.5D0)
-            vgc = (vg(ijk)+vg(ijmk))/2.D0
-          END IF
-!
-          dpxyz= dt * indxc * ugc * (p(ijke)-p(ijkw)) +   &
-                 dt * indyc * vgc * (p(ijkn)-p(ijks)) +   &
-                 dt * indzc * wgc * (p(ijkt)-p(ijkb))
-!
-          deltap = ep(ijk) * (p(ijk) - pn(ijk) + dpxyz)
-!
-          rhg(ijk) = - flx + deltap
+          rhg(ijk) = - flx
 !
 ! ... Same procedure carried out for solids
 !
@@ -199,7 +181,7 @@
       USE gas_solid_viscosity, ONLY: kapg
       USE grid, ONLY: fl_l
       USE particles_constants, ONLY: inrl, kap
-      USE pressure_epsilon, ONLY: p, ep
+      USE pressure_epsilon, ONLY: ep
       USE set_indexes, ONLY: nb, rnb, stencil, cte
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE set_indexes

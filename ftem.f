@@ -19,18 +19,20 @@
 !
       USE control_flags, ONLY: job_type
       USE dimensions
-      USE domain_decomposition, ONLY: ncint
+      USE domain_decomposition, ONLY: ncint, meshinds
       USE eos_gas, ONLY: cg
       USE gas_solid_density, ONLY: rgp, rgpn, rlk, rlkn, rog
       USE gas_solid_temperature, ONLY: sieg, siegn, sies, siesn
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_viscosity, ONLY: mug, kapg
       USE grid, ONLY: fl_l
+      USE grid, ONLY: dx, dy, dz
       USE specific_heat_module, ONLY: ck
       USE heat_transfer, ONLY: hvs
-      USE pressure_epsilon, ONLY: ep
+      USE pressure_epsilon, ONLY: ep, p, pn
       USE reactions, ONLY: hrex, irex
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
+      USE set_indexes, ONLY: ijke, ijkn, ijkt, ijkw, ijks, ijkb
       USE tilde_energy, ONLY: rhg, rhs
       USE time_parameters, ONLY: time, dt
       IMPLICIT NONE
@@ -38,8 +40,11 @@
       REAL*8 :: hv
       REAL*8 :: hrexs, hrexg
       REAL*8 :: dugs, dvgs, dwgs
+      REAL*8 :: dpxyz, deltap
+      REAL*8 :: indxc, indyc, indzc
+      REAL*8 :: ugc, vgc, wgc
       INTEGER :: is, is1
-      INTEGER :: ijk
+      INTEGER :: ijk, i, j, k, imesh
 !
       ALLOCATE(at(nphase, nphase))
       ALLOCATE(bt(nphase))
@@ -54,15 +59,37 @@
       hrexs=0.D0
 !pdac------------
 !
+      indxc = 0.D0 ; indyc = 0.D0 ; indzc = 0.D0
+      ugc = 0.D0 ; vgc = 0.D0 ; wgc = 0.D0
+!
       DO ijk = 1, ncint
 
         IF(fl_l(ijk) == 1) THEN
+          CALL meshinds(ijk,imesh,i,j,k)
           CALL subscr(ijk)
 !
           IF(irex == 2) CALL hrex(ijk,hrexg,hrexs)
 !
+! ... The pressure contribution can be treated implicitly
+!
+          indxc = 1.D0/(dx(i)+(dx(i+1)+dx(i-1))*0.5D0)
+          indzc = 1.D0/(dz(k)+(dz(k+1)+dz(k-1))*0.5D0)
+          ugc = (ug(ijk)+ug(imjk))/2.D0
+          wgc = (wg(ijk)+wg(ijkm))/2.D0
+
+          IF (job_type == '3D') THEN
+            indyc = 1.D0 / (dy(j)+(dy(j+1)+dy(j-1))*0.5D0)
+            vgc = (vg(ijk)+vg(ijmk))/2.D0
+          END IF
+!
+          dpxyz= dt * indxc * ugc * (p(ijke)-p(ijkw)) +   &
+                 dt * indyc * vgc * (p(ijkn)-p(ijks)) +   &
+                 dt * indzc * wgc * (p(ijkt)-p(ijkb))
+!
+          deltap = ep(ijk) * (p(ijk) - pn(ijk) + dpxyz)
+!
           at(1,1) = rgp(ijk)
-          bt(1)   = siegn(ijk) * rgpn(ijk) + rhg(ijk) - hrexg
+          bt(1)   = siegn(ijk) * rgpn(ijk) + rhg(ijk) + deltap - hrexg
 
           DO is=1, nsolid
             is1=is+1

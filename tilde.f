@@ -131,6 +131,7 @@
       USE gas_solid_temperature, ONLY: sieg, siegn, sies, siesn, tg
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_viscosity, ONLY: viscon, mug, kapg
+      USE gas_solid_viscosity, ONLY: gas_viscosity, part_viscosity
       USE grid, ONLY: dz, dy, dx, fl_l
       USE grid, ONLY: indx, indy, indz
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -215,9 +216,11 @@
 !
 ! ... Compute the temperature-dependent gas viscosity and th. conductivity
 !
-      DO ijk = 1, ncint
-        CALL viscon(mug(ijk), kapg(ijk), xgc(:,ijk), tg(ijk))
-      END DO
+      IF (gas_viscosity) THEN
+        DO ijk = 1, ncint
+          CALL viscon(mug(ijk), kapg(ijk), xgc(:,ijk), tg(ijk))
+        END DO
+      END IF
 !
       RETURN
       END SUBROUTINE fieldn
@@ -238,6 +241,7 @@
       USE time_parameters, ONLY: dt, time
       USE turbulence_model, ONLY: iss, iturb
       USE gas_solid_viscosity, ONLY: viscg, viscs
+      USE gas_solid_viscosity, ONLY: gas_viscosity, part_viscosity
       USE gas_solid_viscosity, ONLY: mug
       USE gas_solid_viscosity, ONLY: gvisx, gvisy, gvisz, pvisx, pvisy, pvisz
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -283,11 +287,11 @@
 !
 ! ... Calculate gas viscous stress tensor
 !
-      CALL viscg        
+      IF (gas_viscosity) CALL viscg        
 !
 ! ... Calculate particles viscous stress tensor
 !
-      CALL viscs
+      IF (part_viscosity) CALL viscs
 !
 ! ... Allocate and initialize gas convective fluxes
 !

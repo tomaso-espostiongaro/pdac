@@ -56,12 +56,15 @@
       SUBROUTINE input( iunit )
 
       USE atmosphere, ONLY: w0, u0, p0, temp0, us0, ws0, ep0, epsmx0, gravx, gravz
+      USE control_flags, ONLY: nfil, job_type
       USE domain_decomposition, ONLY: mesh_partition
       USE flux_limiters, ONLY: beta, muscl, lim_type
       USE gas_constants, ONLY: default_gas
+      USE gas_solid_viscosity, ONLY: gas_viscosity, part_viscosity
       USE grid, ONLY: dx, dy, dz, itc
+      USE initial_conditions, ONLY: setup, epsob, wpob, tpob, ygc0, &
+     &    ygcob, upob, wgob, ugob, pob, tgob, epob, lpr, zzero
       USE iterative_solver, ONLY: inmax, maxout, omega
-      USE control_flags, ONLY: nfil
       USE io_restart, ONLY: old_restart, max_seconds
       USE output_dump, ONLY: formatted_output
 
@@ -71,21 +74,20 @@
       USE phases_matrix, ONLY: rlim
       USE reactions, ONLY: irex
       USE roughness_module, ONLY: zrough, allocate_roughness, roughness
-      USE initial_conditions, ONLY: setup, epsob, wpob, tpob, ygc0, &
-     &    ygcob, upob, wgob, ugob, pob, tgob, epob, lpr, zzero
+      USE set_indexes, ONLY: subsc_setup
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut
       USE turbulence_model, ONLY: iturb, cmut, iss, modturbo
-      USE control_flags, ONLY: job_type
-      USE set_indexes, ONLY: subsc_setup
 !
       IMPLICIT NONE
  
       INTEGER, INTENT(IN) :: iunit
 
-      NAMELIST / control / run_name, job_type, restart_mode, time, tstop, dt, lpr, tpr, &
-        tdump, nfil, irex, iss, iturb, modturbo, cmut, rlim, gravx, gravz, &
-        ngas, default_gas, formatted_output, old_restart, max_seconds
+      NAMELIST / control / run_name, job_type, restart_mode,       &
+        time, tstop, dt, lpr, tpr, tdump, nfil, irex,              &
+        gas_viscosity, part_viscosity, iss, iturb, modturbo, cmut, &
+        rlim, gravx, gravz, ngas, default_gas,                     &
+        formatted_output, old_restart, max_seconds
 !
       NAMELIST / mesh / nx, ny, nz, itc, iuni, dx0, dy0, dz0, &
         mesh_partition
@@ -114,6 +116,8 @@
       tdump = 20.0D0    ! write restart every tdump seconds of simulated time
       nfil = 0          ! output file index
       irex = 1          ! ( 1 no reaction, 2 use hrex. Not used )
+      gas_viscosity  = .TRUE. ! include molecular gas viscosity
+      part_viscosity = .TRUE. ! include collisional particle viscosity
       iss  = 0          ! ( 0 no solid turbulent stress, 1 compute stress )
       iturb = 1         ! turbulence  ( 0 no turbo, 1 turbo, 2 turbo + rough )
       modturbo = 1      ! turbulence  ( 1 smag, 2 dynamic )
@@ -190,6 +194,8 @@
       CALL bcast_integer(default_gas,1,root)
       CALL bcast_logical(formatted_output,1,root)
       CALL bcast_real(max_seconds,1,root)
+      CALL bcast_logical(gas_viscosity,1,root)
+      CALL bcast_logical(part_viscosity,1,root)
 
       SELECT CASE ( TRIM(restart_mode) )
         CASE ('from_scratch', 'default')

@@ -7,9 +7,6 @@
                                              tgob, pob, ygc0
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: upob, vpob, wpob, epsob, &
                                              tpob, ygcob
-      REAL*8 :: ugpr, wgpr, ppr, eppr, tgpr
-      REAL*8, DIMENSION(:), ALLOCATABLE :: uppr,wppr,epspr,tppr, ygcpr
-
       INTEGER :: lpr
       REAL*8 :: zzero
 !----------------------------------------------------------------------
@@ -25,13 +22,11 @@
        ALLOCATE(ygc0(ngas))
        ALLOCATE(ygcob(ngas,no))
 
-       ALLOCATE(ygcpr(ngas))
-       ALLOCATE(uppr(nsolid), wppr(nsolid), epspr(nsolid), tppr(nsolid))
-       
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
       SUBROUTINE setup
+! ... Set initial conditions
 ! ... (2D/3D_Compliant)
 !
       USE atmosphere, ONLY: u0, v0, w0, p0, temp0, us0, vs0, ws0, ep0
@@ -41,8 +36,8 @@
       USE domain_decomposition, ONLY: ncint, meshinds, myijk
       USE eos_gas, ONLY: mas, mole, cnvertg, xgc, ygc
       USE eos_solid, ONLY: cnverts
-      USE gas_constants, ONLY: default_gas, present_gas
-      USE gas_constants, ONLY: gmw, rgas
+      USE gas_constants, ONLY: gmw, rgas, gammaair
+      USE gas_constants, ONLY: default_gas
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_temperature, ONLY: sieg
@@ -61,7 +56,8 @@
       INTEGER :: x1, x2, z1, z2
       INTEGER :: ig, is
       REAL*8 :: zrif, prif, trif
-      REAL*8 :: ymd, tem
+      REAL*8 :: mass, tem
+      LOGICAL :: density_specified
 !
       CALL grid_setup( zzero )
       CALL setc
@@ -121,130 +117,55 @@
 ! ... with imposed fluid flow 
 !
         DO n = 1, no
-          IF ( iob(n)%typ == 1 .OR. iob(n)%typ == 5 ) THEN
 
-            tem = pob(n)/(rgas*tgob(n))*gmw(6)
+          SELECT CASE (iob(n)%typ)
 
-            DO ijk = 1, ncint
-              imesh = myijk( ip0_jp0_kp0_ , ijk )
-              CALL meshinds(ijk,imesh,i,j,k)
- 
-              IF ( job_type == '2D' ) THEN
+          CASE (1,5) ! ... Specified Fluid Flow in a block
 
-                IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi  ) THEN
-                  IF ( i >= iob(n)%xlo .AND. i <= iob(n)%xhi  ) THEN
-                    ug(ijk) = ugob(n)
-                    wg(ijk) = wgob(n)
-                    tg(ijk) = tgob(n)
-                    p(ijk)  = pob(n)
-                    ep(ijk) = epob(n)
-                    DO ig = 1, ngas
-                      ygc(ig,ijk) = ygcob(ig,n)
-                    END DO
-                    DO is = 1,nsolid
-                      ts(ijk,is)  = tpob(is,n)
-                      us(ijk,is)  = upob(is,n)
-                      ws(ijk,is)  = wpob(is,n)
-                      rlk(ijk,is) = epsob(is,n)*rl(is)
-                    END DO
-                  END IF
-                END IF
+            CALL specified_flow(n)
 
-              ELSE IF ( job_type == '3D' ) THEN
-
-                IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi ) THEN
-                  IF ( j >= iob(n)%ylo .AND. j <= iob(n)%yhi ) THEN
-                    IF ( i >= iob(n)%xlo .AND. i <= iob(n)%xhi ) THEN
-                      ug(ijk) = ugob(n)  ! 
-                      vg(ijk) = vgob(n)
-                      wg(ijk) = wgob(n)
-                      tg(ijk) = tgob(n)
-                      p(ijk)  = pob(n)
-                      ep(ijk) = epob(n)
-                      DO ig = 1, ngas
-                        ygc(ig,ijk) = ygcob(ig,n)
-                      END DO
-                      DO is = 1,nsolid
-                        ts(ijk,is)  = tpob(is,n)
-                        us(ijk,is)  = upob(is,n)
-                        vs(ijk,is)  = vpob(is,n)
-                        ws(ijk,is)  = wpob(is,n)
-                        rlk(ijk,is) = epsob(is,n)*rl(is)
-                      END DO
-                    ENDIF
-                  END IF
-                END IF
-
-              END IF
-            END DO 
-
-          ELSE IF ( iob(n)%typ == 7) THEN
-! ... Assign vertical profile 
+          CASE (7) ! ... Assign vertical profile 
 !
             IF ( job_type == '2D' ) THEN
 
               READ(17,*) x1,x2,z1,z2
-              IF ( (z2-z1) /= (iob(n)%zhi - iob(n)%zlo) .OR. (x1/=x2) )          &
+              IF ( (z2-z1) /= (iob(n)%zhi - iob(n)%zlo) .OR. (x1/=x2) ) &
                 CALL error('setup','Error in input profile, block:', n)
 
-              DO ijk = 1, ncint
-                imesh = myijk( ip0_jp0_kp0_ , ijk )
-                CALL meshinds(ijk,imesh,i,j,k)
- 
-                IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi ) THEN
-                  IF ( i >= iob(n)%xlo .AND. i <= iob(n)%xhi  ) THEN
-                    IF ( i == iob(n)%xlo )                                         &
-                    READ(17,*) ugpr,wgpr,ppr,eppr,tgpr,                            &
-                              (uppr(is),wppr(is),epspr(is),tppr(is), is=1,nsolid), &
-                              (ygcpr(ig), ig = 1,ngas)
-                    eppr = 1.D0 - SUM(epspr)
-                    ug(ijk)=ugpr
-                    wg(ijk)=wgpr
-                    tg(ijk)=tgpr+273.15
-                    p(ijk)=ppr
-                    ep(ijk)=eppr
-                    ymd = 0.D0
-                    DO ig=1,ngas
-                      IF (ig /= default_gas) ymd = ymd + ygcpr(ig)
-                      ygc(ig,ijk) = ygcpr(ig)
-                      IF ( ygcpr(ig) /= 0.0 ) present_gas(ig) = .TRUE.
-                    END DO
-                    IF (.NOT.present_gas(default_gas))                      &
-                      WRITE(*,*) 'default gas is not present'
-                    ygc(default_gas,ijk) = 1.D0 - ymd
-                    DO is=1,nsolid
-                      ts(ijk,is)=tppr(is)+273.15
-                      us(ijk,is)=uppr(is)
-                      ws(ijk,is)=wppr(is)
-                      rlk(ijk,is)=epspr(is)*rl(is)
-                    END DO
-                    CALL mole( xgc(:,ijk), ygc(:,ijk) )
-                    CALL cnvertg(ijk)
-                    CALL cnverts(ijk)
-                    IF (i == 1) THEN
-                      fl_l(ijk) = 5
-                    ELSE
-                      fl_l(ijk) = 1
-                    END IF
-                  END IF
-                END IF
-              END DO
+              CALL specified_profile(n)
 
             ELSE IF ( job_type == '3D' ) THEN
+            
               CALL error('setup','Flow profile can be specified only in 2D',1)
+            
             END IF
-          END IF
+            
+          END SELECT
+        
         END DO 
 !
 ! ... Compute thermodynamic quantities
 !
+        density_specified = .FALSE.  ! specify density instead of !
+                                     ! temperature                !
         DO  ijk = 1, ncint
+
           CALL mole( xgc(:,ijk), ygc(:,ijk) )
+
+          IF (density_specified) THEN
+            mass = 0.D0
+            DO ig=1,ngas
+              mass = mass + xgc(ig,ijk)*gmw(ig)
+            END DO
+            tem  = p(ijk) * mass / rgas / tg(ijk)
+            tg(ijk) = tem
+          END IF
+
           CALL cnvertg( ijk )
           CALL cnverts( ijk )
         END DO
 !
-! ... initial conditions already set from restart file
+! ... initial conditions already set from RESTART file
 !
       ELSE IF (itd == 2) THEN 
 !
@@ -277,6 +198,136 @@
 !
       RETURN
       END SUBROUTINE setup
+!----------------------------------------------------------------------
+      SUBROUTINE specified_flow(n)
+
+      USE control_flags, ONLY: job_type
+      USE dimensions
+      USE domain_decomposition, ONLY: ncint, meshinds, myijk
+      USE eos_gas, ONLY: ygc
+      USE gas_constants, ONLY: gmw, rgas, gammaair
+      USE gas_solid_density, ONLY: rgp, rlk
+      USE gas_solid_temperature, ONLY: tg, ts
+      USE gas_solid_velocity, ONLY: ug, wg, vg
+      USE gas_solid_velocity, ONLY: us, vs, ws
+      USE grid, ONLY: iob
+      USE particles_constants, ONLY: rl, inrl
+      USE pressure_epsilon, ONLY: ep, p
+      USE indijk_module, ONLY: ip0_jp0_kp0_
+
+      INTEGER, INTENT(IN) :: n
+      REAL*8 :: ymd, csnd
+      INTEGER :: ijk,i,j,k,imesh
+      INTEGER :: ig, is
+
+        DO ijk = 1, ncint
+          imesh = myijk( ip0_jp0_kp0_ , ijk )
+          CALL meshinds(ijk,imesh,i,j,k)
+
+          IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi  ) THEN
+            IF ( j >= iob(n)%ylo .AND. j <= iob(n)%yhi    &
+                                    .OR. job_type == '2D') THEN
+              IF ( i >= iob(n)%xlo .AND. i <= iob(n)%xhi  ) THEN
+
+                ug(ijk) = ugob(n)
+                IF (job_type == '3D') vg(ijk) = vgob(n)
+                wg(ijk) = wgob(n)
+                tg(ijk) = tgob(n)
+                p(ijk)  = pob(n)
+                ep(ijk) = epob(n)
+                DO ig = 1, ngas
+                  ygc(ig,ijk) = ygcob(ig,n)
+                END DO
+                DO is = 1,nsolid
+                  ts(ijk,is)  = tpob(is,n)
+                  us(ijk,is)  = upob(is,n)
+                  IF (job_type == '3D') vs(ijk,is)  = vpob(is,n)
+                  ws(ijk,is)  = wpob(is,n)
+                  rlk(ijk,is) = epsob(is,n)*rl(is)
+                END DO
+
+              END IF
+            END IF
+          END IF
+
+            END DO 
+      END SUBROUTINE specified_flow
+!----------------------------------------------------------------------
+      SUBROUTINE specified_profile(n)
+
+      USE dimensions
+      USE domain_decomposition, ONLY: ncint, meshinds, myijk
+      USE eos_gas, ONLY: ygc, xgc, mole, cnvertg
+      USE eos_solid, ONLY: cnverts
+      USE gas_constants, ONLY: rgas, gammaair
+      USE gas_constants, ONLY: default_gas, present_gas
+      USE gas_solid_density, ONLY: rgp, rlk
+      USE gas_solid_temperature, ONLY: tg, ts
+      USE gas_solid_velocity, ONLY: ug, wg, vg
+      USE gas_solid_velocity, ONLY: us, vs, ws
+      USE grid, ONLY: fl_l, iob
+      USE particles_constants, ONLY: rl, inrl
+      USE pressure_epsilon, ONLY: ep, p
+      USE indijk_module, ONLY: ip0_jp0_kp0_
+
+      INTEGER, INTENT(IN) :: n
+      REAL*8 :: ugpr, wgpr, ppr, eppr, tgpr
+      REAL*8, DIMENSION(:), ALLOCATABLE :: uppr,wppr,epspr,tppr, ygcpr
+
+      REAL*8 :: ymd
+      INTEGER :: ijk,i,j,k,imesh
+      INTEGER :: ig, is
+
+      ALLOCATE(ygcpr(ngas))
+      ALLOCATE(uppr(nsolid), wppr(nsolid), epspr(nsolid), tppr(nsolid))
+       
+        DO ijk = 1, ncint
+          imesh = myijk( ip0_jp0_kp0_ , ijk )
+          CALL meshinds(ijk,imesh,i,j,k)
+
+          IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi ) THEN
+            IF ( i >= iob(n)%xlo .AND. i <= iob(n)%xhi  ) THEN
+              IF ( i == iob(n)%xlo )                                         &
+              READ(17,*) ugpr,wgpr,ppr,eppr,tgpr,                            &
+                        (uppr(is),wppr(is),epspr(is),tppr(is), is=1,nsolid), &
+                        (ygcpr(ig), ig = 1,ngas)
+              eppr = 1.D0 - SUM(epspr)
+              ug(ijk)=ugpr
+              wg(ijk)=wgpr
+              tg(ijk)=tgpr+273.15
+              p(ijk)=ppr
+              ep(ijk)=eppr
+              ymd = 0.D0
+              DO ig=1,ngas
+                IF (ig /= default_gas) ymd = ymd + ygcpr(ig)
+                ygc(ig,ijk) = ygcpr(ig)
+                IF ( ygcpr(ig) /= 0.0 ) present_gas(ig) = .TRUE.
+              END DO
+              IF (.NOT.present_gas(default_gas))                      &
+                WRITE(*,*) 'default gas is not present'
+              ygc(default_gas,ijk) = 1.D0 - ymd
+              DO is=1,nsolid
+                ts(ijk,is)=tppr(is)+273.15
+                us(ijk,is)=uppr(is)
+                ws(ijk,is)=wppr(is)
+                rlk(ijk,is)=epspr(is)*rl(is)
+              END DO
+              CALL mole( xgc(:,ijk), ygc(:,ijk) )
+              CALL cnvertg(ijk)
+              CALL cnverts(ijk)
+              IF (i == 1) THEN
+                fl_l(ijk) = 5
+              ELSE
+                fl_l(ijk) = 1
+              END IF
+            END IF
+          END IF
+        END DO
+
+      DEALLOCATE(ygcpr)
+      DEALLOCATE(uppr, wppr, epspr, tppr)
+
+      END SUBROUTINE specified_profile
 !----------------------------------------------------------------------
       SUBROUTINE setc
 !

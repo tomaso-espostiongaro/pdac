@@ -3,10 +3,6 @@
 !----------------------------------------------------------------------
       IMPLICIT NONE
 !
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: particle_viscosity
-      REAL*8, DIMENSION(:),  ALLOCATABLE :: gas_viscosity
-      REAL*8, DIMENSION(:),  ALLOCATABLE :: gas_thermal_conductivity
-!
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: mus   ! particle viscosity
       REAL*8, DIMENSION(:),   ALLOCATABLE :: mug   ! gas molecular viscosity
       REAL*8, DIMENSION(:),   ALLOCATABLE :: kapg  ! gas thermal conductivity
@@ -14,6 +10,8 @@
       REAL*8, DIMENSION(:),   ALLOCATABLE :: gvisx, gvisy, gvisz  ! gas viscous stresses 
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: pvisx, pvisy, pvisz  ! solid viscous stresses 
 !
+      LOGICAL :: gas_viscosity
+      LOGICAL :: part_viscosity
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
@@ -129,7 +127,6 @@
       END SUBROUTINE viscon
 !----------------------------------------------------------------------
       SUBROUTINE viscg
-!----------------------------------------------------------------------
 ! ... This routine computes the components of the viscous diffusion terms
 ! ... in gas momentum transport equations
 !
@@ -161,7 +158,6 @@
       END SUBROUTINE viscg
 !----------------------------------------------------------------------
       SUBROUTINE viscs
-!----------------------------------------------------------------------
 ! ... This routine computes the components of the viscous diffusion terms
 ! ... in particle momentum transport equations
 !
@@ -276,7 +272,6 @@
       END SUBROUTINE viscs
 !----------------------------------------------------------------------
       SUBROUTINE stress3D(visx, visy, visz, mu, lambda, eps, u, v, w)
-!----------------------------------------------------------------------
 ! ... This routine computes the components of the 3D viscous stress tensor
 !
 ! ... 'mu' and 'lambda' are the first and second viscosity coefficients. 
@@ -451,7 +446,6 @@
       END SUBROUTINE stress3D
 !----------------------------------------------------------------------
       SUBROUTINE stress2D(visx, visz, mu, lambda, eps, u, w)
-!----------------------------------------------------------------------
 ! ... This routine computes the components of the 
 ! ... 2D cylindrical and cartesian viscous stress tensor
 !

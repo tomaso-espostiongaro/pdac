@@ -7,6 +7,7 @@
       CONTAINS
 !--------------------------------------------------------------------
       SUBROUTINE hvs(hv, rlk, rog, ep, du, dv, dw, mug, kapg, cg, k)
+! ... Compute the gas-particle heat transfer coefficient
 !
       USE dimensions
       USE particles_constants, ONLY: rl, inrl, dk 

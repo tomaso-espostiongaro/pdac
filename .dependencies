@@ -53,14 +53,15 @@ indijk.o :
 
 input.o : atmosphere.o control.o decomp.o dimensions.o gas.o grid.o io.o  \
     iter.o limiters.o matrix.o outp.o parallel.o particles.o reactions.o  \
-    roughness.o setup.o subscr.o time.o turbo.o 
+    roughness.o setup.o subscr.o time.o turbo.o visc.o 
 
 io.o : control.o decomp.o dens.o dimensions.o eosg.o hcapgs.o kinds.o  \
     parallel.o press.o temp.o time.o velocity.o 
 
-iter.o : control.o decomp.o dens.o dimensions.o eosg.o flux_m.o ftem.o grid.o  \
-    hcapgs.o htilde.o indijk.o io.o kinds.o matrix.o outp.o parallel.o  \
-    particles.o press.o subscr.o temp.o tilde.o time.o velocity.o 
+iter.o : control.o decomp.o dens.o dimensions.o environment.o eosg.o  \
+    flux_m.o ftem.o grid.o hcapgs.o htilde.o indijk.o io.o kinds.o matrix.o  \
+    outp.o parallel.o particles.o press.o subscr.o temp.o tilde.o time.o  \
+    velocity.o 
 
 kb07ad.o : 
 

@@ -4,9 +4,6 @@
       IMPLICIT NONE
       SAVE
 !
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: gc_specific_heat  
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: solid_specific_heat
-!
 ! ... Specific heat of gas components
 !
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: cp 
