@@ -248,7 +248,7 @@
           END DO
           xgc(dfg,ijk) = xgc_def
 
-          DO is=1,nsolid
+          DO is = 1, nsolid
             ep(ijk) = ep(ijk) - rlk(ijk,is)*inrl(is)
           END DO
 
