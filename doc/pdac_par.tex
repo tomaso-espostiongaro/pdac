@@ -7,16 +7,17 @@ of the numerical mesh among N processors. Each processor solves the whole set of
 the model equations (Single Program) on its local data (Multiple Data),
 that are not accessible to other processors.
 %
-The parallel software layer in the code has been designed trying to make it as much 
-hidden as possible, so that the resulting code, a part few control constructs,
-looks like a serial code, and basic algorithms that solve the constituent equations
-have not been modified.
-The design kyefeature of the parallelization has been the implementation of a 
-low level library, which is used
-to wrap MPI, and of a high level f90 module that contains subroutines
-to distribute computational cells among processors, balancing the load, and to build the 
-messages maps, to exchange data across processors.  
-Here the details of the parallel implementation of PDAC are
+The parallel software layer (i.e. the routines that control the domain 
+decomposition and the communications between processors) in the code has 
+been hidden as much as possible, so that the resulting code
+looks like a serial code with a few control routines, and the basic 
+solution algorithm has not been modified.
+The design keyfeature of the parallelization is a low level library, 
+used to wrap the Message Passing Interface (MPI) library, and a high level 
+Fortran90 module. The {\em domain\_decomposition} module contains the routines 
+to distribute computational cells among processors, to balance the load, and 
+to build the messages maps, to exchange data across processors.  
+In this section, the details of the parallel implementation of PDAC are
 presented following the main logical steps:
 \begin{enumerate}
 \item domain decomposition
@@ -28,21 +29,25 @@ presented following the main logical steps:
 \end{enumerate}
 % 
 \subsection{Domain decomposition}
-The computational domain
-is discretized into a structured rectilinear mesh, so that the total number
-of cells is given, considering the ground in the cartesian xy plane,  
-by the number of cells in x direction times the number of cells in z direction
-for the 2D case, and by the number of cells in x direction times the number of cells 
-in the y direction times the number of cells in z direction, for the 3D case.
-The parallelization is obtained distributing the
-computational cells among processors, in such a way that each processor solve
-the coinstituent equations only on its own cells. 
-Several distribution scheme are possible, and the different computational weight 
-of cells in different part of the domain need to be accounted for.
+The model equations are discretized by adopting a finite-volume approach. The
+volume elements (cells) are obtained from the subdivision of the computational
+domain into a structured rectilinear mesh. The total number
+of cells is given in 2D by the number of cells in x direction times the number 
+of cells in z direction and the ground lays usually on the bottom side of the
+computational domain.
+In 3D, the total number of cells is given by the number of cells in x direction
+times the number of cells in the y direction times the number of cells in z 
+direction.
+The computational domain is decomposed into sub-domains where the discretized
+model equations are solved by one processor.
+The domain-decomposition criterium must take into account the different
+{\it computational weight} of the cells, the needs of a relatively simple
+mapping between local and global arrays, and the topology of the sub-domains
+(i.e. their shape and the number of neighbours). 
 Solid obstacles or topographic reliefs on a structured rectilinear mesh are 
 approximated by introducing {\em blocking cells}, where solid boundary 
 conditions are specified and fluid flow is not computed.
-Note that in the case of a large number of blocking cells, 
+In the case of a large number of blocking cells, 
 a regular domain decomposition would result into an unbalanced load.\\
 In PDAC, cells are subdivided into five classes:
 \begin{itemize}
@@ -63,61 +68,62 @@ among $N$ processors so that each sub-domain has the same total weight.
 A weight of 1 is assigned to fluid cells (flag = 1),
 while a weight of 0 is assigned to the other types (flag = 2,3,4,5). 
 The domain decomposition algorithm then subdivides the domain so that each processor
-has the same number of cells of type 1. Different decomposition scheme are possible
+has approximately the same number of cells of type 1. Different decomposition scheme are possible
 and can be selected by the user in the input file pdac.dat \\
 \begin{enumerate}
 \item {\bf Layers} decomposition (both 2D and 3D domain): 
-Counts the number of cells of each type, and divide the number $F1$ of ``flag 1 cells''
-by the number of processors $N$. The mesh is then decomposed into horizontal layers with equal total number
-$F1/N$ of ``flag-type 1'' cells (Fig.~\ref{fig:Ves_part_lay}, left). The procedure simply sweeps across
+counts the number of cells of each type, and divide the number $F1$ of fluid cells (flag=1)
+by the number of processors $N$. The mesh results therefore decomposed into horizontal layers with equal total number
+$F1/N$ of flag-1-cells (Fig.~\ref{fig:Ves_part_lay}, left). The procedure simply sweeps across
 the grid from bottom to top and counts the number of computational cells in each row from
-left to right (main sweep). Cells are assigned to a single process until the correct number 
+left to right (main sweep). Cells are assigned to a single processor until the correct number 
 of sub-domain cells $F1$ is reached, then the process rank is increased until every 
-process has an equal number of computational cells.
+processor has an equal number of computational cells.
 \item {\bf  2D Blocks } decomposition: tries to subdivide the mesh
 into rectangular blocks with a shape factor near one (approximately squared) 
 (Fig.~\ref{fig:Ves_part_lay}, right). The procedure first determines the best number
-of vertical layers $n_z$ along the $z$ cartesian axis, then within each 
-layer find out the optimal number and size of blocks, to be assigned to processors.
+of vertical layers $n_z$ along the $z$ cartesian axis; then, within each 
+layer, it finds out the optimal number and size of blocks, to be assigned to processors.
 \begin{enumerate}
 \item computes $\displaystyle n_x = NINT\left(\frac{ndi}{\sqrt(F1/N)}\right)$, where $ndi$ is the
 number of grid cells in the $x$ direction;
 \item compute the number of layers $n_z$ so that $n_x \times n_z \ge N$ 
-( $\displaystyle n_z = NINT\left(\frac{N}{n_x}\right)$ );
+($\displaystyle n_z = NINT\left(\frac{N}{n_x}\right)$);
 \item if $n_x \times n_z = N$ each layer will be subdivided into $n_x$ blocks, and each layer
 will have the same number $F1$ of computational cells. If $n_x \times n_z > N$, the excess blocks
-( $n_x \times n_z - N$ ) are subtracted from layers containing the topography, and this time
+($n_x \times n_z - N$) are subtracted from layers containing the topography: in this case
 the number of $F1$ cells in each layer is set to be proportional to the number of blocks
 assigned to the layer itself. 
-Once the number of $F1$ cells per layer has benn computed the height is computed 
-proceeding across the grid following the main sweep (as in Layer decomposition);
-\item finally, each layer is subdivided horizontally into the previously computed number
+Once the number of $F1$ cells per layer has been computed, its ``thickness'' is computed 
+by proceeding across the grid following the main sweep (as in Layer decomposition);
+\item finally, each layer is subdivided horizontally into the (previously computed) number
 of blocks, and each blocks is assigned to a processor. 
 \end{enumerate}
 \item {\bf 3D Columns } decomposition: same algorithm of the 2D blocks but applied to the $xy$ 
-ground plane instead of $xz$ vertical plane, the third cartesian axis $z$ is not subdivided
-further. (Fig.~\ref{fig:Ves_part_col}) and the the 3D domain will result to be subdivided
-into columns whose height is $nz$ (size of the mesh in the $z$ direction) and whose base
-is approximately square.
-\item {\bf 3D Blocks} decomposition: first all the number of subdivision to be done
-along the $z$ vertical $n_z$ is computed requiring that $n_z$ being as much as possible
+ground plane instead of $xz$ vertical plane. The third cartesian axis $z$ is not subdivided
+further. The computational weight of each cell in the $xy$ plane is given by the number of 
+topographic cells along the axis $z$ (Fig.~\ref{fig:Ves_part_col}). The the 3D domain results 
+to be subdivided into columns of height $nz$ (size of the mesh in the $z$ direction) and whose base
+is approximately squared.
+\item {\bf 3D Blocks} decomposition: first computes the number of subdivisions to be done
+along the $z$ vertical $n_z$ requiring that $n_z$ being as much as possible
 close to $N^{1/3}$ and $n_z$ being a factor of $N$ ( $N/n_z = INT(N/n_z)$ ).
 Then the algorithm proceed as for 3D columns partitioning the $xy$ plane, 
 but substituting $N$ with $N/n_z$ (Fig.~\ref{fig:Ves_part_blk}). 
-Finally all columns are cutted into $n_z$ blocks.
+Finally, all columns are cut into $n_z$ blocks.
 \end{enumerate}
 
-As explained blelow the amount of communications required for the solution 
+As explained below, the amount of communications required for the solution 
 of the constituent equations
-are proportional to the cells that are at the boundary between sub-domains assigned to
-different processors, and can be estimated to scale as $N$ for the layers decomposition, 
+is proportional to the number of cells at the boundary between sub-domains
+and can be estimated to scale as $N$ for the layers decomposition, 
 $N^{1/2}$ for the 3D columns
 and 2D blocks decomposition, and $N^{1/3}$ for 3D blocks decomposition.\\
-Therefore different decompositions are expected to display different speed-ups
+Therefore different decompositions are expected to display different speed-up
 (increase of performances) when the number of processors used for a single run
-is increased. In particular layers decompositions is expected to scale better
-for low processors count and blocks decompositions are expeted to perform 
-better for high processors count.
+is increased. In particular, layers decompositions is expected to scale better
+for a low processors count whereas blocks decomposition is expeted to perform 
+better for a high processors count.
 
 %
 \begin{figure}[htb]
@@ -129,11 +135,9 @@ better for high processors count.
 \end{center}
 \caption{Example of domain decompositions with balanced distribution of
 the fluid cells in six blocks (right) or six layers (left).
-In 2D the domain is axisymmetric so that the figure represents a poloidal
+In 2D, the domain is axisymmetric so that the figure represents a poloidal
 half-plane with the simmetry axis on the left hand-side boundary and
-the volcano topography at the bottom. In these figures the cells are represented
-with a uniform size so that the areas of the computational sub-domains
-are equal.\label{fig:Ves_part_lay}}
+the volcano topography at the bottom.  \label{fig:Ves_part_lay}}
 \end{figure}
 %
 \begin{figure}[htb]
@@ -144,8 +148,8 @@ are equal.\label{fig:Ves_part_lay}}
 \end{minipage}
 \end{center}
 \caption{Example of 3D domain decompositions with balanced distribution of
-the fluid cells in seven columns. Only the $xy$ plane is divided in sub-domains (left) 
-but not the vertical axis $z$ (right). \label{fig:Ves_part_col}}
+the fluid cells in seven columns. Only the $xy$ plane is divided in sub-domains (left),
+not the vertical axis $z$ (right). \label{fig:Ves_part_col}}
 \end{figure}
 %
 \begin{figure}[htb]
@@ -156,11 +160,11 @@ but not the vertical axis $z$ (right). \label{fig:Ves_part_col}}
 \end{minipage}
 \end{center}
 \caption{Example of 3D domain decompositions with balanced distribution of
-the fluid cells in fourteen blocks. The $xy$ plane is divided in sub-domains (left)
+the fluid cells in 14 blocks. The $xy$ plane is divided in sub-domains (left)
 first like in Fig.~\ref{fig:Ves_part_col}, then each column is cut in 
 the $z$ direction.\label{fig:Ves_part_blk}}
 \end{figure}
-
+%
 Communication between processors allows the exchange of the flow variables
 at the boundaries between sub-domains and the convergence of the solution
 in the global domain (it is worth noting that the
@@ -178,7 +182,8 @@ A processor-map is a function that, for each index in the main grid, returns the
 of the processor that owns the corresponding cell, and the index that identifies the
 cell in the local sub-domain.
 
-In PDAC any domain decomposition could be in principle implemented, provided that a 
+In principle,
+any domain decomposition could be implemented in PDAC, provided that a 
 simple enough processor-map can be designed.
 For layers (both in 2D and 3D domain), the processor map is simply given by a couple of integers,
 representing the indexes of the first and the last cells of the layer, following
