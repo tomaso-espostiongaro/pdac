@@ -82,16 +82,17 @@
       INTEGER :: incr_out = 1
 
 !-----------------------------------------------------------------------
-     CONTAINS
+      CONTAINS
 !-----------------------------------------------------------------------
       SUBROUTINE input( iunit, which )
 
-      USE atmosphere, ONLY: w0, u0, p0, temp0, us0, ws0, ep0, epsmx0, gravx, gravz
+      USE atmosphere, ONLY: w0, u0, p0, temp0, us0, ws0, ep0, epsmx0, gravx, gravy, gravz
       USE control_flags, ONLY: nfil, job_type
       USE domain_decomposition, ONLY: mesh_partition
       USE flux_limiters, ONLY: beta, muscl, lim_type
       USE gas_constants, ONLY: default_gas
       USE gas_solid_viscosity, ONLY: gas_viscosity, part_viscosity
+      USE gas_solid_viscosity, ONLY: repulsive_model
       USE grid, ONLY: dx, dy, dz, itc
       USE initial_conditions, ONLY: setup, epsob, wpob, tpob, ygc0, &
      &    ygcob, upob, wgob, ugob, pob, tgob, epob, lpr, zzero
@@ -118,10 +119,12 @@
       CHARACTER(LEN=2) :: which
 
       NAMELIST / control / run_name, job_type, restart_mode,       &
-        time, tstop, dt, lpr, tpr, tdump, nfil, irex,              &
-        gas_viscosity, part_viscosity, iss, iturb, modturbo, cmut, &
-        rlim, gravx, gravz, ngas, default_gas,                     &
+        time, tstop, dt, lpr, tpr, tdump, nfil,                    &
         formatted_output, old_restart, max_seconds
+
+      NAMELIST / model / irex, gas_viscosity, part_viscosity,      &
+        iss, repulsive_model, iturb, modturbo, cmut, rlim,         &
+        gravx, gravy, gravz, default_gas
 
       NAMELIST / pp / first_out, last_out, incr_out
 !
@@ -153,21 +156,26 @@
       tpr = 1.0D0       ! write to output file every tpr seconds of simulated time
       tdump = 20.0D0    ! write restart every tdump seconds of simulated time
       nfil = 0          ! output file index
+      formatted_output = .TRUE.
+      old_restart = .FALSE.
+      max_seconds = 20000.0
+
+! ... Model
+
       irex = 1          ! ( 1 no reaction, 2 use hrex. Not used )
       gas_viscosity  = .TRUE. ! include molecular gas viscosity
       part_viscosity = .TRUE. ! include collisional particle viscosity
-      iss  = 0          ! ( 0 no solid turbulent stress, 1 compute stress )
+      iss  = 0          ! ( 0 no solid turbulent stress, 1 sub-grid stress) 
+      repulsive_model = 1 ! ( 0 no Coulombic repulsive model )
       iturb = 1         ! turbulence  ( 0 no turbo, 1 turbo, 2 turbo + rough )
       modturbo = 1      ! turbulence  ( 1 smag, 2 dynamic )
       cmut = 0.1D0      ! Smagorinsky constant
-      rlim = 1.0D-8     ! limit for off-diagonal contribution in matrix inversion
+      rlim = 1.0D-8     ! limit for off-diagonal contribution in matrix 
+                        ! inversion
       gravx = 0.0D0     ! gravity along x
       gravz = -9.81D0   ! gravity along z
       ngas = 2          ! max number of gas components
       default_gas = 6   ! atmospheric air
-      formatted_output = .TRUE.
-      old_restart = .FALSE.
-      max_seconds = 20000.0
 
 ! ... Mesh
 
@@ -246,6 +254,7 @@
             CALL iotk_write_dat( iuni_nml, "gas_viscosity", gas_viscosity )
             CALL iotk_write_dat( iuni_nml, "part_viscosity", part_viscosity )
             CALL iotk_write_dat( iuni_nml, "iss", iss )
+            CALL iotk_write_dat( iuni_nml, "repulsive_model",repulsive_model )
             CALL iotk_write_dat( iuni_nml, "iturb", iturb )
             CALL iotk_write_dat( iuni_nml, "modturbo", modturbo )
             CALL iotk_write_dat( iuni_nml, "cmut", cmut )
@@ -273,6 +282,7 @@
       CALL bcast_integer(nfil,1,root)
       CALL bcast_integer(irex,1,root)
       CALL bcast_integer(iss,1,root)
+      CALL bcast_integer(repulsive_model,1,root)
       CALL bcast_integer(iturb,1,root)
       CALL bcast_integer(modturbo,1,root)
       CALL bcast_real(cmut,1,root)

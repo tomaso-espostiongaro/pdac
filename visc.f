@@ -12,6 +12,8 @@
 !
       LOGICAL :: gas_viscosity
       LOGICAL :: part_viscosity
+      INTEGER :: repulsive_model
+
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
@@ -159,7 +161,6 @@
       ELSE IF (iturb == 0) THEN
         mugt = mug
       END IF
-
 !
 ! ... Newtonian stress tensor
 !
@@ -185,7 +186,7 @@
       USE gas_solid_velocity, ONLY:  us, vs, ws
       USE particles_constants, ONLY: rl, inrl
       USE set_indexes, ONLY: subscr, ijke, ijkn, ijkt
-      USE turbulence_model, ONLY: must
+      USE turbulence_model, ONLY: must, iss
       USE indijk_module, ONLY: ip0_jp0_kp0_
 
       IMPLICIT NONE
@@ -195,28 +196,32 @@
       REAL*8 :: dxp, dyp, dzp, indxp, indyp, indzp
       REAL*8 :: epsx, epsy, epsz, gepx, gepy, gepz
       INTEGER :: imesh, i, j, k, ijk
-      LOGICAL :: repulsive_model
 !
       CALL data_exchange(mus)
+!
+      IF (iss >= 1) THEN
+        must = must + mus
+      ELSE IF (iss == 0) THEN
+        must = mus
+      END IF
 !
 ! ... Newtonian stress tensor
 !
       DO is = 1, nsolid
         IF (job_type == '2D' ) THEN
           CALL stress2D(pvisx(:,is), pvisz(:,is),                 &
-  	                mus(:,is), mus(:,is), rlk(:,is)*inrl(is), &
+  	                must(:,is), mus(:,is), rlk(:,is)*inrl(is), &
   		        us(:,is), ws(:,is))
         ELSE IF (job_type == '3D' ) THEN
           CALL stress3D(pvisx(:,is), pvisy(:,is), pvisz(:,is),    &
-       	                mus(:,is), mus(:,is), rlk(:,is)*inrl(is), &
+       	                must(:,is), mus(:,is), rlk(:,is)*inrl(is), &
   		        us(:,is), vs(:,is), ws(:,is))
         END IF 
       END DO
 !
 ! ... Repulsive model (Gidaspow and Ettehadieh, 1983)
 !
-      repulsive_model = .TRUE.
-      IF ( repulsive_model ) THEN
+      IF ( repulsive_model == 1 ) THEN
 
         DO ijk = 1, ncint
           IF(fl_l(ijk) == 1) THEN
@@ -569,6 +574,7 @@
       REAL*8 :: t0, mu0, lambda0, eps0
       REAL*8 :: txx2, txx1, tyy2, tyy1
       REAL*8 :: tyx2, tyx1, txy2, txy1
+      REAL*8 :: gradxx, gradyy, gradxy, gradyx
       REAL*8 :: wm1, wm2, dw, du
       REAL*8 :: divc, divr, divt, dive
       REAL*8 :: epsmu2, epsmu11, epsmu22, epsmu1, epsmu12, epsmu21
@@ -660,16 +666,25 @@
 !
 ! ... x-gradient of the stress tensor
 !
-         visx(ij) = (eps(ijke)*txx2*x(i+1) - eps(ij)*txx1*x(i))*indxp*2.D0*inxb(i) + &
-                   (epsmu2*tyx2-epsmu1*tyx1)*indz(j) - eps0 * t0 * inxb(i)
+         gradxx   = (eps(ijke)*txx2*x(i+1)-eps(ij)*txx1*x(i))
+         gradxx   = gradxx * indxp * 2.D0*inxb(i)
+         gradyx   = (epsmu2*tyx2-epsmu1*tyx1)
+         gradyx   = gradyx * indz(j)
+
+         visx(ij) = gradxx + gradyx - eps0 * t0 * inxb(i)
 !
          epsmu11=(dz(j)*eps(ijkwt)*mu(ijkwt)+dz(j+1)*eps(ijkw)*mu(ijkw))*indzp
          epsmu1=(dx(i)*epsmu11+dx(i-1)*epsmu21)*indxm
 !
 ! ... z-gradient of the stress tensor
 !
-         visz(ij) = (eps(ijkt)*tyy2 - eps(ij)*tyy1) * indzp*2.D0   +  &
-                     (xb(i)*epsmu2*txy2-xb(i-1)*epsmu1*txy1)*inx(i)*indx(i) 
+         gradyy   = (eps(ijkt)*tyy2 - eps(ij)*tyy1)
+         gradyy   = gradyy * indzp*2.D0
+         gradxy   = (xb(i)*epsmu2*txy2-xb(i-1)*epsmu1*txy1)
+         gradxy   = gradxy * inx(i)*indx(i)
+
+         visz(ij) = gradyy + gradxy
+                    
         END IF
       END DO
 !
