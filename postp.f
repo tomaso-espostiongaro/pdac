@@ -72,13 +72,15 @@
 !
       CALL setpar
 
-      CALL write_avs_files
-      CALL write_xml_files
-
 ! ... Read Input files
 !
       CALL postin( postunit )
+
       !CALL filter
+
+      CALL write_avs_files
+      CALL write_xml_files
+
       CALL process
 !
       IF( mpime == 0 ) THEN

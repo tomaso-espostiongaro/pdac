@@ -107,7 +107,8 @@ pdac.o : blunt.o decomp.o dens.o dimensions.o environment.o eosg.o gas.o  \
 
 postin.o : process.o 
 
-postout.o : control.o dimensions.o grid.o input.o iotk_module.o outp.o 
+postout.o : control.o dimensions.o grid.o input.o iotk_module.o outp.o  \
+    process.o time.o 
 
 postp.o : dimensions.o gas.o grid.o input.o parallel.o particles.o postin.o  \
     postout.o process.o setup.o 

@@ -6,6 +6,7 @@
       USE control_flags, ONLY: job_type
 !
       IMPLICIT NONE
+      SAVE
 !
 ! ... parameters for filters
 !
@@ -30,7 +31,6 @@
       REAL, ALLOCATABLE, DIMENSION(:,:) :: xgc
       REAL, ALLOCATABLE, DIMENSION(:,:) :: eps, us, vs, ws, ts
 !
-      SAVE
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------

@@ -328,16 +328,20 @@
       USE grid
       USE output_dump, ONLY: formatted_output
       USE input_module, ONLY: run_name
+      USE process_outp, ONLY: first_out, last_out, incr_out
+      USE time_parameters, ONLY: dt, timestart
+      USE kinds
 
       IMPLICIT NONE
  
       CHARACTER(LEN=15) :: filetype
       INTEGER :: skip_m(3)
       INTEGER :: skip, skip_time, skip_phase, skip_block
-      INTEGER :: lbl, ig, is
+      INTEGER :: lbl, ig, is, it
       INTEGER :: nfields, ndim, veclen, nlx, nly, nlz
       CHARACTER(LEN=80) :: attr
       CHARACTER(LEN=80) :: fldn
+      REAL(sgl) :: rsgl
 
 !
 ! ... I/O units
@@ -638,6 +642,17 @@
           CALL iotk_write_end( iunxml, "attributes" )
           !
         CALL iotk_write_end( iunxml, "grid" )
+        !
+        attr = ' '
+        rsgl = timestart
+        CALL iotk_write_attr( attr, "timestart", rsgl )
+        rsgl = dt
+        CALL iotk_write_attr( attr, "timescale", rsgl )
+        CALL iotk_write_begin( iunxml, "frames", attr )
+        DO it = first_out, last_out, incr_out
+          CALL iotk_write_dat( iunxml, "timestep", it )
+        END DO
+        CALL iotk_write_end( iunxml, "frames" )
         !
       CALL iotk_write_end( iunxml, "dataset" )
 
