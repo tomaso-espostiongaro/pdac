@@ -284,7 +284,7 @@
 !
 ! ... Force the writing on the standard output
 !
-        WRITE(6,fmt="(/,'Iteration: ',I6,' nit: ', I5)" ) sweep, nit
+        WRITE(6,fmt="('Iteration: ',I6,' nit: ', I5)" ) sweep, nit
         CALL myflush( 6 )
         IF (lpr > 1) CALL myflush( 7 )
 !

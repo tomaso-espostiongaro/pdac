@@ -289,7 +289,7 @@
 !
       USE atmospheric_conditions, ONLY: p_atm, t_atm
       USE dimensions, ONLY: nsolid, ngas
-      USE eos_gas, ONLY: xgc
+      USE eos_gas, ONLY: xgc, ygc, mole
       USE gas_solid_density, ONLY: rlk
       USE gas_solid_temperature, ONLY: tg
       USE gas_constants, ONLY: gmw, gas_type
@@ -316,6 +316,8 @@
 
 !      p(ijk)  = p_gas * alpha * ep0 / ep(ijk)
      
+      CALL mole( xgc(ijk,:), ygc(ijk,:) )
+
       mg = 0.D0
       DO ig = 1, ngas
          mg = mg + xgc(ijk,ig) * gmw(gas_type(ig))
@@ -324,6 +326,10 @@
       rrhoatm = p_atm(k) / t_atm(k) * gmw(6)
       p(ijk) = p_gas * alpha * ep0 / ep(ijk) + &
                rrhoatm / mg * tg(ijk) * (1.D0-alpha) / ep(ijk)
+
+      WRITE(*,*) ijk
+      WRITE(*,*) xgc(ijk,:)
+      WRITE(*,*) gmw(gas_type(:))
 
       RETURN
       END SUBROUTINE correct_vent_density

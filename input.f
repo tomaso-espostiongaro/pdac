@@ -157,7 +157,7 @@
       time = 0.0D0      ! start time in seconds
       tstop = 100.0D0     ! stop time seconds
       dt = 0.01D0       ! time increment seconds
-      lpr = 1           ! verbosity 
+      lpr = 0           ! verbosity 
       imr = 0           ! =1 print mass residuals
       tpr = 1.0D0       ! write to output file every tpr seconds of simulated time
       tdump = 20.0D0    ! write restart every tdump seconds of simulated time
