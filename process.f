@@ -131,23 +131,52 @@
 !
       INTEGER :: tn, ijk
       LOGICAL :: lform
-      REAL, ALLOCATABLE :: temp(:)
+      REAL, ALLOCATABLE, DIMENSION(:) :: rm, rg, bd, m, um, wm, mvm, c, mc 
 !
       lform = formatted_output
 
-      ALLOCATE(temp(ntot))
+      ALLOCATE(rm(ntot))
+      ALLOCATE(rg(ntot))
+      ALLOCATE(bd(ntot))
+      ALLOCATE(m(ntot))
+      ALLOCATE(um(ntot))
+      ALLOCATE(wm(ntot))
+      ALLOCATE(mvm(ntot))
+      ALLOCATE(c(ntot))
+      ALLOCATE(mc(ntot))
+
       CALL allocate_main_fields
 !
       DO tn = first_out, last_out, incr_out
 
         WRITE(6,fmt="(/,'* Starting post-processing ',I5,' * ')" ) tn
         CALL read_output ( tn )
-        temp = rhom(eps,p,tg,xgc)
 
-        CALL write_array( 13, temp, lform )
+        rm = rhom(eps,p,tg,xgc)
+        rg = rhog(p,tg,xgc)
+        bd = rgp(eps,p,tg,xgc)
+        m  = mg(xgc)
+
+        um = velm(ug,us,eps,p,tg,xgc)
+        wm = velm(wg,ws,eps,p,tg,xgc)
+        mvm = vel(um,wm)
+        c  = cm(bd,rg,rm,m,tg)
+
+        mc = mach(mvm,c)
+
+        CALL write_array( 13, mc, lform )
 
       END DO
-      DEALLOCATE(temp)
+!
+      DEALLOCATE(rm)
+      DEALLOCATE(rg)
+      DEALLOCATE(bd)
+      DEALLOCATE(m)
+      DEALLOCATE(um)
+      DEALLOCATE(wm)
+      DEALLOCATE(mvm)
+      DEALLOCATE(c)
+      DEALLOCATE(mc)
 ! 
       RETURN
       END SUBROUTINE process

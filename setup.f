@@ -68,12 +68,14 @@
       USE gas_solid_temperature, ONLY: sieg
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
+      USE gas_solid_viscosity, ONLY: mus
       USE grid, ONLY: zb, dz
       USE grid, ONLY: flag, iob
       USE immersed_boundaries, ONLY: forced
-      USE particles_constants, ONLY: rl, inrl
+      USE particles_constants, ONLY: rl, inrl, cmus
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: itd
+      USE turbulence_model, ONLY: turbulence_setup, iturb
       USE vent_conditions, ONLY: set_ventc, ivent
       USE indijk_module, ONLY: ip0_jp0_kp0_
 
@@ -84,7 +86,19 @@
       REAL*8 :: zrif
       REAL*8 :: mass, tem
 !
-! ... set initial conditions from prescribed input data
+! ... Initialize particle's viscosity
+! 
+      DO is = 1, nsolid
+        mus(:,is) = cmus(is)
+      END DO
+!
+! ... Initialize Smagorinsky length scale
+!
+      IF (iturb >= 1) THEN
+        CALL turbulence_setup
+      END IF
+!
+! ... Set initial conditions from prescribed input data
 !
       IF (itd <= 1) THEN
 !
@@ -376,10 +390,8 @@
       USE dimensions
       USE gas_constants, ONLY: gmw, mmugs, mmugek,     &
      &    gammaair, gamn, c_joule, c_erg, tzero, hzerog, hzeros, rgas
-      USE particles_constants, ONLY: particles_constants_set, cmus
+      USE particles_constants, ONLY: particles_constants_set
       USE reactions, ONLY: h1, h2, h3, h4, h5
-      USE turbulence_model, ONLY: turbulence_setup, iturb
-      USE gas_solid_viscosity, ONLY: mus
       IMPLICIT NONE
 
       INTEGER :: is 
@@ -421,12 +433,6 @@
 !
       CALL particles_constants_set
 !
-! Initialize particle's viscosity
-! 
-      DO is = 1, nsolid
-        mus(:,is) = cmus(is)
-      END DO
-!
 ! set useful constants 
 !
       gammaair = 1.4D0                           ! air adiabatic constant
@@ -442,10 +448,6 @@
       h3 = 0.D0                                  ! reaction enthalpies
       h4 = 0.D0                                  !
       h5 = 0.D0                                  !
-!
-      IF (iturb >= 1) THEN
-        CALL turbulence_setup
-      END IF
 !
       RETURN
       END SUBROUTINE setc

@@ -183,7 +183,7 @@
       REAL, INTENT(IN), DIMENSION(:) :: rhom, velm
       REAL, INTENT(IN), DIMENSION(SIZE(rhom)) :: pdyn
 
-      pdyn = 0.5D0 * rhom * velm**2
+      pdyn = 0.5 * rhom * velm**2
 
       RETURN
       END FUNCTION pdyn
@@ -195,24 +195,41 @@
       IMPLICIT NONE
       REAL, INTENT(IN), DIMENSION(:) :: rgp, rhog, rhom, tg, mg
       REAL, DIMENSION(SIZE(tg)) :: cm
-      REAL, DIMENSION(:) :: fact, y
+      REAL, DIMENSION(SIZE(tg)) :: fact, y
 
       y = rgp / rhom
-      fact = y + (1.D0 - y) * rhog / rl
+      fact = y + (1.0 - y) * rhog / rl(1)
       cm = SQRT(rgas * tg / mg / y ) * fact
       
       RETURN
       END FUNCTION cm
 !----------------------------------------------------------------------
-      FUNCTION mach(velm,cm)
+      FUNCTION vel(vx, vz, vy)
+      !
+      ! ... compute the modulus of a velocity field
+      IMPLICIT NONE
+      REAL, INTENT(IN), DIMENSION(:) :: vx, vz
+      REAL, INTENT(IN), DIMENSION(:), OPTIONAL :: vy
+      REAL, DIMENSION(SIZE(vx)) :: vel
+
+      IF (PRESENT(vy)) THEN
+        vel = SQRT( vx**2 + vy**2 + vz**2 )
+      ELSE
+        vel = SQRT( vx**2 + vz**2 )
+      END IF
+      
+      RETURN
+      END FUNCTION vel
+!----------------------------------------------------------------------
+      FUNCTION mach(vel, c)
       !
       ! ... compute the Mach number for the mixture
 
       IMPLICIT NONE
-      REAL, INTENT(IN), DIMENSION(:) :: velm, cm
-      REAL, DIMENSION(SIZE(velm)) :: mach
+      REAL, INTENT(IN), DIMENSION(:) :: vel, c
+      REAL, DIMENSION(SIZE(vel)) :: mach
 
-      mach = velm / cm
+      mach = vel / c
 
       RETURN
       END FUNCTION mach

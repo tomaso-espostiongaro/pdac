@@ -46,22 +46,26 @@
       REAL*8, ALLOCATABLE  :: topo_c(:)  ! topography on the grid
       REAL*8, ALLOCATABLE  :: topo_x(:)  ! topography on the grid
       REAL*8, ALLOCATABLE  :: topo_y(:)  ! topography on the grid
-      LOGICAL, ALLOCATABLE :: tmp(:)     ! a temporary array
 !           
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
       SUBROUTINE import_topo
-      USE volcano_topography, ONLY: grid_locations, dist
+      USE volcano_topography, ONLY: grid_locations
       USE volcano_topography, ONLY: interpolate_2d
+      USE volcano_topography, ONLY: ord, next, dist
       USE control_flags, ONLY: job_type, lpr, immb
 
       IMPLICIT NONE
       INTEGER :: p, nfpx, nfpz
       INTEGER :: i,j,k,ijk
 !
-      ALLOCATE(tmp(ntot))
+      ALLOCATE(next(nx))
+      ALLOCATE(ord(nx))
+
+      ALLOCATE(dist(ntot))
+!
       ALLOCATE(topo_c(nx))
       ALLOCATE(topo_x(nx))
 !
@@ -69,7 +73,7 @@
 ! ... implicit profile
 !
       CALL grid_locations(0,0,0)
-      CALL interpolate_2d(topo_c,tmp)
+      CALL interpolate_2d(topo_c)
       
       IF (mpime == root) THEN
         OPEN(UNIT=14,FILE='improfile.dat',STATUS='UNKNOWN')
@@ -116,12 +120,12 @@
         ALLOCATE (forz (nfp) )
 
         CALL grid_locations(1,0,0)
-        CALL interpolate_2d(topo_x,tmp)
+        CALL interpolate_2d(topo_x)
         forx(1:nfpx) = fptx(1:nfpx)
         CALL extrafx(forx, nfpx)
 
         CALL grid_locations(0,0,1)
-        CALL interpolate_2d(topo_c,tmp)
+        CALL interpolate_2d(topo_c)
         forz(1:nfpz) = fptz(1:nfpz)
         CALL extrafz(forz, nfpz)
 
@@ -141,14 +145,16 @@
         DEALLOCATE(fptz)
 
       END IF
-
-      DEALLOCATE (tmp)
 ! 
 ! ... Set flags to identify the topography (where transport equations
 ! ... are not solved )
 !
       CALL set_flag3(topo_c)
-
+!
+      DEALLOCATE (xtop, ztop)
+      DEALLOCATE (cx, cy, cz)
+      DEALLOCATE (next, ord, dist)
+!
       RETURN
       END SUBROUTINE import_topo
 !----------------------------------------------------------------------

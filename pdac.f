@@ -41,6 +41,7 @@
      &                            timestart, rungekut
       USE turbulence_model, ONLY: allocate_turbo
       USE vent_conditions, ONLY: ivent, locate_vent
+      USE volcano_topography, ONLY: read_topo
       USE environment, ONLY: cpclock, timing, elapsed_seconds
 !
       IMPLICIT NONE
@@ -143,14 +144,18 @@
           call MP_WALLTIME(pt1,mpime)
       END IF   
 
-! ... Import topography 
+! ... Read topography file 
+!
+      IF (itp >= 1)  CALL read_topo
+ 
+! ... Define volcanic vent position on 3D topography
+!
+!      IF (ivent >= 1) CALL locate_vent
+
+! ... Import the topography on the computational mesh 
 ! ... and set immersed boundary parameters
 !
       IF (itp >= 1) CALL import_topo
-!
-! ... Define volcanic vent position on 3D topography
-!
-      IF (ivent >= 1) CALL locate_vent
 !
 ! ... Domain decomposition for parallelization 
 !
@@ -161,7 +166,7 @@
           call MP_WALLTIME(pt2,mpime)
       END IF
 !
-! ... Setting ghost cells for parallel data exchange
+! ... Setting the ghost cells for parallel data exchange
 ! ... and the indexes
 !
       CALL ghost

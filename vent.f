@@ -23,42 +23,21 @@
       CONTAINS
 !-----------------------------------------------------------------------
       SUBROUTINE locate_vent
-! ... Locate inlet cells after topography is set up
+
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nx, ny, nz
       USE grid, ONLY: x, y, z, fl, xb, yb, zb
-      USE grid, ONLY: bottom
+      USE grid, ONLY: bottom, kv
 
       IMPLICIT NONE
       
-      INTEGER :: i, j, k, iv, jv, kv
+      INTEGER :: i, j, k
       INTEGER :: ijk, nv
       INTEGER :: iwest, ieast, jnorth, jsouth
       REAL*8 :: dist2
       
       IF( job_type == '2D') RETURN
 !
-! ... Locate the center of the vent on the mesh
-!
-      DO i = 1, nx
-        IF (x(i) >= xvent) THEN
-          iv = i
-          xvent = x(i)
-          EXIT
-        END IF
-      END DO
-      DO j = 1, ny
-        IF (y(j) >= yvent) THEN
-          jv = j
-          yvent = y(j)
-          EXIT
-        END IF
-      END DO
-      DO k = 1, nz
-        ijk = iv + (jv-1) * nx + (k-1) * nx * ny
-        IF (fl(ijk) == bottom) kv = k
-      END DO
-
       WRITE(6,*) 'Vent conditions imposed in cells: '
 !      
       DO i = 2, nx
