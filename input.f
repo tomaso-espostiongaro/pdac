@@ -63,7 +63,7 @@
       USE atmosphere, ONLY: w0, u0, p0, temp0, us0, ws0, ep0, epsmx0, gravx, gravz
       USE eulerian_flux, ONLY: beta, muscl
       USE gas_constants, ONLY: phij, ckg, mmug, mmugs, mmugek, gmw
-      USE grid, ONLY: dx, dy, dz, dr, itc
+      USE grid, ONLY: dx, dy, dz, dr, itc, mesh_partition
       USE iterative_solver, ONLY: inmax, maxout, omega
       USE output_dump, ONLY: nfil, outp
       USE parallel, ONLY: mpime, root
@@ -88,7 +88,8 @@
         tdump, nfil, irex, iss, iturb, modturbo, cmut, rlim, gravx, gravz, &
         ngas
 !
-      NAMELIST / mesh / nr, nx, ny, nz, itc, iuni, dr0, dx0, dy0, dz0
+      NAMELIST / mesh / nr, nx, ny, nz, itc, iuni, dr0, dx0, dy0, dz0, &
+        mesh_partition
 !
       NAMELIST / particles / nsolid, diameter, density, sphericity, &
         viscosity, specific_heat, thermal_conductivity
@@ -130,6 +131,7 @@
       nx = 1
       ny = 1
       itc = 0
+      mesh_partition = 1
       iuni = 0
       dr0  = 1000.0d0
       dz0  = 1000.0d0

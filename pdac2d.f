@@ -26,7 +26,7 @@
       USE gas_solid_viscosity, ONLY: bounds_viscosity, local_bounds_viscosity
       USE grid, ONLY: dx, dy, dz, dr, itc
       USE grid, ONLY: iob, flic, partition, ghost, &
-     &    bounds_blocks, bounds_grid
+     &    bounds_blbody, bounds_grid
       USE io_restart, ONLY: taperd, tapebc
       USE iterative_solver, ONLY: inmax, maxout, omega
       USE output_dump, ONLY: nfil, outp
@@ -107,7 +107,7 @@
       nphase=nsolid+1
 
 ! ... allocation of arrays ...(dependence on no, ngas, nsolid, nr, nz)
-      CALL bounds_blocks
+      CALL bounds_blbody
       CALL bounds_density
       CALL bounds_eosg
       CALL bounds_gas_constants

@@ -18,33 +18,45 @@
         INTEGER, PARAMETER :: t_  = 10
         INTEGER, PARAMETER :: tr_ = 11
         INTEGER, PARAMETER :: tt_ = 12
+
 !
         TYPE rcv_map_type
-          INTEGER :: nrcv               ! How Many Cells I Have to Receive
-          INTEGER, POINTER :: ijrcv(:)  ! Which Cells I Have to Receive (Global Index) 
-          INTEGER, POINTER :: ijl(:)    ! Where I Have to Put Them (Local Index)
+          INTEGER :: nrcv              ! How Many Cells I Have to Receive
+          INTEGER, POINTER :: ircv(:)  ! Which Cells I Have to Receive (Global Index) 
+          INTEGER, POINTER :: iloc(:)  ! Where I Have to Put Them (Local Index)
         END TYPE 
-
+!
+!
         TYPE snd_map_type
-          INTEGER :: nsnd               ! How Many Cells I Have to Send
-          INTEGER, POINTER :: ijsnd(:)  ! Which Cells I Have to Send (Global Index)
-          INTEGER, POINTER :: ijl(:)    ! Where I Have to Pick Them (Local Index)
+          INTEGER :: nsnd              ! How Many Cells I Have to Send
+          INTEGER, POINTER :: isnd(:)  ! Which Cells I Have to Send (Global Index)
+          INTEGER, POINTER :: iloc(:)  ! Where I Have to Pick Them (Local Index)
         END TYPE 
-
+!
+!
         TYPE cells_map_type
-          INTEGER :: left(2)           ! The first cell of the block (x,y)
-          INTEGER :: right(2)          ! The last cell of the block (x,y)
+          INTEGER :: type              ! Identify the map type (1 layer, 2 columns, 3 blocks)
+          INTEGER :: lay(2)            ! lay(1) -> imesh start, lay(2) -> imesh end (layer)
+          INTEGER :: colsw(2)          ! colw(1) -> SW x coord., colw(2) -> SW y coord. 
+          INTEGER :: colne(2)          ! cole(1) -> NE x coord., colw(2) -> NE y coord.
+          INTEGER :: blkbsw(3)         ! blkbsw(.) -> BSW x, y, z coordinates 
+          INTEGER :: blktne(3)         ! blktne(.) -> TNE x, y, z coordinates
         END TYPE
 
+!*******MX3D da rivedere
         INTEGER :: nbx,nby             ! number of blocks in x and y directions
-
+!
         TYPE (rcv_map_type), ALLOCATABLE :: rcv_map(:)
         TYPE (snd_map_type), ALLOCATABLE :: snd_map(:)
-        TYPE (cells_map_type), ALLOCATABLE :: block_map(:)
-        INTEGER, ALLOCATABLE :: lay_map(:,:)
-        INTEGER, ALLOCATABLE :: nij_lay(:), nbl_lay(:), nij1_lay(:)
+        TYPE (cells_map_type), ALLOCATABLE :: proc_map(:)
+!
+!*******MX3D da rivedere nomi
         INTEGER, ALLOCATABLE :: nij1(:), n1(:), diff(:)
         INTEGER, ALLOCATABLE :: nij(:)
+!
+!  nij -> ncell
+!  nij1 -> ncell1
+!  n1   -> nbalanced??
 !
         REAL*8, DIMENSION(:), ALLOCATABLE :: r, rb, dr
         REAL*8, DIMENSION(:), ALLOCATABLE :: dx, dy, dz
@@ -52,13 +64,28 @@
         REAL*8, DIMENSION(:), ALLOCATABLE :: indx, indy, indz
         REAL*8, DIMENSION(:), ALLOCATABLE :: inr, inrb, indr
 !
-        INTEGER :: itc, part
-        INTEGER :: nij_l, nije_l, nijx_l
-        INTEGER, ALLOCATABLE :: myij(:,:,:)
-        INTEGER, ALLOCATABLE :: myinds(:,:)
+        INTEGER :: itc, mesh_partition
 
+!*******MX3D solo cambiare nome
+        INTEGER :: nij_l, nije_l, nijx_l
 !
-        TYPE blocks
+! nij_l  -> nijk  -> ncint
+! nije_l -> nijke -> ncext
+! nijx_l -> nijkx -> ncdom
+
+!*******MX3D cambiare nome e struttura 
+        INTEGER, ALLOCATABLE :: myij(:,:,:)
+!
+! myij -> myijk 
+!
+
+!*******MX3D  OK! cambiare dimensione
+        INTEGER, ALLOCATABLE :: myinds(:,:)
+!
+! myinds -> myinds
+!
+
+        TYPE blbody
           INTEGER :: xlo
           INTEGER :: xhi
           INTEGER :: ylo
@@ -69,10 +96,13 @@
           INTEGER :: rhi
           INTEGER :: typ
         END TYPE
+!
+        TYPE (blbody), ALLOCATABLE :: iob(:)
+!
 
-        TYPE (blocks), ALLOCATABLE :: iob(:)
-
+!*******MX3D fl da eliminare in un secondo tempo
         INTEGER, DIMENSION(:), ALLOCATABLE :: fl
+
         INTEGER, DIMENSION(:), ALLOCATABLE :: fl_l
 !
         INTEGER :: countfl(5)
@@ -107,7 +137,7 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE bounds_blocks
+      SUBROUTINE bounds_blbody
       USE dimensions
       IMPLICIT NONE
         ALLOCATE(iob(no))
@@ -278,12 +308,17 @@
 !
 !*****MX3D ok
 !
+      IF( nproc <= 2 ) mesh_partition = 1
+      IF(ALLOCATED(proc_map)) DEALLOCATE(proc_map)
+      ALLOCATE(proc_map(0:nproc-1))
+      proc_map(0:nproc-1)%type = mesh_partition
 
-      part = 2
-      IF (part .EQ. 1 .OR. nproc .LE. 2) THEN
+      IF ( proc_map(0)%type == 1 ) THEN
         CALL layers
-      ELSE 
+      ELSE IF ( proc_map(0)%type == 2 ) THEN
         CALL blocks
+      ELSE
+        CALL error(' partition ',' partition type not yet implemented ',proc_map(0)%type)
       END IF
 !
 ! ... n1 is the balanced number of cells to each processor:
@@ -347,8 +382,8 @@
       INTEGER :: i, j, ij
       INTEGER :: icnt, icnt_ipe, ipe
       INTEGER :: localdim
+      INTEGER, ALLOCATABLE :: lay_map(:,:)
 !
-      IF(ALLOCATED(lay_map)) DEALLOCATE(lay_map)
       ALLOCATE(lay_map(0:nproc-1,2))
 !
       nij1 = 0
@@ -361,6 +396,8 @@
       lay_map(0,1) = 1
       lay_map(nproc-1,2) = nr*nz
       ipe = 0
+
+!*****MX3D solo loop ( nx, ny, nz -> ijk = i + (j-1)*nx + (k-1)*nx*ny )
       DO j = 1, nz
        DO i = 1, nr
           ij = i + (j-1)*nr
@@ -382,10 +419,20 @@
           END IF
        END DO 
       END DO
+
+      DO ipe = 0, nproc - 1
+        proc_map(ipe)%lay(:) =  lay_map(ipe,:)
+      END DO
+
+      DEALLOCATE(lay_map)
+      
 !
       RETURN
       END SUBROUTINE
+
 ! ------------------------------------------------------------------------
+
+!*****MX3D da rivedere
       SUBROUTINE blocks
 !
 ! ... partition N.2 (blocks)
@@ -403,6 +450,10 @@
       INTEGER :: size_x, rest, skipl, rrest
       INTEGER :: layer, icnt_layer, here
       INTEGER :: localdim
+!
+      INTEGER, ALLOCATABLE :: lay_map(:,:)
+      INTEGER, ALLOCATABLE :: nij_lay(:), nbl_lay(:), nij1_lay(:)
+
 !
       REAL*8 side, area
       REAL*8 fact
@@ -424,14 +475,11 @@
         size_x = INT(nr/nbx)
         rest = nbx*nby - nproc
 !
-        IF(ALLOCATED(lay_map)) DEALLOCATE(lay_map)
         ALLOCATE(lay_map(1:nby,2))
-        IF(ALLOCATED(block_map)) DEALLOCATE(block_map)
-        ALLOCATE(block_map(0:nproc-1))
         lay_map(:,:) = 0
         DO i = 0, nproc-1
-          block_map(i)%left(:) = 0
-          block_map(i)%right(:) = 0
+          proc_map(i)%colsw(:) = 0
+          proc_map(i)%colne(:) = 0
         END DO
 !
         IF (ALLOCATED(nij_lay)) DEALLOCATE(nij_lay)
@@ -544,8 +592,8 @@
         i = i1
         DO nbl = 1, nbl_lay(layer) 
           ipe = ipe + 1
-          block_map(ipe)%left(1) = i
-          block_map(ipe)%left(2) = j1
+          proc_map(ipe)%colsw(1) = i
+          proc_map(ipe)%colsw(2) = j1
           DO WHILE (nij1(ipe) .LT. bl1)
             DO j = j1, j2
               ij = i + (j-1)*nr
@@ -553,24 +601,26 @@
             END DO  
             i = i+1
           END DO
-          block_map(ipe)%right(1) = i-1
-          IF (nbl .EQ. nbl_lay(layer)) block_map(ipe)%right(1) = nr 
-          block_map(ipe)%right(2) = j2
+          proc_map(ipe)%colne(1) = i-1
+          IF (nbl .EQ. nbl_lay(layer)) proc_map(ipe)%colne(1) = nr 
+          proc_map(ipe)%colne(2) = j2
 !
 ! ...     updates the number of cells with fl=1 into blocks
 !
           nij(ipe)  = 0
           nij1(ipe) = 0
-          DO j = block_map(ipe)%left(2), block_map(ipe)%right(2)
-          DO i = block_map(ipe)%left(1), block_map(ipe)%right(1)
+          DO j = proc_map(ipe)%colsw(2), proc_map(ipe)%colne(2)
+          DO i = proc_map(ipe)%colsw(1), proc_map(ipe)%colne(1)
             ij = i + (j-1)*nr
             nij(ipe) = nij(ipe) + 1
             IF (fl(ij) .EQ. 1) nij1(ipe) = nij1(ipe) + 1
           END DO
           END DO
-          WRITE(7,*)'block_map(',ipe,'):',block_map(ipe)%left(:),block_map(ipe)%right(:)
+          WRITE(7,*)'proc_map(',ipe,'):',proc_map(ipe)%colsw(:),proc_map(ipe)%colne(:)
         END DO
       END DO
+
+      DEALLOCATE(lay_map)
 
       RETURN
       END SUBROUTINE
@@ -616,17 +666,17 @@
 !
       nset   = 0
       nije_l = 0
-      IF (part .EQ. 1 .OR. nproc .LE. 2) THEN
-        DO ij = lay_map(mpime,1), lay_map(mpime,2)
+      IF ( proc_map(mpime)%type == 1 ) THEN
+        DO ij = proc_map(mpime)%lay(1), proc_map(mpime)%lay(2)
           IF ( fl(ij) .EQ. 1 ) THEN
             nije_l = nije_l + cell_neighbours(ij, mpime, nset)
           END IF
         END DO
-      ELSE
-        i1 = block_map(mpime)%left(1)
-        i2 = block_map(mpime)%right(1)
-        j1 = block_map(mpime)%left(2)
-        j2 = block_map(mpime)%right(2)
+      ELSE IF ( proc_map(mpime)%type == 2 ) THEN
+        i1 = proc_map(mpime)%colsw(1)
+        i2 = proc_map(mpime)%colne(1)
+        j1 = proc_map(mpime)%colsw(2)
+        j2 = proc_map(mpime)%colne(2)
         DO j = j1, j2
          DO i = i1, i2
           ij = i + nr*(j-1)
@@ -635,6 +685,8 @@
           END IF
          END DO
         END DO
+      ELSE
+        CALL error(' ghost ', ' partition type not yet implemented ', proc_map(mpime)%type )
       END IF
 !
 ! ... ALLOCATE memory for the set of neighbouring cell on other proc.
@@ -665,20 +717,20 @@
       nset  = 0
       icnt  = 0
       nrcv  = 0
-      IF (part .EQ. 1 .OR. nproc .LE. 2) THEN
+      IF ( proc_map(mpime)%type == 1 ) THEN
 !
 !*****MX3D : cambia il loop sulle celle interne (v.sopra)
 !
-        DO ij = lay_map(mpime,1), lay_map(mpime,2)
+        DO ij = proc_map(mpime)%lay(1), proc_map(mpime)%lay(2)
           IF ( fl(ij) .EQ. 1 ) THEN
           icnt = icnt + cell_neighbours(ij, mpime, nset, rcv_cell_set, myij)
           END IF
         END DO
-      ELSE
-        i1 = block_map(mpime)%left(1)
-        i2 = block_map(mpime)%right(1)
-        j1 = block_map(mpime)%left(2)
-        j2 = block_map(mpime)%right(2)
+      ELSE IF ( proc_map(mpime)%type == 2 ) THEN
+        i1 = proc_map(mpime)%colsw(1)
+        i2 = proc_map(mpime)%colne(1)
+        j1 = proc_map(mpime)%colsw(2)
+        j2 = proc_map(mpime)%colne(2)
        DO j = j1, j2
         DO i = i1, i2
           ij = i + nr*(j-1)
@@ -687,6 +739,8 @@
           END IF
         END DO
        END DO
+      ELSE
+        CALL error(' ghost ', ' partition type not yet implemented ', proc_map(mpime)%type )
       END IF
 !
 !
@@ -728,8 +782,8 @@
 ! ... prepare the receive map 
       DO ipe = 0, nproc - 1
         rcv_map(ipe)%nrcv = nrcv(ipe)
-        NULLIFY( rcv_map(ipe)%ijrcv )
-        NULLIFY( rcv_map(ipe)%ijl )
+        NULLIFY( rcv_map(ipe)%ircv )
+        NULLIFY( rcv_map(ipe)%iloc )
       END DO
 
 !
@@ -737,8 +791,8 @@
 !
 ! ... prepare the send map 
       DO ipe = 0, nproc - 1
-        NULLIFY( snd_map(ipe)%ijsnd ) 
-        NULLIFY( snd_map(ipe)%ijl ) 
+        NULLIFY( snd_map(ipe)%isnd ) 
+        NULLIFY( snd_map(ipe)%iloc ) 
       END DO
 
 !
@@ -757,14 +811,14 @@
 !
       DO ipe = 0, nproc - 1
 !
-        IF( ASSOCIATED (snd_map(ipe)%ijsnd ) ) THEN
-          DEALLOCATE( snd_map(ipe)%ijsnd)
+        IF( ASSOCIATED (snd_map(ipe)%isnd ) ) THEN
+          DEALLOCATE( snd_map(ipe)%isnd)
         END IF
-        IF( ASSOCIATED (snd_map(ipe)%ijl ) ) THEN
-          DEALLOCATE( snd_map(ipe)%ijl)
+        IF( ASSOCIATED (snd_map(ipe)%iloc ) ) THEN
+          DEALLOCATE( snd_map(ipe)%iloc)
         END IF
-        NULLIFY( snd_map(ipe)%ijsnd ) 
-        NULLIFY( snd_map(ipe)%ijl ) 
+        NULLIFY( snd_map(ipe)%isnd ) 
+        NULLIFY( snd_map(ipe)%iloc ) 
 
 ! ...   proc ipe send to other processor the number of elements 
 ! ...   he should receive from each of the other proc. (rcv_map(:)%nrcv)
@@ -780,7 +834,7 @@
         CALL bcast_integer(nrcvx, 1, ipe)
 
 ! ...   proc ipe send to other processors the array with the indexes of 
-! ...   the elements he should receive ( rcv_map(jpe)%ijrcv )
+! ...   the elements he should receive ( rcv_map(jpe)%ircv )
 !
         ALLOCATE(ijrcv(nrcvx,0:nproc-1))
         ALLOCATE(ijsnd(nrcvx))
@@ -788,7 +842,7 @@
           ijrcv = 0
           DO jpe = 0, nproc - 1
             IF( rcv_map(jpe)%nrcv .GT. 0 ) THEN
-              ijrcv(1:rcv_map(jpe)%nrcv, jpe ) = rcv_map(jpe)%ijrcv(1:rcv_map(jpe)%nrcv) 
+              ijrcv(1:rcv_map(jpe)%nrcv, jpe ) = rcv_map(jpe)%ircv(1:rcv_map(jpe)%nrcv) 
             END IF
           END DO 
         END IF 
@@ -797,11 +851,11 @@
 !
         CALL scatter_integer(ijrcv, ijsnd, nrcvx, ipe)
         IF( ipe .NE. mpime) THEN
-          ALLOCATE(snd_map(ipe)%ijsnd(snd_map(ipe)%nsnd))
-          ALLOCATE(snd_map(ipe)%ijl(snd_map(ipe)%nsnd))
-          snd_map(ipe)%ijsnd(1:snd_map(ipe)%nsnd) = ijsnd(1:snd_map(ipe)%nsnd)
+          ALLOCATE(snd_map(ipe)%isnd(snd_map(ipe)%nsnd))
+          ALLOCATE(snd_map(ipe)%iloc(snd_map(ipe)%nsnd))
+          snd_map(ipe)%isnd(1:snd_map(ipe)%nsnd) = ijsnd(1:snd_map(ipe)%nsnd)
           DO ij = 1, snd_map(ipe)%nsnd
-            snd_map(ipe)%ijl( ij ) = cell_g2l( ijsnd( ij ), mpime )
+            snd_map(ipe)%iloc( ij ) = cell_g2l( ijsnd( ij ), mpime )
           END DO
         END IF 
 !
@@ -815,9 +869,9 @@
       DO ipe = 0, nproc - 1
         WRITE(7,100) rcv_map(ipe)%nrcv, ipe
         IF(rcv_map(ipe)%nrcv .GT. 0 ) THEN
-          WRITE(7,110) rcv_map(ipe)%ijrcv(:)
+          WRITE(7,110) rcv_map(ipe)%ircv(:)
           WRITE(7,*) ' ---- '
-          WRITE(7,110) rcv_map(ipe)%ijl(:)
+          WRITE(7,110) rcv_map(ipe)%iloc(:)
         END IF
  100    FORMAT(' # receiving ',i5,' cells from ',i3)
  110    FORMAT(10i8)
@@ -826,9 +880,9 @@
       DO ipe = 0, nproc - 1
         WRITE(7,200) snd_map(ipe)%nsnd, ipe
         IF (snd_map(ipe)%nsnd .GT. 0 ) THEN
-          WRITE(7,210) snd_map(ipe)%ijsnd(:)
+          WRITE(7,210) snd_map(ipe)%isnd(:)
           WRITE(7,*) ' ---- '
-          WRITE(7,210) snd_map(ipe)%ijl(:)
+          WRITE(7,210) snd_map(ipe)%iloc(:)
         END IF
  200    FORMAT(' # sending ',i5,' cells to ',i3)
  210    FORMAT(10i8)
@@ -873,15 +927,17 @@
         i = MOD( ( ij - 1 ), nr) + 1
           
         DO ipe = 0, nproc - 1
-          IF (part .EQ. 1 .OR. nproc .LE. 2) THEN
-            IF( ij .GE. lay_map(ipe,1) .AND. ij .LE. lay_map(ipe,2) ) THEN
+          IF ( proc_map(ipe)%type == 1 ) THEN 
+            IF( ij .GE. proc_map(ipe)%lay(1) .AND. ij .LE. proc_map(ipe)%lay(2) ) THEN
               cell_owner = ipe
             END IF
-          ELSE
-            IF (j .GE. block_map(ipe)%left(2) .AND. j .LE. block_map(ipe)%right(2)) THEN
-              IF (i .GE. block_map(ipe)%left(1) .AND.  &
-                  i .LE. block_map(ipe)%right(1)) cell_owner = ipe
+          ELSE IF ( proc_map(ipe)%type == 2 ) THEN
+            IF (j .GE. proc_map(ipe)%colsw(2) .AND. j .LE. proc_map(ipe)%colne(2)) THEN
+              IF (i .GE. proc_map(ipe)%colsw(1) .AND.  &
+                  i .LE. proc_map(ipe)%colne(1)) cell_owner = ipe
             END IF
+          ELSE
+            CALL error(' cell_owner ', ' partition type not yet implemented ', proc_map(ipe)%type )
           END IF
         END DO
       RETURN
@@ -896,15 +952,17 @@
       INTEGER, INTENT(IN) :: ijl, mpime
       INTEGER :: i,j,i1,i2,j1
 !
-      IF (part .EQ. 1 .OR. nproc .LE. 2) THEN
-        cell_l2g = ijl + lay_map(mpime,1) - 1
-      ELSE
-        j1 = block_map(mpime)%left(2)
-        i1 = block_map(mpime)%left(1)
-        i2 = block_map(mpime)%right(1)
+      IF ( proc_map(mpime)%type == 1 ) THEN
+        cell_l2g = ijl + proc_map(mpime)%lay(1) - 1
+      ELSE IF ( proc_map(mpime)%type == 2 ) THEN
+        j1 = proc_map(mpime)%colsw(2)
+        i1 = proc_map(mpime)%colsw(1)
+        i2 = proc_map(mpime)%colne(1)
         i = MOD( ( ijl - 1 ), (i2-i1+1)) + i1
         j = ( ijl - 1 ) / (i2-i1+1) + j1
         cell_l2g = i + (j-1)*nr
+      ELSE
+        CALL error(' cell_l2g ', ' partition type not yet implemented ', proc_map(mpime)%type )
       END IF
 !
       RETURN
@@ -919,15 +977,17 @@
       INTEGER, INTENT(IN) :: ij, mpime
       INTEGER :: i,j,i1,i2,j1
 !
-      IF (part .EQ. 1 .OR. nproc .LE. 2) THEN
-        cell_g2l = ij - lay_map(mpime,1) + 1
-      ELSE
+      IF ( proc_map(mpime)%type == 1 ) THEN
+        cell_g2l = ij - proc_map(mpime)%lay(1) + 1
+      ELSE IF ( proc_map(mpime)%type == 2 ) THEN
         j = ( ij - 1 ) / nr + 1
         i = MOD( ( ij - 1 ), nr) + 1
-        j1 = block_map(mpime)%left(2)
-        i1 = block_map(mpime)%left(1)
-        i2 = block_map(mpime)%right(1)
+        j1 = proc_map(mpime)%colsw(2)
+        i1 = proc_map(mpime)%colsw(1)
+        i2 = proc_map(mpime)%colne(1)
         cell_g2l = (i-i1+1) + (j-j1)*(i2-i1+1)
+      ELSE
+        CALL error(' cell_g2l ', ' partition type not yet implemented ', proc_map(mpime)%type )
       END IF
 !
       RETURN
@@ -1114,7 +1174,7 @@
       END SUBROUTINE
 !----------------------------------------------------------------------
 !
-!*****MX3D : aggiungere la terza dimensione (anche se i,j,k non servono...)
+!*****MX3D : aggiungere la terza dimensione
 !
       SUBROUTINE set_rcv_map(rcv_map, myij, rcv_cell_set, nset, nrcv)
         USE basic_types, ONLY: imatrix 
@@ -1128,43 +1188,46 @@
 
         nproc = SIZE(rcv_cell_set)
         nij_l = SIZE(myij,3)
-        icnt  = 0
+        icnt  = 0                    ! counts received cells from all processors
 
         DO ipe = 0, nproc - 1
 
           rcv_map(ipe)%nrcv = nrcv(ipe)
-          IF( ASSOCIATED(rcv_map(ipe)%ijrcv) ) DEALLOCATE( rcv_map(ipe)%ijrcv )
-          IF( ASSOCIATED(rcv_map(ipe)%ijl) ) DEALLOCATE( rcv_map(ipe)%ijl )
+          IF( ASSOCIATED(rcv_map(ipe)%ircv) ) DEALLOCATE( rcv_map(ipe)%ircv )
+          IF( ASSOCIATED(rcv_map(ipe)%iloc) ) DEALLOCATE( rcv_map(ipe)%iloc )
 
           IF( nrcv(ipe) .GT. 0 ) THEN
-            ALLOCATE( rcv_map(ipe)%ijrcv(nrcv(ipe)) )
-            ALLOCATE( rcv_map(ipe)%ijl(nrcv(ipe)) )
+            ALLOCATE( rcv_map(ipe)%ircv(nrcv(ipe)) )
+            ALLOCATE( rcv_map(ipe)%iloc(nrcv(ipe)) )
 
             ALLOCATE( ijsort(nset(ipe)) )
             ijsort(:) = rcv_cell_set(ipe)%i(1,:)
 
-            ic        = 1
-            icnt_rcv  = 1
+            ic        = 1           ! index that run over neighbour cells from the current processor 
+            icnt_rcv  = 1           ! counts received cells from the current processor (ipe)
             icnt      = icnt + 1
             ije = rcv_cell_set(ipe)%i(1,ic)
             ijl = rcv_cell_set(ipe)%i(2,ic)
             i   = rcv_cell_set(ipe)%i(3,ic)
             j   = rcv_cell_set(ipe)%i(4,ic)
-            rcv_map(ipe)%ijrcv(icnt_rcv) = ije
-            rcv_map(ipe)%ijl(icnt_rcv) = icnt + nij_l
+            rcv_map(ipe)%ircv(icnt_rcv) = ije
+            rcv_map(ipe)%iloc(icnt_rcv) = icnt + nij_l
             myij(i,j,ijl) = icnt + nij_l
             DO ic = 2, nset(ipe)
               ije = rcv_cell_set(ipe)%i(1,ic)
               ijl = rcv_cell_set(ipe)%i(2,ic)
               i   = rcv_cell_set(ipe)%i(3,ic)
               j   = rcv_cell_set(ipe)%i(4,ic)
+              ! ... k  = rcv_cell_set(ipe)%i(5,ic)    ! aggiungere
+              ! ... stind = stencil_index( i, j, k )  ! = a number from 0 and 24, aggiungere
               IF( ijsort(ic) .NE. ijsort(ic-1) ) THEN
                 icnt_rcv  = icnt_rcv + 1
                 icnt      = icnt + 1
-                rcv_map(ipe)%ijrcv(icnt_rcv) = ije
-                rcv_map(ipe)%ijl(icnt_rcv) = icnt + nij_l
+                rcv_map(ipe)%ircv(icnt_rcv) = ije
+                rcv_map(ipe)%iloc(icnt_rcv) = icnt + nij_l
               END IF 
-              myij(i,j,ijl) = icnt + nij_l
+              myij(i,j,ijl) = icnt + nij_l  ! da sostituire con
+              ! ... myijk( stind, ijl ) = icnt + nij_l
             END DO
 
             DEALLOCATE( ijsort)
@@ -1175,8 +1238,8 @@
             END IF
 
           ELSE
-            NULLIFY(rcv_map(ipe)%ijrcv)
-            NULLIFY(rcv_map(ipe)%ijl)
+            NULLIFY(rcv_map(ipe)%ircv)
+            NULLIFY(rcv_map(ipe)%iloc)
           END IF
 
         END DO
@@ -1328,12 +1391,12 @@
           ALLOCATE( rcvbuf( MAX(rcv_map(isour)%nrcv,1) ) )
           ALLOCATE( sndbuf( MAX(snd_map(idest)%nsnd,1) ) )
           DO ib = 1, snd_map(idest)%nsnd
-            sndbuf(ib) = array( snd_map(idest)%ijl(ib) )
+            sndbuf(ib) = array( snd_map(idest)%iloc(ib) )
           END DO 
           CALL sendrecv_real(sndbuf(1), snd_map(idest)%nsnd, idest,  &
             rcvbuf, rcv_map(isour)%nrcv, isour, ip)
           DO ib = 1, rcv_map(isour)%nrcv
-            array( rcv_map(isour)%ijl(ib) ) = rcvbuf(ib)
+            array( rcv_map(isour)%iloc(ib) ) = rcvbuf(ib)
           END DO 
           DEALLOCATE( rcvbuf )
           DEALLOCATE( sndbuf )
@@ -1358,14 +1421,14 @@
 !          sndbuf = 0.0
           DO ib = 1, snd_map(idest)%nsnd
             DO ik = 1, SIZE(array,1)
-              sndbuf(ik + SIZE(array,1)*(ib-1)) = array( ik, snd_map(idest)%ijl(ib) )
+              sndbuf(ik + SIZE(array,1)*(ib-1)) = array( ik, snd_map(idest)%iloc(ib) )
             END DO
           END DO 
           CALL sendrecv_real(sndbuf(1), SIZE(sndbuf), idest,     &      
                              rcvbuf(1), SIZE(rcvbuf), isour, ip)
           DO ib = 1, rcv_map(isour)%nrcv
             DO ik = 1, SIZE(array,1)
-              array( ik, rcv_map(isour)%ijl(ib) ) = rcvbuf( ik + SIZE(array,1)*(ib-1))
+              array( ik, rcv_map(isour)%iloc(ib) ) = rcvbuf( ik + SIZE(array,1)*(ib-1))
             END DO
           END DO 
           DEALLOCATE( rcvbuf )
@@ -1386,12 +1449,12 @@
           ALLOCATE( rcvbuf( MAX(rcv_map(isour)%nrcv,1) ) )
           ALLOCATE( sndbuf( MAX(snd_map(idest)%nsnd,1) ) )
           DO ib = 1, snd_map(idest)%nsnd
-            sndbuf(ib) = array( snd_map(idest)%ijl(ib) )
+            sndbuf(ib) = array( snd_map(idest)%iloc(ib) )
           END DO
           CALL sendrecv_integer(sndbuf, snd_map(idest)%nsnd, idest,      &
                                 rcvbuf, rcv_map(isour)%nrcv, isour, ip)
           DO ib = 1, rcv_map(isour)%nrcv
-            array( rcv_map(isour)%ijl(ib) ) = rcvbuf(ib)
+            array( rcv_map(isour)%iloc(ib) ) = rcvbuf(ib)
           END DO
           DEALLOCATE( rcvbuf )
           DEALLOCATE( sndbuf )
