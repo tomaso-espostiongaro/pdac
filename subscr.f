@@ -499,6 +499,7 @@
       END SUBROUTINE rnb
 !-----------------------------------------------------------------------
       SUBROUTINE first_nb( stncl, array, ijk )
+! ... first neighbours
 
       IMPLICIT NONE 
 !
@@ -530,7 +531,8 @@
       END SUBROUTINE first_nb
 !-----------------------------------------------------------------------
       SUBROUTINE first_rnb(stncl,array,ijk)
-      USE dimensions
+! ... first neighbours
+
       IMPLICIT NONE 
 !
       TYPE(stencil) :: stncl

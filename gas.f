@@ -17,7 +17,7 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE bounds_gas_constants
+      SUBROUTINE allocate_gas_constants
         USE dimensions
         IMPLICIT NONE
 !
@@ -32,7 +32,7 @@
       mmugek = 0.D0
       gmw    = 0.D0
       RETURN
-      END SUBROUTINE bounds_gas_constants
+      END SUBROUTINE allocate_gas_constants
 !----------------------------------------------------------------------
       END  MODULE gas_constants
 !----------------------------------------------------------------------

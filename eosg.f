@@ -15,24 +15,7 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE bounds_eosg
-      USE dimensions
-      IMPLICIT NONE
-!
-       ALLOCATE(gas_specific_heat(ntot))
-       ALLOCATE(gc_mass_fraction(ngas,ntot),       &
-                gc_molar_fraction(ngas,ntot),      &
-                gc_bulk_density(ntot,ngas))
-
-       gas_specific_heat     = 0.0d0
-       gc_mass_fraction      = 0.0d0
-       gc_molar_fraction     = 0.0d0
-       gc_bulk_density       = 0.0d0
-
-      RETURN
-      END SUBROUTINE
-!----------------------------------------------------------------------
-      SUBROUTINE local_bounds_eosg
+      SUBROUTINE allocate_eosg
       USE dimensions
       USE grid, ONLY: ncdom, ncint
       IMPLICIT NONE

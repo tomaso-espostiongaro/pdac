@@ -15,37 +15,32 @@
       USE atmosphere, ONLY: v0, u0, w0, p0, temp0, us0, vs0, ws0, &
      &                      ep0, epsmx0, gravx, gravz
       USE dimensions
-      USE eos_gas, ONLY: bounds_eosg, local_bounds_eosg
-      USE gas_constants, ONLY: bounds_gas_constants, present_gas
-      USE gas_solid_density, ONLY: bounds_density, &
-     &    local_bounds_density
-      USE gas_solid_velocity, ONLY: bounds_velocity, &
-     &    local_bounds_velocity
-      USE gas_solid_temperature, ONLY: bounds_temperature, &
-     &    local_bounds_temperature
-      USE gas_solid_viscosity, ONLY: bounds_viscosity, local_bounds_viscosity
-      USE glocal_arrays, ONLY: distribute
+      USE eos_gas, ONLY: allocate_eosg
+      USE gas_constants, ONLY: allocate_gas_constants, present_gas
+      USE gas_solid_density, ONLY: allocate_density
+      USE gas_solid_velocity, ONLY: allocate_velocity
+      USE gas_solid_temperature, ONLY: allocate_temperature
+      USE gas_solid_viscosity, ONLY: allocate_viscosity
       USE grid, ONLY: dx, dy, dz, dr, itc
       USE grid, ONLY: iob, flic, partition, ghost, &
-     &    bounds_blbody, bounds_grid
+     &    allocate_blbody, allocate_grid
       USE io_restart, ONLY: taperd, tapewr
       USE iterative_solver, ONLY: inmax, maxout, omega
       USE output_dump, ONLY: nfil, recover_2d
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
      &    mpime, root
       USE particles_constants, ONLY: rl, inrl, kap, &
-     &     cmus, phis, cps, dk, bounds_part_constants
-      USE phases_matrix, ONLY: rlim, bounds_matrix
-      USE pressure_epsilon, ONLY: bounds_press_eps, &
-     &                            local_bounds_press_eps
+     &     cmus, phis, cps, dk, allocate_part_constants
+      USE phases_matrix, ONLY: rlim, allocate_matrix
+      USE pressure_epsilon, ONLY: allocate_press_eps
       USE roughness_module, ONLY: zrough, deallocate_roughness
       USE initial_conditions, ONLY: setup, epsob, tpob, ygc0, ygcob, &
      &     ugob, vgob, wgob, upob, vpob, wpob, pob, tgob, epob, lpr, & 
-     &     zzero, bounds_setup
-      USE specific_heat_module, ONLY: bounds_hcapgs, local_bounds_hcapgs
+     &     zzero, allocate_setup
+      USE specific_heat_module, ONLY: allocate_hcapgs
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut
-      USE turbulence_model, ONLY: bounds_turbo, local_bounds_turbo
+      USE turbulence_model, ONLY: allocate_turbo
       USE environment, ONLY: cpclock, timing
       USE input_module
       USE control_flags, ONLY: job_type
@@ -98,11 +93,14 @@
       CALL input(inputunit)
 
 ! ... allocation of arrays ...(dependence on nr, nx,ny,nz)
-      CALL bounds_grid
+      CALL allocate_grid
 !
-      dr(1:nr) = delta_r(1:nr)
-      dx(1:nx) = delta_x(1:nx)
-      dy(1:ny) = delta_y(1:ny)
+      IF( job_type == '2D' ) THEN
+        dr(1:nr) = delta_r(1:nr)
+      ELSE IF( job_type == '3D' ) THEN
+        dx(1:nx) = delta_x(1:nx)
+        dy(1:ny) = delta_y(1:ny)
+      END IF
       dz(1:nz) = delta_z(1:nz)
 
       no = number_of_block
@@ -111,18 +109,18 @@
       nphase=nsolid+1
 
 ! ... allocation of arrays ...(dependence on no, ngas, nsolid, nr, nz)
-      CALL bounds_blbody
-      CALL bounds_gas_constants
-      CALL bounds_matrix
-      CALL bounds_part_constants
-      CALL bounds_setup
+      CALL allocate_blbody
+      CALL allocate_gas_constants
+      CALL allocate_matrix
+      CALL allocate_part_constants
+      CALL allocate_setup
 
       iob(1:no)%typ = block_type(1:no)
 
       IF( job_type == '2D' ) THEN
         iob(1:no)%rlo = block_bounds(1,1:no)
         iob(1:no)%rhi = block_bounds(2,1:no)
-      ELSE 
+      ELSE IF ( job_type == '3D' ) THEN
         iob(1:no)%xlo = block_bounds(1,1:no)
         iob(1:no)%xhi = block_bounds(2,1:no)
         iob(1:no)%ylo = block_bounds(3,1:no)
@@ -179,7 +177,7 @@
         present_gas(ig) = (ygc0(ig) /= 0.D0 .OR. ANY(ygcob(ig,:) /= 0.D0 ) )
       END DO
 !
-      dk(1:nsolid) = diameter(1:nsolid) * 1.D-6
+      dk(1:nsolid) = diameter(1:nsolid) * 1.D-6 ! input diameter in microns !
       rl(1:nsolid) = density(1:nsolid)
       phis(1:nsolid) = sphericity(1:nsolid)
       cmus(1:nsolid) = viscosity(1:nsolid)
@@ -207,14 +205,14 @@
       CALL ghost
       IF(timing) s3 = cpclock()
 !
-      CALL local_bounds_velocity
-      CALL local_bounds_density
-      CALL local_bounds_press_eps
-      CALL local_bounds_temperature
-      CALL local_bounds_eosg
-      CALL local_bounds_viscosity
-      CALL local_bounds_hcapgs
-      CALL local_bounds_turbo
+      CALL allocate_velocity
+      CALL allocate_density
+      CALL allocate_press_eps
+      CALL allocate_temperature
+      CALL allocate_eosg
+      CALL allocate_viscosity
+      CALL allocate_hcapgs
+      CALL allocate_turbo
 
 !
 ! ... Read restart file

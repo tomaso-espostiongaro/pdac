@@ -12,19 +12,7 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE bounds_density
-      USE dimensions
-!
-      ALLOCATE(gas_bulk_density(ntot), gas_density(ntot))
-      ALLOCATE(solid_bulk_density(ntot,nsolid))
-
-      gas_bulk_density   = 0.D0
-      gas_density        = 0.D0
-      solid_bulk_density = 0.D0
-      RETURN
-      END SUBROUTINE
-!----------------------------------------------------------------------
-      SUBROUTINE local_bounds_density
+      SUBROUTINE allocate_density
       USE dimensions
       USE grid, ONLY: ncint, ncdom
 !

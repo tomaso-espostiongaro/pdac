@@ -19,7 +19,7 @@
       SUBROUTINE htilde
 !
       USE dimensions
-      USE convective_fluxes, ONLY: fsc
+      USE convective_fluxes_sc, ONLY: fsc
       USE diffusive_fluxes, ONLY: hotc
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_density, ONLY: rgp, rlk

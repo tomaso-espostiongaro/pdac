@@ -11,7 +11,7 @@
       SUBROUTINE ygas
 !
       USE dimensions
-      USE convective_fluxes, ONLY: fsc
+      USE convective_fluxes_sc, ONLY: fsc
       USE eos_gas, ONLY: rgpgc, rgpgcn, ygc
       USE gas_constants, ONLY: default_gas
       USE gas_solid_velocity, ONLY: ug, vg, wg

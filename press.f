@@ -13,18 +13,7 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE bounds_press_eps
-      USE dimensions
-      IMPLICIT NONE
-!
-      ALLOCATE(gas_pressure(ntot), void_fraction(ntot))
-      gas_pressure  = 0.D0
-      void_fraction = 0.D0
-!
-      RETURN
-      END SUBROUTINE
-!----------------------------------------------------------------------
-      SUBROUTINE local_bounds_press_eps
+      SUBROUTINE allocate_press_eps
       USE dimensions
       USE grid, ONLY: ncdom
       IMPLICIT NONE

@@ -21,9 +21,9 @@
       USE eos_gas, ONLY: eosg, ygc, xgc, rags, cg
       USE gas_solid_temperature, ONLY: sieg, tg
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      USE convective_fluxes, ONLY: fmas, masf
+      USE convective_mass_fluxes, ONLY: fmas, masf
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
-      USE grid, ONLY: fl_l
+      USE grid, ONLY: fl_l, meshinds
       USE grid, ONLY: myijk, ncint, ncdom, data_exchange
       USE specific_heat_module, ONLY: cp
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -66,14 +66,18 @@
 !
 ! ... Allocate and initialize local mass fluxes.
 !
-      ALLOCATE( rgfe( ncdom ), rgfn( ncdom ), rgft( ncdom ))
-      ALLOCATE( rsfe( ncdom, nsolid ), rsfn( ncdom, nsolid ), rsft( ncdom, nsolid ))
+      ALLOCATE( rgfe( ncdom ), rgfn( ncdom ))
+      ALLOCATE( rsfe( ncdom, nsolid ), rsfn( ncdom, nsolid ))
       rgfe = 0.0D0
       rgfn = 0.0D0
-      rgft = 0.0D0
       rsfe = 0.0D0
       rsfn = 0.0D0
-      rsft = 0.0D0
+      IF (job_type == '3D') THEN
+        ALLOCATE( rgft( ncdom ))
+        ALLOCATE( rsft( ncdom, nsolid ))
+        rgft = 0.0D0
+        rsft = 0.0D0
+      END IF
 !
 ! ... An approximate value for gas density fluxes is guessed, 
 ! ... using estimates of velocity and pressure.
@@ -96,10 +100,12 @@
 ! 
       CALL data_exchange(ug)
       CALL data_exchange(us)
-      CALL data_exchange(vg)
-      CALL data_exchange(vs)
       CALL data_exchange(wg)
       CALL data_exchange(ws)
+      IF (job_type == '3D') THEN
+        CALL data_exchange(vg)
+        CALL data_exchange(vs)
+      END IF
 !
 ! ... Put the new biassed velocities into the Gas Mass Balance 
 ! ... equation.
@@ -111,12 +117,19 @@
           
           CALL nb(dens,rgp,ijk)
           CALL rnb(u,ug,ijk)
-          CALL rnb(v,vg,ijk)
           CALL rnb(w,wg,ijk)
+          IF (job_type == '3D') THEN
+            CALL rnb(v,vg,ijk)
           
-          CALL fmas(rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &
-                    rgfe(imjk), rgfn(ijmk), rgft(ijkm),   &
-                    dens, u, v, w, ijk)
+            CALL fmas(rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &
+                      rgfe(imjk), rgfn(ijmk), rgft(ijkm),   &
+                      dens, u, v, w, ijk)
+          ELSE IF (job_type == '2D') THEN
+          
+            CALL fmas(rgfe(ijk),  rgfn(ijk),    &
+                      rgfe(imjk), rgfn(ijmk),   &
+                      dens, u, w, ijk)
+          ENDIF
 !
 ! ... compute the derivative of the gas mass residual
 ! ... with respect to gas pressure
@@ -151,17 +164,14 @@
            IF( fl_l(ijk) /= 1 ) converge(ijk) = .TRUE.
            IF( fl_l(ijk) == 1 ) THEN
 
-             imesh = myijk( ip0_jp0_kp0_, ijk)
-	     i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
-             j = MOD( imesh - 1, nx*ny ) / nx + 1
-             k = ( imesh - 1 ) / ( nx*ny ) + 1
+             CALL meshinds(ijk,imesh,i,j,k)
              CALL subscr(ijk)
 !
               CALL calc_res(dg)
               dgorig = dg
 !
               IF(DABS(dg) <= conv(ijk)) THEN
-                ! ... If the residual is higher then the prescribed limit
+                ! ... If the residual is lower then the prescribed limit
                 ! ... compute the gas and particle densities and proceed 
                 ! ... to next cell
                 converge(ijk) = .TRUE.
@@ -172,7 +182,7 @@
               ELSE IF (DABS(dg) > conv(ijk)) THEN
 !
                 ! ... If the residual is higher then the prescribed limit
-                ! ... start the internal (in-cell) iterative loop
+                ! ... start the inner (in-cell) iterative loop
                 ! ... to correct pressure and velocities.
 !
                 d3 = dg
@@ -203,12 +213,12 @@
 
                   rgp(ijk) = ep(ijk) * rog(ijk)
 !
+                  !IF( MOD( ijk, 100 ) == 0 ) call f_hpmstart( 5, ' ITER_masf ')
+!
                   ! ... Update gas and particles velocities using the 
                   ! ... corrected pressure at current location. 
                   ! ... Pressure at neighbour cells could still be wrong.
 
-                  !IF( MOD( ijk, 100 ) == 0 ) call f_hpmstart( 5, ' ITER_masf ')
-!
                   IF( nphase == 3 ) THEN
                     CALL mats_3phase(ijk)
                   ELSE
@@ -243,7 +253,7 @@
 
 !        call f_hpmstop( 2 )
 
-! ... Exchanges all updated physical quantities on boundaries
+! ... Exchange all updated physical quantities on boundaries
 ! ... before starting a new sweep on the mesh.
 !
         CALL data_exchange(rgp)
@@ -285,7 +295,6 @@
 !*******************************************************************
           EXIT sor_loop
         ENDIF
-
 !
 ! ... If convergence is not reached in some cell
 ! ... start a new external sweep.
@@ -306,14 +315,10 @@
 !
         WRITE(6,700) (time+dt)
         WRITE(6,*) 'convergence on proc ',mpime,' : ', ALL(converge)
-        IF (.NOT.ALL(converge)) WRITE(6,*) 'cells not converged (ijk,i,j,k): '
+        IF (.NOT.ALL(converge)) WRITE(6,*) 'cells not converged (imesh,i,j,k): '
         DO ijk = 1, ncint
           IF (.NOT.converge(ijk)) THEN
-            imesh = myijk( ip0_jp0_kp0_, ijk)
-	    i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
-            j = MOD( imesh - 1, nx*ny ) / nx + 1
-            k = ( imesh - 1 ) / ( nx*ny ) + 1
-            WRITE(6,*) ijk, i, j, k
+            WRITE(6,*) imesh, i, j, k
           END IF
         END DO
  700    FORMAT('max number of iterations reached at time: ', F8.3)
@@ -531,12 +536,12 @@
       SUBROUTINE betas(cnv, abt, ijk)
 ! 
       USE dimensions
-      USE convective_fluxes, ONLY: upc_e, upc_n, upc_t
-      USE convective_fluxes, ONLY: upc_w, upc_s, upc_b
+      USE convective_mass_fluxes, ONLY: upc_e, upc_n, upc_t
+      USE convective_mass_fluxes, ONLY: upc_w, upc_s, upc_b
       USE eos_gas, ONLY: rags
       USE gas_constants, ONLY: gammaair
       USE gas_solid_density, ONLY: rog, rgp
-      USE grid, ONLY: fl_l
+      USE grid, ONLY: fl_l, meshinds
       USE grid, ONLY: dx, dy, dz
       USE grid, ONLY: ncint, myijk
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -558,11 +563,8 @@
 !
       REAL*8, PARAMETER :: delg=1.D-8
 !
-          imesh = myijk( ip0_jp0_kp0_, ijk)
           CALL subscr(ijk)
-          i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
-	  j = MOD( imesh - 1, nx*ny ) / nx + 1
-	  k = ( imesh - 1 ) / ( nx*ny ) + 1
+          CALL meshinds(ijk,imesh,i,j,k)
 
           dxp=dx(i)+dx(i+1)
           dxm=dx(i)+dx(i-1)
@@ -585,42 +587,42 @@
           nflt=fl_l(ijkp)
           nflb=fl_l(ijkm)
 
-          IF( (nfle /= 1) .AND. (nfle /= 4) .AND. (nfle /= 6) ) THEN
+          IF( (nfle /= 1) .AND. (nfle /= 4) ) THEN
             iep_e = 0.D0
           ELSE
             iep_e = ( dx(i+1)*ep(ijk)+dx(i)*ep(ijke))*indxp*indxp*2.D0
             iep_e = iep_e * upc_e
           END IF
 
-          IF( (nflw /= 1) .AND. (nflw /= 4) .AND. (nflw /= 6) ) THEN
+          IF( (nflw /= 1) .AND. (nflw /= 4) ) THEN
             iep_w = 0.D0
           ELSE
             iep_w = ( dx(i-1)*ep(ijk)+dx(i)*ep(ijkw) )*indxm*indxm*2.D0 
             iep_w = iep_w * upc_w
           END IF
 !
-          IF( (nfln /= 1) .AND. (nfln /= 4) .AND. (nfln /= 6) ) THEN 
+          IF( (nfln /= 1) .AND. (nfln /= 4) ) THEN 
             iep_n = 0.0D0
           ELSE
             iep_n = ( dy(j+1)*ep(ijk)+dy(j)*ep(ijkn) )*indyp*indyp*2.D0 
             iep_n = iep_n * upc_n 
           END IF
 
-          IF( (nfls /= 1) .AND. (nfls /= 4) .AND. (nfls /= 6) ) THEN
+          IF( (nfls /= 1) .AND. (nfls /= 4) ) THEN
             iep_s = 0.D0
           ELSE
             iep_s = ( dy(j-1)*ep(ijk)+dy(j)*ep(ijks) )*indym*indym*2.D0
             iep_s = iep_s * upc_s
           END IF
 !
-          IF( (nflt /= 1) .AND. (nflt /= 4) .AND. (nflt /= 6) ) THEN 
+          IF( (nflt /= 1) .AND. (nflt /= 4) ) THEN 
             iep_t = 0.0D0
           ELSE
             iep_t = ( dz(k+1)*ep(ijk)+dz(k)*ep(ijkt) )*indzp*indzp*2.D0 
             iep_t = iep_t * upc_t 
           END IF
 
-          IF( (nflb /= 1) .AND. (nflb /= 4) .AND. (nflb /= 6) ) THEN
+          IF( (nflb /= 1) .AND. (nflb /= 4) ) THEN
             iep_b = 0.D0
           ELSE
             iep_b = ( dz(k-1)*ep(ijk)+dz(k)*ep(ijkb) )*indzm*indzm*2.D0

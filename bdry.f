@@ -600,7 +600,7 @@
 !
 ! ... This routine computes the free in/outflow conditions in the boundary
 ! ... cell, i.e. the normal component of the velocity and the scalar fields
-! ... for East, North and Top boundaries
+! ... for /// E a s t , N o r t h, T o p /// boundaries
 
       USE atmosphere, ONLY: atm
       USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
@@ -786,7 +786,7 @@
 !
 ! ... This routine computes the free in/outflow conditions in the boundary
 ! ... cell, i.e. the normal component of the velocity and the scalar fields
-! ... for West and South boundaries
+! ... for /// W e s t,  S o u t h ///  boundaries
 
       USE atmosphere, ONLY: atm
       USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
@@ -952,6 +952,13 @@
 !
       RETURN
       END SUBROUTINE outinflow
+!-----------------------------------------------------------------------
+!      SUBROUTINE continuous_outflow(u,v,w,p,rho)
+! ... This routine computes continuous outflow conditions (zero
+! ... gradients for single-fluid (gas) simulations.
+! ... This procedure is suited for low-Mach number regimes
+! ... (incompressible flow)
+!      END SUBROUTINE continuous_outflow
 !-----------------------------------------------------------------------
       END MODULE boundary_conditions
 !-----------------------------------------------------------------------

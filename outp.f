@@ -448,7 +448,7 @@
 
 !----------------------------------------------------------------------
 
-      SUBROUTINE outp_bin
+      SUBROUTINE outp
 !
       USE dimensions, ONLY: nsolid
       USE eos_gas, ONLY: xgc
@@ -471,7 +471,7 @@
       CHARACTER*4 :: letter
 !
       INTEGER :: ig,is
-      LOGICAL :: lform = .FALSE.
+      LOGICAL :: lform = .TRUE.
       REAL*8, ALLOCATABLE :: otmp(:)
 !
       nfil=nfil+1
@@ -479,8 +479,13 @@
 
       IF( mpime == root ) THEN
 
-        OPEN(UNIT=12,FORM='UNFORMATTED',FILE=filnam)
-        WRITE(12) REAL(time,4)
+        IF (lform) THEN
+          OPEN(UNIT=12,FILE=filnam)
+          WRITE(12,*) time
+        ELSE 
+          OPEN(UNIT=12,FORM='UNFORMATTED',FILE=filnam)
+          WRITE(12) REAL(time,4)
+        END IF
  
       END IF
 !
@@ -494,7 +499,7 @@
         CALL write_array( 12, vg, sgl, lform ) !  REAL(gas_velocity_y,4)
         CALL write_array( 12, wg, sgl, lform ) !  REAL(gas_velocity_z,4)
       ELSE
-        CALL error('outp_bin','Unknown job type',1)
+        CALL error('outp_','Unknown job type',1)
       END IF
 
       CALL write_array( 12, tg, sgl, lform )  ! gas_temperature
@@ -535,7 +540,7 @@
       END IF
 !
       RETURN
-      END SUBROUTINE outp_bin
+      END SUBROUTINE outp
 !-----------------------------------------------------------------------
       END MODULE output_dump
 !----------------------------------------------------------------------

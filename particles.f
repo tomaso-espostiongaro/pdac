@@ -20,7 +20,7 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE bounds_part_constants
+      SUBROUTINE allocate_part_constants
       USE dimensions
 !
       ALLOCATE(dk(nsolid), dkm1(nsolid), rl(nsolid), rlm1(nsolid),      &

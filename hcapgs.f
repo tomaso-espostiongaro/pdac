@@ -11,18 +11,7 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE bounds_hcapgs
-      USE dimensions
-!
-      ALLOCATE(gc_specific_heat(ngas,ntot))
-      ALLOCATE(solid_specific_heat(nsolid,ntot))
-      gc_specific_heat = 0.0d0
-      solid_specific_heat = 0.0d0
-
-      RETURN
-      END SUBROUTINE bounds_hcapgs
-!----------------------------------------------------------------------
-      SUBROUTINE local_bounds_hcapgs
+      SUBROUTINE allocate_hcapgs
       USE dimensions
       USE grid, ONLY: ncint
 !
@@ -30,7 +19,7 @@
       ALLOCATE(ck(nsolid,ncint))
 !
       RETURN
-      END SUBROUTINE local_bounds_hcapgs
+      END SUBROUTINE allocate_hcapgs
 !----------------------------------------------------------------------
       SUBROUTINE hcapg(cpc, tg)
 !----------------------------------------------------------------------

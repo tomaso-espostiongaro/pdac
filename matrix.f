@@ -14,7 +14,7 @@
 !--------------------------------------------------------------------
       CONTAINS
 !--------------------------------------------------------------------
-      SUBROUTINE bounds_matrix
+      SUBROUTINE allocate_matrix
       USE dimensions
       IMPLICIT NONE
 !
@@ -36,8 +36,7 @@
       SUBROUTINE mats(ijk)
 !
 ! ... Computes matrix elements to solve momentum-balance 
-! ... linear system of coupled equations, in current cell and in
-! ... west, south and bottom cells 
+! ... linear system of coupled equations on every cell face
 !
       USE dimensions
       USE gas_solid_density, ONLY: rgp, rlk
@@ -49,7 +48,7 @@
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE set_indexes, ONLY: ijke, ijkn, ijkt, ijkw, ijks, ijkb
       USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
-      USE tilde_momentum, ONLY: appu, appv,  appw
+      USE tilde_momentum, ONLY: appu, appv, appw
       USE time_parameters, ONLY: dt
 
       IMPLICIT NONE
@@ -228,8 +227,7 @@
       SUBROUTINE mats_3phase(ijk)
 !
 ! ... Computes matrix elements to solve momentum-balance 
-! ... linear system of coupled equations, in current cell and in
-! ... west, south and bottom cells 
+! ... linear system of coupled equations in every cell face
 !
       USE dimensions
       USE gas_solid_density, ONLY: rgp, rlk
@@ -440,7 +438,7 @@
       SUBROUTINE mats2(ijk)
 !
 ! ... Computes matrix elements to solve momentum-balance 
-! ... linear system of coupled equations in current cell
+! ... linear system of coupled equations on east, north, and top faces
 !
       USE dimensions
       USE gas_solid_density, ONLY: rgp, rlk

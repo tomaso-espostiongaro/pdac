@@ -24,18 +24,7 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE bounds_turbo
-      USE dimensions
-      IMPLICIT NONE
-!
-      ALLOCATE(smag_factor(ntot))
-      ALLOCATE(smag_coeff(ntot))
-      smag_factor = 0.0D0
-      smag_coeff = 0.0D0
-      RETURN
-      END SUBROUTINE
-!----------------------------------------------------------------------
-      SUBROUTINE local_bounds_turbo
+      SUBROUTINE allocate_turbo
       USE dimensions
       IMPLICIT NONE
 !
@@ -56,6 +45,7 @@
 !
 ! ... sets the Smagorinsky turbulence length scale
 ! ... and the roughness length
+! ... (2D/3D-Compliant, except roughness model)
 !
         USE dimensions, ONLY: nr, nz, no, nx, ny
         USE grid, ONLY: iob, myijk
@@ -65,69 +55,72 @@
         USE indijk_module, ONLY: ip0_jp0_kp0_
 !
         INTEGER :: i, j, k, i1, i2, j2, n, ijk, imesh
-        REAL*8  :: sl, sgsl0, zsgsl, zrou, sgslb
+        REAL*8  :: sl, sgsl, zsgs, zrou, rghl
         REAL*8 :: delt
 
-        INTEGER, DIMENSION(:), ALLOCATABLE :: jt, it
+        INTEGER, DIMENSION(:), ALLOCATABLE :: kt, it
         REAL*8,  DIMENSION(:), ALLOCATABLE :: zbt
 !
+! ... define topographic profile function zbt
         IF( iturb == 2 ) THEN
-          ALLOCATE( jt( MAX(nr,1) ), it( MAX(nr,1) ), zbt( MAX(nr,1) ) )
           IF( job_type == '2D' ) THEN
-! ... define topographic profile function zbt(i)
-            it = 0; jt = 0
+            ALLOCATE( kt(nr), it(nr), zbt(nr) )
+            it = 0; kt = 0
             zbt = 0.D0
             DO n=1,no
               IF( iob(n)%typ == 3 ) THEN
                 it(iob(n)%rlo : iob(n)%rhi) = 1
-                jt(iob(n)%rlo : iob(n)%rhi)  = iob(n)%zhi
+                kt(iob(n)%rlo : iob(n)%rhi)  = iob(n)%zhi
                 zbt(iob(n)%rlo : iob(n)%rhi) = zb( iob(n)%zhi )
               ENDIF
             END DO
+          ELSE IF( job_type == '3D' ) THEN
+            CALL error(' turbulence setup',' 3D DEM interface required',1)
           END IF
         END IF
 !
         IF( job_type == '2D' ) THEN
 
-          DO j = 2, (nz-1)
+          DO k = 2, (nz-1)
             DO i = 2, (nr-1) 
-              ijk = i+(j-1)*nr
-              delt = DSQRT( dz(j)*dr(i) )
+              ijk = i + (k-1) * nr
+              delt = DSQRT( dz(k)*dr(i) )
+
               IF ( iturb == 1 ) THEN
                 sl = cmut * delt
               ELSE IF ( iturb == 2 ) THEN
-                IF( j <= jt(i) ) THEN
+                IF( k <= kt(i) ) THEN
                   sl = 0.D0
                 ELSE
-                  sgsl0 = cmut * delt
+                  sgsl = cmut * delt
                   IF( it(i) == 1 ) THEN
-                    zsgsl = zb(j)-zbt(i)-dz(j)*0.5D0
+                    zsgs = zb(k) - ( zbt(i) + dz(k)*0.5D0 )
                     IF( zrough%ir == 1 ) THEN
                       zrou = zrough%r(1)
-                    ELSE
+                    ELSE IF( zrough%ir == 2 ) THEN
                       IF( rb(i) <= zrough%roucha ) THEN
                         zrou = zrough%r(1)
                       ELSE
                         zrou = zrough%r(2)
                       ENDIF
                     ENDIF
-                    sgslb=0.4D0*(zsgsl+zrou)
+                    rghl = 0.4D0 * ( zsgs + zrou )
 !
 ! ... use the smallest between the smag length and the roughness length
 
-                    sl = dmin1(sgsl0,sgslb)
+                    sl = DMIN1(sgsl,rghl)
                   ELSE
-                    sl = sgsl0
+                    sl = sgsl
                   ENDIF
                 ENDIF
               ENDIF
 !
 ! ... Squared turbulence length scale is used into Smagorinsky model
-
-              smag_factor(ijk) = sl**2
+              smag(ijk) = sl**2
 !
             END DO
           END DO
+          IF( iturb == 2 ) DEALLOCATE(kt, it, zbt)
 
         ELSE IF( job_type == '3D' ) THEN
 
@@ -141,27 +134,25 @@
             IF ( iturb == 1 ) THEN
                sl = cmut * delt
             ELSE IF ( iturb == 2 ) THEN
-               CALL error( ' turbo_setup ' , ' undefined 3D roughness ', 1 )
+               CALL error( ' turbo_setup',' undefined 3D roughness ', 1 )
             END IF
 
-            ! ... Squared turbulence length scale is used into Smagorinsky model
-
+! ... Squared turbulence length scale is used into Smagorinsky model
             smag( ijk ) = sl**2
 
           END DO
 
         END IF
-        IF( iturb == 2 ) DEALLOCATE(jt, it, zbt)
 
       RETURN
       END  SUBROUTINE turbulence_setup
-
 !----------------------------------------------------------------------
       SUBROUTINE sgsg
 
 ! ... Sub Grid Stress (Gas)
 ! ... compute (dynamic) Smagorinsky coefficient , turbulent viscosity and 
 ! ... turbulent conductivity in the center of the cell.
+! ... (2D-3D-Compliant, dynamic model only computed in 3D)
 
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nx, ny, nz
@@ -189,7 +180,7 @@
       ALLOCATE(modsr(ncdom));     modsr = 0.0D0
       IF (modturbo == 2) THEN
         IF (job_type == '2D') CALL error('sgsg',  &
-                    'Dynamic Smagorinsky model applies only to 3D', 1 ) 
+          'Dynamic Smagorinsky model applies only to 3D', 1 ) 
         ALLOCATE(p11(ncdom))  ;     p11 = 0.0D0
         ALLOCATE(p12(ncdom))  ;     p12 = 0.0D0
         ALLOCATE(p22(ncdom))  ;     p22 = 0.0D0
@@ -208,10 +199,10 @@
       END IF
 !
       CALL data_exchange(ug)
-      CALL data_exchange(vg)
       CALL data_exchange(wg)
+      IF (job_type == '3D') CALL data_exchange(vg)
 !
-      IF (modturbo == 2) THEN
+      IF (modturbo == 2 .AND. job_type == '3D' ) THEN
         DO ijk = 1, ncint
           IF(fl_l(ijk) == 1) THEN
             CALL subscr(ijk)
@@ -256,10 +247,6 @@
       DO ijk = 1, ncint
         IF(fl_l(ijk) == 1) THEN
           CALL subscr(ijk)
-          imesh = myijk( ip0_jp0_kp0_, ijk)
-          i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
-          j = MOD( ijk - 1, nx*ny ) / nx + 1
-          k = ( ijk - 1 ) / ( nx*ny ) + 1
 !
           IF(modturbo == 1) THEN
 	  
@@ -271,11 +258,18 @@
 	     END IF
 
           ELSE IF(modturbo == 2) THEN
+
+            imesh = myijk( ip0_jp0_kp0_, ijk)
+            i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
+            j = MOD( ijk - 1, nx*ny ) / nx + 1
+            k = ( ijk - 1 ) / ( nx*ny ) + 1
 !
-! ... Dynamic computation of the Smagorinsky length scale (Germano et al., 1991)
+! ... Dynamic computation of the Smagorinsky length scale (Germano et al., 1990)
 !
              CALL strain3d(fug, fvg, fwg, fmodsr, fsr11, fsr12, fsr22, &
 	                 fsr13, fsr23, fsr33, ijk)
+!
+! ... compute the local stencils and filter 
 !
              CALL rnb(sp11,p11,ijk)
              fp11 = filter_3d(sp11)
@@ -313,6 +307,7 @@
              m23 = (4.D0*fmodsr*fsr23 - fp23)
              m33 = (4.D0*fmodsr*fsr33 - fp33)
 !              
+! ... mesh filter length
              delt = ( dz(k)*dy(j)*dx(i) )**(1.0d0/3.0d0)
 !
              num = l11*m11 + l22*m22 + l33*m33 + &
@@ -322,12 +317,14 @@
 	                        2.D0*m12**2.D0 + 2.D0*m13**2.D0 + 2.D0*m23**2.D0 )
 !
              IF(den == 0.0D0) THEN
-              cdyn = 0.0D0
-              ELSE 
-              cdyn = 0.5D0*num/den 
+               cdyn = 0.0D0
+             ELSE 
+               cdyn = 0.5D0 * num / den 
              END IF
 !
+! ... squared Smagorinsky length scale
              smag(ijk) = cdyn * (delt**2.D0)
+
           END IF
 !
 ! ... Smagorinsky turbulent viscosity
@@ -461,6 +458,8 @@
       END FUNCTION filter_3d
 !----------------------------------------------------------------------
       SUBROUTINE sgss
+! ... Computes the sub-grid-stress for solids (Gidaspow, 1994)
+! ... (2D-3D-Compliant)
 !
       USE dimensions
       USE gas_solid_density, ONLY: rlk
@@ -471,19 +470,18 @@
       USE control_flags, ONLY: job_type
       IMPLICIT NONE
 !
-      INTEGER :: ijk, is, imesh
+      INTEGER :: ijk, is
       REAL*8 :: modsr, sr11,sr12,sr22,sr13,sr23,sr33
 !
       CALL data_exchange(us)
-      CALL data_exchange(vs)
       CALL data_exchange(ws)
+      IF (job_type == '3D') CALL data_exchange(vs)
 !
       DO ijk = 1, ncint
-        imesh = myijk( ip0_jp0_kp0_, ijk)
-        IF(fl_l(ijk).EQ.1) THEN
+        IF(fl_l(ijk) == 1) THEN
          CALL subscr(ijk)
 !
-         DO is=1,nsolid
+         DO is = 1, nsolid
            IF (job_type == '2D') THEN
              CALL strain2d(us(:,is), ws(:,is), modsr, ijk)
            ELSE IF (job_type == '3D') THEN
@@ -491,8 +489,8 @@
                            modsr,sr11,sr12,sr22,sr13,sr23,sr33, ijk)
            END IF
 !
-           must(ijk,is) = 0.5*DSQRT(2.D0) * cmus(is) * rl(is) * dk(is)**2 *   &
-     &                 10.D0**(3.98D0*rlk(ijk,is)*inrl(is)-1.69D0) * modsr
+           must(ijk,is) = 0.5D0*DSQRT(2.D0) * cmus(is) * rl(is) * dk(is)**2.D0 * &
+                          10.D0**(3.98D0*rlk(ijk,is)*inrl(is)-1.69D0) * modsr
          END DO
         END IF
       END DO
@@ -500,7 +498,7 @@
       RETURN
       END SUBROUTINE
 !-----------------------------------------------------------------------
-      SUBROUTINE strain3d(u, v, w, modsr,sr11,sr12,sr22,sr13,sr23,sr33, ijk)
+      SUBROUTINE strain3d(u, v, w, modsr, sr11,sr12,sr22,sr13,sr23,sr33, ijk)
 !
 ! ... here computes the components of the gas strain rate tensor and its module.
 
@@ -601,11 +599,10 @@
 !
         sr1 = (u(ij)-u(imj))*indr(i)
         sr2 = (w(ij)-w(ijm))*indz(j)
-!
         
 ! ... extra-term for cylindrical coordinates
 !
-        IF(itc.EQ.1) THEN
+        IF(itc == 1) THEN
           d33 = (u(ij)+u(imj))*inr(i)
         ELSE
           d33 = 0.D0
@@ -624,7 +621,8 @@
 
         sr12 =((um2-um1)*indz(j)+(wm2-wm1)*indr(i))*0.5D0
 !        
-        modsr = DSQRT(2 * (sr1**2 + sr2**2 + 2*sr12**2 + d33**2) )
+        modsr = DSQRT(2.D0 * (sr1**2.D0 + sr2**2.D0 + 2.D0 * sr12**2.D0 +   &
+                              d33**2.D0) )
 !
       RETURN
       END SUBROUTINE strain2d

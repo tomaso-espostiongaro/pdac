@@ -11,17 +11,7 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE bounds_temperature
-      USE dimensions
-      IMPLICIT NONE
-!
-      ALLOCATE(gas_enthalpy(ntot), gas_temperature(ntot))
-      ALLOCATE(solid_enthalpy(ntot,nsolid), solid_temperature(ntot,nsolid))
-!
-      RETURN
-      END SUBROUTINE
-!----------------------------------------------------------------------
-      SUBROUTINE local_bounds_temperature
+      SUBROUTINE allocate_temperature
       USE dimensions
       USE grid, ONLY: ncdom, ncint
       IMPLICIT NONE

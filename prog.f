@@ -17,12 +17,12 @@
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE io_restart, ONLY: tapewr
       USE iterative_solver, ONLY: iter
-      USE output_dump, ONLY: outp_2d, outp_3d, outp_bin
+      USE output_dump, ONLY: outp_2d, outp_3d, outp
       USE particles_constants, ONLY: cps
       USE pressure_epsilon, ONLY: p, ep
       USE reactions, ONLY: rexion, irex
       USE tilde_energy, ONLY: htilde
-      USE tilde_momentum, ONLY: tilde, fieldn
+      USE tilde_momentum, ONLY: tilde3D, tilde2D, fieldn
       USE time_parameters, ONLY: time, tpr, tdump, tstop, dt, itd
       USE time_parameters, ONLY: rungekut
       USE turbulence_model, ONLY: iturb, iss
@@ -102,6 +102,7 @@
            DO is=1,nsolid
              CALL eosl(ts(ijk,is),ck(is,ijk),cps(is),sies(ijk,is),1,1)
            END DO
+
         END DO
 !
        END IF
@@ -110,20 +111,10 @@
 !
 ! ... Write OUTPUT file
 !
-       IF( job_type == '2D' ) THEN
-         IF(time+0.1D0*dt >= tpri) THEN
-           CALL outp_2d
-           tpri=tpri+tpr
-         ENDIF
-       ELSE IF( job_type == '3D' ) THEN
-         IF(time+0.1D0*dt >= tpri) THEN
-           CALL outp_bin
-!           CALL outp_3d
-           tpri=tpri+tpr
-         ENDIF
-       ELSE
-         CALL error(' prog ',' wrong job_type ',1)
-       END IF
+       IF(time+0.1D0*dt >= tpri) THEN
+         CALL outp
+         tpri=tpri+tpr
+       ENDIF
 
               IF( timing ) s3 = cpclock()
 !
@@ -168,13 +159,19 @@
 !
 ! ... Momentum fluxes, gas-particle drag, particle-particle interaction
 !
-           CALL tilde
+           IF( job_type == '2D' ) THEN
+             CALL tilde2D
+           ELSE IF( job_type == '3D' ) THEN
+             CALL tilde3D
+           END IF
 
                 IF( timing ) s6 = cpclock()
 !
 ! ... Iterative solver for momentum-mass pressure coupling
 ! ... and explicit solver for interphase coupling
 !
+                     IF( job_type == '2D' ) CALL error('prog','2D routines not implemented!',1)
+         
            CALL iter
 !
                 IF( timing ) s7 = cpclock()

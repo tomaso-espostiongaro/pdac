@@ -61,7 +61,7 @@
       SUBROUTINE input( iunit )
 
       USE atmosphere, ONLY: w0, u0, p0, temp0, us0, ws0, ep0, epsmx0, gravx, gravz
-      USE convective_fluxes, ONLY: beta, muscl, lmtr
+      USE flux_limiters, ONLY: beta, muscl
       USE gas_constants, ONLY: default_gas
       USE grid, ONLY: dx, dy, dz, dr, itc, mesh_partition
       USE iterative_solver, ONLY: inmax, maxout, omega
@@ -73,8 +73,7 @@
       USE reactions, ONLY: irex
       USE roughness_module, ONLY: zrough, allocate_roughness, roughness
       USE initial_conditions, ONLY: setup, epsob, wpob, tpob, ygc0, &
-     &    ygcob, upob, wgob, ugob, pob, tgob, epob, lpr, zzero, &
-     &    bounds_setup
+     &    ygcob, upob, wgob, ugob, pob, tgob, epob, lpr, zzero
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut
       USE turbulence_model, ONLY: iturb, cmut, iss, modturbo
@@ -95,7 +94,7 @@
       NAMELIST / particles / nsolid, diameter, density, sphericity, &
         viscosity, specific_heat, thermal_conductivity
 !
-      NAMELIST / numeric / rungekut, beta, muscl, lmtr, inmax, maxout, omega
+      NAMELIST / numeric / rungekut, beta, muscl, inmax, maxout, omega
 !
       INTEGER :: i, j, k, n, m, ig
       CHARACTER(LEN=80) :: card
@@ -155,8 +154,7 @@
 
       rungekut = 1
       beta = 0.25
-      muscl = 0.0
-      lmtr = 0.0
+      muscl = 0
       inmax = 8
       maxout = 1000
       omega = 1.0
@@ -251,8 +249,7 @@
 
       CALL bcast_integer(rungekut,1,root)
       CALL bcast_real(beta,1,root)
-      CALL bcast_real(muscl,1,root)
-      CALL bcast_real(lmtr,1,root)
+      CALL bcast_integer(muscl,1,root)
       CALL bcast_integer(inmax,1,root)
       CALL bcast_integer(maxout,1,root)
       CALL bcast_real(omega,1,root)
@@ -290,14 +287,14 @@
           END IF
         END DO mesh_search
 
-        IF( job_type == '3D' ) THEN
+        IF( job_type == '2D' ) THEN
+          READ(5,*) (delta_r(i),i=1,nr)
+        ELSE IF( job_type == '3D' ) THEN
           READ(5,*) (delta_x(i),i=1,nx)
           READ(5,*) (delta_y(j),j=1,ny)
-          READ(5,*) (delta_z(j),j=1,nz)
-        ELSE IF( job_type == '2D' ) THEN
-          READ(5,*) (delta_r(i),i=1,nr)
-          READ(5,*) (delta_z(j),j=1,nz)
         END IF
+        READ(5,*) (delta_z(k),k=1,nz)
+
         IF (iuni == 0) THEN
           delta_r = dr0
           delta_x = dx0

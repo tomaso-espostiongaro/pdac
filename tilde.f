@@ -27,14 +27,16 @@
 !----------------------------------------------------------------------
 ! ... Compute explicitly and store all fields and physical parameters
 ! ... at time ndt
+! ... (2D-3D-Compliant)
 !
+      USE control_flags, ONLY: job_type
       USE dimensions
       USE eos_gas, ONLY: rgpgc, rgpgcn, xgc
       USE gas_solid_density, ONLY: rgp, rgpn, rlk, rlkn
       USE gas_solid_temperature, ONLY: sieg, siegn, sies, siesn, tg
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_viscosity, ONLY: viscon, mug, kapg
-      USE grid, ONLY: dz, dy, dx, fl_l
+      USE grid, ONLY: dr, dz, dy, dx, fl_l
       USE grid, ONLY: indx, indy, indz
       USE grid, ONLY: ncint, myijk, ncdom, data_exchange
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -45,8 +47,9 @@
       SAVE
 !
       REAL*8 :: dxp, dyp, dzp, indxp, indyp, indzp
+      REAL*8 :: drp, indrp
       REAL*8 :: rgp_e, rgp_n, rgp_t, rlk_e, rlk_n, rlk_t
-      INTEGER :: i, j, k, ijk, imesh, is, ig
+      INTEGER :: i, j, k, ij, ijk, imesh, is, ig
 !
       IF (ALLOCATED(rugn)) DEALLOCATE(rugn)
       IF (ALLOCATED(rvgn)) DEALLOCATE(rvgn)
@@ -62,65 +65,114 @@
       CALL data_exchange(rgp)
       CALL data_exchange(rlk)
 !
-      DO ijk = 1, ncint
-       imesh = myijk( ip0_jp0_kp0_,ijk)
-!       IF(fl_l(ijk) == 1) THEN
-         CALL subscr(ijk)
-         i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
-         j = MOD( imesh - 1, nx*ny ) / nx + 1
-         k = ( imesh - 1 ) / ( nx*ny ) + 1
+      IF (job_type == '3D') THEN
+
+        DO ijk = 1, ncint
+         imesh = myijk( ip0_jp0_kp0_,ijk)
+!         IF(fl_l(ijk) == 1) THEN
+           CALL subscr(ijk)
+           i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
+           j = MOD( imesh - 1, nx*ny ) / nx + 1
+           k = ( imesh - 1 ) / ( nx*ny ) + 1
 !
-         dxp=dx(i)+dx(i+1)
-         dyp=dy(j)+dy(j+1)
-         dzp=dz(k)+dz(k+1)
-         indxp=1.D0/dxp
-         indyp=1.D0/dyp
-         indzp=1.D0/dzp
+           dxp=dx(i)+dx(i+1)
+           dyp=dy(j)+dy(j+1)
+           dzp=dz(k)+dz(k+1)
+           indxp=1.D0/dxp
+           indyp=1.D0/dyp
+           indzp=1.D0/dzp
 !
-         rgp_e = (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke))*indxp
-         rgp_n = (dy(j+1)*rgp(ijk)+dy(j)*rgp(ijkn))*indyp
-         rgp_t = (dz(k+1)*rgp(ijk)+dz(k)*rgp(ijkt))*indzp
+           rgp_e = (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke))*indxp
+           rgp_n = (dy(j+1)*rgp(ijk)+dy(j)*rgp(ijkn))*indyp
+           rgp_t = (dz(k+1)*rgp(ijk)+dz(k)*rgp(ijkt))*indzp
 !
-         rugn(ijk)  = rgp_e * ug(ijk)
-         rvgn(ijk)  = rgp_n * vg(ijk)
-         rwgn(ijk)  = rgp_t * wg(ijk)
+           rugn(ijk)  = rgp_e * ug(ijk)
+           rvgn(ijk)  = rgp_n * vg(ijk)
+           rwgn(ijk)  = rgp_t * wg(ijk)
 !
-         pn(ijk)    = p(ijk)
-         rgpn(ijk)  = rgp(ijk)
-         siegn(ijk) = sieg(ijk)
-         DO ig=1,ngas
-           rgpgcn(ijk,ig) = rgpgc(ijk,ig)
-         END DO
+           pn(ijk)    = p(ijk)
+           rgpn(ijk)  = rgp(ijk)
+           siegn(ijk) = sieg(ijk)
+           DO ig=1,ngas
+             rgpgcn(ijk,ig) = rgpgc(ijk,ig)
+           END DO
 !
-         DO is = 1, nsolid
-          rlk_e = (rlk(ijk,is)*dx(i+1)+rlk(ijke,is)*dx(i))*indxp
-          rlk_n = (rlk(ijk,is)*dy(j+1)+rlk(ijkn,is)*dy(j))*indyp
-          rlk_t = (rlk(ijk,is)*dz(k+1)+rlk(ijkt,is)*dz(k))*indzp
+           DO is = 1, nsolid
+            rlk_e = (rlk(ijk,is)*dx(i+1)+rlk(ijke,is)*dx(i))*indxp
+            rlk_n = (rlk(ijk,is)*dy(j+1)+rlk(ijkn,is)*dy(j))*indyp
+            rlk_t = (rlk(ijk,is)*dz(k+1)+rlk(ijkt,is)*dz(k))*indzp
 !
-          rusn(ijk,is)  = rlk_e * us(ijk,is)
-          rvsn(ijk,is)  = rlk_n * vs(ijk,is)
-          rwsn(ijk,is)  = rlk_t * ws(ijk,is)
+            rusn(ijk,is)  = rlk_e * us(ijk,is)
+            rvsn(ijk,is)  = rlk_n * vs(ijk,is)
+            rwsn(ijk,is)  = rlk_t * ws(ijk,is)
 !
-          rlkn(ijk,is)  = rlk(ijk,is)
-          siesn(ijk,is) = sies(ijk,is)
-         END DO
+            rlkn(ijk,is)  = rlk(ijk,is)
+            siesn(ijk,is) = sies(ijk,is)
+           END DO
+
+!         END IF
+        END DO
+
+      ELSE IF (job_type == '2D') THEN
+
+        DO ij = 1, ncint
+         imesh = myijk( ip0_jp0_kp0_,ij)
+!         IF(fl_l(ij) == 1) THEN
+           CALL subscr(ij)
+           j = ( ij - 1 ) / nr + 1
+           i = MOD( ( ij - 1 ), nr) + 1
+!
+           drp=dr(i)+dr(i+1)
+           dzp=dz(j)+dz(j+1)
+           indrp=1.D0/drp
+           indzp=1.D0/dzp
+!
+           rgp_e = (dr(i+1)*rgp(ij)+dr(i)*rgp(ijr))*indrp
+           rgp_t = (dz(j+1)*rgp(ij)+dz(j)*rgp(ijt))*indzp
+!
+           rugn(ij)  = rgp_e * ug(ij)
+           rwgn(ij)  = rgp_t * wg(ij)
+!
+           pn(ij)    = p(ij)
+           rgpn(ij)  = rgp(ij)
+           siegn(ij) = sieg(ij)
+           DO ig=1,ngas
+             rgpgcn(ij,ig) = rgpgc(ij,ig)
+           END DO
+!
+           DO is = 1, nsolid
+            rlk_e = (rlk(ij,is)*dr(i+1)+rlk(ijr,is)*dr(i))*indrp
+            rlk_t = (rlk(ij,is)*dz(j+1)+rlk(ijt,is)*dz(j))*indzp
+!
+            rusn(ij,is)  = rlk_e * us(ij,is)
+            rwsn(ij,is)  = rlk_t * ws(ij,is)
+!
+            rlkn(ij,is)  = rlk(ij,is)
+            siesn(ij,is) = sies(ij,is)
+           END DO
+
+!         END IF
+        END DO
+
+      END IF 
 !
 ! ... Compute the temperature-dependent gas viscosity and th. conductivity
 !
-         CALL viscon(mug(ijk), kapg(ijk), xgc(:,ijk), tg(ijk))
-!	
-!       END IF
+      DO ijk = 1, ncint
+        CALL viscon(mug(ijk), kapg(ijk), xgc(:,ijk), tg(ijk))
       END DO
 !
       RETURN
       END SUBROUTINE fieldn
 !----------------------------------------------------------------------
-      SUBROUTINE tilde
+      SUBROUTINE tilde3D
 !
       USE atmosphere, ONLY: gravz
       USE grid, ONLY: fl_l
       USE dimensions
-      USE convective_fluxes, ONLY: flu, flv, flw
+      USE convective_fluxes_u, ONLY: flu
+      USE convective_fluxes_v, ONLY: flv
+      USE convective_fluxes_w, ONLY: flw
       USE gas_solid_density, ONLY: rog, rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: dx, dy, dz
@@ -426,7 +478,251 @@
       CALL data_exchange(rws)
 !
       RETURN
-      END SUBROUTINE tilde
+      END SUBROUTINE tilde3D
+!----------------------------------------------------------------------
+      SUBROUTINE tilde2D
+!
+      USE atmosphere, ONLY: gravz
+      USE grid, ONLY: fl_l
+      USE dimensions
+      USE convective_fluxes_u, ONLY: flu
+      USE convective_fluxes_w, ONLY: flw
+      USE gas_solid_density, ONLY: rog, rgp, rlk
+      USE gas_solid_velocity, ONLY: ug, wg, us, ws
+      USE grid, ONLY: dr, dz, r, rb
+      USE grid, ONLY: indr, indz, inrb, inr
+      USE momentum_transfer, ONLY: kdrags, inter
+      USE pressure_epsilon, ONLY: ep, p
+      USE time_parameters, ONLY: dt
+      USE turbulence_model, ONLY: iss, iturb
+      USE gas_solid_viscosity, ONLY: viscg, viscs
+      USE gas_solid_viscosity, ONLY: mug
+      USE gas_solid_viscosity, ONLY: gvisx, gvisz, pvisx, pvisz
+      USE grid, ONLY: ncint, myijk, ncdom, data_exchange
+      USE indijk_module, ONLY: ip0_jp0_kp0_
+      USE set_indexes, ONLY: subscr, imj, ijm, ijt
+      USE set_indexes, ONLY: stencil, nb, rnb
+!
+      IMPLICIT NONE
+      SAVE
+!
+      INTEGER :: i, j, is, imesh
+      INTEGER :: ij
+      REAL*8 :: drp, dzp, indrp, indzp
+      REAL*8 :: ugfw, ugfs, wgfw, wgfs
+      REAL*8 :: ugfx, ugfz, wgfx, wgfz
+      REAL*8 :: usfw, usfs, wsfw, wsfs
+      REAL*8 :: usfx, usfz, wsfx, wsfz
+      REAL*8 :: dugs, zero, dwgs
+      REAL*8, DIMENSION(:), ALLOCATABLE  :: nul
+      TYPE(stencil) :: u, w, dens
+!
+      ALLOCATE(gvisx(ncint), gvisz(ncint))
+      ALLOCATE(pvisx(ncint,nsolid), pvisz(ncint,nsolid))
+      gvisx = 0.D0; gvisz = 0.D0
+      pvisx = 0.D0; pvisz = 0.D0
+
+      IF (iturb == 0) THEN
+        CALL data_exchange(ug)
+        CALL data_exchange(wg)
+      END IF
+      IF (iss == 0) THEN
+        CALL data_exchange(us)
+        CALL data_exchange(ws)
+      END IF
+      CALL data_exchange(ep)
+!
+! ... Calculate gvisx, and gvisz (gas viscous stress tensor).
+!
+      CALL viscg        
+!
+! ... Calculate pvisx, and pvisz (particles viscous stress tensor).
+!
+      CALL viscs
+
+!         CALL error('tilde','debug',1)
+!
+! ... Allocate and initialize local arrays (gas).
+!
+      ALLOCATE(rug(ncdom),  rwg(ncdom))
+      ALLOCATE(ugfe(ncdom), ugfn(ncdom))
+      ALLOCATE(wgfe(ncdom), wgfn(ncdom))
+
+      rug = 0.0D0
+      rwg = 0.0D0
+      ugfe = 0.0D0; ugfn = 0.0D0
+      ugfw = 0.0D0; ugfs = 0.0D0
+      wgfe = 0.0D0; wgfn = 0.0D0
+      wgfw = 0.0D0; wgfs = 0.0D0
+!
+! ... Allocate and initialize local arrays (particles).
+!
+      ALLOCATE(rus(ncdom,nsolid),  rws(ncdom,nsolid))
+      ALLOCATE(usfe(ncdom,nsolid), usfn(ncdom,nsolid))
+      ALLOCATE(wsfe(ncdom,nsolid), wsfn(ncdom,nsolid))
+
+      rus = 0.0D0
+      rws = 0.0D0
+      usfe = 0.0D0; usfn = 0.0D0
+      usfw = 0.0D0; usfs = 0.0D0
+      wsfe = 0.0D0; wsfn = 0.0D0
+      wsfw = 0.0D0; wsfs = 0.0D0
+!
+! ... Allocate and initialize interphase terms.
+!
+      ALLOCATE(kpgv(nsolid))
+      ALLOCATE(appu(ncdom, ((nsolid+1)**2+(nsolid+1))/2),   &
+               appw(ncdom, ((nsolid+1)**2+(nsolid+1))/2))
+      ALLOCATE(nul(((nsolid+1)**2+(nsolid+1))/2))
+
+      kpgv = 0.0D0
+      appu = 0.0D0
+      appw = 0.0D0
+!
+! ... Compute fluxes on East, North sides of a cell
+! ... in the whole computational domain.
+!
+      DO ij = 1, ncint
+        IF(fl_l(ij) == 1) THEN
+          CALL subscr(ij)
+          CALL nb(dens,rgp,ij)
+          CALL rnb(u,ug,ij)
+          CALL rnb(w,wg,ij)
+!
+          CALL flu(ugfe(ij), ugfn(ij),                  &
+                   ugfe(imj), ugfn(ijm), dens, u, w, ij)
+          CALL flw(wgfe(ij), wgfn(ij),                   &
+                   wgfe(imj), wgfn(ijm), dens, u, w, ij)
+!
+          DO is = 1, nsolid
+            CALL nb(dens,rlk(:,is),ij)
+            CALL rnb(u,us(:,is),ij)
+            CALL rnb(w,ws(:,is),ij)
+!
+            CALL flu(usfe(ij,is), usfn(ij,is),                     &
+                     usfe(imj,is), usfn(ijm,is), dens, u, w, ij)
+            CALL flw(wsfe(ij,is), wsfn(ij,is),                     &
+                     wsfe(imj,is), wsfn(ijm,is), dens, u, w, ij)
+!
+          END DO
+        END IF         
+      END DO
+!
+      CALL data_exchange(ugfe)
+      CALL data_exchange(ugfn)
+      CALL data_exchange(wgfe)
+      CALL data_exchange(wgfn)
+
+      CALL data_exchange(usfe)
+      CALL data_exchange(usfn)
+      CALL data_exchange(wsfe)
+      CALL data_exchange(wsfn)
+!
+! ... fluxes on West, South sides keep values 
+! ... of East, North fluxes from neighbouring cells.
+!
+      DO ij = 1, ncint
+        imesh = myijk( ip0_jp0_kp0_, ij)
+        IF(fl_l(ij) == 1) THEN
+          j = ( ij - 1 ) / nr + 1
+          i = MOD( ( ij - 1 ), nr) + 1
+          CALL subscr(ij)
+!
+          drp=dr(i)+dr(i+1)
+          dzp=dz(j)+dz(j+1)
+          indrp=1.D0/drp
+          indzp=1.D0/dzp
+!
+! ... West, South fluxes (gas)
+!
+          ugfw = ugfe(imj)
+          ugfs = ugfn(ijm)
+          wgfw = wgfe(imj)
+          wgfs = wgfn(ijm)
+!
+! ... compute explicit (tilde) terms in the momentum equation (gas)
+! 
+          ugfx = ugfe(ij) - ugfw
+          ugfz = ugfn(ij) - ugfs
+!
+          rug(ij) = rugn(ij) + dt * gvisx(ij)                     &
+     &      - dt * indrp * 2.D0 * ugfx * inrb(i)                  &
+     &      - dt * indz(j) * ugfz   
+!
+          wgfx = wgfe(ij) - wgfw
+          wgfz = wgfn(ij) - wgfs
+!
+          rwg(ij) = rwgn(ij) + dt * gvisz(ij)                         &
+     &      + dt * (dz(j+1)*rgp(ij)+dz(j)*rgp(ijt)) * indzp * gravz   &
+     &      - dt * indr(i) * inr(i) * wgfx                            &
+     &      - dt * indzp * 2.D0 * wgfz
+!
+! ... same procedure carried out for particulate phases
+!
+          DO is = 1, nsolid
+!
+! ... West, South fluxes (particles)
+! 
+            usfw = usfe(imj,is)
+            usfs = usfn(ijm,is)
+            wsfw = wsfe(imj,is)
+            wsfs = wsfn(ijm,is)
+!
+! ... compute explicit (tilde) terms in the momentum equation (particles)
+! 
+              usfx = usfe(ij,is) - usfw
+              usfz = usfn(ij,is) - usfs
+!
+              rus(ij,is) = rusn(ij,is) + dt * pvisx(ij,is)           &
+     &         - dt * indrp * 2.D0 * usfx * inrb(i)                  &
+     &         - dt * indz(j)* usfz                           
+!
+              wsfx = wsfe(ij,is) - wsfw
+              wsfz = wsfn(ij,is) - wsfs
+!
+              rws(ij,is) = rwsn(ij,is) + dt * pvisz(ij,is)                    &
+     &         + dt * (rlk(ij,is)*dz(j+1)+rlk(ijt,is)*dz(j)) * indzp * gravz  &
+     &         - dt * indr(i) * inr(i) * wsfx                                 &
+     &         - dt * indzp * 2.D0 * wsfz                          
+!
+! ... Compute the gas-particle drag coefficients
+!
+            dugs = ( (ug(ij)-us(ij,is)) + (ug(imj)-us(imj,is)) )*0.5D0
+            dwgs = ( (wg(ij)-ws(ij,is)) + (wg(ijm)-ws(ijm,is)) )*0.5D0
+            zero = 0.D0
+
+            CALL kdrags(kpgv(is), dugs, zero, dwgs, ep(ij),         &
+                        rgp(ij), rlk(ij,is), mug(ij), is)                  
+          END DO 
+!
+! ... Compute the particle-particle coefficients and the interphase matrix
+!
+          CALL inter(appu(ij,:), nul(:), appw(ij,:), kpgv(:),    &
+     &               us, us, ws, rlk, ij)
+!
+        END IF
+      END DO
+!
+      DEALLOCATE(ugfe, ugfn)
+      DEALLOCATE(wgfe, wgfn)
+      DEALLOCATE(gvisx, gvisz)
+!
+      DEALLOCATE(usfe, usfn)
+      DEALLOCATE(wsfe, wsfn)
+      DEALLOCATE(pvisx, pvisz)
+!
+      DEALLOCATE(kpgv)
+      DEALLOCATE(nul)
+!
+      CALL data_exchange(appu)
+      CALL data_exchange(appw)
+      CALL data_exchange(rug)
+      CALL data_exchange(rwg)
+      CALL data_exchange(rus)
+      CALL data_exchange(rws)
+!
+      RETURN
+      END SUBROUTINE tilde2D
 !----------------------------------------------------------------------
       END MODULE tilde_momentum
 !----------------------------------------------------------------------

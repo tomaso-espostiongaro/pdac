@@ -13,18 +13,20 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE bounds_setup
+      SUBROUTINE allocate_setup
       USE dimensions
       IMPLICIT NONE
 !
        ALLOCATE(ugob(no), vgob(no), wgob(no), pob(no), epob(no), tgob(no))
-       ALLOCATE(upob(nsolid,no), vpob(nsolid,no), wpob(nsolid,no), epsob(nsolid,no), tpob(nsolid,no))
+       ALLOCATE(upob(nsolid,no), vpob(nsolid,no), wpob(nsolid,no),        &
+                epsob(nsolid,no), tpob(nsolid,no))
        ALLOCATE(ygc0(ngas))
        ALLOCATE(ygcob(ngas,no))
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
       SUBROUTINE setup
+! ... (2D/3D_Compliant)
 !
       USE atmosphere, ONLY: u0, v0, w0, p0, temp0, us0, vs0, ws0, ep0
       USE atmosphere, ONLY: atm, controlatm
@@ -47,177 +49,137 @@
 
       IMPLICIT NONE
 !
-      INTEGER :: i, j, k, ijk, ikpr, kpr, ij, n, imesh
+      INTEGER :: i, j, k, ijk, ikpr, kpr, n, imesh
       INTEGER :: ig, is
       REAL*8 :: zrif, prif, trif
 !
       CALL grid_setup( zzero )
       CALL setc
 !
+! ... set initial conditions from prescribed input data
+!
       IF (itd <= 1) THEN
-
 !
-! ... Set initial ambient pressure and temperature within computational domain
-! ... and boundary cells
+! ... Control that atmospheric stratification is consistent
+        CALL controlatm
 !
-        IF( job_type == '2D' ) THEN
+! ... Set initial atmospheric conditions in all computational 
+! ... domain (including boundary cells)
+!
+        DO ijk = 1, ncint
+          imesh = myijk( ip0_jp0_kp0_ , ijk )
 
-          CALL controlatm
-
-          DO ij = 1, ncint
-
-            imesh = myijk( ip0_jp0_kp0_ , ij )
-            j = ( imesh - 1 ) / nr + 1
+          IF( job_type == '2D' ) THEN
+            k = ( imesh - 1 ) / nr + 1
             i = MOD( ( imesh - 1 ), nr) + 1
-
-            zrif=zb(j)+0.5D0*(dz(1)-dz(j))
-            CALL controlatm
-            CALL atm( zrif, p(ij), tg(ij) )
-!
-! ... Set initial gas composition and particles concentration
-!
-            ep(ij)=ep0
-            DO ig=1,ngas
-              ygc(ig,ij)=ygc0(ig)
-            END DO
-            DO is=1,nsolid
-              rlk(ij,is)=rl(is)*(1.D0-ep0)/DBLE(nsolid)
-              ts(ij,is)=tg(ij)
-            END DO
-!
-! ... Set velocity profiles
-!
-            IF(fl_l(ij) == 1 .OR. fl_l(ij) == 4 .OR. fl_l(ij) == 6) THEN
-             ug(ij)=u0
-             wg(ij)=w0
-             DO is=1,nsolid
-               us(ij,is)=us0
-               ws(ij,is)=ws0
-             END DO
-            END IF
-!
-          END DO
-
-        ELSE IF ( job_type == '3D' ) THEN
-
-          CALL controlatm
-
-          DO ijk = 1, ncint
-
-            imesh = myijk( ip0_jp0_kp0_ , ijk )
+          ELSE IF( job_type == '3D' ) THEN
             i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
             j = MOD( imesh - 1, nx*ny ) / nx + 1
             k = ( imesh - 1 ) / ( nx*ny ) + 1
-
-            zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )
-            CALL atm( zrif, prif, trif )
-
-            p( ijk ) = prif   !   gas_pressure
-            tg( ijk ) = trif  !   gas_temperature
-            ep( ijk ) = ep0   !   void_fraction
-
-            DO ig=1,ngas
-              ygc(ig,ijk)=ygc0(ig)  ! gc_mass_fraction
-            END DO
-!
-! ... Set initial gas composition and particles concentration
-!
-            DO is=1,nsolid
-              rlk(ijk,is)=rl(is)*(1.D0-ep0)/DBLE(nsolid)  ! solid_bulk_density
-              ts(ijk,is)=tg(ijk) ! solid_temperature
-            END DO
-!
-! ... Set velocity profiles
-!
-            IF( fl_l(ijk) == 1 .OR. fl_l(ijk) == 4 .OR. fl_l(ijk) == 6 ) THEN
-              ug(ijk)=u0  ! gas_velocity_x
-              vg(ijk)=v0
-              wg(ijk)=w0
-              DO is = 1, nsolid
-                us(ijk,is) = us0  ! solid_velocity_x
-                vs(ijk,is) = vs0
-                ws(ijk,is) = ws0
-              END DO
-            END IF
-
-          END DO
-
-        END IF
-! 
-! ... Set initial conditions in Boundary cells with imposed fluid flow
-!
-        DO n = 1, no
-
-          IF( job_type == '2D' ) THEN
-
-            DO ij = 1, ncint
-
-              imesh = myijk( ip0_jp0_kp0_ , ij )
-              j = ( imesh - 1 ) / nr + 1
-              i = MOD( ( imesh - 1 ), nr) + 1
-
-              IF( j >= iob(n)%zlo .AND. j <= iob(n)%zhi  ) THEN
-              IF( i >= iob(n)%rlo .AND. i <= iob(n)%rhi  ) THEN
-              IF( iob(n)%typ == 1 .OR. iob(n)%typ == 5 ) THEN
-                ug(ij)=ugob(n)
-                wg(ij)=wgob(n)
-                tg(ij)=tgob(n)
-                p(ij)=pob(n)
-                ep(ij)=epob(n)
-                DO ig=1,ngas
-                  ygc(ig,ij)=ygcob(ig,n)
-                END DO
-                DO is=1,nsolid
-                  ts(ij,is)=tpob(is,n)
-                  us(ij,is)=upob(is,n)
-                  ws(ij,is)=wpob(is,n)
-                  rlk(ij,is)=epsob(is,n)*rl(is)
-                END DO
-              END IF
-              END IF
-              END IF
-            END DO
-
-          ELSE IF( job_type == '3D' ) THEN
-
-            DO ijk = 1, ncint
-
-              imesh = myijk( ip0_jp0_kp0_ , ijk )
-              i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
-              j = MOD( imesh - 1, nx*ny ) / nx + 1
-              k = ( imesh - 1 ) / ( nx*ny ) + 1
-
-              IF(  k >= iob(n)%zlo .AND. k <= iob(n)%zhi ) THEN
-                IF( j >= iob(n)%ylo .AND. j <= iob(n)%yhi ) THEN
-                  IF( i >= iob(n)%xlo .AND. i <= iob(n)%xhi ) THEN
-          
-                    IF( iob(n)%typ == 1 .OR. iob(n)%typ == 5 ) THEN
-                      ug(ijk)=ugob(n)  ! 
-                      vg(ijk)=vgob(n)
-                      wg(ijk)=wgob(n)
-                      tg(ijk)=tgob(n)
-                      p(ijk)=pob(n)
-                      ep(ijk)=epob(n)
-                      DO ig=1,ngas
-                        ygc(ig,ijk)=ygcob(ig,n)
-                      END DO
-                      DO is=1,nsolid
-                        ts(ijk,is)=tpob(is,n)
-                        us(ijk,is)=upob(is,n)
-                        vs(ijk,is)=vpob(is,n)
-                        ws(ijk,is)=wpob(is,n)
-                        rlk(ijk,is)=epsob(is,n)*rl(is)
-                      END DO
-                    ENDIF
-
-                  END IF
-                END IF
-              END IF
-            END DO
-
           END IF
 
+          zrif=zb(k)+0.5D0*(dz(1)-dz(k))
+            
+          CALL atm( zrif, prif, trif )
+            
+          p( ijk ) = prif
+          tg( ijk ) = trif
+!
+! ... Set initial gas composition and particle concentrations
+!
+          ep(ijk) = ep0
+          DO ig = 1, ngas
+            ygc(ig,ijk) = ygc0(ig)
+          END DO
+          DO is = 1, nsolid
+            rlk(ijk,is) = rl(is)*(1.D0-ep0) / nsolid
+            ts(ijk,is)  = tg(ijk)
+          END DO
+!
+! ... Set initial velocity profiles
+!
+          IF ( fl_l(ijk) == 1 .OR. fl_l(ijk) == 4 ) THEN
+           ug(ijk) = u0
+           wg(ijk) = w0
+           DO is = 1, nsolid
+             us(ijk,is) = us0
+             ws(ijk,is) = ws0
+           END DO
+           IF ( job_type == '3D' ) THEN
+             vg(ijk) = v0
+             DO is = 1, nsolid
+               vs(ijk,is) = vs0
+             END DO
+           END IF
+          END IF
+!
         END DO
+! 
+! ... Set initial conditions in boundary cells 
+! ... with imposed fluid flow 
+!
+        DO n = 1, no
+          IF ( iob(n)%typ == 1 .OR. iob(n)%typ == 5 ) THEN
+
+            DO ijk = 1, ncint
+              imesh = myijk( ip0_jp0_kp0_ , ijk )
+ 
+              IF ( job_type == '2D' ) THEN
+                k = ( imesh - 1 ) / nr + 1
+                i = MOD( ( imesh - 1 ), nr) + 1
+
+                IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi  ) THEN
+                  IF ( i >= iob(n)%rlo .AND. i <= iob(n)%rhi  ) THEN
+                    ug(ijk) = ugob(n)
+                    wg(ijk) = wgob(n)
+                    tg(ijk) = tgob(n)
+                    p(ijk)  = pob(n)
+                    ep(ijk) = epob(n)
+                    DO ig = 1, ngas
+                      ygc(ig,ijk) = ygcob(ig,n)
+                    END DO
+                    DO is = 1,nsolid
+                      ts(ijk,is)  = tpob(is,n)
+                      us(ijk,is)  = upob(is,n)
+                      ws(ijk,is)  = wpob(is,n)
+                      rlk(ijk,is) = epsob(is,n)*rl(is)
+                    END DO
+                  END IF
+                END IF
+
+              ELSE IF ( job_type == '3D' ) THEN
+                i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
+                j = MOD( imesh - 1, nx*ny ) / nx + 1
+                k = ( imesh - 1 ) / ( nx*ny ) + 1
+
+                IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi ) THEN
+                  IF ( j >= iob(n)%ylo .AND. j <= iob(n)%yhi ) THEN
+                    IF ( i >= iob(n)%xlo .AND. i <= iob(n)%xhi ) THEN
+                      ug(ijk) = ugob(n)  ! 
+                      vg(ijk) = vgob(n)
+                      wg(ijk) = wgob(n)
+                      tg(ijk) = tgob(n)
+                      p(ijk)  = pob(n)
+                      ep(ijk) = epob(n)
+                      DO ig = 1, ngas
+                        ygc(ig,ijk) = ygcob(ig,n)
+                      END DO
+                      DO is = 1,nsolid
+                        ts(ijk,is)  = tpob(is,n)
+                        us(ijk,is)  = upob(is,n)
+                        vs(ijk,is)  = vpob(is,n)
+                        ws(ijk,is)  = wpob(is,n)
+                        rlk(ijk,is) = epsob(is,n)*rl(is)
+                      END DO
+                    ENDIF
+                  END IF
+                END IF
+
+              END IF
+            END DO 
+
+          END IF
+        END DO 
 !
 ! ... Compute thermodynamic quantities
 !
@@ -227,9 +189,13 @@
           CALL cnverts_local( ijk )
         END DO
 !
+! ... initial conditions already set from restart file
+!
       ELSE IF (itd == 2) THEN 
 !
         CONTINUE
+!
+! ... set initial conditions from OUTPUT file
 !
       ELSE IF (itd >= 3) THEN 
 
@@ -256,9 +222,7 @@
 !
       RETURN
       END SUBROUTINE setup
-
 !----------------------------------------------------------------------
-
       SUBROUTINE setc
 !
       USE dimensions
