@@ -26,7 +26,7 @@
       USE grid, ONLY: iob, flic, allocate_blbody, allocate_grid
       USE io_restart, ONLY: taperd, tapewr
       USE iterative_solver, ONLY: inmax, maxout, omega
-      USE output_dump, ONLY: nfil
+      USE control_flags, ONLY: nfil
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
      &    mpime, root
       USE particles_constants, ONLY: rl, inrl, kap, &
@@ -42,7 +42,7 @@
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut
       USE turbulence_model, ONLY: allocate_turbo
-      USE environment, ONLY: cpclock, timing
+      USE environment, ONLY: cpclock, timing, elapsed_seconds
       USE input_module
       USE control_flags, ONLY: job_type
 !
@@ -53,10 +53,14 @@
 !
       INTEGER :: inputunit, logunit, errorunit, testunit
       INTEGER :: ig
-      REAL*8 :: s0, s1, s2, s3, s4
+      REAL*8 :: s0, s1, s2, s3, s4, t0
       REAL*8 :: timtot, timprog, timdist, timsetup, timinit
       LOGICAL :: debug = .FALSE.
 !
+! ... Initialize the system clock counter    
+!
+      t0 = elapsed_seconds()
+
       IF(timing) s0 = cpclock()
 
 !
@@ -230,10 +234,10 @@
         timdist  = (s3 - s2)/1000.D0
         timsetup = (s2 - s1)/1000.D0
         timinit  = (s1 - s0)/1000.D0
-        WRITE(7,900)
-        WRITE(7,999) timinit,timsetup,timdist,timprog,timtot
-999     FORMAT(6(1X,F9.3))
-900     FORMAT('  Init      Part ',  '    Ghost      Prog      Total')
+        WRITE(7,900) 'Init', 'Part', 'Ghost', 'Prog', 'Total'
+        WRITE(7,999) timinit, timsetup, timdist, timprog, timtot
+999     FORMAT(6(1X,F10.2))
+900     FORMAT(5(1X,A10))
       END IF
 
 ! ... terminate the IBM HW performance monitor session

@@ -51,8 +51,8 @@ hvs.o : dimensions.o particles.o
 
 indijk.o : 
 
-input.o : atmosphere.o control.o decomp.o dimensions.o gas.o grid.o iter.o  \
-    limiters.o matrix.o outp.o parallel.o particles.o reactions.o  \
+input.o : atmosphere.o control.o decomp.o dimensions.o gas.o grid.o io.o  \
+    iter.o limiters.o matrix.o outp.o parallel.o particles.o reactions.o  \
     roughness.o setup.o subscr.o time.o turbo.o 
 
 io.o : control.o decomp.o dens.o dimensions.o eosg.o hcapgs.o kinds.o  \
@@ -84,7 +84,7 @@ parallel.o :
 particles.o : dimensions.o 
 
 pdac.o : atmosphere.o control.o decomp.o dens.o dimensions.o environment.o  \
-    eosg.o gas.o grid.o hcapgs.o input.o io.o iter.o matrix.o outp.o parallel.o  \
+    eosg.o gas.o grid.o hcapgs.o input.o io.o iter.o matrix.o parallel.o  \
     particles.o press.o roughness.o setup.o temp.o tilde.o time.o turbo.o  \
     velocity.o visc.o 
 

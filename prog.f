@@ -6,7 +6,7 @@
       USE dimensions
       USE domain_decomposition, ONLY: ncint, myijk
       USE enthalpy_matrix, ONLY: ftem
-      USE environment, ONLY: cpclock, timing
+      USE environment, ONLY: cpclock, timing, elapsed_seconds
       USE eos_gas, ONLY: mole, caloric_eosg, thermal_eosg
       USE eos_gas, ONLY: ygc, rgpgc, xgc, cg
       USE eos_solid, ONLY: eosl
@@ -131,6 +131,8 @@
        END IF
 
               IF( timing ) s4 = cpclock()
+
+       WRITE(6,fmt="('walltime = ',F10.2)") elapsed_seconds()
 !
 !------------------------------------------------------------ 
        IF (time + 0.1D0*dt >= tstop)     EXIT time_sweep
@@ -221,12 +223,11 @@
                 timiter = timiter / 1000.0d0
                 timygas = timygas / 1000.0d0
                 timtem = timtem / 1000.0d0
-                WRITE(7,900)
+                WRITE(7,900)'Bdry','Out','Restart','Dyn','Tilde','Iter','Ygas','Tem','Total'
                 WRITE(7,999) timbdry, timout, timrestart, tsgsg, timtilde, &
                              timiter, timygas, timtem, timtot
-900      FORMAT('  Bdry      Out       Restart   Dyn       Tilde     ',       &
-                         'Iter      Ygas      Tem       Total')
-999      FORMAT(8(1X,F9.3))
+900      FORMAT(9(1X,A10))
+999      FORMAT(9(1X,F10.2))
 
               END IF
 ! 

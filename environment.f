@@ -18,14 +18,31 @@
 !          INTEGER   :: mclock
           INTEGER   iclk, nclk
 ! ... T3E ...
-          CALL SYSTEM_CLOCK(iclk,count_rate=nclk)
+          CALL SYSTEM_CLOCK( iclk, count_rate = nclk )
           clocks_per_second = DBLE(nclk)
-          CALL SYSTEM_CLOCK(iclk)
           cpclock = DBLE(iclk) / clocks_per_second * 1000.d0
 ! ... IBM/SGI ... 
 !          cpclock = DBLE(mclock()) * 10.d0
           RETURN
         END FUNCTION
+
+! ...   This function return the walltime elapsed since the first call
+! ...   to the function itself
+        FUNCTION elapsed_seconds()
+          REAL*8 :: elapsed_seconds
+          INTEGER :: iclk, nclk
+          INTEGER, SAVE :: iclk_first = 0
+          LOGICAL, SAVE :: first = .TRUE.
+          CALL SYSTEM_CLOCK( iclk, count_rate = nclk )
+          IF( first ) THEN
+            iclk_first = iclk
+            first = .FALSE.
+          END IF
+          clocks_per_second = DBLE(nclk)
+          elapsed_seconds = DBLE( iclk - iclk_first ) / clocks_per_second
+          RETURN
+        END FUNCTION
+
 
 !---------------------------------------------------------------------
         FUNCTION DIFFCLOCK(old_clock)

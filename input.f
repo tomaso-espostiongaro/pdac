@@ -15,9 +15,6 @@
       CHARACTER(LEN=80) :: restart_mode
       INTEGER :: iuni
 
-! ... IO
-      LOGICAL :: formatted_output
-
 ! ... MESH
       REAL*8 :: delta_x(max_size)
       REAL*8 :: delta_y(max_size)
@@ -64,7 +61,10 @@
       USE gas_constants, ONLY: default_gas
       USE grid, ONLY: dx, dy, dz, itc
       USE iterative_solver, ONLY: inmax, maxout, omega
-      USE output_dump, ONLY: nfil
+      USE control_flags, ONLY: nfil
+      USE io_restart, ONLY: old_restart
+      USE output_dump, ONLY: formatted_output
+
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl, kap, &
      &     cmus, phis, cps, dk, nsolid
@@ -85,7 +85,7 @@
 
       NAMELIST / control / run_name, job_type, restart_mode, time, tstop, dt, lpr, tpr, &
         tdump, nfil, irex, iss, iturb, modturbo, cmut, rlim, gravx, gravz, &
-        ngas, default_gas, formatted_output
+        ngas, default_gas, formatted_output, old_restart
 !
       NAMELIST / mesh / nx, ny, nz, itc, iuni, dx0, dy0, dz0, &
         mesh_partition
@@ -124,6 +124,7 @@
       ngas = 7          ! number of gas phase
       default_gas = 6   ! atmosphere 
       formatted_output = .TRUE.
+      old_restart = .FALSE.
 
 ! ... Mesh
 

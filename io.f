@@ -12,13 +12,16 @@
       USE pressure_epsilon, ONLY: ep, p
       USE specific_heat_module, ONLY: cp, ck
       USE time_parameters, ONLY: time
-      USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: job_type, nfil
       USE domain_decomposition, ONLY: data_collect, data_distribute, ncint
       USE dimensions
 !
         IMPLICIT NONE
         PRIVATE
 
+        LOGICAL :: old_restart = .FALSE.
+
+        PUBLIC :: old_restart
         PUBLIC :: taperd, tapewr
         PUBLIC :: write_array, read_array
 
@@ -38,9 +41,11 @@
 !
       IF( mpime .EQ. root ) THEN
 !
+        WRITE(6,*) ' writing to restart file '
+!
         OPEN(UNIT=9,form='unformatted', FILE = restart_file)
 !
-        WRITE(9) time, nx, ny, nz, nsolid
+        WRITE(9) time, nx, ny, nz, nsolid, nfil
 
       END IF
 !
@@ -151,12 +156,27 @@
       LOGICAL :: lform = .FALSE.
 
       IF( mpime .EQ. root ) THEN
+
+        WRITE(6,*) ' reading from restart file '
 !
         OPEN(UNIT=9,form='unformatted',FILE='pdac.res')
-        READ(9) time, nx_, ny_, nz_, nsolid_
+
+        IF( old_restart ) THEN
+          READ(9) time, nx_, ny_, nz_, nsolid_
+        ELSE
+          READ(9) time, nx_, ny_, nz_, nsolid_, nfil
+        END IF
+
+        WRITE(6,*) ' time =  ', time
+        WRITE(6,*) ' nx   =  ', nx
+        WRITE(6,*) ' ny   =  ', ny
+        WRITE(6,*) ' nz   =  ', nz
+        WRITE(6,*) ' nsolid =  ', nsolid
+        WRITE(6,*) ' nfil   =  ', nfil
 
       END IF
 
+      CALL bcast_real(time, 1, root)
       CALL bcast_integer(nx_, 1, root)
       CALL bcast_integer(ny_, 1, root)
       CALL bcast_integer(nz_, 1, root)
@@ -282,6 +302,7 @@
 
       IF( mpime .EQ. root ) THEN
         CLOSE (9)
+        WRITE(6,*) ' restart file has been read '
       END IF
 !
       RETURN

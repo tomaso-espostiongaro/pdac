@@ -3,9 +3,10 @@
 !----------------------------------------------------------------------
       USE kinds
       USE dimensions
+      USE control_flags, ONLY: nfil
       IMPLICIT NONE
-      INTEGER nfil
       SAVE
+      LOGICAL :: formatted_output
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
@@ -74,18 +75,20 @@
       USE time_parameters, ONLY: time
       USE turbulence_model, ONLY: modturbo
       USE control_flags, ONLY: job_type
-      USE input_module, ONLY: lform => formatted_output
 !
       IMPLICIT NONE
 !
       CHARACTER :: filnam*11
       CHARACTER*4 :: letter
+      LOGICAL :: lform
 !
       INTEGER :: ig,is
       REAL*8, ALLOCATABLE :: otmp(:)
 !
+    
       nfil=nfil+1
       filnam='output.'//letter(nfil)
+      lform = formatted_output
 
       IF( mpime == root ) THEN
 
