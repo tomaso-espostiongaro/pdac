@@ -1,7 +1,7 @@
 !----------------------------------------------------------------------
       MODULE volcano_topography
 !----------------------------------------------------------------------
-      USE dimensions, ONLY: nx, ny, nz, ntot
+      USE dimensions, ONLY: nx, ny, nz, ntot, no
       USE parallel, ONLY: mpime, root
 
       IMPLICIT NONE
@@ -533,8 +533,10 @@
       SUBROUTINE write_profile
       USE control_flags, ONLY: job_type
       USE grid, ONLY: x, xb, y, yb, z, zb
+      USE grid, ONLY: iob, fl, bottom
 !
       IMPLICIT NONE
+      INTEGER :: n, i, j, k, ijk
 
       OPEN(17,FILE='mesh.dat')
       WRITE(17,*) 'Georeferenced x-y mesh'
@@ -560,6 +562,34 @@
         OPEN(UNIT=14,FILE='improfile.dat',STATUS='UNKNOWN')
         WRITE(14,*) dist
         CLOSE(14)
+      END IF
+!
+! ... Control the cells below the flag = 5 blocks 
+!
+      IF( job_type == '2D') THEN
+        DO n = 1, no
+          IF (iob(n)%typ == 5) THEN
+            DO i = iob(n)%xlo, iob(n)%xhi
+              DO k = 1, iob(n)%zlo - 1
+                ijk = i + (k-1) * nx
+                fl(ijk) = bottom
+              END DO
+            END DO
+          END IF
+        END DO
+      ELSE IF (job_type == '3D') THEN
+        DO n = 1, no
+          IF (iob(n)%typ == 5) THEN
+            DO i = iob(n)%xlo, iob(n)%xhi
+              DO j = iob(n)%ylo, iob(n)%yhi
+                DO k = 1, iob(n)%zlo - 1
+                  ijk = i + (j-1) * nx + (k-1) * nx * ny
+                  fl(ijk) = bottom
+                END DO
+              END DO
+            END DO
+          END IF
+        END DO
       END IF
 !
 ! ... Deallocate all arrays in the topography module
