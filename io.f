@@ -386,6 +386,7 @@
       END IF
 
       DEALLOCATE( io_buf )
+      DEALLOCATE( io_buf_sgl )
 10    FORMAT(1x,10(1x,G14.6E3))
       RETURN
       END SUBROUTINE
