@@ -22,6 +22,10 @@ eosg.o : decomp.o dens.o dimensions.o gas.o grid.o hcapgs.o parallel.o  \
 
 eosl.o : dimensions.o gas.o hcapgs.o particles.o temp.o 
 
+filter.o : bdry.o control.o decomp.o dens.o dimensions.o environment.o  \
+    eosg.o eosl.o ftem.o grid.o hcapgs.o htilde.o indijk.o io.o iter.o outp.o  \
+    particles.o press.o reactions.o temp.o tilde.o time.o turbo.o ygas.o 
+
 flux_m.o : decomp.o dimensions.o grid.o indijk.o limiters.o subscr.o time.o 
 
 flux_sc.o : decomp.o dimensions.o grid.o indijk.o limiters.o subscr.o time.o 
@@ -53,9 +57,8 @@ hvs.o : dimensions.o particles.o
 indijk.o : 
 
 input.o : atmosphere.o control.o decomp.o dimensions.o gas.o grid.o io.o  \
-    iter.o limiters.o matrix.o outp.o  \
-    parallel.o particles.o reactions.o roughness.o setup.o subscr.o time.o  \
-    turbo.o visc.o 
+    iter.o limiters.o matrix.o outp.o parallel.o particles.o reactions.o  \
+    roughness.o setup.o subscr.o time.o turbo.o visc.o 
 
 io.o : control.o decomp.o dens.o dimensions.o eosg.o hcapgs.o kinds.o  \
     parallel.o press.o temp.o time.o velocity.o 
@@ -76,6 +79,8 @@ limiters.o :
 matrix.o : control.o decomp.o dens.o dimensions.o grid.o indijk.o  \
     particles.o press.o subscr.o tilde.o time.o velocity.o 
 
+matsvels_solve.o : 
+
 nondim.o : atmosphere.o decomp.o dimensions.o gas.o grid.o indijk.o  \
     particles.o time.o 
 
@@ -90,12 +95,15 @@ pdac.o : decomp.o dens.o dimensions.o environment.o eosg.o gas.o grid.o  \
     hcapgs.o input.o io.o matrix.o parallel.o particles.o press.o roughness.o  \
     setup.o temp.o tilde.o time.o turbo.o velocity.o visc.o 
 
+pp.o : decomp.o dens.o dimensions.o environment.o eosg.o gas.o grid.o  \
+    hcapgs.o input.o io.o matrix.o parallel.o particles.o press.o roughness.o  \
+    setup.o temp.o tilde.o time.o turbo.o velocity.o visc.o 
+
 press.o : decomp.o dimensions.o 
 
 prog.o : bdry.o control.o decomp.o dens.o dimensions.o environment.o eosg.o  \
-    eosl.o ftem.o grid.o hcapgs.o htilde.o indijk.o io.o iter.o  \
-    outp.o particles.o press.o reactions.o temp.o  \
-    tilde.o time.o turbo.o ygas.o 
+    eosl.o ftem.o grid.o hcapgs.o htilde.o indijk.o io.o iter.o outp.o  \
+    particles.o press.o reactions.o temp.o tilde.o time.o turbo.o ygas.o 
 
 reactions.o : decomp.o dimensions.o grid.o indijk.o time.o 
 
@@ -117,6 +125,8 @@ tilde.o : atmosphere.o control.o decomp.o dens.o dimensions.o drag.o eosg.o  \
     visc.o 
 
 time.o : 
+
+transto.o : 
 
 turbo.o : control.o decomp.o dens.o dimensions.o environment.o eosg.o grid.o  \
     indijk.o particles.o roughness.o subscr.o velocity.o 

@@ -20,6 +20,10 @@
       REAL*8 :: delta_y(max_size)
       REAL*8 :: delta_z(max_size)
 
+      REAL*8 :: origin_x
+      REAL*8 :: origin_y
+      REAL*8 :: origin_z
+
 ! ... FIXED_FLOWS
       INTEGER :: number_of_block
       INTEGER :: block_type(max_nblock)
@@ -49,10 +53,22 @@
       REAL*8 :: initial_vpart_y
       REAL*8 :: initial_vpart_z
       REAL*8 :: initial_gasconc(max_ngas) ! initial gas concentration (for each specie)
+
+      INTEGER :: iuni_nml = 20
+      INTEGER :: iuni_fld = 21
+      INTEGER :: iuni_grx = 22
+      INTEGER :: iuni_gry = 23
+      INTEGER :: iuni_grz = 24
+
+! ... POST PROCESSING
+      INTEGER :: first_out = 1
+      INTEGER :: last_out = 1
+      INTEGER :: incr_out = 1
+
 !-----------------------------------------------------------------------
      CONTAINS
 !-----------------------------------------------------------------------
-      SUBROUTINE input( iunit )
+      SUBROUTINE input( iunit, which )
 
       USE atmosphere, ONLY: w0, u0, p0, temp0, us0, ws0, ep0, epsmx0, gravx, gravz
       USE control_flags, ONLY: nfil, job_type
@@ -81,15 +97,18 @@
       IMPLICIT NONE
  
       INTEGER, INTENT(IN) :: iunit
+      CHARACTER(LEN=2) :: which
 
       NAMELIST / control / run_name, job_type, restart_mode,       &
         time, tstop, dt, lpr, tpr, tdump, nfil, irex,              &
         gas_viscosity, part_viscosity, iss, iturb, modturbo, cmut, &
         rlim, gravx, gravz, ngas, default_gas,                     &
         formatted_output, old_restart, max_seconds
+
+      NAMELIST / pp / first_out, last_out, incr_out
 !
       NAMELIST / mesh / nx, ny, nz, itc, iuni, dx0, dy0, dz0, &
-        mesh_partition
+        origin_x, origin_y, origin_z, mesh_partition
 !
       NAMELIST / particles / nsolid, diameter, density, sphericity, &
         viscosity, specific_heat, thermal_conductivity
@@ -97,6 +116,7 @@
       NAMELIST / numeric / rungekut, beta, muscl, lim_type, inmax, maxout, omega
 !
       INTEGER :: i, j, k, n, m, ig
+      REAL*8 :: grx, gry, grz
       CHARACTER(LEN=80) :: card
       LOGICAL :: tend
 !
@@ -141,6 +161,9 @@
       dz0  = 10.D0            !  default cell z size in meters
       dx0  = 10.D0            !  default cell x size in meters
       dy0  = 10.D0            !  default cell y size in meters
+      origin_x  = 0.D0        !  default x coo. of the system origin
+      origin_y  = 0.D0        !  default y coo. of the system origin
+      origin_z  = 0.D0        !  default z coo. of the system origin
       zzero = 0.0D0           !  grid bottom level
 
 ! ... Particles
@@ -167,8 +190,21 @@
 ! reading of input file
 !
 
+      IF( which == 'PP' ) THEN 
+        IF( mpime == root ) THEN
+          OPEN( UNIT=iuni_nml, FILE='pdac.nml', STATUS='UNKNOWN')
+          OPEN( UNIT=iuni_grx, FILE='pdac.grx', STATUS='UNKNOWN')
+          OPEN( UNIT=iuni_gry, FILE='pdac.gry', STATUS='UNKNOWN')
+          OPEN( UNIT=iuni_grz, FILE='pdac.grz', STATUS='UNKNOWN')
+          OPEN( UNIT=iuni_fld, FILE='pdac.fld', STATUS='UNKNOWN')
+        END IF
+      END IF
+
       IF(mpime == root) THEN
         READ(iunit, control) 
+        IF( which == 'PP' ) THEN
+          WRITE(iuni_nml, control) 
+        END IF
       END IF
 !
       CALL bcast_character(run_name,80,root)
@@ -221,6 +257,9 @@
 
       IF(mpime == root) THEN
         READ(iunit, mesh) 
+        IF( which == 'PP' ) THEN
+          WRITE(iuni_nml, mesh) 
+        END IF
       END IF
 
       CALL bcast_integer(nx,1,root)
@@ -231,10 +270,16 @@
       CALL bcast_real(dx0,1,root)
       CALL bcast_real(dy0,1,root)
       CALL bcast_real(dz0,1,root)
+      CALL bcast_real(origin_x,1,root)
+      CALL bcast_real(origin_y,1,root)
+      CALL bcast_real(origin_z,1,root)
       CALL bcast_real(zzero,1,root)
 
       IF(mpime == root) THEN
         READ(iunit, particles) 
+        IF( which == 'PP' ) THEN
+          WRITE(iuni_nml, particles) 
+        END IF
       END IF
 
       CALL bcast_integer(nsolid,1,root)
@@ -251,6 +296,9 @@
 
       IF(mpime == root) THEN
         READ(iunit, numeric) 
+        IF( which == 'PP' ) THEN
+          WRITE(iuni_nml, numeric) 
+        END IF
       END IF
 
       CALL bcast_integer(rungekut,1,root)
@@ -260,6 +308,16 @@
       CALL bcast_integer(inmax,1,root)
       CALL bcast_integer(maxout,1,root)
       CALL bcast_real(omega,1,root)
+
+      IF( which == 'PP' ) THEN
+        IF(mpime == root) THEN
+          READ(iunit, pp) 
+          WRITE(iuni_nml, pp) 
+        END IF
+        CALL bcast_integer(first_out,1,root)
+        CALL bcast_integer(last_out,1,root)
+        CALL bcast_integer(incr_out,1,root)
+      END IF
 
       CALL allocate_roughness( zrough, nroughx )
       tend = .FALSE.
@@ -322,6 +380,53 @@
       CALL bcast_real(delta_x,nx,root)
       CALL bcast_real(delta_y,ny,root)
       CALL bcast_real(delta_z,nz,root)
+
+      IF(mpime == root) THEN
+
+        IF( which == 'PP' ) THEN
+
+          grx = origin_x - delta_x(1)
+          grx = grx + delta_x(1)
+          DO i = 2, nx
+            WRITE( iuni_grx, * ) grx
+            grx = grx + delta_x(i)
+          END DO
+          ! WRITE( iuni_grx, * ) grx
+  
+          gry = origin_y - delta_y(1)
+          gry = gry + delta_y(1)
+          DO i = 2, ny
+            WRITE( iuni_gry, * ) gry
+            gry = gry + delta_y(i)
+          END DO
+          ! WRITE( iuni_gry, * ) gry
+  
+          grz = origin_z - delta_z(1)
+          grz = grz + delta_z(1)
+          DO i = 2, nz
+            WRITE( iuni_grz, * ) grz
+            grz = grz + delta_z(i)
+          END DO
+          ! WRITE( iuni_grz, * ) grz
+
+          !WRITE( iuni_fld, fmt = "('# AVS field file')" )
+          !WRITE( iuni_fld, fmt = "('ndim=',I3)" ) 3
+          !WRITE( iuni_fld, fmt = "('dim1=',I3)" ) nx+1
+          !WRITE( iuni_fld, fmt = "('dim2=',I3)" ) ny+1
+          !WRITE( iuni_fld, fmt = "('dim3=',I3)" ) nz+1
+          !WRITE( iuni_fld, fmt = "('nspace=',I3)" ) 3
+          !WRITE( iuni_fld, fmt = "('veclen=',I3)" ) 3
+          !WRITE( iuni_fld, fmt = "('data=double')" )
+          !WRITE( iuni_fld, fmt = "('field=irregular')" )
+          !WRITE( iuni_fld, fmt = "('coord 1 file=pdac.grx, filetype=ascii')" )
+          !WRITE( iuni_fld, fmt = "('coord 2 file=pdac.gry, filetype=ascii')" )
+          !WRITE( iuni_fld, fmt = "('coord 3 file=pdac.grz, filetype=ascii')" )
+
+        END IF
+
+      END IF
+
+      
 
 !
 !     Read boundary conditions
@@ -436,6 +541,16 @@
       CALL bcast_real(initial_vpart_y,1,root)
       CALL bcast_real(initial_vpart_z,1,root)
       CALL bcast_real(initial_gasconc, SIZE(initial_gasconc),root)
+
+      IF( mpime == root ) THEN
+        IF( which == 'PP' ) THEN
+          CLOSE( UNIT=iuni_nml )
+          CLOSE( UNIT=iuni_fld )
+          CLOSE( UNIT=iuni_grx )
+          CLOSE( UNIT=iuni_gry )
+          CLOSE( UNIT=iuni_grz )
+        END IF
+      END IF
 
       END SUBROUTINE
 !----------------------------------------------------------------------

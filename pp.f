@@ -16,7 +16,7 @@
 #endif
 !
 !
-      PROGRAM pdac
+      PROGRAM pp
 
       USE dimensions
       USE domain_decomposition, ONLY: partition, ghost
@@ -26,9 +26,10 @@
       USE gas_solid_velocity, ONLY: allocate_velocity
       USE gas_solid_temperature, ONLY: allocate_temperature
       USE gas_solid_viscosity, ONLY: allocate_viscosity
-      USE grid, ONLY: flic, allocate_blbody, allocate_grid
-      USE initial_conditions, ONLY: setup, allocate_setup
+      USE grid, ONLY: flic, allocate_blbody, allocate_grid, grid_setup
+      USE initial_conditions, ONLY: allocate_setup, zzero, setc
       USE input_module, ONLY: input, initc, number_of_block
+      USE input_module, ONLY: first_out, last_out, incr_out
       USE io_restart, ONLY: taperd, tapewr
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
      &    mpime, root
@@ -84,9 +85,9 @@
       testunit  = 7
       errorunit = 8
       inputfile = 'pdac.dat'
-      logfile = 'pdac.log'
-      testfile = 'pdac.tst'
-      errorfile = 'pdac.err'
+      logfile = 'pp.log'
+      testfile = 'pp.tst'
+      errorfile = 'pp.err'
       errnb = errorfile//procnum(mpime)
       testnb = testfile//procnum(mpime)
       lognb = logfile//procnum(mpime)
@@ -112,7 +113,7 @@
 !
 ! ... Read Input file
 !
-      CALL input( inputunit, 'PD' )
+      CALL input( inputunit, 'PP' )
 !
 ! ... set dimensions ...
 !
@@ -124,130 +125,44 @@
       CALL allocate_grid
       CALL allocate_blbody
       CALL allocate_gas_constants
-      CALL allocate_matrix
       CALL allocate_part_constants
       CALL allocate_setup
-!
-! ... initialize input fields
-!
+
       CALL initc
-!
-! ... set start time
-      timestart = time
 !
 ! ... Set cell-type flags
 !
       CALL flic
-
-      IF (timing) then
-          s1 = cpclock()
-          call MP_WALLTIME(pt1,mpime)
-      END IF   
 !
 ! ... Domain decomposition for parallelization 
 !
       CALL partition
 
-      IF (timing) then
-          s2 = cpclock()
-          call MP_WALLTIME(pt2,mpime)
-      END IF
 !
 ! ... Setting ghost cells for parallel data exchange
 ! ... and the indexes
 !
       CALL ghost
+!
+      CALL grid_setup( zzero )
+      !CALL setc
 
-      IF (timing) then
-          s3 = cpclock()
-          call MP_WALLTIME(pt3,mpime)
-      END IF
+      CALL filter( first_out, last_out, incr_out )
 !
-! ... allocate local arrays
-!
-      CALL allocate_velocity
-      CALL allocate_momentum
-      CALL allocate_density
-      CALL allocate_press_eps
-      CALL allocate_temperature
-      CALL allocate_eosg
-      CALL allocate_viscosity
-      CALL allocate_hcapgs
-      CALL allocate_turbo
-!
-! ... Read restart file
-!
-      IF(itd == 2) THEN 
-        CALL taperd
-      ELSE IF (itd > 2) THEN
-        CALL error('setup','Output recovering not implemented',1)         
-      END IF
-
-      IF (timing) then
-          s4 = cpclock()
-          call MP_WALLTIME(pt4,mpime)
-      END IF
-!
-! ... Set initial conditions
-!
-      CALL setup
-
-      IF (timing) then
-          s5 = cpclock()
-          call MP_WALLTIME(pt5,mpime)
-      END IF
-!
-! ... Time advancement loop
-!
-      CALL prog
-!
-        IF (timing ) THEN
-          s6 = cpclock()
-          call MP_WALLTIME(pt6,mpime)
-          timtot     = (s6 - s0)/1000.D0
-          timprog    = (s6 - s5)/1000.D0
-          timsetup   = (s5 - s4)/1000.D0
-          timres     = (s4 - s3)/1000.D0
-          timghost   = (s3 - s1)/1000.D0
-          timinit    = (s1 - s0)/1000.D0
-          mptimtot   = (pt6 - pt0)
-          mptimprog  = (pt6 - pt5)          
-          mptimsetup = (pt5 - pt4)          
-          mptimres   = (pt4 - pt3)
-          mptimghost = (pt3 - pt1)         
-          mptiminit  = (pt1 - pt0)
-         
-          WRITE(7,*)' (From main) WALL TIME computed calling SYSTEM_CLOCK (s)'
-          WRITE(7,900) 'Init', 'Ghost', 'Rest', 'Setup', 'Prog', 'Total'
-          WRITE(7,999) timinit, timghost, timres, timsetup, timprog, timtot
-          WRITE(7,*)'             WALL TIME computed calling MP_WALLTIME (s)'
-          WRITE(7,900) 'Init', 'Ghost', 'Rest', 'Setup', 'Prog', 'Total'
-          WRITE(7,999) mptiminit, mptimghost, mptimres, mptimsetup, mptimprog, mptimtot
-999       FORMAT(6(1X,F10.2),/)
-900       FORMAT(6(1X,A10))
-        END IF
-
 ! ... terminate the IBM HW performance monitor session
       !call f_hpmterminate( mpime )
 
-! ... date and time
-      CALL date_and_time( values = mydate )
-      WRITE(6,110) mydate(5), mydate(6), mydate(7), mydate(3), mydate(2), mydate(1)
-110   FORMAT( ' This run ended at ', I2, ':', I2, ':', I2, 3X, 'day ', I2, &
-              ' month ', I2, ' year ', I4 )
-!
       CLOSE(5)
       IF( .NOT. debug ) CLOSE(6)
       CLOSE(7)
       CLOSE(8)
 !
 ! ... Finalize parallel environment
-!
 
       CALL parallel_hangup
 !
       STOP
 !
 !**************************************************************
-      END PROGRAM pdac
+      END PROGRAM pp
 !**************************************************************

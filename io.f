@@ -367,10 +367,7 @@
       IF( prec /= sgl .AND. prec /= dbl ) &
         CALL error(' read_array ', ' unknown precision ', prec )
 
-      IF( prec /= sgl .AND. lform ) &
-        CALL error(' read_array ', ' single precision with formatted file ', prec )
-
-      IF( prec == sgl ) THEN
+      IF( ( prec == sgl ) .AND. ( .NOT. lform ) ) THEN
         ALLOCATE( io_bufs( ntot ), STAT=ierr )
       ELSE
         ALLOCATE( io_buf( ntot ), STAT=ierr )
@@ -391,13 +388,13 @@
          END IF
       END IF
 
-      IF( prec == sgl ) THEN
+      IF( ( prec == sgl ) .AND. ( .NOT. lform ) ) THEN
         CALL data_distribute( io_bufs, array, 1, ntot )
       ELSE
         CALL data_distribute( io_buf, array, 1, ntot )
       END IF
 
-      IF( prec == sgl ) THEN
+      IF( ( prec == sgl ) .AND. ( .NOT. lform ) ) THEN
         DEALLOCATE( io_bufs )
       ELSE
         DEALLOCATE( io_buf )
