@@ -3,15 +3,15 @@
  job_type = '3D',
  restart_mode = 'from_scratch', ! ( from_scratch | restart )
  time =  0.0D0,
- tstop = 10.0D0,
- dt    = 0.0025D0,
- tpr   = 0.2D0,
- tdump = 1.0D0,
+ tstop = 300.0D0,
+ dt    = 0.01D0,
+ tpr   = 2.0D0,
+ tdump = 10.0D0,
  nfil = 0,
- formatted_output = .FALSE.,
+ formatted_output = .TRUE.,
  tau = 0.D0,
- lpr = 2,
- max_seconds = 345000.D0
+ lpr = 1,
+ max_seconds = 86000.D0
 /
 
 &model
@@ -31,20 +31,20 @@
   grigen = 1,
   center_x =  451660.D0,
   center_y = 4519280.D0,
-  domain_x = 10.D3,
-  domain_y = 10.D3,
+  domain_x = 6.D3,
+  domain_y = 6.D3,
   domain_z = 8.D3,
   alpha_x = 0.5D0,
   alpha_y = 0.5D0,
-  alpha_z = 0.125D0,
+  alpha_z = 0.12D0,
   dxmin = 20.D0,
-  dxmax = 150.D0,
+  dxmax = 100.D0,
   dymin = 20.D0,
-  dymax = 150.D0,
+  dymax = 100.D0,
   dzmin = 20.D0,
-  dzmax = 150.D0,
-  n0x = 30,
-  n0y = 30,
+  dzmax = 100.D0,
+  n0x = 25,
+  n0y = 25,
   n0z = 20,
   maxbeta = 1.1D0,
   mesh_partition = 3
@@ -63,8 +63,8 @@
 &topography
   itp = 1,
   dem_file = 'topo.dat',
-  flatten_crater = .TRUE.,
-  rim_quota = 1125.D0,
+  nocrater = .TRUE.,
+  rim_quota = 1130.D0,
   cellsize = 50.D0
 /
 
@@ -72,21 +72,21 @@
   ivent = 1,
   iali = 1,
   irand = 0,
-  vent_radius = 200.D0,
+  vent_radius = 125.D0,
   crater_radius = 1000.D0,
-  wrat = 1.1D0,
+  wrat = 1.0D0,
   u_gas = 0.D0,
   v_gas = 0.D0,
-  w_gas = 250.0D0,
-  p_gas = 1.01325D5,
-  t_gas  = 1223.15D0,
+  w_gas = 145.0D0,
+  p_gas = 88500,
+  t_gas  = 1110.D0,
   u_solid = 0.D0, 0.D0
   v_solid = 0.D0, 0.D0
-  w_solid = 250.D0, 250.D0
-  ep_solid = 0.0245D0, 0.0686D0
-  t_solid  = 1223.15D0, 1223.15D0
-  vent_H2O = 1.D0,
-  vent_Air = 0.D0
+  w_solid = 145.D0, 145.D0
+  ep_solid = 0.0012D0, 0.0034D0
+  t_solid  = 1110.D0,1110.D0,
+  vent_H2O = 0.75D0,
+  vent_Air = 0.25D0
 /
 
 &atmosphere
@@ -103,8 +103,8 @@
 /
 
 &numeric
-  rungekut = 3,
-  muscl = 1,
+  rungekut = 1,
+  muscl = 0,
   mass_limiter = 2,
   vel_limiter = 2,
   maxout = 500,
