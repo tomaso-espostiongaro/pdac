@@ -329,6 +329,7 @@
            END IF
            WRITE(testunit, fmt="( I10, 2X, F5.2, 2X, I10, 2X, F10.3)" ) &
                             n2, avloop, n1, timconv(nit)
+           CALL myflush( testunit )
          END IF
 !*******************************************************************
 

@@ -404,14 +404,12 @@
               attr = ' '
               CALL iotk_write_attr( attr, "type", "ascii" )
               CALL iotk_write_attr( attr, "linestoskip", skip )
-              WRITE( iunxml, * ) '<cfile ' // attr // ' >' // 'mesh.dat' // '</cfile>'
+              WRITE( iunxml, * ) '<cfile ' // TRIM(attr) // ' >' // 'mesh.dat' // '</cfile>'
               skip = skip + nlx 
               attr = ' '
               CALL iotk_write_attr( attr, "type", "ascii" )
               CALL iotk_write_attr( attr, "linestoskip", skip )
-              CALL iotk_write_begin( iunxml, "file", attr )
-                WRITE( iunxml, * ) "mesh.dat"
-              CALL iotk_write_end( iunxml, "file" )
+              WRITE( iunxml, * ) '<file ' // TRIM(attr) // ' >' // 'mesh.dat' // '</file>'
             CALL iotk_write_end( iunxml, "x" )
             !
             IF( ndim == 3 ) THEN
@@ -421,16 +419,12 @@
                 attr = ' '
                 CALL iotk_write_attr( attr, "type", "ascii" )
                 CALL iotk_write_attr( attr, "linestoskip", skip )
-                CALL iotk_write_begin( iunxml, "cfile", attr )
-                  WRITE( iunxml, * ) "mesh.dat"
-                CALL iotk_write_end( iunxml, "cfile" )
+                WRITE( iunxml, * ) '<cfile ' // TRIM(attr) // ' >' // 'mesh.dat' // '</cfile>'
                 skip = skip + nly
                 attr = ' '
                 CALL iotk_write_attr( attr, "type", "ascii" )
                 CALL iotk_write_attr( attr, "linestoskip", skip )
-                CALL iotk_write_begin( iunxml, "file", attr )
-                  WRITE( iunxml, * ) "mesh.dat"
-                CALL iotk_write_end( iunxml, "file" )
+                WRITE( iunxml, * ) '<file ' // TRIM(attr) // ' >' // 'mesh.dat' // '</file>'
               CALL iotk_write_end( iunxml, "y" )
             ELSE
               skip = skip + nlx
@@ -443,16 +437,12 @@
               attr = ' '
               CALL iotk_write_attr( attr, "type", "ascii" )
               CALL iotk_write_attr( attr, "linestoskip", skip )
-              CALL iotk_write_begin( iunxml, "cfile", attr )
-                WRITE( iunxml, * ) "mesh.dat"
-              CALL iotk_write_end( iunxml, "cfile" )
+              WRITE( iunxml, * ) '<cfile ' // TRIM(attr) // ' >' // 'mesh.dat' // '</cfile>'
               skip = skip + nlz
               attr = ' '
               CALL iotk_write_attr( attr, "type", "ascii" )
               CALL iotk_write_attr( attr, "linestoskip", skip )
-              CALL iotk_write_begin( iunxml, "file", attr )
-                WRITE( iunxml, * ) "mesh.dat"
-              CALL iotk_write_end( iunxml, "file" )
+              WRITE( iunxml, * ) '<file ' // TRIM(attr) // ' >' // 'mesh.dat' // '</file>'
             CALL iotk_write_end( iunxml, "z" )
             ! 
           CALL iotk_write_end( iunxml, "structure" )
@@ -465,9 +455,7 @@
               !
               attr = ' '
               CALL iotk_write_attr( attr, "type", "ascii" )
-              CALL iotk_write_begin( iunxml, "file", attr )
-                WRITE( iunxml, * ) "improfile.dat"
-              CALL iotk_write_end( iunxml, "file" )
+              WRITE( iunxml, * ) '<file ' // TRIM(attr) // ' >' // 'improfile.dat' // '</file>'
               !
             CALL iotk_write_end( iunxml, "profile" )
             !
@@ -479,10 +467,8 @@
             CALL iotk_write_begin( iunxml, "scalar", attr )
               attr = ' '
               CALL iotk_write_attr( attr, "type", filetype )
-              CALL iotk_write_attr( attr, "linestoskip", skip )
-              CALL iotk_write_begin( iunxml, "file", attr )
-                WRITE( iunxml, * ) "output"
-              CALL iotk_write_end( iunxml, "file" )
+              CALL iotk_write_attr( attr, "charstoskip", skip )
+              WRITE( iunxml, * ) '<file ' // TRIM(attr) // ' >' // 'output' // '</file>'
             CALL iotk_write_end( iunxml, "scalar" )
             !
             ! Gas velocities
@@ -494,30 +480,24 @@
               CALL iotk_write_begin( iunxml, "x")
                 attr = ' '
                 CALL iotk_write_attr( attr, "type", filetype )
-                CALL iotk_write_attr( attr, "linestoskip", skip )
-                CALL iotk_write_begin( iunxml, "file", attr )
-                  WRITE( iunxml, * ) "output"
-                CALL iotk_write_end( iunxml, "file" )
+                CALL iotk_write_attr( attr, "charstoskip", skip )
+                WRITE( iunxml, * ) '<file ' // TRIM(attr) // ' >' // 'output' // '</file>'
               CALL iotk_write_end( iunxml, "x")
               IF( ndim == 3 ) THEN
                 skip = skip + skip_block
                 CALL iotk_write_begin( iunxml, "y")
                   attr = ' '
                   CALL iotk_write_attr( attr, "type", filetype )
-                  CALL iotk_write_attr( attr, "linestoskip", skip )
-                  CALL iotk_write_begin( iunxml, "file", attr )
-                    WRITE( iunxml, * ) "output"
-                  CALL iotk_write_end( iunxml, "file" )
+                  CALL iotk_write_attr( attr, "charstoskip", skip )
+                  WRITE( iunxml, * ) '<file ' // TRIM(attr) // ' >' // 'output' // '</file>'
                 CALL iotk_write_end( iunxml, "y")
               END IF
               skip = skip + skip_block
               CALL iotk_write_begin( iunxml, "z")
                 attr = ' '
                 CALL iotk_write_attr( attr, "type", filetype )
-                CALL iotk_write_attr( attr, "linestoskip", skip )
-                CALL iotk_write_begin( iunxml, "file", attr )
-                  WRITE( iunxml, * ) "output"
-                CALL iotk_write_end( iunxml, "file" )
+                CALL iotk_write_attr( attr, "charstoskip", skip )
+                WRITE( iunxml, * ) '<file ' // TRIM(attr) // ' >' // 'output' // '</file>'
               CALL iotk_write_end( iunxml, "z")
             CALL iotk_write_end( iunxml, "staggered" )
             !
@@ -529,10 +509,8 @@
             CALL iotk_write_begin( iunxml, "scalar", attr )
               attr = ' '
               CALL iotk_write_attr( attr, "type", filetype )
-              CALL iotk_write_attr( attr, "linestoskip", skip )
-              CALL iotk_write_begin( iunxml, "file", attr )
-                WRITE( iunxml, * ) "output"
-              CALL iotk_write_end( iunxml, "file" )
+              CALL iotk_write_attr( attr, "charstoskip", skip )
+              WRITE( iunxml, * ) '<file ' // TRIM(attr) // ' >' // 'output' // '</file>'
             CALL iotk_write_end( iunxml, "scalar" )
             !
             ! Gas Components
@@ -545,10 +523,8 @@
               CALL iotk_write_begin( iunxml, "scalar", attr )
                 attr = ' '
                 CALL iotk_write_attr( attr, "type", filetype )
-                CALL iotk_write_attr( attr, "linestoskip", skip )
-                CALL iotk_write_begin( iunxml, "file", attr )
-                  WRITE( iunxml, * ) "output"
-                CALL iotk_write_end( iunxml, "file" )
+                CALL iotk_write_attr( attr, "charstoskip", skip )
+                WRITE( iunxml, * ) '<file ' // TRIM(attr) // ' >' // 'output' // '</file>'
               CALL iotk_write_end( iunxml, "scalar" )
             END DO
             !
@@ -565,10 +541,8 @@
               CALL iotk_write_begin( iunxml, "scalar", attr )
                 attr = ' '
                 CALL iotk_write_attr( attr, "type", filetype )
-                CALL iotk_write_attr( attr, "linestoskip", skip )
-                CALL iotk_write_begin( iunxml, "file", attr )
-                  WRITE( iunxml, * ) "output"
-                CALL iotk_write_end( iunxml, "file" )
+                CALL iotk_write_attr( attr, "charstoskip", skip )
+                WRITE( iunxml, * ) '<file ' // TRIM(attr) // ' >' // 'output' // '</file>'
               CALL iotk_write_end( iunxml, "scalar" )
               !
               ! Solid Velocities
@@ -581,30 +555,24 @@
                 CALL iotk_write_begin( iunxml, "x")
                   attr = ' '
                   CALL iotk_write_attr( attr, "type", filetype )
-                  CALL iotk_write_attr( attr, "linestoskip", skip )
-                  CALL iotk_write_begin( iunxml, "file", attr )
-                    WRITE( iunxml, * ) "output"
-                  CALL iotk_write_end( iunxml, "file" )
+                  CALL iotk_write_attr( attr, "charstoskip", skip )
+                  WRITE( iunxml, * ) '<file ' // TRIM(attr) // ' >' // 'output' // '</file>'
                 CALL iotk_write_end( iunxml, "x")
                 IF( ndim == 3 ) THEN
                   skip = skip + skip_block
                   CALL iotk_write_begin( iunxml, "y")
                     attr = ' '
                     CALL iotk_write_attr( attr, "type", filetype )
-                    CALL iotk_write_attr( attr, "linestoskip", skip )
-                    CALL iotk_write_begin( iunxml, "file", attr )
-                      WRITE( iunxml, * ) "output"
-                    CALL iotk_write_end( iunxml, "file" )
+                    CALL iotk_write_attr( attr, "charstoskip", skip )
+                    WRITE( iunxml, * ) '<file ' // TRIM(attr) // ' >' // 'output' // '</file>'
                   CALL iotk_write_end( iunxml, "y")
                 END IF
                 skip = skip + skip_block
                 CALL iotk_write_begin( iunxml, "z")
                   attr = ' '
                   CALL iotk_write_attr( attr, "type", filetype )
-                  CALL iotk_write_attr( attr, "linestoskip", skip )
-                  CALL iotk_write_begin( iunxml, "file", attr )
-                    WRITE( iunxml, * ) "output"
-                  CALL iotk_write_end( iunxml, "file" )
+                  CALL iotk_write_attr( attr, "charstoskip", skip )
+                  WRITE( iunxml, * ) '<file ' // TRIM(attr) // ' >' // 'output' // '</file>'
                 CALL iotk_write_end( iunxml, "z")
               CALL iotk_write_end( iunxml, "staggered" )
               !
@@ -617,10 +585,8 @@
               CALL iotk_write_begin( iunxml, "scalar", attr )
                 attr = ' '
                 CALL iotk_write_attr( attr, "type", filetype )
-                CALL iotk_write_attr( attr, "linestoskip", skip )
-                CALL iotk_write_begin( iunxml, "file", attr )
-                  WRITE( iunxml, * ) "output"
-                CALL iotk_write_end( iunxml, "file" )
+                CALL iotk_write_attr( attr, "charstoskip", skip )
+                WRITE( iunxml, * ) '<file ' // TRIM(attr) // ' >' // 'output' // '</file>'
               CALL iotk_write_end( iunxml, "scalar" )
               !
             END DO
@@ -634,10 +600,13 @@
         CALL iotk_write_attr( attr, "timestart", rsgl )
         rsgl = dt
         CALL iotk_write_attr( attr, "timescale", rsgl )
+        CALL iotk_write_attr( attr, "start", first_out )
+        CALL iotk_write_attr( attr, "stride", incr_out )
         CALL iotk_write_begin( iunxml, "frames", attr )
-        DO it = first_out, last_out, incr_out
-          CALL iotk_write_dat( iunxml, "timestep", it )
-        END DO
+!        DO it = first_out, last_out, incr_out
+!          CALL iotk_write_dat( iunxml, "timestep", it )
+!        END DO
+          WRITE( iunxml, * ) last_out
         CALL iotk_write_end( iunxml, "frames" )
         !
       CALL iotk_write_end( iunxml, "dataset" )
