@@ -66,6 +66,9 @@
               appu(ks)= - kpgv(k-1) * dt
               appv(ks)= - kpgv(k-1) * dt
               appw(ks)= - kpgv(k-1) * dt
+              appu(ks)= 0.D0
+              appv(ks)= 0.D0
+              appw(ks)= 0.D0
             ELSEIF(kk == k)THEN
               appu(ks)=0.D0
               appv(ks)=0.D0
