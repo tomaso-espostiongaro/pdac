@@ -41,10 +41,19 @@
         OPEN(UNIT=9,form='unformatted', FILE = restart_file)
 !
         WRITE(9) time, nr, nx, ny, nz, nsolid
+
+      END IF
 !
 ! ... store the final values of the main physical variables 
 ! 
+      IF( mpime .EQ. root ) THEN
+
         WRITE(9) (gas_pressure(ijk),ijk=1,ntot)
+
+      END IF
+
+      IF( mpime .EQ. root ) THEN
+
         WRITE(9) ((solid_bulk_density(ijk,k),ijk=1,ntot),k=1,nsolid)
         WRITE(9) (gas_enthalpy(ijk),ijk=1,ntot)
         IF (job_type == '2D') THEN

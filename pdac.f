@@ -193,15 +193,6 @@
       kap(1:nsolid) = thermal_conductivity(1:nsolid)
 !
       inrl(:)=1.D0/rl(:)
-!
-! ... Read restart file
-!
-      IF(itd == 2) THEN 
-        CALL taperd
-        CALL tapebc
-      ELSE IF (itd >= 3) THEN
-        CALL recover_2d
-      END IF
 
 ! ... set start time
       timestart = time
@@ -230,6 +221,18 @@
       CALL local_bounds_viscosity
       CALL local_bounds_hcapgs
       CALL local_bounds_turbo
+
+!
+! ... Read restart file
+!
+
+      IF(itd == 2) THEN 
+        CALL taperd
+        CALL tapebc
+      ELSE IF (itd >= 3) THEN
+        CALL recover_2d
+      END IF
+
 !
 ! ... Set initial conditions
 !

@@ -108,6 +108,10 @@
           MODULE PROCEDURE data_exchange_i, data_exchange_r, data_exchange_rm
         END INTERFACE
 
+        INTERFACE data_collect
+          MODULE PROCEDURE data_collect_r
+        END INTERFACE
+
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
@@ -1814,6 +1818,51 @@
         END DO
         RETURN
       END SUBROUTINE
+
+
+      SUBROUTINE data_collect_r( garray, larray, imstart, imend )
+
+        ! this subroutine collect data distributed across processors
+        ! and store them in the array "garray"
+        ! The subroutine is designed to allow the collection of global
+        ! data using subarray of small size, useful when available memory
+        ! is not enough to store a global array
+
+        USE parallel, ONLY: nproc, mpime
+        USE control_flags, ONLY: job_type
+        USE indijk_module, ONLY: ip0_jp0_kp0_
+
+        IMPLICIT NONE
+        REAL*8 :: garray(:) ! global array that is set with collected data
+                            ! garray could be only a subarray of the whole
+                            ! global array data being collected refers to.
+                            ! Its first element has global index imstart
+                            ! therefore its size should be = imend - imstart + 1
+        REAL*8 :: larray(:) ! local array
+        INTEGER :: imstart  ! global index from which we start to collect
+        INTEGER :: imend    ! global index at which the collection is stopped
+
+        INTEGER :: ijk, imesh, ncollect
+
+        ncollect = ( imend - imstart + 1 ) 
+        IF( SIZE( garray ) < ncollect ) &
+          CALL error(' data_collect_r ', ' garray too small ', SIZE( garray ) )
+
+        garray( 1 : ncollect )  = 0.0
+
+        DO ijk = 1, ncint
+          imesh = myijk( ip0_jp0_kp0_, ijk)
+          IF( imesh >= imstart .AND. imesh <= imend ) THEN
+            garray( imesh - imstart + 1 ) = larray( ijk )
+          END IF
+        END DO
+
+        CALL parallel_sum_real( garray, ncollect )
+        
+        
+        RETURN
+      END SUBROUTINE
+
 
 
       SUBROUTINE test_comm()
