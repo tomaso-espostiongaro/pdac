@@ -70,8 +70,10 @@
       ndump  = NINT(tdump/dt)
       sweep  = NINT(time/dt)
 
-      WRITE(6,*) 'Print OUTPUT every ', nprint, ' time steps'
-      WRITE(6,*) 'Print RESTART every ', ndump, ' time steps'
+      IF( mpime == root ) THEN
+        WRITE(6,*) 'Print OUTPUT  every ', nprint, ' time steps'
+        WRITE(6,*) 'Print RESTART every ', ndump, ' time steps'
+      END IF
 !
       !
       !   set timing variables to 0
@@ -122,7 +124,7 @@
 !
         sweep = sweep + 1
 
-        IF (lpr >= 1) THEN
+        IF ( mpime == root ) THEN
           WRITE(6,fmt="(/,'* Starting iteration ',I5,' * ')" ) sweep
           WRITE(6,fmt="('  Simulated time = ',F20.14)" ) time
         END IF
@@ -313,8 +315,8 @@
         stop_now = ( wmax > max_seconds )
 
         IF( stop_now ) THEN
-          WRITE(6,fmt="('  elapsed_seconds exceed max_second',/, &
-                      & '  program stopping')" )
+          IF( mpime == root ) &
+            WRITE(6,fmt="('  elapsed_seconds exceed max_second',/,'  program stopping')" )
         END IF
 
         IF((MOD(sweep,ndump) == 0) .OR. stop_now) THEN
@@ -337,7 +339,8 @@
         mptimres  = mptimres  + (p12 - p11)
 !
         w1 = elapsed_seconds()
-        WRITE(6,fmt="('  walltime = ',F10.2,', ',F10.2)") w1, w1-w0
+        IF( mpime == root ) &
+          WRITE(6,fmt="('  walltime = ',F10.2,', ',F10.2)") w1, w1-w0
         w0 = w1
 !
 ! ... Print the total residuals of the mass conservation equation
@@ -384,12 +387,6 @@
         WRITE(7,900) 'Bdry','Dyn','Tilde','Iter','Ygas','Tem','Out','Restart','Total'
         WRITE(7,999) timbdry,  timturbo, timtilde, timiter, timygas, timtem, &
                      timout, timres, timtot
-
-        !WRITE(7,*)' CPU TIME computed calling F95 CPU_TIME (s)'
-        !WRITE(7,*) 'Total time: ', cptimtot 
-
-        !WRITE(7,*) ' WALL TIME computed calling MP_WALLTIME (s)'
-        !WRITE(7,*) 'Total time: ', mptimtot 
 
 995     FORMAT(/,A45)                   
 900     FORMAT(10(1X,A10))

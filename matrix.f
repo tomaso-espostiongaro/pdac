@@ -1193,7 +1193,7 @@
 
       IF( a(2,2) < rlim ) THEN
 
-              write(6,*) 'if1'
+              !write(6,*) 'if1'
 
               a(1,1) = a(1,1) + a(2,1)
               a(2,1) = 0.D0
@@ -1212,7 +1212,7 @@
 
       IF( a(3,3) < rlim ) THEN
 
-              write(6,*) 'if2'
+              !write(6,*) 'if2'
 
               a(1,1) = a(1,1) + a(3,1)
               a(3,1) = 0.D0
@@ -1230,7 +1230,7 @@
 
       IF( a(1,1) /= 0.D0 ) THEN
 
-            write(6,*) 'if3'
+            !write(6,*) 'if3'
 
             div = 1.D0 / a(1,1)
             a(1,2) = a(1,2) * div
@@ -1251,7 +1251,7 @@
       END IF
 
       IF( a(2,2) /= 0.D0 ) THEN
-            write(6,*) 'if4'
+            !write(6,*) 'if4'
             div=1.D0/a(2,2)
             a(2,3)=a(2,3)*div
             b(2)=b(2)*div
@@ -1267,7 +1267,7 @@
       END IF
 
       IF( a(3,3) /= 0.D0 ) THEN
-            write(6,*) 'if5'
+            !write(6,*) 'if5'
             div=1.D0/a(3,3)
             b(3)=b(3)*div
             a(3,3)=0.D0

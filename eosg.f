@@ -53,7 +53,7 @@
       END DO
       !  Carlo consistency check
       IF( ABS( mol ) <= 1.d-10 ) THEN
-        WRITE(6,*) 'WARNING (mole) zero or negative mol ', mol
+        WRITE(7,*) 'WARNING (mole) zero or negative mol ', mol
         molinv = 0.0d0
       ELSE
         molinv = 1.0d0 / mol
@@ -175,8 +175,8 @@
 
           IF( sieg <= 0.0d0 ) THEN
             CALL meshinds(ijk,imesh,i,j,k)
-            WRITE(6,*) 'WARNING (caloric_eosg) zero or negative enthalpy'
-            WRITE(6,*) 'coord: ', i,j,k,' sieg= ', sieg
+            WRITE(7,*) 'WARNING (caloric_eosg) zero or negative enthalpy'
+            WRITE(7,*) 'coord: ', i,j,k,' sieg= ', sieg
           END IF
 
           info = 1
@@ -198,20 +198,20 @@
 !**********************************************************************
             !  Error report
             CALL meshinds(ijk,imesh,i,j,k)
-            WRITE(6,*) 'max number of iteration reached in eosg'
-            WRITE(6,*) 'time:', time
-            WRITE(6,*) 'proc:', mpime
-            WRITE(6,*) 'local cell:', ijk , i, j, k
-            WRITE(6,*) 'temperature:', tg0, tg
-            WRITE(6,*) 'enthalpy:', sieg0
-            WRITE(6,*) 'concentrations:', yg(:)
+            WRITE(7,*) 'max number of iteration reached in eosg'
+            WRITE(7,*) 'time:', time
+            WRITE(7,*) 'proc:', mpime
+            WRITE(7,*) 'local cell:', ijk , i, j, k
+            WRITE(7,*) 'temperature:', tg0, tg
+            WRITE(7,*) 'enthalpy:', sieg0
+            WRITE(7,*) 'concentrations:', yg(:)
 !**********************************************************************
           END IF
 
           IF( tg <= 0.0d0 ) THEN
             CALL meshinds(ijk,imesh,i,j,k)
-            WRITE(6,*) 'WARNING (caloric_eosg) zero or negative temperature'
-            WRITE(6,*) 'coord: ',i,j,k,' tg= ', tg
+            WRITE(7,*) 'WARNING (caloric_eosg) zero or negative temperature'
+            WRITE(7,*) 'coord: ',i,j,k,' tg= ', tg
           END IF
 
       RETURN

@@ -32,6 +32,7 @@
       USE grid, ONLY: center_x, center_y
       USE volcano_topography, ONLY: itp
       USE immersed_boundaries, ONLY: immb, topo2d_c, topo2d_x, topo2d_y
+      USE parallel, ONLY: mpime, root
 
       IMPLICIT NONE
       
@@ -56,7 +57,7 @@
         END DO
       END IF
 !
-      WRITE(7,*) 'Vent conditions imposed in cells: '
+      IF( mpime == root ) WRITE(6,*) 'Vent conditions imposed in cells: '
 !
 ! ... define the rectangle containing the vent
 ! ... 'nvt' is the number of vent cells
@@ -83,8 +84,8 @@
       END IF
       quota = kv
 
-      WRITE(6,*) 'vent center: ', iv, jv, kv
-      WRITE(6,*) 'center coordinates: ', x(iv), y(jv), z(kv)
+      IF( mpime == root ) WRITE(6,*) 'vent center: ', iv, jv, kv
+      IF( mpime == root ) WRITE(6,*) 'center coordinates: ', x(iv), y(jv), z(kv)
 !
       nvt = (ieast-iwest+1)*(jnorth-jsouth+1)
       ALLOCATE(vcell(nvt))

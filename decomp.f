@@ -140,7 +140,7 @@
         IF (ANY(fl > SIZE(countfl))) CALL error('partition','countfl SIZE too small', SIZE(countfl) )
       END DO
 !
-      IF (lpr >= 1) WRITE(7,'(a13,10I8)') ' # countfl ', countfl
+      IF (lpr > 0) WRITE(7,'(a13,10I8)') ' # countfl ', countfl
 !
 ! ... domain decomposition (build maps)
 !
@@ -173,7 +173,7 @@
         ncdif(ipe) = ncfl1(ipe) - ncell(ipe)
       END DO
 !
-      IF (lpr >= 1) THEN
+      IF (lpr > 0) THEN
         WRITE(7,*) 
         WRITE(7,*) '---  cells partition summary  ---'
         WRITE(7,*) 
@@ -592,7 +592,7 @@
               IF (fl(ijk) == 1) ncfl1(ipe) = ncfl1(ipe) + 1
             END DO
           END DO
-          IF (lpr >= 1) WRITE(7,*)'proc_map(',ipe,'):', &
+          IF (lpr > 0) WRITE(7,*)'proc_map(',ipe,'):', &
                       & proc_map(ipe)%corner1(:),proc_map(ipe)%corner2(:)
         END DO
       END DO
@@ -639,7 +639,7 @@
       REAL*8 fact
 
 
-      WRITE(6,*) 'columns distribution' 
+      IF( lpr > 0 ) WRITE(7,*) 'columns distribution' 
 !
 ! ... subdivides the domain into 'nby' Slabs. Each slab
 ! ... will be in turn subdivided into 'nbx' column block.
@@ -805,7 +805,7 @@
             END DO
           END DO
 
-          WRITE(6,*) ' layer = ', layer, ' no. blocks = ', nbl_lay(layer)
+          IF( lpr > 0 ) WRITE(7,*) ' layer = ', layer, ' no. blocks = ', nbl_lay(layer)
 !
 ! ... Estimate of the number of cells contained in each block
 ! ... in the layer
@@ -849,7 +849,7 @@
                 END DO
               END DO
             END DO
-            IF (lpr >= 1) WRITE(7,*)'proc_map(',ipe,'):', &
+            IF (lpr > 0) WRITE(7,*)'proc_map(',ipe,'):', &
                       & proc_map(ipe)%corner1(:),proc_map(ipe)%corner2(:)
           END DO
         END DO
@@ -899,7 +899,7 @@
 
 ! ... Subroutine Body
 
-      WRITE(6,*) 'blocks 3D distribution' 
+      IF( lpr > 0 ) WRITE(7,*) 'blocks 3D distribution' 
 !
 ! ... Factorize the number of processors, into plane processors nprocxy
 ! ... and z processors nprocz
@@ -918,8 +918,8 @@
 
       nprocxy = nproc / nprocz
 
-      IF( nprocz == 1 ) &
-        WRITE(6,*) 'Warning: blocks3d distribution has no effect, nprocz = 1'
+      IF( nprocz == 1 .AND. lpr > 0 ) &
+        WRITE(7,*) 'Warning: blocks3d distribution has no effect, nprocz = 1'
 
 ! ... compute blocks in z direction 
 
@@ -955,7 +955,7 @@
         END DO
         rest = nbx*nby - nprocxy
 
-        WRITE(6,*) 'blocks3d (1) nbx, nby, nbz, nprocz, nprocxy = ', nbx, nby, nbz, nprocz, nprocxy
+        IF( lpr > 0 ) WRITE(7,*) 'blocks3d (1) nbx, nby, nbz, nprocz, nprocxy = ', nbx, nby, nbz, nprocz, nprocxy
 
 ! ... The number of layer (slab) nby is now defined, and it will not be
 ! ... modified further
@@ -1013,10 +1013,12 @@
 
         END IF
 
-        WRITE(6,*) 'blocks3d (2)'
-        DO layer = 1, nby
-          WRITE(6,*) ' layer ', layer, ' nbl = ', nbl_lay(layer)
-        END DO
+        IF( lpr > 0 ) THEN
+          WRITE(7,*) 'blocks3d (2)'
+          DO layer = 1, nby
+            WRITE(7,*) ' layer ', layer, ' nbl = ', nbl_lay(layer)
+          END DO
+        END IF
 
 !
 ! ... build the layers map
@@ -1055,10 +1057,12 @@
           END DO
         END DO
 
-        WRITE(6,*) 'blocks3d (3)'
-        DO layer = 1, nby
-          WRITE(6,*) ' layer_map ', layer, ' start, end = ', lay_map(layer,1), lay_map(layer,2)
-        END DO
+        IF( lpr > 0 ) THEN
+          WRITE(7,*) 'blocks3d (3)'
+          DO layer = 1, nby
+            WRITE(7,*) ' layer_map ', layer, ' start, end = ', lay_map(layer,1), lay_map(layer,2)
+          END DO
+        END IF
 
 ! ... build the blocks map
 
@@ -1115,7 +1119,7 @@
             END DO
           END DO
 
-          WRITE(6,*) ' layer = ', layer, ' no. column blocks = ', nbl_lay(layer)
+          IF( lpr > 0 ) WRITE(7,*) ' layer = ', layer, ' no. column blocks = ', nbl_lay(layer)
 !
 ! ...     Estimate of the number of cells contained in each column block
 ! ...     in the layer
@@ -1201,7 +1205,7 @@
                 END DO
               END DO
 
-              IF (lpr >= 1) THEN
+              IF (lpr > 0) THEN
                  WRITE(7,1000) ipe, proc_map(ipe)%blkbsw(:),proc_map(ipe)%blktne(:)
   1000           FORMAT( ' proc_map(',I4,'): BSW = ', 3I4, ' TNE = ', 3I4 )
               END IF
@@ -1447,7 +1451,7 @@
 ! ... array of sorted global cell indexes to be sent to 'mpime' 
 ! .... (see test below)
 
-      IF (lpr >= 1) THEN
+      IF (lpr > 0) THEN
         DO ipe = 0, nproc - 1
           WRITE(7,300) nset(ipe), ipe
           IF ( nset(ipe) > 0 .AND. lpr > 2 ) THEN
@@ -1463,7 +1467,7 @@
 !
       ncext = SUM( nrcv ) 
       ncdom = ncint + ncext
-      IF (lpr >= 1) THEN
+      IF (lpr > 0) THEN
         WRITE(7,* ) ' # ncext ', ncext
         WRITE(7,* ) ' # ncdom ', ncdom
       END IF
@@ -1490,7 +1494,7 @@
 
 ! ... print out basic information on the map
 !
-      IF (lpr >= 1) THEN
+      IF (lpr > 0) THEN
         DO ipe = 0, nproc - 1
           WRITE(7,*) ' # nrcv ', nrcv(ipe), ' from ', ipe
         END DO
@@ -1555,7 +1559,7 @@
 
       END DO
 !
-      IF (lpr >= 1) THEN
+      IF (lpr > 0) THEN
         DO ipe = 0, nproc - 1
           WRITE(7,100) rcv_map(ipe)%nrcv, ipe
           IF( rcv_map(ipe)%nrcv > 0 .AND. lpr > 2 ) THEN
@@ -1568,7 +1572,7 @@
         END DO
       END IF
 
-      IF (lpr >= 1) THEN
+      IF (lpr > 0) THEN
         DO ipe = 0, nproc - 1
           WRITE(7,200) snd_map(ipe)%nsnd, ipe
           IF ( snd_map(ipe)%nsnd > 0 .AND. lpr > 2 ) THEN
@@ -2788,9 +2792,8 @@ set_numx: IF (i/=0 .AND. k/=0) THEN
               ijkl = cell_g2l(ijk,mpime)
               numx(ijkl) = n 
 
-              IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
-                  j==1 .OR. j==ny) THEN
-                WRITE(8,*) 'x-forcing on boundaries', i, j, k
+              IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. j==1 .OR. j==ny) THEN
+                WRITE(7,*) 'x-forcing on boundaries', i, j, k
               END IF
             END IF
           ELSE
@@ -2817,9 +2820,8 @@ set_numy:   IF (i/=0 .AND. k/=0) THEN
                 ijkl = cell_g2l(ijk,mpime)
                 numy(ijkl) = n 
 
-                IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
-                    j==1 .OR. j==ny) THEN
-                  WRITE(8,*) 'y-forcing on boundaries', i, j, k
+                IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. j==1 .OR. j==ny) THEN
+                  WRITE(7,*) 'y-forcing on boundaries', i, j, k
                 END IF
               END IF
             ELSE
@@ -2846,9 +2848,8 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               ijkl = cell_g2l(ijk,mpime)
               numz(ijkl) = n 
 
-              IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
-                  j==1 .OR. j==ny) THEN
-                WRITE(8,*) 'z-forcing on boundaries', i, j, k
+              IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. j==1 .OR. j==ny) THEN
+                WRITE(7,*) 'z-forcing on boundaries', i, j, k
               END IF
             END IF
           ELSE
@@ -2897,9 +2898,11 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
       bd(:) = 0
       vf(:) = 0.D0
 
-      WRITE( 7, * ) 
-      WRITE( 7, * ) 'b coefficients for immersed bndaries' 
-      WRITE( 7, * ) '     ijk   i   j   k     b (int)'
+      IF( lpr > 0 ) THEN
+        WRITE( 7, * ) 
+        WRITE( 7, * ) 'b coefficients for immersed bndaries' 
+        WRITE( 7, * ) '     ijk   i   j   k     b (int)'
+      END IF
 !
         DO ijk=1, ncint
           IF( flag(ijk) == 1 ) THEN
@@ -3011,9 +3014,11 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
       ALLOCATE(bdr(ncint,6)); bdr(:,:) = 0.D0
       ALLOCATE(vf(ncint)); vf(:) = 0.D0
 !
-      WRITE( 7, * ) 
-      WRITE( 7, * ) 'b coefficients for immersed bndaries' 
-      WRITE( 7, * ) '     ijk   i   j   k     b (real)'
+      IF( lpr > 0 ) THEN
+        WRITE( 7, * ) 
+        WRITE( 7, * ) 'b coefficients for immersed bndaries' 
+        WRITE( 7, * ) '     ijk   i   j   k     b (real)'
+      END IF
 !
         DO ijk=1, ncint
           IF( flag(ijk) == 1 ) THEN

@@ -173,6 +173,7 @@
 !
       USE dimensions, ONLY: nz
       USE grid, ONLY: dz, zb, zzero
+      USE parallel, only: mpime, root
 !
       IMPLICIT NONE
 !
@@ -196,7 +197,7 @@
 
         za = zb(k) + 0.5D0*(dz(1)-dz(k))
 
-        IF (za < 0.D0) &
+        IF ( ( za < 0.D0 ) .AND. ( mpime == root ) ) & 
           WRITE(6,*) ' Row ',k, ' lays below the sea level; z = ', za
         IF (za <= 0.D0 .OR. .NOT.stratification) THEN
           ta = t_ground

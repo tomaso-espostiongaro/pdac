@@ -505,6 +505,7 @@
       USE eos_gas, ONLY: ygc
       USE time_parameters, ONLY: itd
       USE vent_conditions, ONLY: vent_ygc
+      USE parallel, ONLY: mpime, root
       IMPLICIT NONE
       INTEGER :: ig, igg
       
@@ -544,7 +545,7 @@
       END IF
 
       DO ig = 1, ngas
-        WRITE(6,*) ' Gas ', ig, ' is type ', gas_type(ig)
+        IF( mpime == root ) WRITE(6,*) ' Gas ', ig, ' is type ', gas_type(ig)
       END DO
 
       RETURN

@@ -88,8 +88,8 @@
 
            IF(rgpgc(ig) < 0.D0) THEN
              IF (lpr > 1) THEN
-               WRITE(8,128) ijk, ig 
-               WRITE(8,*) rgpgc(ig)
+               WRITE(7,128) ijk, ig 
+               WRITE(7,*) rgpgc(ig)
  128           FORMAT(' Cell= ',I6, ' Specie= ',I2)
              END IF
 

@@ -251,8 +251,10 @@
         !
         transl_z = MINVAL(topo)
 
-        WRITE(6,*) 'Translating mesh vertically: '
-        WRITE(6,*) '     minimum topographic quota: ', transl_z
+        IF( mpime == root ) THEN
+          WRITE(6,*) 'Translating mesh vertically: '
+          WRITE(6,*) '     minimum topographic quota: ', transl_z
+        END IF
 
         z  = z  + transl_z
         zb = zb + transl_z
@@ -284,7 +286,7 @@
         !
         transl_z = MINVAL(topo2d)
 
-        WRITE(*,*) 'Minimum topographic quota: ', transl_z
+        IF( mpime == root ) WRITE(*,*) 'Minimum topographic quota: ', transl_z
 
         z  = z  + transl_z
         zb = zb + transl_z

@@ -478,7 +478,7 @@
 !
 !
       filnam='output.'//lettera(irest)
-      WRITE(6,fmt="('  filter: reading file ',A11)") filnam
+      IF( mpime == root ) WRITE(6,fmt="('  filter: reading file ',A11)") filnam
 
       lform = formatted_output
 
@@ -498,13 +498,13 @@
 
       ALLOCATE( array( ntot ) )
 
-      WRITE(6,fmt="('  filtering gas pressure ')")
+      IF( mpime == root ) WRITE(6,fmt="('  filtering gas pressure ')")
 !
       CALL read_array( 12, array, lform )  ! gas_pressure
 
       CALL crop_array( 'pgas' )  ! gas_pressure
 
-      WRITE(6,fmt="('  filtering reading gas velocities ')")
+      IF( mpime == root ) WRITE(6,fmt="('  filtering reading gas velocities ')")
 
       IF (job_type == '2D') THEN
 
@@ -529,12 +529,12 @@
         CALL error('outp_','Unknown job type',1)
       END IF
 
-      WRITE(6,fmt="('  filtering gas temperature ')")
+      IF( mpime == root ) WRITE(6,fmt="('  filtering gas temperature ')")
 
       CALL read_array( 12, array, lform )  ! gas_temperature
       CALL crop_array( 'tgas' )  
 
-      WRITE(6,fmt="('  filtering molarfraction ')")
+      IF( mpime == root ) WRITE(6,fmt="('  filtering molarfraction ')")
 !
       DO ig=1,ngas
           var = 'xg'//lettera2( ig )
@@ -542,7 +542,7 @@
           CALL crop_array( var )  
       END DO
 
-      WRITE( 6, fmt="('  filtering solid density, velocities and temperature')")
+      IF( mpime == root ) WRITE( 6, fmt="('  filtering solid density, velocities and temperature')")
 !
       DO is = 1, nsolid
         CALL read_array( 12, array, lform )  ! solid_bulk_density
@@ -592,7 +592,7 @@
         ELSE 
           OPEN( UNIT=iunit, FORM='UNFORMATTED', FILE=filwri, STATUS='UNKNOWN' )
         END IF
-        WRITE(6,fmt="('  crop_array: writing file ',A16)") filwri
+        IF( mpime == root ) WRITE(6,fmt="('  crop_array: writing file ',A16)") filwri
 
         ALLOCATE( sarray( ntot ) )
         sarray = 0.0
@@ -645,7 +645,7 @@
         ELSE 
           OPEN( UNIT=iunit, FORM='UNFORMATTED', FILE=filwri, STATUS='UNKNOWN' )
         END IF
-        WRITE(6,fmt="('  inte_array_x: writing file ',A16)") filwri
+        IF( mpime == root ) WRITE(6,fmt="('  inte_array_x: writing file ',A16)") filwri
         ALLOCATE( sarray( ntot ) )
         imesh = 0
         sarray = 0.0
@@ -702,7 +702,7 @@
         ELSE 
           OPEN( UNIT=iunit, FORM='UNFORMATTED', FILE=filwri, STATUS='UNKNOWN' )
         END IF
-        WRITE(6,fmt="('  inte_array_y: writing file ',A16)") filwri
+        IF( mpime == root ) WRITE(6,fmt="('  inte_array_y: writing file ',A16)") filwri
         ALLOCATE( sarray( ntot ) )
         imesh = 0
         sarray = 0.0
@@ -759,7 +759,7 @@
         ELSE 
           OPEN( UNIT=iunit, FORM='UNFORMATTED', FILE=filwri, STATUS='UNKNOWN' )
         END IF
-        WRITE(6,fmt="('  inte_array_z: writing file ',A16)") filwri
+        IF( mpime == root ) WRITE(6,fmt="('  inte_array_z: writing file ',A16)") filwri
         ALLOCATE( sarray( ntot ) )
         imesh = 0
         sarray = 0.0

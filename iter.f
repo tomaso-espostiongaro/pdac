@@ -312,8 +312,7 @@
            ELSE
              avloop = REAL(nloop)
            END IF
-           WRITE(6, fmt="( I10, 2X, F4.2, 2X, I10, 2X, F10.3)" ) &
-           n2, avloop, n1, timconv(nit)
+           WRITE(6, fmt="( I10, 2X, F4.2, 2X, I10, 2X, F10.3)" ) n2, avloop, n1, timconv(nit)
          END IF
 !*******************************************************************
 
@@ -390,7 +389,7 @@
       DO itim = 1, nit
         timiter = timiter + timconv(itim)
       END DO
-      WRITE(6,280)'Time for iterative solver: ',timiter
+      IF( lpr > 1 ) WRITE(6,280)'Time for iterative solver: ',timiter
  280  FORMAT(2X,A27,F8.3) 
 
 !
@@ -400,15 +399,14 @@
 !
       IF( mustit /= 0 ) THEN
 !
-        IF (lpr >= 1) THEN
-          WRITE(6,700) nit, (time+dt)
-          WRITE(6,*) 'convergence on proc ',mpime,' : ', ALL(converge)
-          IF (.NOT.ALL(converge))   &
-                          WRITE(6,*) 'cells not converged (imesh,i,j,k): '
+        IF (lpr > 1) THEN
+          WRITE(7,700) nit, (time+dt)
+          WRITE(7,*) 'convergence on proc ',mpime,' : ', ALL(converge)
+          IF (.NOT.ALL(converge)) WRITE(7,*) 'cells not converged (imesh,i,j,k): '
           DO ijk = 1, ncint
             IF ( .NOT. converge( ijk ) ) THEN
               CALL meshinds( ijk , imesh, i , j , k )
-              WRITE(6,*) imesh, i , j , k
+              WRITE(7,*) imesh, i , j , k
             END IF
           END DO
  700      FORMAT('max number of iterations (',I5,') reached at time: ', F8.3)
@@ -785,10 +783,10 @@
       END DO
       
       IF( rls > 1.D0 ) THEN
-        IF (lpr >= 1) THEN
-          WRITE(8,*) ' warning1: mass is not conserved'
-          WRITE(8,*) ' time, i, j, k ', time, i, j, k
-          WRITE(8,*) ' rls, volfrac ', rls, 1.D0/ivf
+        IF (lpr > 1) THEN
+          WRITE(7,*) ' warning1: mass is not conserved'
+          WRITE(7,*) ' time, i, j, k ', time, i, j, k
+          WRITE(7,*) ' rls, volfrac ', rls, 1.D0/ivf
         END IF
 
         IF (immb == 1) THEN
@@ -1260,8 +1258,8 @@
           END DO
 
           IF( rls > 1.D0 ) THEN
-            WRITE(8,*) ' warning1: mass is not conserved'
-            WRITE(8,*) ' i, j, k, rls ', i, j, k, rls
+            WRITE(7,*) ' warning1: mass is not conserved'
+            WRITE(7,*) ' i, j, k, rls ', i, j, k, rls
             CALL error('iter', 'warning: mass is not conserved',1)
           ENDIF
 
@@ -1534,8 +1532,8 @@
           rls = rls + rlk( ijk, 2 ) * inrl(2)
 
           IF( rls > 1.D0 ) THEN
-            WRITE(8,*) ' warning1: mass is not conserved'
-            WRITE(8,*) ' i, j, k, rls ', i, j, k, rls
+            WRITE(7,*) ' warning1: mass is not conserved'
+            WRITE(7,*) ' i, j, k, rls ', i, j, k, rls
             CALL error('iter', 'warning: mass is not conserved',1)
           ENDIF
 

@@ -55,6 +55,7 @@
       REAL*8 :: mptimtot, mptimprog, mptimdist, mptimsetup, &
      &          mptiminit, mptimres, mptimghost
       LOGICAL :: debug = .FALSE.
+      LOGICAL :: topen
 !
 ! ... initialize parallel environment
 
@@ -80,26 +81,26 @@
       errorunit = 8
       checkunit = 13
       inputfile = 'pdac.dat'
-      logfile = 'pdac.log'
-      testfile = 'pdac.tst'
+      logfile   = 'pdac.log'
+      testfile  = 'pdac.tst'
       errorfile = 'pdac.err'
       checkfile = 'pdac.chm'
-      errnb = errorfile//procnum(mpime)
+      errnb  = errorfile//procnum(mpime)
       testnb = testfile//procnum(mpime)
-      lognb = logfile//procnum(mpime)
-      IF(mpime .EQ. root) THEN
+      lognb  = logfile//procnum(mpime)
+      IF(mpime == root) THEN
         OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN')
         IF( .NOT. debug ) OPEN(UNIT=logunit,   FILE=logfile,   STATUS='UNKNOWN')
         OPEN(UNIT=testunit,  FILE=testfile,  STATUS='UNKNOWN')
         OPEN(UNIT=errorunit, FILE=errorfile, STATUS='UNKNOWN')
         OPEN(UNIT=checkunit, FILE=checkfile, STATUS='UNKNOWN')
       ELSE
-        IF( .NOT. debug ) OPEN(UNIT=logunit,   FILE=lognb,   STATUS='UNKNOWN')
         OPEN(UNIT=testunit,  FILE=testnb,    STATUS='UNKNOWN')
-        OPEN(UNIT=errorunit, FILE=errnb,     STATUS='UNKNOWN')
       END IF
 
-      WRITE(6,100) mydate(5), mydate(6), mydate(7), mydate(3), mydate(2), mydate(1)
+      IF( mpime == root ) THEN
+        WRITE(6,100) mydate(5), mydate(6), mydate(7), mydate(3), mydate(2), mydate(1)
+      END IF
 100   FORMAT( ' Pyroclastic Dispersion Analysis Code', /, &
               ' version: 3.0, June 2003',/, &
               ' authors: A.Neri, G.Macedonio, D.Gidaspow, T. Esposti Ongaro',/, &
@@ -255,16 +256,26 @@
 
 ! ... date and time
       CALL date_and_time( values = mydate )
-      WRITE(6,110) mydate(5), mydate(6), mydate(7), mydate(3), mydate(2), mydate(1)
+      IF( mpime == root ) THEN
+        WRITE(6,110) mydate(5), mydate(6), mydate(7), mydate(3), mydate(2), mydate(1)
+      END IF
 110   FORMAT( ' This run ended at ', I2, ':', I2, ':', I2, 3X, 'day ', I2, &
               ' month ', I2, ' year ', I4 )
 !
-      CLOSE(inputunit)
-      IF( .NOT. debug ) CLOSE(logunit)
-      CLOSE(errorunit)
-      CLOSE(testunit)
-      CLOSE(checkunit)
-      CLOSE(15)
+      INQUIRE(UNIT=inputunit,OPENED=topen)
+      IF(topen) CLOSE(inputunit)
+      IF( .NOT. debug ) THEN
+        INQUIRE(UNIT=logunit,OPENED=topen)
+        IF(topen) CLOSE(logunit)
+      END IF
+      INQUIRE(UNIT=errorunit,OPENED=topen)
+      IF(topen) CLOSE(errorunit)
+      INQUIRE(UNIT=testunit,OPENED=topen)
+      IF(topen) CLOSE(testunit)
+      INQUIRE(UNIT=checkunit,OPENED=topen)
+      IF(topen) CLOSE(checkunit)
+      INQUIRE(UNIT=15,OPENED=topen)
+      IF(topen) CLOSE(15)
 !
 ! ... Finalize parallel environment
 !

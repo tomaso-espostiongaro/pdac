@@ -131,15 +131,16 @@
         IF (nblu(n) == 1) THEN
           m = m + 1
           IF (lpr > 1) THEN
-            WRITE(6,*) 'Computing action on block: ', n
-            WRITE(6,*) 'Surface cells: '
+            WRITE(7,*) 'Computing action on block: ', n
+            WRITE(7,*) 'Surface cells: '
             DO l = 1, perim
               IF (surfp(m,l)%np == mpime) THEN
                 ijk = surfp(m,l)%ijk
                 CALL meshinds(ijk,imesh,i,j,k)
-                WRITE(6,*) i, j, k, ijk
+                WRITE(7,*) i, j, k, ijk
               END IF
             END DO
+            WRITE(7,*) 'END Computing action on block: ', n
           END IF
         END IF
       END DO
@@ -202,7 +203,7 @@
           ijk = surfp(m,pp)%ijk
           IF (mpime == surfp(m,pp)%np) surfp(m,pp)%p = p(ijk)
           fd = fd + surfp(m,pp)%ds * surfp(m,pp)%p * surfp(m,pp)%n(1)
-          WRITE(6,*) ijk, surfp(m,pp)%p, ep(ijk)
+          WRITE(7,*) ijk, surfp(m,pp)%p, ep(ijk)
 	END DO
 !
       END SUBROUTINE dragbl
@@ -225,9 +226,10 @@
 !----------------------------------------------------------------------
       SUBROUTINE print_action
       USE time_parameters, ONLY: time
+      USE parallel, ONLY: mpime, root
       IMPLICIT NONE
 
-      WRITE(15,200) time, fdrag(:), flift(:)
+      IF( mpime == root ) WRITE(15,200) time, fdrag(:), flift(:)
 
  200  FORMAT(F14.6,20(G18.6))
 

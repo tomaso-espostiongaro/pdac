@@ -159,6 +159,7 @@
       USE gas_solid_density, ONLY: rog
       USE gas_solid_velocity, ONLY: ug,vg,wg 
       USE set_indexes, ONLY: subscr, stencil, rnb
+      USE parallel, ONLY: mpime, root
       IMPLICIT NONE
 !
       REAL*8, DIMENSION(:), ALLOCATABLE :: modsr, p11, p12, p22, p13, p23, p33  
@@ -180,7 +181,7 @@
 
       IF (modturbo == 2 .AND. job_type == '2D') THEN
 
-        WRITE(6,*) 'WARNING!: Dynamic Smagorinsky model cannot be applied to 2D'
+        IF( mpime == root ) WRITE(6,*) 'WARNING!: Dynamic Smagorinsky model cannot be applied to 2D'
         modturbo = 1
 
       ELSE IF (modturbo == 2 .AND. job_type == '3D' ) THEN

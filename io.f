@@ -47,7 +47,7 @@
       CHARACTER*13 restart_file
       restart_file = 'pdac.res'
 !
-      IF( mpime .EQ. root ) THEN
+      IF( mpime == root ) THEN
 !
         WRITE(6,*) ' writing to restart file '
 !
@@ -153,7 +153,7 @@
       REAL*8, ALLOCATABLE :: rtmp( :, : )
       
 
-      IF( mpime .EQ. root ) THEN
+      IF( mpime == root ) THEN
 
         WRITE(6,*) ' reading from restart file '
 !
@@ -199,7 +199,7 @@
       p = 0.0d0
       CALL read_array( 9, p, dbl, lform )
       IF( ANY( p < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, p < 0'
+         IF( mpime == root ) WRITE(6,*) 'WARNING reading restart, p < 0'
       END IF
 
       !
@@ -233,7 +233,7 @@
       sieg = 0.0d0
       CALL read_array( 9, sieg, dbl, lform )
       IF( ANY( sieg < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, sieg < 0'
+         IF( mpime == root ) WRITE(6,*) 'WARNING reading restart, sieg < 0'
       END IF
 
       !
@@ -244,7 +244,7 @@
         CALL read_array( 9, rlk(:,is), dbl, lform )
       END DO
       IF( ANY( rlk < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, rlk < 0'
+         IF( mpime == root ) WRITE(6,*) 'WARNING reading restart, rlk < 0'
       END IF
 
 
@@ -285,7 +285,7 @@
         CALL read_array( 9, sies(:,is), dbl, lform )
       END DO
       IF( ANY( sies < 0.0d0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, sies < 0'
+         IF( mpime == root ) WRITE(6,*) 'WARNING reading restart, sies < 0'
       END IF
 
       !
@@ -296,7 +296,7 @@
         CALL read_array( 9, ygc(:,ig), dbl, lform )
       END DO
       IF( ANY( ygc < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, ygc < 0'
+         IF( mpime == root ) WRITE(6,*) 'WARNING reading restart, ygc < 0'
       END IF
 
       !
@@ -305,13 +305,13 @@
       rgp = 0.0d0
       CALL read_array( 9, rgp, dbl, lform )
       IF( ANY( rgp < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, rgp < 0'
+         IF( mpime == root ) WRITE(6,*) 'WARNING reading restart, rgp < 0'
       END IF
 
       rog = 0.0d0
       CALL read_array( 9, rog, dbl, lform )
       IF( ANY( rog < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, rog < 0'
+         IF( mpime == root ) WRITE(6,*) 'WARNING reading restart, rog < 0'
       END IF
 
       !
@@ -320,7 +320,7 @@
       tg = 0.0d0
       CALL read_array( 9, tg, dbl, lform ) 
       IF( ANY( tg < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, tg < 0'
+         IF( mpime == root ) WRITE(6,*) 'WARNING reading restart, tg < 0'
       END IF
 
       ts = 0.0d0
@@ -328,10 +328,10 @@
         CALL read_array( 9, ts(:,is), dbl, lform )
       END DO
       IF( ANY( ts < 0 ) ) THEN
-         WRITE(6,*) 'WARNING reading restart, ts < 0'
+         IF( mpime == root ) WRITE(6,*) 'WARNING reading restart, ts < 0'
       END IF
 
-      IF( mpime .EQ. root ) THEN
+      IF( mpime == root ) THEN
         CLOSE (9)
         WRITE(6,*) ' restart file has been red '
       END IF
