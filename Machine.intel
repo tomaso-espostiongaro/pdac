@@ -4,7 +4,7 @@
 #MACROS= -DMPI
 MACROS= -DSCALAR
 #----------------------------------------
-FFLAGS= -O2 -FR -tpp5
+FFLAGS= -O2 -FR -tpp5 -w90 -w95
 CPPFLAGS= -fpp $(MACROS)
 LINKFLAGS=
 LIBS= 

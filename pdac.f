@@ -38,6 +38,7 @@
      &     ugob, vgob, wgob, upob, vpob, wpob, pob, tgob, epob, lpr, & 
      &     zzero, allocate_setup
       USE specific_heat_module, ONLY: allocate_hcapgs
+      USE tilde_momentum, ONLY: allocate_momentum
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut
       USE turbulence_model, ONLY: allocate_turbo
@@ -195,6 +196,7 @@
       IF(timing) s3 = cpclock()
 !
       CALL allocate_velocity
+      CALL allocate_momentum
       CALL allocate_density
       CALL allocate_press_eps
       CALL allocate_temperature

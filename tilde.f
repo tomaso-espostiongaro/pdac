@@ -23,6 +23,26 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
+      SUBROUTINE allocate_momentum
+      USE dimensions
+      USE domain_decomposition, ONLY: ncint
+      USE control_flags, ONLY: job_type
+      IMPLICIT NONE
+!
+      ALLOCATE( rugn(ncint), rwgn(ncint))
+      ALLOCATE( rusn(ncint,nsolid), rwsn(ncint,nsolid))
+      rugn = 0.D0; rwgn = 0.D0
+      rusn = 0.D0; rwsn = 0.D0
+      IF (job_type == '3D') THEN
+        ALLOCATE( rvgn(ncint) )
+        ALLOCATE( rvsn(ncint,nsolid) )
+        rvgn = 0.D0
+        rvsn = 0.D0
+      END IF
+!
+      RETURN
+      END SUBROUTINE allocate_momentum
+!-----------------------------------------------------
       SUBROUTINE fieldn
 !----------------------------------------------------------------------
 ! ... Compute explicitly and store all fields and physical parameters
@@ -50,23 +70,6 @@
       REAL*8 :: dxp, dyp, dzp, indxp, indyp, indzp
       REAL*8 :: rgp_e, rgp_n, rgp_t, rlk_e, rlk_n, rlk_t
       INTEGER :: i, j, k, ijk, imesh, is, ig
-!
-      IF (ALLOCATED(rugn)) DEALLOCATE(rugn)
-      IF (ALLOCATED(rvgn)) DEALLOCATE(rvgn)
-      IF (ALLOCATED(rwgn)) DEALLOCATE(rwgn)
-      IF (ALLOCATED(rusn)) DEALLOCATE(rusn)
-      IF (ALLOCATED(rvsn)) DEALLOCATE(rvsn)
-      IF (ALLOCATED(rwsn)) DEALLOCATE(rwsn)
-      ALLOCATE( rugn(ncint), rwgn(ncint))
-      ALLOCATE( rusn(ncint,nsolid), rwsn(ncint,nsolid))
-      rugn = 0.D0; rwgn = 0.D0
-      rusn = 0.D0; rwsn = 0.D0
-      IF (job_type == '3D') THEN
-        ALLOCATE( rvgn(ncint) )
-        ALLOCATE( rvsn(ncint,nsolid) )
-        rvgn = 0.D0
-        rvsn = 0.D0
-      END IF
 !
       CALL data_exchange(rgp)
       CALL data_exchange(rlk)
@@ -282,7 +285,7 @@
         ALLOCATE(appv(ncdom, ((nsolid+1)**2+(nsolid+1))/2) )
         appv = 0.0D0
       END IF
-      ALLOCATE(nul(((nsolid+1)**2+(nsolid+1))/2))
+      ALLOCATE(nul( ((nsolid+1)**2+(nsolid+1))/2) )
       nul = 0.D0
 !
 ! ... Compute fluxes on East, North and Top sides of a cell
