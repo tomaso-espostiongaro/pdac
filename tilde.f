@@ -302,6 +302,7 @@
       DO ijk = 1, ncint
         IF(fl_l(ijk) == 1) THEN
           CALL subscr(ijk)
+          CALL meshinds(ijk, imesh,i,j,k)
 !
           IF (job_type == '2D') THEN
 
@@ -537,7 +538,7 @@
           IF (job_type == '2D') THEN
             CALL inter(appu(ijk,:), nul(:), appw(ijk,:), kpgv(:),    &
      &                 us, us, ws, rlk, ijk)
-          ELSE IF (job_type == '2D') THEN
+          ELSE IF (job_type == '3D') THEN
             CALL inter(appu(ijk,:), appv(ijk,:), appw(ijk,:), kpgv(:),    &
      &                 us, vs, ws, rlk, ijk)
           END IF

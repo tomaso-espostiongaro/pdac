@@ -207,7 +207,6 @@
       indzp=1.D0/dzp
 !
       ep_e = (dxi*ep(ijke) + dxip1*ep(ijk)) * indxp
-      ep_n = (dyj*ep(ijkn) + dyjp1*ep(ijk)) * indyp
       ep_t = (dzk*ep(ijkt) + dzkp1*ep(ijk)) * indzp
 
       bu(1)  = rug(ijk)+ dt * indxp *2.D0* ep_e * (pijk-p(ijke))
@@ -219,6 +218,7 @@
       aw(1,1)=aw(1,1)+(dzk*rgp(ijkt)+dzkp1*rgp(ijk))*indzp
 
       IF (job_type == '3D') THEN
+        ep_n = (dyj*ep(ijkn) + dyjp1*ep(ijk)) * indyp
         bv(1)  = rvg(ijk)+ dt * indyp *2.D0* ep_n * (pijk-p(ijkn))
         av(1,1)=(dyj*appv(ijkn,1)+dyjp1*appv(ijk,1))*indyp
         av(1,1)=av(1,1)+(dyj*rgp(ijkn)+dyjp1*rgp(ijk))*indyp

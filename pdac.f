@@ -55,7 +55,7 @@
       INTEGER :: ig
       REAL*8 :: s0, s1, s2, s3, s4
       REAL*8 :: timtot, timprog, timdist, timsetup, timinit
-      LOGICAL :: debug = .TRUE.
+      LOGICAL :: debug = .FALSE.
 !
       IF(timing) s0 = cpclock()
 

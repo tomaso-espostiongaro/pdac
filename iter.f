@@ -21,18 +21,17 @@
 ! ... mass-momentum and the interphase coupling
 ! ... (2D-3D-Compliant)
 !
+      USE convective_mass_fluxes, ONLY: fmas, masf
       USE dimensions
       USE domain_decomposition, ONLY: ncint, ncdom, data_exchange
       USE domain_decomposition, ONLY: myijk, meshinds
       USE eos_gas, ONLY: eosg, ygc, xgc, rags, cg
       USE gas_solid_temperature, ONLY: sieg, tg
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      USE convective_mass_fluxes, ONLY: fmas, masf
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
       USE grid, ONLY: fl_l
-      USE specific_heat_module, ONLY: cp
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE tilde_momentum, ONLY: appu, appv, appw
+      USE output_dump, ONLY: outp
       USE parallel, ONLY: mpime
       USE particles_constants, ONLY: rl, inrl
       USE phases_matrix, ONLY: assemble_matrix, assemble_all_matrix
@@ -41,6 +40,8 @@
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: stencil, nb, rnb
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
+      USE specific_heat_module, ONLY: cp
+      USE tilde_momentum, ONLY: appu, appv, appw
       USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
       USE time_parameters, ONLY: time, dt, timestart, tpr
       USE control_flags, ONLY: job_type
@@ -63,7 +64,6 @@
 
       INTEGER :: nit, loop, mustit, kros
       LOGICAL, ALLOCATABLE :: converge(:)
-      LOGICAL :: first
       TYPE(stencil) :: u, v, w, dens
 !
       ALLOCATE(conv(ncint), abeta(ncint))
@@ -99,7 +99,6 @@
 ! ... biassed by the wrong (old) pressure field.
 !
       DO ijk = 1, ncint
-        imesh = myijk( ip0_jp0_kp0_, ijk)
         IF (fl_l(ijk) == 1) THEN
           CALL subscr(ijk)
           CALL assemble_matrix(ijk)
@@ -154,7 +153,6 @@
          mesh_loop: DO ijk = 1, ncint
 
            converge(ijk) = .FALSE.
-           first = .TRUE.
 
            IF( fl_l(ijk) /= 1 ) converge(ijk) = .TRUE.
            IF( fl_l(ijk) == 1 ) THEN
@@ -195,14 +193,13 @@
                   ! ... by using successively the Newton's method
                   ! ... (or the secant method where Newton is not
                   ! ... applicable) and the two-sided secant method.
-                  ! ... The first time in the loop, skip correction
+                  ! ... The first time in a cell, skip pressure correction
                   ! ... to compute once the particle velocities 
                   ! ... and volumetric fractions ...
 !
-                  IF( .NOT. ( first .AND. (nit == 1) ) ) THEN
+                  IF( (loop > 1) .OR. (nit > 1) ) THEN
                     CALL padjust(p(ijk), kros, d3, p3, omega, abeta(ijk))
                   END IF
-                  first = .FALSE.
 !
                   ! ... Use equation of state to calculate gas density 
                   ! ... from new pressure and old temperature.
@@ -367,14 +364,14 @@
 
         IF (job_type == '2D') THEN
 
-          CALL fmas(rsfe(ijk,is),  rsft(ijk,is),    &
+          CALL masf(rsfe(ijk,is),  rsft(ijk,is),    &
                     rsfe(imjk,is), rsft(ijkm,is),   &
                     dens, u, w, ijk)
 
         ELSE IF (job_type == '3D') THEN
 
           CALL rnb(v,vs(:,is),ijk)
-          CALL fmas(rsfe(ijk,is),  rsfn(ijk,is),  rsft(ijk,is),    &
+          CALL masf(rsfe(ijk,is),  rsfn(ijk,is),  rsft(ijk,is),    &
                     rsfe(imjk,is), rsfn(ijmk,is), rsft(ijkm,is),   &
                     dens, u, v, w, ijk)
 
@@ -440,14 +437,14 @@
 
         IF (job_type == '2D') THEN
         
-          CALL fmas(rgfe(ijk),  rgft(ijk),    &
+          CALL masf(rgfe(ijk),  rgft(ijk),    &
                     rgfe(imjk), rgft(ijkm),   &
                     dens, u, w, ijk)
 
         ELSE IF (job_type == '3D') THEN
 
           CALL rnb(v,vg,ijk)
-          CALL fmas(rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &
+          CALL masf(rgfe(ijk),  rgfn(ijk),  rgft(ijk),    &
                     rgfe(imjk), rgfn(ijmk), rgft(ijkm),   &
                     dens, u, v, w, ijk)
         ENDIF
@@ -487,6 +484,63 @@
 !      
       RETURN
       END SUBROUTINE update_res
+!----------------------------------------------------------------------
+      SUBROUTINE test_fluxes
+!
+      USE control_flags, ONLY: job_type
+      USE dimensions, ONLY: nsolid
+      USE io_restart, ONLY: write_array
+      USE kinds
+      USE parallel, ONLY: nproc, mpime, root, group
+      USE time_parameters, ONLY: time
+!
+      IMPLICIT NONE
+!
+      CHARACTER :: filnam*12
+!
+      INTEGER :: ig,is
+      LOGICAL :: lform = .TRUE.
+!
+      filnam='output.mtest'
+
+      IF( mpime == root ) THEN
+
+        IF (lform) THEN
+          OPEN(UNIT=12,FILE=filnam)
+          WRITE(12,*) time
+        ELSE 
+          OPEN(UNIT=12,FORM='UNFORMATTED',FILE=filnam)
+          WRITE(12) REAL(time,4)
+        END IF
+ 
+      END IF
+!
+      IF (job_type == '2D') THEN
+        CALL write_array( 12, rgfe, sgl, lform )
+        CALL write_array( 12, rgft, sgl, lform )
+      ELSE IF (job_type == '3D') THEN
+        CALL write_array( 12, rgfe, sgl, lform )
+        CALL write_array( 12, rgfn, sgl, lform )
+        CALL write_array( 12, rgft, sgl, lform )
+      END IF
+!
+      DO is = 1, nsolid
+        IF (job_type == '2D') THEN
+          CALL write_array( 12, rsfe(:,is), sgl, lform )
+          CALL write_array( 12, rsft(:,is), sgl, lform )
+        ELSE IF (job_type == '3D') THEN
+          CALL write_array( 12, rsfe(:,is), sgl, lform )
+          CALL write_array( 12, rsfn(:,is), sgl, lform )
+          CALL write_array( 12, rsft(:,is), sgl, lform )
+        END IF
+      END DO
+
+      IF( mpime == root ) THEN
+        CLOSE (12)
+      END IF
+!
+      RETURN
+      END SUBROUTINE test_fluxes
 !----------------------------------------------------------------------
       END SUBROUTINE iter
 !----------------------------------------------------------------------

@@ -315,7 +315,7 @@
       INTEGER :: ig,is
       LOGICAL :: lform = .TRUE.
 !
-      filnam='output.test'
+      filnam='output.htest'
 
       IF( mpime == root ) THEN
 
