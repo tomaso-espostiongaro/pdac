@@ -7,10 +7,12 @@ of the numerical mesh among N processors. Each processor solves the whole set of
 the model equations (Single Program) on its local data (Multiple Data),
 that are not accessible to other processors.
 %
-The parallelization has been designed trying to make it as much 
+The parallel software layer in the code has been designed trying to make it as much 
 hidden as possible, so that the resulting code, a part few control constructs,
-looks like a serial code. 
-The design kyefeature has been the implementation of a low level library which is used
+looks like a serial code, and basic algorithms that solve the constituent equations
+have not been modified.
+The design kyefeature of the parallelization has been the implementation of a 
+low level library, which is used
 to wrap MPI, and of a high level f90 module that contains subroutines
 to distribute computational cells among processors, balancing the load, and to build the 
 messages maps, to exchange data across processors.  
@@ -41,7 +43,7 @@ Solid obstacles or topographic reliefs on a structured rectilinear mesh are
 approximated by introducing {\em blocking cells}, where solid boundary 
 conditions are specified and fluid flow is not computed.
 Note that in the case of a large number of blocking cells, 
-a regular domain decomposition would result into an unbalanced load\\
+a regular domain decomposition would result into an unbalanced load.\\
 In PDAC, cells are subdivided into five classes:
 \begin{itemize}
 \item fluid cells, where all the model equations are solved according to the described solution precedure (flag = 1);
@@ -65,44 +67,68 @@ has the same number of cells of type 1, following these main steps:.\\
 \begin{enumerate}
 \item Counts the number of cells of each type, and subdivides the number $F1$ of ``flag 1 cells''
  among the number of processors $N$.
-\item {\bf Layers} decomposition (both 2D and 3D domain): the mesh is decomposed into horizontal layers with equal total number
+\item {\bf Layers} decomposition (both 2D and 3D domain): the mesh is decomposed into horizontal 
+layers with equal total number
 $F1$ of ``flag-type 1'' cells (Fig.~\ref{fig:Ves_part}, left). The procedure simply sweeps across
 the grid from bottom to top and counts the number of computational cells in each row from
 left to right (main sweep). Cells are assigned to a single process until the correct number 
 of sub-domain cells $F1$ is reached, then the process rank is increased until every 
 process has an equal number of computational cells.
-\item {\bf Columns} decomposition (both 2D and 3D domain): tries to subdivide the mesh into blocks with a shape factor near one
-(approximately squared) (Fig.~\ref{fig:Ves_part}, right). The procedure determines the best number
-$n_y$ of vertical layers and the number of processor blocks within each layer.
+\item {\bf  2D Blocks } decomposition: tries to subdivide the mesh
+into rectangular blocks with a shape factor near one (approximately squared) 
+(Fig.~\ref{fig:Ves_part}, right). The procedure first determines the best number
+of vertical layers $n_z$ along the $z$ cartesian axis, then within each 
+layer find out the optimal number and size of blocks, to be assigned to processors.
 \begin{enumerate}
-\item computes $\displaystyle n_x = INT\left(\frac{ndi}{\sqrt(F1/N)}\right)$, where $ndi$ is the
+\item computes $\displaystyle n_x = NINT\left(\frac{ndi}{\sqrt(F1/N)}\right)$, where $ndi$ is the
 number of grid cells in the $x$ direction;
-\item compute the number of layers $n_y$ so that $n_x \times n_y \ge N$;
-\item if $n_x \times n_y = N$ each layer will be subdivided into $n_x$ blocks, and each layer
-will have the same number $F1$ of computational cells. If $n_x \times n_y > N$, the first 
-layer will be subdivided into $MOD(N,n_x)$ blocks. Each block is then assigned to 
-a process. Since each process must have the same number of computational cells, the number
-of blocks of each layer determines the total number of cells within the layer. The vertical
-decomposition into layers can now be performed proceeding across the grid following the
-main sweep;
+\item compute the number of layers $n_z$ so that $n_x \times n_z \ge N$ 
+( $\displaystyle n_z = NINT\left(\frac{N}{n_x}\right)$ );
+\item if $n_x \times n_z = N$ each layer will be subdivided into $n_x$ blocks, and each layer
+will have the same number $F1$ of computational cells. If $n_x \times n_z > N$, the excess blocks
+( $n_x \times n_z - N$ ) are subtracted from layers containing the topography, and this time
+the number of $F1$ cells in each layer is set to be proportional to the number of blocks
+assigned to the layer itself. 
+Once the number of $F1$ cells per layer has benn computed the height is computed 
+proceeding across the grid following the main sweep (as in Layer decomposition);
 \item finally, each layer is subdivided horizontally into the previously computed number
-of blocks. 
-\end{enumerate}
-\item {\bf Blocks} decomposition (3D domain only): 
+of blocks, and each blocks is assigned to a processor. 
+\item {\bf 3D Columns } decomposition: same algorithm of the 2D blocks but applied to the $xy$ 
+ground plane instead of $xz$ vertical plane, the third cartesian axis $z$ is not subdivided
+further. (Fig.~\ref{fig:Ves_part}, right) and the the 3D domain will result to be subdivided
+into columns whose height is $nz$ (size of the mesh in the $z$ direction) and whose base
+is approximately square.
+\item {\bf 3D Blocks} decomposition: first all the number of subdivision to be done
+along the $z$ vertical $n_z$ is computed requiring that $n_z$ being as much as possible
+close to $N^{1/3}$ and $n_z$ being a factor of $N$ ( $N/n_z = INT(N/n_z)$ ).
+Then the algorithm proceed as for 3D columns partitioning the $xy$ plane, 
+but substituting $N$ with $N/n_z$. Finally all columns are cutted into $n_z$ blocks.
 \end{enumerate}
 
-The number of interporcessor boundary cells growths approximately as $N^{1/3}$ in the blocks decomposition, as $\sqrt{N}$ in the columns
-decomposition and as $N$ in the layers decomposition.\\
+As explained blelow the amount of communications required for the solution 
+of the constituent equations
+are proportional to the cells that are at the boundary between sub-domains assigned to
+different processors, and can be estimated to scale as $N$ for the layers decomposition, 
+$N^{1/2}$ for the 3D columns
+and 2D blocks decomposition, and $N^{1/3}$ for 3D blocks decomposition.\\
+Therefore different decompositions are expected to display different speed-ups
+(increase of performances) when the number of processors used for a single run
+is increased. In particular layers decompositions is expected to scale better
+for low processors count and blocks decompositions are expeted to perform 
+better for high processors count.
 
 %
 \begin{figure}[htb]
 \setlength{\unitlength}{1mm}
 \begin{center}
 \begin{minipage}{6cm}
-\centerline{\psfig{figure=./4blocchi.ps,height=4.5 cm,angle=0}}
+\centerline{\psfig{figure=./layer_dist.eps,height=4.5 cm,angle=0}}
 \end{minipage}
 \begin{minipage}{6cm}
-\centerline{\psfig{figure=./4layers.ps,height=4.5 cm,angle=0}}
+\centerline{\psfig{figure=./column_dist.eps,height=4.5 cm,angle=0}}
+\end{minipage}
+\begin{minipage}{6cm}
+\centerline{\psfig{figure=./block_dist.eps,height=4.5 cm,angle=0}}
 \end{minipage}
 \end{center}
 \caption{Example of domain decompositions with balanced distribution of
@@ -134,12 +160,14 @@ cell in the local sub-domain.
 
 In PDAC any domain decomposition could be in principle implemented, provided that a 
 simple enough processor-map can be designed.
-For layers, the processor map is simply given by a couple of integers,
+For layers (both in 2D and 3D domain), the processor map is simply given by a couple of integers,
 representing the indexes of the first and the last cells of the layer, following
 the main sweep 1D arrangement.  Each process can thus recover
 the informations on the domain decomposition if it knows all processor maps.
-For blocks one needs the 2D coordinates (two indexes) of the left-bottom and
-top-right corner of the sub-domains.
+For 2D blocks ( 3D columns ) one needs the 2D coordinates (two indexes) of the left-bottom ( south-west )
+top-right ( north-east ) corner of the sub-domains.
+For 3D blocks one needs the 3D coordinates (three indexes) of the bottom-south-west and
+top-north-east corner of the sub-domains.
 
 The processors map allows a fast and memory-cheap way to define the relations
 between the global index, the number of processor and the local index 
@@ -147,41 +175,38 @@ within the sub-domain, for a given cell.\\
 %
 \subsection{Mesh indexes}
 Cells within a sub-domain are ordered as in the main sweep, from bottom to top and
-from left to right. {\tt nij\_l} is the (local) number of cells in a subdomain.
+from left to right ( from west to east, south to north and bottom to top in 3D case). 
+{\tt nijk\_l} is the (local) number of cells in a subdomain ( k always 1 for 2D domain).
 As a first step, each processor counts the total number of external ghost cells
 needed during a computational cycle (the identification of the ``owner'' is 
-possible thanks to processor maps). If {\tt nije\_l} is the total number of these 
-cells, it must allocate an array of dimension {\tt nije\_l} to store the data received
+possible thanks to processor maps). If {\tt nijke\_l} is the total number of these 
+cells, it must allocate an array of dimension {\tt nijke\_l} to store the data received
 from its neighbours. Ghost cells are ``appended'' to the local arrays:
-the {\tt myij} and {\tt myinds} arrays are implemented
+the {\tt myijk} and {\tt myinds} arrays are implemented
  to store and access values allocated in the ghost cells and to promptly
 identify cells neighbours when needed for computation.\\
-The array {\tt myij} is built as a matrix with rank=3 and size 
-$nb \times {\tt nij\_l}$ where $nb$ is the number of neighbour cells 
-needed for computation and {\tt nij\_l} is the dimension of each processor
+The array {\tt myijk} is built as a matrix with rank=2 and size 
+$nb \times {\tt nijk\_l}$ where $nb$ is the number of neighbour cells 
+needed for computation and {\tt nijk\_l} is the dimension of each processor
 sub-domain.\\
-The first index of the matrix runs over the neighbour order in the $r$ or $x$ 
-direction, the second index runs over the neighbour order in the $z$ or $y$ 
-direction, the third index runs over the cell of the processor sub-domain.
-The array dimensions are thus {\tt myij(-2:2,-2:2,nij\_l)}.\\ 
+The first index of the matrix runs over the neighbour identified by a progressive
+index $in$ that run from 1 to 9 ( in 2D domain ) and from 1 to 25 ( in 3D domain ),
+note that in the code mnemonic variable are used in place of number to address
+the neigbour (ex. ip1_jp0_km1_ $=$ 20 is the neighbour $i+1,j+0,k-1$ of the $i,j,k$
+cell).\\ 
 Computation proceeds by looping  over the computational
 cell of one processor's sub-domain: for each cell, if $ijk$ is its local index
 we can write
 \begin{enumerate}
-\item ${\tt myij}(0,0,ijk)$ gives the GLOBAL index (the index running 
+\item ${\tt myijk}( 1,ijk)$ gives the GLOBAL index (the index running 
       over the main grid) corresponding to the LOCAL index $ijk$;
-\item ${\tt myij}(n,m,ijk)$ gives the LOCAL index that identifies the neighbour
-      cell shifted by $n$ and $m$ positions in $r$ (or $x$) direction 
-      and in the $z$ (or $y$) direction, respectively, with respect to $ijk$. 
-\item As already pointed out, the only values corresponding to
-      second neighbours that are used in the code are those represented as
-      {\tt myij($\pm$2,0,ijk)} and {\tt myij(0,$\pm$2,ijk)}. Those not used
-      are set to 0.
+\item ${\tt myijk}( im,ijk)$ gives the LOCAL index that identifies the neighbour
+      cell identified by the mnemonic index $im$, with respect to $ijk$. 
 \end{enumerate}
 
 On boundaries, the number and type of neighbour cells that must be considered
 in the computation is different from the internal cells. The array
-{\tt myinds} duplicates the array {\tt myij} (although it has a different notation)
+{\tt myinds} duplicates the array {\tt myijk} (although it has a different notation)
 in the internal cells and considers boundary conditions on boundaries.\\ 
 %
 \subsection{Receive and send-maps}
