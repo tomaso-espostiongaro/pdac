@@ -367,7 +367,7 @@
       REAL*8  :: l, l1, l2, lcomp
       INTEGER :: n01,n02,m1,m2,n11,n12
       INTEGER :: i, j, m, n, center
-      LOGICAL :: print_mesh, already
+      LOGICAL :: print_mesh, already,maxn
       INTEGER :: idelta, ncount
 !
       IF ( domain_size/demin < nd )  CALL error('grid_generator', &
@@ -505,7 +505,7 @@
            ENDIF
         ENDIF
         
-        CALL myflush( 6 )
+        CALL myflush( 7 )
       END DO
 !
       IF ( beta >= maxbeta ) THEN
@@ -513,23 +513,54 @@
          WRITE(7,*) 'Please increase maximum beta or number of cells'
       ENDIF
 !
-      ntilde1 = ( l1 - n11*demax ) / demin + 1.D0
-      beta1 = beta
-      IF ( ntilde1 > 1.D0 ) THEN
-         DO j=1,50
-            beta1 = ( 1.D0 - ( m1*beta1**( m1+1 ) + 1.D0 ) / ntilde1 ) / &
-            &      ( 1.D0 - ( m1+1.D0 )*( beta1**m1 ) / ntilde1 ) 
-         ENDDO
-      ENDIF
+
+
+      maxn = .TRUE.
+      DO WHILE ( maxn )
+         ntilde1 = ( l1 - n11*demax ) / demin + 1.D0
+         beta1 = beta
+         IF ( ntilde1 > 1.D0 ) THEN
+            DO j=1,50
+               beta1 = ( 1.D0 - ( m1*beta1**( m1+1 ) + 1.D0 ) / ntilde1 ) / &
+               &      ( 1.D0 - ( m1+1.D0 )*( beta1**m1 ) / ntilde1 ) 
+            ENDDO
+         ENDIF
+         IF ( demin*beta1*m1 > demax ) THEN
+            IF ( (m1==0) .OR. ( beta1 > maxbeta ) ) THEN
+               WRITE(7,*) 'WARNING!!: beta >= maximum beta!'
+               maxn = .FALSE.
+            ELSE
+               n11 = n11 + 1
+               m1 = m1 - 1
+            ENDIF
+         ELSE
+            maxn = .FALSE.
+         ENDIF
+      END DO
+
 !     
-      ntilde2 = ( l2 - n12*demax) / demin + 1.D0
-      beta2 = beta
-      IF ( ntilde2 > 1.D0 ) THEN
-         DO j=1,50
-            beta2 = ( 1.D0 - ( m2*beta2**( m2+1.D0 ) + 1.D0 ) / ntilde2 ) / &
-            ( 1.D0 - ( m2+1.D0 )*( beta2**m2 ) / ntilde2 )
-         ENDDO
-      ENDIF
+      maxn = .TRUE.
+      DO WHILE ( maxn )
+         ntilde2 = ( l2 - n12*demax) / demin + 1.D0
+         beta2 = beta
+         IF ( ntilde2 > 1.D0 ) THEN
+            DO j=1,50
+               beta2 = ( 1.D0 - ( m2*beta2**( m2+1.D0 ) + 1.D0 ) / ntilde2 ) / &
+               ( 1.D0 - ( m2+1.D0 )*( beta2**m2 ) / ntilde2 )
+            ENDDO
+         ENDIF
+         IF ( demin*beta2*m2 > demax ) THEN
+            IF ( (m2==0) .OR. ( beta2 > maxbeta ) ) THEN
+               WRITE(7,*) 'WARNING!!: beta >= maximum beta!'
+               maxn = .FALSE.
+            ELSE
+               n12 = n12 + 1
+               m2 = m2 - 1
+            ENDIF
+         ELSE
+            maxn = .FALSE.
+         ENDIF
+      END DO          
 !
       IF( lpr >= 1 ) WRITE(7,*) 'beta, beta1, beta2: ', beta, beta1, beta2 
       IF( lpr >= 1 ) WRITE(7,*) 'n01,m1,n11',n01,m1,n11
