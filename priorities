@@ -1,11 +1,11 @@
 !!   Modification of the 3d BLOCK distribution to avoid large processor 
      unbalancing of computational load
 
-!!   New Module to check the residuals of the model equations at each
-     iteration
-
 !    Refinement of the procedure for random perturbation of the inlet 
      conditions to include "non-top-hat" velocity profiles
+
+!!   New Module to check the residuals of the model equations at each
+     iteration
 
 !!!  Optimization procedure for atmospheric cells without particles 
 

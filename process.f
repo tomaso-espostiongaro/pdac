@@ -151,11 +151,11 @@
 
       IMPLICIT NONE
 !
-      INTEGER :: tn, ijk, i, k
-      LOGICAL :: lform
+      INTEGER :: tn, ijk, i, k, nfil
+      LOGICAL :: lform, ex
       REAL, ALLOCATABLE, DIMENSION(:) :: rm, rg, bd, m, um, vm, wm, mvm, c, mc 
       REAL, ALLOCATABLE, DIMENSION(:) :: epstot, lepstot, pd
-      CHARACTER(LEN = 14) :: filnam
+      CHARACTER(LEN = 12) :: filnam
       CHARACTER(LEN = 4 ) :: lettera
 !
       lform = formatted_output
@@ -175,6 +175,14 @@
       ALLOCATE(pd(ntot))  ! Dynamic Pressure
 
       CALL allocate_main_fields
+!
+      filnam='map_max.'//lettera(first_out-incr_out)
+      INQUIRE(FILE=filnam,EXIST=ex)
+      IF (ex) THEN
+              OPEN(UNIT=tempunit,FILE=filnam)
+              READ(tempunit,*) array_map_max(:)
+              CLOSE(tempunit)
+      END IF
 !
       DO tn = first_out, last_out, incr_out
 
@@ -325,10 +333,9 @@
       INTEGER :: i, j, k, ijk, ijkm
       CHARACTER( LEN = 4 ) :: lettera
       CHARACTER( LEN = 12 ) :: filnam
+      LOGICAL :: ex
 
       IF (job_type == '2D') RETURN
-
-      filnam='map_max.'//lettera(nfil)
 
       DO i = 1, nx
         DO j = 1, ny
