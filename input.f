@@ -321,6 +321,8 @@
               READ(5,*) fixed_vgas_x(n), fixed_vgas_z(n), fixed_pressure(n), fixed_gaseps(n), fixed_gastemp(n)
               READ(5,*) ( fixed_vpart_x(k,n), fixed_vpart_z(k,n), fixed_parteps(k,n), fixed_parttemp(k,n), k=1, nsolid)
               READ(5,*) ( fixed_gasconc(ig,n), ig=1, ngas )
+            ELSE IF( block_type(n) == 7) THEN
+              OPEN(UNIT=17, FILE='input.prof', STATUS='UNKNOWN')
             ENDIF
           END DO
         ELSE IF (job_type == '3D') THEN
