@@ -198,9 +198,9 @@
         !
 
         rm = rhom(eps,p,tg,xgc)
-        rg = rhog(p,tg,xgc)
-        bd = rgp(eps,p,tg,xgc)
-        m  = mg(xgc)
+!        rg = rhog(p,tg,xgc)
+!        bd = rgp(eps,p,tg,xgc)
+!        m  = mg(xgc)
         um = velm(ug,us,eps,p,tg,xgc)
         IF (job_type == '3D') vm = velm(vg,vs,eps,p,tg,xgc)
         wm = velm(wg,ws,eps,p,tg,xgc)

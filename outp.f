@@ -338,8 +338,8 @@
 !
       CHARACTER( LEN =  4 ) :: lettera
       LOGICAL :: lform
-!
       INTEGER :: ig,is
+      REAL*4 :: time4
       REAL*8, ALLOCATABLE :: otmp(:)
 !
       filnam='output.'//lettera(nfil)
@@ -352,7 +352,8 @@
           READ(outpunit,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
         ELSE 
           OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam)
-          READ(outpunit) time
+          READ(outpunit) time4
+          time = REAL(time4,dbl)
         END IF
 
         WRITE(logunit,fmt="('  from outp: recovering file ',A20)") filnam

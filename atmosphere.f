@@ -204,7 +204,6 @@
 !
         t_atm(k) = ta
         p_atm(k) = pa
-WRITE(*,*) k, ta, pa
 
       END DO
 !
