@@ -2,7 +2,7 @@
       SUBROUTINE prog
 !----------------------------------------------------------------------
 
-      USE blunt_body, ONLY: bluntb
+      USE blunt_body, ONLY: bluntb, ibl
       USE boundary_conditions, ONLY: boundary
       USE control_flags, ONLY: job_type, lpr
       USE control_flags, ONLY: implicit_enthalpy, implicit_fluxes
@@ -204,7 +204,7 @@
             IF ( implicit_enthalpy ) CALL htilde
           END IF
  
-          CALL bluntb
+          IF (ibl >= 1) CALL bluntb
 
           IF( timing )then
             s6 = cpclock()

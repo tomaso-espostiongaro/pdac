@@ -141,7 +141,7 @@
                             sieg(ijk), ijk, info)
 
           DO is=1, nsolid
-            CALL caloric_eosl(ts(ijk,is), cps(is), ck(is,ijk), sies(ijk,is)) 
+            CALL caloric_eosl(ts(ijk,is),cps(is),ck(is,ijk),sies(ijk,is),ijk) 
           END DO
 
         END IF

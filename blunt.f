@@ -37,6 +37,7 @@
       USE grid, ONLY: dx, dz, flag
       INTEGER :: prm, l, m, n, i, k, ijk, imesh
 
+      IF (mpime == root) OPEN(15,FILE='body.dat')
       perim = 0
       prm   = 0
       DO n = 1, no
@@ -74,6 +75,7 @@
           surfp(m,l)%n(2) = 0
           surfp(m,l)%n(3) = 0
         END DO
+        
         k = iob(n)%zhi + 1
         DO i = iob(n)%xlo, iob(n)%xhi
           l = l+1
@@ -90,6 +92,7 @@
           surfp(m,l)%n(2) = 0
           surfp(m,l)%n(3) = +1
         END DO
+        
         i = iob(n)%xhi + 1
         DO k = iob(n)%zhi, iob(n)%zlo, -1
           l = l+1
@@ -106,6 +109,7 @@
           surfp(m,l)%n(2) = 0
           surfp(m,l)%n(3) = 0
         END DO
+        
         k = iob(n)%zlo - 1
         DO i = iob(n)%xhi, iob(n)%xlo, -1
           l = l+1
@@ -153,14 +157,15 @@
           CALL dragbl(m, fdrag(m))
           CALL liftbl(m, flift(m))
 
-          CALL parallel_sum_real(fdrag(m), 1)
-          CALL parallel_sum_real(flift(m), 1)
-
         END IF
       END DO
 
+      ! ... 'm' is the number of blunt-bodies
+      !
       IF (m /= SUM(nblu)) CALL error('set_blunt','control nblu',m)
-        
+
+      CALL parallel_sum_real(fdrag, m)
+      CALL parallel_sum_real(flift, m)
 !
 ! ... Write out the forces acting on the body
       IF (mpime == root) CALL print_action

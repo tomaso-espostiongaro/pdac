@@ -467,6 +467,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE sgss
 ! ... Computes the sub-grid-stress for solids (Gidaspow, 1994)
+! ... This model is no longer used
 ! ... (2D-3D-Compliant)
 !
       USE dimensions

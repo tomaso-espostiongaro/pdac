@@ -207,8 +207,10 @@
           END DO
 !**********************************************************************
           !  Error report
+          CALL meshinds(ijk,imesh,i,j,k)
           WRITE(8,*) 'max number of iteration reached in eosg'
-          WRITE(8,*) 'time:', time, 'proc:', mpime, 'cell:', ijk 
+          WRITE(8,*) 'time:', time, 'proc:', mpime
+          WRITE(8,*) 'local cell:', ijk , i, j, k
           WRITE(8,*) 'temperature:',tg0, 'enthalpy:',sieg0
           WRITE(8,*) 'specific heat:',cgas0
           WRITE(6,*) 'max number of iteration reached in eosg'

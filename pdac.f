@@ -16,7 +16,7 @@
       PROGRAM pdac
 
       USE control_flags, ONLY: itp
-      USE blunt_body, ONLY: set_blunt
+      USE blunt_body, ONLY: set_blunt, ibl
       USE dimensions
       USE domain_decomposition, ONLY: partition, ghost
       USE eos_gas, ONLY: allocate_eosg
@@ -95,7 +95,6 @@
         IF( .NOT. debug ) OPEN(UNIT=logunit,   FILE=logfile,   STATUS='UNKNOWN')
         OPEN(UNIT=testunit,  FILE=testfile,  STATUS='UNKNOWN')
         OPEN(UNIT=errorunit, FILE=errorfile, STATUS='UNKNOWN')
-        OPEN(15,FILE='body.dat')
       ELSE
         IF( .NOT. debug ) OPEN(UNIT=logunit,   FILE=lognb,   STATUS='UNKNOWN')
         OPEN(UNIT=testunit,  FILE=testnb,    STATUS='UNKNOWN')
@@ -172,7 +171,7 @@
           call MP_WALLTIME(pt3,mpime)
       END IF
 !
-      CALL set_blunt
+      IF (ibl >= 1) CALL set_blunt
 !
 ! ... Attention!: all further operations are executed
 ! ... by each processor on local data

@@ -116,17 +116,15 @@
 !
             CASE (3)
 !
-            IF(flag(ipjkp) /= 1) THEN
-            
-              wg(n2)   = -wg(n1)
-              ws(n2,:) = -ws(n1,:)
+              IF(flag(ipjkp) /= 1) THEN
+                wg(n2)   = -wg(n1)
+                ws(n2,:) = -ws(n1,:)
+              END IF
 
-              IF (job_type == '3D') THEN
+              IF (flag(ipjpk) /= 1 .AND. job_type == '3D') THEN
                 vg(n2)   = -vg(n1)
                 vs(n2,:) = -vs(n1,:)
               END IF
-
-            END IF
 !
             CASE (4)
 !
@@ -195,12 +193,15 @@
 	      END IF
 !
             CASE (3)
-!
-              wg(n2)   = -wg(n1)
-              ws(n2,:) = -ws(n1,:)
-	      IF (job_type == '3D') THEN
-                vg(n2)   = -vg(n1)
-                vs(n2,:) = -vs(n1,:)
+
+              IF ( flag(imjkp) /= 1 ) THEN
+                wg(n2)   = -wg(n1)
+                ws(n2,:) = -ws(n1,:)
+	      END IF
+
+              IF ( flag(imjkp) /= 1 .AND. job_type == '3D') THEN
+                  vg(n2)   = -vg(n1)
+                  vs(n2,:) = -vs(n1,:)
 	      END IF
 !
             CASE (4)
@@ -270,10 +271,14 @@
 !  
               CASE (3)
 !  
-                ug(n2)   = -ug(n1)
-                us(n2,:) = -ws(n1,:)
-                wg(n2)   = -wg(n1)
-                ws(n2,:) = -ws(n1,:)
+                IF(flag(ipjpk) /= 1) THEN
+                  ug(n2)   = -ug(n1)
+                  us(n2,:) = -ws(n1,:)
+                END IF
+                IF(flag(ijpkp) /= 1) THEN
+                  wg(n2)   = -wg(n1)
+                  ws(n2,:) = -ws(n1,:)
+                END IF
 !  
               CASE (4)
 !  
@@ -335,10 +340,14 @@
 !
               CASE (2)
 !
-                ug( n2 ) = ug( n1 )
-                us(n2,:) = us(n1,:)
-                wg( n2 ) = wg( n1 )
-                ws(n2,:) = ws(n1,:)
+                IF(flag(ipjmk) /= 1) THEN
+                  ug( n2 ) = ug( n1 )
+                  us(n2,:) = us(n1,:)
+                END IF
+                IF(flag(ijmkp) /= 1) THEN
+                  wg( n2 ) = wg( n1 )
+                  ws(n2,:) = ws(n1,:)
+                END IF
 !
               CASE (3)
 !
@@ -417,9 +426,12 @@
 !
             CASE (3)
 !  
-              ug(n2)   = -ug(n1)
-              us(n2,:) = -us(n1,:)
-	      IF (job_type == '3D') THEN
+              IF (flag(ipjkp) /= 1) THEN
+                ug(n2)   = -ug(n1)
+                us(n2,:) = -us(n1,:)
+              END IF
+
+	      IF (flag(ijpkp) /= 1 .AND. job_type == '3D') THEN
                 vg(n2)   = -vg(n1)
                 vs(n2,:) = -vs(n1,:)
 	      END IF
