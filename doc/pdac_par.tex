@@ -7,7 +7,14 @@ of the numerical mesh among N processors. Each processor solves the whole set of
 the model equations (Single Program) on its local data (Multiple Data),
 that are not accessible to other processors.
 %
-The details of the parallel implementation of PDAC are
+The parallelization has been designed trying to make it as much 
+hidden as possible, so that the resulting code, a part few control constructs,
+looks like a serial code. 
+The design kyefeature has been the implementation of a low level library which is used
+to wrap MPI, and of a high level f90 module that contains subroutines
+to distribute computational cells among processors, balancing the load, and to build the 
+messages maps, to exchange data across processors.  
+Here the details of the parallel implementation of PDAC are
 presented following the main logical steps:
 \begin{enumerate}
 \item domain decomposition
@@ -18,20 +25,23 @@ presented following the main logical steps:
 \item communication interfaces
 \end{enumerate}
 % 
-All procedure are implemented for both 2D and 3D. Here we present the
-procedure for 2D domains.
-%
 \subsection{Domain decomposition}
 The computational domain
 is discretized into a structured rectilinear mesh, so that the total number
-of cells is given by the number of rows times the number of columns.
-The parallelization strategy is based on the distribution of the 
-computational cells among processors.
+of cells is given, considering the ground in the cartesian xy plane,  
+by the number of cells in x direction times the number of cells in z direction
+for the 2D case, and by the number of cells in x direction times the number of cells 
+in the y direction times the number of cells in z direction, for the 3D case.
+The parallelization is obtained distributing the
+computational cells among processors, in such a way that each processor solve
+the coinstituent equations only on its own cells. 
+Several distribution scheme are possible, and the different computational weight 
+of cells in different part of the domain need to be accounted for.
 Solid obstacles or topographic reliefs on a structured rectilinear mesh are 
 approximated by introducing {\em blocking cells}, where solid boundary 
 conditions are specified and fluid flow is not computed.
-In the case of a large number of blocking cells, a regular domain decomposition
-would result into an unbalanced load\\
+Note that in the case of a large number of blocking cells, 
+a regular domain decomposition would result into an unbalanced load\\
 In PDAC, cells are subdivided into five classes:
 \begin{itemize}
 \item fluid cells, where all the model equations are solved according to the described solution precedure (flag = 1);
@@ -55,13 +65,13 @@ has the same number of cells of type 1, following these main steps:.\\
 \begin{enumerate}
 \item Counts the number of cells of each type, and subdivides the number $F1$ of ``flag 1 cells''
  among the number of processors $N$.
-\item {\bf Layers} decomposition: the mesh is decomposed into horizontal layers with equal total number
+\item {\bf Layers} decomposition (both 2D and 3D domain): the mesh is decomposed into horizontal layers with equal total number
 $F1$ of ``flag-type 1'' cells (Fig.~\ref{fig:Ves_part}, left). The procedure simply sweeps across
 the grid from bottom to top and counts the number of computational cells in each row from
 left to right (main sweep). Cells are assigned to a single process until the correct number 
 of sub-domain cells $F1$ is reached, then the process rank is increased until every 
 process has an equal number of computational cells.
-\item {\bf Blocks} decomposition: tries to subdivide the mesh into blocks with a shape factor near one
+\item {\bf Columns} decomposition (both 2D and 3D domain): tries to subdivide the mesh into blocks with a shape factor near one
 (approximately squared) (Fig.~\ref{fig:Ves_part}, right). The procedure determines the best number
 $n_y$ of vertical layers and the number of processor blocks within each layer.
 \begin{enumerate}
@@ -78,8 +88,10 @@ main sweep;
 \item finally, each layer is subdivided horizontally into the previously computed number
 of blocks. 
 \end{enumerate}
+\item {\bf Blocks} decomposition (3D domain only): 
 \end{enumerate}
-The number of interporcessor boundary cells growths approximately as $\sqrt{N}$ in the blocks
+
+The number of interporcessor boundary cells growths approximately as $N^{1/3}$ in the blocks decomposition, as $\sqrt{N}$ in the columns
 decomposition and as $N$ in the layers decomposition.\\
 
 %
