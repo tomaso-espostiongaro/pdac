@@ -44,6 +44,7 @@
       USE domain_decomposition, ONLY: myijk, meshinds
       USE enthalpy_matrix, ONLY: ftem
       USE environment, ONLY: cpclock, timing
+      USE flux_limiters, ONLY: muscl
       USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
@@ -58,7 +59,7 @@
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: imjk, ijmk, ijkm, ijkn, &
                              ijke, ijkw, ijkt, ijkb
-      USE set_indexes, ONLY: subscr, first_subscr
+      USE set_indexes, ONLY: first_subscr, third_subscr
       USE tilde_energy, ONLY: htilde
       USE tilde_momentum, ONLY: tilde, appu, appv, appw
       USE time_parameters, ONLY: time, dt, timestart, tpr, sweep
@@ -231,6 +232,7 @@
 
              CALL meshinds(ijk,imesh,i,j,k)
              CALL first_subscr(ijk)
+             IF (muscl > 0) CALL third_subscr(ijk)
 
              ! ... Compute the volumes partially filled by the
              ! ... topography
@@ -454,7 +456,7 @@
       USE eos_gas, ONLY: thermal_eosg, xgc
       USE phases_matrix, ONLY: assemble_all_matrix
       USE phases_matrix, ONLY: solve_all_velocities
-      USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
+      USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE control_flags, ONLY: job_type
 
@@ -560,7 +562,6 @@
       USE gas_solid_density, ONLY: rgp
       USE set_indexes, ONLY: first_nb, first_rnb, third_nb, third_rnb
       USE set_indexes, ONLY: imjk, ijmk, ijkm
-      USE set_indexes, ONLY: third_subscr
       USE control_flags, ONLY: job_type, implicit_fluxes, &
                                implicit_enthalpy
 !
@@ -586,7 +587,6 @@
 ! ... Second order MUSCL correction
 !
             ! ... add third neighbours to computational stencils
-            CALL third_subscr( ijk )
             CALL third_nb( dens, rgp, ijk)
             CALL fmas( rgfe( ijk ), rgft( ijk ), rgfe( imjk ), rgft( ijkm ), &
                        dens, u, w, ijk )
@@ -613,7 +613,6 @@
 ! ... Second order MUSCL correction
 !
             ! ... add third neighbours to computational stencils
-            CALL third_subscr( ijk )
             CALL third_nb( dens, rgp, ijk)
             CALL fmas( rgfe( ijk  ), rgfn( ijk  ), rgft( ijk  ),  &
                        rgfe( imjk ), rgfn( ijmk ), rgft( ijkm ),  &
@@ -630,7 +629,7 @@
 !----------------------------------------------------------------------
 ! ... Compute the residual of the Mass Balance equation of the gas phase
 !
-      USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
+      USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
       USE grid, ONLY: flag
       USE control_flags, ONLY: job_type
@@ -671,7 +670,6 @@
       USE gas_solid_density, ONLY: rlk
       USE set_indexes, ONLY: first_nb, first_rnb, third_nb, third_rnb
       USE set_indexes, ONLY: imjk, ijmk, ijkm
-      USE set_indexes, ONLY: third_subscr
       USE control_flags, ONLY: job_type
 !
       IMPLICIT NONE
@@ -699,7 +697,6 @@
 ! ... Second order MUSCL correction
 !
               ! ... add third neighbours to computational stencils
-              CALL third_subscr( ijk ) 
               CALL third_nb(dens,rlk(:,is),ijk)
               CALL fmas(rsfe(ijk,is), rsft(ijk,is),    &
                       rsfe(imjk,is), rsft(ijkm,is),   &
@@ -726,7 +723,6 @@
 ! ... Second order MUSCL correction
 !
               ! ... add third neighbours to computational stencils
-              CALL third_subscr( ijk ) 
               CALL third_nb(dens,rlk(:,is),ijk)
               CALL fmas(rsfe(ijk,is),  rsfn(ijk,is),  rsft(ijk,is),    &
                     rsfe(imjk,is), rsfn(ijmk,is), rsft(ijkm,is),   &
@@ -749,7 +745,6 @@
       USE control_flags, ONLY: job_type, lpr
       USE dimensions
       USE gas_solid_density, ONLY: rlk, rlkn
-      USE immersed_boundaries, ONLY: numx, numy, numz, immb
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE time_parameters, ONLY: dt, time
@@ -789,26 +784,12 @@
 ! ... Error report
 !
       IF( rls > 1.D0 ) THEN
-
         IF (lpr > 0) THEN
           WRITE(testunit,*) ' WARNING 1: mass is not conserved'
           WRITE(testunit,*) ' time, i, j, k ', time, i, j, k
           WRITE(testunit,*) ' rls, volfrac ', rls, 1.D0/ivf
         END IF
-
-        IF (immb == 1) THEN
-          fx = numx(ijk)
-          IF (job_type == '2D') THEN
-            fy = 0
-          ELSE IF (job_type == '3D') THEN
-            fy = numy(ijk)
-          END IF
-          fz = numz(ijk)
-        
-          forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
-        END IF
-        IF (.NOT.forced) CALL error('iter','mass is not conserved',1)
-
+        CALL error('iter','mass is not conserved',1)
       ENDIF
 !
 !**********************************************************************
@@ -1088,7 +1069,7 @@
         USE eos_gas, ONLY: thermal_eosg, xgc
         USE phases_matrix, ONLY: assemble_all_matrix, solve_all_velocities
         USE set_indexes, ONLY: third_nb, third_rnb, first_rnb, first_nb
-        USE set_indexes, ONLY: third_subscr, imjk, ijmk, ijkm
+        USE set_indexes, ONLY: imjk, ijmk, ijkm
         USE set_indexes, ONLY: ijke, ijkn, ijkt, ijkw, ijks, ijkb
         USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
         USE control_flags, ONLY: job_type
@@ -1100,7 +1081,8 @@
 
         IMPLICIT NONE
 
-        INTEGER :: nit, ijk, i, j, k, nloop
+        INTEGER, INTENT(IN) :: ijk, i, j, k, nit
+        INTEGER :: nloop
         REAL*8 :: d3, p3, abeta_, conv_, dgorig
         LOGICAL, INTENT(OUT) :: cvg
         REAL*8 :: resx, resy, resz, mg
@@ -1129,12 +1111,11 @@
         rsfw_(1:nsolid) = rsfe( imjk, 1:nsolid )
         rsft_(1:nsolid) = rsft( ijk, 1:nsolid )
         rsfb_(1:nsolid) = rsft( ijkm, 1:nsolid )
-
         rgfe_ = rgfe( ijk )
         rgfw_ = rgfe( imjk )
         rgft_ = rgft( ijk )
         rgfb_ = rgft( ijkm )
-        
+        !
         IF(job_type == '3D') THEN
           rsfn_(1:nsolid) = rsfn( ijk, 1:nsolid )
           rsfs_(1:nsolid) = rsfn( ijmk, 1:nsolid )
@@ -1143,16 +1124,15 @@
         END IF
 
         ! ... These are the stencil used in the inner_loop
-        ! ... Only some values in the stencil are updated
+        ! ... Only few values in the stencil are updated
         ! ... in the inner_loop
         !
         CALL first_nb(rgp_,rgp,ijk)
         CALL first_rnb(ug_,ug,ijk)
         CALL first_rnb(wg_,wg,ijk)
         IF (job_type == '3D') CALL first_rnb(vg_,vg,ijk)
-
+        !
         IF (muscl > 0) THEN
-          CALL third_subscr(ijk)
           CALL third_nb(rgp_,rgp,ijk)
           CALL third_rnb(ug_,ug,ijk)
           CALL third_rnb(wg_,wg,ijk)
@@ -1186,30 +1166,25 @@
           ! ... The first time in a cell, skip pressure correction
           ! ... to compute once the particle velocities 
           ! ... and volumetric fractions ...
-!
+          !
           IF( (loop > 1) .OR. (nit > 1) ) THEN
             CALL padjust( p(ijk), kros, d3, p3, omega, abeta_ )
           END IF
 !
           ! ... Use equation of state to calculate gas density 
           ! ... from (new) pressure and (old) temperature.
-!
-          CALL thermal_eosg(rog(ijk),tg(ijk),p(ijk),xgcl(:))
-!
-          rgp(ijk) = ep(ijk) * rog(ijk)
-          
-          ! ... Update the stencil element
           !
-          rgp_%c = rgp(ijk)
+          CALL thermal_eosg(rog(ijk),tg(ijk),p(ijk),xgcl(:))
+          rgp(ijk) = ep(ijk) * rog(ijk)
 !
           ! ... Update gas and particles velocities using the 
           ! ... corrected pressure at current location. 
           ! ... Pressure at neighbour cells could still be wrong.
-
+          !
           CALL assemble_all_matrix(ijk)
           CALL solve_all_velocities(ijk)
 !
-          ! ... Update the stencil elements
+          ! ... Update the corresponding stencil elements
           !
           ug_%c = ug( ijk )
           ug_%w = ug( imjk )
@@ -1230,7 +1205,7 @@
             END IF
           END DO
 !
-          ! ... By using the new velocity fields
+          ! ... By using the new velocity fields,
           ! ... update particle gas mass fluxes and
           ! ... solid volumetric fractions
           !
@@ -1287,9 +1262,9 @@
           ep( ijk ) = 1.D0 - rls
           rgp( ijk ) = ep( ijk ) * rog( ijk )
 
-          ! ... Update the stencil
+          ! ... Update the corresponding stencils
           !
-          rlk_(:)%c = rlk(ijk,:)
+          rlk_(1:nsolid)%c = rlk(ijk,1:nsolid)
           rgp_%c = rgp(ijk)
 
           ! ... update residual of the Mass Balance equation of the gas phase
@@ -1381,7 +1356,7 @@
         USE eos_gas, ONLY: thermal_eosg, xgc
         USE phases_matrix, ONLY: matsvels_3phase
         USE set_indexes, ONLY: third_nb, third_rnb, first_rnb, first_nb
-        USE set_indexes, ONLY: third_subscr, imjk, ijmk, ijkm
+        USE set_indexes, ONLY: imjk, ijmk, ijkm
         USE set_indexes, ONLY: ijke, ijkn, ijkt, ijkw, ijks, ijkb
         USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
         USE control_flags, ONLY: job_type
@@ -1409,9 +1384,9 @@
         REAL*8 :: rgft_ , rgfb_
         REAL*8 :: rgfn_ , rgfs_
 
-        TYPE(stencil) :: ug_, vg_, wg_, densg_
-        TYPE(stencil) :: u1, v1, w1, dens1
-        TYPE(stencil) :: u2, v2, w2, dens2
+        TYPE(stencil) :: ug_, vg_, wg_, rgp_
+        TYPE(stencil) :: us1_, vs1_, ws1_, rlk1_
+        TYPE(stencil) :: us2_, vs2_, ws2_, rlk2_
 
         INTEGER :: loop, kros, ig
 
@@ -1440,30 +1415,29 @@
         rgfn_ = rgfn( ijk )
         rgfs_ = rgfn( ijmk )
 
-        CALL first_nb(dens1,rlk(:,1),ijk)
-        CALL first_nb(dens2,rlk(:,2),ijk)
-        CALL first_rnb(u1,us(:,1),ijk)
-        CALL first_rnb(u2,us(:,2),ijk)
-        CALL first_rnb(w1,ws(:,1),ijk)
-        CALL first_rnb(w2,ws(:,2),ijk)
-        CALL first_rnb(v1,vs(:,1),ijk)
-        CALL first_rnb(v2,vs(:,2),ijk)
-        CALL first_nb( densg_, rgp, ijk )
+        CALL first_nb(rlk1_,rlk(:,1),ijk)
+        CALL first_nb(rlk2_,rlk(:,2),ijk)
+        CALL first_rnb(us1_,us(:,1),ijk)
+        CALL first_rnb(us2_,us(:,2),ijk)
+        CALL first_rnb(ws1_,ws(:,1),ijk)
+        CALL first_rnb(ws2_,ws(:,2),ijk)
+        CALL first_rnb(vs1_,vs(:,1),ijk)
+        CALL first_rnb(vs2_,vs(:,2),ijk)
+        CALL first_nb( rgp_, rgp, ijk )
         CALL first_rnb( ug_, ug, ijk )
         CALL first_rnb( wg_, wg, ijk )
         CALL first_rnb( vg_, vg, ijk )
 
         IF (muscl > 0) THEN
-          CALL third_subscr(ijk)
-          CALL third_nb(dens1,rlk(:,1),ijk)
-          CALL third_nb(dens2,rlk(:,2),ijk)
-          CALL third_rnb(u1,us(:,1),ijk)
-          CALL third_rnb(u2,us(:,2),ijk)
-          CALL third_rnb(w1,ws(:,1),ijk)
-          CALL third_rnb(w2,ws(:,2),ijk)
-          CALL third_rnb(v1,vs(:,1),ijk)
-          CALL third_rnb(v2,vs(:,2),ijk)
-          CALL third_nb( densg_, rgp, ijk )
+          CALL third_nb(rlk1_,rlk(:,1),ijk)
+          CALL third_nb(rlk2_,rlk(:,2),ijk)
+          CALL third_rnb(us1_,us(:,1),ijk)
+          CALL third_rnb(us2_,us(:,2),ijk)
+          CALL third_rnb(ws1_,ws(:,1),ijk)
+          CALL third_rnb(ws2_,ws(:,2),ijk)
+          CALL third_rnb(vs1_,vs(:,1),ijk)
+          CALL third_rnb(vs2_,vs(:,2),ijk)
+          CALL third_nb( rgp_, rgp, ijk )
           CALL third_rnb( ug_, ug, ijk )
           CALL third_rnb( wg_, wg, ijk )
           CALL third_rnb( vg_, vg, ijk )
@@ -1493,7 +1467,6 @@
             mg = mg + xgcl(ig) * gmw( gas_type(ig) )
           END DO
           rog(ijk) = p(ijk) / ( rgas * tg(ijk) ) * mg
-!
           rgp(ijk) = ep(ijk) * rog(ijk)
 !
           ! ... Update gas and particles velocities using the 
@@ -1509,28 +1482,28 @@
           wg_%b = wg( ijkm )
           vg_%c = vg( ijk )
           vg_%s = vg( ijmk )
-          u1%c = us( ijk, 1 )
-          u1%w = us( imjk, 1 )
-          u2%c = us( ijk, 2 )
-          u2%w = us( imjk, 2 )
-          w1%c = ws( ijk, 1 )
-          w1%b = ws( ijkm, 1 )
-          w2%c = ws( ijk, 2 )
-          w2%b = ws( ijkm, 2 )
-          v1%c = vs( ijk, 1 )
-          v1%s = vs( ijmk, 1 )
-          v2%c = vs( ijk, 2 )
-          v2%s = vs( ijmk, 2 )
+          us1_%c = us( ijk, 1 )
+          us1_%w = us( imjk, 1 )
+          us2_%c = us( ijk, 2 )
+          us2_%w = us( imjk, 2 )
+          ws1_%c = ws( ijk, 1 )
+          ws1_%b = ws( ijkm, 1 )
+          ws2_%c = ws( ijk, 2 )
+          ws2_%b = ws( ijkm, 2 )
+          vs1_%c = vs( ijk, 1 )
+          vs1_%s = vs( ijmk, 1 )
+          vs2_%c = vs( ijk, 2 )
+          vs2_%s = vs( ijmk, 2 )
 
           ! ... update particle and gas densities and the 
           ! ... gas mass residual 'dg'
 
           CALL masf( rsfe1_,  rsfn1_,  rsft1_, rsfw1_, rsfs1_, rsfb1_,   &
-                 dens1, u1, v1, w1, ijk)
+                 rlk1_, us1_, vs1_, ws1_, ijk)
 
           IF (muscl > 0) THEN
             CALL fmas( rsfe1_,  rsfn1_,  rsft1_, rsfw1_, rsfs1_, rsfb1_, &
-                 dens1, u1, v1, w1, ijk)
+                 rlk1_, us1_, vs1_, ws1_, ijk)
           END IF
 
           rlkx = ( b_e * rsfe1_ - b_w * rsfw1_ ) * indx(i) * inr(i)
@@ -1541,11 +1514,11 @@
           rls = rlk( ijk, 1 ) * inrl(1)
 
           CALL masf( rsfe2_,  rsfn2_,  rsft2_, rsfw2_, rsfs2_, rsfb2_,   &
-                 dens2, u2, v2, w2, ijk)
+                 rlk2_, us2_, vs2_, ws2_, ijk)
 
           IF (muscl > 0) THEN
             CALL fmas( rsfe2_,  rsfn2_,  rsft2_, rsfw2_, rsfs2_, rsfb2_, &
-                 dens2, u2, v2, w2, ijk)
+                 rlk2_, us2_, vs2_, ws2_, ijk)
           END IF
 
           rlkx = ( b_e * rsfe2_ - b_w * rsfw2_ ) * indx(i) * inr(i)
@@ -1564,9 +1537,9 @@
 
           ep( ijk ) = 1.D0 - rls
           rgp( ijk ) = ep( ijk ) * rog( ijk )
-          dens1%c = rlk( ijk, 1 )
-          dens2%c = rlk( ijk, 2 )
-          densg_%c = rgp(ijk)
+          rlk1_%c = rlk( ijk, 1 )
+          rlk2_%c = rlk( ijk, 2 )
+          rgp_%c = rgp(ijk)
 
           ! ... update residual of the Mass Balance equation of the gas phase
           ! ... using guessed velocities and pressure.
@@ -1574,11 +1547,11 @@
           ! ... update the particle volumetric fractions and the void fraction
 
           CALL masf( rgfe_ ,  rgfn_ ,  rgft_ , rgfw_ , rgfs_ , rgfb_ ,   &
-                      densg_, ug_, vg_, wg_, ijk )
+                      rgp_, ug_, vg_, wg_, ijk )
 
           IF (muscl > 0) THEN
             CALL fmas( rgfe_ ,  rgfn_ ,  rgft_ , rgfw_ , rgfs_ , rgfb_ ,   &
-                      densg_, ug_, vg_, wg_, ijk )
+                      rgp_, ug_, vg_, wg_, ijk )
           END IF
 
           resx = ( b_e * rgfe_ - b_w * rgfw_ ) * indx(i) * inr(i)
