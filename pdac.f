@@ -28,7 +28,7 @@
       USE io_restart, ONLY: taperd, tapewr
       USE output_dump, ONLY: outp_recover
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
-     &    mpime, root
+     &    mpime, root, nproc
       USE particles_constants, ONLY: allocate_part_constants
       USE phases_matrix, ONLY: allocate_matrix
       USE pressure_epsilon, ONLY: allocate_press_eps
@@ -100,6 +100,8 @@
 
       IF( mpime == root ) THEN
         WRITE(6,100) mydate(5), mydate(6), mydate(7), mydate(3), mydate(2), mydate(1)
+        WRITE(6,*)
+        WRITE(6,*) 'Number of processor in use: ', nproc
       END IF
 100   FORMAT( ' Pyroclastic Dispersion Analysis Code', /, &
               ' version: 3.0, June 2003',/, &

@@ -69,6 +69,7 @@
       USE volcano_topography, ONLY: ord, next
       USE volcano_topography, ONLY: ord2d, nextx, nexty
       USE grid, ONLY: x, xb, y, yb, z, zb
+      USE parallel, ONLY: mpime, root
 
       IMPLICIT NONE
       INTEGER :: p, np
@@ -83,6 +84,12 @@
 ! ... If Immersed Boundaries are used, identify the forcing points
 ! ... and set interpolation parameters
 !
+
+      IF( mpime == root ) THEN
+        WRITE(6,*)
+        WRITE(6,*) 'Set forcing point for immersed boundaries'
+      END IF
+
       !
       ! ... Allocate the logical array that is used to 
       ! ... identify the forcing points
@@ -224,6 +231,10 @@
       END IF
 !
       DEALLOCATE (force)
+
+      IF( mpime == root ) THEN
+        WRITE(6,*) 'END Set forcing'
+      END IF
 !
       RETURN
       END SUBROUTINE set_forcing

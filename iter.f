@@ -50,7 +50,7 @@
       USE grid, ONLY: flag
       USE immersed_boundaries, ONLY: immb, faces
       USE indijk_module
-      USE parallel, ONLY: mpime
+      USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl
       USE phases_matrix, ONLY: assemble_matrix, assemble_all_matrix
       USE phases_matrix, ONLY: solve_velocities, solve_all_velocities
@@ -312,7 +312,9 @@
            ELSE
              avloop = REAL(nloop)
            END IF
-           WRITE(6, fmt="( I10, 2X, F4.2, 2X, I10, 2X, F10.3)" ) n2, avloop, n1, timconv(nit)
+           IF( mpime == root ) &
+             WRITE(6, fmt="( I10, 2X, F4.2, 2X, I10, 2X, F10.3)" ) n2, avloop, n1, timconv(nit)
+           WRITE(7, fmt="( I10, 2X, F4.2, 2X, I10, 2X, F10.3)" ) n2, avloop, n1, timconv(nit)
          END IF
 !*******************************************************************
 
@@ -359,7 +361,8 @@
 ! ... write out the final number of iterations
 !
           IF (lpr > 1) THEN
-            WRITE(6,277) nit
+            IF( mpime == root ) WRITE(6,277) nit
+            WRITE(7,277) nit
  277        FORMAT('number of iterations: nit = ', I4)
           END IF
 !*******************************************************************
@@ -373,8 +376,10 @@
        IF( MOD( nit, 1000 ) == 0 ) THEN
          omega = omega * 0.9D0
          IF (lpr > 1) THEN
-           WRITE(6, fmt="('  reducing relaxation parameter omega')")
-           WRITE(6, fmt="('  new value = ',F12.4)") omega
+           IF( mpime == root ) THEN
+             WRITE(6, fmt="('  reducing relaxation parameter omega')")
+             WRITE(6, fmt="('  new value = ',F12.4)") omega
+           END IF
          END IF
        END IF
        IF (lpr > 1) call myflush( 6 )
@@ -389,7 +394,11 @@
       DO itim = 1, nit
         timiter = timiter + timconv(itim)
       END DO
-      IF( lpr > 1 ) WRITE(6,280)'Time for iterative solver: ',timiter
+      IF( lpr > 1 ) THEN
+        WRITE(7,280)'Time for iterative solver: ',timiter
+        IF( mpime == root ) &
+          WRITE(6,280)'Time for iterative solver: ',timiter
+      END IF
  280  FORMAT(2X,A27,F8.3) 
 
 !

@@ -57,7 +57,11 @@
         END DO
       END IF
 !
-      IF( mpime == root ) WRITE(6,*) 'Vent conditions imposed in cells: '
+      IF( mpime == root ) THEN
+        WRITE(6,*) 
+        WRITE(6,*) 'Vent conditions imposed in cells: '
+      END IF
+      WRITE(7,*) 'Vent'
 !
 ! ... define the rectangle containing the vent
 ! ... 'nvt' is the number of vent cells
@@ -84,11 +88,16 @@
       END IF
       quota = kv
 
-      IF( mpime == root ) WRITE(6,*) 'vent center: ', iv, jv, kv
-      IF( mpime == root ) WRITE(6,*) 'center coordinates: ', x(iv), y(jv), z(kv)
+      IF( mpime == root ) THEN
+        WRITE(6,100) iv, jv, kv
+        WRITE(6,200) x(iv), y(jv), z(kv)
+100     FORMAT(1X,'vent center: ',3I5)
+200     FORMAT(1X,'center coordinates: ',3F12.6)
+      END IF
 !
       nvt = (ieast-iwest+1)*(jnorth-jsouth+1)
       ALLOCATE(vcell(nvt))
+
 
       nv = 0
       DO j = jsouth, jnorth
@@ -136,6 +145,9 @@
 !
         END DO
       END DO
+
+      IF( mpime == root ) WRITE(6,*) 'END Vent'
+      WRITE(7,*) 'END Vent'
 !
       RETURN
       END SUBROUTINE locate_vent

@@ -76,6 +76,7 @@
 !
       USE dimensions, ONLY: nx, ny, nz, ntot, ntr
       USE control_flags, ONLY: job_type
+      USE parallel, ONLY: mpime, root
 !
       IMPLICIT NONE
 !
@@ -102,6 +103,12 @@
       ALLOCATE( z(nz), zb(nz) )
       ALLOCATE( fl(ntot) )
 
+      IF( mpime == root ) THEN
+        WRITE(6,*) 
+        WRITE(6,*) 'Simulation Grid      : ', nx, ny, nz
+        WRITE(6,*) 'Total number of cells: ', ntot
+      END IF
+
       RETURN
       END SUBROUTINE allocate_grid
 !----------------------------------------------------------------------
@@ -113,15 +120,23 @@
       
       RETURN
       END SUBROUTINE allocate_blbody
+
 !----------------------------------------------------------
+
       SUBROUTINE grid_setup
 !
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nx, ny, nz
+      USE parallel, ONLY: mpime, root
 
       REAL*8, PARAMETER :: VERYBIG = 1.0d+10
       INTEGER :: i, j, k, ijk
       REAL*8 :: zrif
+
+      IF( mpime == root ) THEN
+        WRITE(6,*)
+        WRITE(6,*) 'Entering Grid setup'
+      END IF
 !
 ! ... generate the non-uniform mesh (without geographic referencing)
 !
@@ -228,9 +243,15 @@
 
  17   FORMAT(5(F20.6))
 
+      IF( mpime == root ) THEN
+        WRITE(6,*) 'END Grid setup'
+      END IF
+
       RETURN 
       END SUBROUTINE grid_setup
+
 !----------------------------------------------------------------------
+
       SUBROUTINE flic
       USE dimensions, ONLY: nx, ny, nz, no
       USE control_flags, ONLY: job_type
@@ -341,7 +362,9 @@
       
       RETURN
       END SUBROUTINE flic
+
 !----------------------------------------------------------------------
+
       SUBROUTINE generate_grid(delta,nd,domain_size,alpha,demin,demax,n0,center)
       USE control_flags, ONLY: lpr
 !

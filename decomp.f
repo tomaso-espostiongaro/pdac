@@ -115,9 +115,17 @@
       INTEGER :: nfl, ipe, dim
       INTEGER :: layer
       INTEGER :: localdim
+      LOGICAL :: ionode
 !
 ! ... Subroutine Body
 !
+      ionode = ( mpime == root )
+
+      IF ( lpr > 0 .AND. ionode ) THEN
+        WRITE( 6, * ) 
+        WRITE( 6, * ) 'Starting Grid Partition ...'
+      END IF
+
       IF (ALLOCATED(nctot)) DEALLOCATE(nctot)
       IF (ALLOCATED(ncell)) DEALLOCATE(ncell)
       IF (ALLOCATED(ncfl1)) DEALLOCATE(ncfl1)
@@ -133,14 +141,17 @@
       ncell = 0
       ncdif = 0
 !
-! ... here count the flags
+! ... here count the flags, array fl is replicated on all procs
 !
       DO i = 1, SIZE(countfl)
         countfl(i) = COUNT( (fl == i) )
         IF (ANY(fl > SIZE(countfl))) CALL error('partition','countfl SIZE too small', SIZE(countfl) )
       END DO
 !
-      IF (lpr > 0) WRITE(7,'(a13,10I8)') ' # countfl ', countfl
+      IF ( lpr > 0 .AND. ionode ) THEN
+        WRITE( 6, fmt = '(a13)' ) ' # countfl :'
+        WRITE( 6, fmt = '(10I8)') countfl
+      END IF
 !
 ! ... domain decomposition (build maps)
 !
@@ -173,30 +184,34 @@
         ncdif(ipe) = ncfl1(ipe) - ncell(ipe)
       END DO
 !
-      IF (lpr > 0) THEN
-        WRITE(7,*) 
-        WRITE(7,*) '---  cells partition summary  ---'
-        WRITE(7,*) 
+      IF ( lpr > 0 .AND. ionode ) THEN
+        WRITE(6,*) 
+        WRITE(6,*) '---  cells partition summary  ---'
+        WRITE(6,*) 
         DO ipe = 0, nproc - 1
-          WRITE(7,*) ' # nctot( ',ipe, ' ) = ', nctot(ipe)
-          WRITE(7,*) ' # ncfl1( ',ipe, ' ) = ', ncfl1(ipe)
-          WRITE(7,*) ' # ncdif( ',ipe, ' ) = ', ncfl1(ipe),' -', ncell(ipe),' =', ncdif(ipe)
+          WRITE(6,*) ' # nctot( ',ipe, ' ) = ', nctot(ipe)
+          WRITE(6,*) ' # ncfl1( ',ipe, ' ) = ', ncfl1(ipe)
+          WRITE(6,*) ' # ncdif( ',ipe, ' ) = ', ncfl1(ipe),' -', ncell(ipe),' =', ncdif(ipe)
           IF( proc_map(0)%type == LAYER_MAP ) THEN
-            WRITE(7,*) '   proc(', ipe,')_map (first-last):', &
+            WRITE(6,*) '   proc(', ipe,')_map (first-last):', &
               proc_map(ipe)%lay(1), proc_map(ipe)%lay(2)
           ELSE IF(  proc_map(0)%type == BLOCK2D_MAP ) THEN
-            WRITE(7,*) '   proc(', ipe,')_map (left-bot.):', &
+            WRITE(6,*) '   proc(', ipe,')_map (left-bot.):', &
               proc_map(ipe)%corner1(1), proc_map(ipe)%corner1(2)
-            WRITE(7,*) '   proc(', ipe,')_map (right-top):', &
+            WRITE(6,*) '   proc(', ipe,')_map (right-top):', &
               proc_map(ipe)%corner2(1), proc_map(ipe)%corner2(2)
           ELSE IF(  proc_map(0)%type == BLOCK3D_MAP ) THEN
-            WRITE(7,*) '   proc(', ipe,')_map (BSW):', &
+            WRITE(6,*) '   proc(', ipe,')_map (BSW):', &
               proc_map(ipe)%blkbsw(1), proc_map(ipe)%blkbsw(2), proc_map(ipe)%blkbsw(3)
-            WRITE(7,*) '   proc(', ipe,')_map (TNE):', &
+            WRITE(6,*) '   proc(', ipe,')_map (TNE):', &
               proc_map(ipe)%blktne(1), proc_map(ipe)%blktne(2), proc_map(ipe)%blktne(3)
           END IF 
+          WRITE(6,*) '-----------------------------'
         END DO
       END IF
+
+      IF( ionode ) &
+        WRITE( 6, * ) 'End of Grid partition'
 !
       RETURN
       END SUBROUTINE partition
@@ -215,7 +230,7 @@
 !
       USE dimensions
       USE control_flags, ONLY: job_type
-      USE parallel, ONLY: nproc
+      USE parallel, ONLY: nproc, mpime, root
 !
       IMPLICIT NONE
       SAVE
@@ -227,6 +242,12 @@
       INTEGER :: icnt, icnt_ipe, ipe
       INTEGER :: localdim
       INTEGER, ALLOCATABLE :: lay_map(:,:)
+      LOGICAL :: ionode
+!
+      ionode = ( mpime == root )
+!
+      IF( ionode ) &
+        WRITE( 6, * ) 'Using Layers Grid partition' 
 !
       ALLOCATE(lay_map(0:nproc-1,2))
 !
@@ -342,7 +363,7 @@
 ! ... partition N.2 (blocks)
 !
       USE dimensions
-      USE parallel, ONLY: nproc
+      USE parallel, ONLY: nproc, mpime, root
 !
       IMPLICIT NONE
       SAVE
@@ -366,6 +387,12 @@
 !
       REAL*8 side, area
       REAL*8 fact
+      LOGICAL :: ionode
+
+      ionode = ( mpime == root )
+
+      IF( ionode ) &
+        WRITE( 6, * ) 'Using Blocks ( 2D ) Grid partition' 
 !
 ! ... Initially subdivides the domain into 'nbz' layers. Each layer
 ! ... will be in turn subdivided into 'nbx' blocks.
@@ -592,8 +619,6 @@
               IF (fl(ijk) == 1) ncfl1(ipe) = ncfl1(ipe) + 1
             END DO
           END DO
-          IF (lpr > 0) WRITE(7,*)'proc_map(',ipe,'):', &
-                      & proc_map(ipe)%corner1(:),proc_map(ipe)%corner2(:)
         END DO
       END DO
 
@@ -614,7 +639,7 @@
 !
 !
       USE dimensions
-      USE parallel, ONLY: nproc
+      USE parallel, ONLY: nproc, mpime, root
 !
       IMPLICIT NONE
       SAVE
@@ -637,9 +662,13 @@
 !
       REAL*8 side, area, volume, zavg
       REAL*8 fact
+      LOGICAL :: ionode
 
+      ionode = ( mpime == root )
 
-      IF( lpr > 0 ) WRITE(7,*) 'columns distribution' 
+      IF( ionode ) &
+        WRITE( 6, * ) 'Using Colomns ( 3D ) Grid partition' 
+
 !
 ! ... subdivides the domain into 'nby' Slabs. Each slab
 ! ... will be in turn subdivided into 'nbx' column block.
@@ -805,7 +834,7 @@
             END DO
           END DO
 
-          IF( lpr > 0 ) WRITE(7,*) ' layer = ', layer, ' no. blocks = ', nbl_lay(layer)
+          IF( lpr > 0 .AND. ionode ) WRITE(6,*) ' layer = ', layer, ' no. columns = ', nbl_lay(layer)
 !
 ! ... Estimate of the number of cells contained in each block
 ! ... in the layer
@@ -849,8 +878,8 @@
                 END DO
               END DO
             END DO
-            IF (lpr > 0) WRITE(7,*)'proc_map(',ipe,'):', &
-                      & proc_map(ipe)%corner1(:),proc_map(ipe)%corner2(:)
+            IF (lpr > 0 .AND. ionode ) &
+              WRITE(6,*) 'proc_map(',ipe,'): ', proc_map(ipe)%corner1(:), proc_map(ipe)%corner2(:)
           END DO
         END DO
 
@@ -870,7 +899,7 @@
 !
 !
       USE dimensions
-      USE parallel, ONLY: nproc
+      USE parallel, ONLY: nproc, mpime, root
 !
       IMPLICIT NONE
       SAVE
@@ -896,10 +925,14 @@
       INTEGER, ALLOCATABLE :: ncfl1_lay(:)  ! total number of cells in the layer with fl == 1
 !
       REAL*8 :: side, area, volume, zavg, fact
+      LOGICAL :: ionode
 
 ! ... Subroutine Body
 
-      IF( lpr > 0 ) WRITE(7,*) 'blocks 3D distribution' 
+      ionode = ( mpime == root )
+
+      IF( ionode ) &
+        WRITE( 6, * ) 'Using Blocks ( 3D ) Grid partition' 
 !
 ! ... Factorize the number of processors, into plane processors nprocxy
 ! ... and z processors nprocz
@@ -918,8 +951,8 @@
 
       nprocxy = nproc / nprocz
 
-      IF( nprocz == 1 .AND. lpr > 0 ) &
-        WRITE(7,*) 'Warning: blocks3d distribution has no effect, nprocz = 1'
+      IF( nprocz == 1 .AND. lpr > 0 .AND. ionode ) &
+        WRITE(6,*) 'Warning: blocks3d distribution has no effect, nprocz = 1'
 
 ! ... compute blocks in z direction 
 
@@ -955,7 +988,8 @@
         END DO
         rest = nbx*nby - nprocxy
 
-        IF( lpr > 0 ) WRITE(7,*) 'blocks3d (1) nbx, nby, nbz, nprocz, nprocxy = ', nbx, nby, nbz, nprocz, nprocxy
+        IF( lpr > 0 .AND. ionode ) &
+          WRITE(6,*) 'nbx, nby, nbz, nprocz, nprocxy = ', nbx, nby, nbz, nprocz, nprocxy
 
 ! ... The number of layer (slab) nby is now defined, and it will not be
 ! ... modified further
@@ -1013,10 +1047,9 @@
 
         END IF
 
-        IF( lpr > 0 ) THEN
-          WRITE(7,*) 'blocks3d (2)'
+        IF( lpr > 0 .AND. ionode ) THEN
           DO layer = 1, nby
-            WRITE(7,*) ' layer ', layer, ' nbl = ', nbl_lay(layer)
+            WRITE(6,*) ' layer ', layer, ' nbl = ', nbl_lay(layer)
           END DO
         END IF
 
@@ -1057,10 +1090,9 @@
           END DO
         END DO
 
-        IF( lpr > 0 ) THEN
-          WRITE(7,*) 'blocks3d (3)'
+        IF( lpr > 0 .AND. ionode ) THEN
           DO layer = 1, nby
-            WRITE(7,*) ' layer_map ', layer, ' start, end = ', lay_map(layer,1), lay_map(layer,2)
+            WRITE(6,*) ' layer_map ', layer, ' start, end = ', lay_map(layer,1), lay_map(layer,2)
           END DO
         END IF
 
@@ -1119,7 +1151,8 @@
             END DO
           END DO
 
-          IF( lpr > 0 ) WRITE(7,*) ' layer = ', layer, ' no. column blocks = ', nbl_lay(layer)
+          IF( lpr > 0 .AND. ionode ) &
+            WRITE(6,*) ' layer = ', layer, ' no. column blocks = ', nbl_lay(layer)
 !
 ! ...     Estimate of the number of cells contained in each column block
 ! ...     in the layer
@@ -1205,8 +1238,8 @@
                 END DO
               END DO
 
-              IF (lpr > 0) THEN
-                 WRITE(7,1000) ipe, proc_map(ipe)%blkbsw(:),proc_map(ipe)%blktne(:)
+              IF (lpr > 0 .AND. ionode ) THEN
+                 WRITE(6,1000) ipe, proc_map(ipe)%blkbsw(:),proc_map(ipe)%blktne(:)
   1000           FORMAT( ' proc_map(',I4,'): BSW = ', 3I4, ' TNE = ', 3I4 )
               END IF
 
@@ -1238,7 +1271,7 @@
 ! ... (2D/3D-Compliant)
 ! 
       USE dimensions
-      USE parallel, ONLY: nproc, mpime
+      USE parallel, ONLY: nproc, mpime, root
       USE basic_types, ONLY: imatrix
       USE control_flags, ONLY: job_type
 !
@@ -1260,6 +1293,15 @@
       ALLOCATE(rcv_map( 0:(nproc-1) ) )
       ALLOCATE(snd_map( 0:(nproc-1) ) )
       
+!
+      IF( mpime == root ) THEN
+        WRITE( 6, * ) 
+        WRITE( 6, * ) 'Entering ghost ... '
+        WRITE( 6, * ) 'see files pdat.tst### for size and indexes of ghosts'
+      END IF
+      WRITE( 7, * ) 'Entering ghost ... '
+!
+
       rcv_map(:)%nrcv = 0
       snd_map(:)%nsnd = 0
       icnt     = 0
@@ -1607,6 +1649,8 @@
 ! ... of forcing points among processors.
 !
       IF (immb == 1) CALL local_forcing
+
+      WRITE(7,*) 'End of Ghost'
 !
       RETURN
       END SUBROUTINE ghost

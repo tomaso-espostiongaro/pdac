@@ -61,7 +61,14 @@
 !
       USE control_flags, ONLY: job_type
       USE grid, ONLY: fl
+      USE parallel, ONLY: mpime, root
+
       IMPLICIT NONE
+
+      IF( mpime == root ) THEN
+        WRITE(6,*)
+        WRITE(6,*) 'Importing topology ...'
+      END IF
 
       IF (job_type == '2D') THEN
         CALL read_2Dprofile
@@ -72,6 +79,9 @@
 
       CALL set_profile
 
+      IF( mpime == root ) THEN
+        WRITE(6,*) 'END Import topology'
+      END IF
 !
       RETURN
       END SUBROUTINE import_topography
