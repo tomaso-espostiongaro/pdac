@@ -565,14 +565,18 @@
 !
       REAL*8 :: ded, der, dem, lder
 !      
-      REAL*8  :: beta, frac
+      REAL*8  :: minbeta, maxbeta
+      REAL*8  :: beta, beta1, beta2, frac
+      REAL*8  :: ntilde1, ntilde2
       REAL*8  :: l, l1, l2, lcomp
       INTEGER :: n01,n02,m1,m2,n11,n12
       INTEGER :: i, j, m, n, center
-      LOGICAL :: print_mesh
+      LOGICAL :: print_mesh, already
       INTEGER :: idelta
 !
       minbeta = 1.D0 + 1.D-5
+      maxbeta = 2.D0
+
       IF ( domain_size/demin < nd )  CALL error('grid_generator', &
           'insufficient number of cells', nd) 
       IF ( domain_size/demin == nd ) CALL error('grid_generator', &
@@ -594,71 +598,103 @@
 ! .. loop over the decreasing 'beta' to fit the domain size
 !
       print_mesh = .FALSE.
+      already = .FALSE.
+
       DO WHILE (.NOT.print_mesh)
-        
+         
         ! ... 'm' is the number of cells needed to increase the
         ! ... cell size from demin to demax at constant rate 'beta'
         !
-        m = INT(LOG(der)/LOG(beta))
+         m = INT(LOG(der)/LOG(beta))
 
         ! ... 'lcomp' is the size of the non-uniform part of the mesh
         !
-        frac  = ( beta**(m+1) - 1.D0 ) / ( beta - 1.D0 )
-        lcomp = demin * ( frac - 1.D0 )
+         frac  = ( beta**(m+1) - 1.D0 ) / ( beta - 1.D0 )
+         lcomp = demin * ( frac - 1.D0 )
 !
-        IF (l1 < 0) THEN 
-          n01 = alpha / demin
-          l1  = 0.D0
-          m1  = 0
-          n11 = 0
-        ELSE
-          IF ( (l1 / demax) > (nd - n01) ) CALL error('grid', 'number of cells is too small!', nd)
-          IF (lcomp < l1) THEN
-            m1  = m
-            n11 = INT( (l1 - lcomp) / demax )
-          ELSE
-            m1  = INT( LOG( 1.D0 + (beta-1.D0)*(l1/demin+1.D0) ) / LOG(beta) - 1 )
+         IF (l1 < 0) THEN 
+            n01 = alpha / demin
+            l1  = 0.D0
+            m1  = 0
             n11 = 0
-          ENDIF
-        ENDIF
+         ELSE
+            IF ( (l1 / demax) > nd - n01 -1 ) CALL error('grid', 'number of cells is too small!', nd)
+            IF (lcomp < l1) THEN
+               m1  = m
+               n11 = INT( (l1 - lcomp) / demax )
+            ELSE
+               m1  = INT( LOG( 1.D0 + (beta-1.D0)*(l1/demin+1.D0) ) / LOG(beta) - 1 )
+               n11 = 0
+            ENDIF
+         ENDIF
 !        
-        IF (l2 < 0) THEN 
-          n02 = (1.D0-alpha) / demin
-          l2  = 0.D0
-          m2  = 0
-          n12 = 0
-        ELSE
-          IF ( l2 / demax > nd - n02 ) CALL error('grid', 'number of cells is too small!', nd)
-          IF (lcomp < l2) THEN
-            m2  = m
-            n12 = INT( ( l2 - lcomp ) / demax )
-          ELSE
-            m2  = INT( LOG( 1.D0 + (beta-1.D0)*(l2/demin+1.D0) ) / LOG(beta) - 1 )
+         IF (l2 < 0) THEN 
+            n02 = (1.D0-alpha) / demin
+            l2  = 0.D0
+            m2  = 0
             n12 = 0
-          ENDIF
-        ENDIF 
+         ELSE
+            IF ( l2 / demax > nd - n02 - 1 ) CALL error('grid', 'number of cells is too small!', nd)
+            IF (lcomp < l2) THEN
+               m2  = m
+               n12 = INT( ( l2 - lcomp ) / demax )
+            ELSE
+               m2  = INT( LOG( 1.D0 + (beta-1.D0)*(l2/demin+1.D0) ) / LOG(beta) - 1 )
+               n12 = 0
+            ENDIF
+         ENDIF 
 !
         IF ( n11+n12 == 0 ) THEN
           WRITE(6,*) 'WARNING!!: no cells with maximum size!'
           WRITE(6,*) 'Please decrease beta or dmax'
         ENDIF 
 !    
+        IF ( (l2+l1) / demax > nd - n01 - n02 - 1 ) CALL error('grid', 'number of cells &
+        & is too small!', nd)
+!
         IF ( (n01+m1+n11)+(n02+m2+n12)+1 < nd ) THEN 
-          IF ( beta*dbeta < minbeta) THEN
-            WRITE(6,*) 'WARNING!!: beta = minimum beta!'
-            WRITE(6,*) 'Please decrease minimum beta or number of cells'
-            print_mesh = .TRUE.
-          ELSE
-            beta = beta * dbeta
-            WRITE(6,*) 'Reducing beta=', beta
-          ENDIF
+           IF ( beta*dbeta < minbeta) THEN
+              WRITE(6,*) 'WARNING!!: beta = minimum beta!'
+              WRITE(6,*) 'Please decrease minimum beta or number of cells'
+              print_mesh = .TRUE.
+           ELSE
+              beta = beta * dbeta 
+              already = .TRUE.
+              WRITE(6,*) 'Reducing beta=', beta
+           ENDIF
         ELSE IF ( (n01+m1+n11)+(n02+m2+n12)+1 > nd ) THEN
-          dbeta = dbeta + (1.0 - dbeta) / 2.0
-          beta = beta / dbeta
+           IF ( already ) THEN
+              dbeta = dbeta + (1.0 - dbeta) / 2.0
+           ENDIF
+           beta = beta / dbeta
         ELSE 
-          print_mesh = .TRUE.
+           print_mesh = .TRUE.
         ENDIF
       END DO
+!
+      IF ( beta >= maxbeta ) THEN
+         WRITE(6,*) 'WARNING!!: beta >= maximum beta!'
+         WRITE(6,*) 'Please increase maximum beta or number of cells'
+      ENDIF
+!
+      ntilde1 = ( l1 - n11*demax ) / demin + 1.D0
+      beta1 = beta
+      IF ( ntilde1 > 1.D0 ) THEN
+         DO j=1,50
+            beta1 = ( 1.D0 - ( m1*beta1**( m1+1.D0 ) + 1.D0 ) / ntilde1 ) / &
+            &      ( 1.D0 - ( m1+1.D0 )*( beta1**m1 ) / ntilde1 ) 
+         ENDDO
+      ENDIF
+!
+      ntilde2 = ( l2 - n11*demax) / demin + 1.D0
+      beta2 = beta
+      IF ( ntilde2 > 1.D0 ) THEN
+         DO j=1,50
+            beta2 = (1.D0 - (m2*beta2**( m2+1.D0 ) + 1.D0 ) / ntilde2 ) / &
+            ( 1.D0 - ( m2+1.D0 )*( beta2**m2 ) / ntilde2 )
+         ENDDO
+      ENDIF
+ 
 ! 
       WRITE(6,*) 'n01,m1,n11',n01,m1,n11
       WRITE(6,*) 'n02,m2,n12',n02,m2,n12
@@ -667,13 +703,13 @@
 
       delta(1:n11) = demax
       DO i = 1, m1
-        delta(center-n01-i) = demin * beta**i
+        delta(center-n01-i) = demin * beta1**i
       END DO
       delta(center-n01:center-1) = demin
       delta(center) = demin
       delta(center+1:center+n02+1) = demin
       DO i = 1, m2
-        delta(center+n02+1+i) = demin * beta**i
+        delta(center+n02+1+i) = demin * beta2**i
       END DO
       delta(center+n02+m2+2:) = demax
 !
