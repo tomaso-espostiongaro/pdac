@@ -29,6 +29,8 @@
       USE io_files, ONLY: tempunit
       USE domain_decomposition, ONLY: ncint, myijk, meshinds
       USE grid, ONLY: flag, x, y, z, xb, yb, zb
+      USE grid, ONLY: slip_wall, noslip_wall, fluid, int_immb, ext_immb
+      USE grid, ONLY: free_io, nrfree_io, inlet_cell, vent_cell
       USE immersed_boundaries, ONLY: fptx, fpty, fptz
       USE immersed_boundaries, ONLY: numx, numy, numz, immb
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -38,7 +40,7 @@
         imjpk, ijmk, ipjmk, imjmk, ijppk, ijmmk, ijkp, ipjkp, imjkp,   &
         ijpkp, ijmkp, ijkm, ipjkm, imjkm, ijpkm, ijmkm, ijkpp, ijkmm
       USE vent_conditions, ONLY: update_ventc, random_switch, irand, &
-                                 update_inlet_cell
+                                 update_vent_cell
 !
       IMPLICIT NONE
 !
@@ -61,21 +63,13 @@
         CALL subscr(ijk)
         CALL meshinds(ijk,imesh,i,j,k)
 
-        ! ... Check if 'ijk' is a forcing point
-        !
-        IF (immb == 1) THEN
-          fx = numx(ijk)
-          IF (job_type == '3D') fy = numy(ijk)
-          fz = numz(ijk)
-          forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
-        END IF
 !
 ! ... Update inlet cells for non-stationnary boundary conditions
 !
         IF (irand >= 1) THEN
-          IF (flag(ijk) == 5) THEN
-            CALL update_inlet_cell(ijk)
-          ELSE IF (flag(ijk) == 8) THEN
+          IF (flag(ijk) == inlet_cell) THEN
+            CALL update_vent_cell(ijk)
+          ELSE IF (flag(ijk) == vent_cell) THEN
             CALL update_ventc(ijk,imesh,sweep)
           END IF
         END IF
@@ -83,105 +77,110 @@
 ! ... In fluid cells and immersed boundaries, update the 
 ! ... neighbours on boundaries
 !
-        IF( flag(ijk) == 1 .OR. flag(ijk) == 17) THEN
+        IF( flag(ijk) == int_immb .OR. flag(ijk) == ext_immb) THEN
           
-          ! ... If (ijk) is a forcing point, compute the pseudo-velocities
+          ! ... Check if 'ijk' is a forcing point
+          !
+          fx = numx(ijk)
+          IF (job_type == '3D') fy = numy(ijk)
+          fz = numz(ijk)
+          forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
+          IF (.NOT.forced) CALL error('boundary','control forcing points',1)
+          
+          ! ... Compute the pseudo-velocities
           ! ... that are used in the "immersed boundary" technique ...
           !
-          IF (forced) THEN
+          IF (job_type == '2D') THEN
 
-            IF (job_type == '2D') THEN
-
-              IF( fx/=0 ) THEN
-                vel = velint(fptx(fx), ug, ijk, xb, y, z)  
-                fptx(fx)%vel = vel
-
-                ! ... Set the pressure in non-resolved forcing points
-                ! ... (zero-gradient)
-                IF( fptx(fx)%int == 17 ) THEN
-                        IF (flag(ijk) == 1) THEN
-                                p(ipjk) = p(ijk)
-                        ELSE
-                                p(ijk) = p(ipjk)
-                        END IF
-                END IF
-                
-                ! ... Initialize x-velocity in the forced points
-                ug(ijk) = vel
-                us(ijk,:) = vel
+            IF( fx/=0 ) THEN
+              vel = velint(fptx(fx), ug, ijk, xb, y, z)  
+              fptx(fx)%vel = vel
+              !
+              ! ... Set the pressure in non-resolved forcing points
+              ! ... (zero-gradient)
+              IF( fptx(fx)%int == 17 ) THEN
+                      IF (flag(ijk) == fluid) THEN
+                              p(ipjk) = p(ijk)
+                      ELSE
+                              p(ijk) = p(ipjk)
+                      END IF
               END IF
-
-              IF( fz/=0 ) THEN
-                vel = velint(fptz(fz), wg, ijk, x, y, zb)  
-                fptz(fz)%vel = vel
-
-                ! ... Set the pressure in non-resolved forcing points
-                IF( fptz(fz)%int == 17 ) THEN
-                        p(ijk) = p(ijkp)
-                END IF
-                
-                ! ... Initialize z-velocity in the forced points
-                wg(ijk) = vel
-                ws(ijk,:) = vel
-              END IF
-
-            ELSE IF (job_type == '3D') THEN
-
-              IF( fx/=0 ) THEN
-                vel = velint3d(fptx(fx), ug, ijk, xb, y, z)  
-                fptx(fx)%vel = vel
-
-                ! ... Set the pressure in non-resolved forcing points
-                IF( fptx(fx)%int == 17 ) THEN
-                        IF (flag(ijk) == 1) THEN
-                                p(ipjk) = p(ijk)
-                        ELSE
-                                p(ijk) = p(ipjk)
-                        END IF
-                END IF
-                
-                ! ... Initialize x-velocity in the forced points
-                ug(ijk) = vel
-                us(ijk,:) = vel
-              END IF
-              
-              IF( fy/=0 ) THEN
-                vel = velint3d(fpty(fy), vg, ijk, x, yb, z)  
-                fpty(fy)%vel = vel
-
-                ! ... Set the pressure in non-resolved forcing points
-                IF( fpty(fy)%int == 17 ) THEN
-                        IF (flag(ijk) == 1) THEN
-                                p(ijpk) = p(ijk)
-                        ELSE
-                                p(ijk) = p(ijpk)
-                        END IF
-                END IF
-                
-                ! ... Initialize y-velocity in the forced points
-                vg(ijk) = vel
-                vs(ijk,:) = vel
-              END IF
-              
-              IF( fz/=0 ) THEN
-                vel = velint3d(fptz(fz), wg, ijk, x, y, zb)  
-                fptz(fz)%vel = vel
-
-                ! ... Set the pressure in non-resolved forcing points
-                IF( fptz(fz)%int == 17 ) THEN
-                        p(ijk) = p(ijkp)
-                END IF
-                
-                ! ... Initialize z-velocity in the forced points
-                wg(ijk) = vel
-                ws(ijk,:) = vel
-              END IF
-          
+              !
+              ! ... Initialize x-velocity in the forced points
+              ug(ijk) = vel
+              us(ijk,:) = vel
             END IF
 
-          ELSE
+            IF( fz/=0 ) THEN
+              vel = velint(fptz(fz), wg, ijk, x, y, zb)  
+              fptz(fz)%vel = vel
+              !
+              ! ... Set the pressure in non-resolved forcing points
+              IF( fptz(fz)%int == 17 ) THEN
+                      p(ijk) = p(ijkp)
+              END IF
+              !
+              ! ... Initialize z-velocity in the forced points
+              wg(ijk) = vel
+              ws(ijk,:) = vel
+            END IF
+
+          ELSE IF (job_type == '3D') THEN
+
+            IF( fx/=0 ) THEN
+              vel = velint3d(fptx(fx), ug, ijk, xb, y, z)  
+              fptx(fx)%vel = vel
+              !
+              ! ... Set the pressure in non-resolved forcing points
+              IF( fptx(fx)%int == 17 ) THEN
+                      IF (flag(ijk) == fluid) THEN
+                              p(ipjk) = p(ijk)
+                      ELSE
+                              p(ijk) = p(ipjk)
+                      END IF
+              END IF
+              !
+              ! ... Initialize x-velocity in the forced points
+              ug(ijk) = vel
+              us(ijk,:) = vel
+            END IF
+            
+            IF( fy/=0 ) THEN
+              vel = velint3d(fpty(fy), vg, ijk, x, yb, z)  
+              fpty(fy)%vel = vel
+
+              ! ... Set the pressure in non-resolved forcing points
+              IF( fpty(fy)%int == 17 ) THEN
+                      IF (flag(ijk) == fluid) THEN
+                              p(ijpk) = p(ijk)
+                      ELSE
+                              p(ijk) = p(ijpk)
+                      END IF
+              END IF
+              
+              ! ... Initialize y-velocity in the forced points
+              vg(ijk) = vel
+              vs(ijk,:) = vel
+            END IF
+            
+            IF( fz/=0 ) THEN
+              vel = velint3d(fptz(fz), wg, ijk, x, y, zb)  
+              fptz(fz)%vel = vel
+
+              ! ... Set the pressure in non-resolved forcing points
+              IF( fptz(fz)%int == 17 ) THEN
+                      p(ijk) = p(ijkp)
+              END IF
+              
+              ! ... Initialize z-velocity in the forced points
+              wg(ijk) = vel
+              ws(ijk,:) = vel
+            END IF
+          END IF
 !
-! ... otherwise check the neighbours location to set boundary conditions
+! ... In fluid cells update the neighbours on boundaries
+!
+        ELSE IF( flag(ijk) == fluid ) THEN
 !
 ! ***** East boundary conditions ***** !
 !
@@ -191,7 +190,7 @@
 
             SELECT CASE ( flag( n2 ) ) 
 !
-            CASE (2) 
+            CASE (slip_wall) 
 !
               wg(n2)   = wg(n1)
               ws(n2,:) = ws(n1,:)
@@ -201,26 +200,26 @@
                 vs(n2,:) = vs(n1,:)
               END IF
 !
-            CASE (3)
+            CASE (noslip_wall)
 !
               ug(n2)   = 0.D0
               us(n2,:) = 0.D0
               
-              IF(flag(ipjkp) /= 1) THEN
+              IF(flag(ipjkp) /= fluid) THEN
                 wg(n2)   = -wg(n1)
                 DO is = 1, nsolid
                   IF (rlk(ijk,is) > 0.D0) ws(n2,is) = -ws(n1,is)
                 END DO
               END IF
 
-              IF (flag(ipjpk) /= 1 .AND. job_type == '3D') THEN
+              IF (flag(ipjpk) /= fluid .AND. job_type == '3D') THEN
                 vg(n2)   = -vg(n1)
                 DO is = 1, nsolid
                   IF (rlk(ijk,is) > 0.D0) vs(n2,:) = -vs(n1,:)
                 END DO
               END IF
 !
-            CASE (4)
+            CASE (free_io)
 !
               d1 = dx(i)
 	      d2 = dx(i+1)
@@ -233,16 +232,16 @@
 
               ! ... Compute tangential components of velocities
               !
-              IF(flag(ipjkp) == 4) THEN
+              IF(flag(ipjkp) == free_io) THEN
                 wg(n2) = wg(n1)
         	ws(n2,:)=ws(n1,:)
               END IF
-	      IF (job_type == '3D' .AND. (flag(ipjpk) == 4)) THEN
+	      IF (job_type == '3D' .AND. (flag(ipjpk) == free_io)) THEN
                 vg(n2) = vg(n1)
         	vs(n2,:)=vs(n1,:)
 	      END IF
 !
-            CASE (6)
+            CASE (nrfree_io)
 !
               d1 = dx(i)
 	      d2 = dx(i+1)
@@ -254,11 +253,11 @@
 
               ! ... Compute tangential components of velocities
               !
-              IF(flag(ipjkp) == 4) THEN
+              IF(flag(ipjkp) == nrfree_io) THEN
                 wg(n2) = wg(n1)
         	ws(n2,:)=ws(n1,:)
               END IF
-	      IF (job_type == '3D' .AND. (flag(ipjpk) == 4)) THEN
+	      IF (job_type == '3D' .AND. (flag(ipjpk) == nrfree_io)) THEN
                 vg(n2) = vg(n1)
         	vs(n2,:)=vs(n1,:)
 	      END IF
@@ -277,7 +276,7 @@
 
             SELECT CASE ( flag( n2 ) )
 !
-            CASE (2)
+            CASE (slip_wall)
 !
               wg(n2)   = wg(n1)
               ws(n2,:) = ws(n1,:)
@@ -286,26 +285,26 @@
                 vs(n2,:) = vs(n1,:)
 	      END IF
 !
-            CASE (3)
+            CASE (noslip_wall)
 
               ug(n2)   = 0.D0
               us(n2,:) = 0.D0
 
-              IF ( flag(imjkp) /= 1 ) THEN
+              IF ( flag(imjkp) /= fluid ) THEN
                 wg(n2)   = -wg(n1)
                 DO is = 1, nsolid
                   IF (rlk(ijk,is) > 0.D0) ws(n2,is) = -ws(n1,is)
                 END DO
 	      END IF
 
-              IF ( flag(imjkp) /= 1 .AND. job_type == '3D') THEN
+              IF ( flag(imjkp) /= fluid .AND. job_type == '3D') THEN
                 vg(n2)   = -vg(n1)
                 DO is = 1, nsolid
                   IF (rlk(ijk,is) > 0.D0) vs(n2,is) = -vs(n1,is)
                 END DO
 	      END IF
 !
-            CASE (4)
+            CASE (free_io)
 !	    
               d1 = dx(i)
               d2 = dx(i-1)
@@ -317,16 +316,16 @@
 
               ! ... Compute tangential components of velocities
               !
-              IF(flag(imjkp) == 4) THEN
+              IF(flag(imjkp) == free_io) THEN
                 wg(n2)   = wg(n1)
         	ws(n2,:) = ws(n1,:)
               END IF
-	      IF (job_type == '3D' .AND. (flag(imjpk) == 4)) THEN
+	      IF (job_type == '3D' .AND. (flag(imjpk) == free_io)) THEN
                 vg(n2)   = vg(n1)
         	vs(n2,:) = vs(n1,:)
 	      END IF
 !              
-            CASE (6)
+            CASE (nrfree_io)
 !	    
               d1 = dx(i)
               d2 = dx(i-1)
@@ -338,11 +337,11 @@
 
               ! ... Compute tangential components of velocities
               !
-              IF(flag(imjkp) == 4) THEN
+              IF(flag(imjkp) == nrfree_io) THEN
                 wg(n2)   = wg(n1)
         	ws(n2,:) = ws(n1,:)
               END IF
-	      IF (job_type == '3D' .AND. (flag(imjpk) == 4)) THEN
+	      IF (job_type == '3D' .AND. (flag(imjpk) == nrfree_io)) THEN
                 vg(n2)   = vg(n1)
         	vs(n2,:) = vs(n1,:)
 	      END IF
@@ -363,33 +362,33 @@
   
               SELECT CASE (  flag( n2 ) )
 !  
-              CASE (2)
+              CASE (slip_wall)
 !  
                 ug(n2)   = ug(n1)
                 us(n2,:) = us(n1,:)
                 wg(n2)   = wg(n1)
                 ws(n2,:) = ws(n1,:)
 !  
-              CASE (3)
+              CASE (noslip_wall)
 !  
                 vg(n2)   = 0.D0
                 vs(n2,:) = 0.D0
                 
-                IF(flag(ipjpk) /= 1) THEN
+                IF(flag(ipjpk) /= fluid) THEN
                   ug(n2)   = -ug(n1)
                   DO is = 1, nsolid
                     IF (rlk(ijk,is) > 0.D0) us(n2,is) = -us(n1,is)
                   END DO
                 END IF
 
-                IF(flag(ijpkp) /= 1) THEN
+                IF(flag(ijpkp) /= fluid) THEN
                   wg(n2)   = -wg(n1)
                   DO is = 1, nsolid
                     IF (rlk(ijk,is) > 0.D0) ws(n2,is) = -ws(n1,is)
                   END DO
                 END IF
 !  
-              CASE (4)
+              CASE (free_io)
 !  
                 d1 = dy(j)
   	        d2 = dy(j+1)
@@ -402,16 +401,16 @@
 
                 ! ... Compute tangential components of velocities
                 !
-                IF(flag(ijpkp) == 4) THEN
+                IF(flag(ijpkp) == free_io) THEN
                   wg(n2)   = wg(n1)
         	  ws(n2,:) = ws(n1,:)
                 END IF
-	        IF(flag(ipjpk) == 4) THEN
+	        IF(flag(ipjpk) == free_io) THEN
                   ug(n2)   = ug(n1)
           	  us(n2,:) = us(n1,:)
 	        END IF
 !
-              CASE (6)
+              CASE (nrfree_io)
 !  
                 d1 = dy(j)
   	        d2 = dy(j+1)
@@ -423,11 +422,11 @@
 
                 ! ... Compute tangential components of velocities
                 !
-                IF(flag(ijpkp) == 4) THEN
+                IF(flag(ijpkp) == nrfree_io) THEN
                   wg(n2)   = wg(n1)
         	  ws(n2,:) = ws(n1,:)
                 END IF
-	        IF(flag(ipjpk) == 4) THEN
+	        IF(flag(ipjpk) == nrfree_io) THEN
                   ug(n2)   = ug(n1)
           	  us(n2,:) = us(n1,:)
 	        END IF
@@ -447,33 +446,33 @@
 
               SELECT CASE (  flag( n2 ) )
 !
-              CASE (2)
+              CASE (slip_wall)
 !
                 ug(n2)   = ug(n1)
                 us(n2,:) = us(n1,:)
                 wg(n2)   = wg(n1)
                 ws(n2,:) = ws(n1,:)
 !  
-              CASE (3)
+              CASE (noslip_wall)
 !
                 vg(n2)   = 0.D0
                 vs(n2,:) = 0.D0
 
-                IF(flag(ipjmk) /= 1) THEN
+                IF(flag(ipjmk) /= fluid) THEN
                   ug( n2 ) = -ug( n1 )
                   DO is = 1, nsolid
                     IF (rlk(ijk,is) > 0.D0) us(n2,is) = -us(n1,is)
                   END DO
                   
                 END IF
-                IF(flag(ijmkp) /= 1) THEN
+                IF(flag(ijmkp) /= fluid) THEN
                   wg( n2 ) = -wg( n1 )
                   DO is = 1, nsolid
                     IF (rlk(ijk,is) > 0.D0) ws(n2,is) = -ws(n1,is)
                   END DO
                 END IF
 !
-              CASE (4)
+              CASE (free_io)
 !  	    
                 d1 = dy(j)
                 d2 = dy(j-1)
@@ -485,16 +484,16 @@
 
                 ! ... Compute tangential components of velocities
                 !             
-                IF(flag(ijmkp) == 4) THEN
+                IF(flag(ijmkp) == free_io) THEN
                   wg(n2)   = wg(n1)
         	  ws(n2,:) = ws(n1,:)
                 END IF
-	        IF(flag(ipjmk) == 4) THEN
+	        IF(flag(ipjmk) == free_io) THEN
                   ug(n2)   = ug(n1)
         	  us(n2,:) = us(n1,:)
 	        END IF
 !
-              CASE (6)
+              CASE (nrfree_io)
 !  	    
                 d1 = dy(j)
                 d2 = dy(j-1)
@@ -506,11 +505,11 @@
 
                 ! ... Compute tangential components of velocities
                 !             
-                IF(flag(ijmkp) == 4) THEN
+                IF(flag(ijmkp) == nrfree_io) THEN
                   wg(n2)   = wg(n1)
         	  ws(n2,:) = ws(n1,:)
                 END IF
-	        IF(flag(ipjmk) == 4) THEN
+	        IF(flag(ipjmk) == nrfree_io) THEN
                   ug(n2)   = ug(n1)
         	  us(n2,:) = us(n1,:)
 	        END IF
@@ -532,7 +531,7 @@
 
             SELECT CASE ( flag( n2 ) )
 !
-            CASE (2)
+            CASE (slip_wall)
 !
               ug(n2)   = ug(n1)
               us(n2,:) = us(n1,:)
@@ -541,26 +540,26 @@
                 vs(n2,:) = vs(n1,:)
 	      END IF
 !
-            CASE (3)
+            CASE (noslip_wall)
 !  
               wg(n2)   = 0.D0
               ws(n2,:) = 0.D0
 
-              IF (flag(ipjkp) /= 1) THEN
+              IF (flag(ipjkp) /= fluid) THEN
                 ug(n2)   = -ug(n1)
                 DO is = 1, nsolid
                   IF (rlk(ijk,is) > 0.D0) us(n2,is) = -us(n1,is)
                 END DO
               END IF
 
-	      IF (flag(ijpkp) /= 1 .AND. job_type == '3D') THEN
+	      IF (flag(ijpkp) /= fluid .AND. job_type == '3D') THEN
                 vg(n2)   = -vg(n1)
                 DO is = 1, nsolid
                   IF (rlk(ijk,is) > 0.D0) vs(n2,is) = -vs(n1,is)
                 END DO
 	      END IF
 !
-            CASE (4)
+            CASE (free_io)
 !
               d1 = dz(k)
 	      d2 = dz(k+1)
@@ -573,19 +572,19 @@
 
               ! ... Compute tangential components of velocities
               !
-              IF(flag(ipjkp) == 4) THEN
-	         ug(n2)   = ug(n1)
-		 us(n2,:) = us(n1,:)
-	      END IF
-              IF(flag(ijpkp) == 4 .AND. job_type == '3D') THEN
-	         vg(n2)   = vg(n1)
-		 vs(n2,:) = vs(n1,:)
+              IF(flag(ipjkp) == free_io) THEN
+                 ug(n2)   = ug(n1)
+                 us(n2,:) = us(n1,:)
+              END IF
+              IF(flag(ijpkp) == free_io .AND. job_type == '3D') THEN
+                 vg(n2)   = vg(n1)
+                 vs(n2,:) = vs(n1,:)
               END IF
 !
-            CASE (6)
+            CASE (nrfree_io)
 !
               d1 = dz(k)
-	      d2 = dz(k+1)
+              d2 = dz(k+1)
 
               ! ... Compute the normal component of the velocities 
               ! ... and scalar fields
@@ -594,13 +593,13 @@
                              
               ! ... Compute tangential components of velocities
               !
-              IF(flag(ipjkp) == 4) THEN
-	         ug(n2)   = ug(n1)
-		 us(n2,:) = us(n1,:)
-	      END IF
-              IF(flag(ijpkp) == 4 .AND. job_type == '3D') THEN
-	         vg(n2)   = vg(n1)
-		 vs(n2,:) = vs(n1,:)
+              IF(flag(ipjkp) == nrfree_io) THEN
+                 ug(n2)   = ug(n1)
+                 us(n2,:) = us(n1,:)
+              END IF
+              IF(flag(ijpkp) == nrfree_io .AND. job_type == '3D') THEN
+                 vg(n2)   = vg(n1)
+                 vs(n2,:) = vs(n1,:)
               END IF
 !
             CASE DEFAULT
@@ -627,31 +626,31 @@
 
             SELECT CASE ( flag( n2 ) )
 !
-            CASE (2)
+            CASE (slip_wall)
 !
-              IF(flag(ipjkm) == 2) THEN 
+              IF(flag(ipjkm) == slip_wall) THEN 
                 ug( n2 ) = ug( n1 )
                 us(n2,:) = us(n1,:)
               END IF
 
-	      IF (flag(ijpkm) == 2 .AND. job_type == '3D') THEN
+              IF (flag(ijpkm) == slip_wall .AND. job_type == '3D') THEN
                 vg( n2 ) = vg( n1 )
                 vs(n2,:) = vs(n1,:)
-	      END IF
+              END IF
 !
-            CASE (3)
+            CASE (noslip_wall)
 !
               wg(n2)   = 0.D0
               ws(n2,:) = 0.D0
                 
-              IF(flag(ipjkm) == 3) THEN 
+              IF(flag(ipjkm) == noslip_wall) THEN 
                 ug(n2)   = -ug(n1)
                 DO is = 1, nsolid
                   IF (rlk(ijk,is) > 0.D0) us(n2,is) = -us(n1,is)
                 END DO
               END IF
 
-              IF(flag(ijpkm) == 3 .AND. job_type == '3D') THEN
+              IF(flag(ijpkm) == noslip_wall .AND. job_type == '3D') THEN
                 vg(n2)   = -vg(n1)
                 DO is = 1, nsolid
                   IF (rlk(ijk,is) > 0.D0) vs(n2,is) = -vs(n1,is)
@@ -676,7 +675,6 @@
 !              ENDIF
 !            END IF
 
-          END IF
         END IF
       END DO mesh_loop
 !
@@ -763,10 +761,8 @@
 ! ...  Extrapolations
        ucnn = u1n
        upn = u2n
-!
-! MODIFICARE X3D ....  IF(j == .EQ.2) ug(ipjm)=-ug(n2) ! 
-
-        t1nn = tmn
+       !
+       t1nn = tmn
 !
 ! ... calculation of the gas volumetric fraction at time (n+1)dt
 ! ... from the mass balance equation of solids in cell (ijk)
@@ -956,8 +952,6 @@
         umnn = u1n
         t1nn = tpn
 ! 
-! ... MODIFICAREX3D IF(j.EQ.2) ug(imjmk) = - ug(n2)
-!
 ! ... calculation of the gas volumetric fraction at time (n+1)
 ! ... from the mass balance equation of solids in cell (ijk)
 
@@ -1112,31 +1106,32 @@
       REAL*8 :: xgcn2(max_ngas)
 !
 ! ... This value can be "tuned"  (0.0 <= kfl <= 1.0)
+! ... 'kfl=1' corresponds to the zero-gradient condition
+
       kfl = 1.0D0
 
 ! ... Transport normal velocity in boundary cells
 !
       deltau = upn - ucn
-      upn = upn - kfl * SIGN(deltau,ucn)
+      upn = upn - kfl * deltau
       DO is = 1, nsolid
         deltau = uspn(is) - uscn(is)
-        uspn(is) = uspn(is) - kfl * SIGN(deltau,uscn(is))
+        uspn(is) = uspn(is) - kfl * deltau
       END DO
 
-! ... Transport particles (no g-p interaction)
+! ... Transport particles
 !
-      IF (ucn > 0.D0) THEN
-        rls = 0.D0
-        DO is=1, nsolid
-          rlk(n2,is) = rlk(n2,is) - dt/d2 *  &
-                         ( rlk(n2,is)*uspn(is) - rlk(n1,is)*uscn(is) )
-          rls = rls + rlk(n2,is)*inrl(is)
-        END DO
-      ELSE IF (ucn < 0.D0) THEN
-        rlk(n2,:) = 0.D0
-        rls = 0.D0
-      ELSE
-      END IF
+      rls = 0.D0
+      DO is=1, nsolid
+        IF (uscn(is) > 0.D0) THEN
+          rlk(n2,is) = rlk(n2,is) - dt/d2 * uscn(is) * &
+                     ( rlk(n2,is) - rlk(n1,is) )
+        ELSE IF (uscn(is) < 0.D0) THEN
+          rlk(n2,:) = 0.D0
+        ELSE
+        END IF
+        rls = rls + rlk(n2,is)*inrl(is)
+      END DO
       IF (rls >= 1.D0) &
           CALL error('bdry','control transport on boundary',1)
 
@@ -1144,24 +1139,29 @@
 !
       ep(n2) = 1.D0 - rls
 
-! ... Transport temperature (incompressible approximation)
+! ... Transport temperature 
 !
       zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )  ! DOMANDA perche dz(1)
       prif = p_atm(k)
       trif = t_atm(k)
 
       IF (ucn > 0.D0) THEN
-        tg(n2) = tg(n2) - dt/d2 * ucn * ( tg(n2) - tg(n1) )
-        DO is=1, nsolid
-          ts(n2,is) = ts(n2,is) - dt/d2 * uscn(is) * ( ts(n2,is) - ts(n1,is) )
-        END DO
+        tg(n2) = tg(n1)
       ELSE IF (ucn < 0.D0) THEN
         tg(n2) = trif
-        ts(n2,:) = trif
       ELSE
       END IF
+      !
+      DO is=1,nsolid
+        IF (uscn(is) > 0.D0) THEN
+          ts(n2,is) = ts(n1,is)
+        ELSE IF (uscn(is) < 0.D0) THEN
+          ts(n2,is) = trif
+        ELSE
+        END IF
+      END DO
 
-! ... Transport gas components (incompressible)
+! ... Transport gas components
 !
       IF (ucn > 0.D0) THEN
         DO ig=1, ngas
@@ -1176,11 +1176,11 @@
       CALL mole(xgcn2(:), ygc(n2,:))
       CALL thermal_eosg(rhorif, trif, prif, xgcn2(:))
 
-! ... Transport gas bulk density (compressible)
+! ... Transport gas bulk density
 !
       IF (ucn > 0.D0) THEN
-        rgp(n2) = rgp(n2) - dt/d2 *  &
-                     ( rgp(n2)*upn - rgp(n1)*ucn )
+        rgp(n2) = rgp(n2) - dt/d2 * ucn * &
+                     ( rgp(n2) - rgp(n1) )
       ELSE IF (ucn < 0.D0) THEN
         rgp(n2) = rhorif
       ELSE
@@ -1217,7 +1217,6 @@
       REAL*8, INTENT(IN) :: d1, d2
       INTEGER, INTENT(IN) :: k
 
-      REAL*8 :: u0, us0(max_nsolid)
       REAL*8 :: kfl, deltau, rls, mg
       REAL*8 :: zrif, prif, trif, rhorif
       INTEGER :: is, ig
@@ -1225,28 +1224,17 @@
 !
 ! ... This value can be "tuned" (0.0 <= kfl <= 1.0)
 ! ... (analogous to CFL number)
+! ... 'kfl=1' corresponds to the zero-gradient condition
 !
       kfl = 1.0D0
 
 ! ... Transport normal velocity into boundary cells
 !
       deltau = ucn - umn
-      umn = umn - kfl * SIGN(deltau,ucn)
+      umn = umn + kfl * deltau
       DO is = 1, nsolid
         deltau = uscn(is) - usmn(is)
-        usmn(is) = usmn(is) - kfl * SIGN(deltau,uscn(is))
-      END DO
-
-! ... Zero gradient
-!
-      umn = ucn
-      usmn = uscn
-
-! ... Extrapolate velocity for outflow
-!
-      u0  = umn - d2/d1 * ( ucn - umn )
-      DO is = 1, nsolid
-        us0(is) = usmn(is) - d2/d1 * ( uscn(is) - usmn(is) )
+        usmn(is) = usmn(is) - kfl * deltau
       END DO
 
 ! ... Transport particles (no g-p interaction)
@@ -1255,7 +1243,7 @@
       DO is=1, nsolid
         IF (usmn(is) < 0.D0) THEN
           rlk(n2,is) = rlk(n2,is) & 
-                        - dt/d2 * ( rlk(n1,is)*usmn(is) - rlk(n2,is)*us0(is) )
+                        - dt/d2 * usmn(is) * ( rlk(n1,is) - rlk(n2,is) )
         ELSE IF (usmn(is) > 0.D0) THEN
           rlk(n2,is) = 0.D0
         END IF
@@ -1268,22 +1256,22 @@
 !
       ep(n2) = 1.D0 - rls
 
-! ... Transport temperature (incompressible approximation)
+! ... Transport temperature
 !
       zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )  ! DOMANDA perche dz(1)
       prif = p_atm(k)
       trif = t_atm(k)
 
       IF (umn < 0.D0) THEN
-        tg(n2) = tg(n2) - dt/d2 * umn * ( tg(n1) - tg(n2) )
+        tg(n2) = tg(n1)
       ELSE IF (umn > 0.D0) THEN
         tg(n2) = trif
       ELSE
       END IF
-
-      DO is=1, nsolid
+      !
+      DO is=1,nsolid
         IF (usmn(is) < 0.D0) THEN
-          ts(n2,is) = ts(n2,is) - dt/d2 * usmn(is) * ( ts(n1,is) - ts(n2,is) )
+          ts(n2,is) = ts(n1,is)
         ELSE IF (usmn(is) > 0.D0) THEN
           ts(n2,is) = trif
         ELSE
@@ -1308,7 +1296,7 @@
 ! ... Transport gas bulk density
 !
       IF (umn < 0.D0) THEN
-        rgp(n2) = rgp(n2) - dt/d2 * ( rgp(n1)*umn - rgp(n2)*u0 )
+        rgp(n2) = rgp(n2) - dt/d2 * umn * (rgp(n1) - rgp(n2))
       ELSE IF (umn > 0.D0) THEN
         rgp(n2) = rhorif
       ELSE

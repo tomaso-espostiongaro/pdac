@@ -96,6 +96,7 @@
 
       LOGICAL, ALLOCATABLE :: converge(:)
       LOGICAL :: cvg
+      LOGICAL :: compute, immersed
 !
 ! ... Initialize the cell fractions for immersed boundaries
 !
@@ -129,7 +130,8 @@
 ! ... the pressure at previous time-step.
 !
       DO ijk = 1, ncint
-        IF ( flag( ijk ) == 1) THEN
+        compute = BTEST(flag(ijk),0)
+        IF ( compute ) THEN
           CALL first_subscr( ijk )
           CALL assemble_matrix( ijk )
           CALL solve_velocities( ijk)
@@ -160,7 +162,8 @@
 ! ... using the estimates of velocity and pressure.
 !
       DO ijk = 1, ncint
-        IF ( flag( ijk ) == 1 ) THEN
+        compute = BTEST(flag(ijk),0)
+        IF ( compute  ) THEN
           CALL first_subscr( ijk )
           CALL calc_gas_mass_flux( ijk )
           !
@@ -225,18 +228,16 @@
          n2 = 0
 
          mesh_loop: DO ijk = 1, ncint
+           compute  = BTEST(flag(ijk),0)
+           immersed = BTEST(flag(ijk),8) 
 
            converge(ijk) = .FALSE.
 
-           IF( flag(ijk) /= 1 ) THEN
-             
-             converge(ijk) = .TRUE.
-           
-           ELSE IF( flag(ijk) == 1 ) THEN
+           IF( compute  ) THEN
 
              CALL meshinds(ijk,imesh,i,j,k)
              CALL first_subscr(ijk)
-             IF (muscl > 0) CALL third_subscr(ijk)
+             IF (muscl > 0 .AND. .NOT.immersed) CALL third_subscr(ijk)
 
              ! ... Compute the volumes partially filled by the
              ! ... topography
@@ -294,6 +295,10 @@
 
              END IF
 
+           ELSE 
+             
+             converge(ijk) = .TRUE.
+           
            END IF
          END DO mesh_loop
 
@@ -568,6 +573,7 @@
       USE flux_limiters, ONLY: muscl
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE gas_solid_density, ONLY: rgp
+      USE grid, ONLY: flag
       USE set_indexes, ONLY: first_nb, first_rnb, third_nb, third_rnb
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE control_flags, ONLY: job_type, implicit_fluxes, &
@@ -576,6 +582,9 @@
       IMPLICIT NONE
 
       INTEGER :: ijk, info
+      LOGICAL :: immersed
+
+      immersed = BTEST(flag(ijk),8)
 
         IF (job_type == '2D') THEN
 !
@@ -590,7 +599,7 @@
           CALL masf( rgfe( ijk ), rgft( ijk ), rgfe( imjk ), rgft( ijkm ), &
                     dens, u, w, ijk )
 
-          IF (muscl > 0) THEN
+          IF (muscl > 0 .AND. .NOT.immersed) THEN
 !
 ! ... Second order MUSCL correction
 !
@@ -616,7 +625,7 @@
                      rgfe( imjk ), rgfn( ijmk ), rgft( ijkm ),  &
                      dens, u, v, w, ijk )
             
-          IF (muscl > 0) THEN
+          IF (muscl > 0 .AND. .NOT.immersed) THEN
 !
 ! ... Second order MUSCL correction
 !
@@ -639,7 +648,6 @@
 !
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
-      USE grid, ONLY: flag
       USE control_flags, ONLY: job_type
       USE time_parameters, ONLY: dt
 
@@ -676,6 +684,7 @@
       USE flux_limiters, ONLY: muscl
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE gas_solid_density, ONLY: rlk
+      USE grid, ONLY: flag
       USE set_indexes, ONLY: first_nb, first_rnb, third_nb, third_rnb
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE control_flags, ONLY: job_type
@@ -684,6 +693,9 @@
 
       INTEGER :: ijk
       INTEGER :: is
+      LOGICAL :: immersed
+
+      immersed = BTEST(flag(ijk),8)
 !
         DO is = 1, nsolid
 
@@ -700,7 +712,7 @@
                     rsfe(imjk,is), rsft(ijkm,is),   &
                     dens, u, w, ijk)
                      
-            IF (muscl > 0) THEN
+            IF (muscl > 0 .AND. .NOT.immersed) THEN
 !
 ! ... Second order MUSCL correction
 !
@@ -726,7 +738,7 @@
                   rsfe(imjk,is), rsfn(ijmk,is), rsft(ijkm,is),   &
                   dens, u, v, w, ijk)
 
-            IF (muscl > 0) THEN
+            IF (muscl > 0 .AND. .NOT.immersed) THEN
 !
 ! ... Second order MUSCL correction
 !
@@ -932,6 +944,7 @@
       USE eos_gas, ONLY: csound
       USE gas_solid_density, ONLY: rog, rgp
       USE grid, ONLY: dx, dy, dz, flag, rb
+      USE grid, ONLY: fluid, free_io, nrfree_io
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: ipjk, imjk, ijpk, ijmk, ijkp, ijkm
@@ -971,7 +984,7 @@
           nflb=flag(ijkm)
 
           SELECT CASE (nfle)
-            CASE(1,4,6)
+            CASE(fluid,free_io,nrfree_io)
               iep_e = ( dx(i+1)*ep(ijk)+dx(i)*ep(ijke) )*indxp*indxp*2.D0
               !iep_e = iep_e * upc_e
             CASE DEFAULT
@@ -979,7 +992,7 @@
           END SELECT
 
           SELECT CASE (nflw)
-            CASE(1,4,6)
+            CASE(fluid,free_io,nrfree_io)
               iep_w = ( dx(i-1)*ep(ijk)+dx(i)*ep(ijkw) )*indxm*indxm*2.D0 
               !iep_w = iep_w * upc_w
             CASE DEFAULT
@@ -987,7 +1000,7 @@
           END SELECT
 !
           SELECT CASE (nflt)
-            CASE(1,4,6)
+            CASE(fluid,free_io,nrfree_io)
               iep_t = ( dz(k+1)*ep(ijk)+dz(k)*ep(ijkt) )*indzp*indzp*2.D0 
               !iep_t = iep_t * upc_t 
             CASE DEFAULT
@@ -995,7 +1008,7 @@
           END SELECT
 
           SELECT CASE (nflb)
-            CASE (1,4,6)
+            CASE (fluid,free_io,nrfree_io)
               iep_b = ( dz(k-1)*ep(ijk)+dz(k)*ep(ijkb) )*indzm*indzm*2.D0
               !iep_b = iep_b * upc_b
             CASE DEFAULT
@@ -1012,7 +1025,7 @@
             nfls=flag(ijmk)
 
             SELECT CASE (nfln)
-              CASE (1,4,6)
+              CASE (fluid,free_io,nrfree_io)
                 iep_n = ( dy(j+1)*ep(ijk)+dy(j)*ep(ijkn) )*indyp*indyp*2.D0 
                 !iep_n = iep_n * upc_n 
               CASE DEFAULT
@@ -1020,7 +1033,7 @@
             END SELECT
 
             SELECT CASE (nfls)
-              CASE (1,4,6)
+              CASE (fluid,free_io,nrfree_io)
                 iep_s = ( dy(j-1)*ep(ijk)+dy(j)*ep(ijks) )*indym*indym*2.D0
                 !iep_s = iep_s * upc_s
               CASE DEFAULT
@@ -1073,6 +1086,7 @@
         USE pressure_epsilon, ONLY: p, ep
         USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
         USE gas_solid_temperature, ONLY: tg
+        USE grid, ONLY: flag
         USE eos_gas, ONLY: thermal_eosg, xgc
         USE phases_matrix, ONLY: assemble_all_matrix, solve_all_velocities
         USE set_indexes, ONLY: third_nb, third_rnb, first_rnb, first_nb
@@ -1105,6 +1119,9 @@
         INTEGER :: loop, kros, ig, is
 !
         REAL*8 :: xgcl(max_ngas)
+        LOGICAL :: immersed
+
+        immersed = BTEST(flag(ijk),8)
 !
 ! ... Here prepare the stencils and the fluxes
 !
@@ -1139,7 +1156,7 @@
         CALL first_rnb(wg_,wg,ijk)
         IF (job_type == '3D') CALL first_rnb(vg_,vg,ijk)
         !
-        IF (muscl > 0) THEN
+        IF (muscl > 0 .AND. .NOT.immersed) THEN
           CALL third_nb(rgp_,rgp,ijk)
           CALL third_rnb(ug_,ug,ijk)
           CALL third_rnb(wg_,wg,ijk)
@@ -1152,7 +1169,7 @@
           CALL first_rnb(ws_(is),ws(:,is),ijk)
           IF (job_type == '3D') CALL first_rnb(vs_(is),vs(:,is),ijk)
 
-          IF (muscl > 0) THEN
+          IF (muscl > 0 .AND. .NOT.immersed) THEN
             CALL third_nb(rlk_(is),rlk(:,is),ijk)
             CALL third_rnb(us_(is),us(:,is),ijk)
             CALL third_rnb(ws_(is),ws(:,is),ijk)
@@ -1224,7 +1241,7 @@
               CALL masf(rsfe_(is), rsft_(is), rsfw_(is), rsfb_(is), &
                         rlk_(is), us_(is), ws_(is), ijk)
                      
-              IF (muscl > 0) THEN
+              IF (muscl > 0 .AND. .NOT.immersed) THEN
                 CALL fmas(rsfe_(is), rsft_(is), rsfw_(is), rsfb_(is), &
                           rlk_(is), us_(is), ws_(is), ijk)
               END IF
@@ -1235,7 +1252,7 @@
                         rsfw_(is), rsfs_(is), rsfb_(is), &
                         rlk_(is), us_(is), vs_(is), ws_(is), ijk)
 
-              IF (muscl > 0) THEN
+              IF (muscl > 0 .AND. .NOT.immersed) THEN
                 CALL fmas(rsfe_(is), rsfn_(is), rsft_(is), &
                           rsfw_(is), rsfs_(is), rsfb_(is), &
                           rlk_(is), us_(is), vs_(is), ws_(is), ijk)
@@ -1282,7 +1299,7 @@
 
             CALL masf( rgfe_, rgft_, rgfw_, rgfb_, rgp_, ug_, wg_, ijk )
 
-            IF (muscl > 0) THEN
+            IF (muscl > 0 .AND. .NOT.immersed) THEN
               CALL fmas( rgfe_, rgft_, rgfw_, rgfb_, rgp_, ug_, wg_, ijk )
             END IF
 
@@ -1290,7 +1307,7 @@
 
             CALL masf( rgfe_, rgfn_, rgft_, rgfw_, rgfs_, rgfb_, rgp_, ug_, vg_, wg_, ijk)
 
-            IF (muscl > 0) THEN
+            IF (muscl > 0 .AND. .NOT.immersed) THEN
               CALL fmas( rgfe_, rgfn_, rgft_, rgfw_, rgfs_, rgfb_, rgp_, ug_, vg_, wg_, ijk)
             END IF
 
@@ -1361,6 +1378,7 @@
         USE pressure_epsilon, ONLY: p, ep
         USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
         USE gas_solid_temperature, ONLY: tg
+        USE grid, ONLY: flag
         USE eos_gas, ONLY: thermal_eosg, xgc
         USE phases_matrix, ONLY: matsvels_3phase
         USE set_indexes, ONLY: third_nb, third_rnb, first_rnb, first_nb
@@ -1397,9 +1415,11 @@
         TYPE(stencil) :: us2_, vs2_, ws2_, rlk2_
 
         INTEGER :: loop, kros, ig
-
+        LOGICAL :: immersed
         REAL*8 :: xgcl(max_ngas)
         xgcl(1:ngas) = xgc(ijk,:)
+
+        immersed = BTEST(flag(ijk),8)
 !
         kros = -1
 
@@ -1436,7 +1456,7 @@
         CALL first_rnb( wg_, wg, ijk )
         CALL first_rnb( vg_, vg, ijk )
 
-        IF (muscl > 0) THEN
+        IF (muscl > 0 .AND. .NOT.immersed) THEN
           CALL third_nb(rlk1_,rlk(:,1),ijk)
           CALL third_nb(rlk2_,rlk(:,2),ijk)
           CALL third_rnb(us1_,us(:,1),ijk)
@@ -1509,7 +1529,7 @@
           CALL masf( rsfe1_,  rsfn1_,  rsft1_, rsfw1_, rsfs1_, rsfb1_,   &
                  rlk1_, us1_, vs1_, ws1_, ijk)
 
-          IF (muscl > 0) THEN
+          IF (muscl > 0 .AND. .NOT.immersed) THEN
             CALL fmas( rsfe1_,  rsfn1_,  rsft1_, rsfw1_, rsfs1_, rsfb1_, &
                  rlk1_, us1_, vs1_, ws1_, ijk)
           END IF
@@ -1524,7 +1544,7 @@
           CALL masf( rsfe2_,  rsfn2_,  rsft2_, rsfw2_, rsfs2_, rsfb2_,   &
                  rlk2_, us2_, vs2_, ws2_, ijk)
 
-          IF (muscl > 0) THEN
+          IF (muscl > 0 .AND. .NOT.immersed) THEN
             CALL fmas( rsfe2_,  rsfn2_,  rsft2_, rsfw2_, rsfs2_, rsfb2_, &
                  rlk2_, us2_, vs2_, ws2_, ijk)
           END IF
@@ -1559,7 +1579,7 @@
           CALL masf( rgfe_ ,  rgfn_ ,  rgft_ , rgfw_ , rgfs_ , rgfb_ ,   &
                       rgp_, ug_, vg_, wg_, ijk )
 
-          IF (muscl > 0) THEN
+          IF (muscl > 0 .AND. .NOT.immersed) THEN
             CALL fmas( rgfe_ ,  rgfn_ ,  rgft_ , rgfw_ , rgfs_ , rgfb_ ,   &
                       rgp_, ug_, vg_, wg_, ijk )
           END IF

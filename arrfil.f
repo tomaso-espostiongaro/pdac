@@ -86,26 +86,28 @@
 
       ! ... 'x2' is a uniform subsample of 'x1'
       ! ... 'f2' is an average of 'f1' at 'x2' locations 
-      ! ... dcx(1/2) and dcy(1/2) are the extrema of the interval 
-      ! ... taken for the average
+      ! ... dcx and dcy are the extrema of the interval 
+      ! ... taken for the average around each mesh point.
       ! ... dmx and dmy are dummies!
       !
       ALLOCATE( x2(nsmx), y2(nsmy), f2(nsmx,nsmy) )
       ALLOCATE( dmx(counterx), dmy(counterx)  )
       ALLOCATE( dcx(nsmx,2), dcy(nsmy,2)  )
 
+      ! ... Initialize the new set coordinates
+      ! ... to their limit values
+      !
       x2 = 0.D0; y2 = 0.D0; f2 = 0.D0
       dcx(:,1) = counterx; dcy(:,1) = countery 
       dcx(:,2) = 0; dcy(:,2) = 0
 
       ! ... Uniformly Subsample and smooth the x-y function 
-      ! ... of the quota
+      ! ... of the quota. 'sstep' is the size of the cells
+      ! ... used for subsampling
       !
       sstepx = REAL( (x1(counterx)-x1(1))/(nsmx-1) , 8 )
       sstepy = REAL( (y1(countery)-y1(1))/(nsmy-1) , 8 )
 
-      ! ... corners
-      !
       ! ... Coordinates of the subsampled set
       !
       x2(1) = x1(1)
@@ -121,6 +123,9 @@
       x2(nsmx) = x1(counterx)
       y2(nsmy) = y1(countery)
 !      
+      ! ... Initialize the new elevation function
+      ! ... on boundaries
+      !
       f2(1,1) = f1(1,1)
       f2(nsmx,nsmy) = f1(counterx,countery)
       f2(1,nsmy) = f1(1,countery)
@@ -157,6 +162,8 @@
         f2(1,j) = f2(1,j) / cnt
         f2(nsmx,j) = f2(nsmx,j) / cnt
       END DO
+      !
+      ! ... 2D average 
       !
       DO j = 2, nsmy-1
         DO i = 2, nsmx-1

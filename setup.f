@@ -73,8 +73,8 @@
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE gas_solid_viscosity, ONLY: mus
-      USE grid, ONLY: zb, dz
-      USE grid, ONLY: flag, iob
+      USE grid, ONLY: zb, dz, iob
+      USE grid, ONLY: flag, fluid, int_immb, ext_immb, free_io, nrfree_io
       USE immersed_boundaries, ONLY: numx, numy, numz, immb
       USE particles_constants, ONLY: rl, inrl, cmus
       USE pressure_epsilon, ONLY: ep, p
@@ -136,7 +136,7 @@
           !
           SELECT CASE ( flag(ijk) )
 
-          CASE (1,4,6)
+          CASE (fluid, int_immb, ext_immb, free_io, nrfree_io)
 
             IF (immb == 1) THEN
               fx = numx(ijk)
@@ -227,7 +227,6 @@
       USE gas_constants, ONLY: gas_type, gmw, rgas, tzero, hzerog, hzeros
       USE gas_solid_density, ONLY: rlk, rog, rgp
       USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
-      USE grid, ONLY: flag
       USE particles_constants, ONLY: inrl, cps
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: itd
@@ -386,7 +385,7 @@
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
-      USE grid, ONLY: iob, x, y, z, flag
+      USE grid, ONLY: iob, x, y, z
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
       USE indijk_module, ONLY: ip0_jp0_kp0_

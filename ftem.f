@@ -87,7 +87,7 @@
 !
       DO ijk = 1, ncint
 
-        IF (flag(ijk) == 1) THEN
+        IF ( BTEST(flag(ijk),0) ) THEN
 
           IF (immb == 1) CALL faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
   

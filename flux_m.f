@@ -107,7 +107,7 @@
 !
       USE dimensions
       USE domain_decomposition, ONLY: myijk, meshinds
-      USE grid, ONLY: dx, dy, dz, flag
+      USE grid, ONLY: dx, dy, dz
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt
@@ -401,7 +401,7 @@
 !
       USE dimensions
       USE domain_decomposition, ONLY: myijk
-      USE grid, ONLY: dx, rb, dz, flag
+      USE grid, ONLY: dx, rb, dz
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt

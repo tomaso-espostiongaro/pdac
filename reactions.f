@@ -44,7 +44,7 @@
 !
       DO ijk = 1, ncint
           imesh = myijk( ip0_jp0_kp0_, ijk)
-          IF(flag(ijk) == 1) THEN
+          IF( BTEST(flag(ijk),0) ) THEN
             r1(ijk)=0.D0
             r2(ijk)=0.D0
             r3(ijk)=0.D0

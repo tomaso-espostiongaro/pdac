@@ -6,6 +6,7 @@
 !
 !----------------------------------------------------------------------
         USE grid, ONLY: fl, flag
+        USE grid, ONLY: slip_wall, noslip_wall, ext_immb, int_immb
         USE indijk_module
         USE immersed_boundaries, ONLY: immb
         USE control_flags, ONLY: lpr
@@ -81,7 +82,7 @@
         INTEGER, ALLOCATABLE :: myijk(:,:)
         INTEGER, ALLOCATABLE :: myinds(:,:)
 !
-        INTEGER :: countfl(20)
+        INTEGER :: countfl
 
         INTERFACE data_exchange
           MODULE PROCEDURE data_exchange_i, data_exchange_r, data_exchange_rm, &
@@ -142,12 +143,10 @@
       ncell = 0
       ncdif = 0
 !
-! ... here count the flags, array fl is replicated on all procs
+! ... here count the flags of fluid cells (including immersed boundaries and
+! ... dome cells), array fl is replicated on all procs
 !
-      DO i = 1, SIZE(countfl)
-        countfl(i) = COUNT( (fl == i) )
-        IF (ANY(fl > SIZE(countfl))) CALL error('partition','countfl SIZE too small', SIZE(countfl) )
-      END DO
+      countfl = COUNT( BTEST(fl(:),0) )
 !
       IF ( lpr > 0 .AND. ionode ) THEN
         WRITE( 6, fmt = '(a13)' ) ' # countfl :'
@@ -181,7 +180,7 @@
 ! ... data distributions itself
 ! 
       DO ipe = 0, nproc - 1
-        ncell(ipe) = localdim(countfl(1), nproc, ipe)
+        ncell(ipe) = localdim(countfl, nproc, ipe)
         ncdif(ipe) = ncfl1(ipe) - ncell(ipe)
       END DO
 !
@@ -259,7 +258,7 @@
 ! ... of cell of weight ONE
 !
       DO ipe = 0, nproc - 1
-       ncfl1(ipe) = localdim(countfl(1), nproc, ipe)
+       ncfl1(ipe) = localdim(countfl, nproc, ipe)
       END DO
 !
       IF( job_type == '2D' ) THEN
@@ -275,7 +274,7 @@
 
             ijk = i + (k-1) * nx
   
-            IF ( fl(ijk) == 1 ) THEN
+            IF ( BTEST(fl(ijk),0) ) THEN
               icnt_ipe = icnt_ipe + 1
               icnt     = icnt     + 1
             END IF
@@ -286,7 +285,7 @@
 
 ! ...         The last cell has already been assigned to the last proc,
 ! ...         the next double condition is somehow redundant, but helps reading the code
-              IF( ( icnt < countfl(1) ) .AND. ( ipe < ( nproc - 1 ) ) ) THEN
+              IF( ( icnt < countfl ) .AND. ( ipe < ( nproc - 1 ) ) ) THEN
                 lay_map(ipe,2) = ijk
                 ipe = ipe + 1
                 lay_map(ipe,1) = ijk+1
@@ -313,7 +312,7 @@
 
               ijk = i + (j-1)*nx + (k-1)*nx*ny 
   
-              IF ( fl(ijk) == 1 ) THEN
+              IF ( BTEST(fl(ijk),0) ) THEN
                 icnt_ipe = icnt_ipe + 1
                 icnt     = icnt     + 1
               END IF
@@ -322,7 +321,7 @@
 
               IF ( icnt_ipe >= ncfl1(ipe) ) THEN
                 IF ( ( (i /= nx-1) .AND. (j <= ny-1) ) .OR. ( (i == nx) .AND. (j == ny) ) ) THEN
-                  IF( icnt < countfl(1) .AND. ( ipe < ( nproc - 1) ) ) THEN
+                  IF( icnt < countfl .AND. ( ipe < ( nproc - 1) ) ) THEN
                     lay_map(ipe,2) = ijk
                     ipe = ipe + 1
                     lay_map(ipe,1) = ijk+1
@@ -400,15 +399,15 @@
 ! ... If the number of the processors 'nproc' is not factorable
 ! ... as 'nbx*nbz', some blocks in the lower layer will be merged together.
 !
-        area  = DBLE(countfl(1)/nproc)       
+        area  = DBLE(countfl/nproc)       
 
-! ... Here countfl(1) is supposed to be the total area whose side
+! ... Here countfl is supposed to be the total area whose side
 ! ... are "nx" and "nz_effective" ( lower than "nz" )
 ! ... Remember nbx * nbz should be equal to nproc
 
         side  = DSQRT(area)    !  balanced area to be assigned to each proc
         nbx   = NINT(nx/side)  !  estimate number of block along x direction
-        nbz   = NINT(countfl(1)/nbx/area) ! estimate the number of block along z    
+        nbz   = NINT(countfl/nbx/area) ! estimate the number of block along z    
         IF (nbx == 0) nbx = 1
         IF (nbz == 0) nbz = 1
         DO WHILE (nbx*nbz <= nproc)
@@ -453,7 +452,7 @@
 ! ...     Every layer contain the same number of blocks ( no reminder )
 
           DO layer = 1, nbz
-            ncfl1_lay(layer) = localdim( countfl(1), nbz, layer-1 )
+            ncfl1_lay(layer) = localdim( countfl, nbz, layer-1 )
             nbl_lay(layer) = nbx
           END DO
 
@@ -490,7 +489,7 @@
           ALLOCATE( nbl_tot( nproc ) )
 
           DO ib = 1, nproc
-            nbl_tot(ib) = localdim( countfl(1), nproc, ib-1 )
+            nbl_tot(ib) = localdim( countfl, nproc, ib-1 )
           END DO
           ib = 0
           DO layer = 1, nbz
@@ -505,7 +504,7 @@
 
         END IF
 
-        IF ( SUM( ncfl1_lay(:) ) /= countfl(1) ) &
+        IF ( SUM( ncfl1_lay(:) ) /= countfl ) &
               CALL error(' blocks ',' control blocks decomposition ',1)
 !
 ! ... build the layer maps
@@ -521,7 +520,7 @@
           DO i = 1, nx
             ijk = i + (k-1)*nx
 !
-            IF ( fl(ijk) == 1 ) THEN
+            IF ( BTEST(fl(ijk),0) ) THEN
               icnt_layer = icnt_layer + 1
               icnt       = icnt     + 1
             END IF
@@ -578,7 +577,7 @@
         ncfl1_lay(layer) = 0
         DO ijk = ijk1, ijk2
           nctot_lay(layer) = nctot_lay(layer) + 1
-          IF (fl(ijk) == 1) ncfl1_lay(layer) = ncfl1_lay(layer) + 1 
+          IF ( BTEST(fl(ijk),0) ) ncfl1_lay(layer) = ncfl1_lay(layer) + 1 
         END DO
 !
 ! ... Estimate of the number of cells contained in each block
@@ -599,7 +598,7 @@
           DO WHILE ( ncfl1(ipe) < bl1 )
             DO k = k1, k2
               ijk = i + (k-1)*nx
-              IF (fl(ijk) == 1) ncfl1(ipe) = ncfl1(ipe) + 1
+              IF ( BTEST(fl(ijk),0) ) ncfl1(ipe) = ncfl1(ipe) + 1
             END DO  
             i = i + 1
           END DO
@@ -617,7 +616,7 @@
             DO i = proc_map(ipe)%corner1(1), proc_map(ipe)%corner2(1)
               ijk = i + (k-1)*nx
               nctot(ipe) = nctot(ipe) + 1
-              IF (fl(ijk) == 1) ncfl1(ipe) = ncfl1(ipe) + 1
+              IF ( BTEST(fl(ijk),0) ) ncfl1(ipe) = ncfl1(ipe) + 1
             END DO
           END DO
         END DO
@@ -676,12 +675,12 @@
 ! ... If the number of the processors 'nproc' is not factorable
 ! ... as 'nbx*nby', some blocks in the lower slab will be merged together.
 !
-! ... countfl(1) represent the number of computationally demanding
+! ... countfl represent the number of computationally demanding
 ! ... units of volume, that should be equally distributed across 
 ! ... processors.
 
-        zavg = DBLE( countfl( 1 ) ) / ( nx * ny )    ! average no. of counts along z dim
-        volume = DBLE( countfl(1) ) / DBLE( nproc )  ! per processor no. of counts
+        zavg = DBLE( countfl) / ( nx * ny )    ! average no. of counts along z dim
+        volume = DBLE( countfl ) / DBLE( nproc )  ! per processor no. of counts
 
         area  = volume / zavg       ! expected average base area of column blocks 
         side  = DSQRT( area )       ! side of the base area
@@ -723,7 +722,7 @@
         IF ( rest == 0 ) THEN
 
           DO layer = 1, nby
-            ncfl1_lay(layer) = localdim( countfl(1), nby, layer - 1 )
+            ncfl1_lay(layer) = localdim( countfl, nby, layer - 1 )
             nbl_lay(layer)   = nbx
           END DO
 
@@ -745,7 +744,7 @@
           END IF
 
           DO layer = 1, nby
-            fact = DBLE( countfl(1) / nproc * nbl_lay(layer) )
+            fact = DBLE( countfl / nproc * nbl_lay(layer) )
             ncfl1_lay(layer) = NINT(fact)   !  expected no. of fl=1 per slab (layer 2D)
           END DO
 
@@ -766,7 +765,7 @@
           DO k = 1, nz
             ijk = i + (j-1)*nx + (k-1)*nx*ny
 !
-            IF ( fl(ijk) == 1 ) THEN
+            IF ( BTEST(fl(ijk),0) ) THEN
               icnt_layer = icnt_layer + 1
               icnt       = icnt       + 1
             END IF
@@ -831,7 +830,7 @@
             DO k = 1, nz
               ijk = ij + (k-1)*nx*ny
               nctot_lay(layer) = nctot_lay(layer) + 1
-              IF (fl(ijk) == 1) ncfl1_lay(layer) = ncfl1_lay(layer) + 1 
+              IF ( BTEST(fl(ijk),0) ) ncfl1_lay(layer) = ncfl1_lay(layer) + 1 
             END DO
           END DO
 
@@ -855,7 +854,7 @@
               DO j = j1, j2
                 DO k = 1, nz
                   ijk = i + (j-1)*nx + (k-1)*nx*ny
-                  IF (fl(ijk) == 1) ncfl1(ipe) = ncfl1(ipe) + 1
+                  IF ( BTEST(fl(ijk),0) ) ncfl1(ipe) = ncfl1(ipe) + 1
                 END DO
               END DO  
               i = i + 1
@@ -875,7 +874,7 @@
                 DO i = proc_map(ipe)%corner1(1), proc_map(ipe)%corner2(1)
                   ijk = i + (j-1)*nx + (k-1)*nx*ny
                   nctot(ipe) = nctot(ipe) + 1
-                  IF (fl(ijk) == 1) ncfl1(ipe) = ncfl1(ipe) + 1
+                  IF ( BTEST(fl(ijk),0) ) ncfl1(ipe) = ncfl1(ipe) + 1
                 END DO
               END DO
             END DO
@@ -967,13 +966,13 @@
 ! ... If the number of the processors 'nprocxy' is not factorable
 ! ... as 'nbx*nby', some column blocks in the lower slab will be merged together.
 !
-! ... countfl(1) represent the number of computationally demanding
+! ... countfl represent the number of computationally demanding
 ! ... units of volume, that should be equally distributed across 
 ! ... processors.
 !
 
-        zavg = DBLE( countfl( 1 ) ) / ( nx * ny )      ! average no. of counts along z dim
-        volume = DBLE( countfl(1) ) / DBLE( nprocxy )  ! per (plane) processor no. of counts
+        zavg = DBLE( countfl) / ( nx * ny )      ! average no. of counts along z dim
+        volume = DBLE( countfl ) / DBLE( nprocxy )  ! per (plane) processor no. of counts
 
         area  = volume / zavg       ! expected average base area of column blocks 
         side  = DSQRT( area )       ! side of the base area
@@ -1020,7 +1019,7 @@
         IF ( rest == 0 ) THEN
 
           DO layer = 1, nby
-            ncfl1_lay(layer) = localdim( countfl(1), nby, layer - 1 )
+            ncfl1_lay(layer) = localdim( countfl, nby, layer - 1 )
             nbl_lay(layer)   = nbx
           END DO
 
@@ -1046,7 +1045,7 @@
           END IF
 
           DO layer = 1, nby
-            fact = DBLE( countfl(1)/nprocxy * nbl_lay(layer) )
+            fact = DBLE( countfl/nprocxy * nbl_lay(layer) )
             ncfl1_lay(layer) = NINT(fact)   !  expected no. of fl=1 per slab (layer 2D)
           END DO
 
@@ -1074,7 +1073,7 @@
 
               ijk = i + (j-1)*nx + (k-1)*nx*ny
 !
-              IF ( fl(ijk) == 1 ) THEN
+              IF ( BTEST(fl(ijk),0) ) THEN
                 icnt_layer = icnt_layer + 1
                 icnt       = icnt       + 1
               END IF
@@ -1149,10 +1148,8 @@
           DO ij = ij1, ij2
             DO k = 1, nz
               ijk = ij + (k-1)*nx*ny
-              ! IF( ijk < 1 .OR. ijk > SIZE( fl ) ) &
-              !   CALL error( ' blocks3d ', ' inconsistent index ijk (1) ', ijk )
               nctot_lay(layer) = nctot_lay(layer) + 1
-              IF (fl(ijk) == 1) ncfl1_lay(layer) = ncfl1_lay(layer) + 1 
+              IF ( BTEST(fl(ijk),0) ) ncfl1_lay(layer) = ncfl1_lay(layer) + 1 
             END DO
           END DO
 
@@ -1206,9 +1203,7 @@
                   DO j = j1, j2
                     DO i = i1, i2
                       ijk = i + (j-1)*nx + (k-1)*nx*ny
-                      ! IF( ijk < 1 .OR. ijk > SIZE( fl ) ) &
-                      !   CALL error( ' blocks3d ', ' inconsistent index ijk(2) ', ijk )
-                      IF (fl(ijk) == 1) ncfl1(ipe) = ncfl1(ipe) + 1
+                      IF ( BTEST(fl(ijk),0) ) ncfl1(ipe) = ncfl1(ipe) + 1
                     END DO
                   END DO  
                   k = k + 1
@@ -1238,7 +1233,7 @@
                   DO i = proc_map(ipe)%blkbsw(1), proc_map(ipe)%blktne(1)
                     ijk = i + (j-1)*nx + (k-1)*nx*ny
                     nctot(ipe) = nctot(ipe) + 1
-                    IF (fl(ijk) == 1) ncfl1(ipe) = ncfl1(ipe) + 1
+                    IF ( BTEST(fl(ijk),0) ) ncfl1(ipe) = ncfl1(ipe) + 1
                   END DO
                 END DO
               END DO
@@ -1254,7 +1249,7 @@
 
         END DO
 
-        IF( SUM( ncfl1(0:nproc-1) ) /= countfl(1) ) &
+        IF( SUM( ncfl1(0:nproc-1) ) /= countfl ) &
           CALL error(' blocks3d ', ' inconsistent number of cell ', SUM( ncfl1(0:nproc-1) ) )
 
         DEALLOCATE( lay_map, nctot_lay, ncfl1_lay, nbl_lay )
@@ -1313,7 +1308,7 @@
 
       IF ( proc_map(mpime)%type == LAYER_MAP ) THEN
         DO ijk = proc_map(mpime)%lay(1), proc_map(mpime)%lay(2)
-          IF ( fl( ijk ) == 1 .OR. fl(ijk) == 17 ) THEN
+          IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) ) THEN
             ncext = ncext + cell_neighbours( ijk, mpime, nset)
           END IF
         END DO
@@ -1326,7 +1321,7 @@
           DO k = k1, k2
             DO i = i1, i2
               ijk = i + (k-1) * nx
-              IF ( fl(ijk) == 1 .OR. fl(ijk) == 17 ) THEN
+              IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) ) THEN
                 ncext = ncext + cell_neighbours(ijk, mpime, nset)
               END IF
             END DO
@@ -1341,7 +1336,7 @@
             DO j = j1, j2
               DO i = i1, i2
                 ijk = i + (j-1)*nx + (k-1)*nx*ny 
-                IF ( fl(ijk) == 1 .OR. fl(ijk) == 17 ) THEN
+                IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) ) THEN
                   ncext = ncext + cell_neighbours(ijk, mpime, nset)
                 END IF
               END DO
@@ -1362,7 +1357,7 @@
             DO j = j1, j2
               DO i = i1, i2
                 ijk = i + (j-1)*nx + (k-1)*nx*ny
-                IF ( fl(ijk) == 1 .OR. fl(ijk) == 17 ) THEN
+                IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) ) THEN
                   ncext = ncext + cell_neighbours(ijk, mpime, nset)
                 END IF
               END DO
@@ -1410,7 +1405,7 @@
 
       IF ( proc_map(mpime)%type == LAYER_MAP ) THEN
         DO ijk = proc_map(mpime)%lay(1), proc_map(mpime)%lay(2)
-          IF ( fl(ijk) == 1 .OR. fl(ijk) == 17 ) THEN
+          IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) ) THEN
             icnt = icnt + cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
           END IF
         END DO
@@ -1423,7 +1418,7 @@
           DO k = k1, k2
             DO i = i1, i2
               ijk = i + (k-1) * nx
-              IF ( fl(ijk) == 1 .OR. fl(ijk) == 17 ) THEN
+              IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) ) THEN
                 icnt = icnt + cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
               END IF
             END DO
@@ -1437,7 +1432,7 @@
             DO j = j1, j2
               DO i = i1, i2
                 ijk = i + (j-1)*nx + (k-1)*nx*ny
-                IF ( fl(ijk) == 1 .OR. fl(ijk) == 17 ) THEN
+                IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) ) THEN
                   icnt = icnt + cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
                 END IF
               END DO
@@ -1458,7 +1453,7 @@
             DO j = j1, j2
               DO i = i1, i2
                 ijk = i + (j-1)*nx + (k-1)*nx*ny
-                IF ( fl(ijk) == 1 .OR. fl(ijk) == 17 ) THEN
+                IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) ) THEN
                   icnt = icnt + cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
                 END IF
               END DO
@@ -2214,28 +2209,28 @@
 ! ... impose homogeneous Neumann conditions
 !
               SELECT CASE (flag(ipjk))
-                CASE (2,3,17)
+                CASE (noslip_wall, slip_wall, ext_immb)
                         ijke = ijk
                 CASE DEFAULT
                         ijke = ipjk
               END SELECT
 
               SELECT CASE (flag(imjk))
-                CASE (2,3,17)
+                CASE (noslip_wall, slip_wall, ext_immb)
                         ijkw = ijk
                 CASE DEFAULT
                         ijkw = imjk
               END SELECT
 
               SELECT CASE (flag(ijkp))
-                CASE (2,3,17)
+                CASE (noslip_wall, slip_wall, ext_immb)
                         ijkt = ijk
                 CASE DEFAULT
                         ijkt = ijkp
               END SELECT
 
               SELECT CASE (flag(ijkm))
-                CASE (2,3,17)
+                CASE (noslip_wall, slip_wall, ext_immb)
                         ijkb = ijk
                 CASE DEFAULT
                         ijkb = ijkm
@@ -2244,21 +2239,21 @@
 ! ... diagonal neighbours
 !
               ijkwt = imjkp
-              IF(flag(imjkp) == 2 .OR. flag(imjkp) == 3) ijkwt = ijkp 
+              IF(flag(imjkp) == slip_wall .OR. flag(imjkp) == noslip_wall) ijkwt = ijkp 
 
               ijkeb = ipjkm
-              IF(flag(ipjkm) == 2 .OR. flag(ipjkm) == 3) ijkeb = ipjk 
+              IF(flag(ipjkm) == slip_wall .OR. flag(ipjkm) == noslip_wall) ijkeb = ipjk 
 
               ijket = ipjkp
-              IF (flag(ipjkp) == 2 .OR. flag(ipjkp) == 3) THEN
-                IF (flag(ijkp) == 2 .OR. flag(ijkp) == 3) THEN
-                  IF (flag(ipjk) == 2 .OR. flag(ipjk) == 3) THEN
+              IF (flag(ipjkp) == slip_wall .OR. flag(ipjkp) == noslip_wall) THEN
+                IF (flag(ijkp) == slip_wall .OR. flag(ijkp) == noslip_wall) THEN
+                  IF (flag(ipjk) == slip_wall .OR. flag(ipjk) == noslip_wall) THEN
                     ijket = ijk 
                   ELSE
                     ijket = ipjk
                   END IF
                 ELSE
-                  IF (flag(ipjk) == 2 .OR. flag(ipjk) == 3) THEN
+                  IF (flag(ipjk) == slip_wall .OR. flag(ipjk) == noslip_wall) THEN
                     ijket = ijkp 
                   ELSE
                     ijket = ijk
@@ -2269,19 +2264,19 @@
 ! ... Second neighbours are not available on boundaries
 !
               ijkee = ippjk
-              IF( (flag(ippjk) == 2) .OR. (flag(ippjk) == 3) ) ijkee = ipjk
+              IF( (flag(ippjk) == slip_wall) .OR. (flag(ippjk) == noslip_wall) ) ijkee = ipjk
               IF(i == (nx-1)) ijkee = ijke
 
               ijktt = ijkpp
-              IF( (flag(ijkpp) == 2) .OR. (flag(ijkpp) == 3) ) ijktt = ijkp
+              IF( (flag(ijkpp) == slip_wall) .OR. (flag(ijkpp) == noslip_wall) ) ijktt = ijkp
               IF(k == (nz-1)) ijktt = ijkt
   
               ijkww = immjk
-              IF( (flag(immjk) == 2) .OR. (flag(immjk) == 3) ) ijkww = imjk
+              IF( (flag(immjk) == slip_wall) .OR. (flag(immjk) == noslip_wall) ) ijkww = imjk
               IF(i == 2) ijkww = ijkw
 
               ijkbb = ijkmm
-              IF( (flag(ijkmm) == 2) .OR. (flag(ijkmm) == 3) ) ijkbb = ijkm
+              IF( (flag(ijkmm) == slip_wall) .OR. (flag(ijkmm) == noslip_wall) ) ijkbb = ijkm
               IF(k == 2) ijkbb = ijkb
 !
               myinds(ip0_jp0_km2_, ijk) = ijkbb
@@ -2334,42 +2329,42 @@
               ijkmm  = myijk( ip0_jp0_km2_ , ijk )
   
               SELECT CASE (flag(ipjk))
-                CASE (2,3,17)
+                CASE (noslip_wall, slip_wall, ext_immb)
                         ijke = ijk
                 CASE DEFAULT
                         ijke  =  ipjk
               END SELECT
 
               SELECT CASE (flag(imjk))
-                CASE (2,3,17)
+                CASE (noslip_wall, slip_wall, ext_immb)
                         ijkw = ijk
                 CASE DEFAULT
                         ijkw  =  imjk
               END SELECT
 
               SELECT CASE (flag(ijpk))
-                CASE (2,3,17)
+                CASE (noslip_wall, slip_wall, ext_immb)
                         ijkn = ijk
                 CASE DEFAULT
                         ijkn  =  ijpk
               END SELECT
 
               SELECT CASE (flag(ijmk))
-                CASE (2,3,17)
+                CASE (noslip_wall, slip_wall, ext_immb)
                         ijks = ijk
                 CASE DEFAULT
                         ijks  =  ijmk
               END SELECT
 
               SELECT CASE (flag(ijkp))
-                CASE (2,3,17)
+                CASE (noslip_wall, slip_wall, ext_immb)
                         ijkt = ijk
                 CASE DEFAULT
                         ijkt  =  ijkp
               END SELECT
 
               SELECT CASE (flag(ijkm))
-                CASE (2,3,17)
+                CASE (noslip_wall, slip_wall, ext_immb)
                         ijkb = ijk
                 CASE DEFAULT
                         ijkb  =  ijkm
@@ -2379,27 +2374,27 @@
 ! ... Second neighbours are not available on boundaries
 !
               ijkee =  ippjk
-              if( flag( ippjk ) == 2 .OR. flag( ippjk ) == 3 ) ijkee = ijke
+              if( flag( ippjk ) == slip_wall .OR. flag( ippjk ) == noslip_wall ) ijkee = ijke
               if( i == (nx-1) ) ijkee = ijke
 
               ijkww =  immjk
-              if( flag( immjk ) == 2 .OR. flag( immjk ) == 3 ) ijkww = ijkw
+              if( flag( immjk ) == slip_wall .OR. flag( immjk ) == noslip_wall ) ijkww = ijkw
               if( (i == 2) ) ijkww = ijkw
 
               ijknn =  ijppk
-              if( flag( ijppk ) == 2 .OR. flag( ijppk ) == 3 ) ijknn = ijkn
+              if( flag( ijppk ) == slip_wall .OR. flag( ijppk ) == noslip_wall ) ijknn = ijkn
               if( (j == (ny-1)) ) ijknn = ijkn
 
               ijkss =  ijmmk
-              if( flag( ijmmk ) == 2 .OR. flag( ijmmk ) == 3 ) ijkss = ijks
+              if( flag( ijmmk ) == slip_wall .OR. flag( ijmmk ) == noslip_wall ) ijkss = ijks
               if( (j == 2) ) ijkss = ijks
 
               ijktt =  ijkpp
-              if( flag( ijkpp ) == 2 .OR. flag( ijkpp ) == 3 ) ijktt = ijkt
+              if( flag( ijkpp ) == slip_wall .OR. flag( ijkpp ) == noslip_wall ) ijktt = ijkt
               if( k == (nz-1) ) ijktt = ijkt
 
               ijkbb =  ijkmm
-              if( flag( ijkmm ) == 2 .OR. flag( ijkmm ) == 3 ) ijkbb = ijkb
+              if( flag( ijkmm ) == slip_wall .OR. flag( ijkmm ) == noslip_wall ) ijkbb = ijkb
               if( k == 2 ) ijkbb = ijkb
 
               !!!!! check diagonals
@@ -2919,7 +2914,6 @@
       SUBROUTINE local_forcing
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nx, ny, nz
-      USE grid, ONLY: flag
       USE immersed_boundaries, ONLY: numx, fptx, numy, fpty, numz, fptz
       USE parallel, ONLY: mpime
 
@@ -3081,19 +3075,19 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
           ijpk  = myijk( ip0_jp1_kp0_, ijk )
           ijkm  = myijk( ip0_jp0_km1_, ijk )
 
-          IF( flag(ijk) == 1 ) THEN
+          IF( BTEST(flag(ijk),0) ) THEN
             CALL meshinds(ijk,imesh,i,j,k)
   
             IF (job_type == '2D') THEN
               ! 
               ! East
-              IF (z(k) > topo_x(i) .AND. flag(ipjk) /= 17) THEN
+              IF (z(k) > topo_x(i) .AND. flag(ipjk) /= ext_immb) THEN
                 bd(ijk) = bd(ijk) + 1
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
               !
               ! West
-              IF (z(k) > topo_x(i-1) .AND. flag(imjk) /= 17) THEN
+              IF (z(k) > topo_x(i-1) .AND. flag(imjk) /= ext_immb) THEN
                 bd(ijk) = bd(ijk) + 2
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
@@ -3105,7 +3099,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               END IF
               !
               ! Bottom
-              IF (zb(k-1) >= topo_c(i) .AND. flag(ijkm) /= 17) THEN
+              IF (zb(k-1) >= topo_c(i) .AND. flag(ijkm) /= ext_immb) THEN
                 bd(ijk) = bd(ijk) + 8 
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
@@ -3113,13 +3107,13 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
             ELSE IF (job_type == '3D') THEN
               ! 
               ! East
-              IF (z(k) > topo2d_x(i,j) .AND. flag(ipjk) /= 17) THEN
+              IF (z(k) > topo2d_x(i,j) .AND. flag(ipjk) /= ext_immb) THEN
                 bd(ijk) = bd(ijk) + 1
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
               !
               ! West
-              IF (z(k) > topo2d_x(i-1,j) .AND. flag(imjk) /= 17) THEN
+              IF (z(k) > topo2d_x(i-1,j) .AND. flag(imjk) /= ext_immb) THEN
                 bd(ijk) = bd(ijk) + 2
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
@@ -3131,19 +3125,19 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               END IF
               !
               ! Bottom
-              IF (zb(k-1) >= topo2d_c(i,j) .AND. flag(ijkm) /= 17) THEN
+              IF (zb(k-1) >= topo2d_c(i,j) .AND. flag(ijkm) /= ext_immb) THEN
                 bd(ijk) = bd(ijk) + 8
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
               !
               ! North
-              IF (z(k) > topo2d_y(i,j) .AND. flag(ijpk) /= 17) THEN
+              IF (z(k) > topo2d_y(i,j) .AND. flag(ijpk) /= ext_immb) THEN
                 bd(ijk) = bd(ijk) + 16
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
               !
               ! South
-              IF (z(k) > topo2d_y(i,j-1) .AND. flag(ijmk) /= 17) THEN
+              IF (z(k) > topo2d_y(i,j-1) .AND. flag(ijmk) /= ext_immb) THEN
                 bd(ijk) = bd(ijk) + 32
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
@@ -3160,7 +3154,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
             ! ... are excluded from computation. Only
             ! ... compute interpolated velocities.
             !
-            IF (vf(ijk) == 0.D0) flag(ijk) = 17
+            IF (vf(ijk) == 0.D0) flag(ijk) = ext_immb
 
             IF (bd(ijk) /= filled  .AND. lpr > 1 ) THEN
               WRITE( 7, fmt = "( I8,3I4,2X,B8 )" ) ijk, i, j, k, bd(ijk)
@@ -3204,7 +3198,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
       END IF
 !
         DO ijk=1, ncint
-          IF( flag(ijk) == 1 ) THEN
+          IF( BTEST(flag(ijk),0) ) THEN
             CALL meshinds(ijk,imesh,i,j,k)
   
             alpha = 0.D0

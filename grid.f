@@ -38,6 +38,19 @@
 !
 ! ... flags for the domain boundary condition
       INTEGER :: west, east, south, north, bottom, top
+      INTEGER :: fluid, slip_wall, noslip_wall, inlet_cell, free_io, nrfree_io, &
+                 vent_cell, dome_cell, int_immb, ext_immb
+!
+      PARAMETER fluid          = 2**0          ! OLD flag = 1
+      PARAMETER slip_wall      = 2**1          ! OLD flag = 2
+      PARAMETER noslip_wall    = 2**2          ! OLD flag = 3
+      PARAMETER free_io        = 2**3          ! OLD flag = 4
+      PARAMETER inlet_cell     = 2**4          ! OLD flag = 5
+      PARAMETER nrfree_io      = 2**5          ! OLD flag = 6
+      PARAMETER vent_cell      = 2**6          ! OLD flag = 7
+      PARAMETER dome_cell      = 2**7 + fluid  ! OLD flag = 8
+      PARAMETER int_immb       = 2**8 + fluid  !
+      PARAMETER ext_immb       = 2**9          !
 !
 ! ... origin of atmospheric stratification
       REAL*8 :: zzero
@@ -116,7 +129,6 @@
       
       RETURN
       END SUBROUTINE allocate_blbody
-
 !----------------------------------------------------------
       SUBROUTINE grid_setup
 !
@@ -251,9 +263,7 @@
 
       RETURN 
       END SUBROUTINE grid_setup
-
 !----------------------------------------------------------------------
-
       SUBROUTINE flic
       USE dimensions, ONLY: nx, ny, nz, no
       USE control_flags, ONLY: job_type
@@ -269,22 +279,22 @@
         !
         ! ... Specify cell flags on mesh boundaries
         !
-        DO i = 1, nx
+        DO i = 2, nx-1
           k = 1
           ijk = i + (k-1) * nx
-          fl(ijk) = bottom
+          fl(ijk) = 2**(bottom-1)
           k = nz
           ijk = i + (k-1) * nx
-          fl(ijk) = top
+          fl(ijk) = 2**(top-1)
         END DO
         !
         DO k = 1, nz
           i = 1
           ijk = i + (k-1) * nx
-          fl(ijk) = west
+          fl(ijk) = 2**(west-1)
           i = nx
           ijk = i + (k-1) * nx
-          fl(ijk) = east
+          fl(ijk) = 2**(east-1)
         END DO
         !
         ! ... Specify cell flags for blocks
@@ -294,7 +304,7 @@
             DO i = iob(n)%xlo, iob(n)%xhi
               ijk = i + (k-1) * nx
 
-              fl(ijk) = iob(n)%typ
+              fl(ijk) = 2**(iob(n)%typ-1)
               
             END DO
           END DO
@@ -303,36 +313,39 @@
         !
         ! ... Specify cell flags on mesh boundaries
         !
-        DO i = 1, nx
-          DO j = 1, ny
+        ! ... Bottom and Top faces
+        DO i = 2, nx-1
+          DO j = 2, ny-1
             k = 1
             ijk = i + ( (j-1) + (k-1)*ny ) * nx
-            fl(ijk) = bottom
+            fl(ijk) = 2**(bottom-1)
             k = nz
             ijk = i + ( (j-1) + (k-1)*ny ) * nx
-            fl(ijk) = top
+            fl(ijk) = 2**(top-1)
           END DO
         END DO
         !
+        ! ... West and East faces
         DO j = 1, ny
           DO k = 1, nz
             i = 1
             ijk = i + ( (j-1) + (k-1)*ny ) * nx
-            fl(ijk) = west
+            fl(ijk) = 2**(west-1)
             i = nx
             ijk = i + ( (j-1) + (k-1)*ny ) * nx
-            fl(ijk) = east
+            fl(ijk) = 2**(east-1)
           END DO
         END DO
         !
+        ! ... South and North faces
         DO k = 1, nz
           DO i = 1, nx
             j = 1
             ijk = i + ( (j-1) + (k-1)*ny ) * nx
-            fl(ijk) = south
+            fl(ijk) = 2**(south-1)
             j = ny
             ijk = i + ( (j-1) + (k-1)*ny ) * nx
-            fl(ijk) = north
+            fl(ijk) = 2**(north-1)
           END DO
         END DO
         !
@@ -345,7 +358,7 @@
               DO i = iob(n)%xlo, iob(n)%xhi
                 ijk = i + ( (j-1) + (k-1)*ny ) * nx
 
-                fl(ijk) = iob(n)%typ
+                fl(ijk) = 2**(iob(n)%typ-1)
               
               END DO
             END DO
@@ -354,19 +367,9 @@
         !
       END IF
 !
-! ... Set flags on corners
-!
-      IF( job_type == '2D' ) THEN
-        IF ( fl(nz*nx - 1) == 4 .AND. fl((nz-1)*nx) == 4) THEN
-          fl(nz*nx) = 4
-        END IF
-      END IF
-      
       RETURN
       END SUBROUTINE flic
-
 !----------------------------------------------------------------------
-
       SUBROUTINE generate_grid(delta,nd,domain_size,alpha,demin,demax,n0,center)
       USE control_flags, ONLY: lpr
       USE parallel, ONLY: mpime, root
@@ -602,7 +605,6 @@
             maxn = .FALSE.
          ENDIF
       END DO
-
 !     
       maxn = .TRUE.
       DO WHILE ( maxn )

@@ -50,7 +50,7 @@
 !
 ! ... on West volume boundary
 !
-      IF ((flag(imjk) /= 1)) THEN
+      IF ( .NOT.BTEST(flag(imjk),0) ) THEN
         cs = u%w
         IF (cs >= 0.D0) THEN
           upwnd = dens%w * field%w
@@ -62,7 +62,7 @@
 !
 ! ... on South volume boundary
 !
-      IF ((flag(ijmk) /= 1)) THEN
+      IF ( .NOT.BTEST(flag(ijmk),0) ) THEN
         cs = v%s
         IF (cs >= 0.D0) THEN
           upwnd = dens%s * field%s
@@ -74,7 +74,7 @@
 !
 ! ... on Bottom volume boundary
 !
-      IF ((flag(ijkm) /= 1)) THEN
+      IF ( .NOT.BTEST(flag(ijkm),0) ) THEN
         cs = w%b
         IF (cs >= 0.D0) THEN
           upwnd = dens%b * field%b
@@ -285,7 +285,7 @@
 !
 ! ... on West volume boundary
 !
-      IF ((flag(imjk) /= 1)) THEN
+      IF ( .NOT.BTEST(flag(imjk),0) ) THEN
         cs = u%w
         IF (cs >= 0.D0) THEN
           upwnd = dens%w * field%w
@@ -297,7 +297,7 @@
 !
 ! ... on Bottom volume boundary
 !
-      IF ((flag(ijkm) /= 1)) THEN
+      IF ( .NOT.BTEST(flag(ijkm),0) ) THEN
         cs = w%b
         IF (cs >= 0.D0) THEN
           upwnd = dens%b * field%b

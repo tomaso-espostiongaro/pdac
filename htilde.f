@@ -54,6 +54,7 @@
       INTEGER :: b_e, b_w, b_t, b_b, b_n, b_s
       !REAL*8 :: b_e, b_w, b_t, b_b, b_n, b_s
       REAL*8 :: ivf
+      LOGICAL :: compute
 !
 ! ... Initialize the cell fractions for immersed boundaries
 !
@@ -94,7 +95,8 @@
       esfx = 0.D0; esfy = 0.D0; esfz = 0.D0
 !
       DO ijk = 1, ncint
-        IF(flag(ijk) == 1) THEN
+        compute = BTEST(flag(ijk),0)
+        IF( compute ) THEN
 
           ! ... Compute the volumes partially filled by the
           ! ... topography
@@ -197,7 +199,6 @@
       USE set_indexes, ONLY: stencil, cte, subscr
       USE set_indexes, ONLY: first_nb, first_rnb, third_nb, third_rnb
       USE set_indexes, ONLY: imjk, ijmk, ijkm, OPERATOR( * )
-      !USE set_indexes
       USE turbulence_model, ONLY: kapgt, iturb
 
       IMPLICIT NONE
@@ -207,6 +208,7 @@
       INTEGER :: ijk
       TYPE(stencil) :: u, v, w, dens, enth
       TYPE(stencil) :: eps, temp, kappa
+      LOGICAL :: compute, immersed
 !
 ! ... Exchange heat conductivity for diffusive fluxes
 !
@@ -219,7 +221,10 @@
       END IF
 !
       DO ijk = 1, ncint
-        IF(flag(ijk) == 1) THEN
+        compute  = BTEST(flag(ijk),0)
+        immersed = BTEST(flag(ijk),8)
+
+        IF( compute ) THEN
           CALL subscr(ijk)
 !
 ! ... Here compute convective and diffusive fluxes (gas)
@@ -240,7 +245,7 @@
 !
 ! ... MUSCL second order correction
 !
-            IF (muscl > 0) THEN
+            IF (muscl > 0 .AND. .NOT.immersed) THEN
               CALL third_nb(enth,sieg,ijk)
               CALL third_nb(dens,rgp,ijk)
               CALL muscl_fsc(egfe(ijk), egft(ijk),    & 
@@ -278,7 +283,7 @@
 !
 ! ... MUSCL second order correction
 !
-            IF (muscl > 0) THEN
+            IF (muscl > 0 .AND. .NOT.immersed) THEN
               CALL third_nb(enth,sieg,ijk)
               CALL third_nb(dens,rgp,ijk)
               CALL muscl_fsc(egfe(ijk), egfn(ijk), egft(ijk),    &
@@ -305,12 +310,12 @@
             egfe(ijk) = egfe(ijk) - hgfe(ijk)
             egft(ijk) = egft(ijk) - hgft(ijk)
 !
-            IF (flag(imjk) /= 1) egfe(imjk) = egfe(imjk) - hgfe(imjk)
-            IF (flag(ijkm) /= 1) egft(ijkm) = egft(ijkm) - hgft(ijkm)
+            IF ( .NOT.BTEST(flag(imjk),0) ) egfe(imjk) = egfe(imjk) - hgfe(imjk)
+            IF ( .NOT.BTEST(flag(ijkm),0) ) egft(ijkm) = egft(ijkm) - hgft(ijkm)
 
             IF (job_type == '3D') THEN
               egfn(ijk) = egfn(ijk) - hgfn(ijk)
-              IF (flag(ijmk) /= 1) egfn(ijmk) = egfn(ijmk) - hgfn(ijmk)
+              IF ( .NOT.BTEST(flag(ijmk),0) ) egfn(ijmk) = egfn(ijmk) - hgfn(ijmk)
             END IF
           END IF
 !
@@ -334,7 +339,7 @@
 !
 ! ... MUSCL second order correction
 !
-              IF (muscl > 0) THEN
+              IF (muscl > 0 .AND. .NOT.immersed) THEN
                 CALL third_nb(enth,sies(:,is),ijk)
                 CALL third_nb(dens,rlk(:,is),ijk)
                 CALL muscl_fsc(esfe(ijk, is), esft(ijk, is),  &
@@ -372,7 +377,7 @@
 !
 ! ... MUSCL second order correction
 !
-              IF (muscl > 0) THEN
+              IF (muscl > 0 .AND. .NOT.immersed) THEN
                 CALL third_nb(enth,sies(:,is),ijk)
                 CALL third_nb(dens,rlk(:,is),ijk)
                 CALL muscl_fsc(esfe(ijk, is), esfn(ijk, is), esft(ijk, is),  &
@@ -399,12 +404,12 @@
               esfe(ijk, is) = esfe(ijk, is) - hsfe(ijk,is)
               esft(ijk, is) = esft(ijk, is) - hsft(ijk, is)
 !
-              IF (flag(imjk) /= 1) esfe(imjk,is) = esfe(imjk,is) - hsfe(imjk,is)
-              IF (flag(ijkm) /= 1) esft(ijkm,is) = esft(ijkm,is) - hsft(ijkm,is)
+              IF ( .NOT.BTEST(flag(imjk),0) ) esfe(imjk,is) = esfe(imjk,is) - hsfe(imjk,is)
+              IF ( .NOT.BTEST(flag(ijkm),0) ) esft(ijkm,is) = esft(ijkm,is) - hsft(ijkm,is)
 
               IF (job_type == '3D') THEN
                 esfn(ijk, is) = esfn(ijk, is) - hsfn(ijk, is)
-                IF (flag(ijmk)/=1) esfn(ijmk,is)=esfn(ijmk,is)-hsfn(ijmk,is)
+                IF ( .NOT.BTEST(flag(ijmk),0) ) esfn(ijmk,is)=esfn(ijmk,is)-hsfn(ijmk,is)
               END IF
             END IF
 !

@@ -53,7 +53,7 @@
 !
 ! ... on West volume bondary
 !
-      IF( flag(imjk) /= 1 ) THEN
+      IF( .NOT.BTEST(flag(imjk),0) ) THEN
         cs = (u%wn * dy(j) + u%w * dy(j+1)) * indyp
         IF ( cs >= 0.D0 ) fw = dens%w * v%w * cs
         IF ( cs <  0.D0 ) fw = dens%c * v%c * cs
@@ -61,7 +61,7 @@
 !
 ! ... on South volume bondary
 !
-      IF( flag(ijmk) /= 1 ) THEN
+      IF( .NOT.BTEST(flag(ijmk),0) ) THEN
         cs = 0.5D0 * ( v%c + v%s ) 
         IF ( cs >= 0.D0 ) fs = dens%s * v%s * cs
         IF ( cs <  0.D0 ) fs = dens%c * v%c * cs
@@ -69,7 +69,7 @@
 !
 ! ... on Bottom volume bondary
 !
-      IF( flag(ijkm) /= 1 ) THEN
+      IF( .NOT.BTEST(flag(ijkm),0) ) THEN
         cs = (w%nb * dy(j) + w%b * dy(j+1)) * indyp
         IF ( cs >= 0.D0 ) fb = dens%b * v%b * cs
         IF ( cs <  0.D0 ) fb = dens%c * v%c * cs
@@ -103,7 +103,6 @@
 !
       USE dimensions, ONLY: nx, ny, nz
       USE flux_limiters, ONLY: limiters, lv
-      USE grid, ONLY: flag
       USE grid, ONLY: dx, dy, dz, indy
       USE set_indexes, ONLY: stencil
       USE time_parameters, ONLY: dt

@@ -239,7 +239,7 @@
         b = -0.27D0
 
         DO ijk = 1, ncint
-          IF(flag(ijk) == 1) THEN
+          IF( BTEST(flag(ijk),0) ) THEN
             CALL meshinds(ijk,imesh,i,j,k)
             CALL subscr(ijk)
 
@@ -339,7 +339,7 @@
 
         imesh = myijk( ip0_jp0_kp0_ , ijk )
 
-        IF(flag(ijk) == 1) THEN
+        IF( BTEST(flag(ijk),0) ) THEN
 
          CALL subscr(ijk)
          !CALL subscr_iter(ijk)
@@ -598,7 +598,7 @@
       visz = 0.D0
 !
       DO ijk = 1, ncint
-        IF(flag(ijk) == 1) THEN
+        IF( BTEST(flag(ijk),0) ) THEN
          imesh = myijk( ip0_jp0_kp0_, ijk)
          CALL subscr(ijk)
          k = ( imesh - 1 ) / nx + 1

@@ -243,7 +243,7 @@
       REAL*8 :: newsizex, newsizey
       REAL*8 :: xll, yll, xur, yur, xul, yul
       INTEGER, ALLOCATABLE :: ntx(:), nty(:)
-      INTEGER :: i,j
+      INTEGER :: i,j, sampx, sampy
 !
       ! ... Crop the topography and compute the number of 
       ! ... DEM elements. Allocate elevation arrays.
@@ -324,7 +324,9 @@
       center_x = xtop(icenter)
       center_y = ytop(jcenter)
 !
-      CALL filter(xtop,ytop,ztop2d,100,100)
+      sampx = nx-1
+      sampy = ny-1
+      CALL filter(xtop,ytop,ztop2d,sampx,sampy)
 
       DEALLOCATE(ntx)
       DEALLOCATE(nty)
@@ -376,7 +378,7 @@
       DO j = 0, dms
         IF (av_quota(j) > 0.D0) counter = counter + 1
       END DO
-      samp = 100
+      samp = nx
       !
       ! ... 'rad_dist' is the sorted array of the squared distances of mesh point
       ! ... 'rad_quotas' is the array of averaged quotas at 'rad_dist' locations
@@ -756,7 +758,7 @@
 
       USE control_flags, ONLY: job_type
       USE grid, ONLY: x, xb, y, yb, z, zb
-      USE grid, ONLY: iob, fl, bottom
+      USE grid, ONLY: iob, fl, noslip_wall
       USE io_files, ONLY: tempunit
 !
       IMPLICIT NONE
@@ -804,8 +806,8 @@
         END IF
       END IF
 !
-! ... Control that the cells below the flag = 5 blocks
-! ... have flag = 'bottom'
+! ... Control that the cells below the specified_flow blocks
+! ... are noslip cells
 !
       IF( job_type == '2D') THEN
         DO n = 1, no
@@ -813,7 +815,7 @@
             DO i = iob(n)%xlo, iob(n)%xhi
               DO k = 1, iob(n)%zlo - 1
                 ijk = i + (k-1) * nx
-                fl(ijk) = bottom
+                fl(ijk) = noslip_wall
               END DO
             END DO
           END IF
@@ -825,7 +827,7 @@
               DO j = iob(n)%ylo, iob(n)%yhi
                 DO k = 1, iob(n)%zlo - 1
                   ijk = i + (j-1) * nx + (k-1) * nx * ny
-                  fl(ijk) = bottom
+                  fl(ijk) = noslip_wall
                 END DO
               END DO
             END DO
@@ -856,6 +858,7 @@
 !
       USE control_flags, ONLY: lpr, job_type
       USE grid, ONLY: fl, zb
+      USE grid, ONLY: inlet_cell, noslip_wall, fluid
       IMPLICIT NONE
 
       INTEGER :: i, j, k, ijk
@@ -867,9 +870,9 @@
           DO k = 1, nz
             ijk = i + (k-1) * nx
             IF (q >= k) THEN
-                    IF( fl(ijk)/=5 ) fl(ijk) = 3
+                    IF( fl(ijk) /= inlet_cell ) fl(ijk) = noslip_wall
             ELSE
-                    IF( fl(ijk)==3 ) fl(ijk) = 1
+                    IF( fl(ijk) == noslip_wall ) fl(ijk) = fluid
             END IF
           END DO
         END DO
@@ -880,9 +883,9 @@
             DO k = 1, nz
               ijk = i + (j-1) * nx + (k-1) * nx * ny
               IF (q >= k) THEN
-                      IF( fl(ijk)/=5 ) fl(ijk) = 3
+                      IF( fl(ijk) /= inlet_cell ) fl(ijk) = noslip_wall
               ELSE
-                      IF( fl(ijk)==3 ) fl(ijk) = 1
+                      IF( fl(ijk) == noslip_wall ) fl(ijk) = fluid
               END IF
             END DO
           END DO

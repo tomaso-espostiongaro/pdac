@@ -110,7 +110,7 @@
 
         OPEN(UNIT=tempunit,FILE=filnam)
         DO ijk = 1, ncint
-          IF (flag(ijk) == 1) THEN
+          IF ( BTEST(flag(ijk),0) ) THEN
             energy = p(ijk)/(rog(ijk)*(gammaair - 1.D0))
             WRITE(tempunit,550)rog(ijk),wg(ijk),p(ijk),energy,tg(ijk)
           END IF

@@ -23,13 +23,13 @@
                                              ep_rad, ts_rad
       REAL*8 :: vent_ygc(max_ngas)
 
-      TYPE inlet_cell
+      TYPE icvent_cell
         INTEGER :: imesh
         REAL*8  :: frac
         REAL*8  :: fact
-      END TYPE inlet_cell
+      END TYPE icvent_cell
 
-      TYPE(inlet_cell), ALLOCATABLE :: vcell(:)
+      TYPE(icvent_cell), ALLOCATABLE :: vcell(:)
 
       INTEGER :: nvt
       INTEGER, SAVE :: seed
@@ -48,7 +48,8 @@
       USE control_flags, ONLY: job_type, lpr
       USE dimensions, ONLY: nx, ny, nz
       USE grid, ONLY: x, y, z, fl, xb, yb, zb, dz
-      USE grid, ONLY: bottom, iv, jv, kv, grigen
+      USE grid, ONLY: iv, jv, kv, grigen
+      USE grid, ONLY: fluid, vent_cell, noslip_wall, slip_wall
       USE volcano_topography, ONLY: itp, iavv, ord2d
       USE volcano_topography, ONLY: nocrater, flatten_dem
       USE volcano_topography, ONLY: rim_quota
@@ -91,7 +92,7 @@
 
         DO k= 1, nz
           ijk = iv + (jv-1) * nx + (k-1) * nx * ny
-          IF (fl(ijk) == 3) kv = k
+          IF (fl(ijk) == slip_wall .OR. fl(ijk) == noslip_wall) kv = k
         END DO
         quota = kv
 
@@ -183,14 +184,14 @@
         DO i = iwest, ieast
           nv = nv + 1
 
-          ! ... Below the vent quota, set the cell flag as 'bottom'
+          ! ... Below the vent quota, set the cell flag as noslip walls
           !
           DO k = 1, quota - 1
             ijk = i + (j-1) * nx + (k-1) * nx * ny
-            fl(ijk) = bottom
+            fl(ijk) = noslip_wall
           END DO
 
-          ! ... At the vent quota, vent cell flags are set to '8'
+          ! ... At the vent quota, vent cell flags are set to vent_cell
           ! ... The fraction of the cells occupied by the vent
           ! ... is computed.
           !
@@ -201,9 +202,9 @@
           vcell(nv)%frac = cell_fraction(i,j)
           
           IF (vcell(nv)%frac > soglia) THEN
-            fl(ijk) = 8
+            fl(ijk) = vent_cell
           ELSE
-            fl(ijk) = bottom
+            fl(ijk) = noslip_wall
           END IF
           
           IF (lpr > 0 .AND. mpime == root) &
@@ -215,7 +216,7 @@
           !
           DO k = quota+1, nz-1
             ijk = i + (j-1) * nx + (k-1) * nx * ny
-            fl(ijk) = 1
+            fl(ijk) = fluid
           END DO
                     
         END DO
@@ -242,7 +243,7 @@
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
-      USE grid, ONLY: flag, x, y
+      USE grid, ONLY: flag, x, y, vent_cell
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
@@ -262,7 +263,7 @@
       END IF
 ! 
       DO ijk = 1, ncint      
-        IF(flag(ijk) == 8) THEN
+        IF(flag(ijk) == vent_cell) THEN
           CALL meshinds(ijk,imesh,i,j,k)
 
           ! ... Determine the fraction of the cell
@@ -549,7 +550,7 @@
       RETURN
       END SUBROUTINE update_ventc
 !-----------------------------------------------------------------------
-      SUBROUTINE update_inlet_cell(ijk)
+      SUBROUTINE update_vent_cell(ijk)
 !
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nsolid
@@ -578,7 +579,7 @@
       END DO
 
       RETURN
-      END SUBROUTINE update_inlet_cell
+      END SUBROUTINE update_vent_cell
 !-----------------------------------------------------------------------
       SUBROUTINE random_switch(sweep)
 !

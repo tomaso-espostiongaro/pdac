@@ -49,7 +49,7 @@
 !
         USE dimensions, ONLY: nz, no, nx, ny
         USE domain_decomposition, ONLY: myijk, meshinds
-        USE grid, ONLY: iob, flag
+        USE grid, ONLY: iob
         USE grid, ONLY: dz, zb, rb, dx, dy
         USE roughness_module, ONLY: zrough
         USE control_flags, ONLY: job_type
@@ -216,7 +216,7 @@
 
         DO ijk = 1, ncint
 
-          IF(flag(ijk) == 1) THEN
+          IF( BTEST(flag(ijk),0) ) THEN
 
             CALL subscr(ijk)
 !
@@ -261,7 +261,7 @@
 !
       DO ijk = 1, ncint
 
-        IF( flag(ijk) == 1 ) THEN
+        IF( BTEST(flag(ijk),0) ) THEN
 
           CALL meshinds( ijk, imesh, i, j, k )
 
@@ -359,7 +359,7 @@
           pranumt=0.5
           kapgt(ijk)=mugt(ijk)*cg(ijk)/pranumt
 !
-        ELSE IF (flag(ijk) /= 1) THEN
+        ELSE
 
           mugt(ijk)  = 0.D0
           kapgt(ijk) = 0.D0
@@ -499,7 +499,7 @@
       REAL*8 :: exp, fact, cst
 !
       DO ijk = 1, ncint
-        IF(flag(ijk) == 1) THEN
+        IF( BTEST(flag(ijk),0) ) THEN
          CALL subscr(ijk)
 !
          DO is = 1, nsolid

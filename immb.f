@@ -2,7 +2,7 @@
       MODULE immersed_boundaries
 !----------------------------------------------------------------------
       USE dimensions, ONLY: nx, ny, nz, ntot, ntr
-      USE grid, ONLY: fl
+      USE grid, ONLY: fl, noslip_wall, int_immb, ext_immb
       USE parallel, ONLY: mpime, root
       USE volcano_topography, ONLY: xtop, ytop, ztop
       USE io_files, ONLY: errorunit, logunit
@@ -69,6 +69,7 @@
       USE control_flags, ONLY: job_type, lpr
       USE volcano_topography, ONLY: interpolate_profile, interpolate_dem
       USE grid, ONLY: x, xb, y, yb, z, zb
+      USE grid, ONLY: inlet_cell, vent_cell
       USE parallel, ONLY: mpime, root
       USE io_files, ONLY: tempunit
 
@@ -117,7 +118,7 @@
 
         ! ... When all velocity components on the cell faces are
         ! ... forced except one, that component is forced externally
-        ! ... and its flag is set to '17'.
+        ! ... and its flag is set to 'ext_immb'
         !
         DO k = 2, nz
           DO i = 2, nx-1
@@ -129,12 +130,12 @@
             !
             IF (forcez(ijk) .AND. forcex(ijk) .AND. (z(k) > topo_x(i-1)) ) THEN
                   extfx(imjk) = .TRUE.
-                  IF( fl(ijk) /=5 .AND. fl(ijk) /=8 ) fl(ijk) = 17
+                  IF( fl(ijk) /= inlet_cell .AND. fl(ijk) /= vent_cell) fl(ijk) = ext_immb
             END IF
             !
             IF (forcez(ijk) .AND. forcex(imjk) .AND. (z(k) > topo_x(i)) ) THEN
                   extfx(ijk) = .TRUE.
-                  IF( fl(ijk) /=5 .AND. fl(ijk) /=8 ) fl(ijk) = 17
+                  IF( fl(ijk) /= inlet_cell .AND. fl(ijk) /= vent_cell) fl(ijk) = ext_immb
             END IF
 
             ! ... Add external Forcing in z 
@@ -142,7 +143,7 @@
             IF ( forcex(imjk) .AND. forcex(ijk) .AND. forcez(ijkm) .AND. &
                  (zb(k) > topo_c(i)) ) THEN
                  extfz(ijk) = .TRUE.
-                 IF( fl(ijk) /=5 .AND. fl(ijk) /=8 ) fl(ijk) = 17
+                 IF( fl(ijk) /= inlet_cell .AND. fl(ijk) /= vent_cell) fl(ijk) = ext_immb
             END IF
 
           END DO
@@ -173,13 +174,13 @@
         !
         CALL forcing2d(xb, z, topo_x, fptx)
 
-        ! ... Set flag = 1 on forcing points
+        ! ... Set flags on forcing points
         !
         DO np = 1, nfpx
           i = fptx(np)%i
           k = fptx(np)%k
           ijk = i + (k-1) * nx
-          IF (k>1 .AND. fl(ijk)==3) fl(ijk) = 1
+          IF (k>1 .AND. fl(ijk)==noslip_wall) fl(ijk) = int_immb
         END DO
 
         ! ... Interpolate the topography on z-staggered mesh
@@ -202,13 +203,13 @@
         !
         CALL forcing2d(x, zb, topo_c, fptz)
 
-        ! ... Set flag = 1 on forcing points
+        ! ... Set flags on forcing points
         !
         DO np = 1, nfpz
           i = fptz(np)%i
           k = fptz(np)%k
           ijk = i + (k-1) * nx
-          IF (k>1 .AND. fl(ijk)==3) fl(ijk) = 1
+          IF (k>1 .AND. fl(ijk)==noslip_wall) fl(ijk) = int_immb
         END DO
         !
       ELSE IF (job_type == '3D') THEN
@@ -226,7 +227,7 @@
 
         ! ... When all velocity components on the cell faces are
         ! ... forced except one, that component is forced externally
-        ! ... and its flag is set to '17'.
+        ! ... and its flag is set to 'ext_immb'
         !
         DO k = 2, nz - 1
           DO j = 2, ny - 1
@@ -245,7 +246,7 @@
                   forcex(ijk) .AND.                    &
                   (z(k) > topo2d_x(i-1,j)) ) THEN
                     extfx(imjk) = .TRUE.
-                    IF( fl(ijk) /=5 .AND. fl(ijk) /=8 ) fl(ijk) = 17
+                    IF( fl(ijk) /= inlet_cell .AND. fl(ijk) /= vent_cell ) fl(ijk) = ext_immb
               END IF
 
               IF (forcez(ijk) .AND.                    &
@@ -253,7 +254,7 @@
                   forcex(imjk) .AND.                   &
                   (z(k) > topo2d_x(i,j)) ) THEN
                     extfx(ijk) = .TRUE.
-                    IF( fl(ijk) /=5 .AND. fl(ijk) /=8 ) fl(ijk) = 17
+                    IF( fl(ijk) /= inlet_cell .AND. fl(ijk) /= vent_cell ) fl(ijk) = ext_immb
               END IF
 
               ! ... Add external Forcing in y 
@@ -263,7 +264,7 @@
                   forcey(ijk) .AND.                    &
                   (z(k) > topo2d_y(i,j-1)) ) THEN
                     extfy(ijmk) = .TRUE.
-                    IF( fl(ijk) /=5 .AND. fl(ijk) /=8 ) fl(ijk) = 17
+                    IF( fl(ijk) /= inlet_cell .AND. fl(ijk) /= vent_cell ) fl(ijk) = ext_immb
               END IF
 
               IF (forcez(ijk) .AND.                    &
@@ -271,7 +272,7 @@
                   forcey(ijmk) .AND.                   &
                   (z(k) > topo2d_y(i,j)) ) THEN
                     extfy(ijk) = .TRUE.
-                    IF( fl(ijk) /=5 .AND. fl(ijk) /=8 ) fl(ijk) = 17
+                    IF( fl(ijk) /= inlet_cell .AND. fl(ijk) /= vent_cell ) fl(ijk) = ext_immb
               END IF
 
               ! ... Add external Forcing in z
@@ -281,7 +282,7 @@
                   forcez(ijkm) .AND.                   &
                   (zb(k) > topo2d_c(i,j)) ) THEN
                     extfz(ijk) = .TRUE.
-                    IF( fl(ijk) /=5 .AND. fl(ijk) /=8 ) fl(ijk) = 17
+                    IF( fl(ijk) /= inlet_cell .AND. fl(ijk) /= vent_cell ) fl(ijk) = ext_immb
               END IF
 
             END DO
@@ -315,14 +316,14 @@
         !
         CALL forcing3d(xb, y, z, topo2d_x, fptx)
 
-        ! ... Set flag = 1 on forcing points
+        ! ... Set flag on forcing points
         !
         DO np = 1, nfpx
           i = fptx(np)%i
           j = fptx(np)%j
           k = fptx(np)%k
           ijk = i + (j-1) * nx + (k-1) * nx * ny
-          IF (k>1 .AND. fl(ijk)==3 ) fl(ijk) = 1
+          IF (k>1 .AND. fl(ijk)==noslip_wall ) fl(ijk) = int_immb
         END DO
         
         ! ... Interpolate the topography on y-staggered mesh.
@@ -345,14 +346,14 @@
         !
         CALL forcing3d(x, yb, z, topo2d_y, fpty)
 
-        ! ... Set flag = 1 on forcing points
+        ! ... Set flag on forcing points
         !
         DO np = 1, nfpy
           i = fpty(np)%i
           j = fpty(np)%j
           k = fpty(np)%k
           ijk = i + (j-1) * nx + (k-1) * nx * ny
-          IF (k>1 .AND. fl(ijk)==3 ) fl(ijk) = 1
+          IF (k>1 .AND. fl(ijk)==noslip_wall ) fl(ijk) = int_immb
         END DO
         
         ! ... Interpolate the topography on z-staggered mesh.
@@ -375,14 +376,14 @@
         !
         CALL forcing3d(x, y, zb, topo2d_c, fptz)
 
-        ! ... Set flag = 1 on forcing points.
+        ! ... Set flag on forcing points.
         !
         DO np = 1, nfpz
           i = fptz(np)%i
           j = fptz(np)%j
           k = fptz(np)%k
           ijk = i + (j-1) * nx + (k-1) * nx * ny
-          IF (k>1 .AND. fl(ijk)==3 ) fl(ijk) = 1
+          IF (k>1 .AND. fl(ijk)==noslip_wall ) fl(ijk) = int_immb
         END DO
         
       END IF

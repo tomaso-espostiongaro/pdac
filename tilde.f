@@ -146,6 +146,7 @@
       REAL*8 :: dxp, dyp, dzp, indxp, indyp, indzp
       REAL*8 :: rgp_e, rgp_n, rgp_t, rlk_e, rlk_n, rlk_t
       INTEGER :: i, j, k, ijk, imesh, is, ig, info
+      LOGICAL :: compute
 !
 ! ... Data_exchange of primary fields
 !
@@ -174,7 +175,8 @@
        ! ... WARNING: in the old code this was done only in fluid cells,
        ! ... but it is now preferable to loop over the whole domain
        !
-       !IF(flag(ijk) == 1) THEN
+       !compute = BTEST(flag(ijk),0)
+       !IF( compute ) THEN
 
           CALL meshinds(ijk,imesh,i,j,k)
           CALL first_subscr(ijk)
@@ -291,6 +293,7 @@
       INTEGER :: fx, fy, fz
       REAL*8, ALLOCATABLE :: dugs(:), dvgs(:), dwgs(:)
       REAL*8, ALLOCATABLE :: nul(:)
+      LOGICAL :: compute
 !
 ! ... Allocate and initialize gas and particle viscous stresses
 !
@@ -383,8 +386,9 @@
 ! ... of East, North and Top fluxes from neighbouring cells.
 !
       mesh_loop: DO ijk = 1, ncint
+        compute = BTEST(flag(ijk),0)
 
-        IF(flag(ijk) == 1) THEN
+        IF( compute ) THEN
           CALL meshinds(ijk,imesh,i,j,k)
           CALL subscr(ijk)
 !
@@ -702,12 +706,16 @@
       INTEGER :: i, j, k, is, imesh
       TYPE(stencil) :: u, v, w, dens
       TYPE(stencil) :: dens_stagx, dens_stagy, dens_stagz
+      LOGICAL :: compute, immersed
 !
 ! ... Compute fluxes on East, North and Top sides of a cell
 ! ... in the whole computational domain.
 !
       DO ijk = 1, ncint
-        IF(flag(ijk) == 1) THEN
+        compute  = BTEST(flag(ijk),0)
+        immersed = BTEST(flag(ijk),8)
+
+        IF( compute ) THEN
           CALL subscr(ijk)
           CALL meshinds(ijk,imesh,i,j,k)
 !
@@ -734,7 +742,7 @@
 !
 ! ... Second order MUSCL correction
 !
-            IF (muscl > 0) THEN
+            IF (muscl > 0 .AND. .NOT.immersed ) THEN
               IF ( i /= nx-1 ) CALL muscl_flu(ugfe(ijk), ugft(ijk),   &
                                         dens_stagx, u, w, i, k)
               IF ( k /= nz-1 ) CALL muscl_flw(wgfe(ijk), wgft(ijk),   &
@@ -764,7 +772,7 @@
 !
 ! ... Second order MUSCL correction
 !
-              IF (muscl > 0) THEN
+              IF (muscl > 0 .AND. .NOT.immersed) THEN
                 IF ( i /= nx-1 ) CALL muscl_flu(usfe(ijk,is), usft(ijk,is),  &
                                           dens_stagx, u, w, i, k)
                 IF ( k /= nz-1 ) CALL muscl_flw(wsfe(ijk,is), wsft(ijk,is),  &
@@ -804,7 +812,7 @@
 !
 ! ... Second order MUSCL correction
 !
-            IF (muscl > 0) THEN
+            IF (muscl > 0.AND. .NOT.immersed) THEN
               IF ( i /= nx-1 ) &
                 CALL muscl_flu(ugfe(ijk), ugfn(ijk), ugft(ijk), &
                          dens_stagx, u, v, w, i, j, k)
@@ -847,7 +855,7 @@
 !
 ! ... Second order MUSCL correction
 !
-              IF (muscl > 0) THEN
+              IF (muscl > 0.AND. .NOT.immersed) THEN
                 IF ( i /= nx-1 ) &
                   CALL muscl_flu(usfe(ijk,is), usfn(ijk,is), usft(ijk,is), &
                            dens_stagx, u, v, w, i, j, k)
@@ -896,7 +904,6 @@
 !----------------------------------------------------------------------
       SUBROUTINE test_fluxes
       USE domain_decomposition, ONLY: ncint, meshinds
-      USE grid, ONLY: flag
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
       USE gas_solid_velocity, ONLY: ug
       USE io_files, ONLY: tempunit

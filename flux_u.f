@@ -55,7 +55,7 @@
 !
 ! ... on West volume bondary
 !
-      IF( flag(imjk) /= 1 ) THEN
+      IF( .NOT.BTEST(flag(imjk),0) ) THEN
         cs = 0.5D0 * ( u%c + u%w )
         IF ( cs >= 0.D0 ) fw = dens%w * u%w * cs
         IF ( cs <  0.D0 ) fw = dens%c * u%c * cs
@@ -63,7 +63,7 @@
 !
 ! ... on South volume bondary
 !
-      IF( flag(ijmk) /= 1 ) THEN
+      IF( .NOT.BTEST(flag(ijmk),0) ) THEN
         cs = ( dx(i+1) * v%s + dx(i) * v%es ) * indxp
         IF ( cs >= 0.D0 ) fs = dens%s * u%s * cs
         IF ( cs <  0.D0 ) fs = dens%c * u%c * cs
@@ -71,7 +71,7 @@
 !
 ! ... on Bottom volume bondary
 !
-      IF( flag(ijkm) /= 1 ) THEN
+      IF( .NOT.BTEST(flag(ijkm),0) ) THEN
         cs = ( dx(i+1) * w%b + dx(i) * w%eb ) * indxp
         IF ( cs >= 0.D0 ) fb = dens%b * u%b * cs
         IF ( cs <  0.D0 ) fb = dens%c * u%c * cs
@@ -255,7 +255,7 @@
 !
 ! ... on West volume bondary
 !
-      IF( flag(imjk) /= 1 ) THEN
+      IF( .NOT.BTEST(flag(imjk),0) ) THEN
         cs = 0.5D0*(u%c + u%w)
         IF ( cs >= 0.D0 ) fw = dens%w * u%w * cs * r(i)
         IF ( cs <  0.D0 ) fw = dens%c * u%c * cs * r(i)
@@ -263,7 +263,7 @@
 !
 ! ... on Bottom volume bondary
 !
-      IF( flag(ijkm) /= 1 ) THEN
+      IF( .NOT.BTEST(flag(ijkm),0) ) THEN
         cs = (dx(i+1) * w%b + dx(i) * w%eb) * indxp
         IF ( cs >= 0.D0 ) fb = dens%b * u%b * cs
         IF ( cs <  0.D0 ) fb = dens%c * u%c * cs

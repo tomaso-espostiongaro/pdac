@@ -150,7 +150,7 @@
 !
       USE dimensions
       USE domain_decomposition, ONLY: meshinds
-      USE grid, ONLY: flag, z, zb
+      USE grid, ONLY: z, zb
       USE gas_constants, ONLY: gmw, c_joule, rgas, tzero, hzerog, gammaair
       USE gas_constants, ONLY: gas_type
       USE parallel, ONLY: mpime

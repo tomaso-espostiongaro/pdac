@@ -74,7 +74,7 @@
             ijk = cell_g2l(imesh,mpime)
             surfp(m,l)%np   = mpime
             surfp(m,l)%ijk  = ijk
-            IF (flag(ijk) == 1) surfp(m,l)%ds   = dz(k)
+            IF ( BTEST(flag(ijk),0) ) surfp(m,l)%ds   = dz(k)
           END IF
           surfp(m,l)%n(1) = +1
           surfp(m,l)%n(2) = 0
@@ -89,7 +89,7 @@
             ijk = cell_g2l(imesh,mpime)
             surfp(m,l)%np   = mpime
             surfp(m,l)%ijk  = ijk
-            IF (flag(ijk) == 1) surfp(m,l)%ds   = dx(i)
+            IF ( BTEST(flag(ijk),0) ) surfp(m,l)%ds   = dx(i)
           END IF
           surfp(m,l)%n(1) = 0
           surfp(m,l)%n(2) = 0
@@ -104,7 +104,7 @@
             ijk = cell_g2l(imesh,mpime)
             surfp(m,l)%np   = mpime
             surfp(m,l)%ijk  = ijk
-            IF (flag(ijk) == 1) surfp(m,l)%ds   = dz(k)
+            IF ( BTEST(flag(ijk),0) ) surfp(m,l)%ds   = dz(k)
           END IF
           surfp(m,l)%n(1) = -1
           surfp(m,l)%n(2) = 0
@@ -119,7 +119,7 @@
             ijk = cell_g2l(imesh,mpime)
             surfp(m,l)%np   = mpime
             surfp(m,l)%ijk  = ijk
-            IF (flag(ijk) == 1) surfp(m,l)%ds   = dx(i)
+            IF ( BTEST(flag(ijk),0) ) surfp(m,l)%ds   = dx(i)
           END IF
           surfp(m,l)%n(1) = 0
           surfp(m,l)%n(2) = 0

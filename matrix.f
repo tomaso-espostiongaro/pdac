@@ -279,7 +279,7 @@
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nphase
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      USE grid, ONLY: flag
+      USE grid, ONLY: flag, inlet_cell, vent_cell, noslip_wall, slip_wall, fluid
       USE set_indexes, ONLY: imjk, ijmk, ijkm, ipjk, ijpk, ijkp
       IMPLICIT NONE
 !
@@ -287,13 +287,13 @@
 !
       INTEGER :: ll, lp1, l, lj, li
       REAL*8 :: div, amul
+      LOGICAL :: inlet, wall
 !
 ! ... Use Gauss-Jordan method for matrix inversion
 !
-      SELECT CASE (flag(imjk))
-
-      CASE (1,4,6)
-
+      wall  = (flag(imjk)==slip_wall .OR. flag(imjk)==noslip_wall)
+      inlet = (flag(imjk)==inlet_cell .OR. flag(imjk)==vent_cell)
+      IF (.NOT.(wall .OR. inlet)) THEN
         DO l=2,nphase
           IF(au1(l,l) < rlim) THEN
             DO ll=1,nphase
@@ -304,7 +304,7 @@
             bu1(l)=0.D0
           END IF
         END DO
-
+        !
         DO l=1,nphase
           IF(au1(l,l) /= 0.D0) THEN 
             lp1=l+1
@@ -323,20 +323,17 @@
             END DO
           END IF
         END DO
-!
+      !
         ug(imjk) = bu1(1)
         DO l=2,nphase
           us(imjk,l-1) = bu1(l)
         END DO
-
-      END SELECT
-
+      END IF
+!
       IF (job_type == '3D') THEN
-
-        SELECT CASE (flag(ijmk))
-
-        CASE (1,4,6)
-
+        wall  = (flag(ijmk)==slip_wall .OR. flag(ijmk)==noslip_wall)
+        inlet = (flag(ijmk)==inlet_cell .OR. flag(ijmk)==vent_cell)
+        IF (.NOT.(wall .OR. inlet)) THEN
           DO l=2,nphase
             IF(av1(l,l) < rlim) THEN
               DO ll=1,nphase
@@ -347,7 +344,7 @@
               bv1(l)=0.D0
             END IF
           END DO
-
+          !
           DO l=1,nphase
             IF(av1(l,l) /= 0.D0) THEN
               lp1=l+1
@@ -366,19 +363,17 @@
               END DO
             END IF
           END DO
-!
+          !
           vg(ijmk) = bv1(1)
           DO l=2, nphase
             vs(ijmk,l-1) = bv1(l)
           END DO
-!
-        END SELECT
+        END IF
       END IF
-
-      SELECT CASE (flag(ijkm))
-
-      CASE (1,4,6)
-
+!
+      wall  = (flag(ijkm)==slip_wall .OR. flag(ijkm)==noslip_wall)
+      inlet = (flag(ijkm)==inlet_cell .OR. flag(ijkm)==vent_cell)
+      IF (.NOT.(wall .OR. inlet)) THEN
         DO l=2,nphase
           IF(aw1(l,l) < rlim) THEN
             DO ll=1,nphase
@@ -387,9 +382,9 @@
               aw1(ll,l)=0.D0
             END DO
             bw1(l)=0.D0
-          END IF
+            END IF
         END DO
-
+        !
         DO l=1,nphase
           IF(aw1(l,l) /= 0.D0) THEN
             lp1=l+1
@@ -408,13 +403,12 @@
             END DO
           END IF
         END DO
-!
+        !
         wg(ijkm) = bw1(1)
         DO l=2, nphase
           ws(ijkm,l-1) = bw1(l)
         END DO
-!
-      END SELECT
+      END IF
 !
       CALL solve_velocities(ijk)
 !
@@ -428,7 +422,7 @@
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nphase
       USE domain_decomposition, ONLY:  meshinds
-      USE grid, ONLY: flag
+      USE grid, ONLY: flag, inlet_cell, vent_cell, noslip_wall, slip_wall
       USE set_indexes, ONLY: ipjk, ijpk, ijkp
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       IMPLICIT NONE
@@ -439,13 +433,13 @@
       INTEGER :: ll, lp1, l, lj, li
       INTEGER :: fle, fln, flt
       REAL*8 :: div, amul
+      LOGICAL :: inlet, wall
 !
 ! ... Use Gauss-Jordan method for matrix inversion
 !
-      SELECT CASE (flag(ipjk))
-      
-      CASE (1,4,6)
-
+      wall  = (flag(ipjk)==slip_wall .OR. flag(ipjk)==noslip_wall)
+      inlet = (flag(ipjk)==inlet_cell .OR. flag(ipjk)==vent_cell)
+      IF (.NOT.(wall .OR. inlet)) THEN
         DO l=2,nphase
           IF(au(l,l) < rlim) THEN
             DO ll=1,nphase
@@ -456,7 +450,7 @@
             bu(l)=0.D0
           END IF
         END DO
-
+        !
         DO l=1,nphase
           IF(au(l,l) /= 0.D0) THEN
             lp1=l+1
@@ -475,21 +469,17 @@
             END DO
           END IF
         END DO
-!
+        !
         ug(ijk)=bu(1)
-!
         DO l=2,nphase
           us(ijk,l-1)=bu(l)
         END DO
+      END IF
 !
-      END SELECT
-
       IF (job_type == '3D') THEN
-
-        SELECT CASE (flag(ijpk))
-
-        CASE (1,4,6)
-
+        wall  = (flag(ijpk)==slip_wall .OR. flag(ijpk)==noslip_wall)
+        inlet = (flag(ijpk)==inlet_cell .OR. flag(ijpk)==vent_cell)
+        IF (.NOT.(wall .OR. inlet)) THEN
           DO l=2,nphase
             IF(av(l,l) < rlim) THEN
               DO ll=1,nphase
@@ -500,7 +490,7 @@
               bv(l)=0.D0
             END IF
           END DO
-  
+          !
           DO l=1,nphase
             IF(av(l,l) /= 0.D0) THEN 
               lp1=l+1
@@ -519,20 +509,17 @@
               END DO 
             END IF
           END DO
-!
+          !
           vg(ijk)=bv(1)
           DO l=2,nphase
             vs(ijk,l-1)=bv(l)
           END DO
-!
-        END SELECT
+        END IF
       END IF
 !
-
-      SELECT CASE (flag(ijkp))
-
-      CASE (1,4,6)
-
+      wall  = (flag(ijkp)==slip_wall .OR. flag(ijkp)==noslip_wall)
+      inlet = (flag(ijkp)==inlet_cell .OR. flag(ijkp)==vent_cell)
+      IF (.NOT.(wall .OR. inlet)) THEN
         DO l=2,nphase
           IF(aw(l,l) < rlim) THEN
             DO ll=1,nphase
@@ -543,7 +530,7 @@
             bw(l)=0.D0
           END IF
         END DO
-
+        !
         DO l=1,nphase
           IF(aw(l,l) /= 0.D0) THEN 
             lp1=l+1
@@ -562,14 +549,12 @@
             END DO 
           END IF
         END DO
-!
+        !
         wg(ijk)=bw(1)
-
         DO l=2,nphase
           ws(ijk,l-1)=bw(l)
         END DO
-!
-      END SELECT
+      END IF
 !
       RETURN
       END SUBROUTINE solve_velocities
@@ -678,7 +663,7 @@
       USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
       USE time_parameters, ONLY: dt
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      USE grid, ONLY: flag
+      USE grid, ONLY: flag, slip_wall, noslip_wall, inlet_cell, vent_cell
 
 
       IMPLICIT NONE
@@ -740,12 +725,18 @@
         dzdp =dz(k)   * indzp
         dzpdp=dz(k+1) * indzp
 
-        flim = ( flag(imjk) == 1 .OR. flag(imjk) == 4 .OR. flag(imjk) == 6)
-        fljm = ( flag(ijmk) == 1 .OR. flag(ijmk) == 4 .OR. flag(imjk) == 6)
-        flkm = ( flag(ijkm) == 1 .OR. flag(ijkm) == 4 .OR. flag(imjk) == 6)
-        flip = ( flag(ipjk) == 1 .OR. flag(ipjk) == 4 .OR. flag(imjk) == 6)
-        fljp = ( flag(ijpk) == 1 .OR. flag(ijpk) == 4 .OR. flag(imjk) == 6)
-        flkp = ( flag(ijkp) == 1 .OR. flag(ijkp) == 4 .OR. flag(imjk) == 6)
+        flim = .NOT.( flag(imjk)==slip_wall .OR. flag(imjk)==noslip_wall .OR. &
+                 flag(imjk)==inlet_cell .OR. flag(imjk)==vent_cell)
+        fljm = .NOT.( flag(ijmk)==slip_wall .OR. flag(ijmk)==noslip_wall .OR. &
+                 flag(ijmk)==inlet_cell .OR. flag(ijmk)==vent_cell)
+        flkm = .NOT.( flag(ijkm)==slip_wall .OR. flag(ijkm)==noslip_wall .OR. &
+                 flag(ijkm)==inlet_cell .OR. flag(ijkm)==vent_cell)
+        flip = .NOT.( flag(ipjk)==slip_wall .OR. flag(ipjk)==noslip_wall .OR. &
+                 flag(ipjk)==inlet_cell .OR. flag(ipjk)==vent_cell)
+        fljp = .NOT.( flag(ijpk)==slip_wall .OR. flag(ijpk)==noslip_wall .OR. &
+                 flag(ijpk)==inlet_cell .OR. flag(ijpk)==vent_cell)
+        flkp = .NOT.( flag(ijkp)==slip_wall .OR. flag(ijkp)==noslip_wall .OR. &
+                 flag(ijkp)==inlet_cell .OR. flag(ijkp)==vent_cell)
 
         pw   = p(ijkw)
         pe   = p(ijke)

@@ -15,6 +15,7 @@
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: dx, dy, dz, r, rb, flag
+      USE grid, ONLY: inlet_cell, vent_cell
       USE domain_decomposition, ONLY: meshinds
       USE time_parameters, ONLY: dt
       IMPLICIT NONE
@@ -36,7 +37,7 @@
       DO ijk = 1, ncint
         CALL meshinds(ijk,imesh,i,j,k)
 
-        IF (flag(ijk) == 1) THEN
+        IF ( BTEST(flag(ijk),0) ) THEN
   
           IF (job_type == '2D') THEN
             volume = r(i) * dx(i) * dz(k)
@@ -56,7 +57,7 @@
             res_gc(ig) = res_gc(ig) + rgp(ijk) * ygc(ijk,ig) * volume
           END DO
 
-        ELSE IF (flag(ijk) == 5 .OR. flag(ijk) == 8) THEN
+        ELSE IF (flag(ijk) == inlet_cell .OR. flag(ijk) == vent_cell) THEN
           !
           ! ... Compute the mass entered since the beginning
           !
@@ -122,6 +123,7 @@
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: dx, dy, dz, r, rb, flag
+      USE grid, ONLY: inlet_cell, vent_cell
       USE pressure_epsilon, ONLY: p, ep
       USE time_parameters, ONLY: dt
       IMPLICIT NONE
@@ -136,7 +138,7 @@
       DO ijk = 1, ncint
         CALL meshinds(ijk,imesh,i,j,k)
 
-        IF (flag(ijk) == 8) THEN
+        IF (flag(ijk) == vent_cell) THEN
           !
           ! ... Compute the mass entered since the beginning
           !

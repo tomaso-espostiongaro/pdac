@@ -15,14 +15,14 @@
       !
       REAL*8 :: dome_ygc(max_ngas)
 
-      TYPE dome_cell
+      TYPE icdome_cell
         INTEGER :: imesh
         REAL*8  :: radius
         REAL*8  :: angle
         REAL*8  :: overp
-      END TYPE dome_cell
+      END TYPE icdome_cell
 
-      TYPE(dome_cell), ALLOCATABLE :: dcell(:)
+      TYPE(icdome_cell), ALLOCATABLE :: dcell(:)
 
       INTEGER :: ndm
       REAL*8 :: gas_flux
@@ -43,7 +43,8 @@
       USE control_flags, ONLY: job_type, lpr
       USE dimensions, ONLY: nx, ny, nz, ntot
       USE grid, ONLY: x, y, z, fl, xb, yb, zb, dz, r, itc
-      USE grid, ONLY: bottom, iv, jv, kv, grigen, flag
+      USE grid, ONLY: iv, jv, kv, grigen
+      USE grid, ONLY: flag, fluid, dome_cell, slip_wall, noslip_wall
       USE volcano_topography, ONLY: itp, ord2d
       USE volcano_topography, ONLY: flatten_dem
       USE parallel, ONLY: mpime, root
@@ -87,7 +88,7 @@
         IF( itp == 0 ) THEN
           DO k= 1, nz
             ijk = iv + (k-1) * nx 
-            IF (fl(ijk) == 3) kv = k
+            IF (fl(ijk) == slip_wall .OR. fl(ijk) == noslip_wall) kv = k
           END DO
         END IF
         zdome = z(kv)
@@ -99,8 +100,9 @@
           DO i = 1, nx
             ijk = i + (k-1) * nx
             distance2 = (x(i)-x(iv))**2 + (z(k)-z(kv))**2
-            IF (distance2 <= dome_radius**2 .AND. fl(ijk) == 1 ) THEN
+            IF (distance2 <= dome_radius**2 .AND. fl(ijk) == fluid ) THEN
                     ndm = ndm + 1
+                    fl(ijk) = dome_cell
             END IF
           END DO
         END DO
@@ -115,8 +117,8 @@
         DO k = 1, nz
           DO i = 1, nx
             ijk = i + (k-1) * nx
-            distance = DSQRT( (x(i)-x(iv))**2 + (z(k)-z(kv))**2 )
-            IF (distance <= dome_radius .AND. fl(ijk) == 1 ) THEN
+            IF (fl(ijk) == dome_cell) THEN
+                    distance = DSQRT( (x(i)-x(iv))**2 + (z(k)-z(kv))**2 )
                     n = n + 1
                     dcell(n)%imesh = ijk
                     dcell(n)%radius = distance
@@ -170,7 +172,7 @@
         IF( itp < 1 ) THEN
           DO k= 1, nz
             ijk = iv + (jv-1) * nx + (k-1) * nx * ny
-            IF (fl(ijk) == 3) kv = k
+            IF (fl(ijk) == slip_wall .OR. fl(ijk) == noslip_wall) kv = k
           END DO
         END IF
         zdome = z(kv)
@@ -183,8 +185,9 @@
             DO i = 1, nx
               ijk = i + (j-1) * nx + (k-1) * nx * ny
               distance2 = (x(i)-x(iv))**2 + (y(j)-y(jv))**2 + (z(k)-z(kv))**2
-              IF (distance2 <= dome_radius**2 .AND. fl(ijk) == 1 ) THEN
+              IF (distance2 <= dome_radius**2 .AND. fl(ijk) == fluid ) THEN
                       ndm = ndm + 1
+                      fl(ijk) = dome_cell
               END IF
             END DO
           END DO
@@ -201,9 +204,9 @@
           DO j = 1, ny
             DO i = 1, nx
               ijk = i + (j-1) * nx + (k-1) * nx * ny
-              distance = DSQRT( (x(i)-x(iv))**2 + (y(j)-y(jv))**2 + (z(k)-z(kv))**2 )
-              rp = DSQRT( (x(i)-x(iv))**2 + (y(j)-y(jv))**2 )
-              IF (distance <= dome_radius .AND. fl(ijk) == 1 ) THEN
+              IF (fl(ijk) == dome_cell) THEN
+                      distance = DSQRT( (x(i)-x(iv))**2 + (y(j)-y(jv))**2 + (z(k)-z(kv))**2 )
+                      rp = DSQRT( (x(i)-x(iv))**2 + (y(j)-y(jv))**2 )
                       n = n + 1
                       dcell(n)%imesh = ijk
                       dcell(n)%radius = distance
@@ -262,7 +265,7 @@
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
-      USE grid, ONLY: flag, x, y, kv
+      USE grid, ONLY: flag, x, y, kv, dome_cell
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
@@ -293,7 +296,7 @@
       END IF
 
       mesh_loop: DO ijk = 1, ncint      
-        IF(flag(ijk) == 1) THEN
+      IF(flag(ijk) == dome_cell) THEN
           CALL meshinds(ijk,imesh,i,j,k)
           !
           ! ... Loop over the dome cells to find the
