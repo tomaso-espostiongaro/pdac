@@ -12,10 +12,12 @@
       REAL*8, PRIVATE, DIMENSION(:),   ALLOCATABLE ::  bu1, bv1, bw1
       REAL*8, PRIVATE, DIMENSION(:,:), ALLOCATABLE ::  au1, av1, aw1
 
-      REAL*8 :: rlim
+      REAL*8 :: rlim = 1.0d-20
+
 !--------------------------------------------------------------------
       CONTAINS
 !--------------------------------------------------------------------
+
       SUBROUTINE allocate_matrix
       USE dimensions
       IMPLICIT NONE
@@ -269,7 +271,9 @@
 !
       RETURN
       END SUBROUTINE assemble_matrix
+
 !----------------------------------------------------------------------
+
       SUBROUTINE solve_all_velocities(ijk)
 ! ... solve the momentum matrix an all cell faces by using
 ! ... Gauss-Jordan direct inversion method
@@ -552,215 +556,873 @@
 !
       RETURN
       END SUBROUTINE solve_velocities
+
 !----------------------------------------------------------------------
-      SUBROUTINE mats_3phase(ijk)
+
+
+!----------------------------------------------------------------------
+      SUBROUTINE matspre_3phase( au1t, aut, av1t, avt, aw1t, awt, i, j, k, ijk )
 !
 ! ... Computes matrix elements to solve momentum-balance 
 ! ... linear system of coupled equations in every cell face
 ! ... OPTIMIZED ROUTINE FOR THREE-DIMENSIONAL THREE PHASE SIMULATIONS
 !
-      USE dimensions
-      USE domain_decomposition, ONLY: myijk
+      USE grid, ONLY: dx, dy, dz
+      USE set_indexes, ONLY: ijke, ijkn, ijkt, ijkw, ijks, ijkb
+      USE tilde_momentum, ONLY: appu, appv,  appw
+
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: ijk, i, j, k
+      REAL*8 :: au1t(6), aut(6)
+      REAL*8 :: av1t(6), avt(6)
+      REAL*8 :: aw1t(6), awt(6)
+!
+      REAL*8 :: indxp, indyp, indzp, indxm, indym, indzm
+      REAL*8 :: dxdm, dxmdm, dxdp, dxpdp
+      REAL*8 :: dydm, dymdm, dydp, dypdp
+      REAL*8 :: dzdm, dzmdm, dzdp, dzpdp
+!
+      indxm=1.D0/( dx(i)+dx(i-1) )
+      indxp=1.D0/( dx(i)+dx(i+1) )
+      dxdm = dx(i) * indxm
+      dxmdm= dx(i-1) * indxm
+      dxdp = dx(i) * indxp
+      dxpdp= dx(i+1) * indxp
+
+      indym=1.D0/( dy(j)+dy(j-1) )
+      indyp=1.D0/( dy(j)+dy(j+1) )
+      dydm = dy(j) * indym
+      dymdm= dy(j-1) * indym
+      dydp = dy(j) * indyp
+      dypdp= dy(j+1) * indyp
+
+      indzm=1.D0/( dz(k)+dz(k-1) )
+      indzp=1.D0/( dz(k)+dz(k+1) )
+      dzdm = dz(k) * indzm
+      dzmdm= dz(k-1) * indzm
+      dzdp = dz(k) * indzp
+      dzpdp= dz(k+1) * indzp
+
+      au1t(1) = ( dxdm * appu(ijkw,1) + dxmdm * appu(ijk,1) )
+      aut(1)  = ( dxdp * appu(ijke,1) + dxpdp * appu(ijk,1) )
+      au1t(2) = ( dxdm * appu(ijkw,2) + dxmdm * appu(ijk,2) )
+      aut(2)  = ( dxdp * appu(ijke,2) + dxpdp * appu(ijk,2) )
+      au1t(3) = ( dxdm * appu(ijkw,3) + dxmdm * appu(ijk,3) )
+      aut(3)  = ( dxdp * appu(ijke,3) + dxpdp * appu(ijk,3) )
+      au1t(4) = ( dxdm * appu(ijkw,4) + dxmdm * appu(ijk,4) )
+      aut(4)  = ( dxdp * appu(ijke,4) + dxpdp * appu(ijk,4) )
+      au1t(5) = ( dxdm * appu(ijkw,5) + dxmdm * appu(ijk,5) )
+      aut(5)  = ( dxdp * appu(ijke,5) + dxpdp * appu(ijk,5) )
+      au1t(6) = ( dxdm * appu(ijkw,6) + dxmdm * appu(ijk,6) )
+      aut(6)  = ( dxdp * appu(ijke,6) + dxpdp * appu(ijk,6) )
+
+      av1t(1) = ( dydm * appv(ijks,1) + dymdm * appv(ijk,1) )
+      avt(1)  = ( dydp * appv(ijkn,1) + dypdp * appv(ijk,1) )
+      av1t(2) = ( dydm * appv(ijks,2) + dymdm * appv(ijk,2) )
+      avt(2)  = ( dydp * appv(ijkn,2) + dypdp * appv(ijk,2) )
+      av1t(3) = ( dydm * appv(ijks,3) + dymdm * appv(ijk,3) )
+      avt(3)  = ( dydp * appv(ijkn,3) + dypdp * appv(ijk,3) )
+      av1t(4) = ( dydm * appv(ijks,4) + dymdm * appv(ijk,4) )
+      avt(4)  = ( dydp * appv(ijkn,4) + dypdp * appv(ijk,4) )
+      av1t(5) = ( dydm * appv(ijks,5) + dymdm * appv(ijk,5) )
+      avt(5)  = ( dydp * appv(ijkn,5) + dypdp * appv(ijk,5) )
+      av1t(6) = ( dydm * appv(ijks,6) + dymdm * appv(ijk,6) )
+      avt(6)  = ( dydp * appv(ijkn,6) + dypdp * appv(ijk,6) )
+
+      aw1t(1) = ( dzdm * appw(ijkb,1) + dzmdm * appw(ijk,1) )
+      awt(1)  = ( dzdp * appw(ijkt,1) + dzpdp * appw(ijk,1) )
+      aw1t(2) = ( dzdm * appw(ijkb,2) + dzmdm * appw(ijk,2) )
+      awt(2)  = ( dzdp * appw(ijkt,2) + dzpdp * appw(ijk,2) )
+      aw1t(3) = ( dzdm * appw(ijkb,3) + dzmdm * appw(ijk,3) )
+      awt(3)  = ( dzdp * appw(ijkt,3) + dzpdp * appw(ijk,3) )
+      aw1t(4) = ( dzdm * appw(ijkb,4) + dzmdm * appw(ijk,4) )
+      awt(4)  = ( dzdp * appw(ijkt,4) + dzpdp * appw(ijk,4) )
+      aw1t(5) = ( dzdm * appw(ijkb,5) + dzmdm * appw(ijk,5) )
+      awt(5)  = ( dzdp * appw(ijkt,5) + dzpdp * appw(ijk,5) )
+      aw1t(6) = ( dzdm * appw(ijkb,6) + dzmdm * appw(ijk,6) )
+      awt(6)  = ( dzdp * appw(ijkt,6) + dzpdp * appw(ijk,6) )
+
+      RETURN
+      END SUBROUTINE
+
+!----------------------------------------------------------------------
+      SUBROUTINE matsvels_3phase( au1t, aut, av1t, avt, aw1t, awt, i, j, k, ijk )
+!
+! ... Computes matrix elements to solve momentum-balance 
+! ... linear system of coupled equations in every cell face
+! ... OPTIMIZED ROUTINE FOR THREE-DIMENSIONAL THREE PHASE SIMULATIONS
+!
       USE gas_solid_density, ONLY: rgp, rlk
       USE grid, ONLY: dx, dy, dz
-      USE indijk_module
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE set_indexes, ONLY: ijke, ijkn, ijkt, ijkw, ijks, ijkb
       USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
-      USE tilde_momentum, ONLY: appu, appv,  appw
       USE time_parameters, ONLY: dt
+      USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
+      USE grid, ONLY: fl_l
+      USE set_indexes, ONLY: ipjk, ijpk, ijkp
+
 
       IMPLICIT NONE
 !
-      INTEGER, INTENT(IN) :: ijk
+      INTEGER, INTENT(IN) :: ijk, i, j, k
+      REAL*8 :: au1t(6), aut(6)
+      REAL*8 :: av1t(6), avt(6)
+      REAL*8 :: aw1t(6), awt(6)
 !
-      INTEGER :: ls, ll, ls1, l, mj, mi, nxy, im1
-      INTEGER :: i,j,k,imesh,is, mdk, mdj
-      REAL*8 :: dxp, dyp, dzp, dxm, dym, dzm
-      REAL*8 :: indxp, indyp, indzp, indxm, indym, indzm
-      REAL*8 :: ep_w, ep_s, ep_b, ep_e, ep_n, ep_t
-      REAL*8 :: eps_w, eps_s, eps_b, eps_e, eps_n, eps_t
-      REAL*8 :: dxi, dxim1, dyj, dyjm1, dzk, dzkm1
-      REAL*8 :: dxip1, dyjp1, dzkp1
-      REAL*8 :: pijk
-      REAL*8 :: epijk, rgpijk, rlklm11, rlklm12
+      INTEGER, SAVE :: ijk_old = -1
+      REAL*8, SAVE :: dxp, dyp, dzp, dxm, dym, dzm
+      REAL*8, SAVE :: indxp, indyp, indzp, indxm, indym, indzm
+      REAL*8, SAVE :: dxdm, dxmdm, dxdp, dxpdp
+      REAL*8, SAVE :: dydm, dymdm, dydp, dypdp
+      REAL*8, SAVE :: dzdm, dzmdm, dzdp, dzpdp
+      REAL*8, SAVE :: pw, pe, ps, pn, pt, pb
+      REAL*8, SAVE :: depw, depe, deps, depn, dept, depb
+      REAL*8, SAVE :: drgpw, drgpe, drgps, drgpn, drgpt, drgpb
+      REAL*8, SAVE :: drlkw1, drlkw2
+      REAL*8, SAVE :: drlks1, drlks2
+      REAL*8, SAVE :: drlkb1, drlkb2
+      REAL*8, SAVE :: drlke1, drlke2
+      REAL*8, SAVE :: drlkn1, drlkn2
+      REAL*8, SAVE :: drlkt1, drlkt2
+      REAL*8, SAVE :: epijk, rgpijk, rlk1, rlk2
+      REAL*8, SAVE :: pijk, dpijk
+      REAL*8, SAVE :: twodt
+      REAL*8, SAVE :: div, amul
+      LOGICAL, SAVE :: flim, flip, fljm, fljp, flkm, flkp
 !
-      imesh = myijk( ip0_jp0_kp0_, ijk)
+      IF( ijk /= ijk_old ) THEN
 
-      nxy = nx * ny
-      im1 = imesh - 1
-      mdk = im1/nxy
-      mj  = im1 - nxy * mdk    ! MOD( im1, nxy )  ! MOD( imesh - 1, nx*ny ) 
-      mdj = mj/nx
-      mi  = mj  -  nx * mdj    ! MOD( mj , nx  )  ! MOD( MOD( imesh - 1, nx*ny ), nx )
-      
-      i   = mi  + 1      ! i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
-      j   = mdj + 1      ! j = MOD( imesh - 1, nx*ny ) / nx + 1
-      k   = mdk + 1      ! k = ( imesh - 1 ) / ( nx*ny ) + 1
+        dxm  =dx(i)+dx(i-1)
+        dxp  =dx(i)+dx(i+1)
+        indxm=1.D0/dxm
+        indxp=1.D0/dxp
+        dxdm =dx(i)   * indxm
+        dxmdm=dx(i-1) * indxm
+        dxdp =dx(i)   * indxp
+        dxpdp=dx(i+1) * indxp
+
+        dym  =dy(j)+dy(j-1)
+        dyp  =dy(j)+dy(j+1)
+        indym=1.D0/dym
+        indyp=1.D0/dyp
+        dydm =dy(j)   * indym
+        dymdm=dy(j-1) * indym
+        dydp =dy(j)   * indyp
+        dypdp=dy(j+1) * indyp
+
+        dzm  =dz(k)+dz(k-1)
+        dzp  =dz(k)+dz(k+1)
+        indzm=1.D0/dzm
+        indzp=1.D0/dzp
+        dzdm =dz(k)   * indzm
+        dzmdm=dz(k-1) * indzm
+        dzdp =dz(k)   * indzp
+        dzpdp=dz(k+1) * indzp
+
+        flim = ( fl_l(imjk) == 1 .OR. fl_l(imjk) == 4 )
+        fljm = ( fl_l(ijmk) == 1 .OR. fl_l(ijmk) == 4 )
+        flkm = ( fl_l(ijkm) == 1 .OR. fl_l(ijkm) == 4 )
+        flip = ( fl_l(ipjk) == 1 .OR. fl_l(ipjk) == 4 )
+        fljp = ( fl_l(ijpk) == 1 .OR. fl_l(ijpk) == 4 )
+        flkp = ( fl_l(ijkp) == 1 .OR. fl_l(ijkp) == 4 )
+
+        pw   = p(ijkw)
+        pe   = p(ijke)
+        ps   = p(ijks)
+        pn   = p(ijkn)
+        pb   = p(ijkb)
+        pt   = p(ijkt)
+
+        depw   = dxdm * ep(ijkw)
+        depe   = dxdp * ep(ijke)
+        deps   = dydm * ep(ijks)
+        depn   = dydp * ep(ijkn)
+        depb   = dzdm * ep(ijkb)
+        dept   = dzdp * ep(ijkt)
+
+        drgpw  = dxdm * rgp(ijkw)
+        drgpe  = dxdp * rgp(ijke)
+        drgps  = dydm * rgp(ijks)
+        drgpn  = dydp * rgp(ijkn)
+        drgpb  = dzdm * rgp(ijkb)
+        drgpt  = dzdp * rgp(ijkt)
+
+        drlkw1 = dxdm * rlk(ijkw,1) 
+        drlks1 = dydm * rlk(ijks,1) 
+        drlkb1 = dzdm * rlk(ijkb,1) 
+        drlke1 = dxdp * rlk(ijke,1) 
+        drlkn1 = dydp * rlk(ijkn,1) 
+        drlkt1 = dzdp * rlk(ijkt,1) 
+
+        drlkw2 = dxdm * rlk(ijkw,2) 
+        drlks2 = dydm * rlk(ijks,2) 
+        drlkb2 = dzdm * rlk(ijkb,2) 
+        drlke2 = dxdp * rlk(ijke,2) 
+        drlkn2 = dydp * rlk(ijkn,2) 
+        drlkt2 = dzdp * rlk(ijkt,2) 
+
+        ijk_old = ijk
+
+      END IF
+
+      pijk    = p(ijk)
+      epijk   = ep(ijk)
+      rgpijk  = rgp(ijk)
+      rlk2    = rlk(ijk,2)
+      rlk1    = rlk(ijk,1)
 !
-      dxi=dx(i)
-      dxm=dx(i)+dx(i-1)
-      dxp=dxi+dx(i+1)
-      dxim1=dx(i-1)
-      dxip1=dx(i+1)
-      indxm=1.D0/dxm
-      indxp=1.D0/dxp
+      twodt = 2.0d0 * dt
 
-      dyj=dy(j)
-      dym=dy(j)+dy(j-1)
-      dyp=dyj+dy(j+1)
-      dyjm1=dy(j-1)
-      dyjp1=dy(j+1)
-      indym=1.D0/dym
-      indyp=1.D0/dyp
-
-      dzk=dz(k)
-      dzm=dz(k)+dz(k-1)
-      dzp=dzk+dz(k+1)
-      dzkm1=dz(k-1)
-      dzkp1=dz(k+1)
-      indzm=1.D0/dzm
-      indzp=1.D0/dzp
-
-      pijk = p(ijk)
-      epijk = ep(ijk)
-      rgpijk = rgp(ijk)
-      rlklm12 = rlk(ijk,2)
-      rlklm11 = rlk(ijk,1)
 !
-      !
-      !      l = 1
-      !
-
-      ! ... Backward ...
-      ep_w = (dxi*ep(ijkw) + dxim1*epijk) * indxm
-      ep_s = (dyj*ep(ijks) + dyjm1*epijk) * indym
-      ep_b = (dzk*ep(ijkb) + dzkm1*epijk) * indzm
-      ! ... Foreward ...
-      ep_e = (dxi*ep(ijke) + dxip1*epijk) * indxp
-      ep_n = (dyj*ep(ijkn) + dyjp1*epijk) * indyp
-      ep_t = (dzk*ep(ijkt) + dzkp1*epijk) * indzp
-      ! ... Backward ...
-      eps_w = (dxi*rlk(ijkw,1) + dxim1*rlklm11) * indxm * inrl(1)
-      eps_s = (dyj*rlk(ijks,1) + dyjm1*rlklm11) * indym * inrl(1)
-      eps_b = (dzk*rlk(ijkb,1) + dzkm1*rlklm11) * indzm * inrl(1)
-      ! ... Foreward ...
-      eps_e = (dxi*rlk(ijke,1) + dxip1*rlklm11) * indxp * inrl(1)
-      eps_n = (dyj*rlk(ijkn,1) + dyjp1*rlklm11) * indyp * inrl(1)
-      eps_t = (dzk*rlk(ijkt,1) + dzkp1*rlklm11) * indzp * inrl(1)
-      ! ... Backward ...
-      eps_w = (dxi*rlk(ijkw,2) + dxim1*rlklm12) * indxm * inrl(2)
-      eps_s = (dyj*rlk(ijks,2) + dyjm1*rlklm12) * indym * inrl(2)
-      eps_b = (dzk*rlk(ijkb,2) + dzkm1*rlklm12) * indzm * inrl(2)
-      ! ... Foreward ...
-      eps_e = (dxi*rlk(ijke,2) + dxip1*rlklm12) * indxp * inrl(2)
-      eps_n = (dyj*rlk(ijkn,2) + dyjp1*rlklm12) * indyp * inrl(2)
-      eps_t = (dzk*rlk(ijkt,2) + dzkp1*rlklm12) * indzp * inrl(2)
-
-      bu1(1) = rug(imjk)+ dt * indxm *2.D0* ep_w * (p(ijkw)-pijk)
-      bu(1)  = rug(ijk)+ dt * indxp *2.D0* ep_e * (pijk-p(ijke))
-      bv1(1) = rvg(ijmk)+ dt * indym *2.D0* ep_s * (p(ijks)-pijk)
-      bv(1)  = rvg(ijk)+ dt * indyp *2.D0* ep_n * (pijk-p(ijkn))
-      bw1(1) = rwg(ijkm)+ dt * indzm *2.D0* ep_b * (p(ijkb)-pijk)
-      bw(1)  = rwg(ijk)+ dt * indzp *2.D0* ep_t * (pijk-p(ijkt))
-
-      bu1(2) = rus(imjk,1) + dt * indxm *2.D0* eps_w * (p(ijkw)-pijk)
-      bu(2)  = rus(ijk,1) + dt * indxp *2.D0* eps_e * (pijk-p(ijke))
-      bu1(3) = rus(imjk,2) + dt * indxm *2.D0* eps_w * (p(ijkw)-pijk)
-      bu(3)  = rus(ijk,2) + dt * indxp *2.D0* eps_e * (pijk-p(ijke))
-      bv1(2) = rvs(ijmk,1) + dt * indym *2.D0* eps_s * (p(ijks)-pijk)
-      bv(2)  = rvs(ijk,1) + dt * indyp *2.D0* eps_n * (pijk-p(ijkn))
-      bv1(3) = rvs(ijmk,2) + dt * indym *2.D0* eps_s * (p(ijks)-pijk)
-      bv(3)  = rvs(ijk,2) + dt * indyp *2.D0* eps_n * (pijk-p(ijkn))
-      bw1(2) = rws(ijkm,1) + dt * indzm *2.D0* eps_b * (p(ijkb)-pijk)
-      bw(2)  = rws(ijk,1) + dt * indzp *2.D0* eps_t * (pijk-p(ijkt))
-      bw1(3) = rws(ijkm,2) + dt * indzm *2.D0* eps_b * (p(ijkb)-pijk)
-      bw(3)  = rws(ijk,2) + dt * indzp *2.D0* eps_t * (pijk-p(ijkt))
- 
+! ... solve the momentum matrix an all cell faces by using
+! ... Gauss-Jordan direct inversion method
 !
-      ! ... Backward ...
-      au1(1,1)=(dxi*appu(ijkw,1)+dxim1*appu(ijk,1))*indxm
-      au(1,1)=(dxi*appu(ijke,1)+dxip1*appu(ijk,1))*indxp
-      au1(1,2)=(dxi*appu(ijkw, 2)+dxim1*appu(ijk, 2))*indxm
-      au(2,1)=(dxi*appu(ijke,2)+dxip1*appu(ijk,2))*indxp
-      au1(2,2)=(dxi*appu(ijkw, 3)+dxim1*appu(ijk, 3))*indxm
-      au(2,2)=(dxi*appu(ijke,3)+dxip1*appu(ijk,3))*indxp
-      au1(1,3)=(dxi*appu(ijkw, 4)+dxim1*appu(ijk, 4))*indxm
-      au(3,1)=(dxi*appu(ijke,4)+dxip1*appu(ijk,4))*indxp
-      au1(2,3)=(dxi*appu(ijkw, 5)+dxim1*appu(ijk, 5))*indxm
-      au(3,2)=(dxi*appu(ijke,5)+dxip1*appu(ijk,5))*indxp
-      au1(3,3)=(dxi*appu(ijkw, 6)+dxim1*appu(ijk, 6))*indxm
-      au(3,3)=(dxi*appu(ijke,6)+dxip1*appu(ijk,6))*indxp
+!
+      ! ... Use Gauss-Jordan method for matrix inversion
 
-      av1(1,1)=(dyj*appv(ijks,1)+dyjm1*appv(ijk,1))*indym
-      av(1,1)=(dyj*appv(ijkn,1)+dyjp1*appv(ijk,1))*indyp
-      av1(1,2)=(dyj*appv(ijks, 2)+dyjm1*appv(ijk, 2))*indym
-      av(2,1)=(dyj*appv(ijkn,2)+dyjp1*appv(ijk,2))*indyp
-      av1(2,2)=(dyj*appv(ijks, 3)+dyjm1*appv(ijk, 3))*indym
-      av(2,2)=(dyj*appv(ijkn,3)+dyjp1*appv(ijk,3))*indyp
-      av1(1,3)=(dyj*appv(ijks, 4)+dyjm1*appv(ijk, 4))*indym
-      av(3,1)=(dyj*appv(ijkn,4)+dyjp1*appv(ijk,4))*indyp
-      av1(2,3)=(dyj*appv(ijks, 5)+dyjm1*appv(ijk, 5))*indym
-      av(3,2)=(dyj*appv(ijkn,5)+dyjp1*appv(ijk,5))*indyp
-      av1(3,3)=(dyj*appv(ijks, 6)+dyjm1*appv(ijk, 6))*indym
-      av(3,3)=(dyj*appv(ijkn,6)+dyjp1*appv(ijk,6))*indyp
+      au1(1,1) = au1t(1) + ( drgpw + dxmdm * rgpijk )
+      au1(2,1) = au1t(2)
+      au1(3,1) = au1t(4)
+      au1(1,2) = au1t(2)
+      au1(2,2) = au1t(3) + ( drlkw1 + dxmdm * rlk1 )
+      au1(3,2) = au1t(5)
+      au1(1,3) = au1t(4)
+      au1(2,3) = au1t(5)
+      au1(3,3) = au1t(6) + ( drlkw2 + dxmdm * rlk2 )
 
-      aw1(1,1)=(dzk*appw(ijkb,1)+dzkm1*appw(ijk,1))*indzm
-      aw(1,1)=(dzk*appw(ijkt,1)+dzkp1*appw(ijk,1))*indzp
-      aw1(1,2)=(dzk*appw(ijkb, 2)+dzkm1*appw(ijk, 2))*indzm
-      aw(2,1)=(dzk*appw(ijkt,2)+dzkp1*appw(ijk,2))*indzp
-      aw1(2,2)=(dzk*appw(ijkb, 3)+dzkm1*appw(ijk, 3))*indzm
-      aw(2,2)=(dzk*appw(ijkt,3)+dzkp1*appw(ijk,3))*indzp
-      aw1(1,3)=(dzk*appw(ijkb, 4)+dzkm1*appw(ijk, 4))*indzm
-      aw(3,1)=(dzk*appw(ijkt,4)+dzkp1*appw(ijk,4))*indzp
-      aw1(2,3)=(dzk*appw(ijkb, 5)+dzkm1*appw(ijk, 5))*indzm
-      aw(3,2)=(dzk*appw(ijkt,5)+dzkp1*appw(ijk,5))*indzp
-      aw1(3,3)=(dzk*appw(ijkb, 6)+dzkm1*appw(ijk, 6))*indzm
-      aw(3,3)=(dzk*appw(ijkt,6)+dzkp1*appw(ijk,6))*indzp
+      bu1(1) = ( depw + dxmdm * epijk )
+      bu1(2) = ( drlkw1 + dxmdm * rlk1 ) * inrl(1)
+      bu1(3) = ( drlkw2 + dxmdm * rlk2 ) * inrl(2)
+      dpijk  = ( pw - pijk ) * indxm * twodt
+      bu1(1) = rug(imjk)   + bu1(1) * dpijk
+      bu1(2) = rus(imjk,1) + bu1(2) * dpijk
+      bu1(3) = rus(imjk,2) + bu1(3) * dpijk
+!
+      IF ( flim ) THEN
 
-      au1(1,1)=au1(1,1)+(dxi*rgp(ijkw)+dxim1*rgpijk)*indxm
-      au(1,1)=au(1,1)+(dxi*rgp(ijke)+dxip1*rgpijk)*indxp
-      av1(1,1)=av1(1,1)+(dyj*rgp(ijks)+dyjm1*rgpijk)*indym
-      av(1,1)=av(1,1)+(dyj*rgp(ijkn)+dyjp1*rgpijk)*indyp
-      aw1(1,1)=aw1(1,1)+(dzk*rgp(ijkb)+dzkm1*rgpijk)*indzm
-      aw(1,1)=aw(1,1)+(dzk*rgp(ijkt)+dzkp1*rgpijk)*indzp
-      au1(2,2)=au1(2,2)+(dxi*rlk(ijkw,1)+dxim1*rlklm11)*indxm
-      au(2,2)=au(2,2)+(dxi*rlk(ijke,1)+dxip1*rlklm11)*indxp
-      av1(2,2)=av1(2,2)+(dyj*rlk(ijks,1)+dyjm1*rlklm11)*indym
-      av(2,2)=av(2,2)+(dyj*rlk(ijkn,1)+dyjp1*rlklm11)*indyp
-      aw1(2,2)=aw1(2,2)+(dzk*rlk(ijkb,1)+dzkm1*rlklm11)*indzm
-      aw(2,2)=aw(2,2)+(dzk*rlk(ijkt,1)+dzkp1*rlklm11)*indzp
-      au1(3,3)=au1(3,3)+(dxi*rlk(ijkw,2)+dxim1*rlklm12)*indxm
-      au(3,3)=au(3,3)+(dxi*rlk(ijke,2)+dxip1*rlklm12)*indxp
-      av1(3,3)=av1(3,3)+(dyj*rlk(ijks,2)+dyjm1*rlklm12)*indym
-      av(3,3)=av(3,3)+(dyj*rlk(ijkn,2)+dyjp1*rlklm12)*indyp
-      aw1(3,3)=aw1(3,3)+(dzk*rlk(ijkb,2)+dzkm1*rlklm12)*indzm
-      aw(3,3)=aw(3,3)+(dzk*rlk(ijkt,2)+dzkp1*rlklm12)*indzp
+          IF( au1(2,2) < rlim ) THEN
 
-      au1(2,1)=au1(1,2)
-      au(1,2)=au(2,1)
-      av1(2,1)=av1(1,2)
-      av(1,2)=av(2,1)
-      aw1(2,1)=aw1(1,2)
-      aw(1,2)=aw(2,1)
-      au1(3,2)=au1(2,3)
-      au1(3,1)=au1(1,3)
-      au(1,3)=au(3,1)
-      au(2,3)=au(3,2)
-      av1(3,2)=av1(2,3)
-      av1(3,1)=av1(1,3)
-      av(1,3)=av(3,1)
-      av(2,3)=av(3,2)
-      aw1(3,2)=aw1(2,3)
-      aw1(3,1)=aw1(1,3)
-      aw(1,3)=aw(3,1)
-      aw(2,3)=aw(3,2)
+              au1(1,1) = au1(1,1) + au1(2,1)
+              au1(2,1) = 0.D0
+              au1(1,2) = 0.D0
+
+              au1(2,2) = 0.D0
+
+              au1(3,3) = au1(3,3) + au1(2,3)
+              au1(2,3) = 0.D0
+              au1(3,2) = 0.D0
+
+              bu1(2) = 0.D0
+
+          END IF
+
+          IF( au1(3,3) < rlim ) THEN
+
+              au1(1,1) = au1(1,1) + au1(3,1)
+              au1(3,1) = 0.D0
+              au1(1,3) = 0.D0
+
+              au1(2,2) = au1(2,2) + au1(3,2)
+              au1(3,2) = 0.D0
+              au1(2,3) = 0.D0
+
+              au1(3,3) = 0.D0
+
+              bu1(3) = 0.D0
+
+          END IF
+
+          IF( au1(1,1) /= 0.D0 ) THEN 
+
+            div = 1.D0 / au1(1,1)
+            au1(1,2) = au1(1,2) * div
+            au1(1,3) = au1(1,3) * div
+            bu1(1)   = bu1(1)   * div
+            au1(1,1) = 0.D0
+            !li=2
+              amul = au1(2,1)
+              au1(2,2) = au1(2,2) - amul * au1(1,2)
+              au1(2,3) = au1(2,3) - amul * au1(1,3)
+              bu1(2)   = bu1(2)   - amul * bu1(1)
+            !li=3
+              amul = au1(3,1)
+              au1(3,2) = au1(3,2) - amul * au1(1,2)
+              au1(3,3) = au1(3,3) - amul * au1(1,3)
+              bu1(3)   = bu1(3)   - amul * bu1(1)
+
+          END IF
+
+          IF( au1(2,2) /= 0.D0 ) THEN 
+            div=1.D0/au1(2,2)
+            au1(2,3)=au1(2,3)*div
+            bu1(2)=bu1(2)*div
+            au1(2,2)=0.D0
+            !li=1
+              amul=au1(1,2)
+              au1(1,3)=au1(1,3)-amul*au1(2,3)
+              bu1(1)=bu1(1)-amul*bu1(2)
+            !li=3
+              amul=au1(3,2)
+              au1(3,3)=au1(3,3)-amul*au1(2,3)
+              bu1(3)=bu1(3)-amul*bu1(2)
+          END IF
+
+          IF( au1(3,3) /= 0.D0 ) THEN 
+            div=1.D0/au1(3,3)
+            bu1(3)=bu1(3)*div
+            au1(3,3)=0.D0
+            !li=1
+              amul=au1(1,3)
+              bu1(1)=bu1(1)-amul*bu1(3)
+            !li=2
+              amul=au1(2,3)
+              bu1(2)=bu1(2)-amul*bu1(3)
+          END IF
+!
+        ug(imjk)   = bu1(1)
+        us(imjk,1) = bu1(2)
+        us(imjk,2) = bu1(3)
+
+      END IF
 
 
+      av1(1,1) = av1t(1) + ( drgps + dymdm * rgpijk )
+      av1(2,1) = av1t(2)
+      av1(3,1) = av1t(4)
+      av1(1,2) = av1t(2)
+      av1(2,2) = av1t(3) + ( drlks1 + dymdm * rlk1 )
+      av1(3,2) = av1t(5)
+      av1(1,3) = av1t(4)
+      av1(2,3) = av1t(5)
+      av1(3,3) = av1t(6) + ( drlks2 + dymdm * rlk2 )
+
+      bv1(1) = ( deps + dymdm * epijk )
+      bv1(2) = ( drlks1 + dymdm * rlk1 ) * inrl(1)
+      bv1(3) = ( drlks2 + dymdm * rlk2 ) * inrl(2)
+      dpijk  = ( ps - pijk ) * indym * twodt
+      bv1(1) = rvg(ijmk)   + bv1(1) * dpijk
+      bv1(2) = rvs(ijmk,1) + bv1(2) * dpijk
+      bv1(3) = rvs(ijmk,2) + bv1(3) * dpijk
+
+      IF ( fljm ) THEN
+
+          IF(av1(2,2) < rlim) THEN
+
+                av1(1,1)=av1(1,1)+av1(2,1)
+                av1(2,1)=0.D0
+                av1(1,2)=0.D0
+
+                av1(2,2)=0.D0
+
+                av1(3,3)=av1(3,3)+av1(2,3)
+                av1(2,3)=0.D0
+                av1(3,2)=0.D0
+
+                bv1(2)=0.D0
+
+          END IF
+
+          IF(av1(3,3) < rlim) THEN
+
+                av1(1,1)=av1(1,1)+av1(3,1)
+                av1(3,1)=0.D0
+                av1(1,3)=0.D0
+
+                av1(2,2)=av1(2,2)+av1(3,2)
+                av1(3,2)=0.D0
+                av1(2,3)=0.D0
+
+                av1(3,3)=0.D0
+
+                bv1(3)=0.D0
+
+          END IF
+
+
+          IF(av1(1,1) /= 0.D0) THEN
+              div=1.D0/av1(1,1)
+              av1(1,2)=av1(1,2)*div
+              av1(1,3)=av1(1,3)*div
+              bv1(1)=bv1(1)*div
+              av1(1,1)=0.D0
+              !li=2
+                amul=av1(2,1)
+                av1(2,2)=av1(2,2)-amul*av1(1,2)
+                av1(2,3)=av1(2,3)-amul*av1(1,3)
+                bv1(2)=bv1(2)-amul*bv1(1)
+              !li=3
+                amul=av1(3,1)
+                av1(3,2)=av1(3,2)-amul*av1(1,2)
+                av1(3,3)=av1(3,3)-amul*av1(1,3)
+                bv1(3)=bv1(3)-amul*bv1(1)
+          END IF
+
+          IF(av1(2,2) /= 0.D0) THEN
+              div=1.D0/av1(2,2)
+              av1(2,3)=av1(2,3)*div
+              bv1(2)=bv1(2)*div
+              av1(2,2)=0.D0
+              !li=1
+                amul=av1(1,2)
+                av1(1,3)=av1(1,3)-amul*av1(2,3)
+                bv1(1)=bv1(1)-amul*bv1(2)
+              !li=3
+                amul=av1(3,2)
+                av1(3,3)=av1(3,3)-amul*av1(2,3)
+                bv1(3)=bv1(3)-amul*bv1(2)
+          END IF
+
+          IF(av1(3,3) /= 0.D0) THEN
+              div=1.D0/av1(3,3)
+              bv1(3)=bv1(3)*div
+              av1(3,3)=0.D0
+              !li=1
+                amul=av1(1,3)
+                bv1(1)=bv1(1)-amul*bv1(3)
+              !li=2
+                amul=av1(2,3)
+                bv1(2)=bv1(2)-amul*bv1(3)
+          END IF
+!
+          vg(ijmk)   = bv1(1)
+          vs(ijmk,1) = bv1(2)
+          vs(ijmk,2) = bv1(3)
+!
+      END IF
+
+      aw1(1,1) = aw1t(1) + ( drgpb + dzmdm * rgpijk )
+      aw1(2,1) = aw1t(2)
+      aw1(3,1) = aw1t(4)
+      aw1(1,2) = aw1t(2)
+      aw1(2,2) = aw1t(3) + ( drlkb1 + dzmdm * rlk1 )
+      aw1(3,2) = aw1t(5)
+      aw1(1,3) = aw1t(4)
+      aw1(2,3) = aw1t(5)
+      aw1(3,3) = aw1t(6) + ( drlkb2 + dzmdm * rlk2 )
+
+      bw1(1) = ( depb + dzmdm * epijk )
+      bw1(2) = ( drlkb1 + dzmdm * rlk1 ) * inrl(1)
+      bw1(3) = ( drlkb2 + dzmdm * rlk2 ) * inrl(2)
+      dpijk  = ( pb - pijk ) * indzm * twodt
+      bw1(1) = rwg(ijkm)   + bw1(1) * dpijk
+      bw1(2) = rws(ijkm,1) + bw1(2) * dpijk
+      bw1(3) = rws(ijkm,2) + bw1(3) * dpijk
+
+
+      IF ( flkm ) THEN
+
+          IF(aw1(2,2) < rlim) THEN
+
+              aw1(1,1)=aw1(1,1)+aw1(2,1)
+              aw1(2,1)=0.D0
+              aw1(1,2)=0.D0
+
+              aw1(2,2)=0.D0
+
+              aw1(3,3)=aw1(3,3)+aw1(2,3)
+              aw1(2,3)=0.D0
+              aw1(3,2)=0.D0
+
+              bw1(2)=0.D0
+
+          END IF
+
+          IF(aw1(3,3) < rlim) THEN
+
+              aw1(1,1)=aw1(1,1)+aw1(3,1)
+              aw1(3,1)=0.D0
+              aw1(1,3)=0.D0
+
+              aw1(2,2)=aw1(2,2)+aw1(3,2)
+              aw1(3,2)=0.D0
+              aw1(2,3)=0.D0
+
+              aw1(3,3)=0.D0
+
+              bw1(3)=0.D0
+
+          END IF
+
+          IF(aw1(1,1) /= 0.D0) THEN
+            div=1.D0/aw1(1,1)
+            aw1(1,2)=aw1(1,2)*div
+            aw1(1,3)=aw1(1,3)*div
+            bw1(1)=bw1(1)*div
+            aw1(1,1)=0.D0
+            !li=2
+              amul=aw1(2,1)
+              aw1(2,2)=aw1(2,2)-amul*aw1(1,2)
+              aw1(2,3)=aw1(2,3)-amul*aw1(1,3)
+              bw1(2)=bw1(2)-amul*bw1(1)
+            !li=3
+              amul=aw1(3,1)
+              aw1(3,2)=aw1(3,2)-amul*aw1(1,2)
+              aw1(3,3)=aw1(3,3)-amul*aw1(1,3)
+              bw1(3)=bw1(3)-amul*bw1(1)
+          END IF
+
+          IF(aw1(2,2) /= 0.D0) THEN
+            div=1.D0/aw1(2,2)
+            aw1(2,3)=aw1(2,3)*div
+            bw1(2)=bw1(2)*div
+            aw1(2,2)=0.D0
+            !li=1
+              amul=aw1(1,2)
+              aw1(1,3)=aw1(1,3)-amul*aw1(2,3)
+              bw1(1)=bw1(1)-amul*bw1(2)
+            !li=3
+              amul=aw1(3,2)
+              aw1(3,3)=aw1(3,3)-amul*aw1(2,3)
+              bw1(3)=bw1(3)-amul*bw1(2)
+          END IF
+
+          IF(aw1(3,3) /= 0.D0) THEN
+            div=1.D0/aw1(3,3)
+            bw1(3)=bw1(3)*div
+            aw1(3,3)=0.D0
+            !li=1
+              amul=aw1(1,3)
+              bw1(1)=bw1(1)-amul*bw1(3)
+            !li=2
+              amul=aw1(2,3)
+              bw1(2)=bw1(2)-amul*bw1(3)
+          END IF
+!
+        wg(ijkm) = bw1(1)
+        ws(ijkm,2-1) = bw1(2)
+        ws(ijkm,3-1) = bw1(3)
+!
+      END IF
+!
+      ! ... solve the momentum matrix only on East, North, and Top 
+      ! ... cell faces by using Gauss-Jordan direct inversion method
+!
+      ! ... Use Gauss-Jordan method for matrix inversion
+
+      au(1,1)  = aut(1)  + ( drgpe + dxpdp * rgpijk )
+      au(2,1)  = aut(2)
+      au(3,1)  = aut(4)
+      au(1,2)  = aut(2)
+      au(2,2)  = aut(3)  + ( drlke1 + dxpdp * rlk1 )
+      au(3,2)  = aut(5)
+      au(1,3)  = aut(4)
+      au(2,3)  = aut(5)
+      au(3,3)  = aut(6)  + ( drlke2 + dxpdp * rlk2 )
+
+      bu(1) = ( depe + dxpdp * epijk )
+      bu(2) = ( drlke1 + dxpdp * rlk1 ) * inrl(1)
+      bu(3) = ( drlke2 + dxpdp * rlk2 ) * inrl(2)
+      dpijk  = ( pijk - pe ) * indxp * twodt
+      bu(1)  = rug(ijk)    + bu(1) * dpijk
+      bu(2)  = rus(ijk,1)  + bu(2) * dpijk
+      bu(3)  = rus(ijk,2)  + bu(3) * dpijk
+!
+      IF ( flip ) THEN
+
+          IF(au(2,2) < rlim) THEN
+
+              au(1,1)=au(1,1)+au(2,1)
+              au(2,1)=0.D0
+              au(1,2)=0.D0
+
+              au(2,2)=0.D0
+
+              au(3,3)=au(3,3)+au(2,3)
+              au(2,3)=0.D0
+              au(3,2)=0.D0
+
+              bu(2)=0.D0
+
+          END IF
+
+          IF(au(3,3) < rlim) THEN
+
+              au(1,1)=au(1,1)+au(3,1)
+              au(3,1)=0.D0
+              au(1,3)=0.D0
+
+              au(2,2)=au(2,2)+au(3,2)
+              au(3,2)=0.D0
+              au(2,3)=0.D0
+
+              au(3,3)=0.D0
+
+              bu(3)=0.D0
+
+          END IF
+
+          IF(au(1,1) /= 0.D0) THEN
+            div=1.D0/au(1,1)
+            au(1,2)=au(1,2)*div
+            au(1,3)=au(1,3)*div
+            bu(1)=bu(1)*div
+            au(1,1)=0.D0
+            !li=2
+              amul=au(2,1)
+              au(2,2)=au(2,2)-amul*au(1,2)
+              au(2,3)=au(2,3)-amul*au(1,3)
+              bu(2)=bu(2)-amul*bu(1)
+            !li=3
+              amul=au(3,1)
+              au(3,2)=au(3,2)-amul*au(1,2)
+              au(3,3)=au(3,3)-amul*au(1,3)
+              bu(3)=bu(3)-amul*bu(1)
+          END IF
+
+          IF(au(2,2) /= 0.D0) THEN
+            div=1.D0/au(2,2)
+            au(2,3)=au(2,3)*div
+            bu(2)=bu(2)*div
+            au(2,2)=0.D0
+            !li=1
+              amul=au(1,2)
+              au(1,3)=au(1,3)-amul*au(2,3)
+              bu(1)=bu(1)-amul*bu(2)
+            !li=3
+              amul=au(3,2)
+              au(3,3)=au(3,3)-amul*au(2,3)
+              bu(3)=bu(3)-amul*bu(2)
+          END IF
+
+          IF(au(3,3) /= 0.D0) THEN
+            div=1.D0/au(3,3)
+            bu(3)=bu(3)*div
+            au(3,3)=0.D0
+            !li=1
+              amul=au(1,3)
+              bu(1)=bu(1)-amul*bu(3)
+            !li=2
+              amul=au(2,3)
+              bu(2)=bu(2)-amul*bu(3)
+          END IF
+!
+        ug(ijk)=bu(1)
+        us(ijk,1)=bu(2)
+        us(ijk,2)=bu(3)
+!
+      END IF
+
+
+      av(1,1)  = avt(1)  + ( drgpn + dypdp * rgpijk )
+      av(2,1)  = avt(2)
+      av(3,1)  = avt(4)
+      av(1,2)  = avt(2)
+      av(2,2)  = avt(3)  + ( drlkn1 + dypdp * rlk1 )
+      av(3,2)  = avt(5)
+      av(1,3)  = avt(4)
+      av(2,3)  = avt(5)
+      av(3,3)  = avt(6)  + ( drlkn2 + dypdp * rlk2 )
+
+      bv(1) = ( depn + dypdp * epijk )
+      bv(2) = ( drlkn1 + dypdp * rlk1 ) * inrl(1)
+      bv(3) = ( drlkn2 + dypdp * rlk2 ) * inrl(2)
+      dpijk  = ( pijk - pn ) * indyp * twodt
+      bv(1)  = rvg(ijk)    + bv(1) * dpijk
+      bv(2)  = rvs(ijk,1)  + bv(2) * dpijk
+      bv(3)  = rvs(ijk,2)  + bv(3) * dpijk
+
+      IF ( fljp ) THEN
+
+            IF(av(2,2) < rlim) THEN
+
+                av(1,1)=av(1,1)+av(2,1)
+                av(2,1)=0.D0
+                av(1,2)=0.D0
+
+                av(2,2)=0.D0
+
+                av(3,3)=av(3,3)+av(2,3)
+                av(2,3)=0.D0
+                av(3,2)=0.D0
+
+                bv(2)=0.D0
+
+            END IF
+
+            IF(av(3,3) < rlim) THEN
+
+                av(1,1)=av(1,1)+av(3,1)
+                av(3,1)=0.D0
+                av(1,3)=0.D0
+
+                av(2,2)=av(2,2)+av(3,2)
+                av(3,2)=0.D0
+                av(2,3)=0.D0
+
+                av(3,3)=0.D0
+
+                bv(3)=0.D0
+
+            END IF
+  
+            IF(av(1,1) /= 0.D0) THEN 
+              div=1.D0/av(1,1)
+              av(1,2)=av(1,2)*div
+              av(1,3)=av(1,3)*div
+              bv(1)=bv(1)*div
+              av(1,1)=0.D0
+              !li=2
+                amul=av(2,1)
+                av(2,2)=av(2,2)-amul*av(1,2)
+                av(2,3)=av(2,3)-amul*av(1,3)
+                bv(2)=bv(2)-amul*bv(1)
+              !li=3
+                amul=av(3,1)
+                av(3,2)=av(3,2)-amul*av(1,2)
+                av(3,3)=av(3,3)-amul*av(1,3)
+                bv(3)=bv(3)-amul*bv(1)
+            END IF
+
+            IF(av(2,2) /= 0.D0) THEN 
+              div=1.D0/av(2,2)
+              av(2,3)=av(2,3)*div
+              bv(2)=bv(2)*div
+              av(2,2)=0.D0
+              !li=1
+                amul=av(1,2)
+                av(1,3)=av(1,3)-amul*av(2,3)
+                bv(1)=bv(1)-amul*bv(2)
+              !li=3
+                amul=av(3,2)
+                av(3,3)=av(3,3)-amul*av(2,3)
+                bv(3)=bv(3)-amul*bv(2)
+            END IF
+
+            IF(av(3,3) /= 0.D0) THEN 
+              div=1.D0/av(3,3)
+              bv(3)=bv(3)*div
+              av(3,3)=0.D0
+              !li=1
+                amul=av(1,3)
+                bv(1)=bv(1)-amul*bv(3)
+              !li=2
+                amul=av(2,3)
+                bv(2)=bv(2)-amul*bv(3)
+            END IF
+!
+          vg(ijk)  = bv(1)
+          vs(ijk,1)= bv(2)
+          vs(ijk,2)= bv(3)
+!
+      END IF
+!
+      aw(1,1)  = awt(1)  + ( drgpt + dzpdp * rgpijk )
+      aw(2,1)  = awt(2)
+      aw(3,1)  = awt(4)
+      aw(1,2)  = awt(2)
+      aw(2,2)  = awt(3)  + ( drlkt1 + dzpdp * rlk1 )
+      aw(3,2)  = awt(5)
+      aw(1,3)  = awt(4)
+      aw(2,3)  = awt(5)
+      aw(3,3)  = awt(6)  + ( drlkt2 + dzpdp * rlk2 )
+
+      bw(1) = ( dept   + dzpdp * epijk )
+      bw(2) = ( drlkt1 + dzpdp * rlk1 ) * inrl(1)
+      bw(3) = ( drlkt2 + dzpdp * rlk2 ) * inrl(2)
+      dpijk  = ( pijk - pt ) * indzp * twodt
+      bw(1)  = rwg(ijk)    + bw(1) * dpijk
+      bw(2)  = rws(ijk,1)  + bw(2) * dpijk
+      bw(3)  = rws(ijk,2)  + bw(3) * dpijk
+
+      IF ( flkp ) THEN
+
+          IF(aw(2,2) < rlim) THEN
+
+              aw(1,1)=aw(1,1)+aw(2,1)
+              aw(2,1)=0.D0
+              aw(1,2)=0.D0
+
+              aw(2,2)=0.D0
+
+              aw(3,3)=aw(3,3)+aw(2,3)
+              aw(2,3)=0.D0
+              aw(3,2)=0.D0
+
+              bw(2)=0.D0
+
+          END IF
+
+          IF(aw(3,3) < rlim) THEN
+
+              aw(1,1)=aw(1,1)+aw(3,1)
+              aw(3,1)=0.D0
+              aw(1,3)=0.D0
+
+              aw(2,2)=aw(2,2)+aw(3,2)
+              aw(3,2)=0.D0
+              aw(2,3)=0.D0
+
+              aw(3,3)=0.D0
+
+              bw(3)=0.D0
+
+          END IF
+
+          IF(aw(1,1) /= 0.D0) THEN 
+
+            div=1.D0/aw(1,1)
+            aw(1,2)=aw(1,2)*div
+            aw(1,3)=aw(1,3)*div
+            bw(1)=bw(1)*div
+            aw(1,1)=0.D0
+            !li=2
+              amul=aw(2,1)
+              aw(2,2)=aw(2,2)-amul*aw(1,2)
+              aw(2,3)=aw(2,3)-amul*aw(1,3)
+              bw(2)=bw(2)-amul*bw(1)
+            !li=3
+              amul=aw(3,1)
+              aw(3,2)=aw(3,2)-amul*aw(1,2)
+              aw(3,3)=aw(3,3)-amul*aw(1,3)
+              bw(3)=bw(3)-amul*bw(1)
+
+          END IF
+
+          IF(aw(2,2) /= 0.D0) THEN 
+
+            div=1.D0/aw(2,2)
+            aw(2,3)=aw(2,3)*div
+            bw(2)=bw(2)*div
+            aw(2,2)=0.D0
+            !li=1
+              amul=aw(1,2)
+              aw(1,3)=aw(1,3)-amul*aw(2,3)
+              bw(1)=bw(1)-amul*bw(2)
+            !li=3
+              amul=aw(3,2)
+              aw(3,3)=aw(3,3)-amul*aw(2,3)
+              bw(3)=bw(3)-amul*bw(2)
+
+          END IF
+
+          IF(aw(3,3) /= 0.D0) THEN 
+
+            div=1.D0/aw(3,3)
+            bw(3)  = bw(3)*div
+            aw(3,3)=0.D0
+            !li=1
+              amul=aw(1,3)
+              bw(1)=bw(1)-amul*bw(3)
+            !li=2
+              amul=aw(2,3)
+              bw(2)=bw(2)-amul*bw(3)
+
+          END IF
+!
+        wg(ijk)   = bw(1)
+        ws(ijk,1) = bw(2)
+        ws(ijk,2) = bw(3)
+!
+      END IF
+!
       RETURN
-      END SUBROUTINE mats_3phase
+      END SUBROUTINE matsvels_3phase
+
+
 !------------------------------------------------------------------------
       END MODULE phases_matrix
 !------------------------------------------------------------------------

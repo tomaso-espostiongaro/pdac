@@ -12,6 +12,7 @@
       USE flux_limiters, ONLY: muscl, limiters
 
       IMPLICIT NONE
+      SAVE
 !
       REAL*8, PRIVATE :: cs                      ! convective stream   !
       REAL*8, PRIVATE :: cn                      ! Courant number      !
@@ -29,13 +30,13 @@
         MODULE PROCEDURE fmas_2d, fmas_3d
       END INTERFACE
       INTERFACE masf
-        MODULE PROCEDURE masf_2d, masf_3d
+        MODULE PROCEDURE masf_2d, masf_3d, masf_3d_new
       END INTERFACE
-      SAVE
+
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE masf_3d(fe, fn, ft, fw, fs, fb, dens, u, v, w, ijk)
+      SUBROUTINE masf_3d( fe, fn, ft, fw, fs, fb, dens, u, v, w )
 !
 ! ... This routine computes convective mass fluxes by using
 ! ... Donor Cell technique for first order upwind
@@ -46,7 +47,6 @@
 !
       REAL*8, INTENT(OUT) :: fe, fn, ft, fw, fs, fb
       TYPE(stencil), INTENT(IN) :: u, v, w, dens
-      INTEGER, INTENT(IN) :: ijk
 !
 ! ... West, South and Bottom fluxes
 !
@@ -59,7 +59,7 @@
       IF (v%s >= 0.D0) THEN
         fs = v%s * dens%s
       ELSE
-        fb = v%s * dens%c
+        fs = v%s * dens%c     !  errore trovato 26/10/2003
       ENDIF
 
       IF (w%b >= 0.D0) THEN
@@ -87,11 +87,158 @@
       ELSE
         ft = w%c * dens%t
       ENDIF
+
+      upc_e = 0.0d0
+      upc_n = 0.0d0 
+      upc_t = 0.0d0
+      upc_w = 0.0d0
+      upc_s = 0.0d0
+      upc_b = 0.0d0
 !
       RETURN
       END SUBROUTINE masf_3d
+
 !----------------------------------------------------------------------
-      SUBROUTINE fmas_3d(fe, fn, ft, fw, fs, fb, dens, u, v, w, ijk)
+
+      SUBROUTINE masf_3d_new(fe, fn, ft, fw, fs, fb, dens, u, v, w, i, j, k, ijk)
+!
+! ... This routine computes convective mass fluxes by using
+! ... Donor Cell technique for first order upwind
+! ... This subroutine only if muscl == 0
+
+      USE dimensions
+      USE domain_decomposition, ONLY: myijk
+      USE grid, ONLY: dx, dy, dz, fl_l
+      USE indijk_module, ONLY: ip0_jp0_kp0_
+      USE set_indexes, ONLY: stencil
+      USE time_parameters, ONLY: dt
+      IMPLICIT NONE
+!
+      REAL*8, INTENT(OUT) :: fe, fn, ft, fw, fs, fb
+      TYPE(stencil), INTENT(IN) :: dens, u, v, w
+      INTEGER, INTENT(IN) :: i, j, k, ijk
+!
+      INTEGER, SAVE :: ijk_old = -1
+      REAL*8, SAVE :: indxp, indxm
+      REAL*8, SAVE :: indyp, indym
+      REAL*8, SAVE :: indzp, indzm
+!
+      IF( ijk /= ijk_old ) THEN
+!
+         indxm=1.D0/(dx(i)+dx(i-1))
+         indxp=1.D0/(dx(i)+dx(i+1))
+         indym=1.D0/(dy(j)+dy(j-1))
+         indyp=1.D0/(dy(j)+dy(j+1))
+         indzm=1.D0/(dz(k)+dz(k-1))
+         indzp=1.D0/(dz(k)+dz(k+1))
+     
+         ijk_old = ijk
+      END IF
+!
+! ... MUSCL reconstruction of fields
+!
+! ... on West volume boundary
+!
+      cs = u%w
+      IF (cs >= 0.D0) THEN
+        fou  = dens%w 
+      ELSE IF (cs < 0.D0) THEN
+        fou  = dens%c 
+      ENDIF
+!
+      upwnd = fou 
+!
+      centrd = ( dx(i) * dens%w + dx(i-1) * dens%c ) * indxm
+      upc_w = upwnd / centrd
+!
+      fw = upwnd * cs
+!
+! ... on East volume boundary
+!
+      cs = u%c
+      IF (cs >= 0.D0) THEN
+        fou  = dens%c 
+      ELSE IF (cs < 0.D0) THEN
+        fou  = dens%e 
+      ENDIF
+!
+      upwnd = fou 
+!
+      centrd = ( dx(i) * dens%e + dx(i+1) * dens%c ) * indxp
+      upc_e = upwnd / centrd
+!
+      fe = upwnd * cs
+!
+! ... on South volume boundary
+!
+!
+      cs = v%s
+      IF (cs >= 0.D0) THEN
+        fou  = dens%s 
+      ELSE IF (cs < 0.D0) THEN
+        fou  = dens%c 
+      ENDIF
+!
+      upwnd = fou
+!
+      centrd = ( dy(j) * dens%s + dy(j-1) * dens%c ) * indym
+      upc_s = upwnd / centrd
+!
+      fs = upwnd * cs
+!
+! ... on North volume boundary
+!
+      cs = v%c
+      IF (cs >= 0.D0) THEN
+        fou  = dens%c 
+      ELSE IF (cs < 0.D0) THEN
+        fou  = dens%n 
+      ENDIF
+!
+      upwnd = fou 
+!
+      centrd = ( dy(j) * dens%n + dy(j+1) * dens%c ) * indyp
+      upc_n = upwnd / centrd
+!
+      fn = upwnd * cs
+!
+! ... on Bottom volume boundary
+!
+      cs = w%b
+      IF (cs >= 0.D0) THEN
+        fou  = dens%b 
+      ELSE IF (cs < 0.D0) THEN
+        fou  = dens%c 
+      ENDIF
+!
+      upwnd = fou
+!
+      centrd = ( dz(k) * dens%b + dz(k-1) * dens%c ) * indzm
+      upc_b = upwnd / centrd
+!
+      fb = upwnd * cs
+!
+! ... on Top volume boundary
+!
+      cs = w%c
+      IF (cs >= 0.D0) THEN
+        fou  = dens%c 
+      ELSE IF (cs < 0.D0) THEN
+        fou  = dens%t 
+      ENDIF
+!
+      upwnd = fou
+!
+      centrd = ( dz(k) * dens%t + dz(k+1) * dens%c ) * indzp
+      upc_t = upwnd / centrd
+!
+      ft = upwnd * cs
+!
+      RETURN
+      END SUBROUTINE masf_3d_new
+
+
+      SUBROUTINE fmas_3d(fe, fn, ft, fw, fs, fb, dens, u, v, w, i, j, k, ijk)
 !
       USE dimensions
       USE domain_decomposition, ONLY: myijk
@@ -103,44 +250,44 @@
 !
       REAL*8, INTENT(OUT) :: fe, fn, ft, fw, fs, fb
       TYPE(stencil), INTENT(IN) :: dens, u, v, w
-      INTEGER, INTENT(IN) :: ijk
+      INTEGER, INTENT(IN) :: i, j, k, ijk
 !
-      INTEGER :: i,j,k,imesh
-      REAL*8 :: dxmm, dxm, dxp, dxpp, indxpp, indxp, indxm, indxmm
-      REAL*8 :: dymm, dym, dyp, dypp, indypp, indyp, indym, indymm
-      REAL*8 :: dzmm, dzm, dzp, dzpp, indzpp, indzp, indzm, indzmm
-      REAL*8 :: gradc, grade, gradw, gradn, grads, gradt, gradb
+      INTEGER, SAVE :: ijk_old = -1
+      REAL*8, SAVE :: dxmm, dxm, dxp, dxpp, indxpp, indxp, indxm, indxmm
+      REAL*8, SAVE :: dymm, dym, dyp, dypp, indypp, indyp, indym, indymm
+      REAL*8, SAVE :: dzmm, dzm, dzp, dzpp, indzpp, indzp, indzm, indzmm
+      REAL*8, SAVE :: gradc, grade, gradw, gradn, grads, gradt, gradb
 !
-      imesh = myijk( ip0_jp0_kp0_, ijk)
-      i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
-      j = MOD( imesh - 1, nx*ny ) / nx + 1
-      k = ( imesh - 1 ) / ( nx*ny ) + 1
+      IF( ijk /= ijk_old ) THEN
 !
-      dxmm=dx(i-1)+dx(i-2)
-      dxm=dx(i)+dx(i-1)
-      dxp=dx(i)+dx(i+1)
-      dxpp=dx(i+1)+dx(i+2)
-      dymm=dy(j-1)+dy(j-2)
-      dym=dy(j)+dy(j-1)
-      dyp=dy(j)+dy(j+1)
-      dypp=dy(j+1)+dy(j+2)
-      dzmm=dz(k-1)+dz(k-2)
-      dzm=dz(k)+dz(k-1)
-      dzp=dz(k)+dz(k+1)
-      dzpp=dz(k+1)+dz(k+2)
+         dxmm=dx(i-1)+dx(i-2)
+         dxm=dx(i)+dx(i-1)
+         dxp=dx(i)+dx(i+1)
+         dxpp=dx(i+1)+dx(i+2)
+         dymm=dy(j-1)+dy(j-2)
+         dym=dy(j)+dy(j-1)
+         dyp=dy(j)+dy(j+1)
+         dypp=dy(j+1)+dy(j+2)
+         dzmm=dz(k-1)+dz(k-2)
+         dzm=dz(k)+dz(k-1)
+         dzp=dz(k)+dz(k+1)
+         dzpp=dz(k+1)+dz(k+2)
 
-      indxmm=1.D0/dxmm
-      indxm=1.D0/dxm
-      indxp=1.D0/dxp
-      indxpp=1.D0/dxpp
-      indymm=1.D0/dymm
-      indym=1.D0/dym
-      indyp=1.D0/dyp
-      indypp=1.D0/dypp
-      indzmm=1.D0/dzmm
-      indzm=1.D0/dzm
-      indzp=1.D0/dzp
-      indzpp=1.D0/dzpp
+         indxmm=1.D0/dxmm
+         indxm=1.D0/dxm
+         indxp=1.D0/dxp
+         indxpp=1.D0/dxpp
+         indymm=1.D0/dymm
+         indym=1.D0/dym
+         indyp=1.D0/dyp
+         indypp=1.D0/dypp
+         indzmm=1.D0/dzmm
+         indzm=1.D0/dzm
+         indzp=1.D0/dzp
+         indzpp=1.D0/dzpp
+     
+         ijk_old = ijk
+      END IF
 !
 ! ... MUSCL reconstruction of fields
 !
@@ -171,7 +318,7 @@
 !
       upwnd = fou + lim * gradc * incr
 !
-      centrd = (dx(i)*dens%w+dx(i-1)*dens%c)*indxm
+      centrd = ( dx(i) * dens%w + dx(i-1) * dens%c ) * indxm
       upc_w = upwnd / centrd
 !
       fw = upwnd * cs
@@ -203,7 +350,7 @@
 !
       upwnd = fou + lim * gradc * incr
 !
-      centrd = (dx(i)*dens%e+dx(i+1)*dens%c)*indxp
+      centrd = ( dx(i) * dens%e + dx(i+1) * dens%c ) * indxp
       upc_e = upwnd / centrd
 !
       fe = upwnd * cs
@@ -235,7 +382,7 @@
 !
       upwnd = fou + lim * gradc * incr
 !
-      centrd = (dy(j)*dens%s+dy(j-1)*dens%c)*indym
+      centrd = ( dy(j) * dens%s + dy(j-1) * dens%c ) * indym
       upc_s = upwnd / centrd
 !
       fs = upwnd * cs
@@ -267,7 +414,7 @@
 !
       upwnd = fou + lim * gradc * incr
 !
-      centrd = (dy(j)*dens%n+dy(j+1)*dens%c)*indyp
+      centrd = ( dy(j) * dens%n + dy(j+1) * dens%c ) * indyp
       upc_n = upwnd / centrd
 !
       fn = upwnd * cs
@@ -299,7 +446,7 @@
 !
       upwnd = fou + lim * gradc * incr
 !
-      centrd = (dz(k)*dens%b+dz(k-1)*dens%c)*indzm
+      centrd = ( dz(k) * dens%b + dz(k-1) * dens%c ) * indzm
       upc_b = upwnd / centrd
 !
       fb = upwnd * cs
@@ -331,14 +478,16 @@
 !
       upwnd = fou + lim * gradc * incr
 !
-      centrd = (dz(k)*dens%t+dz(k+1)*dens%c)*indzp
+      centrd = ( dz(k) * dens%t + dz(k+1) * dens%c ) * indzp
       upc_t = upwnd / centrd
 !
       ft = upwnd * cs
 !
       RETURN
       END SUBROUTINE fmas_3d
+
 !-----------------------------------------------------------------------
+
       SUBROUTINE masf_2d(fe, ft, fw, fb, dens, u, w, ij)
 !
 ! ... This routine computes convective mass fluxes by using

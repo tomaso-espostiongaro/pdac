@@ -1516,32 +1516,32 @@
           ALLOCATE( rcvbuf( MAX(rcv_map(isour)%nrcv,1) ) )
           ALLOCATE( sndbuf( MAX(snd_map(idest)%nsnd,1) ) )
 
-          !IF( rcv_map(isour)%nrcv > 0 ) THEN
-          !  CALL irecv_real( rcvbuf, rcv_map(isour)%nrcv, isour, ip, irhand )
-          !END IF
+          IF( rcv_map(isour)%nrcv > 0 ) THEN
+            CALL irecv_real( rcvbuf, rcv_map(isour)%nrcv, isour, ip, irhand )
+          END IF
 
           DO ib = 1, snd_map(idest)%nsnd
             sndbuf(ib) = array( snd_map(idest)%iloc(ib) )
           END DO 
 
-          !IF( snd_map(idest)%nsnd > 0 ) THEN
-          !  CALL isend_real( sndbuf(1), snd_map(idest)%nsnd, idest, ip, ishand )
-          !END IF
+          IF( snd_map(idest)%nsnd > 0 ) THEN
+            CALL isend_real( sndbuf(1), snd_map(idest)%nsnd, idest, ip, ishand )
+          END IF
 
-          CALL sendrecv_real(sndbuf(1), snd_map(idest)%nsnd, idest,  &
-             rcvbuf, rcv_map(isour)%nrcv, isour, ip)
+          !CALL sendrecv_real(sndbuf(1), snd_map(idest)%nsnd, idest,  &
+          !   rcvbuf, rcv_map(isour)%nrcv, isour, ip)
 
-          !IF( rcv_map(isour)%nrcv > 0 ) THEN
-          !  CALL mp_wait( irhand )
-          !END IF
+          IF( rcv_map(isour)%nrcv > 0 ) THEN
+            CALL mp_wait( irhand )
+          END IF
 
           DO ib = 1, rcv_map(isour)%nrcv
             array( rcv_map(isour)%iloc(ib) ) = rcvbuf(ib)
           END DO 
 
-          !IF( snd_map(idest)%nsnd > 0 ) THEN
-          !  CALL mp_wait( ishand )
-          !END IF
+          IF( snd_map(idest)%nsnd > 0 ) THEN
+            CALL mp_wait( ishand )
+          END IF
 
           DEALLOCATE( rcvbuf )
           DEALLOCATE( sndbuf )

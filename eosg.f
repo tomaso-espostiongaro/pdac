@@ -126,7 +126,7 @@
         mg = mg + xg(ig) * gmw(ig)
       END DO
 !
-      rog = p/(rgas*tg)*mg
+      rog = p / ( rgas * tg ) * mg
 !
       RETURN
       END SUBROUTINE thermal_eosg

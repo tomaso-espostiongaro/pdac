@@ -27,22 +27,22 @@
         REAL*8 :: c
         REAL*8 :: e
         REAL*8 :: w
+        REAL*8 :: n
+        REAL*8 :: s
+        REAL*8 :: b
+        REAL*8 :: t
         REAL*8 :: ee
         REAL*8 :: ww
-        REAL*8 :: n
         REAL*8 :: en
         REAL*8 :: wn
-        REAL*8 :: s
         REAL*8 :: es
         REAL*8 :: ws
         REAL*8 :: nn
         REAL*8 :: ss
-        REAL*8 :: t
         REAL*8 :: et
         REAL*8 :: wt
         REAL*8 :: nt
         REAL*8 :: st
-        REAL*8 :: b
         REAL*8 :: eb
         REAL*8 :: wb
         REAL*8 :: nb
