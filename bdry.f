@@ -595,14 +595,14 @@
               wg(n2)   = 0.D0
               ws(n2,:) = 0.D0
                 
-              IF(flag(ipjkm) /= 1) THEN 
+              IF(flag(ipjkm) == 3) THEN 
                 ug(n2)   = -ug(n1)
                 DO is = 1, nsolid
                   IF (rlk(ijk,is) > 0.D0) us(n2,is) = -us(n1,is)
                 END DO
               END IF
 
-              IF(flag(ijpkm) /= 1 .AND. job_type == '3D') THEN
+              IF(flag(ijpkm) == 3 .AND. job_type == '3D') THEN
                 vg(n2)   = -vg(n1)
                 DO is = 1, nsolid
                   IF (rlk(ijk,is) > 0.D0) vs(n2,is) = -vs(n1,is)
