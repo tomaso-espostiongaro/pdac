@@ -602,7 +602,7 @@
 !
       IF (mpime == root) THEN
         OPEN(UNIT=14,FILE='improfile.dat',STATUS='UNKNOWN')
-        WRITE(14,*) dist
+        WRITE(14,fmt='(F9.2)') dist
         CLOSE(14)
       END IF
 !
