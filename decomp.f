@@ -1494,7 +1494,7 @@
       IF (lpr > 1) THEN
         DO ipe = 0, nproc - 1
           WRITE(7,300) nset(ipe), ipe
-          IF ( nset(ipe) > 0 .AND. lpr > 1 ) THEN
+          IF ( nset(ipe) > 0 .AND. lpr > 2) THEN
             WRITE(7,310) rcv_cell_set(ipe)%i(1,:)
           END IF
  300      FORMAT(' # neighbours set SIZE ',i5,' from ',i3)
@@ -1602,7 +1602,7 @@
       IF (lpr > 1) THEN
         DO ipe = 0, nproc - 1
           WRITE(7,100) rcv_map(ipe)%nrcv, ipe
-          IF( rcv_map(ipe)%nrcv > 0 .AND. lpr > 1 ) THEN
+          IF( rcv_map(ipe)%nrcv > 0 .AND. lpr > 2 ) THEN
             WRITE(7,110) rcv_map(ipe)%ircv(:)
             WRITE(7,*) ' ---- '
             WRITE(7,110) rcv_map(ipe)%iloc(:)
@@ -1615,7 +1615,7 @@
       IF (lpr > 1) THEN
         DO ipe = 0, nproc - 1
           WRITE(7,200) snd_map(ipe)%nsnd, ipe
-          IF ( snd_map(ipe)%nsnd > 0 .AND. lpr > 1 ) THEN
+          IF ( snd_map(ipe)%nsnd > 0 .AND. lpr > 2 ) THEN
             WRITE(7,210) snd_map(ipe)%isnd(:)
             WRITE(7,*) ' ---- '
             WRITE(7,210) snd_map(ipe)%iloc(:)
@@ -1625,7 +1625,7 @@
         END DO
       END IF  
 
-      IF (lpr > 2 .AND. job_type == '2D') CALL test_comm
+      IF (lpr > 2) CALL test_comm
 !
 ! ... local flags, local arrays for forcing
 !
@@ -3047,7 +3047,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
 !
       USE control_flags, ONLY: job_type
       USE grid, ONLY: z, zb, flag, dz
-      USE immersed_boundaries, ONLY: immb, bd, vf
+      USE immersed_boundaries, ONLY: bd, vf
       USE immersed_boundaries, ONLY: topo_c, topo_x
       USE immersed_boundaries, ONLY: topo2d_c, topo2d_x, topo2d_y
       USE indijk_module
@@ -3187,7 +3187,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
 !
       USE control_flags, ONLY: job_type, lpr
       USE grid, ONLY: z, zb, flag, dz
-      USE immersed_boundaries, ONLY: immb, bdr, vf
+      USE immersed_boundaries, ONLY: bdr, vf
       USE immersed_boundaries, ONLY: topo_c, topo_x
       USE immersed_boundaries, ONLY: topo2d_c, topo2d_x, topo2d_y
       IMPLICIT NONE

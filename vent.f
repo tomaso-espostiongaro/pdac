@@ -40,7 +40,7 @@
       USE grid, ONLY: x, y, z, fl, xb, yb, zb, dz
       USE grid, ONLY: bottom, iv, jv, kv, grigen
       USE grid, ONLY: center_x, center_y
-      USE volcano_topography, ONLY: itp, dist, vdem, xtop, ytop, ztop2d
+      USE volcano_topography, ONLY: itp, dist, ord2d, vdem, xtop, ytop, ztop2d
       USE parallel, ONLY: mpime, root
 
       IMPLICIT NONE
@@ -48,7 +48,7 @@
       INTEGER :: i, j, k
       INTEGER :: ijk, nv
       INTEGER :: iwest, ieast, jnorth, jsouth
-      INTEGER :: quota
+      INTEGER :: quota, dk
       REAL*8 :: soglia
       
       IF( job_type == '2D') RETURN
@@ -75,14 +75,84 @@
 ! ... in the 'volcano_topography' module.
 !
       IF( itp < 1 ) THEN
+
         DO k= 1, nz
           ijk = iv + (jv-1) * nx + (k-1) * nx * ny
           IF (fl(ijk) == 3) kv = k
         END DO
-      END IF
-      quota = kv
+        quota = kv
+
+      ELSE
 !
-! ... Print the vent coordinates on the standard output
+! ... Modify the topography at the base of the crater to
+! ... flatten the profile around the vent
+!
+        ! ... The crater base radius must include, at least, 
+        ! ... the rectancle containing the vent
+        !
+        IF( base_radius < 2.0D0*radius ) THEN
+                base_radius = 2.0D0*radius
+                WRITE(8,*) 'WARNING! control the crater base!'
+        END IF
+
+        ! ... Reset the 'quota'
+        !
+        quota = kv
+
+        dk = 0
+        DO j = 1, ny
+          DO i = 1, nx
+            IF ( (x(i)-xvent)**2 + (y(j)-yvent)**2 < base_radius**2 ) THEN
+                    dk = MAX(ord2d(i,j)-quota, dk)
+            END IF
+          END DO
+        END DO
+        kv = kv + dk
+        quota = kv
+!
+        DO j = 1, vdem%ny
+          DO i = 1, vdem%nx
+            IF( (xtop(i)-xvent)**2 + (ytop(j)-yvent)**2 < base_radius**2 ) THEN
+              ztop2d(i,j) = zb(quota)
+            END IF
+          END DO
+        END DO
+!
+! ... Write out the new DEM file
+!        OPEN(17,FILE='newdem.dat')
+!        WRITE(17,*) vdem%nx
+!        WRITE(17,*) vdem%ny
+!        WRITE(17,*) vdem%xcorner
+!        WRITE(17,*) vdem%ycorner
+!        WRITE(17,*) vdem%cellsize
+!        WRITE(17,*) vdem%nodata_value
+!        WRITE(17,*) NINT(ztop2d*100.D0)
+!        CLOSE(17)
+!
+        ! ... Re-set the cell flags at the base of the crater 
+        ! ... and the 'dist' array
+        !
+        DO j = 1, ny
+          DO i = 1, nx
+            IF ( (x(i)-xvent)**2 + (y(j)-yvent)**2 < base_radius**2 ) THEN
+              !
+              DO k=1, quota
+                ijk = (k-1) * nx * ny + (j-1) * nx + i
+                fl(ijk) = bottom
+                dist(ijk) = z(k) - zb(quota)
+              END DO
+              DO k= quota+1, nz-1
+                ijk = (k-1) * nx * ny + (j-1) * nx + i
+                fl(ijk) = 1
+                dist(ijk) = z(k) - zb(quota)
+              END DO
+            END IF
+          END DO
+        END DO
+!
+      END IF
+!
+! ... Print out the vent coordinates on the standard output
 !
       IF( lpr > 0 .AND. mpime == root ) THEN
         WRITE(6,100) iv, jv, kv
@@ -90,56 +160,6 @@
 100     FORMAT(1X,'vent center: ',3I5)
 200     FORMAT(1X,'vent center coordinates: ',3(F12.2))
       END IF
-!
-! ... Modify the topography at the base of the crater to
-! ... flatten the profile around the vent
-!
-      ! ... The crater base radius must include, at least, 
-      ! ... the rectancle containing the vent
-      !
-      IF( base_radius < 2.0D0*radius ) THEN
-              base_radius = 2.0D0*radius
-              WRITE(8,*) 'WARNING! control the crater base!'
-      END IF
-!      
-      DO j = 1, vdem%ny
-        DO i = 1, vdem%nx
-          IF( (xtop(i)-xvent)**2 + (ytop(j)-yvent)**2 < base_radius**2 ) THEN
-            ztop2d(i,j) = zb(quota)
-          END IF
-        END DO
-      END DO
-!
-! ... Write out the new DEM file
-!      OPEN(17,FILE='newdem.dat')
-!      WRITE(17,*) vdem%nx
-!      WRITE(17,*) vdem%ny
-!      WRITE(17,*) vdem%xcorner
-!      WRITE(17,*) vdem%ycorner
-!      WRITE(17,*) vdem%cellsize
-!      WRITE(17,*) vdem%nodata_value
-!      WRITE(17,*) NINT(ztop2d*100.D0)
-!      CLOSE(17)
-!
-! ... Re-set the cell flags at the base of the crater and the 'dist' array
-!
-      DO j = 1, ny
-        DO i = 1, nx
-          IF ( (x(i)-xvent)**2 + (y(j)-yvent)**2 < base_radius**2 ) THEN
-            !
-            DO k=1, quota
-              ijk = (k-1) * nx * ny + (j-1) * nx + i
-              fl(ijk) = bottom
-              dist(ijk) = z(k) - zb(quota)
-            END DO
-            DO k= quota+1, nz-1
-              ijk = (k-1) * nx * ny + (j-1) * nx + i
-              fl(ijk) = 1
-              dist(ijk) = z(k) - zb(quota)
-            END DO
-          END IF
-        END DO
-      END DO
 !
 ! ... Define the rectangle enclosing the vent.
 ! ... 'nvt' is the number of vent cells
@@ -188,7 +208,6 @@
           DO k = 1, quota - 1
             ijk = i + (j-1) * nx + (k-1) * nx * ny
             fl(ijk) = bottom
-            dist(ijk) = z(k) - zb(quota)
           END DO
 
           ! ... At the vent quota, vent cell flags are set to '8'
@@ -206,7 +225,6 @@
           ELSE
             fl(ijk) = bottom
           END IF
-          dist(ijk) = -0.5D0 * dz(k)
           
           IF (lpr > 0 .AND. mpime == root) &
             WRITE(6,10) nv, ijk, i, j, k, vcell(nv)%frac, fl(ijk)
@@ -218,7 +236,6 @@
           DO k = quota+1, nz-1
             ijk = i + (j-1) * nx + (k-1) * nx * ny
             fl(ijk) = 1
-            dist(ijk) = z(k) - zb(quota)
           END DO
                     
         END DO

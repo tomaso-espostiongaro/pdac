@@ -915,14 +915,21 @@
       USE flux_limiters, ONLY: lv, lm
       USE grid, ONLY: dx, dy, dz, itc
       USE grid, ONLY: iob, zzero, grigen
+      USE immersed_boundaries, ONLY: immb
       USE initial_conditions, ONLY: epsob, tpob, ygcob,   &
      &     ugob, vgob, wgob, upob, vpob, wpob, pob, tgob, epob
       USE particles_constants, ONLY: rl, inrl, kap, cmus, phis, cps, dk
       USE vent_conditions, ONLY: vent_ygc, ivent
+      USE volcano_topography, ONLY: itp
 
       IMPLICIT NONE
 
       INTEGER :: ig, is
+!
+! ... flags compatibility (immersed boundaries are used only with 
+! ... implicit topography
+!
+      IF (itp < 1) immb = 0
 !
 ! ... numeric
 !
