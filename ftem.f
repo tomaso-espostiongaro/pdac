@@ -43,6 +43,7 @@
       REAL*8 :: dpxyz, deltap
       REAL*8 :: indxc, indyc, indzc
       REAL*8 :: ugc, vgc, wgc
+      REAL*8 :: bt1
       INTEGER :: is, is1
       INTEGER :: ijk, i, j, k, imesh
 !
@@ -91,6 +92,7 @@
 !
           at(1,1) = rgp(ijk)
           bt(1)   = siegn(ijk) * rgpn(ijk) + rhg(ijk) + deltap - hrexg
+          bt1     = bt(1)
 
           DO is=1, nsolid
             is1=is+1
@@ -121,13 +123,21 @@
 !
           CALL invdm(at, bt, ijk)
 !
-          !IF (sieg(ijk) <= 0.0) THEN
-          !  WRITE(6,*)'From ftem: sieg prima = ',sieg(ijk)
-          !  sieg(ijk) = bt(1)
-          !  WRITE(6,*)'From ftem:  sieg dopo = ',sieg(ijk)
-          !ELSE
+          IF ( bt(1) <= 0.0) THEN
+            WRITE(6,*)'From ftem: sieg prima = ',sieg(ijk)
+            WRITE(6,*)'From ftem: ', bt1, siegn(ijk), rgpn(ijk)
+            WRITE(6,*)'From ftem: ', rhg(ijk), deltap, hrexg
+            WRITE(6,*)'From ftem: ', ep(ijk), p(ijk), pn(ijk), dpxyz
+            WRITE(6,*)'From ftem: ',indxc , ugc ,  p(ijke),p(ijkw)
+            WRITE(6,*)'From ftem: ',indyc , vgc ,  p(ijkn),p(ijks)
+            WRITE(6,*)'From ftem: ',indzc , wgc ,  p(ijkt),p(ijkb) 
+
             sieg(ijk) = bt(1)
-          !END IF
+            WRITE(6,*)'From ftem:  sieg dopo = ',sieg(ijk)
+          ELSE
+            sieg(ijk) = bt(1)
+          END IF
+
           DO is=1, nsolid
             sies(ijk,is) = bt(is+1)
           END DO

@@ -24,7 +24,7 @@
       USE gas_solid_temperature, ONLY: allocate_temperature
       USE gas_solid_viscosity, ONLY: allocate_viscosity
       USE grid, ONLY: flic, allocate_blbody, allocate_grid
-      USE initial_conditions, ONLY: setup, allocate_setup, npr
+      USE initial_conditions, ONLY: setup, resetup, allocate_setup, npr
       USE input_module, ONLY: input, initc, number_of_block
       USE io_restart, ONLY: taperd, tapewr
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
@@ -171,6 +171,16 @@
       CALL allocate_hcapgs
       CALL allocate_turbo
 !
+! ... Set initial conditions
+!
+      CALL setup
+
+      IF (timing) then
+          s4 = cpclock()
+          call MP_WALLTIME(pt4,mpime)
+      END IF
+
+!
 ! ... Read restart file
 !
       IF(itd == 2) THEN 
@@ -179,14 +189,12 @@
         CALL error('setup','Output recovering not implemented',1)         
       END IF
 
-      IF (timing) then
-          s4 = cpclock()
-          call MP_WALLTIME(pt4,mpime)
-      END IF
 !
-! ... Set initial conditions
+! ... Re-compute initial conditions depending on restart mode
+! ... (i.e. when itd > 2 )
 !
-      CALL setup
+
+      CALL resetup
 
       IF (timing) then
           s5 = cpclock()
@@ -202,14 +210,14 @@
           call MP_WALLTIME(pt6,mpime)
           timtot     = (s6 - s0)/1000.D0
           timprog    = (s6 - s5)/1000.D0
-          timsetup   = (s5 - s4)/1000.D0
-          timres     = (s4 - s3)/1000.D0
+          timres     = (s5 - s4)/1000.D0
+          timsetup   = (s4 - s3)/1000.D0
           timghost   = (s3 - s1)/1000.D0
           timinit    = (s1 - s0)/1000.D0
           mptimtot   = (pt6 - pt0)
           mptimprog  = (pt6 - pt5)          
-          mptimsetup = (pt5 - pt4)          
-          mptimres   = (pt4 - pt3)
+          mptimres   = (pt5 - pt4)          
+          mptimsetup = (pt4 - pt3)
           mptimghost = (pt3 - pt1)         
           mptiminit  = (pt1 - pt0)
          

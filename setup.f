@@ -39,7 +39,9 @@
 
       RETURN
       END SUBROUTINE
+
 !----------------------------------------------------------------------
+
       SUBROUTINE setup
 ! ... Set initial conditions
 ! ... (2D/3D_Compliant and fully parallel)
@@ -188,6 +190,50 @@
 !
       ELSE IF (itd >= 3) THEN 
 
+        CONTINUE
+!
+      END IF
+!
+      RETURN
+      END SUBROUTINE setup
+
+
+
+      SUBROUTINE resetup
+
+! ... Set initial conditions
+! ... (2D/3D_Compliant)
+!
+      USE control_flags, ONLY: job_type
+      USE dimensions
+      USE domain_decomposition, ONLY: ncint
+      USE eos_gas, ONLY: mas, cnvertg, xgc, ygc
+      USE eos_solid, ONLY: cnverts
+      USE gas_constants, ONLY: default_gas
+      USE gas_solid_density, ONLY: rlk
+      USE particles_constants, ONLY: inrl
+      USE pressure_epsilon, ONLY: ep
+      USE time_parameters, ONLY: itd
+
+      IMPLICIT NONE
+!
+      INTEGER :: ijk
+      INTEGER :: ig, is
+!
+      IF (itd <= 1) THEN
+!
+        CONTINUE
+!
+! ... initial conditions already set from RESTART file
+!
+      ELSE IF (itd == 2) THEN 
+!
+        CONTINUE
+!
+! ... set initial conditions from OUTPUT file
+!
+      ELSE IF (itd >= 3) THEN 
+
         DO ijk = 1, ncint
 
           ep(ijk) = 1.D0
@@ -210,8 +256,11 @@
       END IF
 
       RETURN
-      END SUBROUTINE setup
+      END SUBROUTINE resetup
 !----------------------------------------------------------------------
+
+!----------------------------------------------------------------------
+
       SUBROUTINE specified_flow(n)
 
       USE control_flags, ONLY: job_type

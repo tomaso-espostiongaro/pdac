@@ -9,7 +9,7 @@ kinds.o indijk.o input.o io.o iter.o kb07ad.o limiters.o\
 letter.o matrix.o nondim.o outp.o parallel.o particles.o \
 pdac.o press.o prog.o reactions.o roughness.o setup.o \
 subscr.o temp.o tilde.o time.o turbo.o types.o \
-velocity.o visc.o ygas.o \
+velocity.o visc.o ygas.o iotk_module.o \
 $(SYSOBJ) 
 
 PPFOBJS= atmosphere.o bdry.o control.o decomp.o dens.o dimensions.o drag.o \
@@ -19,7 +19,7 @@ kinds.o indijk.o input.o io.o iter.o kb07ad.o limiters.o\
 letter.o matrix.o nondim.o outp.o parallel.o particles.o \
 press.o prog.o reactions.o roughness.o setup.o \
 subscr.o temp.o tilde.o time.o turbo.o types.o \
-velocity.o visc.o ygas.o filter.o pp.o \
+velocity.o visc.o ygas.o filter.o pp.o iotk_module.o \
 $(SYSOBJ) 
 
 pdac.x: $(FOBJS) comm/comm.a

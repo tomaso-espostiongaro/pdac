@@ -2,7 +2,9 @@
    MODULE input_module
 !----------------------------------------------------------------------
 
-      USE dimensions, ONLY: max_nsolid, ngas, nroughx, max_size, max_nblock, max_ngas, nz, nx, ny
+      USE dimensions, ONLY: max_nsolid, ngas, nroughx, max_size, &
+          max_nblock, max_ngas, nz, nx, ny
+      USE iotk_module
 
       REAL*8 :: diameter(max_nsolid)
       REAL*8 :: density(max_nsolid)
@@ -131,10 +133,10 @@
 !
       NAMELIST / numeric / rungekut, beta, muscl, lim_type, inmax, maxout, omega
 !
-      INTEGER :: ig, is
-      INTEGER :: i, j, k, n, m
-      REAL*8 :: grx, gry, grz
+      INTEGER :: i, j, k, n, m, ig, ierr
+      REAL*8, ALLOCATABLE :: grx(:), gry(:), grz(:)
       CHARACTER(LEN=80) :: card
+      CHARACTER(LEN=256) :: attr
       LOGICAL :: tend
 !
 !    Sets default values
@@ -214,13 +216,48 @@
           OPEN( UNIT=iuni_gry, FILE='pdac.gry', STATUS='UNKNOWN')
           OPEN( UNIT=iuni_grz, FILE='pdac.grz', STATUS='UNKNOWN')
           OPEN( UNIT=iuni_fld, FILE='pdac.fld', STATUS='UNKNOWN')
+          WRITE(iuni_nml, * ) '<?xml version="1.0" encoding="UTF-8"?>'
+          CALL iotk_write_begin( iuni_nml, "input" )
         END IF
       END IF
 
       IF(mpime == root) THEN
         READ(iunit, control) 
         IF( which == 'PP' ) THEN
-          WRITE(iuni_nml, control) 
+          ! WRITE(iuni_nml, control) 
+       
+          CALL iotk_write_begin( iuni_nml, "control" )
+            CALL iotk_write_begin( iuni_nml, "run_name" )
+               WRITE( iuni_nml, * ) run_name
+            CALL iotk_write_end( iuni_nml, "run_name" )
+            CALL iotk_write_begin( iuni_nml, "job_type" )
+               WRITE( iuni_nml, * ) job_type
+            CALL iotk_write_end( iuni_nml, "job_type" )
+            CALL iotk_write_begin( iuni_nml, "restart_mode" )
+               WRITE( iuni_nml, * ) restart_mode
+            CALL iotk_write_end( iuni_nml, "restart_mode" )
+            CALL iotk_write_dat( iuni_nml, "time", time )
+            CALL iotk_write_dat( iuni_nml, "tstop", tstop )
+            CALL iotk_write_dat( iuni_nml, "dt", dt )
+            CALL iotk_write_dat( iuni_nml, "lpr", lpr )
+            CALL iotk_write_dat( iuni_nml, "tpr", tpr )
+            CALL iotk_write_dat( iuni_nml, "tdump", tdump )
+            CALL iotk_write_dat( iuni_nml, "nfil", irex )
+            CALL iotk_write_dat( iuni_nml, "gas_viscosity", gas_viscosity )
+            CALL iotk_write_dat( iuni_nml, "part_viscosity", part_viscosity )
+            CALL iotk_write_dat( iuni_nml, "iss", iss )
+            CALL iotk_write_dat( iuni_nml, "iturb", iturb )
+            CALL iotk_write_dat( iuni_nml, "modturbo", modturbo )
+            CALL iotk_write_dat( iuni_nml, "cmut", cmut )
+            CALL iotk_write_dat( iuni_nml, "rlim", rlim )
+            CALL iotk_write_dat( iuni_nml, "gravx", gravx )
+            CALL iotk_write_dat( iuni_nml, "gravz", gravz )
+            CALL iotk_write_dat( iuni_nml, "ngas", ngas )
+            CALL iotk_write_dat( iuni_nml, "default_gas", default_gas )
+            CALL iotk_write_dat( iuni_nml, "formatted_output", formatted_output )
+            CALL iotk_write_dat( iuni_nml, "old_restart", old_restart )
+            CALL iotk_write_dat( iuni_nml, "max_seconds", max_seconds )
+          CALL iotk_write_end( iuni_nml, "control" )
         END IF
       END IF
 !
@@ -248,6 +285,7 @@
       CALL bcast_real(max_seconds,1,root)
       CALL bcast_logical(gas_viscosity,1,root)
       CALL bcast_logical(part_viscosity,1,root)
+      CALL bcast_logical(old_restart,1,root)
 
       SELECT CASE ( TRIM(restart_mode) )
         CASE ('from_scratch', 'default')
@@ -275,7 +313,21 @@
       IF(mpime == root) THEN
         READ(iunit, mesh) 
         IF( which == 'PP' ) THEN
-          WRITE(iuni_nml, mesh) 
+          ! WRITE(iuni_nml, mesh) 
+          CALL iotk_write_begin( iuni_nml, "mesh" )
+            CALL iotk_write_dat( iuni_nml, "nx", nx )
+            CALL iotk_write_dat( iuni_nml, "ny", ny )
+            CALL iotk_write_dat( iuni_nml, "nz", nz )
+            CALL iotk_write_dat( iuni_nml, "itc", itc )
+            CALL iotk_write_dat( iuni_nml, "iuni", iuni )
+            CALL iotk_write_dat( iuni_nml, "dx0", dx0 )
+            CALL iotk_write_dat( iuni_nml, "dy0", dy0 )
+            CALL iotk_write_dat( iuni_nml, "dz0", dz0 )
+            CALL iotk_write_dat( iuni_nml, "origin_x", origin_x )
+            CALL iotk_write_dat( iuni_nml, "origin_y", origin_y )
+            CALL iotk_write_dat( iuni_nml, "origin_z", origin_z )
+            CALL iotk_write_dat( iuni_nml, "mesh_partition", mesh_partition )
+          CALL iotk_write_end( iuni_nml, "mesh" )
         END IF
       END IF
 
@@ -295,7 +347,16 @@
       IF(mpime == root) THEN
         READ(iunit, particles) 
         IF( which == 'PP' ) THEN
-          WRITE(iuni_nml, particles) 
+          ! WRITE(iuni_nml, particles) 
+          CALL iotk_write_begin( iuni_nml, "particles" )
+            CALL iotk_write_dat( iuni_nml, "nsolid", nsolid )
+            CALL iotk_write_dat( iuni_nml, "diameter", diameter )
+            CALL iotk_write_dat( iuni_nml, "density", density )
+            CALL iotk_write_dat( iuni_nml, "sphericity", sphericity )
+            CALL iotk_write_dat( iuni_nml, "viscosity", viscosity )
+            CALL iotk_write_dat( iuni_nml, "specific_heat", specific_heat )
+            CALL iotk_write_dat( iuni_nml, "thermal_conductivity", thermal_conductivity )
+          CALL iotk_write_end( iuni_nml, "particles" )
         END IF
       END IF
 
@@ -314,7 +375,16 @@
       IF(mpime == root) THEN
         READ(iunit, numeric) 
         IF( which == 'PP' ) THEN
-          WRITE(iuni_nml, numeric) 
+          ! WRITE(iuni_nml, numeric) 
+          CALL iotk_write_begin( iuni_nml, "numeric" )
+            CALL iotk_write_dat( iuni_nml, "rungekut", rungekut )
+            CALL iotk_write_dat( iuni_nml, "beta", beta )
+            CALL iotk_write_dat( iuni_nml, "muscl", muscl )
+            CALL iotk_write_dat( iuni_nml, "lim_type", lim_type )
+            CALL iotk_write_dat( iuni_nml, "linmax", inmax )
+            CALL iotk_write_dat( iuni_nml, "maxout", maxout )
+            CALL iotk_write_dat( iuni_nml, "omega", omega )
+          CALL iotk_write_end( iuni_nml, "numeric" )
         END IF
       END IF
 
@@ -329,7 +399,12 @@
       IF( which == 'PP' ) THEN
         IF(mpime == root) THEN
           READ(iunit, pp) 
-          WRITE(iuni_nml, pp) 
+          ! WRITE(iuni_nml, pp) 
+          CALL iotk_write_begin( iuni_nml, "pp" )
+            CALL iotk_write_dat( iuni_nml, "first_out", first_out )
+            CALL iotk_write_dat( iuni_nml, "last_out", last_out )
+            CALL iotk_write_dat( iuni_nml, "incr_out", incr_out )
+          CALL iotk_write_end( iuni_nml, "pp" )
         END IF
         CALL bcast_integer(first_out,1,root)
         CALL bcast_integer(last_out,1,root)
@@ -346,6 +421,13 @@
           END IF
         END DO rough_search
         READ(5,*) zrough%ir, (zrough%r(i),i=1,zrough%ir), zrough%roucha
+        IF( which == 'PP' ) THEN
+          CALL iotk_write_begin( iuni_nml, "roughness" )
+            CALL iotk_write_dat( iuni_nml, "ir", zrough%ir )
+            CALL iotk_write_dat( iuni_nml, "roucha", zrough%roucha )
+            CALL iotk_write_dat( iuni_nml, "r", zrough%r( 1 : zrough%ir ) )
+          CALL iotk_write_end( iuni_nml, "roughness" )
+        END IF
         GOTO 110
  100    tend = .TRUE.
  110    continue
@@ -403,29 +485,30 @@
 
         IF( which == 'PP' ) THEN
 
-          grx = origin_x - delta_x(1)
-          grx = grx + delta_x(1)
-          DO i = 2, nx
-            WRITE( iuni_grx, * ) grx
-            grx = grx + delta_x(i)
+          ALLOCATE( grx( nx - 1 ) )
+          ALLOCATE( gry( ny - 1 ) )
+          ALLOCATE( grz( nz - 1 ) )
+
+          grx( 1 ) = origin_x
+          WRITE( iuni_grx, * ) grx( 1 )
+          DO i = 2, nx - 1
+            grx( i ) = grx( i - 1 ) + delta_x( i )
+            WRITE( iuni_grx, * ) grx( i )
           END DO
-          ! WRITE( iuni_grx, * ) grx
   
-          gry = origin_y - delta_y(1)
-          gry = gry + delta_y(1)
-          DO i = 2, ny
-            WRITE( iuni_gry, * ) gry
-            gry = gry + delta_y(i)
+          gry( 1 ) = origin_y
+          WRITE( iuni_gry, * ) gry( 1 )
+          DO i = 2, ny - 1
+            gry( i ) = gry( i - 1 ) + delta_y( i )
+            WRITE( iuni_gry, * ) gry( i )
           END DO
-          ! WRITE( iuni_gry, * ) gry
   
-          grz = origin_z - delta_z(1)
-          grz = grz + delta_z(1)
-          DO i = 2, nz
-            WRITE( iuni_grz, * ) grz
-            grz = grz + delta_z(i)
+          grz( 1 ) = origin_z
+          WRITE( iuni_grz, * ) grz( 1 )
+          DO i = 2, nz - 1
+            grz( i ) = grz( i - 1 ) + delta_z( i )
+            WRITE( iuni_grz, * ) grz( i )
           END DO
-          ! WRITE( iuni_grz, * ) grz
 
           !WRITE( iuni_fld, fmt = "('# AVS field file')" )
           !WRITE( iuni_fld, fmt = "('ndim=',I3)" ) 3
@@ -440,6 +523,16 @@
           !WRITE( iuni_fld, fmt = "('coord 2 file=pdac.gry, filetype=ascii')" )
           !WRITE( iuni_fld, fmt = "('coord 3 file=pdac.grz, filetype=ascii')" )
 
+          CALL iotk_write_begin( iuni_nml, "mesh" )
+            CALL iotk_write_dat( iuni_nml, "grx", grx )
+            CALL iotk_write_dat( iuni_nml, "gry", gry )
+            CALL iotk_write_dat( iuni_nml, "grz", grz )
+          CALL iotk_write_end( iuni_nml, "mesh" )
+
+          DEALLOCATE( grx )
+          DEALLOCATE( gry )
+          DEALLOCATE( grz )
+
         END IF
 
       END IF
@@ -448,19 +541,23 @@
 !
       npr = 0
       tend = .FALSE.
+
       IF(mpime == root) THEN
+
         fixed_flows_search: DO
-          READ(5,*,END=300) card
+          READ( 5, *, END = 300 ) card
           IF( TRIM(card) == 'FIXED_FLOWS' ) THEN
             EXIT fixed_flows_search
           END IF
         END DO fixed_flows_search
 
         READ(5,*) number_of_block
+
         IF (job_type == '2D') THEN
+
           DO n = 1, number_of_block
-            READ(5,*) block_type(n), block_bounds(1,n), block_bounds(2,n), &
-                                     block_bounds(5,n), block_bounds(6,n)
+            READ(5,*) block_type(n), block_bounds(1,n),  block_bounds(2,n),  &
+                      block_bounds(5,n), block_bounds(6,n)
             IF( block_type(n) == 1 .OR. block_type(n) == 5) THEN
               READ(5,*) fixed_vgas_x(n), fixed_vgas_z(n), fixed_pressure(n), &
                         fixed_gaseps(n), fixed_gastemp(n)
@@ -471,7 +568,9 @@
               CALL read_profile(n)
             ENDIF
           END DO
+
         ELSE IF (job_type == '3D') THEN
+
           DO n = 1, number_of_block
             READ(5,*) block_type(n), block_bounds(1,n), block_bounds(2,n), &
                                      block_bounds(3,n), block_bounds(4,n), &
@@ -484,13 +583,49 @@
               READ(5,*) (fixed_gasconc(ig,n), ig=1, max_ngas )
             ENDIF
           END DO
+
         ELSE
+
           CALL error( ' input # FIXED FLOW ', ' unknown job_type', 1 )
+
+        END IF
+
+        IF( which == 'PP' ) THEN
+          attr = ' '
+          CALL iotk_write_attr( attr, "number_of_block", number_of_block )
+          CALL iotk_write_begin( iuni_nml, "fixed_flows", attr )
+          DO n = 1, number_of_block
+            attr = ' '
+            CALL iotk_write_attr( attr, "id", n )
+            CALL iotk_write_attr( attr, "block_type", block_type(n) )
+            CALL iotk_write_begin( iuni_nml, "block", attr )
+              CALL iotk_write_dat( iuni_nml, "xlo", block_bounds(1,n) )
+              CALL iotk_write_dat( iuni_nml, "xhi", block_bounds(2,n) )
+              CALL iotk_write_dat( iuni_nml, "ylo", block_bounds(3,n) )
+              CALL iotk_write_dat( iuni_nml, "yhi", block_bounds(4,n) )
+              CALL iotk_write_dat( iuni_nml, "zlo", block_bounds(5,n) )
+              CALL iotk_write_dat( iuni_nml, "zhi", block_bounds(6,n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_vgas_x", fixed_vgas_x(n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_vgas_y", fixed_vgas_y(n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_vgas_z", fixed_vgas_z(n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_pressure", fixed_pressure(n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_gaseps", fixed_gaseps(n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_gastemp", fixed_gastemp(n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_gasconc", fixed_gasconc( 1:ngas, n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_vpart_x", fixed_vpart_x( 1:nsolid, n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_vpart_y", fixed_vpart_y( 1:nsolid, n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_vpart_z", fixed_vpart_z( 1:nsolid, n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_parteps", fixed_parteps( 1:nsolid, n) )
+              CALL iotk_write_dat( iuni_nml, "fixed_parttemp", fixed_parttemp( 1:nsolid, n) )
+            CALL iotk_write_end( iuni_nml, "block" )
+          END DO
+          CALL iotk_write_end( iuni_nml, "fixed_flows" )
         END IF
 
         GOTO 310
  300    tend = .TRUE.
- 310    continue
+ 310    CONTINUE
+
       END IF
 !
       CALL bcast_logical(tend, 1, root)
@@ -549,6 +684,22 @@
           CALL error('input # INITIAL_CONDITIONS', 'unknown job_type',1) 
         ENDIF
 
+        IF( which == 'PP' ) THEN
+          CALL iotk_write_begin( iuni_nml, "initial_conditions" )
+            CALL iotk_write_dat( iuni_nml, "initial_vgas_x", initial_vgas_x )
+            CALL iotk_write_dat( iuni_nml, "initial_vgas_y", initial_vgas_y )
+            CALL iotk_write_dat( iuni_nml, "initial_vgas_z", initial_vgas_z )
+            CALL iotk_write_dat( iuni_nml, "initial_pressure", initial_pressure )
+            CALL iotk_write_dat( iuni_nml, "initial_void_fraction", initial_void_fraction )
+            CALL iotk_write_dat( iuni_nml, "max_packing", max_packing )
+            CALL iotk_write_dat( iuni_nml, "initial_temperature", initial_temperature )
+            CALL iotk_write_dat( iuni_nml, "initial_vpart_x", initial_vpart_x )
+            CALL iotk_write_dat( iuni_nml, "initial_vpart_y", initial_vpart_y )
+            CALL iotk_write_dat( iuni_nml, "initial_vpart_z", initial_vpart_z )
+            CALL iotk_write_dat( iuni_nml, "initial_gasconc", initial_gasconc( 1 : ngas ) )
+          CALL iotk_write_end( iuni_nml, "initial_conditions" )
+        END IF
+
         GOTO 410
  400    tend = .TRUE.
  410    continue
@@ -572,6 +723,7 @@
 
       IF( mpime == root ) THEN
         IF( which == 'PP' ) THEN
+          CALL iotk_write_end( iuni_nml, "input" )
           CLOSE( UNIT=iuni_nml )
           CLOSE( UNIT=iuni_fld )
           CLOSE( UNIT=iuni_grx )

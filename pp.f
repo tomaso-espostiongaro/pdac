@@ -30,7 +30,6 @@
       USE initial_conditions, ONLY: allocate_setup, zzero, setc
       USE input_module, ONLY: input, initc, number_of_block
       USE input_module, ONLY: first_out, last_out, incr_out
-      USE io_restart, ONLY: taperd, tapewr
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
      &    mpime, root
       USE particles_constants, ONLY: allocate_part_constants

@@ -154,12 +154,23 @@
       SUBROUTINE taperd
 !
       USE dimensions
+      USE domain_decomposition, ONLY: ncint, meshinds
+      USE eos_gas, ONLY: cnvertg
+      USE eos_solid, ONLY: cnverts
+      USE atmosphere, ONLY: atm
+      USE grid, ONLY: zb, dz
+      USE specific_heat_module, ONLY: hcapg
+      USE gas_constants, ONLY: tzero, hzerog
+
+
       IMPLICIT NONE
 !
-      INTEGER :: i, j, k, ijk, is
+      INTEGER :: i, j, k, ijk, is, imesh
       INTEGER :: nx_, ny_, nz_, nsolid_
-      INTEGER :: ig
+      INTEGER :: ig, info
       LOGICAL :: lform = .FALSE.
+      REAL*8 :: zrif, trif, prif, hc
+      
 
       IF( mpime .EQ. root ) THEN
 
@@ -197,16 +208,46 @@
       IF( nsolid_ /= nsolid ) &
         CALL error(' taperd ',' inconsistent dimension nsolid ', nsolid_ )
 
+      !
+      !  read pressure
+
       p = 0.0d0
       CALL read_array( 9, p, dbl, lform )
+      IF( ANY( p < 0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, p < 0'
+      END IF
       
+      !
+      !  read particle density
+
       rlk = 0.0d0
       DO is = 1, nsolid
         CALL read_array( 9, rlk(:,is), dbl, lform )
       END DO
+      IF( ANY( rlk < 0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, rlk < 0'
+      END IF
+
+      !
+      !  read gas enthalpy
 
       sieg = 0.0d0
+      info = 0
       CALL read_array( 9, sieg, dbl, lform )
+      IF( ANY( sieg < 0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, sieg < 0'
+         info = 1
+      END IF
+      CALL parallel_sum_integer( info, 1 )
+      IF( info /= 0 ) THEN
+         IF( mpime == root ) OPEN( UNIT = 15, FORM = 'FORMATTED', STATUS = 'UNKNOWN' )
+         ! CALL write_array( 15, p, sgl, .TRUE. )
+         IF( mpime == root ) CLOSE( UNIT = 15 )
+      END IF
+         
+
+      !
+      !  read gas velocity
 
       IF (job_type == '2D') THEN
 
@@ -230,10 +271,19 @@
 
       END IF
 
+      !
+      !  read particle enthalpy
+
       sies = 0.0d0
       DO is = 1, nsolid
         CALL read_array( 9, sies(:,is), dbl, lform )
       END DO
+      IF( ANY( sies < 0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, sies < 0'
+      END IF
+
+      !
+      !  read particles velocity
 
       IF (job_type == '2D') THEN
 
@@ -261,49 +311,106 @@
 
       END IF
 
+      !
+      !  read gas components
+
       ygc = 0.0d0
       DO ig = 1, ngas
         CALL read_array( 9, ygc(ig,:), dbl, lform )
       END DO
+      IF( ANY( ygc < 0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, ycg < 0'
+      END IF
 
       rgp = 0.0d0
       CALL read_array( 9, rgp, dbl, lform )
+      IF( ANY( rgp < 0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, rgp < 0'
+      END IF
 
       rog = 0.0d0
       CALL read_array( 9, rog, dbl, lform )
+      IF( ANY( rog < 0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, rog < 0'
+      END IF
 
       ep = 0.0d0
       CALL read_array( 9, ep, dbl, lform )
+      IF( ANY( ep < 0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, ep < 0'
+      END IF
 
       tg = 0.0d0
       CALL read_array( 9, tg, dbl, lform ) 
+      IF( ANY( tg < 0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, tg < 0'
+      END IF
 
       ts = 0.0d0
       DO is = 1, nsolid
         CALL read_array( 9, ts(:,is), dbl, lform )
       END DO
+      IF( ANY( ts < 0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, ts < 0'
+      END IF
 
       rgpgc = 0.0d0
       DO ig = 1, ngas
         CALL read_array( 9, rgpgc(:,ig), dbl, lform )
       END DO
+      IF( ANY( rgpgc < 0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, rgpgc < 0'
+      END IF
 
       xgc = 0.0d0
       DO ig = 1, ngas
         CALL read_array( 9, xgc(ig,:), dbl, lform )
       END DO
+      IF( ANY( xgc < 0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, xgc < 0'
+      END IF
 
       cg = 0.0d0
       CALL read_array( 9, cg, dbl, lform ) 
+      IF( ANY( cg < 0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, cg < 0'
+      END IF
 
       ck = 0.0d0
       DO is = 1, nsolid
         CALL read_array( 9, ck(is,:), dbl, lform )
       END DO
+      IF( ANY( ck < 0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, ck < 0'
+      END IF
 
       cp = 0.0d0
       DO ig = 1, max_ngas
         CALL read_array( 9, cp(ig,:), dbl, lform )
+      END DO
+      IF( ANY( cp < 0 ) ) THEN
+         WRITE(6,*) 'WARNING reading restart, cp < 0'
+      END IF
+
+      ! Repair array (Carlo Debug)
+      DO ijk = 1, ncint
+        IF( tg( ijk ) <= 0.0d0 .OR. sieg( ijk ) <= 0.0d0 .OR. ANY( cp( :, ijk ) <= 0.0d0 ) ) THEN
+          WRITE(6,*) ' P : ', tg(ijk), sieg(ijk), cp(:,ijk)
+          CALL meshinds( ijk, imesh, i, j, k )
+          zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )
+          CALL atm( zrif, prif, trif)
+          p(ijk) = prif
+          tg(ijk) = trif
+          CALL hcapg( cp(:,ijk), tg(ijk))
+          WRITE(6,*) ' I : ', tg(ijk), sieg(ijk), cp(:,ijk)
+          hc = 0.D0
+          DO ig = 1, ngas
+            hc = hc + cp(ig,ijk) * ygc(ig,ijk)
+          END DO
+          cg(ijk) = hc
+          sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
+          WRITE(6,*) ' D : ', tg(ijk), sieg(ijk), cp(:,ijk)
+        END IF
       END DO
 
       IF( mpime .EQ. root ) THEN

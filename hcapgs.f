@@ -39,9 +39,11 @@
 !
       cpc = 0.D0
 
-      t1 = tg
-      t2 = tg**2
-      t3 = tg**3
+      !  Carlo consistency position
+      !
+      t1 = MAX( 0.0d0, tg )
+      t2 = t1*t1
+      t3 = t1*t2
 !
 ! ... molar capacity ( joule/(kelvin mole) )
 !

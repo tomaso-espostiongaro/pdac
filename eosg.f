@@ -187,29 +187,55 @@
       PARAMETER( ratmin = 1.D-8) 
 
       IF ( fl_l(ijk) == 1 ) THEN
+
           tg0   = tg
           sieg0 = sieg
-          DO ii = 1, nlmax
+
+          IF( sieg <= 0.0d0 ) THEN
+            WRITE(6,*) 'WARNING (caloric_eosg) zero or negative enthalpy'
+            WRITE(6,*) ' sieg = ', ijk, sieg
+          END IF
+
+          tgnn = tg
+          CALL hcapg( cpgc(:), tg )
+          cgas0 = 0.D0
+          DO ig = 1, ngas
+            cgas0 = cpgc(ig) * yg(ig) + cgas0
+          END DO
+          cgas  = cgas0
+          tg = tzero + ( sieg - hzerog ) / cgas
+          IF ( DABS( ( tgnn - tg ) / tgnn ) <= ratmin ) GOTO 223
+
+          DO ii = 2, nlmax
             tgnn = tg
             CALL hcapg( cpgc(:), tg )
             hc = 0.D0
             DO ig = 1, ngas
               hc = cpgc(gas_type(ig)) * yg(ig) + hc
             END DO
-            IF (tg == tg0) cgas0 = hc
             cgas = hc
             tg = tzero + ( sieg - hzerog ) / cgas
             IF ( DABS( ( tgnn - tg ) / tgnn ) <= ratmin ) GOTO 223
           END DO
-!**********************************************************************
+
+          !**********************************************************************
+          !  Error report
           WRITE(8,*) 'max number of iteration reached in eosg'
           WRITE(8,*) 'time:', time, 'proc:', mpime, 'cell:', ijk 
           WRITE(8,*) 'temperature:',tg0, 'enthalpy:',sieg0
           WRITE(8,*) 'specific heat:',cgas0
+          WRITE(6,*) 'max number of iteration reached in eosg'
+          WRITE(6,*) 'time:', time, 'proc:', mpime, 'cell:', ijk 
+          WRITE(6,*) 'temperature:',tg0, 'enthalpy:',sieg0
+          WRITE(6,*) 'specific heat:',cgas0
           info = 1
           CALL error( 'eosg', 'max number of iteration reached in eosg', 1)
-!**********************************************************************
   223     CONTINUE
+
+          IF( tg <= 0.0d0 ) THEN
+            WRITE(6,*) 'WARNING (caloric_eosg) zero or negative temperature'
+            WRITE(6,*) ' tg = ', ijk, tg
+          END IF
       END IF
 
       RETURN

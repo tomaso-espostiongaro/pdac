@@ -53,9 +53,10 @@
             CALL meshinds(ijk,imesh,i,j,k)
             !CALL subscr(ijk)
             CALL subscr_bdry(ijk)
-!
-! ***** East boundary conditions ***** !
-!
+
+            ! ***** East boundary conditions ***** !
+            !
+
             n2   = ipjk
 	    n1   = ijk
 	    n0   = imjk
@@ -64,21 +65,21 @@
 
             CASE (2) 
 
-              wg(n2) = wg(n1)
+              wg(n2)   = wg(n1)
               ws(n2,:) = ws(n1,:)
 
 	      IF (job_type == '3D') THEN
-                vg(n2) = vg(n1)
+                vg(n2)   = vg(n1)
                 vs(n2,:) = vs(n1,:)
               END IF
 
             CASE (3)
 
-              wg(n2) = -wg(n1)
+              wg(n2)   = -wg(n1)
               ws(n2,:) = -ws(n1,:)
 
 	      IF (job_type == '3D') THEN
-                vg(n2) = -vg(n1)
+                vg(n2)   = -vg(n1)
                 vs(n2,:) = -vs(n1,:)
               END IF
 
@@ -87,13 +88,13 @@
               d1 = dx(i)
 	      d2 = dx(i+1)
 !
-! ... Compute the normal component of the velocities and scalar fields
+              ! ... Compute the normal component of the velocities and scalar fields
 !
-              CALL inoutflow(ug(n0),ug(n1),ug(n2),              &
-                             us(n0,:),us(n1,:),us(n2,:),d1,d2,gravx,k)
+              CALL inoutflow( ug(n0), ug(n1), ug(n2),              &
+                      us(n0,:), us(n1,:), us(n2,:), d1, d2, gravx, k )
 
 
-! ... Compute tangential components of velocities
+              ! ... Compute tangential components of velocities
 
               IF(fl_l(ipjkp) == 4) THEN
                 wg(n2) = wg(n1)
@@ -110,13 +111,10 @@
 
             END SELECT
 
-        !IF ( i == 2 .AND. j == 2 .AND. k == 59 ) THEN
-        !   WRITE(6,*) ' from boundary 1 '
-        !   WRITE(6,*) ug(n0), ug(n1), ug(n2)
-        !END IF
 !
-! ***** West boundary conditions ***** !
-!
+            ! ***** West boundary conditions ***** !
+            !
+
             n2 = imjk
 	    n1 = ijk
 	    n0 = ipjk
@@ -125,20 +123,20 @@
 
             CASE (2)
 
-              wg(n2)=wg(n1)
-              ws(n2,:)=ws(n1,:)
+              wg(n2)   = wg(n1)
+              ws(n2,:) = ws(n1,:)
 	      IF (job_type == '3D') THEN
-                vg(n2)=vg(n1)
-                vs(n2,:)=vs(n1,:)
+                vg(n2)   = vg(n1)
+                vs(n2,:) = vs(n1,:)
 	      END IF
 
             CASE (3)
 
-              wg(n2)=-wg(n1)
-              ws(n2,:)=-ws(n1,:)
+              wg(n2)   = -wg(n1)
+              ws(n2,:) = -ws(n1,:)
 	      IF (job_type == '3D') THEN
-                vg(n2)=-vg(n1)
-                vs(n2,:)=-vs(n1,:)
+                vg(n2)   = -vg(n1)
+                vs(n2,:) = -vs(n1,:)
 	      END IF
 
             CASE (4)
@@ -146,19 +144,19 @@
               d1 = dx(i)
               d2 = dx(i-1)
 !
-! ... Compute the normal component of the velocities and scalar fields
+              ! ... Compute the normal component of the velocities and scalar fields
 !
-              CALL outinflow(ug(n1),ug(n2),us(n1,:),us(n2,:),d1,d2,k)
+              CALL outinflow( ug(n1), ug(n2), us(n1,:), us(n2,:), d1, d2, k )
 
-! ... Compute tangential components of velocities
+              ! ... Compute tangential components of velocities
 !              
               IF(fl_l(imjkp) == 4) THEN
-                wg(n2) = wg(n1)
-        	ws(n2,:)=ws(n1,:)
+                wg(n2)   = wg(n1)
+        	ws(n2,:) = ws(n1,:)
               END IF
 	      IF (job_type == '3D' .AND. (fl_l(imjpk) == 4)) THEN
-                vg(n2) = vg(n1)
-        	vs(n2,:)=vs(n1,:)
+                vg(n2)   = vg(n1)
+        	vs(n2,:) = vs(n1,:)
 	      END IF
 !              
             CASE DEFAULT
@@ -179,16 +177,16 @@
   
               CASE (2)
   
-                ug(n2) = ug(n1)
+                ug(n2)   = ug(n1)
                 us(n2,:) = us(n1,:)
-                wg(n2) = wg(n1)
+                wg(n2)   = wg(n1)
                 ws(n2,:) = ws(n1,:)
   
               CASE (3)
   
-                ug(n2) = -ug(n1)
+                ug(n2)   = -ug(n1)
                 us(n2,:) = -ws(n1,:)
-                wg(n2) = -wg(n1)
+                wg(n2)   = -wg(n1)
                 ws(n2,:) = -ws(n1,:)
   
               CASE (4)
@@ -198,18 +196,18 @@
 !
 ! ... Compute the normal component of the velocities and scalar fields
 !
-                CALL inoutflow(vg(n0),vg(n1),vg(n2),              &
-                             vs(n0,:),vs( n1,:),vs(n2,:),d1,d2,gravy,k)
+                CALL inoutflow( vg(n0), vg(n1), vg(n2),              &
+                             vs(n0,:), vs( n1,:), vs(n2,:), d1, d2, gravy, k )
 
 ! ... Compute tangential components of velocities
 
                 IF(fl_l(ijpkp) == 4) THEN
-                  wg(n2) = wg(n1)
-        	  ws(n2,:)=ws(n1,:)
+                  wg(n2)   = wg(n1)
+        	  ws(n2,:) = ws(n1,:)
                 END IF
 	        IF(fl_l(ipjpk) == 4) THEN
-                  ug(n2) = ug(n1)
-          	  us(n2,:)=us(n1,:)
+                  ug(n2)   = ug(n1)
+          	  us(n2,:) = us(n1,:)
 	        END IF
 
               CASE DEFAULT
@@ -218,10 +216,6 @@
 
               END SELECT
 
-        !IF ( i == 2 .AND. j == 2 .AND. k == 59 ) THEN
-        !   WRITE(6,*) ' from boundary 2 '
-        !   WRITE(6,*) ug(n0), ug(n1), ug(n2)
-        !END IF
 !
 ! ***** South boundary conditions ***** !
 !
@@ -240,9 +234,9 @@
 
               CASE (3)
 
-                ug(n2) = -ug(n1)
+                ug(n2)   = -ug(n1)
                 us(n2,:) = -us(n1,:)
-                wg(n2) = -wg(n1)
+                wg(n2)   = -wg(n1)
                 ws(n2,:) = -ws(n1,:)
   
               CASE (4)
@@ -252,17 +246,17 @@
 !
 ! ... Compute the normal component of the velocities and scalar fields
 !
-                CALL outinflow(vg(n1),vg(n2),vs(n1,:),vs(n2,:),d1,d2,k)
+                CALL outinflow( vg(n1), vg(n2), vs(n1,:), vs(n2,:), d1, d2, k )
 
 ! ... Compute tangential components of velocities
 !              
                 IF(fl_l(ijmkp) == 4) THEN
-                  wg(n2) = wg(n1)
-        	  ws(n2,:)=ws(n1,:)
+                  wg(n2)   = wg(n1)
+        	  ws(n2,:) = ws(n1,:)
                 END IF
 	        IF(fl_l(ipjmk) == 4) THEN
-                  ug(n2) = ug(n1)
-        	  us(n2,:)=us(n1,:)
+                  ug(n2)   = ug(n1)
+        	  us(n2,:) = us(n1,:)
 	        END IF
 
               CASE DEFAULT
@@ -273,10 +267,6 @@
 
             END IF
 
-        !IF ( i == 2 .AND. j == 2 .AND. k == 59 ) THEN
-        !   WRITE(6,*) ' from boundary 3 '
-        !   WRITE(6,*) ug(n0), ug(n1), ug(n2)
-        !END IF
 !
 ! ***** Top boundary conditions ***** !
 !
@@ -288,19 +278,19 @@
 
             CASE (2)
 
-              ug(n2) = ug(n1)
+              ug(n2)   = ug(n1)
               us(n2,:) = us(n1,:)
 	      IF (job_type == '3D') THEN
-                vg(n2) = vg(n1)
+                vg(n2)   = vg(n1)
                 vs(n2,:) = vs(n1,:)
 	      END IF
 
             CASE (3)
   
-              ug(n2) = -ug(n1)
+              ug(n2)   = -ug(n1)
               us(n2,:) = -us(n1,:)
 	      IF (job_type == '3D') THEN
-                vg(n2) = -vg(n1)
+                vg(n2)   = -vg(n1)
                 vs(n2,:) = -vs(n1,:)
 	      END IF
 
@@ -311,18 +301,18 @@
 !
 ! ... Compute the normal component of the velocities and scalar fields
 !
-              CALL inoutflow(wg(n0),wg(n1),wg(n2),              &
-                             ws(n0,:),ws(n1,:),ws(n2,:),d1,d2,gravz,k)
+              CALL inoutflow( wg(n0), wg(n1), wg(n2),              &
+                             ws(n0,:), ws(n1,:), ws(n2,:), d1, d2, gravz, k )
 
 ! ... Compute tangential components of velocities
 !
               IF(fl_l(ipjkp) == 4) THEN
-	         ug(n2) = ug(n1)
-		 us(n2,:)=us(n1,:)
+	         ug(n2)   = ug(n1)
+		 us(n2,:) = us(n1,:)
 	      END IF
               IF(fl_l(ijpkp) == 4 .AND. job_type == '3D') THEN
-	         vg(n2) = vg(n1)
-		 vs(n2,:)=vs(n1,:)
+	         vg(n2)   = vg(n1)
+		 vs(n2,:) = vs(n1,:)
               END IF
 
             CASE DEFAULT
@@ -342,10 +332,6 @@
               ENDIF
             END IF
 
-        !IF ( i == 2 .AND. j == 2 .AND. k == 59 ) THEN
-        !   WRITE(6,*) ' from boundary 4 '
-        !   WRITE(6,*) ug(n0), ug(n1), ug(n2)
-        !END IF
 !
 ! ***** Bottom boundary conditions ***** !
 !
@@ -365,10 +351,10 @@
 
             CASE (3)
 
-              ug(n2) = -ug(n1)
+              ug(n2)   = -ug(n1)
               us(n2,:) = -us(n1,:)
 	      IF (job_type == '3D') THEN
-                vg(n2) = -vg(n1)
+                vg(n2)   = -vg(n1)
                 vs(n2,:) = -vs(n1,:)
 	      END IF
 
@@ -378,10 +364,6 @@
 
             END SELECT
 
-        !IF ( i == 2 .AND. j == 2 .AND. k == 59 ) THEN
-        !   WRITE(6,*) ' from boundary 5 '
-        !   WRITE(6,*) ug(n0), ug(n1), ug(n2)
-        !END IF
 !
 ! ... Set lower corners velocities
 !
@@ -400,7 +382,11 @@
 !
       RETURN
       END SUBROUTINE boundary
+
+
+
 !----------------------------------------------------------------------
+
       SUBROUTINE inoutflow(umn, ucn, upn, usmn, uscn, uspn, d1, d2, grav, k)
 !
 ! ... This routine computes the free in/outflow conditions in the boundary
@@ -553,7 +539,7 @@
         upnn = upn - ucn*dt*d2inv * (0.D0 - u2n)
         upn = upnn
 !
-        zrif=zb(k)+0.5D0*(dz(1)-dz(k))
+        zrif=zb(k)+0.5D0*(dz(1)-dz(k))  ! DOMANDA perche dz(1)
         CALL atm(zrif,prif,trif)
 
         !rhorif=prif*gmw(6)/(rgas*trif)
@@ -670,21 +656,21 @@
 !
 ! ... definitions
 !
-      dc = (d1+d2)*0.5D0
+      dc    = ( d1 + d2 ) * 0.5D0
       d1inv = 1.0D0 / d1
       d2inv = 1.0D0 / d2
       dcinv = 1.0D0 / dc 
 
-      u1n  = (upn+ucn)*0.5D0
+      u1n  = ( upn + ucn ) * 0.5D0
 
-      t2n  = tg(n2)
-      t1n  = tg(n1)
-      t0n  = tg(n0)
-      tpn  = (t1n + t0n) * 0.5D0
-      tcn  = (t1n + t2n) * 0.5D0
-      epcn = (ep(n1)+ep(n2))*0.5D0
+      t2n  = tg( n2 )
+      t1n  = tg( n1 )
+      t0n  = tg( n0 )
+      tpn  = ( t1n + t0n ) * 0.5D0
+      tcn  = ( t1n + t2n ) * 0.5D0
+      epcn = ( ep( n1 ) + ep( n2 ) ) * 0.5D0
 !
-      u2n = ucn - (upn-ucn)*d1inv * 0.5*d2
+      u2n = ucn - ( upn - ucn ) * d1inv * 0.5 * d2
 !
 ! ... OUTFLOW ...
 
@@ -696,7 +682,7 @@
 ! 
 ! ... Non-reflecting boundary condition
 !
-        ucn = ucn - upn * dt*d1inv * (upn - ucn)
+        ucn = ucn - upn * dt * d1inv * ( upn - ucn )
 !
 ! ... MODIFICAREX3D IF(j.EQ.2) ug(imjmk) = - ug(n2)
 !
@@ -707,9 +693,9 @@
         DO is = 1, nsolid
          eps = rlk(n1,is) * inrl(is) -                                 &
              dt*inrl(is)*d1inv * (uspn(is)*rlk(n0,is) - uscn(is)*rlk(n1,is))
-         epc=epc+eps
+         epc = epc + eps
         END DO
-        ep1nn=1.D0-epc
+        ep1nn = 1.D0 - epc
 !
 ! ... Mixture Density at time (n)dt
         rm2n=0.D0
@@ -784,8 +770,8 @@
 !
         ucn = ucn - upn*dt*d1inv * (u1n - 0.D0)
 
-        zrif = zb(k)+0.5D0*(dz(1)-dz(k))
-        CALL atm(zrif,prif,trif)
+        zrif = zb(k) + 0.5D0 * ( dz(1) - dz(k) )  ! DOMANDA perche√ dz(1)
+        CALL atm( zrif, prif, trif )
         
         !rhorif = prif*gmw(6)/(rgas*trif)
         !cost = prif/(rhorif**gammaair)
@@ -839,7 +825,7 @@
 !
       sieg(n2) = sieg(n1)
       DO is=1,nsolid
-        sies(n2,is)=sies(n1,is)
+        sies(n2,is) = sies(n1,is)
       END DO
 !
       RETURN

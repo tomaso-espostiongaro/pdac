@@ -693,14 +693,14 @@
             CALL first_rnb( w, wg, ijk )
             CALL first_rnb( v, vg, ijk )
 
-            CALL chkstencil( dens, info )
-            IF( info /= 0 ) WRITE(6,*) 'wrong dens at: ', i, j, k
-            CALL chkstencil( u, info )
-            IF( info /= 0 ) WRITE(6,*) 'wrong u at: ', i, j, k
-            CALL chkstencil( v, info )
-            IF( info /= 0 ) WRITE(6,*) 'wrong v at: ', i, j, k
-            CALL chkstencil( w, info )
-            IF( info /= 0 ) WRITE(6,*) 'wrong w at: ', i, j, k
+            ! CALL chkstencil( dens, info )
+            ! IF( info /= 0 ) WRITE(6,*) 'wrong dens at: ', i, j, k
+            ! CALL chkstencil( u, info )
+            ! IF( info /= 0 ) WRITE(6,*) 'wrong u at: ', i, j, k
+            ! CALL chkstencil( v, info )
+            ! IF( info /= 0 ) WRITE(6,*) 'wrong v at: ', i, j, k
+            ! CALL chkstencil( w, info )
+            ! IF( info /= 0 ) WRITE(6,*) 'wrong w at: ', i, j, k
 
             CALL masf( rgfe( ijk  ),  rgfn( ijk  ),  rgft( ijk  ),    &
                        rgfe( imjk ),  rgfn( ijmk ),  rgft( ijkm ),    &
@@ -823,12 +823,12 @@
       resz = ( rgft(ijk) - rgft(ijkm) ) * indz(k)
       IF (job_type == '3D') resy = (rgfn(ijk) - rgfn(ijmk)) * indy(j)
 
-      IF( float_chk( rgfe(ijk) ) /= 0 ) WRITE( 6, * ) 'rgfe ', rgfe(ijk)
-      IF( float_chk( rgft(ijk) ) /= 0 ) WRITE( 6, * ) 'rgft ', rgft(ijk)
-      IF( float_chk( rgfe(imjk) ) /= 0 ) WRITE( 6, * ) 'rgfe m ', rgfe(imjk)
-      IF( float_chk( rgft(ijkm) ) /= 0 ) WRITE( 6, * ) 'rgft m ', rgft(ijkm)
-      IF( float_chk( rgp(ijk) ) /= 0 ) WRITE( 6, * ) 'rgp ', rgp(ijk)
-      IF( float_chk( rgpn(ijk) ) /= 0 ) WRITE( 6, * ) 'rgpn ', rgpn(ijk)
+      ! IF( float_chk( rgfe(ijk) ) /= 0 ) WRITE( 6, * ) 'rgfe ', rgfe(ijk)
+      ! IF( float_chk( rgft(ijk) ) /= 0 ) WRITE( 6, * ) 'rgft ', rgft(ijk)
+      ! IF( float_chk( rgfe(imjk) ) /= 0 ) WRITE( 6, * ) 'rgfe m ', rgfe(imjk)
+      ! IF( float_chk( rgft(ijkm) ) /= 0 ) WRITE( 6, * ) 'rgft m ', rgft(ijkm)
+      ! IF( float_chk( rgp(ijk) ) /= 0 ) WRITE( 6, * ) 'rgp ', rgp(ijk)
+      ! IF( float_chk( rgpn(ijk) ) /= 0 ) WRITE( 6, * ) 'rgpn ', rgpn(ijk)
 !
       res  = rgp(ijk) - rgpn(ijk) + dt * (resx+resy+resz)
 !          - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
