@@ -6,9 +6,9 @@
         MODULE PROCEDURE interp_1d_array, interp_1d_scalar, interp_2d
       END INTERFACE interp
 !
-      INTERFACE filter
-        MODULE PROCEDURE filter_1d, filter_2d
-      END INTERFACE filter
+      INTERFACE median_filter
+        MODULE PROCEDURE median_filter_1d, median_filter_2d
+      END INTERFACE median_filter
 !
       SAVE
 !----------------------------------------------------------------------
@@ -17,18 +17,18 @@
 ! ... Filter out high frequency modes by successively subsampling,
 ! ... averaging and interpolating 
 !
-      SUBROUTINE filter_1d(x1,f1,nsm)
+      SUBROUTINE median_filter_1d(x1,f1,window)
 
       IMPLICIT NONE
       REAL*8, INTENT(INOUT), DIMENSION(:) :: x1, f1
-      INTEGER, INTENT(IN) :: nsm
+      REAL*8, INTENT(IN) :: window
       REAL*8, ALLOCATABLE, DIMENSION(:) :: x2, f2
       INTEGER, ALLOCATABLE :: dummy(:)
-      REAL*8 :: sstep
       INTEGER :: i,j
-      INTEGER :: counter, cnt
+      INTEGER :: counter, cnt, nsm
 
       counter = SIZE(x1)
+      nsm     = (x1(counter)-x1(1))/window + 1
 
       ! ... 'x2' is a uniform subsample of 'x1'
       ! ... 'f2' is an average of 'f1' at 'x2' locations 
@@ -38,16 +38,15 @@
       x2 = 0.D0; f2 = 0.D0
       ! ... Uniformly Subsample and smooth the radial function 
       ! ... of the averaged quota. Smoothing is performed by
-      ! ... averaging on a window of size 'sstep'
+      ! ... averaging on a window of size 'window'
       !
-      sstep = REAL( (x1(counter)-x1(1))/(nsm-1),8 )
       x2(1) = x1(1)
       f2(1) = f1(1)
       DO i = 2, nsm-1
-        x2(i) = x2(i-1) + sstep
+        x2(i) = x2(i-1) + window
         cnt = 0
         jloop: DO j = 1, counter
-          IF (DABS(x1(j)-x2(i)) <= sstep ) THEN
+          IF (DABS(x1(j)-x2(i)) <= window ) THEN
                   f2(i) = f2(i) + f1(j)
                   cnt = cnt + 1
           END IF
@@ -57,33 +56,35 @@
       x2(nsm) = x1(counter)
       f2(nsm) = f1(counter)
 !
-      ! ... Linearly interpolate quotas
+      ! ... Linearly interpolate quotas on the original mesh
       !
       CALL interp_1d_array(x2, f2, x1, f1, dummy)
 
       DEALLOCATE(x2, f2, dummy)
       RETURN
-      END SUBROUTINE filter_1d
+      END SUBROUTINE median_filter_1d
 !----------------------------------------------------------------------
 ! ... Filter out high frequency modes by successively subsampling,
 ! ... averaging and interpolating 
 !
-      SUBROUTINE filter_2d(x1,y1,f1,nsmx,nsmy)
+      SUBROUTINE median_filter_2d(x1,y1,f1,window)
 
       IMPLICIT NONE
       REAL*8, INTENT(INOUT), DIMENSION(:) :: x1, y1
       REAL*8, INTENT(INOUT), DIMENSION(:,:) :: f1
-      INTEGER, INTENT(IN) :: nsmx, nsmy
+      REAL*8, INTENT(IN) :: window
       REAL*8, ALLOCATABLE, DIMENSION(:) :: x2, y2
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: f2
       INTEGER, ALLOCATABLE :: dmx(:), dmy(:)
       INTEGER, ALLOCATABLE :: dcx(:,:), dcy(:,:)
-      REAL*8 :: sstepx, sstepy
+      INTEGER :: nsmx, nsmy
       INTEGER :: i,j,cx,cy,c
       INTEGER :: counterx, countery, cnt
 
       counterx = SIZE(x1)
       countery = SIZE(y1)
+      nsmx     = (x1(counterx)-x1(1))/window + 1
+      nsmy     = (y1(countery)-y1(1))/window + 1
 
       ! ... 'x2' is a uniform subsample of 'x1'
       ! ... 'f2' is an average of 'f1' at 'x2' locations 
@@ -103,22 +104,19 @@
       dcx(:,2) = 0; dcy(:,2) = 0
 
       ! ... Uniformly Subsample and smooth the x-y function 
-      ! ... of the quota. 'sstep' is the size of the cells
+      ! ... of the quota. 'window' is the size of the window
       ! ... used for subsampling
       !
-      sstepx = REAL( (x1(counterx)-x1(1))/(nsmx-1) , 8 )
-      sstepy = REAL( (y1(countery)-y1(1))/(nsmy-1) , 8 )
-
       ! ... Coordinates of the subsampled set
       !
       x2(1) = x1(1)
       y2(1) = y1(1)
       !
       DO i = 2, nsmx-1
-        x2(i) = x2(i-1) + sstepx
+        x2(i) = x2(i-1) + window
       END DO
       DO j = 2, nsmy-1
-        y2(j) = y2(j-1) + sstepy
+        y2(j) = y2(j-1) + window
       END DO
       !
       x2(nsmx) = x1(counterx)
@@ -137,7 +135,7 @@
       DO i = 2, nsmx-1
         cnt = 0
         DO c = 1, counterx
-          IF (DABS(x1(c)-x2(i)) <= sstepx ) THEN
+          IF (DABS(x1(c)-x2(i)) <= window ) THEN
                   f2(i,1) = f2(i,1) + f1(c,1)
                   f2(i,nsmy) = f2(i,nsmy) + f1(c,countery)
                   cnt = cnt + 1
@@ -152,7 +150,7 @@
       DO j = 2, nsmy-1
         cnt = 0
         DO c = 1, countery
-          IF (DABS(y1(c)-y2(j)) <= sstepy ) THEN
+          IF (DABS(y1(c)-y2(j)) <= window ) THEN
                   f2(1,j) = f2(1,j) + f1(1,c)
                   f2(nsmx,j) = f2(nsmx,j) + f1(counterx,c)
                   cnt = cnt + 1
@@ -171,8 +169,8 @@
           cnt = 0
           DO cy = dcy(j,1), dcy(j,2)
             DO cx = dcx(i,1), dcx(i,2)
-              IF (DABS(y1(cy)-y2(j)) <= sstepy   .AND. &
-                  DABS(x1(cx)-x2(i)) <= sstepx ) THEN
+              IF (DABS(y1(cy)-y2(j)) <= window   .AND. &
+                  DABS(x1(cx)-x2(i)) <= window ) THEN
                       f2(i,j) = f2(i,j) + f1(cx,cy)
                       cnt = cnt + 1
               END IF
@@ -182,13 +180,13 @@
         END DO
       END DO
 !
-      ! ... Linearly interpolate quotas
+      ! ... Linearly interpolate quotas on the original mesh
       !
       CALL interp_2d(x2, y2, f2, x1, y1, f1, dmx, dmy)
 
       DEALLOCATE(y2, x2, f2, dmx, dmy)
       RETURN
-      END SUBROUTINE filter_2d
+      END SUBROUTINE median_filter_2d
 !----------------------------------------------------------------------
       SUBROUTINE interp_1d_scalar(x1, f1, x2, f2)
       IMPLICIT NONE

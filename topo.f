@@ -236,14 +236,14 @@
 !
       USE grid, ONLY: domain_x, domain_y, dxmax, dymax, dxmin, dymin
       USE grid, ONLY: center_x, center_y, alpha_x, alpha_y
-      USE array_filters, ONLY: interp, filter
+      USE array_filters, ONLY: interp, median_filter
       IMPLICIT NONE
       INTEGER :: noditopx, noditopy
       INTEGER :: nodidemx, nodidemy
       REAL*8 :: newsizex, newsizey
       REAL*8 :: xll, yll, xur, yur, xul, yul
       INTEGER, ALLOCATABLE :: ntx(:), nty(:)
-      INTEGER :: i,j, sampx, sampy
+      INTEGER :: i,j
 !
       ! ... Crop the topography and compute the number of 
       ! ... DEM elements. Allocate elevation arrays.
@@ -324,9 +324,7 @@
       center_x = xtop(icenter)
       center_y = ytop(jcenter)
 !
-      sampx = nx-1
-      sampy = ny-1
-      CALL filter(xtop,ytop,ztop2d,sampx,sampy)
+      IF (filtersize >= cellsize) CALL median_filter(xtop,ytop,ztop2d,filtersize)
 
       DEALLOCATE(ntx)
       DEALLOCATE(nty)
@@ -339,11 +337,11 @@
 ! ... the digital elevation model (dem) around the specified x/y-center
 !
       SUBROUTINE average_dem
-      USE array_filters, ONLY: filter
+      USE array_filters, ONLY: median_filter
 !
       IMPLICIT NONE
       INTEGER :: i, j, distance, m, l
-      INTEGER :: dms, samp, counter
+      INTEGER :: dms, counter
       REAL*8, ALLOCATABLE :: av_quota(:)
       REAL*8, ALLOCATABLE :: rad_dist(:), rad_quota(:)
       INTEGER, ALLOCATABLE :: nk(:)
@@ -378,7 +376,6 @@
       DO j = 0, dms
         IF (av_quota(j) > 0.D0) counter = counter + 1
       END DO
-      samp = nx
       !
       ! ... 'rad_dist' is the sorted array of the squared distances of mesh point
       ! ... 'rad_quotas' is the array of averaged quotas at 'rad_dist' locations
@@ -395,7 +392,7 @@
         END IF
       END DO
 !      
-      CALL filter(rad_dist, rad_quota, samp)
+      CALL median_filter(rad_dist, rad_quota, filtersize)
 
       DO i = 1, counter
         av_quota(NINT(rad_dist(i))) = rad_quota(i)
