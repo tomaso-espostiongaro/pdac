@@ -66,7 +66,6 @@
       filnam='output.'//lettera(tn)
 
       lform = formatted_output
-
       IF (lform) THEN
         OPEN(UNIT=outpunit, FILE=filnam, STATUS='OLD')
         READ(outpunit,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
@@ -205,12 +204,20 @@
         ! ... Write out fields of interest
         !
         filnam = 'log10epst.'//lettera(tn)
-        OPEN(tempunit,FILE=filnam, STATUS='NEW')
+        IF (lform) THEN
+          OPEN(tempunit,FILE=filnam)
+        ELSE 
+          OPEN(tempunit,FILE=filnam, FORM='UNFORMATTED')
+        END IF
         CALL write_array( tempunit, lepstot, lform )
         CLOSE(tempunit)
         !
         filnam = 'tg.'//lettera(tn)
-        OPEN(tempunit,FILE=filnam, STATUS='NEW')
+        IF (lform) THEN
+          OPEN(tempunit,FILE=filnam)
+        ELSE 
+          OPEN(tempunit,FILE=filnam, FORM='UNFORMATTED')
+        END IF
         CALL write_array( tempunit, tg, lform )
         CLOSE(tempunit)
 
