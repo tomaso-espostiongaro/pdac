@@ -4,7 +4,7 @@
 
       USE blunt_body, ONLY: bluntb, ibl
       USE boundary_conditions, ONLY: boundary
-      USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: job_type, lpr, run
       USE control_flags, ONLY: implicit_enthalpy, implicit_fluxes
       USE dimensions
       USE domain_decomposition, ONLY: ncint, myijk
@@ -131,6 +131,7 @@
 
         ! ... write initial conditions
         IF (sweep == 1) CALL outp
+        IF (.NOT.run) EXIT time_sweep
 !
 ! ... If needed, update gas density (check algorithm)
 !

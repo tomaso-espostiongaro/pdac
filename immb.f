@@ -44,7 +44,9 @@
 !
 ! ... This function gives the increasing number of local forcing points 
       INTEGER, ALLOCATABLE :: numx(:), numy(:), numz(:)
-!           
+!
+      INTEGER :: immb           
+!
       SAVE
 !----------------------------------------------------------------------
       CONTAINS

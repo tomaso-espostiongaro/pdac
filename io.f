@@ -2,7 +2,7 @@
       MODULE io_restart
 !----------------------------------------------------------------------
 
-      USE control_flags, ONLY: job_type, nfil
+      USE control_flags, ONLY: job_type
       USE dimensions
       USE domain_decomposition, ONLY: data_collect, data_distribute, ncint
       USE eos_gas, ONLY: rgpgc, xgc, ygc
@@ -20,6 +20,7 @@
         PRIVATE
 
         LOGICAL :: dump_all = .FALSE.
+        INTEGER :: nfil
 
         REAL*8 :: max_seconds
 
@@ -31,6 +32,7 @@
         PUBLIC :: write_array, read_array
         PUBLIC :: max_seconds
         PUBLIC :: dump_all
+        PUBLIC :: nfil
 
 !----------------------------------------------------------------------
         CONTAINS

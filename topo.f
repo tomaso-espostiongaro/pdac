@@ -49,6 +49,8 @@
       REAL*8, ALLOCATABLE :: xtop(:), ytop(:), ztop(:), ztop2d(:,:)
       INTEGER :: noditop, noditopx, noditopy
 !
+      INTEGER :: itp
+!
       INTERFACE vertical_shift
           MODULE PROCEDURE vertical_shift2d, vertical_shift3d
       END INTERFACE
@@ -518,7 +520,7 @@
 ! ... Interpolate topography on cell centers and write the
 ! ... implicit profile
 !
-      USE control_flags, ONLY: job_type, lpr, immb, itp
+      USE control_flags, ONLY: job_type, lpr
       USE grid, ONLY: x, xb, y, yb, z, zb
 
       IMPLICIT NONE
@@ -621,7 +623,7 @@
 ! ... where forcing is not applied. Values of fields in these cells
 ! ... are set to zero when initialized or kept undefined
 !
-      USE control_flags, ONLY: lpr, job_type, immb
+      USE control_flags, ONLY: lpr, job_type
       USE grid, ONLY: fl, z
       IMPLICIT NONE
 

@@ -8,7 +8,8 @@
         USE grid, ONLY: fl, flag
         USE indijk_module
         USE immersed_boundaries, ONLY: numx, fptx, numy, fpty, numz, fptz
-        USE control_flags, ONLY: lpr, immb, itp
+        USE immersed_boundaries, ONLY: immb
+        USE control_flags, ONLY: lpr
 !
         IMPLICIT NONE
         SAVE
@@ -622,7 +623,6 @@
             ncfl1_lay(layer) = localdim( countfl(1), nby, layer )
             nbl_lay(layer)   = nbx
           END DO
-          WRITE(*,*) SUM(ncfl1_lay(:)), countfl(1)
 
         ELSE IF (rest > 0) THEN
 
@@ -1143,9 +1143,10 @@ set_numx: IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
             ijkl = cell_g2l(ijk,mpime)
             IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
                 j==1 .OR. j==ny) THEN
-              CALL error('decomp','forcing on boundaries!',1)
+              WRITE(8,*) 'forcing on boundaries', i, j, k
+            ELSE
             END IF
-            numx(ijkl) = n 
+              numx(ijkl) = n 
           ELSE
             CALL error('decomp','control numx',1)
           END IF set_numx
@@ -1167,9 +1168,10 @@ set_numy:   IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
               ijkl = cell_g2l(ijk,mpime)
               IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
                   j==1 .OR. j==ny) THEN
-                CALL error('decomp','forcing on boundaries!',1)
+                WRITE(8,*) 'forcing on boundaries', i, j, k
+              ELSE
               END IF
-              numy(ijkl) = n 
+                numy(ijkl) = n 
             ELSE
               CALL error('decomp','control numy',1)
             END IF set_numy
@@ -1191,9 +1193,10 @@ set_numz: IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
             ijkl = cell_g2l(ijk,mpime)
             IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
                 j==1 .OR. j==ny) THEN
-              CALL error('decomp','forcing on boundaries!',1)
+              WRITE(8,*) 'forcing on boundaries', i, j, k
+            ELSE
             END IF
-            numz(ijkl) = n 
+              numz(ijkl) = n 
           ELSE
             CALL error('decomp','control numz',1)
           END IF set_numz

@@ -68,7 +68,7 @@
       USE atmospheric_conditions, ONLY: wind_x, wind_y, wind_z, &
           p_ground, t_ground, void_fraction, max_packing
       USE blunt_body, ONLY: ibl, nblu
-      USE control_flags, ONLY: nfil, job_type, lpr, immb, itp
+      USE control_flags, ONLY: job_type, lpr, run
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
       USE domain_decomposition, ONLY: mesh_partition
       USE enthalpy_matrix, ONLY: flim
@@ -86,8 +86,9 @@
       USE initial_conditions, ONLY: density_specified
       USE vent_conditions, ONLY: ivent, u_gas, v_gas, w_gas, p_gas, t_gas, &
           u_solid, v_solid, w_solid,  ep_solid, t_solid, radius
+      USE immersed_boundaries, ONLY: immb
       USE iterative_solver, ONLY: inmax, maxout, omega
-      USE io_restart, ONLY: max_seconds
+      USE io_restart, ONLY: max_seconds, nfil
       USE output_dump, ONLY: formatted_output
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl, kap, &
@@ -99,6 +100,7 @@
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut
       USE turbulence_model, ONLY: iturb, cmut, iss, modturbo
+      USE volcano_topography, ONLY: itp
 !
       IMPLICIT NONE
  
@@ -106,7 +108,7 @@
 
       NAMELIST / control / run_name, job_type, restart_mode,       &
         time, tstop, dt, lpr, tpr, tdump, nfil,                    &
-        formatted_output, max_seconds
+        formatted_output, max_seconds, run
 
       NAMELIST / model / irex, gas_viscosity, part_viscosity,      &
         iss, repulsive_model, iturb, modturbo, cmut, rlim, flim,   &
@@ -158,6 +160,7 @@
       nfil = 0          ! output file index
       formatted_output = .TRUE.
       max_seconds = 20000.0
+      run = .TRUE.
 
 ! ... Model
 
@@ -305,6 +308,7 @@
       CALL bcast_real(tdump,1,root)
       CALL bcast_integer(nfil,1,root)
       CALL bcast_logical(formatted_output,1,root)
+      CALL bcast_logical(run,1,root)
       CALL bcast_real(max_seconds,1,root)
 
       SELECT CASE ( TRIM(restart_mode) )

@@ -1072,9 +1072,10 @@
 ! ... immersed. b=1 if the cell face is external, b=0 if the
 ! ... cell face is inside the topography.
 !
-      USE control_flags, ONLY: itp, immb, job_type
+      USE control_flags, ONLY: job_type
       USE domain_decomposition, ONLY: ncint, meshinds
       USE grid, ONLY: z, zb
+      USE immersed_boundaries, ONLY: immb
       USE immersed_boundaries, ONLY: topo_c, topo_x
       USE immersed_boundaries, ONLY: topo2d_c, topo2d_x, topo2d_y
       IMPLICIT NONE

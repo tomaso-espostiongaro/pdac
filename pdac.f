@@ -15,7 +15,6 @@
 !#endif
       PROGRAM pdac
 
-      USE control_flags, ONLY: itp, immb
       USE blunt_body, ONLY: set_blunt, ibl
       USE dimensions
       USE domain_decomposition, ONLY: partition, ghost
@@ -26,7 +25,7 @@
       USE gas_solid_temperature, ONLY: allocate_temperature
       USE gas_solid_viscosity, ONLY: allocate_viscosity
       USE grid, ONLY: grid_setup, allocate_blbody, allocate_grid
-      USE immersed_boundaries, ONLY: set_forcing
+      USE immersed_boundaries, ONLY: set_forcing, immb
       USE initial_conditions, ONLY: setpar, setup, cnvert, allocate_setup, npr
       USE input_module, ONLY: input, initc, number_of_block
       USE io_restart, ONLY: taperd, tapewr
@@ -41,7 +40,7 @@
      &                            timestart, rungekut
       USE turbulence_model, ONLY: allocate_turbo
       USE vent_conditions, ONLY: ivent, locate_vent
-      USE volcano_topography, ONLY: import_topography, write_profile
+      USE volcano_topography, ONLY: import_topography, write_profile, itp
       USE environment, ONLY: cpclock, timing, elapsed_seconds
 !
       IMPLICIT NONE

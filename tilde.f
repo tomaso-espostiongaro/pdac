@@ -259,7 +259,7 @@
       USE dimensions
       USE domain_decomposition, ONLY: meshinds
       USE domain_decomposition, ONLY: ncint, myijk, ncdom, data_exchange
-      USE control_flags, ONLY: job_type, immb
+      USE control_flags, ONLY: job_type
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: dx, dy, dz, flag
@@ -273,6 +273,7 @@
       USE gas_solid_viscosity, ONLY: gvisx, gvisy, gvisz, pvisx, pvisy, pvisz
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE immersed_boundaries, ONLY: fptx, fpty, fptz, numx, numy, numz
+      USE immersed_boundaries, ONLY: immb
       USE particles_constants, ONLY: inrl
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm, ijkt, ijke, ijkn
 !

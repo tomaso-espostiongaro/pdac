@@ -24,11 +24,12 @@
 !-----------------------------------------------------------------------
       SUBROUTINE locate_vent
 
-      USE control_flags, ONLY: job_type, itp
+      USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nx, ny, nz
       USE grid, ONLY: x, y, z, fl, xb, yb, zb
       USE grid, ONLY: bottom, iv, jv, kv, grigen
       USE grid, ONLY: center_x, center_y
+      USE volcano_topography, ONLY: itp
 
       IMPLICIT NONE
       

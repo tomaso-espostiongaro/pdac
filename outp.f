@@ -2,7 +2,7 @@
       MODULE output_dump
 !----------------------------------------------------------------------
       USE kinds
-      USE control_flags, ONLY: nfil
+      USE io_restart, ONLY: nfil
 
       IMPLICIT NONE
       SAVE

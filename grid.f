@@ -525,8 +525,6 @@
          ENDIF
          IF ( demin*beta1**m1 > demax ) THEN
 
-            WRITE(6,*) m1, demin*beta1**m1
-
             IF ( (m1==0) .OR. ( beta1 > maxbeta ) ) THEN
                WRITE(7,*) 'WARNING!!: beta >= maximum beta!'
                maxn = .FALSE.
