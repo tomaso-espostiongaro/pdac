@@ -145,13 +145,8 @@
 !
 ! ... In 3D use optimized routines with two particle classes
 !
-      IF( (nsolid == 2) .AND. (job_type == '3D') .AND. (immb < 1) ) THEN
-        optimization = 3
-      ELSE IF( immb >= 1) THEN
-        optimization = 1
-      ELSE IF (job_type == '2D') THEN
-        optimization = 1
-      END IF
+      IF( ((nsolid /= 2) .OR. (job_type == '2D')) .AND. (optimization >= 3) ) &
+        optimization = 2
 
       IF( optimization == 3 ) THEN
         ALLOCATE( amats( 6, 6, ncint ) )
@@ -462,7 +457,6 @@
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE control_flags, ONLY: job_type
-      USE time_parameters, ONLY: dt
 
       IMPLICIT NONE
 
@@ -1267,15 +1261,15 @@
 
             END IF
 
-            rlkx = ( rsfe_(is) - rsfw_(is) ) * indx(i) * inr(i)
-            rlkz = ( rsft_(is) - rsfb_(is) ) * indz(k)
+            rlkx = ( b_e * rsfe_(is) - b_w * rsfw_(is) ) * indx(i) * inr(i)
+            rlkz = ( b_t * rsft_(is) - b_b * rsfb_(is) ) * indz(k)
             IF (job_type == '3D') THEN
-              rlky = ( rsfn_(is) - rsfs_(is) ) * indy(j)
+              rlky = ( b_n * rsfn_(is) - b_s * rsfs_(is) ) * indy(j)
             ELSE
               rlky = 0.D0
             END IF
 
-            rlk_tmp = rlkn( ijk, is ) - dt * ( rlkx + rlky + rlkz )
+            rlk_tmp = rlkn( ijk, is ) - dt * ivf *  ( rlkx + rlky + rlkz )
             rlk( ijk, is) = MAX( 0.0d0, rlk_tmp )
 
             rls = rls + rlk( ijk, is ) * inrl(is)
@@ -1319,15 +1313,15 @@
 
           END IF
 
-          resx = ( rgfe_ - rgfw_ ) * indx(i) * inr(i)
-          resz = ( rgft_ - rgfb_ ) * indz(k)
+          resx = ( b_e * rgfe_ - b_w * rgfw_ ) * indx(i) * inr(i)
+          resz = ( b_t * rgft_ - b_b * rgfb_ ) * indz(k)
           IF (job_type == '3D') THEN
-            resy = ( rgfn_ - rgfs_ ) * indy(j)
+            resy = ( b_n * rgfn_ - b_s * rgfs_ ) * indy(j)
           ELSE
             resy = 0.D0
           END IF
 
-          dg = rgp(ijk) - rgpn(ijk) + dt * ( resx + resy + resz )
+          dg = rgp(ijk) - rgpn(ijk) + dt * ivf * ( resx + resy + resz )
 !
           IF ( ( DABS(dg) > conv_ ) .OR. ( DABS(dg) >= DABS(dgorig) ) ) THEN
 
@@ -1405,15 +1399,15 @@
         REAL*8 :: resx, resy, resz, mg
         REAL*8 :: rlkx, rlky, rlkz, rls
         REAL*8 :: rsfe1_ , rsfe2_
-        REAL*8 :: rsfem1_ , rsfem2_
+        REAL*8 :: rsfw1_ , rsfw2_
         REAL*8 :: rsft1_ , rsft2_
-        REAL*8 :: rsftm1_ , rsftm2_
+        REAL*8 :: rsfb1_ , rsfb2_
         REAL*8 :: rsfn1_ , rsfn2_
-        REAL*8 :: rsfnm1_ , rsfnm2_
+        REAL*8 :: rsfs1_ , rsfs2_
 
-        REAL*8 :: rgfe_ , rgfem_
-        REAL*8 :: rgft_ , rgftm_
-        REAL*8 :: rgfn_ , rgfnm_
+        REAL*8 :: rgfe_ , rgfw_
+        REAL*8 :: rgft_ , rgfb_
+        REAL*8 :: rgfn_ , rgfs_
 
         TYPE(stencil) :: ug_, vg_, wg_, densg_
         TYPE(stencil) :: u1, v1, w1, dens1
@@ -1428,23 +1422,23 @@
 
         rsfe1_ = rsfe( ijk, 1 )
         rsfe2_ = rsfe( ijk, 2 )
-        rsfem1_ = rsfe( imjk, 1 )
-        rsfem2_ = rsfe( imjk, 2 )
+        rsfw1_ = rsfe( imjk, 1 )
+        rsfw2_ = rsfe( imjk, 2 )
         rsft1_ = rsft( ijk, 1 )
         rsft2_ = rsft( ijk, 2 )
-        rsftm1_ = rsft( ijkm, 1 )
-        rsftm2_ = rsft( ijkm, 2 )
+        rsfb1_ = rsft( ijkm, 1 )
+        rsfb2_ = rsft( ijkm, 2 )
         rsfn1_ = rsfn( ijk, 1 )
         rsfn2_ = rsfn( ijk, 2 )
-        rsfnm1_ = rsfn( ijmk, 1 )
-        rsfnm2_ = rsfn( ijmk, 2 )
+        rsfs1_ = rsfn( ijmk, 1 )
+        rsfs2_ = rsfn( ijmk, 2 )
 
         rgfe_ = rgfe( ijk )
-        rgfem_ = rgfe( imjk )
+        rgfw_ = rgfe( imjk )
         rgft_ = rgft( ijk )
-        rgftm_ = rgft( ijkm )
+        rgfb_ = rgft( ijkm )
         rgfn_ = rgfn( ijk )
-        rgfnm_ = rgfn( ijmk )
+        rgfs_ = rgfn( ijmk )
 
         CALL first_nb(dens1,rlk(:,1),ijk)
         CALL first_nb(dens2,rlk(:,2),ijk)
@@ -1531,33 +1525,33 @@
           ! ... update particle and gas densities and the 
           ! ... gas mass residual 'dg'
 
-          CALL masf( rsfe1_,  rsfn1_,  rsft1_, rsfem1_, rsfnm1_, rsftm1_,   &
+          CALL masf( rsfe1_,  rsfn1_,  rsft1_, rsfw1_, rsfs1_, rsfb1_,   &
                  dens1, u1, v1, w1, ijk)
 
           IF (muscl > 0) THEN
-            CALL fmas( rsfe1_,  rsfn1_,  rsft1_, rsfem1_, rsfnm1_, rsftm1_, &
+            CALL fmas( rsfe1_,  rsfn1_,  rsft1_, rsfw1_, rsfs1_, rsfb1_, &
                  dens1, u1, v1, w1, ijk)
           END IF
 
-          rlkx = ( rsfe1_ - rsfem1_ ) * indx(i) * inr(i)
-          rlky = ( rsfn1_ - rsfnm1_ ) * indy(j)
-          rlkz = ( rsft1_ - rsftm1_ ) * indz(k)
-          rlk( ijk, 1) = rlkn( ijk, 1 ) - dt * ( rlkx + rlky + rlkz )
+          rlkx = ( b_e * rsfe1_ - b_w * rsfw1_ ) * indx(i) * inr(i)
+          rlky = ( b_n * rsfn1_ - b_s * rsfs1_ ) * indy(j)
+          rlkz = ( b_t * rsft1_ - b_b * rsfb1_ ) * indz(k)
+          rlk( ijk, 1) = rlkn( ijk, 1 ) - dt * ivf *  ( rlkx + rlky + rlkz )
           rlk( ijk, 1) = MAX( 0.0d0, rlk(ijk,1) )
           rls = rlk( ijk, 1 ) * inrl(1)
 
-          CALL masf( rsfe2_,  rsfn2_,  rsft2_, rsfem2_, rsfnm2_, rsftm2_,   &
+          CALL masf( rsfe2_,  rsfn2_,  rsft2_, rsfw2_, rsfs2_, rsfb2_,   &
                  dens2, u2, v2, w2, ijk)
 
           IF (muscl > 0) THEN
-            CALL fmas( rsfe2_,  rsfn2_,  rsft2_, rsfem2_, rsfnm2_, rsftm2_, &
+            CALL fmas( rsfe2_,  rsfn2_,  rsft2_, rsfw2_, rsfs2_, rsfb2_, &
                  dens2, u2, v2, w2, ijk)
           END IF
 
-          rlkx = ( rsfe2_ - rsfem2_ ) * indx(i) * inr(i)
-          rlky = ( rsfn2_ - rsfnm2_ ) * indy(j)
-          rlkz = ( rsft2_ - rsftm2_ ) * indz(k)
-          rlk( ijk, 2) = rlkn( ijk, 2 ) - dt * ( rlkx + rlky + rlkz )
+          rlkx = ( b_e * rsfe2_ - b_w * rsfw2_ ) * indx(i) * inr(i)
+          rlky = ( b_n * rsfn2_ - b_s * rsfs2_ ) * indy(j)
+          rlkz = ( b_t * rsft2_ - b_b * rsfb2_ ) * indz(k)
+          rlk( ijk, 2) = rlkn( ijk, 2 ) - dt * ivf * ( rlkx + rlky + rlkz )
           rlk( ijk, 2) = MAX( 0.0d0, rlk(ijk,2) )
           rls = rls + rlk( ijk, 2 ) * inrl(2)
 
@@ -1579,18 +1573,18 @@
 
           ! ... update the particle volumetric fractions and the void fraction
 
-          CALL masf( rgfe_ ,  rgfn_ ,  rgft_ , rgfem_ , rgfnm_ , rgftm_ ,   &
+          CALL masf( rgfe_ ,  rgfn_ ,  rgft_ , rgfw_ , rgfs_ , rgfb_ ,   &
                       densg_, ug_, vg_, wg_, ijk )
 
           IF (muscl > 0) THEN
-            CALL fmas( rgfe_ ,  rgfn_ ,  rgft_ , rgfem_ , rgfnm_ , rgftm_ ,   &
+            CALL fmas( rgfe_ ,  rgfn_ ,  rgft_ , rgfw_ , rgfs_ , rgfb_ ,   &
                       densg_, ug_, vg_, wg_, ijk )
           END IF
 
-          resx = ( rgfe_ - rgfem_ ) * indx(i) * inr(i)
-          resz = ( rgft_ - rgftm_ ) * indz(k)
-          resy = ( rgfn_ - rgfnm_ ) * indy(j)
-          dg = rgp(ijk) - rgpn(ijk) + dt * ( resx + resy + resz )
+          resx = ( b_e * rgfe_ - b_w * rgfw_ ) * indx(i) * inr(i)
+          resz = ( b_t * rgft_ - b_b * rgfb_ ) * indz(k)
+          resy = ( b_n * rgfn_ - b_s * rgfs_ ) * indy(j)
+          dg = rgp(ijk) - rgpn(ijk) + dt * ivf * ( resx + resy + resz )
 !
           IF ( ( DABS(dg) > conv_ ) .OR. ( DABS(dg) >= DABS(dgorig) ) ) THEN
 
@@ -1613,23 +1607,23 @@
 !
         rsfe( ijk, 1 ) = rsfe1_
         rsfe( ijk, 2 ) = rsfe2_
-        rsfe( imjk, 1 ) = rsfem1_
-        rsfe( imjk, 2 ) = rsfem2_
+        rsfe( imjk, 1 ) = rsfw1_
+        rsfe( imjk, 2 ) = rsfw2_
         rsft( ijk, 1 ) = rsft1_
         rsft( ijk, 2 ) = rsft2_
-        rsft( ijkm, 1 ) = rsftm1_
-        rsft( ijkm, 2 ) = rsftm2_
+        rsft( ijkm, 1 ) = rsfb1_
+        rsft( ijkm, 2 ) = rsfb2_
         rsfn( ijk, 1 ) = rsfn1_
         rsfn( ijk, 2 ) = rsfn2_
-        rsfn( ijmk, 1 ) = rsfnm1_
-        rsfn( ijmk, 2 ) = rsfnm2_
+        rsfn( ijmk, 1 ) = rsfs1_
+        rsfn( ijmk, 2 ) = rsfs2_
 
         rgfe( ijk ) = rgfe_
-        rgfe( imjk ) = rgfem_
+        rgfe( imjk ) = rgfw_
         rgft( ijk ) = rgft_
-        rgft( ijkm ) = rgftm_
+        rgft( ijkm ) = rgfb_
         rgfn( ijk ) = rgfn_
-        rgfn( ijmk ) = rgfnm_
+        rgfn( ijmk ) = rgfs_
 
         nloop = nloop + loop
 
