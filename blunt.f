@@ -164,6 +164,8 @@
       IF (mpime == root) CALL print_action
 !
       DEALLOCATE(fdrag, flift)
+
+      CALL myflush( 15 )
 !
       RETURN
       END SUBROUTINE bluntb
