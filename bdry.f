@@ -1329,7 +1329,7 @@
       INTEGER :: i, k, interp
       REAL*8 :: h, grad, nsx, nsz
         
-      i = fpt%k
+      i = fpt%i
       k = fpt%k
       nsx = fpt%nsl%x
       nsz = fpt%nsl%z

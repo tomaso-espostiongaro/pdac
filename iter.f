@@ -1062,6 +1062,7 @@
       ALLOCATE(b_t(ncint))
       ALLOCATE(b_b(ncint))
 
+      ! ... initialize
       b_e = 1; b_w = 1; b_t = 1; b_b = 1
 
       IF (immb >= 1) THEN

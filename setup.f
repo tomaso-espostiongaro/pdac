@@ -503,7 +503,6 @@
 !
 ! set useful constants 
 !
-      !gammaair = 1.33D0                          ! monoatomic gas 
       gammaair = 1.4D0                           ! air adiabatic constant
       gamn     = (gammaair - 1.D0) / gammaair    ! useful constant ! 
       c_joule = 4.186D0                          ! cal per joule
