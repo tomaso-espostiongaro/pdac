@@ -30,9 +30,6 @@
         INTEGER :: int
         TYPE(point) :: nsl
         REAL*8  :: vel
-        REAL*8  :: p
-        REAL*8  :: ul
-        REAL*8  :: wl
       END TYPE forcing_point
 !
       TYPE(forcing_point), ALLOCATABLE :: fptx(:), fpty(:), fptz(:)

@@ -196,8 +196,7 @@
         DO j = vdem%ny, 1, -1
           DO i = 1, vdem%nx
             READ(3,*) elevation
-            !ztop2d(i,j) = DBLE(elevation) / 100.D0
-            ztop2d(i,j) = DBLE(elevation)
+            ztop2d(i,j) = DBLE(elevation) / 100.D0
           END DO
         END DO
       END IF
@@ -261,7 +260,6 @@
         ! ... number of topographic cells
         !
         transl_z = MINVAL(topo)
-        transl_z = 0.D0
 
         IF( mpime == root ) THEN
           WRITE(6,*) 'Translating mesh vertically'
@@ -301,7 +299,6 @@
         ! ... number of topographic cells
         !
         transl_z = MINVAL(topo2d)
-        transl_z = 0.D0
 
         IF( mpime == root ) WRITE(*,*) 'Minimum topographic quota: ', transl_z
 

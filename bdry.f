@@ -82,9 +82,6 @@
               IF( fx/=0 ) THEN
                 vel = velint(fptx(fx), ug, ijk, xb, y, z)  
                 fptx(fx)%vel = vel
-                fptx(fx)%p = p(ijk)
-                fptx(fx)%ul = ug(ijk)
-                fptx(fx)%wl = wg(ijk)
 
                 ! ... Set the pressure in non-resolved forcing points
                 ! ... (zero-gradient)
@@ -104,9 +101,6 @@
               IF( fz/=0 ) THEN
                 vel = velint(fptz(fz), wg, ijk, x, y, zb)  
                 fptz(fz)%vel = vel
-                fptz(fz)%p = p(ijk)
-                fptz(fz)%ul = ug(ijk)
-                fptz(fz)%wl = wg(ijk)
 
                 ! ... Set the pressure in non-resolved forcing points
                 IF( fptz(fz)%int == 17 ) THEN
@@ -123,7 +117,6 @@
               IF( fx/=0 ) THEN
                 vel = velint3d(fptx(fx), ug, ijk, xb, y, z)  
                 fptx(fx)%vel = vel
-                fptx(fx)%p = p(ijk)
 
                 ! ... Set the pressure in non-resolved forcing points
                 IF( fptx(fx)%int == 17 ) THEN
@@ -142,7 +135,6 @@
               IF( fy/=0 ) THEN
                 vel = velint3d(fpty(fy), vg, ijk, x, yb, z)  
                 fpty(fy)%vel = vel
-                fpty(fy)%p = p(ijk)
 
                 ! ... Set the pressure in non-resolved forcing points
                 IF( fpty(fy)%int == 17 ) THEN
@@ -161,7 +153,6 @@
               IF( fz/=0 ) THEN
                 vel = velint3d(fptz(fz), wg, ijk, x, y, zb)  
                 fptz(fz)%vel = vel
-                fptz(fz)%p = p(ijk)
 
                 ! ... Set the pressure in non-resolved forcing points
                 IF( fptz(fz)%int == 17 ) THEN
