@@ -24,10 +24,10 @@
 !-----------------------------------------------------------------------
       SUBROUTINE locate_vent
 
-      USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: job_type, itp
       USE dimensions, ONLY: nx, ny, nz
       USE grid, ONLY: x, y, z, fl, xb, yb, zb
-      USE grid, ONLY: bottom, kv
+      USE grid, ONLY: bottom, iv, jv, kv, grigen
       USE grid, ONLY: center_x, center_y
 
       IMPLICIT NONE
@@ -35,12 +35,14 @@
       INTEGER :: i, j, k
       INTEGER :: ijk, nv
       INTEGER :: iwest, ieast, jnorth, jsouth
-      REAL*8 :: dist2
+      REAL*8 :: quota
       
       IF( job_type == '2D') RETURN
 !
-      xvent = center_x
-      yvent = center_y
+      IF (grigen >= 1) THEN
+        xvent = center_x
+        yvent = center_y
+      END IF
 !
       WRITE(6,*) 'Vent conditions imposed in cells: '
 !
@@ -56,6 +58,20 @@
         IF (yb(j-1) < (yvent+radius)) jnorth = j
       END DO
 !
+! ... define the 'quota' of the volcanic vent
+! ... (considering the topography)
+!
+      IF( itp >= 1 ) THEN
+        quota = kv
+      ELSE
+        iv = (ieast  + iwest ) / 2
+        jv = (jnorth + jsouth) / 2
+        DO k= 1, nz
+          ijk = 1 + (j-1) * nx + (k-1) * nx * ny
+          IF (fl(ijk) == 3) kv = k
+        END DO
+      END IF
+!
       nvt = (ieast-iwest+1)*(jnorth-jsouth+1)
       ALLOCATE(vcell(nvt))
 
@@ -66,14 +82,14 @@
 !
 ! ... topography below the vent 
 !
-          DO k = 1, kv-1
+          DO k = 1, quota - 1
             ijk = i + (j-1) * nx + (k-1) * nx * ny
             fl(ijk) = bottom
           END DO
 !
 ! ... vent cells
 !
-          k = kv
+          k = quota
           ijk = i + (j-1) * nx + (k-1) * nx * ny
           !
           vcell(nv)%imesh = ijk
@@ -89,7 +105,7 @@
 !
 ! ... fluid cells above the vent
 !
-          DO k = kv+1, nz-1
+          DO k = quota+1, nz-1
             ijk = i + (j-1) * nx + (k-1) * nx * ny
             fl(ijk) = 1
           END DO

@@ -47,6 +47,7 @@
                                        ! below the profile
       INTEGER, ALLOCATABLE :: ord2d(:,:)   ! z-coord of grid locations laying
                                            ! below the profile
+      REAL*8,  ALLOCATABLE :: weight(:,:)  ! computational weight of a cell 
 !
 ! ... 'dist' defines implicitly the profile
 !
@@ -247,6 +248,16 @@
       INTEGER :: i, k, ijk, l, n
       REAL*8 :: grad
 !
+! ... The computational weight in 2D is 1 for fluid cells (flag = 1)
+! ... and 0 for all other boundary cells
+!
+      ALLOCATE(weight(nx,nz))
+      weight = 1
+      weight(nx,:) = 0
+      weight(1,:)  = 0
+      weight(:,1)  = 0
+      weight(:,nz) = 0
+!
 ! ... locate the grid points near the topographic points
 ! ... and interpolate linearly the profile  
 !
@@ -292,6 +303,7 @@
       DO i = 1, nx
         DO k = 1, nz
           IF (cz(k) <= topo(i))  ord(i) = k
+          weight(i,k) = 0
         END DO
       END DO
 !
@@ -412,6 +424,8 @@
 
 ! ... Locate cells laying below the topography 'ord2d(i,j)'
 
+        ALLOCATE(weight(nx,ny))
+        weight = 1.D0
 	DO i=1,nx
 	   DO j=1,ny
 	      DO k=1,nz
@@ -421,6 +435,7 @@
 		ENDIF
 
 	      ENDDO
+              weight(i,j) = 1.D0 - REAL(ord2d(i,j) - 1)/nz
 	   ENDDO
 	ENDDO
 !

@@ -172,8 +172,8 @@
       REAL*8 :: div
 !
       DO is=nphase,2,-1
-!        IF(rlk(ijk,is-1)*inrl(is-1) <= 1.D-10) THEN
-        IF(ABS(a(is,is)) <= flim) THEN
+        IF(rlk(ijk,is-1)*inrl(is-1) <= 1.D-9) THEN
+!        IF(ABS(a(is,is)) <= flim) THEN
           a(1,is)=0.D0
           a(is,1)=0.D0
           b(is)=0.D0

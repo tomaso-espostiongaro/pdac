@@ -15,7 +15,7 @@
 !#endif
       PROGRAM pdac
 
-      USE control_flags, ONLY: itp
+      USE control_flags, ONLY: itp, immb
       USE blunt_body, ONLY: set_blunt, ibl
       USE dimensions
       USE domain_decomposition, ONLY: partition, ghost
@@ -144,14 +144,16 @@
           call MP_WALLTIME(pt1,mpime)
       END IF   
 
-! ... Read topography file 
+! ... Import the topography from dem file and interpolate
+! ... on the computational mesh
+! ... Set immersed boundary parameters if prescribed
 !
-      IF (itp >= 1)  CALL read_topo
-
-! ... Import the topography on the computational mesh 
-! ... and set immersed boundary parameters
-!
-      IF (itp >= 1) CALL import_topo
+      IF (itp >= 1)  THEN
+        CALL read_topo
+        CALL import_topo
+      ELSE
+        immb = 0
+      END IF
  
 ! ... Define volcanic vent position on the 3D topography
 !

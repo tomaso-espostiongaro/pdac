@@ -61,8 +61,8 @@
       CONTAINS
 !----------------------------------------------------------------------
       SUBROUTINE import_topo
-      USE control_flags, ONLY: job_type, lpr, immb
-      USE volcano_topography, ONLY: grid_locations, dist
+      USE control_flags, ONLY: job_type, lpr, immb, itp
+      USE volcano_topography, ONLY: grid_locations, dist, weight
       USE volcano_topography, ONLY: interpolate_2d, ord, next
       USE volcano_topography, ONLY: ord2d, nextx, nexty
       USE volcano_topography, ONLY: interpolate_dem, vertical_shift
@@ -101,15 +101,17 @@
         CALL interpolate_dem(topo2d_c)
         CALL vertical_shift(topo2d_c)
 
-        WRITE(6,*) 'TOPOGRAPHY'
+        WRITE(6,*) 'total weight = ', SUM(weight)/nx/ny
+        WRITE(6,*) 'WEIGHTS'
         DO j= 1, ny
           DO i= 1, nx
-            WRITE(6,*) i, j, topo2d_c(i,j)
+            !WRITE(6,*) i, j, topo2d_c(i,j)
+            WRITE(6,*) i, j, weight(i,j)
           END DO
         END DO
-!
-      END IF
 
+      END IF
+!
       ALLOCATE(dist(ntot))
       IF (mpime == root) THEN
         OPEN(UNIT=14,FILE='improfile.dat',STATUS='UNKNOWN')
@@ -132,7 +134,7 @@
       ! ... Set flags for the topography
       !
       CALL set_flag3
-! 
+!
 ! ... If Immersed Boundaries are used, identify the forcing points
 ! ... and set interpolation parameters
 !
@@ -184,7 +186,9 @@
           CALL grid_locations(0,0,1)
           CALL interpolate_dem(topo2d_c)
 
-          CALL error('immb','3D immersed b. not yet implemented',1)
+          WRITE(6,*) 'WARNING!: 3D immersed b. not yet implemented'
+          immb = 0
+          GOTO 111
 
         END IF
 !
@@ -222,6 +226,8 @@
 
       END IF
 !
+ 111  CONTINUE
+
       IF (job_type == '2D') THEN
         DEALLOCATE (next, ord)
         DEALLOCATE (xtop, ztop)

@@ -836,8 +836,6 @@
 ! ... by using array numx/z. Scatter the array
 ! ... of forcing points among processors.
 !
-      IF (itp < 1) immb = 0
-
       ALLOCATE( forced(ncdom) )
       forced = .FALSE.
 
