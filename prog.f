@@ -119,8 +119,8 @@
        ELSE IF( job_type == '3D' ) THEN
          IF(time+0.1D0*dt >= tpri) THEN
            CALL collect
-!           CALL outp_bin
-           CALL outp_3d
+           CALL outp_bin
+!           CALL outp_3d
            tpri=tpri+tpr
          ENDIF
        ELSE

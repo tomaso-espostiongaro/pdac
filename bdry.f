@@ -646,7 +646,8 @@
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: subscr, ipjk,  imjk,  ippjk,  immjk,  ijpk,  &
         ipjpk,  imjpk,  ijmk,  ipjmk,  imjmk,  ijppk,  ijmmk,  ijkp,  ipjkp,  &
-        imjkp,  ijpkp,  ijmkp,  ijkm,  ipjkm,  imjkm,  ijpkm,  ijmkm,  ijkpp,  ijkmm
+        imjkp,  ijpkp,  ijmkp,  ijkm,  ipjkm,  imjkm,  ijpkm,  ijmkm,  ijkpp, &
+        ijkmm
 
       USE time_parameters, ONLY: dt, time
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -671,9 +672,9 @@
 
         imesh = myijk( ip0_jp0_kp0_, ijk)
 
-        i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
-        j = MOD( ijk - 1, nx*ny ) / nx + 1
-        k = ( ijk - 1 ) / ( nx*ny ) + 1
+        i = MOD( MOD( imesh - 1, nx*ny ), nx ) + 1
+        j = MOD( imesh - 1, nx*ny ) / nx + 1
+        k = ( imesh - 1 ) / ( nx*ny ) + 1
 
 
         IF( fl_l(ijk) == 1 ) THEN

@@ -1204,7 +1204,6 @@
       END FUNCTION     
 !
 !----------------------------------------------------------------------
-!
       INTEGER FUNCTION cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
 !
         USE dimensions
@@ -1300,7 +1299,7 @@
                     IF( ( j == ny-1 ) .AND. ( jj == +2 ) ) jj = +1
                     IF( ( k == 2    ) .AND. ( kk == -2 ) ) kk = -1
                     IF( ( k == nz-1 ) .AND. ( kk == +2 ) ) kk = +1
-                    ijke = ijk + ii + jj * ny + kk * nx*ny
+                    ijke = ijk + ii + jj * nx + kk * nx*ny
                     ipe  =  cell_owner(ijke)
                     IF( ipe /= mpime ) THEN
 ! ...                 the cell ijke is not local, count and register its position
