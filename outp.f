@@ -1,6 +1,7 @@
 !----------------------------------------------------------------------
       MODULE output_dump
 !----------------------------------------------------------------------
+      USE kinds
       USE dimensions
       IMPLICIT NONE
       INTEGER nfil
@@ -23,6 +24,9 @@
       USE time_parameters, ONLY: time
       USE turbulence_model, ONLY: smag_coeff, modturbo
       USE control_flags, ONLY: job_type
+      USE grid, ONLY: data_collect, data_distribute
+      USE dimensions
+
 !
       IMPLICIT NONE
 !
@@ -441,21 +445,22 @@
  555  FORMAT(1x,//,1x,'CDYN',/)
 !
       END SUBROUTINE outp_3d
+
 !----------------------------------------------------------------------
+
       SUBROUTINE outp_bin
 !
       USE dimensions, ONLY: nsolid
-      USE eos_gas, ONLY: gc_molar_fraction
+      USE eos_gas, ONLY: xgc
       USE gas_constants, ONLY: present_gas, default_gas
-      USE gas_solid_density, ONLY: solid_bulk_density
-      USE gas_solid_velocity, ONLY: gas_velocity_r, gas_velocity_x, &
-                                    gas_velocity_y, gas_velocity_z
-      USE gas_solid_velocity, ONLY: solid_velocity_r, solid_velocity_x, &
-                                    solid_velocity_y, solid_velocity_z
-      USE gas_solid_temperature, ONLY: gas_temperature, solid_temperature
+      USE gas_solid_density, ONLY: rlk
+      USE gas_solid_velocity, ONLY: ug, vg, wg
+      USE gas_solid_velocity, ONLY: us, vs, ws
+      USE gas_solid_temperature, ONLY: tg, ts
+      USE io_restart, ONLY: write_array
       USE parallel, ONLY: nproc, mpime, root, group
       USE particles_constants, ONLY: rl, inrl
-      USE pressure_epsilon, ONLY: gas_pressure
+      USE pressure_epsilon, ONLY: p
       USE time_parameters, ONLY: time
       USE turbulence_model, ONLY: smag_coeff, modturbo
       USE control_flags, ONLY: job_type
@@ -466,6 +471,8 @@
       CHARACTER*4 :: letter
 !
       INTEGER :: ig,is
+      LOGICAL :: lform = .FALSE.
+      REAL*8, ALLOCATABLE :: otmp(:)
 !
       nfil=nfil+1
       filnam='output.'//letter(nfil)
@@ -473,41 +480,57 @@
       IF( mpime == root ) THEN
 
         OPEN(UNIT=12,FORM='UNFORMATTED',FILE=filnam)
-!
         WRITE(12) REAL(time,4)
+ 
+      END IF
 !
-        WRITE(12) REAL(gas_pressure,4)
-        IF (job_type == '2D') THEN
-          WRITE(12) REAL(gas_velocity_r,4)
-          WRITE(12) REAL(gas_velocity_z,4)
-        ELSE IF (job_type == '3D') THEN
-          WRITE(12) REAL(gas_velocity_x,4)
-          WRITE(12) REAL(gas_velocity_y,4)
-          WRITE(12) REAL(gas_velocity_z,4)
-        ELSE
-          CALL error('outp_bin','Unknown job type',1)
-        END IF
-        WRITE(12) REAL(gas_temperature,4)
-!
-        DO ig=1,ngas
-          IF( present_gas(ig) .AND. (ig /= default_gas) ) THEN
-            WRITE(12) REAL(gc_molar_fraction(ig,:),4)
-          END IF
-        END DO
-!
-        DO is=1,nsolid
-          WRITE(12) REAL(solid_bulk_density(:,is)*inrl(is),4)
-          IF (job_type == '2D') THEN
-            WRITE(12) REAL(solid_velocity_r(:,is),4)
-            WRITE(12) REAL(solid_velocity_z(:,is),4)
-          ELSE IF (job_type == '3D') THEN
-            WRITE(12) REAL(solid_velocity_x(:,is),4)
-            WRITE(12) REAL(solid_velocity_y(:,is),4)
-            WRITE(12) REAL(solid_velocity_z(:,is),4)
-          END IF
-          WRITE(12) REAL(solid_temperature(:,is),4)
-        END DO
+      CALL write_array( 12, p, sgl, lform )  ! gas_pressure
 
+      IF (job_type == '2D') THEN
+        CALL write_array( 12, ug, sgl, lform ) !  REAL(gas_velocity_r,4)
+        CALL write_array( 12, wg, sgl, lform ) !  REAL(gas_velocity_z,4)
+      ELSE IF (job_type == '3D') THEN
+        CALL write_array( 12, ug, sgl, lform ) !  REAL(gas_velocity_x,4)
+        CALL write_array( 12, vg, sgl, lform ) !  REAL(gas_velocity_y,4)
+        CALL write_array( 12, wg, sgl, lform ) !  REAL(gas_velocity_z,4)
+      ELSE
+        CALL error('outp_bin','Unknown job type',1)
+      END IF
+
+      CALL write_array( 12, tg, sgl, lform )  ! gas_temperature
+!
+      ALLOCATE( otmp( SIZE( xgc, 2 ) ) )
+      DO ig=1,ngas
+        IF( present_gas(ig) .AND. (ig /= default_gas) ) THEN
+          otmp = xgc(ig,:)
+          CALL write_array( 12, otmp, sgl, lform )  ! gc_molar_fraction
+        END IF
+      END DO
+      DEALLOCATE( otmp )
+!
+      ALLOCATE( otmp( SIZE( rlk, 1 ) ) )
+      DO is=1,nsolid
+        otmp = rlk(:,is)*inrl(is)
+        CALL write_array( 12, otmp, sgl, lform )  ! solid_bulk_density
+      END DO
+      DEALLOCATE( otmp )
+
+      DO is = 1, nsolid
+        IF (job_type == '2D') THEN
+          CALL write_array( 12, us(:,is), sgl, lform )  ! solid_velocity_r
+          CALL write_array( 12, ws(:,is), sgl, lform )  ! solid_velocity_z
+        ELSE IF (job_type == '3D') THEN
+          CALL write_array( 12, us(:,is), sgl, lform )  ! solid_velocity_x
+          CALL write_array( 12, vs(:,is), sgl, lform )  ! solid_velocity_y
+          CALL write_array( 12, ws(:,is), sgl, lform )  ! solid_velocity_z
+        END IF
+      END DO
+
+      DO is=1,nsolid
+        CALL write_array( 12, ts(:,is), sgl, lform )  ! solid_temperature
+      END DO
+
+      IF( mpime == root ) THEN
         CLOSE (12)
       END IF
 !

@@ -112,6 +112,10 @@
           MODULE PROCEDURE data_collect_r
         END INTERFACE
 
+        INTERFACE data_distribute
+          MODULE PROCEDURE data_distribute_r
+        END INTERFACE
+
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
@@ -1860,6 +1864,48 @@
         CALL parallel_sum_real( garray, ncollect )
         
         
+        RETURN
+      END SUBROUTINE
+
+
+      SUBROUTINE data_distribute_r( garray, larray, imstart, imend )
+
+        ! this subroutine distribute a global array "garray"  across processors
+        ! and store them in the local array "larray"
+        ! The subroutine is designed to allow the distribution of global
+        ! data using subarray of small size, useful when available memory
+        ! is not enough to store a global array
+
+        USE parallel, ONLY: nproc, mpime
+        USE control_flags, ONLY: job_type
+        USE indijk_module, ONLY: ip0_jp0_kp0_
+
+        IMPLICIT NONE
+        REAL*8 :: garray(:) ! input global array ( on root ) with data to be distributed
+                            ! garray is a subarray of the whole
+                            ! global array being distributed.
+                            ! Its first element has global index imstart
+                            ! therefore its size should be = imend - imstart + 1
+        REAL*8 :: larray(:) ! output local array, its elements are set 
+                            ! with the global data belonging to the local processor
+        INTEGER :: imstart  ! global index from which we start to collect
+        INTEGER :: imend    ! global index at which the collection is stopped
+
+        INTEGER :: ijk, imesh, ndistribute
+
+        ndistribute = ( imend - imstart + 1 )
+        IF( SIZE( garray ) < ndistribute ) &
+          CALL error(' data_distribute_r ', ' garray too small ', SIZE( garray ) )
+
+        CALL bcast_real( garray, ndistribute, 0 )
+
+        DO ijk = 1, ncint
+          imesh = myijk( ip0_jp0_kp0_, ijk)
+          IF( imesh >= imstart .AND. imesh <= imend ) THEN
+            larray( ijk ) = garray( imesh - imstart + 1 ) 
+          END IF
+        END DO
+
         RETURN
       END SUBROUTINE
 

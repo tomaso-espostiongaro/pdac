@@ -24,9 +24,9 @@
 !
       IF (stratification) THEN
         IF (temp0 /= 288.15D0) WRITE(*,*) 'WARNING! control atmospheric &
-                                           temperature profile'
+                                          & temperature profile'
         IF (p0 /= 1.01325D5) WRITE(*,*)   'WARNING! control atmospheric &
-                                           pressure profile'
+                                          & pressure profile'
       END IF	
 !
       END SUBROUTINE controlatm

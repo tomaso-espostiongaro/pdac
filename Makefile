@@ -8,7 +8,7 @@ hcapgs.o hotc.o hvs.o htilde.o indijk.o io.o iter.o kb07ad.o\
 letter.o matrix.o nondim.o outp.o parallel.o particles.o\
 pdac.o press.o prog.o reactions.o roughness.o setup.o \
 subscr.o temp.o tilde.o time.o turbo.o types.o\
-velocity.o visc.o ygas.o input.o $(SYSOBJ) 
+velocity.o visc.o ygas.o input.o kind.o $(SYSOBJ) 
 
 pdac.x: $(FOBJS) comm/comm.a
 	$(LINKER) -o pdac.x $(LINKFLAGS) $(FOBJS) comm/comm.a $(LIBS)

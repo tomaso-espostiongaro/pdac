@@ -22,7 +22,7 @@
       USE gas_solid_viscosity, ONLY: mug, kapg
       USE grid, ONLY: fl_l
       USE grid, ONLY: ncint, data_exchange
-      USE specific_heat, ONLY: ck
+      USE specific_heat_module, ONLY: ck
       USE heat_transfer, ONLY: hvs
       USE pressure_epsilon, ONLY: ep
       USE reactions, ONLY: hrex, irex

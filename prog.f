@@ -12,9 +12,8 @@
       USE gas_components, ONLY: ygas
       USE gas_solid_density, ONLY: rog, rgp, rlk
       USE gas_solid_temperature, ONLY: sieg, sies, ts, tg
-      USE glocal_arrays, ONLY: collect
       USE grid, ONLY: ncint, myijk, fl_l
-      USE specific_heat, ONLY: cp, ck
+      USE specific_heat_module, ONLY: cp, ck
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE io_restart, ONLY: tapewr
       USE iterative_solver, ONLY: iter
@@ -113,13 +112,11 @@
 !
        IF( job_type == '2D' ) THEN
          IF(time+0.1D0*dt >= tpri) THEN
-           CALL collect
            CALL outp_2d
            tpri=tpri+tpr
          ENDIF
        ELSE IF( job_type == '3D' ) THEN
          IF(time+0.1D0*dt >= tpri) THEN
-           CALL collect
            CALL outp_bin
 !           CALL outp_3d
            tpri=tpri+tpr
@@ -133,7 +130,6 @@
 ! ... Write RESTART file
 !
        IF (time+0.1D0*dt > tdump1) THEN
-         CALL collect
          CALL tapewr
          tdump1=tdump1+tdump
        END IF

@@ -10,7 +10,7 @@
 !
       USE dimensions
       USE gas_constants, ONLY: tzero, hzeros
-      USE specific_heat, ONLY: hcaps
+      USE specific_heat_module, ONLY: hcaps
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: iheat, itemp
       REAL*8, INTENT(INOUT) :: tk
@@ -32,7 +32,7 @@
       USE gas_solid_temperature, ONLY: solid_enthalpy, solid_temperature
       USE gas_constants, ONLY: tzero, hzeros
       USE particles_constants, ONLY: cps
-      USE specific_heat, ONLY: solid_specific_heat, hcaps
+      USE specific_heat_module, ONLY: solid_specific_heat, hcaps
 !
       IMPLICIT NONE
 !

@@ -28,7 +28,7 @@
       USE grid, ONLY: dx, dy, dz, dr, itc
       USE grid, ONLY: iob, flic, partition, ghost, &
      &    bounds_blbody, bounds_grid
-      USE io_restart, ONLY: taperd, tapebc, tapewr
+      USE io_restart, ONLY: taperd, tapewr
       USE iterative_solver, ONLY: inmax, maxout, omega
       USE output_dump, ONLY: nfil, recover_2d
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
@@ -42,7 +42,7 @@
       USE initial_conditions, ONLY: setup, epsob, tpob, ygc0, ygcob, &
      &     ugob, vgob, wgob, upob, vpob, wpob, pob, tgob, epob, lpr, & 
      &     zzero, bounds_setup
-      USE specific_heat, ONLY: bounds_hcapgs, local_bounds_hcapgs
+      USE specific_heat_module, ONLY: bounds_hcapgs, local_bounds_hcapgs
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut
       USE turbulence_model, ONLY: bounds_turbo, local_bounds_turbo
@@ -59,6 +59,7 @@
       INTEGER :: ig
       REAL*8 :: s0, s1, s2, s3, s4
       REAL*8 :: timtot, timprog, timdist, timsetup, timinit
+      LOGICAL :: debug = .TRUE.
 !
       IF(timing) s0 = cpclock()
 
@@ -84,7 +85,7 @@
       testnb = testfile//procnum(mpime)
       IF(mpime .EQ. root) THEN
         OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN')
-        OPEN(UNIT=logunit,   FILE=logfile,   STATUS='UNKNOWN')
+        IF( .NOT. debug ) OPEN(UNIT=logunit,   FILE=logfile,   STATUS='UNKNOWN')
         OPEN(UNIT=testunit,  FILE=testfile,  STATUS='UNKNOWN')
         OPEN(UNIT=errorunit, FILE=errorfile, STATUS='UNKNOWN')
       ELSE
@@ -229,7 +230,6 @@
 
       IF(itd == 2) THEN 
         CALL taperd
-        CALL tapebc
       ELSE IF (itd >= 3) THEN
         CALL recover_2d
       END IF
@@ -241,7 +241,7 @@
 !
 ! ... Distribute inital data among processes
 !
-      CALL distribute
+      CALL distribute( itd )
 !
 ! ... Time advancement loop
 !
@@ -264,7 +264,7 @@
 !      call f_hpmterminate( mpime )
 !
       CLOSE(5)
-      CLOSE(6)
+      IF( .NOT. debug ) CLOSE(6)
       CLOSE(7)
       CLOSE(8)
 !

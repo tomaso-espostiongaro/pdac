@@ -107,7 +107,7 @@
       USE dimensions
       USE grid, ONLY: fl
       USE gas_constants, ONLY: gmw, c_joule, rgas, tzero, hzerog, gammaair
-      USE specific_heat, ONLY:  hcapg
+      USE specific_heat_module, ONLY:  hcapg
       USE time_parameters, ONLY: time
       IMPLICIT NONE
 !
@@ -175,7 +175,7 @@
       USE gas_solid_density, ONLY: gas_density, gas_bulk_density
       USE gas_solid_temperature, ONLY: gas_enthalpy, gas_temperature
       USE pressure_epsilon, ONLY: gas_pressure, void_fraction
-      USE specific_heat, ONLY: gc_specific_heat, solid_specific_heat, hcapg
+      USE specific_heat_module, ONLY: gc_specific_heat, solid_specific_heat, hcapg
 !
       IMPLICIT NONE
 !
@@ -193,6 +193,7 @@
 !
       gas_density(imesh)      = &
           gas_pressure(imesh) / (rgas*gas_temperature(imesh)) * mg
+
       gas_bulk_density(imesh) = &
           gas_density(imesh) * void_fraction(imesh)
 
