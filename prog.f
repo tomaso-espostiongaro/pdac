@@ -111,8 +111,8 @@
 
       w0 = elapsed_seconds()
 !
-      CALL set_sampling( 1000.D0, 0.D0, 1500.D0, ismp, psmp)
-      IF( mpime == psmp ) OPEN(19,FILE='p_samp.dat')
+      !CALL set_sampling( 1000.D0, 0.D0, 1500.D0, ismp, psmp)
+      !IF( mpime == psmp ) OPEN(19,FILE='p_samp.dat')
 !
 !//////////////////////////////////////////////////////////////////////
 !
@@ -344,7 +344,7 @@
 !
         IF ( imr >= 1 ) CALL print_mass_residuals(sweep)
 !
-        IF (mpime == psmp) CALL sample_pressure(ismp)
+        !IF (mpime == psmp) CALL sample_pressure(ismp)
 !
 !//////////////////////////////////////////////////////////////////////
 !
