@@ -424,6 +424,7 @@
       DEALLOCATE(converge)
       IF( ALLOCATED( amats ) )  DEALLOCATE( amats )
       DEALLOCATE(b_e, b_w, b_t, b_b)
+      IF (job_type == '3D') DEALLOCATE(b_n, b_s)
 !
       RETURN
       END SUBROUTINE iter
@@ -628,20 +629,23 @@
 ! ... volume fraction not occupied by the topography
 !
       vf = b_e(ijk) + b_w(ijk) + b_t(ijk) + b_b(ijk)
-      vf = 0.25D0 * vf
-      IF (vf > 0.D0) THEN
-        ivf = 1.D0 / vf
-      ELSE
-        ivf = 0.D0
-      END IF
 !
       resx = ( b_e(ijk)*rgfe(ijk) - b_w(ijk)*rgfe(imjk) ) * indx(i) * inr(i)
       resz = ( b_t(ijk)*rgft(ijk) - b_b(ijk)*rgft(ijkm) ) * indz(k)
 !
       IF (job_type == '2D') THEN
         resy = 0.D0
+        vf = 0.25D0 * vf
       ELSE IF (job_type == '3D') THEN
-        resy = (rgfn(ijk) - rgfn(ijmk)) * indy(j)
+        resy = (b_n(ijk)*rgfn(ijk) - b_s(ijk)*rgfn(ijmk)) * indy(j)
+        vf = vf + b_n(ijk) + b_s(ijk)
+        vf = vf / 6.D0
+      END IF
+
+      IF (vf > 0.D0) THEN
+        ivf = 1.D0 / vf
+      ELSE
+        ivf = 0.D0
       END IF
 !
       res  = rgp(ijk) - rgpn(ijk) + dt * ivf * (resx+resy+resz)
@@ -755,15 +759,8 @@
       REAL*8 :: vf, ivf
 
       vf = b_e(ijk) + b_w(ijk) + b_t(ijk) + b_b(ijk)
-      vf = 0.25D0 * vf
-      IF (vf > 0.D0) THEN
-        ivf = 1.D0 / vf
-      ELSE
-        ivf = 0.D0
-      END IF
 
       rls = 0.D0
-
       DO is = 1, nsolid
 
         rlkx = (b_e(ijk)*rsfe(ijk,is) - b_w(ijk)*rsfe(imjk,is)) * indx(i) * inr(i)
@@ -771,10 +768,19 @@
 
         IF (job_type == '2D') THEN
           rlky = 0.D0
+          vf = 0.25D0 * vf
         ELSE IF (job_type == '3D') THEN
-          rlky = (rsfn(ijk,is) - rsfn(ijmk,is)) * indy(j)
+          vf = vf + b_n(ijk) + b_s(ijk)
+          rlky = (b_n(ijk)*rsfn(ijk,is) - b_s(ijk)*rsfn(ijmk,is)) * indy(j)
+          vf = vf / 6.D0
         END IF
 
+        IF (vf > 0.D0) THEN
+          ivf = 1.D0 / vf
+        ELSE
+          ivf = 0.D0
+
+        END IF
         rlk_tmp = rlkn( ijk, is ) - dt * ivf * ( rlkx + rlky + rlkz )
               !- dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
         rlk_tmp = MAX( 0.0d0, rlk_tmp )
@@ -1057,27 +1063,40 @@
       USE domain_decomposition, ONLY: ncint, meshinds
       USE grid, ONLY: z, zb
       USE immersed_boundaries, ONLY: topo_c, topo_x
+      USE immersed_boundaries, ONLY: topo2d_c, topo2d_x, topo2d_y
       IMPLICIT NONE
 
       INTEGER :: i,j,k,ijk,imesh
       LOGICAL :: fillc
-
-      ALLOCATE(b_e(ncint))
-      ALLOCATE(b_w(ncint))
-      ALLOCATE(b_t(ncint))
-      ALLOCATE(b_b(ncint))
-
-      ! ... initialize
-      b_e = 1; b_w = 1; b_t = 1; b_b = 1
-
-      IF (immb >= 1 .AND. job_type == '2D') THEN
+!
+! ... Allocate and initialize coefficients
+!
+      ALLOCATE(b_e(ncint)); b_e = 1
+      ALLOCATE(b_w(ncint)); b_w = 1
+      ALLOCATE(b_t(ncint)); b_t = 1
+      ALLOCATE(b_b(ncint)); b_b = 1
+      IF (job_type == '3D') THEN
+        ALLOCATE(b_n(ncint)); b_n = 1
+        ALLOCATE(b_s(ncint)); b_s = 1
+      END IF
+!
+      IF (immb >= 1) THEN
         DO ijk=1, ncint
           CALL meshinds(ijk,imesh,i,j,k)
 
-          IF (z(k) < topo_x(i))     b_e(ijk) = 0 ! East
-          IF (z(k) < topo_x(i-1))   b_w(ijk) = 0 ! West
-          IF (zb(k) < topo_c(i))    b_t(ijk) = 0 ! Top
-          IF (zb(k-1) < topo_c(i))  b_b(ijk) = 0 ! Bottom
+          IF (job_type == '2D') THEN
+            IF (z(k) < topo_x(i))     b_e(ijk) = 0 ! East
+            IF (z(k) < topo_x(i-1))   b_w(ijk) = 0 ! West
+            IF (zb(k) < topo_c(i))    b_t(ijk) = 0 ! Top
+            IF (zb(k-1) < topo_c(i))  b_b(ijk) = 0 ! Bottom
+          ELSE IF (job_type == '3D') THEN
+            IF (z(k) < topo2d_x(i,j))     b_e(ijk) = 0 ! East
+            IF (z(k) < topo2d_x(i-1,j))   b_w(ijk) = 0 ! West
+            IF (z(k) < topo2d_y(i,j))     b_n(ijk) = 0 ! North
+            IF (z(k) < topo2d_y(i,j-1))   b_s(ijk) = 0 ! South
+            IF (zb(k) < topo2d_c(i,j))    b_t(ijk) = 0 ! Top
+            IF (zb(k-1) < topo2d_c(i,j))  b_b(ijk) = 0 ! Bottom
+          END IF
 
         END DO
       END IF

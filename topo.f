@@ -62,22 +62,24 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE read_topo
+      SUBROUTINE import_topography
 !
 ! ... Read the topography file
 !
       USE control_flags, ONLY: job_type
       IMPLICIT NONE
 
-        IF (job_type == '2D') THEN
-          CALL read_2Dprofile
-        ELSE IF (job_type == '3D') THEN
-          CALL read_dem_ascii
-          CALL compute_UTM_coords
-        END IF
+      IF (job_type == '2D') THEN
+        CALL read_2Dprofile
+      ELSE IF (job_type == '3D') THEN
+        CALL read_dem_ascii
+        CALL compute_UTM_coords
+      END IF
+
+      CALL set_profile
 !
       RETURN
-      END SUBROUTINE read_topo
+      END SUBROUTINE import_topography
 !----------------------------------------------------------------------
       SUBROUTINE read_2Dprofile
       USE grid, ONLY: topography
@@ -566,6 +568,147 @@
       END IF
 
       END SUBROUTINE grid_locations
+!----------------------------------------------------------------------
+      SUBROUTINE set_profile
+!
+! ... Import the topography from standard ascii formats.
+! ... Interpolate topography on cell centers and write the
+! ... implicit profile
+!
+      USE control_flags, ONLY: job_type, lpr, immb, itp
+      USE grid, ONLY: z
+
+      IMPLICIT NONE
+      INTEGER :: i,j,k,ijk
+      LOGICAL, ALLOCATABLE :: dummy(:)
+      REAL*8, ALLOCATABLE  :: topo(:)
+      REAL*8, ALLOCATABLE  :: topo2d(:,:)
+
+      ALLOCATE (dummy(ntot))
+      ALLOCATE (dist(ntot))
+!
+      ALLOCATE (cx(nx))
+      ALLOCATE (cy(ny))
+      ALLOCATE (cz(nz))
+!
+      IF (job_type == '2D') THEN
+  
+        ALLOCATE(topo(nx))
+
+        ALLOCATE(next(nx))
+        ALLOCATE(ord(nx))
+
+        CALL grid_locations(0,0,0)
+        CALL interpolate_2d(topo, dummy)
+
+      ELSE IF (job_type == '3D') THEN
+
+        ALLOCATE(topo2d(nx,ny))
+
+        ALLOCATE(nextx(nx))
+        ALLOCATE(nexty(ny))
+        ALLOCATE(ord2d(nx,ny))
+
+        CALL grid_locations(0,0,0)
+        CALL interpolate_dem(topo2d, dummy)
+        CALL vertical_shift(topo2d)
+
+      END IF
+
+      IF (job_type == '2D') THEN
+        DEALLOCATE(topo)
+      ELSE IF (job_type == '3D') THEN
+        DEALLOCATE(topo2d)
+      END IF
+      DEALLOCATE (dummy)
+
+      RETURN
+      END SUBROUTINE set_profile
+!----------------------------------------------------------------------
+      SUBROUTINE write_profile
+      USE control_flags, ONLY: job_type
+!
+      IMPLICIT NONE
+
+      INTEGER :: i, j, k, ijk
+
+      IF (mpime == root) THEN
+        OPEN(UNIT=14,FILE='improfile.dat',STATUS='UNKNOWN')
+        
+        DO k=1,nz
+          DO j=1,ny
+            DO i=1,nx
+              ! ... dist defines implicitly the profile
+              !
+              ijk = i + (j-1) * nx + (k-1) * nx * ny
+              WRITE(14,*) dist(ijk)
+            END DO
+          END DO
+        END DO
+
+        CLOSE(14)
+      END IF
+!
+! ... set flags on topography
+!
+      CALL set_flag3
+!
+! ... Deallocate all arrays in the topography module
+!
+      IF (job_type == '2D') THEN
+        DEALLOCATE (next)
+        DEALLOCATE (ord)
+        DEALLOCATE (xtop, ztop)
+      ELSE IF (job_type == '3D') THEN
+        DEALLOCATE(nextx, nexty)
+        DEALLOCATE(ord2d)
+        DEALLOCATE (xtop, ytop, ztop2d)
+      END IF
+      DEALLOCATE (dist)
+      DEALLOCATE (cx, cy, cz)
+! 
+      RETURN
+      END SUBROUTINE write_profile
+!----------------------------------------------------------------------
+      SUBROUTINE set_flag3
+!
+! ... Set cell-flag = 3 in those cells belonging to the topography
+! ... where forcing is not applied. Values of fields in these cells
+! ... are set to zero when initialized or kept undefined
+!
+      USE control_flags, ONLY: lpr, job_type
+      USE grid, ONLY: fl, z
+      IMPLICIT NONE
+
+      INTEGER :: i, j, k, ijk
+!
+      IF( job_type == '2D') THEN
+        DO i=2, nx-1
+          DO k = 1, nz
+            ijk = i + (k-1) * nx
+            IF (ord(i) >= k) THEN
+              fl(ijk) = 3
+            ELSE
+              EXIT
+            END IF
+          END DO
+        END DO
+      ELSE IF( job_type == '3D') THEN
+        DO j=2, ny-1
+          DO i=2, nx-1
+            DO k = 1, nz
+              ijk = i + (j-1) * nx + (k-1) * nx * ny
+              IF (ord2d(i,j) >= k) THEN
+                fl(ijk) = 3
+              ELSE
+                EXIT
+              END IF
+            END DO
+          END DO
+        END DO
+      END IF
+!
+      END SUBROUTINE set_flag3
 !----------------------------------------------------------------------
       END MODULE volcano_topography
 !----------------------------------------------------------------------

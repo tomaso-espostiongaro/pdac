@@ -26,7 +26,7 @@
       USE gas_solid_temperature, ONLY: allocate_temperature
       USE gas_solid_viscosity, ONLY: allocate_viscosity
       USE grid, ONLY: grid_setup, allocate_blbody, allocate_grid
-      USE immersed_boundaries, ONLY: import_topo
+      USE immersed_boundaries, ONLY: set_forcing
       USE initial_conditions, ONLY: setpar, setup, cnvert, allocate_setup, npr
       USE input_module, ONLY: input, initc, number_of_block
       USE io_restart, ONLY: taperd, tapewr
@@ -41,7 +41,7 @@
      &                            timestart, rungekut
       USE turbulence_model, ONLY: allocate_turbo
       USE vent_conditions, ONLY: ivent, locate_vent
-      USE volcano_topography, ONLY: read_topo
+      USE volcano_topography, ONLY: import_topography, write_profile
       USE environment, ONLY: cpclock, timing, elapsed_seconds
 !
       IMPLICIT NONE
@@ -148,12 +148,11 @@
 ! ... on the computational mesh
 ! ... Set immersed boundary parameters if prescribed
 !
-      IF (itp >= 1)  THEN
-        CALL read_topo
-        CALL import_topo
-      ELSE
-        immb = 0
-      END IF
+      IF (itp >= 1)  CALL import_topography
+
+      IF (immb >= 1) CALL set_forcing
+
+      IF (itp >= 1)  CALL write_profile
  
 ! ... Define volcanic vent position on the 3D topography
 !
