@@ -1171,7 +1171,7 @@ set_numy:   IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
               IF (k==1 .OR. k==nz) THEN
                 forced(ijkl) = .FALSE.
               END IF
-              IF (forced(ijkl)) numx(ijkl) = n 
+              IF (forced(ijkl)) numy(ijkl) = n 
             END IF set_numy
           END IF
         !

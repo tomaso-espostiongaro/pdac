@@ -848,6 +848,7 @@
           fx(npx)%k = k
 
           IF (cz(k) >= topo2d(i,j)) THEN
+
             ! ... extrapolation is done if the point lays
             ! ... above the topography ...
             !
@@ -870,6 +871,7 @@
             fx(npx)%nsl%y = cy(j)
             fx(npx)%nsl%z = cz(k)
             fx(npx)%int = 9
+
           ELSE
             !
             ! ...  do nothing!
