@@ -22,7 +22,7 @@
       USE grid, ONLY: dx, dy, dz, indx, indy, indz, inr
       USE grid, ONLY: flag
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
-      USE time_parameters, ONLY: dt,time
+      USE time_parameters, ONLY: dt,time, sweep
 !
       IMPLICIT NONE
 !
@@ -35,14 +35,14 @@
 
       REAL*8, ALLOCATABLE :: rgpgc(:)
 !
-      ALLOCATE(rgpgc(ngas)); rgpgc = 0.D0
-!
       IF (ngas == 1) THEN
         ygc(:,1) = 1.D0
         xgc(:,1) = 1.D0
         RETURN
       END IF
 
+      ALLOCATE(rgpgc(ngas)); rgpgc = 0.D0
+!
       ALLOCATE(yfe(ncdom,ngas), yft(ncdom,ngas))
       yfe = 0.D0; yft = 0.D0
 

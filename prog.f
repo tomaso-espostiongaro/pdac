@@ -20,9 +20,11 @@
       USE io_restart, ONLY: tapewr, max_seconds
       USE iterative_solver, ONLY: iter
       USE output_dump, ONLY: outp, shock_tube_out, outp_map, imap
+      USE parallel, ONLY: mpime
       USE particles_constants, ONLY: cps
       USE pressure_epsilon, ONLY: p, ep
       USE reactions, ONLY: rexion, irex
+      USE sample_points, ONLY: set_sampling, sample_pressure
       USE tilde_energy, ONLY: htilde
       USE tilde_momentum, ONLY: allocate_fluxes, deallocate_fluxes
       USE tilde_momentum, ONLY: tilde, fieldn
@@ -33,6 +35,7 @@
 !
       IMPLICIT NONE
 !
+      INTEGER :: ismp, psmp
       INTEGER :: nprint, ndump
       INTEGER :: info
       INTEGER :: is
@@ -107,6 +110,9 @@
       mptimtot     = 0.0d0
 
       w0 = elapsed_seconds()
+!
+      CALL set_sampling( 1000.D0, 0.D0, 1500.D0, ismp, psmp)
+      IF( mpime == psmp ) OPEN(19,FILE='p_samp.dat')
 !
 !//////////////////////////////////////////////////////////////////////
 !
@@ -337,6 +343,8 @@
 ! ... Print the total residuals of the mass conservation equation
 !
         IF ( imr >= 1 ) CALL print_mass_residuals(sweep)
+!
+        IF (mpime == psmp) CALL sample_pressure(ismp)
 !
 !//////////////////////////////////////////////////////////////////////
 !

@@ -177,7 +177,7 @@
       DEALLOCATE(array_map)
 
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE outp_map
 !----------------------------------------------------------------------
       SUBROUTINE outp
 !
