@@ -1,6 +1,8 @@
 !----------------------------------------------------------------------
       MODULE reactions
 !----------------------------------------------------------------------
+! ... DUMMY MODULE FOR CHEMICAL REACTIONS ...
+!
       IMPLICIT NONE
       INTEGER :: irex
       REAL*8, DIMENSION(:), ALLOCATABLE :: r1, r2, r3, r4, r5
