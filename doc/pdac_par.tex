@@ -63,13 +63,13 @@ among $N$ processors so that each sub-domain has the same total weight.
 A weight of 1 is assigned to fluid cells (flag = 1),
 while a weight of 0 is assigned to the other types (flag = 2,3,4,5). 
 The domain decomposition algorithm then subdivides the domain so that each processor
-has the same number of cells of type 1, following these main steps:.\\
+has the same number of cells of type 1. Different decomposition scheme are possible
+and can be selected by the user in the input file pdac.dat \\
 \begin{enumerate}
-\item Counts the number of cells of each type, and subdivides the number $F1$ of ``flag 1 cells''
- among the number of processors $N$.
-\item {\bf Layers} decomposition (both 2D and 3D domain): the mesh is decomposed into horizontal 
-layers with equal total number
-$F1$ of ``flag-type 1'' cells (Fig.~\ref{fig:Ves_part}, left). The procedure simply sweeps across
+\item {\bf Layers} decomposition (both 2D and 3D domain): 
+Counts the number of cells of each type, and divide the number $F1$ of ``flag 1 cells''
+by the number of processors $N$. The mesh is then decomposed into horizontal layers with equal total number
+$F1/N$ of ``flag-type 1'' cells (Fig.~\ref{fig:Ves_part}, left). The procedure simply sweeps across
 the grid from bottom to top and counts the number of computational cells in each row from
 left to right (main sweep). Cells are assigned to a single process until the correct number 
 of sub-domain cells $F1$ is reached, then the process rank is increased until every 
