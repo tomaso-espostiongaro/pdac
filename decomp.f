@@ -808,7 +808,7 @@
       TYPE (imatrix) :: rcv_cell_set(0:nproc-1)
       INTEGER :: localdim
       INTEGER :: layer, k2, k1, j2, j1, i2, i1, nkt
-      INTEGER :: me
+      INTEGER :: me, whose
       INTEGER :: nfpx, nfpy, nfpz
 !
       IF(ALLOCATED(rcv_map)) DEALLOCATE(rcv_map)
@@ -1120,33 +1120,37 @@
       IF (immb >= 1) THEN
 
         ALLOCATE( numx(ncint) ); numx = 0
+        nfpx = SIZE(fptx)
+
         IF (job_type == '3D') THEN
           ALLOCATE( numy(ncint) ); numy = 0
+          nfpy = SIZE(fpty)
+        ELSE
+          nfpy = 0.D0
         END IF
+
         ALLOCATE( numz(ncint) ); numz = 0
-      
-        nfpx = SIZE(fptx)
-        nfpy = SIZE(fpty)
         nfpz = SIZE(fptz)
 
         DO n = 1, nfpx
-        
           i = fptx(n)%i
           j = fptx(n)%j
           k = fptx(n)%k
+        
 set_numx: IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
             IF (job_type == '2D') THEN
               ijk = i + (k-1) * nx
             ELSE IF (job_type == '3D') THEN
               ijk = i + (j-1) * nx + (k-1) * nx * ny
             END IF
-            ijkl = cell_g2l(ijk,mpime)
-            IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
-                j==1 .OR. j==ny) THEN
-              WRITE(8,*) 'forcing on boundaries', i, j, k
-            ELSE
-            END IF
+            IF( cell_owner(ijk)== mpime ) THEN
+              ijkl = cell_g2l(ijk,mpime)
+              IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
+                  j==1 .OR. j==ny) THEN
+                WRITE(8,*) 'x-forcing on boundaries', i, j, k
+              END IF
               numx(ijkl) = n 
+            END IF
           ELSE
             CALL error('decomp','control numx',1)
           END IF set_numx
@@ -1165,13 +1169,14 @@ set_numy:   IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
               ELSE IF (job_type == '3D') THEN
                 ijk = i + (j-1) * nx + (k-1) * nx * ny
               END IF
-              ijkl = cell_g2l(ijk,mpime)
-              IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
-                  j==1 .OR. j==ny) THEN
-                WRITE(8,*) 'forcing on boundaries', i, j, k
-              ELSE
-              END IF
+              IF( cell_owner(ijk)== mpime ) THEN
+                ijkl = cell_g2l(ijk,mpime)
+                IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
+                    j==1 .OR. j==ny) THEN
+                  WRITE(8,*) 'y-forcing on boundaries', i, j, k
+                END IF
                 numy(ijkl) = n 
+              END IF
             ELSE
               CALL error('decomp','control numy',1)
             END IF set_numy
@@ -1190,13 +1195,14 @@ set_numz: IF (i/=0 .AND. j/=0 .AND. k/=0) THEN
             ELSE IF (job_type == '3D') THEN
               ijk = i + (j-1) * nx + (k-1) * nx * ny
             END IF
-            ijkl = cell_g2l(ijk,mpime)
-            IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
-                j==1 .OR. j==ny) THEN
-              WRITE(8,*) 'forcing on boundaries', i, j, k
-            ELSE
-            END IF
+            IF( cell_owner(ijk)== mpime ) THEN
+              ijkl = cell_g2l(ijk,mpime)
+              IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. &
+                  j==1 .OR. j==ny) THEN
+                WRITE(8,*) 'z-forcing on boundaries', i, j, k
+              END IF
               numz(ijkl) = n 
+            END IF
           ELSE
             CALL error('decomp','control numz',1)
           END IF set_numz
