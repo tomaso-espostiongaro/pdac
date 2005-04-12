@@ -191,12 +191,12 @@
 ! ... on each cell to its neighbours.
 !
       omega0 = omega
-      mustit = 1
       ierr = 0
 !
       timconv = 0.0d0
 !
       sor_loop: DO nit = 1, maxout
+         mustit = 1
 !
          ! ... Compute fluxes and forces in the momentum equation
          ! ... (for fully implicit solution)
@@ -226,14 +226,18 @@
          nloop  = 0
          n1 = 0
          n2 = 0
-
+         
          mesh_loop: DO ijk = 1, ncint
+           !
+           ! ... Fluid cells or internal immersed boundary cell
            compute  = BTEST(flag(ijk),0)
+           !
+           ! ... Immersed boundary cell
            immersed = BTEST(flag(ijk),8) 
 
            converge(ijk) = .FALSE.
 
-           IF( compute  ) THEN
+           IF( compute ) THEN
 
              CALL meshinds(ijk,imesh,i,j,k)
              CALL first_subscr(ijk)
@@ -245,7 +249,7 @@
              IF (immb == 1) CALL faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
 
              ! ... Compute locally the residual 'dg' of the
-             ! ... mass balance equation of the gas phase and save it
+             ! ... mass balance equation of the gas phase and store it
              !
              CALL calc_res(i,j,k,ijk,dg)
              dgorig = dg
@@ -265,7 +269,7 @@
                CALL calc_eps( i, j, k, ijk  )
                rgp( ijk ) = ep( ijk ) * rog( ijk )
 
-             ELSE IF ( ABS(dg) > conv( ijk ) ) THEN
+             ELSE IF ( ABS( dg ) > conv( ijk ) ) THEN
 
                ! ... The counter of non-converging cells is increased
                !
@@ -273,25 +277,24 @@
 
                ! ... If the residual is higher then the prescribed limit
                ! ... start the inner (in-cell) iterative loop
-               ! ... to correct pressure and velocities.
+               ! ... to correct pressure, gas and particle velocities
+               ! ... and gas density (as a function of the fixed temperature).
                !
                d3 = dg
                p3 = p( ijk )
 
                IF (optimization == 1) THEN
-
+                 !
                  CALL inner_loop(i, j, k, ijk, nit, d3, p3, &
                                  abeta(ijk),conv(ijk), &
                                  dgorig, nloop, cvg)
-
                ELSE IF (optimization == 2) THEN
-
+                 !
                  CALL opt_inner_loop(i, j, k, ijk, nit, d3, p3, &
                                  abeta(ijk),conv(ijk), &
                                  dgorig, nloop, cvg)
-
                ELSE IF (optimization == 3) THEN
-
+                 !
                  CALL opt3_inner_loop(i, j, k, ijk, nit, d3, p3, &
                                   abeta(ijk), conv(ijk), &
                                   dgorig, nloop, cvg)
@@ -539,7 +542,7 @@
         ! ... using guessed velocities and pressure.
 
         ! ... WARNING! Only the local values of the stencil have to be updated!
-        ! ... This procedure can be optimized!
+        ! ... This procedure is optimized (optimization = 2) !
         !
         CALL calc_gas_mass_flux( ijk )
         CALL calc_res( i, j, k, ijk, dg)
@@ -828,11 +831,13 @@
 !----------------------------------------------------------------------
 ! ... Correct the pressure field to minimize the gas mass residual
 
-        REAL*8 :: p, d3, p3, omega, abeta
+        REAL*8, INTENT(IN) :: omega
+        REAL*8 :: p, d3, p3, abeta
         INTEGER :: kros
         REAL*8, SAVE :: dp, d1, d2, p1, p2, d12
 
-
+        ! ... First set the parameters for non-linear zero searching
+        !
         IF( kros /= 3 ) THEN
 
           IF( d3 > 0.D0 ) THEN
@@ -843,7 +848,7 @@
             ELSE IF( kros ==  1 ) THEN
               kros = 2
             END IF
-          ELSE
+          ELSE IF ( d3 <= 0.D0 ) THEN
             d2 = d3
             p2 = p3
             IF( kros == -1 ) THEN
@@ -853,7 +858,7 @@
             END IF
           END IF
 
-          IF( kros == 2 ) THEN
+          IF ( kros == 2 ) THEN
 
             ! ... Use secant method once, when the sign of dg changes
             d12 = 1.0d0 / ( d1 - d2 )
@@ -861,7 +866,7 @@
             abeta = ( p1 - p2 ) * d12
             kros  = 3
 
-          ELSE
+          ELSE IF ( kros < 2 ) THEN
  
             ! ... Newton's method (iterated until the sign of dg changes)
             ! ... (abeta = -dp/dg) ...
