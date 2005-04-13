@@ -50,7 +50,7 @@
       INTEGER :: ijk, i, j, k, ig, is
       CHARACTER(LEN = 11) :: filnam
       CHARACTER(LEN = 4 ) :: lettera
-      CHARACTER(LEN = 16) :: probenam
+      CHARACTER(LEN = 20) :: probenam
       REAL*4, ALLOCATABLE :: vars(:)
       INTEGER :: nop, tn, nfil, nvars, nv
       REAL*8   :: time
@@ -123,7 +123,7 @@
           k = probe(nop)%k
           REWIND(outpunit)
           CALL read_points(outpunit,time,vars,lform,i,j,k)
-          probenam ='S_'//lettera(i)//'_'//lettera(j)//'_'//lettera(k)
+          probenam ='S'//lettera(nop)//'_'//lettera(i)//'_'//lettera(j)//'_'//lettera(k)
           OPEN(UNIT=tempunit, FILE=probenam, POSITION='APPEND')
             WRITE(tempunit,100) time, (vars(nv), nv=1, nvars)
           CLOSE(tempunit)
