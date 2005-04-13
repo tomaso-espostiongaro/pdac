@@ -1,20 +1,18 @@
 &control
-  act        = 1        ! 1: mount time sequence, 2: time-space sampling        
-  first_out  = 0     
-  last_out   = 0   
-  downsize_x = 1    
-  downsize_y = 1    
-  downsize_z = 1    
+  act        = 2        ! 1: mount time sequence, 2: time-space sampling        
+  first_out  = 100     
+  last_out   = 120   
+  incr_out   = 10
 /
 
 &map
+  imap = 0
 /
 
 &sampling
-  number_of_points = 1 
+  number_of_probes = 5 
   assign_index     = .TRUE.
-  index_i          = 120
-  index_k          = 2
+  probe_file = 'probe.dat'
 /
 
 &animation

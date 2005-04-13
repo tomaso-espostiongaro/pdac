@@ -7,7 +7,7 @@
       PROGRAM postp
 
       USE dimensions
-      USE filter_outp, ONLY: filter, read_implicit_profile
+      USE filter_outp, ONLY: filter, read_implicit_profile, act, sample
       USE gas_constants, ONLY: allocate_gas_constants
       USE grid, ONLY: flic, allocate_blbody, allocate_grid, grid_setup, zzero
       USE initial_conditions, ONLY: allocate_setup, setpar
@@ -33,7 +33,7 @@
 
       CALL parallel_startup
 !
-! ... I/O files
+! ... Default I/O files
 !
       logfile   = 'pp.log'
       testfile  = 'pp.tst'
@@ -49,6 +49,10 @@
 ! ... Read Input files 'pdac.dat'
 !
       CALL input( inputunit )
+
+! ... Read Input files
+!
+      CALL postin( postunit )
 !
 ! ... By default, postp cannot read restart file ... 
       itd = 1
@@ -79,14 +83,13 @@
 ! ... Set physical parameters and useful constants
 !
       CALL setpar
-
-! ... Read Input files
 !
-      CALL postin( postunit )
+! ... Here start the post-processing core
+!********************************************************
 !
 ! ... Split OUTPUT files, downsize, crop, etc.
 !
-      !CALL filter
+      IF (act == 0) CALL filter
 !
 ! ... Write input files for visualization tools
 !
@@ -96,7 +99,10 @@
 ! ... Compute derived fields from the primary OUTPUT fields;
 ! ... map hazard variables at a given height above ground
 !
-      CALL process
+      IF (act == 1) CALL process
+      IF (act == 2) CALL sample
+!
+!********************************************************
 !
       CLOSE(inputunit)
       CLOSE(postunit)

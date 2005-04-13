@@ -8,7 +8,6 @@
       USE output_dump, ONLY: formatted_output
 !
       IMPLICIT NONE
-      SAVE
 !
 ! ... parameters for filters
 !
@@ -18,17 +17,212 @@
 !
 ! ... parameters for sampling
 !
-      INTEGER :: number_of_points
+      INTEGER :: number_of_probes
       LOGICAL :: assign_index
-      INTEGER :: index_i, index_j, index_k
-      REAL*8  :: coordinate_x, coordinate_y, coordinate_z
       INTEGER :: variable_n, field_n
+      CHARACTER(LEN=80) :: probe_file
 !
       REAL*8, ALLOCATABLE :: improfile(:,:,:)
+
+      TYPE probe_point
+           INTEGER :: nop
+           INTEGER :: i
+           INTEGER :: j
+           INTEGER :: k
+           REAL*8  :: x
+           REAL*8  :: y
+           REAL*8  :: z
+      END TYPE probe_point
+      !
+      TYPE(probe_point), ALLOCATABLE :: probe(:)
 !
+      SAVE
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
+      SUBROUTINE sample
+      USE control_flags, ONLY: job_type
+      USE dimensions, ONLY: nsolid, ngas, nx, ny, nz
+      USE grid, ONLY: x, y, z
+      USE io_files, ONLY: outpunit, logunit, tempunit
+!
+      IMPLICIT NONE
+      INTEGER :: ijk, i, j, k, ig, is
+      CHARACTER(LEN = 11) :: filnam
+      CHARACTER(LEN = 4 ) :: lettera
+      CHARACTER(LEN = 16) :: probenam
+      REAL*4, ALLOCATABLE :: vars(:)
+      INTEGER :: nop, tn, nfil, nvars, nv
+      REAL*8   :: time
+      REAL*4   :: stime
+      LOGICAL :: lform
+!
+! ... Allocate probes.
+! ... Read the file containing the indexes or coordinates of probe points
+!
+      ALLOCATE(probe(number_of_probes))
+      OPEN(tempunit, FILE=probe_file, STATUS='OLD')
+      DO nop = 1, number_of_probes
+        probe(nop)%nop = nop
+        IF (assign_index) THEN
+                IF (job_type == '3D') THEN
+                        READ(tempunit,*) probe(nop)%i, probe(nop)%j, probe(nop)%k
+                ELSE IF (job_type == '2D') THEN
+                        READ(tempunit,*) probe(nop)%i,probe(nop)%k
+                END IF
+                probe(nop)%x = x(i)
+                probe(nop)%y = y(j)
+                probe(nop)%z = z(k)
+        ELSE
+                IF (job_type == '3D') THEN
+                        READ(tempunit,*) probe(nop)%x, probe(nop)%y, probe(nop)%z
+                ELSE IF (job_type == '2D') THEN
+                        READ(tempunit,*) probe(nop)%x, probe(nop)%z
+                END IF
+                probe(nop)%i = 1
+                probe(nop)%j = 1
+                probe(nop)%k = 1
+        END IF
+      END DO
+      CLOSE(tempunit)
+!
+      lform = formatted_output
+!
+! ... Define the total number of basic PDAC output variables
+! ... and allocate arrays
+!
+      IF (job_type == '2D') THEN
+              nvars = 4 * (nsolid + 1) + ngas
+      ELSE IF (job_type == '3D') THEN
+              nvars = 5 * (nsolid + 1) + ngas
+      END IF
+      !
+      ALLOCATE(vars(nvars))
+      vars = 0.0
+!
+! ... Loop over time-steps
+!
+      DO tn = first_out, last_out, incr_out
+
+        filnam='output.'//lettera(tn)
+        WRITE(logunit,fmt="(/,'* Starting sampling ',I5,' * ')" ) tn
+
+        ! ... Open PDAC output file
+        !
+        IF (lform) THEN
+          OPEN(UNIT=outpunit, FILE=filnam)
+        ELSE 
+          OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam)
+        END IF
+        !
+        ! ... Loop over sampling points
+        !
+        DO nop = 1, number_of_probes
+          i = probe(nop)%i
+          j = probe(nop)%j
+          k = probe(nop)%k
+          REWIND(outpunit)
+          CALL read_points(outpunit,time,vars,lform,i,j,k)
+          probenam ='S_'//lettera(i)//'_'//lettera(j)//'_'//lettera(k)
+          OPEN(UNIT=tempunit, FILE=probenam, POSITION='APPEND')
+            WRITE(tempunit,100) time, (vars(nv), nv=1, nvars)
+          CLOSE(tempunit)
+        END DO
+
+        CLOSE(outpunit)
+      END DO
+ 100  FORMAT( F8.2, 100(G14.6E3,1X) )
+!
+      DEALLOCATE(vars)
+
+      RETURN
+      END SUBROUTINE sample
+!----------------------------------------------------------------------
+      SUBROUTINE read_points( iunit, time, variable, lform, i_, j_, k_ )
+      USE dimensions, ONLY: nx, ny, nz
+
+      !  This subroutine reads a REAL array ( sarray ) of
+      !  ntot elements from file iunit
+      !  iunit  (input)  file to be read
+      !  array  (output) data read from file and distributed to processors
+      !  lform  (input)  format of the file 
+      !                  .TRUE.  = formatted
+      !                  .FALSE. = unformatted
+
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: iunit, i_, j_, k_
+      LOGICAL, INTENT(IN) :: lform
+      REAL :: variable(:)
+      REAL*8   :: time
+      REAL*4   :: stime
+      INTEGER :: ijk_, ij_, i, j, k, ijk, nv
+      INTEGER :: nlines, mlines, nl
+
+      IF (job_type == '3D') THEN 
+
+              ijk_ = i_ + (j_-1)*nx + (k_-1)*nx*ny
+              ij_  = i_ + (j_-1)*nx
+
+              IF (MOD(ij_,10) /= 0) THEN
+                      nlines = INT(ij_ / 10) + 1
+              ELSE
+                      nlines = INT(ij_ / 10)
+              END IF
+              IF (MOD(nx*ny,10) /= 0) THEN
+                      mlines = INT(nx*ny / 10) + 1
+              ELSE
+                      mlines = INT(nx*ny / 10)
+              END IF
+
+      ELSE IF (job_type == '2D') THEN
+              
+              ijk_ = i_ + (k_-1)*nx
+              ij_  = i_
+
+              IF (MOD(nx,10) /= 0) THEN
+                      nlines = INT(nx / 10) + 1
+              ELSE
+                      nlines = INT(nx / 10)
+              END IF
+              IF (MOD(ij_,10) /= 0) THEN
+                      mlines = INT(ij_ / 10) + 1
+              ELSE
+                      mlines = INT(ij_ / 10)
+              END IF
+
+      END IF
+
+      IF( lform ) THEN
+              READ(iunit,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
+              DO nv = 1, SIZE(variable)
+                READ(iunit,'(///)')
+                DO k = 1, k_-1
+                  DO nl = 1, nlines
+                    READ(iunit,*)
+                  END DO
+                END DO
+                READ(iunit,*) ( variable(nv), ijk = 1, ij_ )
+                DO nl = 1, nlines - mlines
+                  READ(iunit,*)
+                END DO
+                DO k = k_+1, nz
+                  DO nl = 1, nlines
+                    READ(iunit,*) 
+                  END DO
+                END DO
+              END DO
+      ELSE
+              READ(iunit) stime
+              time = stime
+              DO nv = 1, SIZE(variable)
+                READ(iunit) ( variable(nv), ijk = 1, ijk_ )
+              END DO
+      END IF
+
+      RETURN
+      END SUBROUTINE read_points
+!----------------------------------------------------------------------
+!
       SUBROUTINE filter
       USE grid, ONLY: dx, dy, dz
 
@@ -217,12 +411,12 @@
            r = dy( j ) / ( dy( j ) + dy( j + 1 ) )
            s = dz( k ) / ( dz( k ) + dz( k + 1 ) )
 
-	   uu1 = (1-r)*(1-s);
-	   uu2 = r*(1-s);
-	   uu3 = (1-r)*s;
-	   uu4 = r*s;
-	 
-	   sarray( ii ) = u1 * uu1 + u2 * uu2 + u3 * uu3 + u4 * uu4 
+           uu1 = (1-r)*(1-s);
+           uu2 = r*(1-s);
+           uu3 = (1-r)*s;
+           uu4 = r*s;
+         
+           sarray( ii ) = u1 * uu1 + u2 * uu2 + u3 * uu3 + u4 * uu4 
            ii = ii + 1
            
         END DO
@@ -274,12 +468,12 @@
            r = dz( k ) / ( dz( k ) + dz( k + 1 ) )
            s = dx( i ) / ( dx( i ) + dx( i + 1 ) )
 
-	   vv1 = (1-r)*(1-s);
-	   vv2 = r*(1-s);
-	   vv3 = (1-r)*s;
-	   vv4 = r*s;
-	 
-	   sarray( ii ) = v1 * vv1 + v2 * vv2 + v3 * vv3 + v4 * vv4 
+           vv1 = (1-r)*(1-s);
+           vv2 = r*(1-s);
+           vv3 = (1-r)*s;
+           vv4 = r*s;
+         
+           sarray( ii ) = v1 * vv1 + v2 * vv2 + v3 * vv3 + v4 * vv4 
            ii = ii + 1
            
         END DO
@@ -331,12 +525,12 @@
            r = dx( i ) / ( dx( i ) + dx( i + 1 ) )
            s = dy( j ) / ( dy( j ) + dy( j + 1 ) )
 
-	   ww1 = (1-r)*(1-s);
-	   ww2 = r*(1-s);
-	   ww3 = (1-r)*s;
-	   ww4 = r*s;
-	 
-	   sarray( ii ) = w1 * ww1 + w2 * ww2 + w3 * ww3 + w4 * ww4 
+           ww1 = (1-r)*(1-s);
+           ww2 = r*(1-s);
+           ww3 = (1-r)*s;
+           ww4 = r*s;
+ 
+           sarray( ii ) = w1 * ww1 + w2 * ww2 + w3 * ww3 + w4 * ww4 
            ii = ii + 1
            
         END DO
