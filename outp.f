@@ -461,6 +461,37 @@
 
       RETURN
       END SUBROUTINE outp_recover
+!----------------------------------------------------------------------
+      SUBROUTINE cell_report(iunit, ijk, imesh, i, j, k)
+      USE dimensions, ONLY: nsolid, ngas
+      USE eos_gas, ONLY: xgc
+      USE gas_solid_density, ONLY: rlk
+      USE gas_solid_velocity, ONLY: ug, vg, wg
+      USE gas_solid_velocity, ONLY: us, vs, ws
+      USE gas_solid_temperature, ONLY: tg, ts
+      USE particles_constants, ONLY: rl, inrl
+      USE pressure_epsilon, ONLY: p
+      USE time_parameters, ONLY: time
+      USE control_flags, ONLY: job_type
+
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: iunit, ijk, imesh, i, j, k
+      INTEGER :: ig, is
+
+      WRITE(iunit,*) 'Cell Report'
+      IF (job_type == '3D') THEN
+        WRITE(iunit,100) time, p(ijk), ug(ijk), vg(ijk), wg(ijk), tg(ijk),  &
+        (xgc(ijk,ig), ig=1, ngas), (rlk(ijk,is)*inrl(is), us(ijk,is), &
+        vs(ijk,is), ws(ijk,is), ts(ijk,is), is=1, nsolid)
+      ELSE IF (job_type == '2D') THEN
+        WRITE(iunit,100) time, p(ijk), ug(ijk), wg(ijk), tg(ijk),  &
+        (xgc(ijk,ig), ig=1, ngas), (rlk(ijk,is)*inrl(is), us(ijk,is), &
+        ws(ijk,is), ts(ijk,is), is=1, nsolid)
+      END IF
+ 100  FORMAT( F8.2, 100(G14.6E3,1X) )
+
+      RETURN
+      END SUBROUTINE cell_report
 !-----------------------------------------------------------------------
       END MODULE output_dump
 !----------------------------------------------------------------------
