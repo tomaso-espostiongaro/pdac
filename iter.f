@@ -54,6 +54,7 @@
       USE grid, ONLY: flag
       USE immersed_boundaries, ONLY: immb, faces
       USE indijk_module
+      USE output_dump, ONLY: cell_report
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl
       USE phases_matrix, ONLY: assemble_matrix, assemble_all_matrix
@@ -330,7 +331,7 @@
            ELSE
              avloop = REAL(nloop)
            END IF
-           WRITE(testunit, fmt="( I10, 2X, F5.2, 2X, I10, 2X, F10.3)" ) &
+           WRITE(testunit, fmt="( I10, 2X, F5.2, 2X, I10, 2X, F10.3, I10)" ) &
                             n2, avloop, n1, timconv(nit), COUNT(converge)
            CALL myflush( testunit )
          END IF
@@ -431,6 +432,7 @@
             IF ( .NOT. converge( ijk ) ) THEN
               CALL meshinds( ijk , imesh, i , j , k )
               WRITE(testunit,*) imesh, i , j , k
+              CALL cell_report(testunit, ijk, imesh, i , j , k)
             END IF
           END DO
  700      FORMAT('max number of iterations (',I5,') reached at time: ', F8.3)
