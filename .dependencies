@@ -85,7 +85,7 @@ iotk_module.o :
 
 iter.o : control.o decomp.o dens.o dimensions.o environment.o eosg.o  \
     flux_m.o ftem.o gas.o grid.o htilde.o immb.o indijk.o io_files.o  \
-    limiters.o matrix.o parallel.o particles.o press.o subscr.o temp.o  \
+    limiters.o matrix.o outp.o parallel.o particles.o press.o subscr.o temp.o  \
     tilde.o time.o velocity.o 
 
 kb07ad.o : 
