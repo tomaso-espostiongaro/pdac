@@ -377,15 +377,17 @@
           CALL meshinds(ijk,imesh,i,j,k)
           !
           ! ... volume of a cell
-          !
           IF (job_type == '2D') THEN
             dvol = twopi * r(i) * (xb(i)-xb(i-1))*(zb(k)-zb(k-1))
           ELSE IF (job_type == '2D') THEN
             dvol = (xb(i)-xb(i-1))*(yb(j)-yb(j-1))*(zb(k)-zb(k-1))
           END IF
           !
-          isoe = isoe + log(p(ijk)/p_atm(k)) * dvol
-          adie = adie + (1.D0 - (p_atm(k)/p(ijk))**cgam) * dvol
+          ! ... specific energy 
+          isoe = isoe + p(ijk) * log(p(ijk)/p_atm(k)) * dvol
+          adie = adie + p(ijk) * (1.D0 - (p_atm(k)/p(ijk))**cgam) * dvol
+          !
+          ! ... mass per unit volume (cell)
           mgd = mgd + p(ijk) * dvol
           vold = vold + dvol
         END IF
@@ -395,11 +397,14 @@
       CALL parallel_sum_real(adie,1)
       CALL parallel_sum_real(mgd,1)
       CALL parallel_sum_real(vold,1)
-
-      mgd = mgd / fact * voidfr 
+      !
+      ! ... solid and gas mass
       mpd = soldns * vold
-      isoe = isoe * fact / vold / (mpd+mgd) * mgd
-      adie = adie * fact / vold / (mpd+mgd) * mgd / cgam
+      mgd = mgd / fact * voidfr
+      !
+      ! ... 
+      isoe = isoe * voidfr / (mpd + mgd)
+      adie = adie / cgam * voidfr / (mpd + mgd)
 !
 ! ... Print out the dome coordinates
 !
