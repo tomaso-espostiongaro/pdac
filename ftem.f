@@ -11,6 +11,7 @@
 
       REAL*8 :: flim
       REAL*8, PRIVATE :: hv
+      LOGICAL :: tforce
 !
       SAVE
 !----------------------------------------------------------------------
@@ -39,7 +40,7 @@
       USE particles_constants, ONLY: cps
       USE pressure_epsilon, ONLY: ep, p, pn
       USE reactions, ONLY: hrex, irex
-      USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
+      USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm, ipjk, ijpk, ijkp
       USE set_indexes, ONLY: ijke, ijkn, ijkt, ijkw, ijks, ijkb
       USE tilde_energy, ONLY: rhg, rhs
       USE time_parameters, ONLY: time, dt
@@ -71,10 +72,9 @@
 !
       ALLOCATE(at(nphase, nphase))
       ALLOCATE(bt(nphase))
-!
-          at = 0.D0
-          bt = 0.D0
-          hv = 0.D0
+      at = 0.D0
+      bt = 0.D0
+      hv = 0.D0
 !
 !pdac------------
 ! Control heat reactions
@@ -86,15 +86,15 @@
       ugc = 0.D0 ; vgc = 0.D0 ; wgc = 0.D0
 !
       DO ijk = 1, ncint
-
+        !
+        ! ... Compute the new enthalpy in fluid cells 
+        ! ... and immersed boundaries
         IF ( BTEST(flag(ijk),0) ) THEN
-
-          IF (immb == 1) CALL faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
-  
           CALL meshinds(ijk,imesh,i,j,k)
           CALL subscr(ijk)
 !
-          IF(irex == 2) CALL hrex(ijk,hrexg,hrexs)
+          IF (immb == 1) CALL faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
+          IF (irex == 2) CALL hrex(ijk,hrexg,hrexs)
 !
 ! ... The pressure terms can be treated implicitly
 ! ... (coupled with momentum equation into the iterative solver)
@@ -163,7 +163,7 @@
           END DO
 !
 ! ... Compute specific heat for gas (cp, cg) and particles (ck);
-! ... update temperature of gas (tg ) and particles (ts)
+! ... update temperature of gas (tg) and particles (ts)
 ! ... from caloric Equation of State
 !
           CALL caloric_eosg(cp(:,ijk), cg(ijk), tg(ijk), ygc(ijk,:), &
@@ -174,8 +174,12 @@
             CALL caloric_eosl(ts(ijk,is),cps(is),ck(is,ijk),sies(ijk,is),ijk) 
           END DO
 
+          ! ... If the temperature exceeds a physical value,
+          ! ... constrain the maximum variation
+          !
+          IF (tforce) CALL temperature_limiter(ijk)
+          
         END IF
-
       END DO
 !
 ! ... Check the simultaneous convergence of the caloric eos 
@@ -190,6 +194,107 @@
 !
       RETURN
       END SUBROUTINE
+!----------------------------------------------------------------------
+      SUBROUTINE temperature_limiter(ijk)
+
+      USE control_flags, ONLY: job_type
+      USE dimensions, ONLY: nsolid, ngas
+      USE eos_gas, ONLY: ygc, cg
+      USE gas_constants, ONLY: gas_type, gmw, rgas, tzero, hzerog, hzeros
+      USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
+      USE set_indexes, ONLY: imjk, ijmk, ijkm, ipjk, ijpk, ijkp
+      USE specific_heat_module, ONLY: ck, cp, hcapg, hcaps
+      USE particles_constants, ONLY: inrl, cps
+
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: ijk
+      INTEGER :: ig, is
+      REAL*8 :: av_tg
+      REAL*8 :: av_ts
+      REAL*8 :: hc
+
+      IF (job_type == '3D') THEN
+        !
+        ! ... Gas Temperature and Enthalpy
+        IF ( tg(ijk) > tg(imjk)  .AND.  &
+             tg(ijk) > tg(ijmk)  .AND.  &
+             tg(ijk) > tg(ijkm)  .AND.  &
+             tg(ijk) > tg(ipjk)  .AND.  &
+             tg(ijk) > tg(ijpk)  .AND.  &
+             tg(ijk) > tg(ijkp) ) THEN 
+          av_tg = tg(imjk) + tg(ijmk) + tg(ijkm) + tg(ipjk) + tg(ijpk) + tg(ijkp)
+          av_tg = av_tg / 6.D0
+          tg(ijk) = av_tg
+          !
+          CALL hcapg(cp(:,ijk), tg(ijk))
+          hc = 0.D0
+          DO ig = 1, ngas
+            hc = hc + cp(gas_type(ig),ijk) * ygc(ijk,ig)
+          END DO
+          cg(ijk) = hc
+          sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
+          WRITE(*,*) 'Limiting gas temperature in cell: ', ijk
+        END IF
+        !
+        ! ... Solid Temperature and Enthalpy
+        DO is = 1, nsolid
+          IF ( ts(ijk,is) > ts(imjk,is)  .AND.  &
+               ts(ijk,is) > ts(ijmk,is)  .AND.  &
+               ts(ijk,is) > ts(ijkm,is)  .AND.  &
+               ts(ijk,is) > ts(ipjk,is)  .AND.  &
+               ts(ijk,is) > ts(ijpk,is)  .AND.  &
+               ts(ijk,is) > ts(ijkp,is) ) THEN 
+            av_ts = ts(imjk,is) + ts(ijmk,is) + ts(ijkm,is) + ts(ipjk,is) + ts(ijpk,is) + ts(ijkp,is)
+            av_ts = av_ts / 6.D0
+            ts(ijk,is) = av_ts
+            !
+            CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
+            sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
+            WRITE(*,*) 'Limiting particle temperature in cell: ', ijk
+          END IF
+        END DO
+        !
+      ELSE IF (job_type == '2D') THEN
+        !
+        ! ... Gas Temperature and Enthalpy
+        IF ( tg(ijk) > tg(imjk)  .AND.   &
+             tg(ijk) > tg(ijkm)  .AND.   &
+             tg(ijk) > tg(ipjk)  .AND.   &
+             tg(ijk) > tg(ijkp) ) THEN 
+          av_tg = tg(imjk) + tg(ijkm) + tg(ipjk) + tg(ijkp)
+          av_tg = 0.25D0 * av_tg
+          tg(ijk) = av_tg
+          !
+          CALL hcapg(cp(:,ijk), tg(ijk))
+          hc = 0.D0
+          DO ig = 1, ngas
+            hc = hc + cp(gas_type(ig),ijk) * ygc(ijk,ig)
+          END DO
+          cg(ijk) = hc
+          sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
+          WRITE(*,*) 'Limiting gas temperature in cell: ', ijk
+        END IF
+        !
+        ! ... Solid Temperature and Enthalpy
+        DO is = 1, nsolid
+          IF ( ts(ijk,is) > ts(imjk,is)  .AND.   &
+               ts(ijk,is) > ts(ijkm,is)  .AND.   &
+               ts(ijk,is) > ts(ipjk,is)  .AND.   &
+               ts(ijk,is) > ts(ijkp,is) ) THEN 
+            av_ts = ts(imjk,is) + ts(ijkm,is) + ts(ipjk,is) + ts(ijkp,is)
+            av_ts = 0.25D0 * av_ts 
+            ts(ijk,is) = av_ts
+            !
+            CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
+            sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
+            WRITE(*,*) 'Limiting particle temperature in cell: ', ijk
+          END IF
+        END DO
+        !
+      END IF
+
+      RETURN
+      END SUBROUTINE temperature_limiter
 !----------------------------------------------------------------------
       SUBROUTINE invdm(a, b, ijk)
 !----------------------------------------------------------------------

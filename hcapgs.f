@@ -2,7 +2,6 @@
       MODULE specific_heat_module
 !----------------------------------------------------------------------
       IMPLICIT NONE
-      SAVE
 !
 ! ... Specific heat of gas components
 !
@@ -11,6 +10,12 @@
 ! ... Specific heat of particles
 !
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: ck 
+!
+! ... Flag for constant specific heats
+!
+      INTEGER :: icpc
+!
+      SAVE
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
@@ -29,6 +34,7 @@
 ! ... This routine computes the Temperature-dependent specific heat
 ! ... at constant pressure per kilograms of each gas phase 
 !
+      USE atmospheric_conditions, ONLY: t_ground
       USE dimensions
       USE gas_constants, ONLY: gmw, c_joule
       IMPLICIT NONE
@@ -39,9 +45,11 @@
 !
       cpc = 0.D0
 
-      !  consistency position
-      !
-      t1 = MAX( 0.0d0, tg )
+      IF (icpc == 0) THEN
+              t1 = t_ground
+      ELSE IF (icpc >= 1) THEN
+              t1 = tg
+      END IF
       t2 = t1*t1
       t3 = t1*t2
 !

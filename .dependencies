@@ -46,15 +46,15 @@ flux_v.o : dimensions.o grid.o limiters.o subscr.o time.o
 
 flux_w.o : dimensions.o grid.o limiters.o subscr.o time.o 
 
-ftem.o : control.o decomp.o dens.o dimensions.o eosg.o eosl.o grid.o hcapgs.o  \
-    htilde.o hvs.o immb.o particles.o press.o reactions.o subscr.o temp.o  \
-    time.o velocity.o visc.o 
+ftem.o : control.o decomp.o dens.o dimensions.o eosg.o eosl.o gas.o grid.o  \
+    hcapgs.o htilde.o hvs.o immb.o particles.o press.o reactions.o subscr.o  \
+    temp.o time.o velocity.o visc.o 
 
 gas.o : dimensions.o 
 
 grid.o : control.o dimensions.o io_files.o parallel.o 
 
-hcapgs.o : decomp.o dimensions.o gas.o 
+hcapgs.o : atmosphere.o decomp.o dimensions.o gas.o 
 
 hotc.o : decomp.o dimensions.o grid.o indijk.o subscr.o 
 
@@ -69,9 +69,9 @@ immb.o : control.o dimensions.o grid.o io_files.o parallel.o topo.o
 indijk.o : 
 
 input.o : atmosphere.o blunt.o control.o decomp.o dimensions.o dome.o eosg.o  \
-    ftem.o grid.o immb.o io.o io_files.o iotk_module.o iter.o limiters.o  \
-    matrix.o outp.o parallel.o particles.o reactions.o roughness.o setup.o  \
-    subscr.o time.o topo.o turbo.o vent.o visc.o 
+    ftem.o grid.o hcapgs.o immb.o io.o io_files.o iotk_module.o iter.o  \
+    limiters.o matrix.o outp.o parallel.o particles.o reactions.o  \
+    roughness.o setup.o subscr.o time.o topo.o turbo.o vent.o visc.o 
 
 interp.o : dimensions.o grid.o subscr.o 
 

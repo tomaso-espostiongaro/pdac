@@ -66,9 +66,7 @@
 
       RETURN
       END SUBROUTINE mole
-
 !----------------------------------------------------------------------
-
       SUBROUTINE mas(yg, xg)
 !
 ! ... computes mass fractions
@@ -99,7 +97,6 @@
 
       RETURN
       END SUBROUTINE mas
-
 !----------------------------------------------------------------------
       SUBROUTINE csound(sqc, rog, p)
 !
@@ -174,7 +171,7 @@
           tg0   = tg
           sieg0 = sieg
 
-          IF( sieg <= 0.0d0 ) THEN
+          IF( sieg <= 0.0D0 ) THEN
             CALL meshinds(ijk,imesh,i,j,k)
             WRITE(testunit,*) 'WARNING! from proc: ', mpime
             WRITE(testunit,*) 'Zero or negative enthalpy in caloric_eosg'

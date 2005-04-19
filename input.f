@@ -96,7 +96,7 @@
       USE domain_decomposition, ONLY: mesh_partition
       USE dome_conditions, ONLY: xdome, ydome, dome_volume, temperature, particle_fraction, overpressure, &
           idome, gas_flux, permeability, dome_gasvisc, idw
-      USE enthalpy_matrix, ONLY: flim
+      USE enthalpy_matrix, ONLY: flim, tforce
       USE eos_gas, ONLY: update_eosg
       USE flux_limiters, ONLY: beta, muscl
       USE gas_solid_viscosity, ONLY: gas_viscosity, part_viscosity
@@ -124,6 +124,7 @@
       USE reactions, ONLY: irex
       USE roughness_module, ONLY: zrough
       USE set_indexes, ONLY: subsc_setup
+      USE specific_heat_module, ONLY: icpc
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut, tau
       USE turbulence_model, ONLY: iturb, cmut, iss, modturbo
@@ -138,7 +139,7 @@
         time, tstop, dt, lpr, imr, tpr, tdump, nfil, tau,          &
         formatted_output, max_seconds
 
-      NAMELIST / model / irex, gas_viscosity, part_viscosity,      &
+      NAMELIST / model / icpc, irex, gas_viscosity, part_viscosity,      &
         iss, repulsive_model, iturb, modturbo, cmut, rlim, flim,   &
         gravx, gravy, gravz, ngas, density_specified
 
@@ -175,7 +176,7 @@
 
       NAMELIST / numeric / rungekut, beta, muscl, mass_limiter, vel_limiter, &
         inmax, maxout, omega, delg, implicit_fluxes, implicit_enthalpy, &
-        update_eosg, optimization, lim_type
+        update_eosg, optimization, lim_type, tforce
 
       INTEGER :: i, j, k, n, m, ig, ierr, lim_type
       CHARACTER(LEN=80) :: card
@@ -203,6 +204,7 @@
 
 ! ... Model
 
+      icpc = 1          ! ( 1 specific heat depends on temperature)
       irex = 1          ! ( 1 no reaction, 2 use hrex. Not used )
       gas_viscosity  = .TRUE. ! include molecular gas viscosity
       part_viscosity = .TRUE. ! include collisional particle viscosity
@@ -382,6 +384,7 @@
       delg = 1.D-8      !  residual limit relative to gas bulk density
       omega = 1.1       !  relaxation parameter  ( 0.5 under - 2.0 over)
       optimization = 1  !  optimization degree on iterative solver
+      tforce  = .FALSE. !  force temperatures
       implicit_fluxes   = .FALSE. ! fluxes are computed implicitly
       implicit_enthalpy = .FALSE. ! enthalpy solved implicitly
       update_eosg       = .FALSE.  ! update density after temperature
@@ -444,6 +447,7 @@
 !
       IF(mpime == root) READ(iunit, model) 
 
+      CALL bcast_integer(icpc,1,root)
       CALL bcast_integer(irex,1,root)
       CALL bcast_integer(iss,1,root)
       CALL bcast_integer(repulsive_model,1,root)
@@ -641,6 +645,7 @@
       CALL bcast_integer(maxout,1,root)
       CALL bcast_integer(optimization,1,root)
       CALL bcast_real(omega,1,root)
+      CALL bcast_logical(tforce,1,root)
       CALL bcast_logical(implicit_fluxes,1,root)
       CALL bcast_logical(implicit_enthalpy,1,root)
       CALL bcast_logical(update_eosg,1,root)
@@ -812,13 +817,14 @@
             CALL iotk_write_dat( iuni_nml, "imr", imr )
             CALL iotk_write_dat( iuni_nml, "tpr", tpr )
             CALL iotk_write_dat( iuni_nml, "tdump", tdump )
-            CALL iotk_write_dat( iuni_nml, "nfil", irex )
+            CALL iotk_write_dat( iuni_nml, "nfil", nfil )
             CALL iotk_write_dat( iuni_nml, "max_seconds", max_seconds )
             CALL iotk_write_dat( iuni_nml, "tau", tau )
             CALL iotk_write_dat( iuni_nml, "formatted_output", formatted_output )
           CALL iotk_write_end( iuni_nml, "control" )
 
           CALL iotk_write_begin( iuni_nml, "model" )
+            CALL iotk_write_dat( iuni_nml, "icpc", icpc )
             CALL iotk_write_dat( iuni_nml, "irex", irex )
             CALL iotk_write_dat( iuni_nml, "gas_viscosity", gas_viscosity )
             CALL iotk_write_dat( iuni_nml, "part_viscosity", part_viscosity )
@@ -1003,6 +1009,7 @@
             CALL iotk_write_dat( iuni_nml, "maxout", maxout )
             CALL iotk_write_dat( iuni_nml, "optimization", optimization )
             CALL iotk_write_dat( iuni_nml, "omega", omega )
+            CALL iotk_write_dat( iuni_nml, "tforce", tforce)
             CALL iotk_write_dat( iuni_nml, "implicit_fluxes",   &
                                           & implicit_fluxes )
             CALL iotk_write_dat( iuni_nml, "implicit_enthalpy", &
