@@ -794,7 +794,7 @@
       END SUBROUTINE interpolate_dem
 !----------------------------------------------------------------------
       SUBROUTINE export_topography
-      USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: job_type, lpr
       USE grid, ONLY: fl, noslip_wall, zb
       IMPLICIT NONE
 
@@ -818,7 +818,9 @@
           DO i = 1, nx
             DO k = 1, nz
               ijk = i + (j-1) * nx + (k-1) * nx * ny
-              IF( fl(ijk) == noslip_wall ) topo2d_c(i,j) = zb(k)
+              IF( fl(ijk) == noslip_wall ) THEN
+                      topo2d_c(i,j) = zb(k)
+              END IF
             END DO
             topo2d_x(i,j) = topo2d_c(i,j)
             topo2d_y(i,j) = topo2d_c(i,j)
@@ -831,13 +833,13 @@
 !----------------------------------------------------------------------
       SUBROUTINE write_profile
 
-      USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: job_type, lpr
       USE grid, ONLY: x, xb, y, yb, z, zb
       USE grid, ONLY: iob, fl, noslip_wall
-      USE io_files, ONLY: tempunit
+      USE io_files, ONLY: tempunit, logunit
 !
       IMPLICIT NONE
-      INTEGER :: n, i, j, k, ijk
+      INTEGER :: n, i, j, k, ijk, cntz
 !
 ! ... Write out the georeferenced mesh coordinates
 !
@@ -894,6 +896,32 @@
             END DO
           END IF
         END DO
+      END IF
+!
+! ... Write out the topographic map based on noslip cells
+!
+      IF (lpr >= 2) THEN
+              IF (mpime == root) WRITE(logunit,*) 'Discrete topography map: '
+              IF (job_type == '2D') THEN
+                      DO i = 1, nx
+                        DO k = 1, nz
+                          ijk = i + (k-1) * nx
+                          IF (fl(ijk) == noslip_wall) cntz = k
+                        END DO
+                        IF (mpime == root) WRITE(logunit,*) i, cntz
+                      END DO
+              ELSE IF (job_type == '3D') THEN
+                      DO j = 1, ny
+                        DO i = 1, nx
+                          DO k = 1, nz
+                            ijk = i + (j-1) * nx + (k-1) * nx * ny
+                            IF (fl(ijk) == noslip_wall) cntz = k
+                          END DO
+                          IF (mpime == root) WRITE(logunit,*) i, j, cntz
+                        END DO
+                      END DO
+              END IF
+              IF (mpime == root) WRITE(logunit,*)
       END IF
 !
 ! ... Deallocate all arrays in the topography module
