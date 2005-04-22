@@ -140,7 +140,7 @@
         formatted_output, max_seconds
 
       NAMELIST / model / icpc, irex, gas_viscosity, part_viscosity,      &
-        iss, repulsive_model, iturb, modturbo, cmut, rlim, flim,   &
+        iss, repulsive_model, iturb, modturbo, cmut,                     &
         gravx, gravy, gravz, ngas, density_specified
 
       NAMELIST / mesh / nx, ny, nz, itc, iuni, dx0, dy0, dz0, zzero, &
@@ -176,7 +176,7 @@
 
       NAMELIST / numeric / rungekut, beta, muscl, mass_limiter, vel_limiter, &
         inmax, maxout, omega, delg, implicit_fluxes, implicit_enthalpy, &
-        update_eosg, optimization, lim_type, tforce
+        update_eosg, optimization, lim_type, tforce, rlim, flim
 
       INTEGER :: i, j, k, n, m, ig, ierr, lim_type
       CHARACTER(LEN=80) :: card
@@ -214,10 +214,6 @@
       iturb = 1         ! turbulence  ( 0 no turbo, 1 turbo, 2 turbo + rough )
       modturbo = 1      ! turbulence  ( 1 smag, 2 dynamic )
       cmut = 0.1D0      ! Smagorinsky constant
-      rlim = 1.0D-8     ! 
-                        ! limit for off-diagonal contribution in matrix
-      flim = 1.0D-8     ! inversion
-                        ! 
       gravx = 0.0D0     ! gravity along x
       gravy = 0.0D0     ! gravity along y
       gravz = -9.81D0   ! gravity along z
@@ -388,6 +384,10 @@
       implicit_fluxes   = .FALSE. ! fluxes are computed implicitly
       implicit_enthalpy = .FALSE. ! enthalpy solved implicitly
       update_eosg       = .FALSE.  ! update density after temperature
+      rlim = 1.0D-8     ! 
+                        ! limit for off-diagonal contribution in matrix
+      flim = 1.0D-8     ! inversion
+                        ! 
 
 !
 
@@ -454,8 +454,6 @@
       CALL bcast_integer(iturb,1,root)
       CALL bcast_integer(modturbo,1,root)
       CALL bcast_real(cmut,1,root)
-      CALL bcast_real(rlim,1,root)
-      CALL bcast_real(flim,1,root)
       CALL bcast_real(gravx,1,root)
       CALL bcast_real(gravy,1,root)
       CALL bcast_real(gravz,1,root)
@@ -649,6 +647,8 @@
       CALL bcast_logical(implicit_fluxes,1,root)
       CALL bcast_logical(implicit_enthalpy,1,root)
       CALL bcast_logical(update_eosg,1,root)
+      CALL bcast_real(rlim,1,root)
+      CALL bcast_real(flim,1,root)
 
 !
 ! :::::::::::::::::::::::  R E A D   C A R D S ::::::::::::::::::::::::
@@ -833,8 +833,6 @@
             CALL iotk_write_dat( iuni_nml, "iturb", iturb )
             CALL iotk_write_dat( iuni_nml, "modturbo", modturbo )
             CALL iotk_write_dat( iuni_nml, "cmut", cmut )
-            CALL iotk_write_dat( iuni_nml, "rlim", rlim )
-            CALL iotk_write_dat( iuni_nml, "flim", flim )
             CALL iotk_write_dat( iuni_nml, "gravx", gravx )
             CALL iotk_write_dat( iuni_nml, "gravy", gravy )
             CALL iotk_write_dat( iuni_nml, "gravz", gravz )
@@ -1016,6 +1014,8 @@
                                           & implicit_enthalpy )
             CALL iotk_write_dat( iuni_nml, "update_eosg", &
                                           & update_eosg )
+            CALL iotk_write_dat( iuni_nml, "rlim", rlim )
+            CALL iotk_write_dat( iuni_nml, "flim", flim )
           CALL iotk_write_end( iuni_nml, "numeric" )
 
           attr = ' '

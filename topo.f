@@ -904,6 +904,7 @@
               IF (mpime == root) WRITE(logunit,*) 'Discrete topography map: '
               IF (job_type == '2D') THEN
                       DO i = 1, nx
+                        cntz = 0
                         DO k = 1, nz
                           ijk = i + (k-1) * nx
                           IF (fl(ijk) == noslip_wall) cntz = k
@@ -913,6 +914,7 @@
               ELSE IF (job_type == '3D') THEN
                       DO j = 1, ny
                         DO i = 1, nx
+                          cntz = 0
                           DO k = 1, nz
                             ijk = i + (j-1) * nx + (k-1) * nx * ny
                             IF (fl(ijk) == noslip_wall) cntz = k
