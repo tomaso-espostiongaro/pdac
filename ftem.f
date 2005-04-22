@@ -202,6 +202,7 @@
       USE eos_gas, ONLY: ygc, cg
       USE gas_constants, ONLY: gas_type, gmw, rgas, tzero, hzerog, hzeros
       USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
+      USE io_files, ONLY: testunit
       USE set_indexes, ONLY: imjk, ijmk, ijkm, ipjk, ijpk, ijkp
       USE specific_heat_module, ONLY: ck, cp, hcapg, hcaps
       USE particles_constants, ONLY: inrl, cps
@@ -233,7 +234,7 @@
           END DO
           cg(ijk) = hc
           sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
-          WRITE(*,*) 'Limiting gas temperature in cell: ', ijk
+          WRITE(testunit,*) 'Limiting gas temperature in cell: ', ijk
         END IF
         !
         ! ... Solid Temperature and Enthalpy
@@ -250,7 +251,7 @@
             !
             CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
             sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
-            WRITE(*,*) 'Limiting particle temperature in cell: ', ijk
+            WRITE(testunit,*) 'Limiting particle temperature in cell: ', ijk
           END IF
         END DO
         !
@@ -272,7 +273,7 @@
           END DO
           cg(ijk) = hc
           sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
-          WRITE(*,*) 'Limiting gas temperature in cell: ', ijk
+          WRITE(testunit,*) 'Limiting gas temperature in cell: ', ijk
         END IF
         !
         ! ... Solid Temperature and Enthalpy
@@ -287,7 +288,7 @@
             !
             CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
             sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
-            WRITE(*,*) 'Limiting particle temperature in cell: ', ijk
+            WRITE(testunit,*) 'Limiting particle temperature in cell: ', ijk
           END IF
         END DO
         !
@@ -313,8 +314,8 @@
       REAL*8 :: div
 !
       DO is=nphase,2,-1
-!        IF(ABS(a(is,is)) <= 1.D-5) THEN
-        IF(rlk(ijk,is-1)*inrl(is-1) <= flim) THEN
+        !IF(rlk(ijk,is-1)*inrl(is-1) < flim*1.D-3) THEN
+        IF(ABS(a(is,is)) < flim) THEN
           a(1,is)=0.D0
           a(is,1)=0.D0
           b(is)=0.D0

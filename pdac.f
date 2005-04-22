@@ -219,7 +219,7 @@
 ! ... conditions from an output file
 !
       IF(itd == 2) THEN 
-        CALL taperd
+	CALL taperd
       ELSE IF (itd == 3) THEN
         CALL outp_recover
       END IF

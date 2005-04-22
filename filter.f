@@ -47,44 +47,69 @@
       USE io_files, ONLY: outpunit, logunit, tempunit
 !
       IMPLICIT NONE
-      INTEGER :: ijk, i, j, k, ig, is
+      INTEGER :: ijk, i, j, k, ig, is, n
       CHARACTER(LEN = 11) :: filnam
       CHARACTER(LEN = 4 ) :: lettera
       CHARACTER(LEN = 20) :: probenam
-      REAL*4, ALLOCATABLE :: vars(:)
+      REAL*4, ALLOCATABLE :: vars(:,:)
+      INTEGER, ALLOCATABLE :: ijk_probe(:), indx(:)
       INTEGER :: nop, tn, nfil, nvars, nv
-      REAL*8   :: time
-      REAL*4   :: stime
+      REAL*4   :: time
       LOGICAL :: lform
 !
 ! ... Allocate probes.
 ! ... Read the file containing the indexes or coordinates of probe points
 !
       ALLOCATE(probe(number_of_probes))
+      ALLOCATE(ijk_probe(number_of_probes))
+      ALLOCATE(indx(number_of_probes))
+!
       OPEN(tempunit, FILE=probe_file, STATUS='OLD')
       DO nop = 1, number_of_probes
         probe(nop)%nop = nop
         IF (assign_index) THEN
                 IF (job_type == '3D') THEN
                         READ(tempunit,*) probe(nop)%i, probe(nop)%j, probe(nop)%k
+                        i = probe(nop)%i
+                        j = probe(nop)%j
+                        k = probe(nop)%k
+                        ijk = i + (j-1)*nx + (k-1)*nx*ny
+                        ijk_probe(nop) = ijk
+                        !
+                        probe(nop)%x = x(i)
+                        probe(nop)%y = y(j)
+                        probe(nop)%z = z(k)
                 ELSE IF (job_type == '2D') THEN
                         READ(tempunit,*) probe(nop)%i,probe(nop)%k
+                        i = probe(nop)%i
+                        k = probe(nop)%k
+                        ijk = i + (k-1)*nx
+                        ijk_probe(nop) = ijk
+                        !
+                        probe(nop)%x = x(i)
+                        probe(nop)%z = z(k)
                 END IF
-                probe(nop)%x = x(i)
-                probe(nop)%y = y(j)
-                probe(nop)%z = z(k)
         ELSE
                 IF (job_type == '3D') THEN
                         READ(tempunit,*) probe(nop)%x, probe(nop)%y, probe(nop)%z
+                        probe(nop)%i = 1
+                        probe(nop)%j = 1
+                        probe(nop)%k = 1
                 ELSE IF (job_type == '2D') THEN
                         READ(tempunit,*) probe(nop)%x, probe(nop)%z
+                        probe(nop)%i = 1
+                        probe(nop)%k = 1
                 END IF
-                probe(nop)%i = 1
-                probe(nop)%j = 1
-                probe(nop)%k = 1
         END IF
       END DO
       CLOSE(tempunit)
+!
+! ... Sort the probes with progressively increasing index
+! ... After the sorting, 'ijk_probe' contains the progressively
+! ... increasing probe indexes, whereas 'indx' contains the
+! ... probe indexes as read from the 'probe_file'
+!
+      CALL ikb07ad(ijk_probe(1), number_of_probes, indx(1))
 !
       lform = formatted_output
 !
@@ -97,7 +122,7 @@
               nvars = 5 * (nsolid + 1) + ngas
       END IF
       !
-      ALLOCATE(vars(nvars))
+      ALLOCATE(vars(nvars,number_of_probes))
       vars = 0.0
 !
 ! ... Loop over time-steps
@@ -115,17 +140,20 @@
           OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam)
         END IF
         !
-        ! ... Loop over sampling points
+        ! ... Read sampling points in the progressive order
+        !
+        CALL read_points(outpunit,lform,ijk_probe,time,vars)
+        !
+        ! ... Loop over samplig points and write the corresponding files
         !
         DO nop = 1, number_of_probes
-          i = probe(nop)%i
-          j = probe(nop)%j
-          k = probe(nop)%k
-          REWIND(outpunit)
-          CALL read_points(outpunit,time,vars,lform,i,j,k)
-          probenam ='S'//lettera(nop)//'_'//lettera(i)//'_'//lettera(j)//'_'//lettera(k)
+          n = indx(nop)
+          i = probe(n)%i
+          j = probe(n)%j
+          k = probe(n)%k
+          probenam ='S'//lettera(n)//'_'//lettera(i)//'_'//lettera(j)//'_'//lettera(k)
           OPEN(UNIT=tempunit, FILE=probenam, POSITION='APPEND')
-            WRITE(tempunit,100) time, (vars(nv), nv=1, nvars)
+            WRITE(tempunit,100) time, (vars(nv,nop), nv=1, nvars)
           CLOSE(tempunit)
         END DO
 
@@ -134,95 +162,48 @@
  100  FORMAT( F8.2, 100(G14.6E3,1X) )
 !
       DEALLOCATE(vars)
+      DEALLOCATE(probe)
 
       RETURN
       END SUBROUTINE sample
 !----------------------------------------------------------------------
-      SUBROUTINE read_points( iunit, time, variable, lform, i_, j_, k_ )
-      USE dimensions, ONLY: nx, ny, nz
-
-      !  This subroutine reads a REAL array ( sarray ) of
-      !  ntot elements from file iunit
-      !  iunit  (input)  file to be read
-      !  array  (output) data read from file and distributed to processors
-      !  lform  (input)  format of the file 
-      !                  .TRUE.  = formatted
-      !                  .FALSE. = unformatted
+      SUBROUTINE read_points( iunit, lform, ind, time, variables )
+      USE dimensions, ONLY: nx, ny, nz, ntot
 
       IMPLICIT NONE
-      INTEGER, INTENT(IN) :: iunit, i_, j_, k_
+      INTEGER, INTENT(IN) :: iunit
       LOGICAL, INTENT(IN) :: lform
-      REAL :: variable(:)
-      REAL*8   :: time
-      REAL*4   :: stime
-      INTEGER :: ijk_, ij_, i, j, k, ijk, nv
-      INTEGER :: nlines, mlines, nl
+      INTEGER, INTENT(IN) :: ind(:)
+      REAL*4, INTENT(OUT) :: time
+      REAL*4, INTENT(OUT) :: variables(:,:)
+      REAL*4, ALLOCATABLE   :: temp_array(:)
+      INTEGER :: ijk, i,j,k
+      INTEGER :: nvars, nump
+      INTEGER :: nv, np
 
-      IF (job_type == '3D') THEN 
-
-              ijk_ = i_ + (j_-1)*nx + (k_-1)*nx*ny
-              ij_  = i_ + (j_-1)*nx
-
-              IF (MOD(ij_,10) /= 0) THEN
-                      nlines = INT(ij_ / 10) + 1
-              ELSE
-                      nlines = INT(ij_ / 10)
-              END IF
-              IF (MOD(nx*ny,10) /= 0) THEN
-                      mlines = INT(nx*ny / 10) + 1
-              ELSE
-                      mlines = INT(nx*ny / 10)
-              END IF
-
-      ELSE IF (job_type == '2D') THEN
-              
-              ijk_ = i_ + (k_-1)*nx
-              ij_  = i_
-
-              IF (MOD(nx,10) /= 0) THEN
-                      nlines = INT(nx / 10) + 1
-              ELSE
-                      nlines = INT(nx / 10)
-              END IF
-              IF (MOD(ij_,10) /= 0) THEN
-                      mlines = INT(ij_ / 10) + 1
-              ELSE
-                      mlines = INT(ij_ / 10)
-              END IF
-
-      END IF
-
-      IF( lform ) THEN
-              READ(iunit,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
-              DO nv = 1, SIZE(variable)
-                READ(iunit,'(///)')
-                DO k = 1, k_-1
-                  DO nl = 1, nlines
-                    READ(iunit,*)
-                  END DO
-                END DO
-                READ(iunit,*) ( variable(nv), ijk = 1, ij_ )
-                DO nl = 1, nlines - mlines
-                  READ(iunit,*)
-                END DO
-                DO k = k_+1, nz
-                  DO nl = 1, nlines
-                    READ(iunit,*) 
-                  END DO
-                END DO
-              END DO
+      ALLOCATE(temp_array(ntot))
+      temp_array = 0.D0
+      nvars = SIZE(variables,DIM=1)
+      nump  = SIZE(variables,DIM=2)
+      
+      IF (lform) THEN
+        READ(iunit,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
       ELSE
-              READ(iunit) stime
-              time = stime
-              DO nv = 1, SIZE(variable)
-                READ(iunit) ( variable(nv), ijk = 1, ijk_ )
-              END DO
+        READ(iunit) time
       END IF
+      
+      DO nv = 1, nvars
+        IF( lform ) READ(iunit,'(///)')
+        CALL read_array( iunit, temp_array, lform )
+        DO np = 1, nump
+          variables(nv,np) = temp_array(ind(np))
+        END DO
+      END DO
+      DEALLOCATE(temp_array)
 
       RETURN
       END SUBROUTINE read_points
 !----------------------------------------------------------------------
-!
       SUBROUTINE filter
       USE grid, ONLY: dx, dy, dz
 

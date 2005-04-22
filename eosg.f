@@ -150,6 +150,7 @@
       USE gas_constants, ONLY: gmw, c_joule, rgas, tzero, hzerog, gammaair
       USE gas_constants, ONLY: gas_type
       USE parallel, ONLY: mpime
+      USE pressure_epsilon, ONLY: ep, p
       USE specific_heat_module, ONLY: hcapg
       USE time_parameters, ONLY: time
       IMPLICIT NONE
@@ -198,12 +199,14 @@
             !  Error report
             CALL meshinds(ijk,imesh,i,j,k)
             WRITE(testunit,*) 'max number of iteration reached in eosg'
-            WRITE(testunit,*) 'PROC:', mpime
-            WRITE(testunit,*) 'time:', time
-            WRITE(testunit,*) 'local cell:', ijk , i, j, k
-            WRITE(testunit,*) 'temperature:', tg0, tg
-            WRITE(testunit,*) 'enthalpy:', sieg0
+            WRITE(testunit,*) 'PROC          :', mpime
+            WRITE(testunit,*) 'time          :', time
+            WRITE(testunit,*) 'local cell    :', ijk , i, j, k
+            WRITE(testunit,*) 'temperature   :', tg0, tg
+            WRITE(testunit,*) 'enthalpy      :', sieg0
             WRITE(testunit,*) 'concentrations:', yg(:)
+            WRITE(testunit,*) 'void fraction :', ep(ijk)
+            WRITE(testunit,*) 'pressure      :', p(ijk)
 !**********************************************************************
           END IF
 

@@ -432,7 +432,7 @@
             IF ( .NOT. converge( ijk ) ) THEN
               CALL meshinds( ijk , imesh, i , j , k )
               WRITE(testunit,*) imesh, i , j , k
-              CALL cell_report(testunit, ijk, imesh, i , j , k)
+              CALL cell_report(testunit, ijk, imesh, i, j, k)
             END IF
           END DO
  700      FORMAT('max number of iterations (',I5,') reached at time: ', F8.3)
@@ -486,7 +486,7 @@
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: nit, ijk, i, j, k
-      REAL*8, INTENT(IN)  :: conv_
+      REAL*8, INTENT(INOUT)  :: conv_
       REAL*8, INTENT(INOUT)  :: d3, p3, abeta_, dgorig
       LOGICAL, INTENT(OUT) :: cvg
 
@@ -555,7 +555,8 @@
           IF( nit == 1 .AND. loop == 1 ) dgorig = dg
           d3 = dg
           ! ... steepen the Newton's slope (accelerate)
-          IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
+          ! IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
+          IF( kros < 2 .AND. loop == inmax ) CALL betas(conv_, abeta_, ijk )
 
         ELSE IF ( DABS(dg) <= conv_ ) THEN
 
@@ -1341,7 +1342,8 @@
             IF( nit == 1 .AND. loop == 1 ) dgorig = dg
             d3 = dg
             ! ... steepen the Newton's slope (accelerate)
-            IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
+            ! IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
+            IF( kros < 2 .AND. loop == inmax ) CALL betas( conv_, abeta_, ijk )
 
           ELSE IF ( DABS( dg ) <= conv_ ) THEN
 
@@ -1607,7 +1609,8 @@
             IF( nit == 1 .AND. loop == 1 ) dgorig = dg
             d3 = dg
             ! ... steepen the Newton's slope (accelerate)
-            IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
+            ! IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
+            IF( kros < 2 .AND. loop == inmax ) CALL betas( conv_, abeta_, ijk )
 
           ELSE IF ( DABS( dg ) <= conv_ ) THEN
 

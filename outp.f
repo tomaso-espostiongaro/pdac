@@ -478,7 +478,6 @@
       INTEGER, INTENT(IN) :: iunit, ijk, imesh, i, j, k
       INTEGER :: ig, is
 
-      WRITE(iunit,*) 'Cell Report'
       IF (job_type == '3D') THEN
         WRITE(iunit,100) time, p(ijk), ug(ijk), vg(ijk), wg(ijk), tg(ijk),  &
         (xgc(ijk,ig), ig=1, ngas), (rlk(ijk,is)*inrl(is), us(ijk,is), &
