@@ -170,7 +170,11 @@
         STOP
       END IF
 !
-      CALL partition
+      !CALL partition( 128, mpime, root ) ! TEST
+      !CALL parallel_hangup   ! TEST
+      !STOP                   ! TEST
+
+      CALL partition( nproc, mpime, root )
 
           IF (timing) then
               s2 = cpclock()

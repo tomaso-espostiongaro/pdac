@@ -100,7 +100,7 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE partition
+      SUBROUTINE partition( nproc, mpime, root )
 !
 ! ... a routine that subdivides a regular grid between (nproc) 
 ! ... processors, balancing the computational load.
@@ -109,9 +109,10 @@
 !
       USE control_flags, ONLY: job_type
       USE dimensions
-      USE parallel, ONLY: nproc, mpime, root
       IMPLICIT NONE
       SAVE
+
+      INTEGER, INTENT(IN) :: nproc, mpime, root
 !
       INTEGER :: i, j, k, ijk, n, m, q, rr
       INTEGER :: nfl, ipe, dim
@@ -163,13 +164,13 @@
       proc_map(0:nproc-1)%type = mesh_partition
 
       IF ( proc_map(0)%type == LAYER_MAP ) THEN
-        CALL layers( ncfl1, nctot )
+        CALL layers( ncfl1, nctot, nproc, mpime, root )
       ELSE IF ( proc_map(0)%type == BLOCK2D_MAP .AND. job_type == '2D') THEN
-        CALL blocks( ncfl1, nctot )
+        CALL blocks( ncfl1, nctot, nproc, mpime, root )
       ELSE IF ( proc_map(0)%type == BLOCK2D_MAP .AND. job_type == '3D') THEN
-        CALL columns( ncfl1, nctot )
+        CALL columns( ncfl1, nctot, nproc, mpime, root )
       ELSE IF ( proc_map(0)%type == BLOCK3D_MAP .AND. job_type == '3D') THEN
-        CALL blocks3d( ncfl1, nctot )
+        CALL blocks3d( ncfl1, nctot, nproc, mpime, root )
       ELSE
         CALL error(' partition ',' partition type not yet implemented ',proc_map(0)%type)
       END IF
@@ -218,7 +219,7 @@
 !
 ! ------------------------------------------------------------------------
 !
-      SUBROUTINE layers( ncfl1, nctot )
+      SUBROUTINE layers( ncfl1, nctot, nproc, mpime, root )
 ! 
 ! ... partition N.1 (layers)
 ! ... decomposes the domain into N horizontal layers.
@@ -230,13 +231,13 @@
 !
       USE dimensions
       USE control_flags, ONLY: job_type
-      USE parallel, ONLY: nproc, mpime, root
 !
       IMPLICIT NONE
       SAVE
 !
       INTEGER :: ncfl1(0:)
       INTEGER :: nctot(0:)
+      INTEGER, INTENT(IN) :: nproc, mpime, root
 !
       INTEGER :: i, j, k, ijk
       INTEGER :: icnt, icnt_ipe, ipe
@@ -352,7 +353,7 @@
 
 ! ------------------------------------------------------------------------
 
-      SUBROUTINE blocks( ncfl1, nctot )
+      SUBROUTINE blocks( ncfl1, nctot, nproc, mpime, root )
 !
 ! ... partition N.1 (layers)
 ! ... decomposes the domain into N rectangular blocks.
@@ -363,13 +364,13 @@
 ! ... partition N.2 (blocks)
 !
       USE dimensions
-      USE parallel, ONLY: nproc, mpime, root
 !
       IMPLICIT NONE
       SAVE
 !
       INTEGER :: ncfl1(0:)
       INTEGER :: nctot(0:)
+      INTEGER, INTENT(IN) :: nproc, mpime, root
 !
       INTEGER :: i, ib, k, ijk
       INTEGER :: l
@@ -630,7 +631,7 @@
 
 ! ---------------------------------------------------------------------
 
-      SUBROUTINE columns( ncfl1, nctot )
+      SUBROUTINE columns( ncfl1, nctot, nproc, mpime, root )
 !
 ! ... decomposes the domain into N rectangular blocks.
 ! ... The processor map consist of the coordinate pairs
@@ -639,13 +640,13 @@
 !
 !
       USE dimensions
-      USE parallel, ONLY: nproc, mpime, root
 !
       IMPLICIT NONE
       SAVE
 !
       INTEGER :: ncfl1(0:)
       INTEGER :: nctot(0:)
+      INTEGER, INTENT(IN) :: nproc, mpime, root
 !
       INTEGER :: i, j, k, ijk
       INTEGER :: i1, i2, j1, j2, ij1, ij2, ij
@@ -890,7 +891,7 @@
       END SUBROUTINE columns
 ! ---------------------------------------------------------------------
 
-      SUBROUTINE blocks3d( ncfl1, nctot )
+      SUBROUTINE blocks3d( ncfl1, nctot, nproc, mpime, root )
 !
 ! ... This subroutine decomposes the domain into N orthorombic blocks.
 ! ... The processor map consist of the cell coordinates ( i, j, k )
@@ -899,23 +900,25 @@
 !
 !
       USE dimensions
-      USE parallel, ONLY: nproc, mpime, root
 !
       IMPLICIT NONE
       SAVE
 !
       INTEGER :: ncfl1(0:)   !  the number of cells with fl == 1 
       INTEGER :: nctot(0:)   !  total number of local cells
+      INTEGER, INTENT(IN) :: nproc, mpime, root
 !
       INTEGER :: i, j, k, ijk
       INTEGER :: i1, i2, j1, j2, ij1, ij2, ij, k1, k2
       INTEGER :: nbl, l, ibz
       INTEGER :: icnt, ipe
-      INTEGER :: bl1
       INTEGER :: rest, skipl, rrest
       INTEGER :: nbx, nby, nbz
       INTEGER :: layer, icnt_layer, here
+      INTEGER :: icnt_column
       INTEGER :: nprocxy, nprocz
+
+      REAL*8  :: bl1, cl1
 !
       INTEGER :: localdim
 !
@@ -971,8 +974,8 @@
 ! ... processors.
 !
 
-        zavg = DBLE( countfl) / ( nx * ny )      ! average no. of counts along z dim
-        volume = DBLE( countfl ) / DBLE( nprocxy )  ! per (plane) processor no. of counts
+        zavg = DBLE( countfl) / ( nx * ny )         ! average no. of counts along z dim
+        volume = DBLE( countfl ) / DBLE( nprocxy )  ! per (columns) processor no. of counts
 
         area  = volume / zavg       ! expected average base area of column blocks 
         side  = DSQRT( area )       ! side of the base area
@@ -1103,7 +1106,7 @@
 ! ... build the blocks map
 
         ipe = -1
-        DO layer = 1, nby
+        LAYERS: DO layer = 1, nby
 
 ! ...     now set y coordinate of the block corners ( j1, j2 )
 ! ...     using the layer map 
@@ -1154,28 +1157,48 @@
           END DO
 
           IF( lpr > 1 .AND. ionode ) &
-            WRITE(logunit,*) ' layer = ', layer, ' no. column blocks = ', nbl_lay(layer)
+            WRITE(logunit,*) ' layer = ', layer, ' n. column = ', nbl_lay(layer), ' n. of fl1 = ', ncfl1_lay(layer)
 !
 ! ...     Estimate of the number of cells contained in each column block
 ! ...     in the layer
 !
-          bl1 = INT( ncfl1_lay(layer) / nbl_lay(layer) )
+          cl1 = DBLE( ncfl1_lay(layer) ) / nbl_lay(layer)
 
 ! ...     and now estimate the number of cells in each orthorombic block
 
-          bl1 = bl1 / nbz
+          bl1 = cl1 / nbz
+
+          i1  = 1
 !
-          DO nbl = 1, nbl_lay(layer) 
+          COLUMNS: DO nbl = 1, nbl_lay(layer) 
 
 ! ...       now set x coordinate of the block corners ( i1, i2 )
 ! ...       these define the column extension
 
-            i1 = ( nx / nbl_lay(layer) ) * ( nbl - 1 ) + 1
-            IF( nbl < nbl_lay(layer) ) THEN
-              i2 = ( nx / nbl_lay(layer) ) * nbl
-            ELSE
+            icnt_column = 0
+
+            IF( nbl == nbl_lay(layer) ) THEN
               i2 = nx
+            ELSE
+              LOOPX: DO i = i1, nx
+                DO j = j1, j2
+                  DO k = 1, nz
+                    ijk = i + (j-1)*nx + (k-1)*nx*ny
+                    IF ( BTEST(fl(ijk),0) ) icnt_column = icnt_column + 1
+                    IF ( icnt_column > cl1 ) THEN
+                      IF( DBLE( j - j1 + 1 ) >= 0.5d0 * DBLE( j2 - j1 + 1 ) ) THEN
+                        i2 = i
+                      ELSE
+                        i2 = i - 1
+                      END IF
+                      EXIT LOOPX
+                    END IF
+                  END DO
+                END DO
+              END DO LOOPX
             END IF
+
+
 
 ! ...       now set z coordinate (balancing the load) of the block corners ( k1, k2 )
 ! ...       These together with i1,i2,j1,j2 define the corners of the orthorombic
@@ -1183,7 +1206,7 @@
 
             k1 = 1
 
-            DO ibz = 1, nbz
+            BLOCKS: DO ibz = 1, nbz
 
               ipe = ipe + 1
 
@@ -1196,24 +1219,30 @@
 
               IF( ibz < nbz ) THEN
 
-                k = k1
                 ncfl1(ipe) = 0
 
-                DO WHILE ( ncfl1( ipe ) < bl1 )
+                LOOPZ: DO k = k1, nz
                   DO j = j1, j2
                     DO i = i1, i2
                       ijk = i + (j-1)*nx + (k-1)*nx*ny
                       IF ( BTEST(fl(ijk),0) ) ncfl1(ipe) = ncfl1(ipe) + 1
+                      IF ( ncfl1( ipe ) > bl1 ) THEN
+                        k2 = k
+                        !IF( ( j - j1 + 1 ) > ( j2 - j1 + 1 ) / 2 ) THEN
+                        !  k2 = k
+                        !ELSE
+                        !  k2 = k - 1
+                        !END IF
+                        EXIT LOOPZ
+                      END IF
                     END DO
                   END DO  
-                  k = k + 1
-                END DO
+                END DO LOOPZ
+
 
                 proc_map(ipe)%blktne(1) = i2
                 proc_map(ipe)%blktne(2) = j2
-                proc_map(ipe)%blktne(3) = k - 1
-
-                k1 = k
+                proc_map(ipe)%blktne(3) = k2
 
               ELSE
 
@@ -1243,11 +1272,16 @@
   1000           FORMAT( ' proc_map(',I4,'): BSW = ', 3I4, ' TNE = ', 3I4 )
               END IF
 
-            END DO
+              k1 = k2 + 1
 
-          END DO
 
-        END DO
+            END DO BLOCKS
+
+            i1 = i2 + 1
+
+          END DO COLUMNS
+
+        END DO LAYERS
 
         IF( SUM( ncfl1(0:nproc-1) ) /= countfl ) &
           CALL error(' blocks3d ', ' inconsistent number of cell ', SUM( ncfl1(0:nproc-1) ) )

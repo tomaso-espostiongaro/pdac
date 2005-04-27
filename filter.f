@@ -163,6 +163,8 @@
 !
       DEALLOCATE(vars)
       DEALLOCATE(probe)
+      DEALLOCATE(ijk_probe) 
+      DEALLOCATE(indx)
 
       RETURN
       END SUBROUTINE sample

@@ -401,7 +401,7 @@
 ! ... Check the closure relation for solid phases on all processors
 !
         CALL parallel_sum_integer(ierr, 1)
-        IF (ierr > 0) CALL error('iter','solid fraction exceeded 1',ierr)
+        !IF (ierr > 0) CALL error('iter','solid fraction exceeded 1',ierr)
 !
       END DO sor_loop
 !
@@ -776,6 +776,7 @@
       USE control_flags, ONLY: job_type, lpr
       USE dimensions
       USE gas_solid_density, ONLY: rlk, rlkn
+      USE grid, ONLY: flag, noslip_wall
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE time_parameters, ONLY: dt, time
@@ -820,6 +821,7 @@
           WRITE(testunit,*) ' time, i, j, k ', time, i, j, k
           WRITE(testunit,*) ' rls, volfrac ', rls, 1.D0/ivf
         END IF
+        flag(ijk) = noslip_wall
         ierr = ierr + 1
       ENDIF
 !
@@ -1099,7 +1101,7 @@
         USE pressure_epsilon, ONLY: p, ep
         USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
         USE gas_solid_temperature, ONLY: tg
-        USE grid, ONLY: flag
+        USE grid, ONLY: flag, noslip_wall
         USE eos_gas, ONLY: thermal_eosg, xgc
         USE phases_matrix, ONLY: assemble_all_matrix, solve_all_velocities
         USE set_indexes, ONLY: third_nb, third_rnb, first_rnb, first_nb
@@ -1294,6 +1296,7 @@
               WRITE(testunit,*) ' i, j, k, rls ', i, j, k, rls
               WRITE(testunit,*) ' rls, volfrac ', rls, 1.D0/ivf
             ENDIF
+            flag(ijk) = noslip_wall
             ierr = ierr + 1
           ENDIF
 
@@ -1392,7 +1395,7 @@
         USE pressure_epsilon, ONLY: p, ep
         USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
         USE gas_solid_temperature, ONLY: tg
-        USE grid, ONLY: flag
+        USE grid, ONLY: flag, noslip_wall
         USE eos_gas, ONLY: thermal_eosg, xgc
         USE phases_matrix, ONLY: matsvels_3phase
         USE set_indexes, ONLY: third_nb, third_rnb, first_rnb, first_nb
@@ -1576,6 +1579,7 @@
               WRITE(testunit,*) ' i, j, k, rls ', i, j, k, rls
               WRITE(testunit,*) ' rls, volfrac ', rls, 1.D0/ivf
             ENDIF
+            flag(ijk) = noslip_wall
             ierr = ierr + 1
           ENDIF
 
