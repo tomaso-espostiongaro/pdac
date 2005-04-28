@@ -134,7 +134,7 @@
       REAL, INTENT(IN) :: eps(:,:)
       REAL, DIMENSION(SIZE(eps,1),SIZE(eps,2)) :: rlk
 
-      DO ijk = 1, ntot
+      DO ijk = 1, SIZE(eps,DIM=1)
         rlk(ijk,:) = eps(ijk,:) * rl(:)
       END DO
 

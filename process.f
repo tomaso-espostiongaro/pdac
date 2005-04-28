@@ -20,6 +20,11 @@
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: array_map
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: array_map_max
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: topo2d
+!
+! ... derived fields
+!
+      REAL, ALLOCATABLE, DIMENSION(:) :: rm, rg, bd, m, um, vm, wm, mvm, c, mc 
+      REAL, ALLOCATABLE, DIMENSION(:) :: epstot, lepstot, pd
 
       INTEGER :: imap
       REAL*8 :: deltaz
@@ -27,17 +32,15 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE allocate_main_fields
-!
-! ... These are the "more interesting" fields that can be derived
-! ... from the primary OUTPUT fields produced by PDAC.
+      SUBROUTINE allocate_main_fields(dime)
 !
       IMPLICIT NONE
+      INTEGER, INTENT(IN) :: dime
 
-      ALLOCATE(p(ntot), ug(ntot), vg(ntot), wg(ntot), tg(ntot))
-      ALLOCATE(eps(ntot,nsolid), us(ntot,nsolid), vs(ntot,nsolid), &
-                ws(ntot,nsolid), ts(ntot,nsolid))
-      ALLOCATE(xgc(ntot,ngas))
+      ALLOCATE(p(dime), ug(dime), vg(dime), wg(dime), tg(dime))
+      ALLOCATE(eps(dime,nsolid), us(dime,nsolid), vs(dime,nsolid), &
+                ws(dime,nsolid), ts(dime,nsolid))
+      ALLOCATE(xgc(dime,ngas))
       ALLOCATE(array_map(nx,ny))
       ALLOCATE(array_map_max(nx,ny))
       ALLOCATE(topo2d(nx,ny))
@@ -47,6 +50,31 @@
 
       RETURN
       END SUBROUTINE allocate_main_fields
+!----------------------------------------------------------------------
+      SUBROUTINE allocate_derived_fields(dime)
+!
+! ... These are the "more interesting" fields that can be derived
+! ... from the primary OUTPUT fields produced by PDAC.
+!
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: dime
+
+      ALLOCATE(rm(dime))  ! Mixture Density
+      ALLOCATE(rg(dime))  ! Gas Density
+      ALLOCATE(bd(dime))  ! Bulk Density
+      ALLOCATE(m(dime))   ! Gas Component Mass Fraction
+      ALLOCATE(um(dime))  ! Mixture Velocity X
+      ALLOCATE(vm(dime))  ! Mixture Velocity Y
+      ALLOCATE(wm(dime))  ! Mixture Velocity Z
+      ALLOCATE(mvm(dime)) ! Mixture Velocity Modulus
+      ALLOCATE(c(dime))  ! Inverse of the Sound Speed
+      ALLOCATE(mc(dime))  ! Mach Number
+      ALLOCATE(epstot(dime))  ! Total particle fraction
+      ALLOCATE(lepstot(dime))  ! Log10 of the total part. frac.
+      ALLOCATE(pd(dime))  ! Dynamic Pressure
+
+      RETURN
+      END SUBROUTINE allocate_derived_fields
 !----------------------------------------------------------------------
       SUBROUTINE read_output( tn )
 !
@@ -153,28 +181,13 @@
 !
       INTEGER :: tn, ijk, i, k, nfil
       LOGICAL :: lform, ex
-      REAL, ALLOCATABLE, DIMENSION(:) :: rm, rg, bd, m, um, vm, wm, mvm, c, mc 
-      REAL, ALLOCATABLE, DIMENSION(:) :: epstot, lepstot, pd
       CHARACTER(LEN = 14) :: filnam
       CHARACTER(LEN = 4 ) :: lettera
 !
       lform = formatted_output
 
-      ALLOCATE(rm(ntot))  ! Mixture Density
-      ALLOCATE(rg(ntot))  ! Gas Density
-      ALLOCATE(bd(ntot))  ! Bulk Density
-      ALLOCATE(m(ntot))   ! Gas Component Mass Fraction
-      ALLOCATE(um(ntot))  ! Mixture Velocity X
-      ALLOCATE(vm(ntot))  ! Mixture Velocity Y
-      ALLOCATE(wm(ntot))  ! Mixture Velocity Z
-      ALLOCATE(mvm(ntot)) ! Mixture Velocity Modulus
-      ALLOCATE(c(ntot))  ! Inverse of the Sound Speed
-      ALLOCATE(mc(ntot))  ! Mach Number
-      ALLOCATE(epstot(ntot))  ! Total particle fraction
-      ALLOCATE(lepstot(ntot))  ! Log10 of the total part. frac.
-      ALLOCATE(pd(ntot))  ! Dynamic Pressure
-
-      CALL allocate_main_fields
+      CALL allocate_main_fields(ntot)
+      CALL allocate_derived_fields(ntot)
 !
       filnam='map_max.'//lettera(first_out-incr_out)
       INQUIRE(FILE=filnam,EXIST=ex)
@@ -192,11 +205,9 @@
         !
         CALL read_output ( tn )
 
-
         ! ... Derived fields are computed as a function of
         ! ... primary fields and other derived fields
         !
-
         rm = rhom(eps,p,tg,xgc)
 !        rg = rhog(p,tg,xgc)
 !        bd = rgp(eps,p,tg,xgc)
@@ -240,20 +251,6 @@
 
       END DO
 !
-      DEALLOCATE(rm)
-      DEALLOCATE(rg)
-      DEALLOCATE(bd)
-      DEALLOCATE(m)
-      DEALLOCATE(um)
-      DEALLOCATE(vm)
-      DEALLOCATE(wm)
-      DEALLOCATE(mvm)
-      DEALLOCATE(c)
-      DEALLOCATE(mc)
-      DEALLOCATE(epstot)
-      DEALLOCATE(lepstot)
-      DEALLOCATE(pd)
-! 
       RETURN
       END SUBROUTINE process
 !-----------------------------------------------------------------------
@@ -373,6 +370,198 @@
 
       RETURN
       END SUBROUTINE write_map_max
-!-----------------------------------------------------------------------
+!----------------------------------------------------------------------
+      SUBROUTINE sample
+      USE control_flags, ONLY: job_type
+      USE derived_fields
+      USE dimensions, ONLY: nsolid, ngas, nx, ny, nz
+      USE filter_outp, ONLY: read_points, probe_file
+      USE filter_outp, ONLY: probe_point, number_of_probes, assign_index
+      USE grid, ONLY: x, y, z
+      USE io_files, ONLY: outpunit, logunit, tempunit
+!
+      IMPLICIT NONE
+      INTEGER :: ijk, i, j, k, ig, is, n
+      CHARACTER(LEN = 11) :: filnam
+      CHARACTER(LEN = 4 ) :: lettera
+      CHARACTER(LEN = 20) :: probenam
+      REAL*4, ALLOCATABLE :: vars(:,:)
+      INTEGER, ALLOCATABLE :: ijk_probe(:), indx(:)
+      INTEGER :: nop, tn, nfil, nvars, nv, cnt
+      REAL*4   :: time
+      LOGICAL :: lform
+      !
+      TYPE(probe_point), ALLOCATABLE :: probe(:)
+!
+! ... Allocate probes.
+! ... Read the file containing the indexes or coordinates of probe points
+!
+      ALLOCATE(probe(number_of_probes))
+      ALLOCATE(ijk_probe(number_of_probes))
+      ALLOCATE(indx(number_of_probes))
+!
+      CALL allocate_main_fields(number_of_probes)
+      CALL allocate_derived_fields(number_of_probes)
+!
+      OPEN(tempunit, FILE=probe_file, STATUS='OLD')
+      DO nop = 1, number_of_probes
+        probe(nop)%nop = nop
+        IF (assign_index) THEN
+                IF (job_type == '3D') THEN
+                        READ(tempunit,*) probe(nop)%i, probe(nop)%j, probe(nop)%k
+                        i = probe(nop)%i
+                        j = probe(nop)%j
+                        k = probe(nop)%k
+                        ijk = i + (j-1)*nx + (k-1)*nx*ny
+                        ijk_probe(nop) = ijk
+                        !
+                        probe(nop)%x = x(i)
+                        probe(nop)%y = y(j)
+                        probe(nop)%z = z(k)
+                ELSE IF (job_type == '2D') THEN
+                        READ(tempunit,*) probe(nop)%i,probe(nop)%k
+                        i = probe(nop)%i
+                        k = probe(nop)%k
+                        ijk = i + (k-1)*nx
+                        ijk_probe(nop) = ijk
+                        !
+                        probe(nop)%x = x(i)
+                        probe(nop)%z = z(k)
+                END IF
+        ELSE
+                IF (job_type == '3D') THEN
+                        READ(tempunit,*) probe(nop)%x, probe(nop)%y, probe(nop)%z
+                        probe(nop)%i = 1
+                        probe(nop)%j = 1
+                        probe(nop)%k = 1
+                ELSE IF (job_type == '2D') THEN
+                        READ(tempunit,*) probe(nop)%x, probe(nop)%z
+                        probe(nop)%i = 1
+                        probe(nop)%k = 1
+                END IF
+        END IF
+      END DO
+      CLOSE(tempunit)
+!
+! ... Sort the probes with progressively increasing index
+! ... After the sorting, 'ijk_probe' contains the progressively
+! ... increasing probe indexes, whereas 'indx' contains the
+! ... probe indexes as read from the 'probe_file'
+!
+      CALL ikb07ad(ijk_probe(1), number_of_probes, indx(1))
+!
+      lform = formatted_output
+!
+! ... Define the total number of basic PDAC output variables
+! ... and allocate arrays
+!
+      IF (job_type == '2D') THEN
+              nvars = 4 * (nsolid + 1) + ngas
+      ELSE IF (job_type == '3D') THEN
+              nvars = 5 * (nsolid + 1) + ngas
+      END IF
+      !
+      ALLOCATE(vars(number_of_probes,nvars))
+      vars = 0.0
+!
+! ... Loop over time-steps
+!
+      DO tn = first_out, last_out, incr_out
+
+        filnam='output.'//lettera(tn)
+        WRITE(logunit,fmt="(/,'* Starting sampling ',I5,' * ')" ) tn
+
+        ! ... Open PDAC output file
+        !
+        IF (lform) THEN
+          OPEN(UNIT=outpunit, FILE=filnam)
+        ELSE 
+          OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam)
+        END IF
+        !
+        ! ... Read sampling points in the progressive order
+        !
+        CALL read_points(outpunit,lform,ijk_probe,time,vars)
+        !
+        ! ... Compute Derived Quantities
+        !
+        cnt = 0
+        IF (job_type == '2D') THEN
+          p = vars(:,1)
+          ug = vars(:,2)
+          wg = vars(:,3)
+          tg = vars(:,4)
+          DO ig = 1, ngas
+            xgc(:,ig) = vars(:,4+ig)
+          END DO
+          cnt = 4 + ngas
+          DO is = 1, nsolid
+            eps(:,is) = vars(:,cnt+1)
+            us(:,is) = vars(:,cnt+2)
+            ws(:,is) = vars(:,cnt+3)
+            ts(:,is) = vars(:,cnt+4)
+            cnt = cnt + 4
+          END DO
+        ELSE IF (job_type == '3D') THEN
+          p = vars(:,1)
+          ug = vars(:,2)
+          vg = vars(:,3)
+          wg = vars(:,4)
+          tg = vars(:,5)
+          DO ig = 1, ngas
+            xgc(:,ig) = vars(:,5+ig)
+          END DO
+          cnt = 5 + ngas
+          DO is = 1, nsolid
+            cnt = cnt + (is-1)*5
+            eps(:,is) = vars(:,cnt+1)
+            us(:,is) = vars(:,cnt+2)
+            vs(:,is) = vars(:,cnt+3)
+            ws(:,is) = vars(:,cnt+4)
+            ts(:,is) = vars(:,cnt+5)
+          END DO
+        END IF
+        DO is = 1, nsolid
+        WRITE(*,*) eps(:,is)
+        END DO
+        rm = rhom(eps,p,tg,xgc)
+        rg = rhog(p,tg,xgc)
+        bd = rgp(eps,p,tg,xgc)
+        m  = mg(xgc)
+        um = velm(ug,us,eps,p,tg,xgc)
+        IF (job_type == '3D') vm = velm(vg,vs,eps,p,tg,xgc)
+        wm = velm(wg,ws,eps,p,tg,xgc)
+        mvm = vel(um,wm)
+        c  = cm(bd,rg,rm,m,tg)
+        mc = mach(mvm,c)
+        pd = pdyn(rm,mvm)
+        epstot = epst(eps)
+        lepstot = leps(epstot)
+        !
+        ! ... Loop over samplig points and write the corresponding files
+        !
+        DO nop = 1, number_of_probes
+          n = indx(nop)
+          i = probe(n)%i
+          j = probe(n)%j
+          k = probe(n)%k
+          probenam ='S'//lettera(n)//'_'//lettera(i)//'_'//lettera(j)//'_'//lettera(k)
+          OPEN(UNIT=tempunit, FILE=probenam, POSITION='APPEND')
+            WRITE(tempunit,100) time, (vars(nop,nv), nv=1, nvars), rm(nop), pd(nop)
+          CLOSE(tempunit)
+        END DO
+
+        CLOSE(outpunit)
+      END DO
+ 100  FORMAT( F8.2, 100(G14.6E3,1X) )
+!
+      DEALLOCATE(vars)
+      DEALLOCATE(probe)
+      DEALLOCATE(ijk_probe)
+      DEALLOCATE(indx)
+!
+      RETURN
+      END SUBROUTINE sample
+!----------------------------------------------------------------------
       END MODULE process_outp
 !----------------------------------------------------------------------

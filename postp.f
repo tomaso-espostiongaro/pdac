@@ -7,7 +7,7 @@
       PROGRAM postp
 
       USE dimensions
-      USE filter_outp, ONLY: filter, read_implicit_profile, act, sample
+      USE filter_outp, ONLY: filter, read_implicit_profile, act
       USE gas_constants, ONLY: allocate_gas_constants
       USE grid, ONLY: flic, allocate_blbody, allocate_grid, grid_setup, zzero
       USE initial_conditions, ONLY: allocate_setup, setpar
@@ -17,7 +17,7 @@
       USE particles_constants, ONLY: allocate_part_constants
       USE postp_input, ONLY: postin
       USE postp_output, ONLY: write_avs_files, write_xml_files
-      USE process_outp, ONLY: process
+      USE process_outp, ONLY: process, sample
       USE time_parameters, ONLY: itd
       USE volcano_topography, ONLY: itp
       USE control_flags, ONLY: prog

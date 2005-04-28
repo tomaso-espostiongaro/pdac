@@ -19,7 +19,6 @@
 !
       INTEGER :: number_of_probes
       LOGICAL :: assign_index
-      INTEGER :: variable_n, field_n
       CHARACTER(LEN=80) :: probe_file
 !
       REAL*8, ALLOCATABLE :: improfile(:,:,:)
@@ -33,141 +32,13 @@
            REAL*8  :: y
            REAL*8  :: z
       END TYPE probe_point
-      !
-      TYPE(probe_point), ALLOCATABLE :: probe(:)
 !
+! ... not used
+      INTEGER :: variable_n, field_n
+
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
-!----------------------------------------------------------------------
-      SUBROUTINE sample
-      USE control_flags, ONLY: job_type
-      USE dimensions, ONLY: nsolid, ngas, nx, ny, nz
-      USE grid, ONLY: x, y, z
-      USE io_files, ONLY: outpunit, logunit, tempunit
-!
-      IMPLICIT NONE
-      INTEGER :: ijk, i, j, k, ig, is, n
-      CHARACTER(LEN = 11) :: filnam
-      CHARACTER(LEN = 4 ) :: lettera
-      CHARACTER(LEN = 20) :: probenam
-      REAL*4, ALLOCATABLE :: vars(:,:)
-      INTEGER, ALLOCATABLE :: ijk_probe(:), indx(:)
-      INTEGER :: nop, tn, nfil, nvars, nv
-      REAL*4   :: time
-      LOGICAL :: lform
-!
-! ... Allocate probes.
-! ... Read the file containing the indexes or coordinates of probe points
-!
-      ALLOCATE(probe(number_of_probes))
-      ALLOCATE(ijk_probe(number_of_probes))
-      ALLOCATE(indx(number_of_probes))
-!
-      OPEN(tempunit, FILE=probe_file, STATUS='OLD')
-      DO nop = 1, number_of_probes
-        probe(nop)%nop = nop
-        IF (assign_index) THEN
-                IF (job_type == '3D') THEN
-                        READ(tempunit,*) probe(nop)%i, probe(nop)%j, probe(nop)%k
-                        i = probe(nop)%i
-                        j = probe(nop)%j
-                        k = probe(nop)%k
-                        ijk = i + (j-1)*nx + (k-1)*nx*ny
-                        ijk_probe(nop) = ijk
-                        !
-                        probe(nop)%x = x(i)
-                        probe(nop)%y = y(j)
-                        probe(nop)%z = z(k)
-                ELSE IF (job_type == '2D') THEN
-                        READ(tempunit,*) probe(nop)%i,probe(nop)%k
-                        i = probe(nop)%i
-                        k = probe(nop)%k
-                        ijk = i + (k-1)*nx
-                        ijk_probe(nop) = ijk
-                        !
-                        probe(nop)%x = x(i)
-                        probe(nop)%z = z(k)
-                END IF
-        ELSE
-                IF (job_type == '3D') THEN
-                        READ(tempunit,*) probe(nop)%x, probe(nop)%y, probe(nop)%z
-                        probe(nop)%i = 1
-                        probe(nop)%j = 1
-                        probe(nop)%k = 1
-                ELSE IF (job_type == '2D') THEN
-                        READ(tempunit,*) probe(nop)%x, probe(nop)%z
-                        probe(nop)%i = 1
-                        probe(nop)%k = 1
-                END IF
-        END IF
-      END DO
-      CLOSE(tempunit)
-!
-! ... Sort the probes with progressively increasing index
-! ... After the sorting, 'ijk_probe' contains the progressively
-! ... increasing probe indexes, whereas 'indx' contains the
-! ... probe indexes as read from the 'probe_file'
-!
-      CALL ikb07ad(ijk_probe(1), number_of_probes, indx(1))
-!
-      lform = formatted_output
-!
-! ... Define the total number of basic PDAC output variables
-! ... and allocate arrays
-!
-      IF (job_type == '2D') THEN
-              nvars = 4 * (nsolid + 1) + ngas
-      ELSE IF (job_type == '3D') THEN
-              nvars = 5 * (nsolid + 1) + ngas
-      END IF
-      !
-      ALLOCATE(vars(nvars,number_of_probes))
-      vars = 0.0
-!
-! ... Loop over time-steps
-!
-      DO tn = first_out, last_out, incr_out
-
-        filnam='output.'//lettera(tn)
-        WRITE(logunit,fmt="(/,'* Starting sampling ',I5,' * ')" ) tn
-
-        ! ... Open PDAC output file
-        !
-        IF (lform) THEN
-          OPEN(UNIT=outpunit, FILE=filnam)
-        ELSE 
-          OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam)
-        END IF
-        !
-        ! ... Read sampling points in the progressive order
-        !
-        CALL read_points(outpunit,lform,ijk_probe,time,vars)
-        !
-        ! ... Loop over samplig points and write the corresponding files
-        !
-        DO nop = 1, number_of_probes
-          n = indx(nop)
-          i = probe(n)%i
-          j = probe(n)%j
-          k = probe(n)%k
-          probenam ='S'//lettera(n)//'_'//lettera(i)//'_'//lettera(j)//'_'//lettera(k)
-          OPEN(UNIT=tempunit, FILE=probenam, POSITION='APPEND')
-            WRITE(tempunit,100) time, (vars(nv,nop), nv=1, nvars)
-          CLOSE(tempunit)
-        END DO
-
-        CLOSE(outpunit)
-      END DO
- 100  FORMAT( F8.2, 100(G14.6E3,1X) )
-!
-      DEALLOCATE(vars)
-      DEALLOCATE(probe)
-      DEALLOCATE(ijk_probe) 
-      DEALLOCATE(indx)
-
-      RETURN
-      END SUBROUTINE sample
 !----------------------------------------------------------------------
       SUBROUTINE read_points( iunit, lform, ind, time, variables )
       USE dimensions, ONLY: nx, ny, nz, ntot
@@ -185,8 +56,8 @@
 
       ALLOCATE(temp_array(ntot))
       temp_array = 0.D0
-      nvars = SIZE(variables,DIM=1)
-      nump  = SIZE(variables,DIM=2)
+      nvars = SIZE(variables,DIM=2)
+      nump  = SIZE(variables,DIM=1)
       
       IF (lform) THEN
         READ(iunit,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
@@ -198,7 +69,7 @@
         IF( lform ) READ(iunit,'(///)')
         CALL read_array( iunit, temp_array, lform )
         DO np = 1, nump
-          variables(nv,np) = temp_array(ind(np))
+          variables(np,nv) = temp_array(ind(np))
         END DO
       END DO
       DEALLOCATE(temp_array)
