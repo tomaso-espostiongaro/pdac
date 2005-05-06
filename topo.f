@@ -67,7 +67,7 @@
       INTEGER :: itp, iavv, ismt
       REAL*8 :: cellsize, filtersize
       REAL*8 :: rim_quota
-      LOGICAL :: nocrater
+      LOGICAL :: nocrater, itrans
 !
 ! ... file name for the topography
       CHARACTER(LEN=80) :: dem_file
@@ -579,7 +579,7 @@
         ! ... Translate vertically the mesh to minimize the
         ! ... number of topographic cells
         !
-        transl_z = MINVAL(topo) - zb(1)
+        IF (itrans) transl_z = MINVAL(topo) - zb(1)
 
         IF( mpime == root ) THEN
           WRITE(logunit,*) 'Translating mesh vertically'
@@ -625,7 +625,7 @@
         ! ... Translate vertically the numerical mesh to minimize the
         ! ... number of topographic cells
         !
-        transl_z = MINVAL(topo2d) - zb(1)
+        IF (itrans) transl_z = MINVAL(topo2d) - zb(1)
 
         IF( mpime == root ) THEN
           WRITE(logunit,*) 'Translating mesh vertically'
