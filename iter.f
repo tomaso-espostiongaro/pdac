@@ -124,6 +124,7 @@
         rsfn = 0.0D0
       END IF
 !
+! ... First "predictor" step.
 ! ... Assemble and solve the explicit phase matrix 
 ! ... to update velocity fields. New velocities are
 ! ... biassed by the wrong pressure field. The best

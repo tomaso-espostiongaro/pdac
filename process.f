@@ -547,7 +547,7 @@
           k = probe(n)%k
           probenam ='S'//lettera(n)//'_'//lettera(i)//'_'//lettera(j)//'_'//lettera(k)
           OPEN(UNIT=tempunit, FILE=probenam, POSITION='APPEND')
-            WRITE(tempunit,100) time, (vars(nop,nv), nv=1, nvars), rm(nop), pd(nop)
+            WRITE(tempunit,100) time, (vars(nop,nv), nv=1, nvars), rm(nop), mvm(nop), pd(nop)
           CLOSE(tempunit)
         END DO
 

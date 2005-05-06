@@ -149,10 +149,14 @@
         ! ... Interpolate the topography on x-staggered mesh
         !
         CALL interpolate_profile(xb, z, topo_x, forcex)
+        fp0 = 0
+
+        ! ... Forcing along x
+        !
+        CALL forcing2d(xb, z, topo_x, fptx)
 
         ! ... External Forcing along x 
         !
-        fp0 = 0
         DO k = 2, nz
           DO i = 2, nx-1
             ijk = (k-1) * nx + i
@@ -162,26 +166,26 @@
           END DO
         END DO
 
-        ! ... Forcing along x
-        !
-        CALL forcing2d(xb, z, topo_x, fptx)
-
         ! ... Set flags on forcing points
         !
         DO np = 1, nfpx
           i = fptx(np)%i
           k = fptx(np)%k
           ijk = i + (k-1) * nx
-          IF (k>1 .AND. fl(ijk)==noslip_wall) fl(ijk) = int_immb
+          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell ) fl(ijk) = int_immb
         END DO
 
         ! ... Interpolate the topography on z-staggered mesh
         !
         CALL interpolate_profile(x, zb, topo_c, forcez)
+        fp0 = 0
+
+        ! ... Forcing along z
+        !
+        CALL forcing2d(x, zb, topo_c, fptz)
 
         ! ... External Forcing along z
         !
-        fp0 = 0
         DO k = 2, nz
           DO i = 2, nx-1
             ijk = (k-1) * nx + i
@@ -191,17 +195,13 @@
           END DO
         END DO
 
-        ! ... Forcing along z
-        !
-        CALL forcing2d(x, zb, topo_c, fptz)
-
         ! ... Set flags on forcing points
         !
         DO np = 1, nfpz
           i = fptz(np)%i
           k = fptz(np)%k
           ijk = i + (k-1) * nx
-          IF (k>1 .AND. fl(ijk)==noslip_wall) fl(ijk) = int_immb
+          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell ) fl(ijk) = int_immb
         END DO
         !
       ELSE IF (job_type == '3D') THEN
@@ -290,10 +290,10 @@
         ! ... Interpolate the topography on x-staggered mesh
         !
         CALL interpolate_dem(xb, y, z, topo2d_x, forcex)
+        fp0=0
 
         ! ... External forcing along x
         !
-        fp0=0
         DO k = 1, nz
           DO j = 1, ny
             DO i = 1, nx
@@ -314,16 +314,16 @@
           j = fptx(np)%j
           k = fptx(np)%k
           ijk = i + (j-1) * nx + (k-1) * nx * ny
-          IF (k>1 .AND. fl(ijk)==noslip_wall ) fl(ijk) = int_immb
+          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell ) fl(ijk) = int_immb
         END DO
         
         ! ... Interpolate the topography on y-staggered mesh.
         !
         CALL interpolate_dem(x, yb, z, topo2d_y, forcey)
+        fp0=0 
 
         ! ... External forcing along y.
         !
-        fp0=0 
         DO k = 1, nz
           DO j = 1, ny
             DO i = 1, nx
@@ -344,16 +344,16 @@
           j = fpty(np)%j
           k = fpty(np)%k
           ijk = i + (j-1) * nx + (k-1) * nx * ny
-          IF (k>1 .AND. fl(ijk)==noslip_wall ) fl(ijk) = int_immb
+          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell ) fl(ijk) = int_immb
         END DO
         
         ! ... Interpolate the topography on z-staggered mesh.
         !
         CALL interpolate_dem(x, y, zb, topo2d_c, forcez)
+        fp0=0
         
         ! ... External forcing along z.
         !
-        fp0=0
         DO k = 1, nz
           DO j = 1, ny
             DO i = 1, nx
@@ -374,7 +374,7 @@
           j = fptz(np)%j
           k = fptz(np)%k
           ijk = i + (j-1) * nx + (k-1) * nx * ny
-          IF (k>1 .AND. fl(ijk)==noslip_wall ) fl(ijk) = int_immb
+          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell ) fl(ijk) = int_immb
         END DO
         
       END IF
@@ -421,21 +421,63 @@
       END SUBROUTINE set_forcing
 !----------------------------------------------------------------------
       SUBROUTINE ext_forcing2d(i, k, cx, cz, topo, fpt)
+      USE volcano_topography, ONLY: ord, next
 
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: i,k
       REAL*8, DIMENSION(:), INTENT(IN) :: cx, cz
       REAL*8, DIMENSION(:), INTENT(IN) :: topo
-      TYPE(forcing_point), DIMENSION(:), INTENT(OUT) :: fpt
+      TYPE(forcing_point), DIMENSION(:), INTENT(INOUT) :: fpt
+      INTEGER :: droite, gauche, f, n
+      REAL*8 :: grad
+      droite = 0
+      gauche = 0
 
       fp0 = fp0 + 1
 
-      fpt(fp0)%int = 17
-      fpt(fp0)%i = i
-      fpt(fp0)%j = 0
-      fpt(fp0)%k = k
-      fpt(fp0)%nsl%x = cx(i) 
-      fpt(fp0)%nsl%z = topo(i)
+      DO f = 1, fp0
+        IF (fpt(f)%i==i+1 .AND. fpt(f)%k==k) droite = f
+        IF (fpt(f)%i==i-1 .AND. fpt(f)%k==k) gauche = f
+      END DO
+
+      IF (droite /= 0 .AND. gauche == 0) THEN
+        fpt(fp0)%int = 17
+        fpt(fp0)%i = i
+        fpt(fp0)%j = 0
+        fpt(fp0)%k = k
+        !
+        ! ... find the no-slip point on the profile
+        !
+        DO n=next(i),next(i+1)
+          IF ((ztop(n-1) <= cz(k)).AND.(ztop(n) >= cz(k))) THEN
+            grad = (xtop(n)-xtop(n-1))/(ztop(n)-ztop(n-1))
+            fpt(fp0)%nsl%x = xtop(n-1) + (cz(k)-ztop(n-1)) * grad
+            fpt(fp0)%nsl%z = cz(k)
+          ENDIF
+        ENDDO
+      ELSE IF (droite == 0 .AND. gauche /= 0) THEN
+        fpt(fp0)%int = 17
+        fpt(fp0)%i = i
+        fpt(fp0)%j = 0
+        fpt(fp0)%k = k
+        !
+        ! ... find the no-slip point on the profile
+        !
+        DO n=next(i-1),next(i)
+          IF (ztop(n-1) >= cz(k) .AND. ztop(n) <= cz(k)) THEN
+            grad = (xtop(n)-xtop(n-1))/(ztop(n)-ztop(n-1))
+            fpt(fp0)%nsl%x = xtop(n-1) + (cz(k)-ztop(n-1)) * grad
+            fpt(fp0)%nsl%z = cz(k)
+          ENDIF
+        ENDDO
+      ELSE 
+        fpt(fp0)%int = 17
+        fpt(fp0)%i = i
+        fpt(fp0)%j = 0
+        fpt(fp0)%k = k
+        fpt(fp0)%nsl%x = cx(i) 
+        fpt(fp0)%nsl%z = topo(i)
+      END IF
 
       RETURN
       END SUBROUTINE ext_forcing2d
@@ -467,7 +509,7 @@
             
          ELSEIF ( ord(i+1)-ord(i) < 0) THEN
 
-               CALL decreasing_profile(i,fp,fpt)
+            CALL decreasing_profile(i,fp,fpt)
 
          ELSE 
             
@@ -476,6 +518,7 @@
          END IF
          
       END DO
+      fp0 = fp
 !     
 ! ... Skip the -- last grid point -- 
 !
@@ -540,7 +583,7 @@
 ! ... find the no-slip point on the profile
 !
         DO n=next(i-1),next(i)
-          IF ((ztop(n-1) <= cz(k)).AND. (ztop(n) >= cz(k))) THEN
+          IF (ztop(n-1) <= cz(k) .AND. ztop(n) >= cz(k)) THEN
             grad = (xtop(n)-xtop(n-1))/(ztop(n)-ztop(n-1))
             fpt(fp)%nsl%x = xtop(n-1) + (cz(k)-ztop(n-1)) * grad
             fpt(fp)%nsl%z = cz(k)
@@ -548,6 +591,18 @@
         ENDDO
           
       ENDDO
+!!
+!! ... vertical linear interpolation 
+!!
+!      fp = fp + 1
+!
+!      fpt(fp)%int=0
+!
+!      fpt(fp)%i  = i
+!      fpt(fp)%k  = ord(i)
+!
+!      fpt(fp)%nsl%x = cx(i)
+!      fpt(fp)%nsl%z = topo(i)
 !
 ! ... bilinear interpolation
 ! ... on the last (upper) point on the same x-coord
@@ -562,7 +617,6 @@
 !
 ! ... find the no-slip point on the profile
 !
-                    
       DO n=next(i-1),next(i)
 
         dxt = xtop(n)-xtop(n-1)
@@ -573,7 +627,7 @@
         s = sol2( norm(1), dxt, norm(2), dzt, dxs, dzs , err)
         IF (err > 0) THEN
           WRITE(errorunit,*) 'WARNING! from proc: ', mpime
-          WRITE(errorunit,*) 'Error in fp: ', fp
+!          WRITE(errorunit,*) 'Error in fp: ', fp
         END IF
 
         IF ((s >= 0).AND.(s <= 1))	THEN
@@ -582,6 +636,7 @@
         ENDIF
       ENDDO
       
+      RETURN
       END SUBROUTINE increasing_profile
 !----------------------------------------------------------------------
       SUBROUTINE decreasing_profile(i,fp,fpt)
@@ -629,6 +684,18 @@
           fpt(fp)%nsl%z = s*ztop(n-1) + (1-s)*ztop(n)
         ENDIF
       ENDDO
+!!
+!! ... vertical linear interpolation 
+!!
+!      fp = fp + 1
+!
+!      fpt(fp)%int=0
+!
+!      fpt(fp)%i  = i
+!      fpt(fp)%k  = ord(i)
+!
+!      fpt(fp)%nsl%x = cx(i)
+!      fpt(fp)%nsl%z = topo(i)
 !
 ! ... loop over grid points with same x-coordinate
 ! ... (right linear interpolation)

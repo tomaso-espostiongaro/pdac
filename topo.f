@@ -83,7 +83,6 @@
 ! ... Read the topography file
 !
       USE control_flags, ONLY: job_type
-      USE grid, ONLY: fl
 
       IMPLICIT NONE
 !
@@ -540,7 +539,6 @@
       USE array_filters, ONLY: interp
       USE control_flags, ONLY: job_type, lpr
       USE grid, ONLY: x, xb, y, yb, z, zb, iv, jv, kv, dzmax
-      USE grid, ONLY: fl
 
       IMPLICIT NONE
       REAL*8 :: transl_z = 0.D0
@@ -593,8 +591,6 @@
         
         ! ... Re-set the 'ord' array and set the implicit profile
         !
-        IF (lpr > 1 .AND. mpime == root) &
-          WRITE(testunit,*) 'topographic ordinates'
         DO i = 1, nx
           DO k = 1, nz
             IF (zb(k) <= topo(i)) ord(i) = k  
@@ -794,6 +790,11 @@
       END SUBROUTINE interpolate_dem
 !----------------------------------------------------------------------
       SUBROUTINE export_topography
+!
+! ... Store the value of the discrete topography
+! ... If Immersed Boundaries are used, these values
+! ... are modified later with more accurate interpolations
+!
       USE control_flags, ONLY: job_type, lpr
       USE grid, ONLY: fl, noslip_wall, zb
       IMPLICIT NONE
@@ -901,7 +902,7 @@
 ! ... Write out the topographic map based on noslip cells
 !
       IF (lpr >= 2) THEN
-              IF (mpime == root) WRITE(logunit,*) 'Discrete topography map: '
+              IF (mpime == root) WRITE(logunit,*) 'Top no-slip cells: '
               IF (job_type == '2D') THEN
                       DO i = 1, nx
                         cntz = 0
@@ -946,6 +947,7 @@
       SUBROUTINE set_flag3
 !
 ! ... Set cell-flag = 3 in cells laying below the topography
+! ... "ord" and "ord2d" are the last cell COMPLETELY below the topography
 !
       USE control_flags, ONLY: lpr, job_type
       USE grid, ONLY: fl, zb

@@ -135,7 +135,7 @@
           !
           SELECT CASE ( flag(ijk) )
 
-          CASE (fluid, int_immb, ext_immb, free_io, nrfree_io)
+          CASE (fluid, free_io, nrfree_io)
 
             ug(ijk) = wind_x
             us(ijk,:) = ug(ijk)

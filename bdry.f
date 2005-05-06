@@ -54,14 +54,13 @@
       IF (irand >= 1) CALL random_switch(sweep)
 !
       mesh_loop: DO ijk = 1, ncint
-
+        CALL subscr(ijk)
+        CALL meshinds(ijk,imesh,i,j,k)
+        !
         fx = 0
         fy = 0 
         fz = 0
         forced = .FALSE.
-
-        CALL subscr(ijk)
-        CALL meshinds(ijk,imesh,i,j,k)
 !
 ! ... Update inlet cells for non-stationnary boundary conditions
 !
@@ -77,7 +76,7 @@
 ! ... neighbours on boundaries
 !
         IF( flag(ijk) == int_immb .OR. flag(ijk) == ext_immb) THEN
-          
+          !
           ! ... Check if 'ijk' is a forcing point
           !
           fx = numx(ijk)
@@ -1477,9 +1476,19 @@
 !====   esterna             		====
 !===========================================
    
-         h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
-         zA=SQRT((cx(i)-nsx)**2+(cz(k+1)-nsz)**2)
-         velint= + h/zA*vel(ijkp)
+         IF (nsx > cx(i)) THEN
+           h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
+           zA=SQRT((cx(i+1)-nsx)**2+(cz(k)-nsz)**2)
+           velint= + h/zA*vel(imjk)
+         ELSE IF (nsx < cx(i)) THEN
+           h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
+           zA=SQRT((cx(i-1)-nsx)**2+(cz(k)-nsz)**2)
+           velint= + h/zA*vel(ipjk)
+         ELSE
+           h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
+           zA=SQRT((cx(i)-nsx)**2+(cz(k+1)-nsz)**2)
+           velint= + h/zA*vel(ijkp)
+         END IF
 
 ! ... Quadratic interpolation
 !         zB=SQRT((cx(i)-nsx)**2+(cz(k+2)-nsz)**2)
