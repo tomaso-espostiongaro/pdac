@@ -174,19 +174,23 @@
             CALL caloric_eosl(ts(ijk,is),cps(is),ck(is,ijk),sies(ijk,is),ijk) 
           END DO
 
-          ! ... If the temperature exceeds a physical value,
-          ! ... constrain the maximum variation
+          ! ... Constrain the temperature variation
           !
-          IF (tforce) CALL temperature_limiter(ijk)
+          IF (tforce) THEN
+                  IF (info == 1 ) THEN
+                          CALL temperature_limiter(ijk)
+                  END IF
+          END IF
           
         END IF
       END DO
 !
 ! ... Check the simultaneous convergence of the caloric eos 
-! ... for all procs
+! ... for all procs.
+! ... Crash if the number of cells not converged exceeds 1000
 !
       CALL parallel_sum_integer( num, 1 )
-      IF ( num > 0 ) &
+      IF ( num > 1000 ) &
         CALL error('ftem','Error in caloric equation of state', num)
 !
       DEALLOCATE(at)
@@ -217,12 +221,6 @@
       IF (job_type == '3D') THEN
         !
         ! ... Gas Temperature and Enthalpy
-        IF ( tg(ijk) > tg(imjk)  .AND.  &
-             tg(ijk) > tg(ijmk)  .AND.  &
-             tg(ijk) > tg(ijkm)  .AND.  &
-             tg(ijk) > tg(ipjk)  .AND.  &
-             tg(ijk) > tg(ijpk)  .AND.  &
-             tg(ijk) > tg(ijkp) ) THEN 
           av_tg = tg(imjk) + tg(ijmk) + tg(ijkm) + tg(ipjk) + tg(ijpk) + tg(ijkp)
           av_tg = av_tg / 6.D0
           tg(ijk) = av_tg
@@ -235,33 +233,21 @@
           cg(ijk) = hc
           sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
           WRITE(testunit,*) 'Limiting gas temperature in cell: ', ijk
-        END IF
         !
         ! ... Solid Temperature and Enthalpy
         DO is = 1, nsolid
-          IF ( ts(ijk,is) > ts(imjk,is)  .AND.  &
-               ts(ijk,is) > ts(ijmk,is)  .AND.  &
-               ts(ijk,is) > ts(ijkm,is)  .AND.  &
-               ts(ijk,is) > ts(ipjk,is)  .AND.  &
-               ts(ijk,is) > ts(ijpk,is)  .AND.  &
-               ts(ijk,is) > ts(ijkp,is) ) THEN 
             av_ts = ts(imjk,is) + ts(ijmk,is) + ts(ijkm,is) + ts(ipjk,is) + ts(ijpk,is) + ts(ijkp,is)
             av_ts = av_ts / 6.D0
             ts(ijk,is) = av_ts
             !
             CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
             sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
-            WRITE(testunit,*) 'Limiting particle temperature in cell: ', ijk
-          END IF
+            WRITE(testunit,*) 'Limiting particle ',is,' temperature in cell: ', ijk
         END DO
         !
       ELSE IF (job_type == '2D') THEN
         !
         ! ... Gas Temperature and Enthalpy
-        IF ( tg(ijk) > tg(imjk)  .AND.   &
-             tg(ijk) > tg(ijkm)  .AND.   &
-             tg(ijk) > tg(ipjk)  .AND.   &
-             tg(ijk) > tg(ijkp) ) THEN 
           av_tg = tg(imjk) + tg(ijkm) + tg(ipjk) + tg(ijkp)
           av_tg = 0.25D0 * av_tg
           tg(ijk) = av_tg
@@ -274,22 +260,16 @@
           cg(ijk) = hc
           sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
           WRITE(testunit,*) 'Limiting gas temperature in cell: ', ijk
-        END IF
         !
         ! ... Solid Temperature and Enthalpy
         DO is = 1, nsolid
-          IF ( ts(ijk,is) > ts(imjk,is)  .AND.   &
-               ts(ijk,is) > ts(ijkm,is)  .AND.   &
-               ts(ijk,is) > ts(ipjk,is)  .AND.   &
-               ts(ijk,is) > ts(ijkp,is) ) THEN 
             av_ts = ts(imjk,is) + ts(ijkm,is) + ts(ipjk,is) + ts(ijkp,is)
             av_ts = 0.25D0 * av_ts 
             ts(ijk,is) = av_ts
             !
             CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
             sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
-            WRITE(testunit,*) 'Limiting particle temperature in cell: ', ijk
-          END IF
+            WRITE(testunit,*) 'Limiting particle ', is, ' temperature in cell: ', ijk
         END DO
         !
       END IF
