@@ -172,7 +172,7 @@
           i = fptx(np)%i
           k = fptx(np)%k
           ijk = i + (k-1) * nx
-          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell ) fl(ijk) = int_immb
+          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell .AND. fl(ijk)/=ext_immb) fl(ijk) = int_immb
         END DO
 
         ! ... Interpolate the topography on z-staggered mesh
@@ -201,7 +201,7 @@
           i = fptz(np)%i
           k = fptz(np)%k
           ijk = i + (k-1) * nx
-          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell ) fl(ijk) = int_immb
+          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell .AND. fl(ijk)/=ext_immb) fl(ijk) = int_immb
         END DO
         !
       ELSE IF (job_type == '3D') THEN
@@ -314,7 +314,7 @@
           j = fptx(np)%j
           k = fptx(np)%k
           ijk = i + (j-1) * nx + (k-1) * nx * ny
-          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell ) fl(ijk) = int_immb
+          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell .AND. fl(ijk)/=ext_immb) fl(ijk) = int_immb
         END DO
         
         ! ... Interpolate the topography on y-staggered mesh.
@@ -344,7 +344,7 @@
           j = fpty(np)%j
           k = fpty(np)%k
           ijk = i + (j-1) * nx + (k-1) * nx * ny
-          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell ) fl(ijk) = int_immb
+          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell .AND. fl(ijk)/=ext_immb) fl(ijk) = int_immb
         END DO
         
         ! ... Interpolate the topography on z-staggered mesh.
@@ -374,7 +374,7 @@
           j = fptz(np)%j
           k = fptz(np)%k
           ijk = i + (j-1) * nx + (k-1) * nx * ny
-          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell ) fl(ijk) = int_immb
+          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell .AND. fl(ijk)/=ext_immb) fl(ijk) = int_immb
         END DO
         
       END IF

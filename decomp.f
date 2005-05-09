@@ -3185,10 +3185,9 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
             END IF
 
             ! ... cells that are completely immersed
-            ! ... are excluded from computation. Only
-            ! ... compute interpolated velocities.
+            ! ... are excluded from computation. 
             !
-            IF (vf(ijk) == 0.D0) flag(ijk) = ext_immb
+            IF (vf(ijk) == 0.D0) flag(ijk) = noslip_wall
 
             IF (bd(ijk) /= filled  .AND. lpr > 1 ) THEN
               WRITE( 7, fmt = "( I8,3I4,2X,B8 )" ) ijk, i, j, k, bd(ijk)
