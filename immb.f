@@ -888,7 +888,8 @@
             IF( ord2d(i-1,j+1) < k ) g(8) = gamma(i,j,k, 8)
 
             IF (MAXVAL(g) > -1) THEN
-
+              !
+              ! ... Choose the external point for interpolation
               gint = mingam(g) 
 
               fp = fp + 1 
@@ -925,7 +926,13 @@
       CONTAINS
 !----------------------------------------------------------------------
       REAL*8 FUNCTION gamma(i_,j_,k_,index)
-
+!
+! ... 0 < gamma < 1
+! ... accordingly to the relative horizontal position between
+! ... immersed point/topographic point/external point
+! ... The topography between two mesh points is interpolated
+! ... linearly.
+! 
       IMPLICIT NONE
       ! ... (1 < index < 8) according to the relative position of
       ! ... the neighbours
@@ -946,6 +953,11 @@
       END FUNCTION gamma
 !----------------------------------------------------------------------
       INTEGER FUNCTION mingam(gam)
+!
+! ... Gives a criterion for the choice of the external interpolation point.
+! ... Choose the external point such as the no-slip points lays as close as possible
+! ... to the mid-point ('a=0.5')  between the immersed and the external point.
+!
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: gam(:)
       REAL*8 :: a, ming
@@ -964,9 +976,7 @@
       RETURN
       END FUNCTION mingam
 !----------------------------------------------------------------------
-!
       END SUBROUTINE forcing3d
-!
 !----------------------------------------------------------------------
       SUBROUTINE faces_int(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
       USE control_flags, ONLY: job_type

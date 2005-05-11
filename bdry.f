@@ -1631,7 +1631,6 @@
         index_q  = ijk
         index_qq = ijk
 
-
       END SELECT
 
       diagonal = ( (MOD(interp,2) == 0) .AND. (interp/=0) )
