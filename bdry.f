@@ -1478,11 +1478,11 @@
    
          IF (nsx > cx(i)) THEN
            h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
-           zA=SQRT((cx(i+1)-nsx)**2+(cz(k)-nsz)**2)
+           zA=SQRT((cx(i-1)-nsx)**2+(cz(k)-nsz)**2)
            velint= + h/zA*vel(imjk)
          ELSE IF (nsx < cx(i)) THEN
            h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
-           zA=SQRT((cx(i-1)-nsx)**2+(cz(k)-nsz)**2)
+           zA=SQRT((cx(i+1)-nsx)**2+(cz(k)-nsz)**2)
            velint= + h/zA*vel(ipjk)
          ELSE
            h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)

@@ -1,4 +1,4 @@
-!!   Modification of the 3d BLOCK distribution to avoid large processor 
+--   Modification of the 3d BLOCK distribution to avoid large processor 
      unbalancing of computational load
 
 !    Refinement of the procedure for random perturbation of the inlet 
