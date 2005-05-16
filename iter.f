@@ -193,12 +193,12 @@
 ! ... on each cell to its neighbours.
 !
       omega0 = omega
-      ierr = 0
 !
       timconv = 0.0d0
 !
       sor_loop: DO nit = 1, maxout
          mustit = 1
+         ierr = 0
 !
          ! ... Compute fluxes and forces in the momentum equation
          ! ... (for fully implicit solution)
@@ -400,9 +400,11 @@
        END IF
 !
 ! ... Check the closure relation for solid phases on all processors
+! ... Crash if the number of "frozen" cells exceeds 1000
 !
         CALL parallel_sum_integer(ierr, 1)
-        !IF (ierr > 0) CALL error('iter','solid fraction exceeded 1',ierr)
+        IF (ierr > 1) CALL data_exchange(flag)
+        !IF (ierr > 1) CALL error('iter','solid fraction exceeded 1',ierr)
 !
       END DO sor_loop
 !
