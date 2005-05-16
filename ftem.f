@@ -190,7 +190,7 @@
 ! ... Crash if the number of cells not converged exceeds 1000
 !
       CALL parallel_sum_integer( num, 1 )
-      IF ( num > 100 ) &
+      IF ( num > 1 .AND. .NOT.tforce) &
         CALL error('ftem','Error in caloric equation of state', num)
 !
       DEALLOCATE(at)

@@ -923,7 +923,10 @@
         CALL subscr(ijk)
         CALL meshinds(ijk,imesh,i,j,k)
           
-        WRITE(tempunit,101) ugfe(ijk), ugfn(ijk), ugft(ijk)
+        IF (i == 10 .AND. k == 84) THEN
+          WRITE(tempunit,101) ugfe(ijk), ugft(ijk)
+          WRITE(tempunit,101) wgfe(ijk), wgft(ijk)
+        END IF
 
       END DO
 

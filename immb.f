@@ -298,7 +298,7 @@
           DO j = 1, ny
             DO i = 1, nx
               ijk = i + (j-1) * nx + (k-1) * nx * ny
-              IF (extfx(ijk)) CALL ext_forcing3d(i, j, k, xb, y, topo2d_x, fptx)
+              IF (extfx(ijk)) CALL ext_forcing3d(i, j, k, xb, y, z, topo2d_x, fptx)
             END DO
           END DO
         END DO
@@ -328,7 +328,7 @@
           DO j = 1, ny
             DO i = 1, nx
               ijk = i + (j-1) * nx + (k-1) * nx * ny
-              IF (extfy(ijk)) CALL ext_forcing3d(i, j, k, x, yb, topo2d_y, fpty)
+              IF (extfy(ijk)) CALL ext_forcing3d(i, j, k, x, yb, z, topo2d_y, fpty)
             END DO
           END DO
         END DO
@@ -358,7 +358,7 @@
           DO j = 1, ny
             DO i = 1, nx
               ijk = i + (j-1) * nx + (k-1) * nx * ny
-              IF (extfz(ijk)) CALL ext_forcing3d(i, j, k, x, y, topo2d_c, fptz)
+              IF (extfz(ijk)) CALL ext_forcing3d(i, j, k, x, y, zb, topo2d_c, fptz)
             END DO
           END DO
         END DO
@@ -428,20 +428,23 @@
       REAL*8, DIMENSION(:), INTENT(IN) :: cx, cz
       REAL*8, DIMENSION(:), INTENT(IN) :: topo
       TYPE(forcing_point), DIMENSION(:), INTENT(INOUT) :: fpt
-      INTEGER :: droite, gauche, f, n
+      INTEGER :: f, n
+      LOGICAL :: droite, gauche
       REAL*8 :: grad
-      droite = 0
-      gauche = 0
+      droite = .FALSE.
+      gauche = .FALSE.
 
       fp0 = fp0 + 1
 
       DO f = 1, fp0
-        IF (fpt(f)%i==i+1 .AND. fpt(f)%k==k) droite = f
-        IF (fpt(f)%i==i-1 .AND. fpt(f)%k==k) gauche = f
+        IF (fpt(f)%i==i+1 .AND. fpt(f)%k==k) droite = .TRUE. 
+        IF (fpt(f)%i==i-1 .AND. fpt(f)%k==k) gauche = .TRUE.
       END DO
-
-      IF (droite /= 0 .AND. gauche == 0) THEN
-        fpt(fp0)%int = 17
+      !
+      ! ... Interpolate with the external point on your left
+      !
+      IF (droite .AND. .NOT.gauche) THEN
+        fpt(fp0)%int = 21
         fpt(fp0)%i = i
         fpt(fp0)%j = 0
         fpt(fp0)%k = k
@@ -455,8 +458,11 @@
             fpt(fp0)%nsl%z = cz(k)
           ENDIF
         ENDDO
-      ELSE IF (droite == 0 .AND. gauche /= 0) THEN
-        fpt(fp0)%int = 17
+      !
+      ! ... Interpolate with the external point on your right
+      !
+      ELSE IF (.NOT.droite .AND. gauche) THEN
+        fpt(fp0)%int = 22
         fpt(fp0)%i = i
         fpt(fp0)%j = 0
         fpt(fp0)%k = k
@@ -470,8 +476,11 @@
             fpt(fp0)%nsl%z = cz(k)
           ENDIF
         ENDDO
+      !
+      ! ... Interpolate with the external point above
+      !
       ELSE 
-        fpt(fp0)%int = 17
+        fpt(fp0)%int = 20
         fpt(fp0)%i = i
         fpt(fp0)%j = 0
         fpt(fp0)%k = k
@@ -803,28 +812,6 @@
       END SUBROUTINE forcing2d
 !
 !----------------------------------------------------------------------
-      SUBROUTINE ext_forcing3d(i, j, k, cx, cy, topo2d, fpt)
-
-      IMPLICIT NONE
-
-      INTEGER, INTENT(IN) :: i, j, k
-       
-      REAL*8, DIMENSION(:), INTENT(IN) :: cx, cy
-      REAL*8, DIMENSION(:,:), INTENT(IN) :: topo2d
-      TYPE(forcing_point), DIMENSION(:), INTENT(OUT) :: fpt
- 
-      fp0 = fp0 + 1 
-      fpt(fp0)%i  = i
-      fpt(fp0)%j  = j
-      fpt(fp0)%k  = k
-      fpt(fp0)%int = 17
-      fpt(fp0)%nsl%x = cx(i)
-      fpt(fp0)%nsl%y = cy(j)
-      fpt(fp0)%nsl%z = topo2d(i,j)
-
-      RETURN
-      END SUBROUTINE ext_forcing3d
-!----------------------------------------------------------------------
       SUBROUTINE forcing3d(cx, cy, cz, topo2d, fpt)
       USE volcano_topography, ONLY: ord2d
 !
@@ -920,7 +907,6 @@
 
         END DO
       END DO
-
       RETURN
 !----------------------------------------------------------------------
       CONTAINS
@@ -977,6 +963,182 @@
       END FUNCTION mingam
 !----------------------------------------------------------------------
       END SUBROUTINE forcing3d
+!----------------------------------------------------------------------
+      SUBROUTINE ext_forcing3d(i, j, k, cx, cy, cz, topo2d, fpt)
+
+      USE volcano_topography, ONLY: ord2d
+!
+      IMPLICIT NONE
+
+      INTEGER, INTENT(IN) :: i, j, k
+       
+      REAL*8, DIMENSION(:), INTENT(IN) :: cx, cy, cz
+      REAL*8, DIMENSION(:,:), INTENT(IN) :: topo2d
+      TYPE(forcing_point), DIMENSION(:), INTENT(OUT) :: fpt
+ 
+      REAL*8 :: g(8), g_EXT(4), g_min, maxg
+      INTEGER :: delta_i(8), delta_j(8)
+      INTEGER :: l,gint,fpint
+
+      delta_i(1) = -1
+      delta_j(1) = 0
+      delta_i(2) = -1
+      delta_j(2) = -1
+      delta_i(3) = 0
+      delta_j(3) = -1
+      delta_i(4) = 1
+      delta_j(4) = -1
+      delta_i(5) = 1
+      delta_j(5) = 0
+      delta_i(6) = 1
+      delta_j(6) = 1
+      delta_i(7) = 0
+      delta_j(7) = 1
+      delta_i(8) = -1
+      delta_j(8) = 1
+
+      g = -1
+      maxg = 1.D0
+      IF ( k > ord2d(i,j) + 1 ) THEN
+
+         IF( ord2d(i-1,j)   >= k ) g(1) = gamma(i,j,k, 1)
+         IF( ord2d(i-1,j-1) >= k ) g(2) = gamma(i,j,k, 2)
+         IF( ord2d(i,j-1)   >= k ) g(3) = gamma(i,j,k, 3)
+         IF( ord2d(i+1,j-1) >= k ) g(4) = gamma(i,j,k, 4)
+         IF( ord2d(i+1,j)   >= k ) g(5) = gamma(i,j,k, 5)
+         IF( ord2d(i+1,j+1) >= k ) g(6) = gamma(i,j,k, 6)
+         IF( ord2d(i,j+1)   >= k ) g(7) = gamma(i,j,k, 7)
+         IF( ord2d(i-1,j+1) >= k ) g(8) = gamma(i,j,k, 8)
+!
+! ... If one of this products is < 0 then the external forcing
+! ... can be applied along the corresponding direction
+!
+         g_EXT(1) = g(1) * g(5)      !  E-W
+         g_EXT(2) = g(2) * g(6)      !  SE-NW
+         g_EXT(3) = g(3) * g(7)      !  S-N
+         g_EXT(4) = g(4) * g(8)      !  SW-NE
+!
+! ... Select the direction which minimize the distance 
+! ... between the forcing point and the no-slip point
+!
+         DO l = 1,4
+            IF (( g_EXT(l) < 0 ) .AND. (-g_EXT(l) < maxg))  THEN
+               g_min = l
+               maxg = - g_EXT(l)
+            ENDIF
+         ENDDO
+!
+! ... Select the versus along the direction previously chosen
+!
+         IF ( MINVAL (g_EXT) < 0 ) THEN
+            IF ( g_min == 1 ) THEN
+
+               IF ( g(1) < 0 ) THEN
+                  gint = 5
+                  fpint = 21
+               ELSE
+                  gint = 1
+                  fpint = 25
+               ENDIF
+
+            ELSEIF ( g_min == 2 ) THEN
+
+               IF ( g(2) < 0 ) THEN
+                  gint = 6
+                  fpint = 22
+               ELSE
+                  gint = 2
+                  fpint = 26
+               ENDIF
+
+            ELSEIF ( g_min == 3 ) THEN
+
+               IF ( g(3) < 0 ) THEN
+                  gint = 7
+                  fpint = 23
+               ELSE
+                  gint = 3
+                  fpint = 27
+               ENDIF
+
+            ELSEIF ( g_min == 4 ) THEN
+
+               IF ( g(4) < 0 ) THEN
+                  gint = 8
+                  fpint = 24
+               ELSE
+                  gint = 4
+                  fpint = 28
+               ENDIF
+
+            ENDIF
+         ENDIF
+      ENDIF
+
+      IF ( maxg < 1 ) THEN
+!
+! ... Choose the external point for interpolation
+! ... in the z-plane of the forcing point 
+!         
+         fp0 = fp0 + 1 
+         fpt(fp0)%i  = i
+         fpt(fp0)%j  = j
+         fpt(fp0)%k  = k
+         fpt(fp0)%int = fpint
+         fpt(fp0)%nsl%x = (1.D0 - g(gint)) * cx(i) + &
+                          g(gint) * cx(i+delta_i(gint))
+         fpt(fp0)%nsl%y = (1.D0 - g(gint)) * cy(j) + &
+                          g(gint) * cy(j+delta_j(gint))
+         fpt(fp0)%nsl%z = cz(k)
+         
+      ELSE
+!
+! ... Choose the external forcing point for interpolation
+! ... over the forcing point
+!
+         fp0 = fp0 + 1 
+         fpt(fp0)%i  = i
+         fpt(fp0)%j  = j
+         fpt(fp0)%k  = k
+         fpt(fp0)%int = 20
+         fpt(fp0)%nsl%x = cx(i)
+         fpt(fp0)%nsl%y = cy(j)
+         fpt(fp0)%nsl%z = topo2d(i,j)
+         !
+      ENDIF
+      
+      RETURN
+!----------------------------------------------------------------------
+      CONTAINS
+!----------------------------------------------------------------------
+      REAL*8 FUNCTION gamma(i_,j_,k_,index)
+!
+! ... 0 < gamma < 1
+! ... accordingly to the relative horizontal position between
+! ... immersed point/topographic point/external point
+! ... The topography between two mesh points is interpolated
+! ... linearly.
+! 
+      IMPLICIT NONE
+      ! ... (1 < index < 8) according to the relative position of
+      ! ... the neighbours
+      INTEGER, INTENT(IN) :: i_, j_, k_, index
+
+      INTEGER :: di_, dj_
+      REAL*8  :: num, den
+
+      di_ = delta_i(index)
+      dj_ = delta_j(index)
+
+      num = cz(k_) - topo2d(i_,j_)
+      den = topo2d(i_+di_, j_+dj_) - topo2d(i_,j_)
+
+      gamma = num / den
+      
+      RETURN
+      END FUNCTION gamma
+
+      END SUBROUTINE ext_forcing3d
 !----------------------------------------------------------------------
       SUBROUTINE faces_int(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
       USE control_flags, ONLY: job_type

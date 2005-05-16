@@ -824,7 +824,7 @@
           WRITE(testunit,*) ' time, i, j, k ', time, i, j, k
           WRITE(testunit,*) ' rls, volfrac ', rls, 1.D0/ivf
         END IF
-        flag(ijk) = noslip_wall
+        IF (flag(ijkm) == noslip_wall) flag(ijk) = noslip_wall
         ierr = ierr + 1
       ENDIF
 !
@@ -1299,7 +1299,7 @@
               WRITE(testunit,*) ' i, j, k, rls ', i, j, k, rls
               WRITE(testunit,*) ' rls, volfrac ', rls, 1.D0/ivf
             ENDIF
-            flag(ijk) = noslip_wall
+            IF (flag(ijkm) == noslip_wall) flag(ijk) = noslip_wall
             ierr = ierr + 1
           ENDIF
 
@@ -1582,7 +1582,7 @@
               WRITE(testunit,*) ' i, j, k, rls ', i, j, k, rls
               WRITE(testunit,*) ' rls, volfrac ', rls, 1.D0/ivf
             ENDIF
-            flag(ijk) = noslip_wall
+            IF (flag(ijkm) == noslip_wall) flag(ijk) = noslip_wall
             ierr = ierr + 1
           ENDIF
 
@@ -1670,8 +1670,7 @@
         CALL subscr(ijk)
         CALL meshinds(ijk,imesh,i,j,k)
 
-        !WRITE(tempunit,100) ijk, i, j, k, rgfe(ijk), rgfn(ijk), rgft(ijk)
-        WRITE(tempunit,101) rgfe(ijk), rgfn(ijk), rgft(ijk)
+        IF (i==10 .AND. k==84) WRITE(tempunit,101) rgfe(ijk), rgft(ijk)
 
       END DO
 

@@ -387,7 +387,7 @@
       update_eosg       = .FALSE.  ! update density after temperature
       rlim = 1.0D-8     ! 
                         ! limit for off-diagonal contribution in matrix
-      flim = 1.0D-8     ! inversion
+      flim = 1.0D-6     ! inversion
                         ! 
 
 !

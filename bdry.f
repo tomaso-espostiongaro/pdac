@@ -96,7 +96,7 @@
               !
               ! ... Set the pressure in non-resolved forcing points
               ! ... (zero-gradient)
-              IF( fptx(fx)%int == 17 ) THEN
+              IF( fptx(fx)%int >= 20 ) THEN
                       IF (flag(ijk) == fluid) THEN
                               p(ipjk) = p(ijk)
                       ELSE
@@ -114,7 +114,7 @@
               fptz(fz)%vel = vel
               !
               ! ... Set the pressure in non-resolved forcing points
-              IF( fptz(fz)%int == 17 ) THEN
+              IF( fptz(fz)%int >= 20 ) THEN
                       p(ijk) = p(ijkp)
               END IF
               !
@@ -130,7 +130,7 @@
               fptx(fx)%vel = vel
               !
               ! ... Set the pressure in non-resolved forcing points
-              IF( fptx(fx)%int == 17 ) THEN
+              IF( fptx(fx)%int >= 20 ) THEN
                       IF (flag(ijk) == fluid) THEN
                               p(ipjk) = p(ijk)
                       ELSE
@@ -148,7 +148,7 @@
               fpty(fy)%vel = vel
 
               ! ... Set the pressure in non-resolved forcing points
-              IF( fpty(fy)%int == 17 ) THEN
+              IF( fpty(fy)%int >= 20 ) THEN
                       IF (flag(ijk) == fluid) THEN
                               p(ijpk) = p(ijk)
                       ELSE
@@ -166,7 +166,7 @@
               fptz(fz)%vel = vel
 
               ! ... Set the pressure in non-resolved forcing points
-              IF( fptz(fz)%int == 17 ) THEN
+              IF( fptz(fz)%int >= 20 ) THEN
                       p(ijk) = p(ijkp)
               END IF
               
@@ -1361,6 +1361,7 @@
 
       SELECT CASE (interp)
 
+
       CASE (-3)
 
 !===========================================
@@ -1469,7 +1470,22 @@
             velint=-((zB-h)*vel(ipjkp)+(h-zA)*vel(ippjkpp))/(zB-zA)
          ENDIF
    
-      CASE (17)
+      CASE (22)
+   
+!===========================================
+!====   interpolazione lineare      	====
+!====   esterna E           		====
+!===========================================
+   
+         IF (nsx < cx(i)) THEN
+           h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
+           zA=SQRT((cx(i+1)-nsx)**2+(cz(k)-nsz)**2)
+           velint= + h/zA*vel(ipjk)
+         ELSE
+                 CALL error('bdry','control fpoint',ijk)
+         END IF
+
+      CASE (21)
    
 !===========================================
 !====   interpolazione lineare      	====
@@ -1480,15 +1496,20 @@
            h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
            zA=SQRT((cx(i-1)-nsx)**2+(cz(k)-nsz)**2)
            velint= + h/zA*vel(imjk)
-         ELSE IF (nsx < cx(i)) THEN
-           h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
-           zA=SQRT((cx(i+1)-nsx)**2+(cz(k)-nsz)**2)
-           velint= + h/zA*vel(ipjk)
          ELSE
-           h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
-           zA=SQRT((cx(i)-nsx)**2+(cz(k+1)-nsz)**2)
-           velint= + h/zA*vel(ijkp)
+                 CALL error('bdry','control fpoint',ijk)
          END IF
+
+      CASE (20)
+   
+!===========================================
+!====   interpolazione lineare      	====
+!====   esterna TOP         		====
+!===========================================
+   
+         h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
+         zA=SQRT((cx(i)-nsx)**2+(cz(k+1)-nsz)**2)
+         velint= + h/zA*vel(ijkp)
 
 ! ... Quadratic interpolation
 !         zB=SQRT((cx(i)-nsx)**2+(cz(k+2)-nsz)**2)
@@ -1554,82 +1575,129 @@
 ! ... 6: north-east
 ! ... 7: north
 ! ... 8: north-west
-! ... 17: external top
 
       SELECT CASE (interp)
 
         CASE (0)
-        delta_i = 0
-        delta_j = 0
-        delta_k = 1
-        index_q  = ijkp
-        index_qq = ijkpp
+              delta_i = 0
+              delta_j = 0
+              delta_k = 1
+              index_q  = ijkp
+              index_qq = ijkpp
 
         CASE (1)
-        delta_i = -1
-        delta_j = 0
-        delta_k = 0
-        index_q  = imjk
-        index_qq = immjk
+              delta_i = -1
+              delta_j = 0
+              delta_k = 0
+              index_q  = imjk
+              index_qq = immjk
 
         CASE (2)
-        delta_i = -1
-        delta_j = -1
-        delta_k = 0
-        index_q  = imjmk
+              delta_i = -1
+              delta_j = -1
+              delta_k = 0
+              index_q  = imjmk
 
         CASE (3)
-        delta_i = 0
-        delta_j = -1
-        delta_k = 0
-        index_q  = ijmk
-        index_qq = ijmmk
+              delta_i = 0
+              delta_j = -1
+              delta_k = 0
+              index_q  = ijmk
+              index_qq = ijmmk
 
         CASE (4)
-        delta_i = 1
-        delta_j = -1
-        delta_k = 0
-        index_q  = ipjmk
+              delta_i = 1
+              delta_j = -1
+              delta_k = 0
+              index_q  = ipjmk
 
         CASE (5)
-        delta_i = 1
-        delta_j = 0
-        delta_k = 0
-        index_q  = ipjk
-        index_qq = ippjk
+              delta_i = 1
+              delta_j = 0
+              delta_k = 0
+              index_q  = ipjk
+              index_qq = ippjk
 
         CASE (6)
-        delta_i = 1
-        delta_j = 1
-        delta_k = 0
-        index_q  = ipjpk
+              delta_i = 1
+              delta_j = 1
+              delta_k = 0
+              index_q  = ipjpk
 
         CASE (7)
-        delta_i = 0
-        delta_j = 1
-        delta_k = 0
-        index_q  = ijpk
-        index_qq = ijppk
+              delta_i = 0
+              delta_j = 1
+              delta_k = 0
+              index_q  = ijpk
+              index_qq = ijppk
 
         CASE (8)
-        delta_i = -1
-        delta_j = 1
-        delta_k = 0
-        index_q  = imjpk
+              delta_i = -1
+              delta_j = 1
+              delta_k = 0
+              index_q  = imjpk
 
-        CASE (17)
-        delta_i = 0
-        delta_j = 0
-        delta_k = 1
-        index_q  = ijkp
-        index_qq = ijkpp
+        ! ... external NE
+        CASE(26)
+              delta_i = 1
+              delta_j = 1
+              delta_k = 0
+              index_q  = ipjpk
+        ! ... external E
+        CASE(25)
+              delta_i = 1
+              delta_j = 0
+              delta_k = 0
+              index_q  = ipjk
+        ! ... external SE
+        CASE(24)
+              delta_i = 1
+              delta_j = -1
+              delta_k = 0
+              index_q  = ipjmk
+        ! ... external N
+        CASE(27)
+              delta_i = 0
+              delta_j = 1
+              delta_k = 0
+              index_q  = ijpk              
+        ! ... external TOP
+        CASE(20)
+              delta_i = 0
+              delta_j = 0
+              delta_k = 1
+              index_q  = ijkp
+        ! ... external S
+        CASE(23)
+              delta_i = 0
+              delta_j = -1
+              delta_k = 0
+              index_q  = ijmk  
+        ! ... external NW
+        CASE(28)
+              delta_i = -1
+              delta_j = 1
+              delta_k = 0
+              index_q  = imjpk              
+        ! ... external W
+        CASE(21)
+              delta_i = -1
+              delta_j = 0
+              delta_k = 0
+              index_q  = imjk              
+        ! ... external SW
+        CASE(22)
+              delta_i = -1
+              delta_j = -1
+              delta_k = 0
+              index_q  = imjmk              
 
         CASE DEFAULT
-        delta_i = 0
-        delta_j = 0
-        delta_k = 0
-        index_q  = ijk
-        index_qq = ijk
+              delta_i = 0
+              delta_j = 0
+              delta_k = 0
+              index_q  = ijk
+              index_qq = ijk
 
       END SELECT
 
@@ -1640,7 +1708,7 @@
       zA = SQRT( (cx(i+delta_i)-nsx)**2 + (cy(j+delta_j)-nsy)**2 + &
                  (cz(k+delta_k)-nsz)**2 )
 
-      IF (interp == 17) THEN
+      IF (interp >= 20) THEN
          velint3d = h/zA*vel(index_q)         
       ELSEIF (h <= zA .OR. diagonal) THEN
          velint3d = -h/zA*vel(index_q)
