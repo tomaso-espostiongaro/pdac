@@ -106,7 +106,9 @@
               !
               ! ... Initialize x-velocity in the forced points
               ug(ijk) = vel
-              us(ijk,:) = vel
+              DO is=1,nsolid
+                IF (rlk(ijk,is)>0.D0) us(ijk,is) = vel
+              END DO
             END IF
 
             IF( fz/=0 ) THEN
@@ -120,7 +122,9 @@
               !
               ! ... Initialize z-velocity in the forced points
               wg(ijk) = vel
-              ws(ijk,:) = vel
+              DO is=1,nsolid
+                IF (rlk(ijk,is)>0.D0) ws(ijk,is) = vel
+              END DO
             END IF
 
           ELSE IF (job_type == '3D') THEN
@@ -140,7 +144,9 @@
               !
               ! ... Initialize x-velocity in the forced points
               ug(ijk) = vel
-              us(ijk,:) = vel
+              DO is=1,nsolid
+                IF (rlk(ijk,is)>0.D0) us(ijk,is) = vel
+              END DO
             END IF
             
             IF( fy/=0 ) THEN
@@ -158,7 +164,9 @@
               
               ! ... Initialize y-velocity in the forced points
               vg(ijk) = vel
-              vs(ijk,:) = vel
+              DO is=1,nsolid
+                IF (rlk(ijk,is)>0.D0) vs(ijk,is) = vel
+              END DO
             END IF
             
             IF( fz/=0 ) THEN
@@ -172,7 +180,9 @@
               
               ! ... Initialize z-velocity in the forced points
               wg(ijk) = vel
-              ws(ijk,:) = vel
+              DO is=1,nsolid
+                IF (rlk(ijk,is)>0.D0) ws(ijk,is) = vel
+              END DO
             END IF
           END IF
 !
