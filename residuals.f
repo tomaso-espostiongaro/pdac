@@ -11,21 +11,28 @@
 
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: ngas, nsolid
+      USE domain_decomposition, ONLY: meshinds
       USE eos_gas, ONLY: ygc
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: dx, dy, dz, r, rb, flag
       USE grid, ONLY: inlet_cell, vent_cell
-      USE domain_decomposition, ONLY: meshinds
+      USE immersed_boundaries, ONLY: immb, faces
       USE time_parameters, ONLY: dt
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: nswp
       INTEGER :: ijk, i, j, k, imesh
       INTEGER :: ig, is
+      INTEGER :: b_e, b_w, b_t, b_b, b_n, b_s
+      REAL*8 :: ivf
       REAL*8 :: volume, sx, sy, sz, flux
       REAL*8 :: res_g, mfr
       REAL*8, ALLOCATABLE :: res_s(:), res_gc(:)
+      !
+      ! ... Initialize the cell fractions for immersed boundaries
+      !
+      b_e = 1; b_w = 1; b_t = 1; b_b = 1; b_n = 1; b_s = 1; ivf = 1.D0
 
       ALLOCATE(res_s(nsolid))
       ALLOCATE(res_gc(ngas))
@@ -38,11 +45,16 @@
         CALL meshinds(ijk,imesh,i,j,k)
 
         IF ( BTEST(flag(ijk),0) ) THEN
+          !
+          ! ... Compute the volumes partially filled by the
+          ! ... topography
+          !
+          IF (immb == 1) CALL faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
   
           IF (job_type == '2D') THEN
-            volume = r(i) * dx(i) * dz(k)
+            volume = r(i) * dx(i) * dz(k) / ivf
           ELSE IF (job_type == '3D') THEN
-            volume = dx(i) * dy(j) * dz(k)
+            volume = dx(i) * dy(j) * dz(k) / ivf
           END IF
   
           ! ... Compute the total mass in the physical domain
