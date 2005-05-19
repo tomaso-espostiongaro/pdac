@@ -34,6 +34,7 @@
       USE gas_solid_density, ONLY: rgp, rgpn
       USE grid, ONLY: dx, dy, dz, indx, indy, indz, inr
       USE grid, ONLY: flag
+      USE immersed_boundaries, ONLY: faces, immb
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
       USE time_parameters, ONLY: dt,time, sweep
 !
@@ -45,9 +46,15 @@
       INTEGER :: i, j, k, imesh
       INTEGER :: ijk
       INTEGER :: ig, dfg
+      INTEGER :: b_e, b_w, b_t, b_b, b_n, b_s
+      REAL*8 :: ivf
 
       REAL*8, ALLOCATABLE :: rgpgc(:)
       LOGICAL :: compute
+!
+      ! ... Initialize the cell fractions for immersed boundaries
+      !
+      b_e = 1; b_w = 1; b_t = 1; b_b = 1; b_n = 1; b_s = 1; ivf = 1.D0
 !
       IF (ngas == 1) THEN
         ygc(:,1) = 1.D0
@@ -75,6 +82,11 @@
       DO ijk = 1, ncint
        compute = BTEST(flag(ijk),0)
        IF( compute ) THEN
+         !
+         ! ... Compute the volumes partially filled by the
+         ! ... topography
+         IF (immb == 1) CALL faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
+
          CALL meshinds(ijk,imesh,i,j,k)
          CALL subscr(ijk)
 
@@ -88,18 +100,18 @@
 	   yfw = yfe(imjk,ig)
 	   yfb = yft(ijkm,ig)
 
-           yfx = yfe(ijk,ig) - yfw
-	   yfz = yft(ijk,ig) - yfb
+           yfx = b_e * yfe(ijk,ig) - b_w * yfw
+	   yfz = b_t * yft(ijk,ig) - b_b * yfb
 
            IF (job_type == '3D') THEN
   	     yfs = yfn(ijmk,ig)
-  	     yfy = yfn(ijk,ig) - yfs
+  	     yfy = b_n * yfn(ijk,ig) - b_s * yfs
            END IF
 
            rgpgc(ig) = rgpgcn(ijk,ig)
-	   rgpgc(ig) = rgpgc(ig) - dt * indx(i) * yfx * inr(i)     
-           rgpgc(ig) = rgpgc(ig) - dt * indy(j) * yfy              
-	   rgpgc(ig) = rgpgc(ig) - dt * indz(k) * yfz
+	   rgpgc(ig) = rgpgc(ig) - ivf * dt * indx(i) * yfx * inr(i)     
+           rgpgc(ig) = rgpgc(ig) - ivf * dt * indy(j) * yfy              
+	   rgpgc(ig) = rgpgc(ig) - ivf * dt * indz(k) * yfz
 
            IF(rgpgc(ig) < 0.D0) THEN
              IF (lpr > 2) THEN

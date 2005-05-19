@@ -233,6 +233,7 @@
           cg(ijk) = hc
           sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
           WRITE(testunit,*) 'Limiting gas temperature in cell: ', ijk
+          WRITE(testunit,*) 'Tg = ', tg(ijk)
         !
         ! ... Solid Temperature and Enthalpy
         DO is = 1, nsolid
@@ -243,6 +244,7 @@
             CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
             sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
             WRITE(testunit,*) 'Limiting particle ',is,' temperature in cell: ', ijk
+            WRITE(testunit,*) 'Ts = ', ts(ijk,is)
         END DO
         !
       ELSE IF (job_type == '2D') THEN
@@ -260,6 +262,7 @@
           cg(ijk) = hc
           sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
           WRITE(testunit,*) 'Limiting gas temperature in cell: ', ijk
+          WRITE(testunit,*) 'Tg = ', tg(ijk)
         !
         ! ... Solid Temperature and Enthalpy
         DO is = 1, nsolid
@@ -270,6 +273,7 @@
             CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
             sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
             WRITE(testunit,*) 'Limiting particle ', is, ' temperature in cell: ', ijk
+            WRITE(testunit,*) 'Ts = ', ts(ijk,is)
         END DO
         !
       END IF

@@ -215,6 +215,7 @@
             WRITE(testunit,*) 'WARNING from proc: ', mpime
             WRITE(testunit,*) 'zero or negative temperature in caloric_eosg'
             WRITE(testunit,*) 'coord: ',i,j,k,' tg= ', tg
+            info = 1
           END IF
 
       RETURN

@@ -1658,7 +1658,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE test_fluxes
       USE domain_decomposition, ONLY: ncint, meshinds
-      USE set_indexes, ONLY: subscr
+      USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
       USE io_files, ONLY: tempunit
       IMPLICIT NONE
       INTEGER :: ijk, imesh, i, j, k
@@ -1670,7 +1670,14 @@
         CALL subscr(ijk)
         CALL meshinds(ijk,imesh,i,j,k)
 
-        IF (i==10 .AND. k==84) WRITE(tempunit,101) rgfe(ijk), rgft(ijk)
+        IF (i==45 .AND. j==8 .AND. k==10) THEN
+                WRITE(tempunit,101) rgfe(ijk), rgfn(ijk), rgft(ijk)
+                WRITE(tempunit,101) rgfe(imjk), rgfn(ijmk), rgft(ijkm)
+        END IF
+        IF (i==45 .AND. j==10 .AND. k==10) THEN
+                WRITE(tempunit,101) rgfe(ijk), rgfn(ijk), rgft(ijk)
+                WRITE(tempunit,101) rgfe(imjk), rgfn(ijmk), rgft(ijkm)
+        END IF
 
       END DO
 

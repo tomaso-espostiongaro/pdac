@@ -3110,13 +3110,15 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
             IF (job_type == '2D') THEN
               ! 
               ! East
-              IF (z(k) > topo_x(i) .AND. flag(ipjk) /= ext_immb) THEN
+!              IF (z(k) > topo_x(i) .AND. flag(ipjk) /= ext_immb) THEN
+              IF (z(k) > topo_x(i)) THEN
                 bd(ijk) = bd(ijk) + 1
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
               !
               ! West
-              IF (z(k) > topo_x(i-1) .AND. flag(imjk) /= ext_immb) THEN
+!              IF (z(k) > topo_x(i-1) .AND. flag(imjk) /= ext_immb) THEN
+              IF (z(k) > topo_x(i-1)) THEN
                 bd(ijk) = bd(ijk) + 2
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
@@ -3128,7 +3130,8 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               END IF
               !
               ! Bottom
-              IF (zb(k-1) >= topo_c(i) .AND. flag(ijkm) /= ext_immb) THEN
+!              IF (zb(k-1) >= topo_c(i) .AND. flag(ijkm) /= ext_immb) THEN
+              IF (zb(k-1) >= topo_c(i)) THEN
                 bd(ijk) = bd(ijk) + 8 
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
@@ -3136,13 +3139,15 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
             ELSE IF (job_type == '3D') THEN
               ! 
               ! East
-              IF (z(k) > topo2d_x(i,j) .AND. flag(ipjk) /= ext_immb) THEN
+!              IF (z(k) > topo2d_x(i,j) .AND. flag(ipjk) /= ext_immb) THEN
+              IF (z(k) > topo2d_x(i,j)) THEN
                 bd(ijk) = bd(ijk) + 1
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
               !
               ! West
-              IF (z(k) > topo2d_x(i-1,j) .AND. flag(imjk) /= ext_immb) THEN
+!              IF (z(k) > topo2d_x(i-1,j) .AND. flag(imjk) /= ext_immb) THEN
+              IF (z(k) > topo2d_x(i-1,j)) THEN
                 bd(ijk) = bd(ijk) + 2
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
@@ -3154,19 +3159,22 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               END IF
               !
               ! Bottom
-              IF (zb(k-1) >= topo2d_c(i,j) .AND. flag(ijkm) /= ext_immb) THEN
+!              IF (zb(k-1) >= topo2d_c(i,j) .AND. flag(ijkm) /= ext_immb) THEN
+              IF (zb(k-1) >= topo2d_c(i,j)) THEN
                 bd(ijk) = bd(ijk) + 8
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
               !
               ! North
-              IF (z(k) > topo2d_y(i,j) .AND. flag(ijpk) /= ext_immb) THEN
+!              IF (z(k) > topo2d_y(i,j) .AND. flag(ijpk) /= ext_immb) THEN
+              IF (z(k) > topo2d_y(i,j)) THEN
                 bd(ijk) = bd(ijk) + 16
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
               !
               ! South
-              IF (z(k) > topo2d_y(i,j-1) .AND. flag(ijmk) /= ext_immb) THEN
+!              IF (z(k) > topo2d_y(i,j-1) .AND. flag(ijmk) /= ext_immb) THEN
+              IF (z(k) > topo2d_y(i,j-1)) THEN
                 bd(ijk) = bd(ijk) + 32
                 vf(ijk) = vf(ijk) + 1.D0
               END IF
@@ -3185,7 +3193,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
             IF (vf(ijk) == 0.D0) flag(ijk) = noslip_wall
 
             IF (bd(ijk) /= filled  .AND. lpr > 1 ) THEN
-              WRITE( 7, fmt = "( I8,3I4,2X,B8 )" ) ijk, i, j, k, bd(ijk)
+              WRITE( 7, fmt = "( I8,3I4,2X,B8,I4 )" ) ijk, i, j, k, bd(ijk), flag(ijk)
             END IF
 
           END IF
