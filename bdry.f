@@ -56,6 +56,7 @@
       mesh_loop: DO ijk = 1, ncint
         CALL subscr(ijk)
         CALL meshinds(ijk,imesh,i,j,k)
+
         !
         fx = 0
         fy = 0 
@@ -97,10 +98,10 @@
               ! ... Set the pressure in non-resolved forcing points
               ! ... (zero-gradient)
               IF( fptx(fx)%int >= 20 ) THEN
-                      IF (flag(ijk) == fluid) THEN
-                              p(ipjk) = p(ijk)
-                      ELSE
+                      IF (flag(ijk) == ext_immb) THEN
                               p(ijk) = p(ipjk)
+                      ELSE
+                              p(ipjk) = p(ijk)
                       END IF
               END IF
               !
@@ -135,10 +136,10 @@
               !
               ! ... Set the pressure in non-resolved forcing points
               IF( fptx(fx)%int >= 20 ) THEN
-                      IF (flag(ijk) == fluid) THEN
-                              p(ipjk) = p(ijk)
-                      ELSE
+                      IF (flag(ijk) == ext_immb) THEN
                               p(ijk) = p(ipjk)
+                      ELSE
+                              p(ipjk) = p(ijk)
                       END IF
               END IF
               !
@@ -155,10 +156,10 @@
 
               ! ... Set the pressure in non-resolved forcing points
               IF( fpty(fy)%int >= 20 ) THEN
-                      IF (flag(ijk) == fluid) THEN
-                              p(ijpk) = p(ijk)
-                      ELSE
+                      IF (flag(ijk) == ext_immb) THEN
                               p(ijk) = p(ijpk)
+                      ELSE
+                              p(ijpk) = p(ijk)
                       END IF
               END IF
               
@@ -188,7 +189,10 @@
 !
 ! ... In fluid cells update the neighbours on boundaries
 !
-        ELSE IF( flag(ijk) == fluid ) THEN
+
+     ELSE IF( flag(ijk) == fluid ) THEN
+
+
 !
 ! ***** East boundary conditions ***** !
 !

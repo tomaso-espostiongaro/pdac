@@ -614,6 +614,8 @@
 
         ! ... Topography must be accurate to centimeters
         !
+
+
         DO j=1,ny
           DO i=1,nx
             topo2d(i,j) = topo2d(i,j) * 1.D2
@@ -621,6 +623,8 @@
             topo2d(i,j) = itopo * 1.D-2
           END DO
         END DO
+
+
         !
         ! ... Translate vertically the numerical mesh to minimize the
         ! ... number of topographic cells

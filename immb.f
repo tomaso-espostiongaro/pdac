@@ -976,7 +976,7 @@
       REAL*8, DIMENSION(:,:), INTENT(IN) :: topo2d
       TYPE(forcing_point), DIMENSION(:), INTENT(OUT) :: fpt
  
-      REAL*8 :: g(8), g_EXT(4), g_min, maxg
+      REAL*8 :: g(8), g_EXT(4), g_min, maxg, maxg_z
       INTEGER :: delta_i(8), delta_j(8)
       INTEGER :: l,gint,fpint
 
@@ -999,7 +999,8 @@
 
       g = -1
       maxg = 1.D0
-      IF ( k > ord2d(i,j) + 1 ) THEN
+
+      IF ( k > ord2d(i,j) ) THEN
 
          IF( ord2d(i-1,j)   >= k ) g(1) = gamma(i,j,k, 1)
          IF( ord2d(i-1,j-1) >= k ) g(2) = gamma(i,j,k, 2)
@@ -1017,6 +1018,8 @@
          g_EXT(2) = g(2) * g(6)      !  SE-NW
          g_EXT(3) = g(3) * g(7)      !  S-N
          g_EXT(4) = g(4) * g(8)      !  SW-NE
+
+
 !
 ! ... Select the direction which minimize the distance 
 ! ... between the forcing point and the no-slip point
@@ -1075,7 +1078,13 @@
          ENDIF
       ENDIF
 
-      IF ( maxg < 1 ) THEN
+      IF ( k == ord2d(i,j)+1 ) THEN
+         maxg_z = ( cz(k) - topo2d(i,j) ) / ( cz(k+1) - topo2d(i,j) )
+      ELSE
+         maxg_z = 1.D0
+      END IF
+
+      IF ( (maxg < 1) .AND. (maxg < maxg_Z) ) THEN
 !
 ! ... Choose the external point for interpolation
 ! ... in the z-plane of the forcing point 
