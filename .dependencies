@@ -96,8 +96,8 @@ letter.o :
 
 limiters.o : 
 
-masspart.o : control.o dimensions.o filter.o grid.o io_files.o kinds.o  \
-    outp.o particles.o 
+masspart.o : control.o dimensions.o filter.o grid.o immb.o io_files.o  \
+    kinds.o outp.o particles.o 
 
 matrix.o : control.o decomp.o dens.o dimensions.o grid.o indijk.o  \
     particles.o press.o subscr.o tilde.o time.o velocity.o 
@@ -151,8 +151,6 @@ sampling.o : control.o decomp.o dimensions.o grid.o press.o time.o
 setup.o : atmosphere.o control.o decomp.o dens.o dimensions.o dome.o eosg.o  \
     gas.o grid.o hcapgs.o indijk.o io_files.o parallel.o particles.o press.o  \
     reactions.o temp.o time.o turbo.o velocity.o vent.o visc.o 
-
-smooth.o : 
 
 subscr.o : decomp.o dimensions.o indijk.o 
 

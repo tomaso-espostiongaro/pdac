@@ -74,7 +74,8 @@
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE gas_solid_viscosity, ONLY: mus
       USE grid, ONLY: z, dz, iob
-      USE grid, ONLY: flag, fluid, int_immb, ext_immb, free_io, nrfree_io
+      USE grid, ONLY: flag, fluid, int_immb, ext_immb, free_io, nrfree_io, &
+                      slip_wall, noslip_wall
       USE particles_constants, ONLY: rl, inrl, cmus
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: itd
@@ -178,17 +179,37 @@
 
 ! 
 ! ... initial conditions already set from RESTART file
+! ... or OUTPUT file
 !
-      ELSE IF (itd == 2) THEN 
+      ELSE IF (itd >= 2) THEN 
 
-        CONTINUE
-!
-! ... recover initial conditions from OUTPUT file
-!
-      ELSE IF (itd >= 3) THEN 
+        DO ijk = 1, ncint
+          CALL meshinds(ijk,imesh,i,j,k)
 
-        CONTINUE
-!
+          ! ... Set boundary velocity profiles
+          !
+          SELECT CASE ( flag(ijk) )
+
+          CASE (slip_wall, noslip_wall)
+
+            ug(ijk) = 0.D0
+            us(ijk,:) = ug(ijk)
+            IF ( job_type == '3D') THEN
+              vg(ijk) = 0.D0
+              vs(ijk,:) = vg(ijk)
+            END IF
+            wg(ijk) = 0.D0
+            ws(ijk,:) = wg(ijk)
+            !
+            rlk(ijk,:) = 0.D0
+            !
+          CASE DEFAULT
+
+            CONTINUE
+
+          END SELECT
+          !
+        END DO
       END IF
 !
       RETURN
