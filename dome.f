@@ -70,7 +70,7 @@
 ! ... the dome center is located where the mesh is more refined.
 ! ... Otherwise its coordinates '(xdome)' are taken from the input.
 !
-        IF (itc >= 1) iv = 2
+        IF (itc >= 1 .OR. iv==1) iv = 2
         IF (grigen >= 1) THEN
           xdome = x(iv)
         ELSE

@@ -153,6 +153,7 @@
 ! 
       USE dimensions
       USE grid, ONLY: dx, dy, dz, r, xb, yb, zb
+      USE immersed_boundaries, ONLY: immb
       USE io_files, ONLY: tempunit
       USE particles_constants, ONLY: rl
 
@@ -163,9 +164,19 @@
       LOGICAL :: lform
       CHARACTER(LEN = 14) :: filnam
       CHARACTER(LEN = 4 ) :: lettera
-      REAL*8 :: volume, pi, twopi, smass
+      REAL*8 :: volume, pi, twopi
+      REAL*8, ALLOCATABLE :: vf(:)
+      REAL*8, ALLOCATABLE :: smass(:,:)
       TYPE( subdomain ), ALLOCATABLE :: box(:)
       REAL*8 :: x1, x2, y1, y2, z1, z2
+
+      ALLOCATE(vf(ntot))
+      vf(:) = 1.D0
+      IF (immb >= 1) THEN
+              OPEN(tempunit,FILE='vf.dat',STATUS='OLD',FORM='UNFORMATTED')
+              READ(tempunit) (vf(ijk), ijk=1,ntot)
+              CLOSE(tempunit)
+      END IF
 !
       pi = 4.D0 * ATAN(1.D0)
       twopi = 2.D0 * pi
@@ -176,6 +187,7 @@
       ! ... Read the file containing the indexes or coordinates of the boxes
       !
       ALLOCATE(box(number_of_boxes))
+      ALLOCATE(smass(number_of_boxes,nsolid))
       box(:)%i1 = 1
       box(:)%i2 = 1
       box(:)%j1 = 1
@@ -221,7 +233,6 @@
       DO tn = first_out, last_out, incr_out
 
         WRITE(logunit,fmt="(/,'* Starting post-processing ',I5,' * ')" ) tn
-        WRITE(tempunit,*) 'Output:  ', tn
 
         ! ... Read PDAC output file
         !
@@ -229,6 +240,7 @@
 
         ! ... Compute the total solid mass in a box
         !
+        smass(:,:) = 0.D0
         DO n = 1, number_of_boxes
           i1 = box(n)%i1
           i2 = box(n)%i2
@@ -236,27 +248,31 @@
           j2 = box(n)%j2
           k1 = box(n)%k1
           k2 = box(n)%k2
-          smass = 0.D0
           DO k = k1, k2
             DO j = j1, j2
               DO i = i1, i2
-                ijk = i + (j-1)*nx + (k-1)*nx*ny
                 IF (job_type == '2D') THEN
-                  volume = twopi * r(i) * dx(i) * dz(k)
+                  ijk = i + (k-1)*nx
+                  volume = r(i) * dx(i) * dz(k) * vf(ijk)
                 ELSE IF (job_type == '3D') THEN
-                  volume = dx(i) * dy(j) * dz(k)
+                  ijk = i + (j-1)*nx + (k-1)*nx*ny
+                  volume = dx(i) * dy(j) * dz(k) * vf(ijk)
                 END IF
-                DO is = 1, nsolid
-                   smass  = smass + eps(ijk,is) * rl(is) * volume
-                END DO
+                IF (i/=1 .AND. i/=nx .AND. k/=1 .AND. k/=nz) THEN
+                  IF ((j/=1 .AND. j/=ny) .OR. (job_type == '2D')) THEN
+                          DO is = 1, nsolid
+                            smass(n,is)  = smass(n,is) + eps(ijk,is) * rl(is) * volume
+                          END DO
+                  END IF
+                END IF
               END DO
             END DO
           END DO
-          WRITE(tempunit,*) 'Subdomain ', n
-          WRITE(tempunit,*) 'Total solid mass = ', smass
         END DO
+        WRITE(tempunit,100) ((smass(n,is),is=1,nsolid),n=1,number_of_boxes)
       END DO
       CLOSE(tempunit)
+ 100  FORMAT(20(G30.15))
 !
       RETURN
       END SUBROUTINE massn

@@ -204,27 +204,28 @@
 !
             CASE (slip_wall) 
 !
-              wg(n2)   = wg(n1)
-              ws(n2,:) = ws(n1,:)
-
 	      IF (job_type == '3D') THEN
                 vg(n2)   = vg(n1)
                 vs(n2,:) = vs(n1,:)
               END IF
+              wg(n2)   = wg(n1)
+              ws(n2,:) = ws(n1,:)
 !
             CASE (noslip_wall)
 !
               ug(n2)   = 0.D0
               us(n2,:) = 0.D0
               
-              IF(flag(ipjkp) /= fluid) THEN
+              IF(.NOT.BTEST(flag(ipjkp),0)) THEN
+              !IF(flag(ipjkp)/=fluid) THEN
                 wg(n2)   = -wg(n1)
                 DO is = 1, nsolid
                   IF (rlk(ijk,is) > 0.D0) ws(n2,is) = -ws(n1,is)
                 END DO
               END IF
 
-              IF (flag(ipjpk) /= fluid .AND. job_type == '3D') THEN
+              IF (.NOT.BTEST(flag(ipjpk),0) .AND. job_type == '3D') THEN
+              !IF (flag(ipjpk) /= fluid .AND. job_type == '3D') THEN
                 vg(n2)   = -vg(n1)
                 DO is = 1, nsolid
                   IF (rlk(ijk,is) > 0.D0) vs(n2,:) = -vs(n1,:)
@@ -290,26 +291,28 @@
 !
             CASE (slip_wall)
 !
-              wg(n2)   = wg(n1)
-              ws(n2,:) = ws(n1,:)
 	      IF (job_type == '3D') THEN
                 vg(n2)   = vg(n1)
                 vs(n2,:) = vs(n1,:)
 	      END IF
+              wg(n2)   = wg(n1)
+              ws(n2,:) = ws(n1,:)
 !
             CASE (noslip_wall)
 
               ug(n2)   = 0.D0
               us(n2,:) = 0.D0
 
-              IF ( flag(imjkp) /= fluid ) THEN
+              IF (.NOT.BTEST(flag(imjkp),0) ) THEN
+              !IF ( flag(imjkp) /= fluid ) THEN
                 wg(n2)   = -wg(n1)
                 DO is = 1, nsolid
                   IF (rlk(ijk,is) > 0.D0) ws(n2,is) = -ws(n1,is)
                 END DO
 	      END IF
 
-              IF ( flag(imjkp) /= fluid .AND. job_type == '3D') THEN
+              IF ( .NOT.BTEST(flag(imjkp),0) .AND. job_type == '3D') THEN
+              !IF ( flag(imjkp) /= fluid .AND. job_type == '3D') THEN
                 vg(n2)   = -vg(n1)
                 DO is = 1, nsolid
                   IF (rlk(ijk,is) > 0.D0) vs(n2,is) = -vs(n1,is)
@@ -386,14 +389,16 @@
                 vg(n2)   = 0.D0
                 vs(n2,:) = 0.D0
                 
-                IF(flag(ipjpk) /= fluid) THEN
+                IF(.NOT.BTEST(flag(ipjpk),0)) THEN
+                !IF(flag(ipjpk) /= fluid) THEN
                   ug(n2)   = -ug(n1)
                   DO is = 1, nsolid
                     IF (rlk(ijk,is) > 0.D0) us(n2,is) = -us(n1,is)
                   END DO
                 END IF
 
-                IF(flag(ijpkp) /= fluid) THEN
+                IF(.NOT.BTEST(flag(ijpkp),0)) THEN
+                !IF(flag(ijpkp) /= fluid) THEN
                   wg(n2)   = -wg(n1)
                   DO is = 1, nsolid
                     IF (rlk(ijk,is) > 0.D0) ws(n2,is) = -ws(n1,is)
@@ -470,14 +475,16 @@
                 vg(n2)   = 0.D0
                 vs(n2,:) = 0.D0
 
-                IF(flag(ipjmk) /= fluid) THEN
+                IF(.NOT.BTEST(flag(ipjmk),0)) THEN
+                !IF(flag(ipjmk) /= fluid) THEN
                   ug( n2 ) = -ug( n1 )
                   DO is = 1, nsolid
                     IF (rlk(ijk,is) > 0.D0) us(n2,is) = -us(n1,is)
                   END DO
                   
                 END IF
-                IF(flag(ijmkp) /= fluid) THEN
+                IF(.NOT.BTEST(flag(ijmkp),0)) THEN
+                !IF(flag(ijmkp) /= fluid) THEN
                   wg( n2 ) = -wg( n1 )
                   DO is = 1, nsolid
                     IF (rlk(ijk,is) > 0.D0) ws(n2,is) = -ws(n1,is)
@@ -557,14 +564,16 @@
               wg(n2)   = 0.D0
               ws(n2,:) = 0.D0
 
-              IF (flag(ipjkp) /= fluid) THEN
+              IF (.NOT.BTEST(flag(ipjkp),0)) THEN
+              !IF (flag(ipjkp) /= fluid) THEN
                 ug(n2)   = -ug(n1)
                 DO is = 1, nsolid
                   IF (rlk(ijk,is) > 0.D0) us(n2,is) = -us(n1,is)
                 END DO
               END IF
 
-	      IF (flag(ijpkp) /= fluid .AND. job_type == '3D') THEN
+	      IF (.NOT.BTEST(flag(ijpkp),0) .AND. job_type == '3D') THEN
+	      !IF (flag(ijpkp) /= fluid .AND. job_type == '3D') THEN
                 vg(n2)   = -vg(n1)
                 DO is = 1, nsolid
                   IF (rlk(ijk,is) > 0.D0) vs(n2,is) = -vs(n1,is)

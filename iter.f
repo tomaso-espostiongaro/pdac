@@ -482,7 +482,7 @@
       USE eos_gas, ONLY: thermal_eosg, xgc
       USE phases_matrix, ONLY: assemble_all_matrix
       USE phases_matrix, ONLY: solve_all_velocities
-      USE set_indexes, ONLY: imjk, ijmk, ijkm
+      USE set_indexes, ONLY: imjk, ijmk, ijkm, ipjk, ijpk, ijkp
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE control_flags, ONLY: job_type
 
@@ -512,6 +512,7 @@
         ! ... and volumetric fractions ...
 !
         IF( (loop > 1) .OR. (nit > 1) ) THEN
+          CALL betas(conv_, abeta_, ijk )
           CALL padjust(p(ijk), kros, d3, p3, omega, abeta_ )
         END IF
 !
@@ -558,8 +559,7 @@
           IF( nit == 1 .AND. loop == 1 ) dgorig = dg
           d3 = dg
           ! ... steepen the Newton's slope (accelerate)
-          ! IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
-          IF( kros < 2 .AND. loop == inmax ) CALL betas(conv_, abeta_, ijk )
+          IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
 
         ELSE IF ( DABS(dg) <= conv_ ) THEN
 
@@ -779,6 +779,7 @@
       USE control_flags, ONLY: job_type, lpr
       USE dimensions
       USE gas_solid_density, ONLY: rlk, rlkn
+      USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: flag, noslip_wall
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: imjk, ijmk, ijkm
@@ -889,9 +890,10 @@
 
           END IF
 
-        ELSE
-
+        ELSE IF (kros == 3) THEN
+          !
           ! ... Use two-sided secant method
+          !
           p = newp(d1, d2, d3, p1, p2, p3)
 
           IF(d3 > 0.D0) THEN
@@ -1348,8 +1350,7 @@
             IF( nit == 1 .AND. loop == 1 ) dgorig = dg
             d3 = dg
             ! ... steepen the Newton's slope (accelerate)
-            ! IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
-            IF( kros < 2 .AND. loop == inmax ) CALL betas( conv_, abeta_, ijk )
+            IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
 
           ELSE IF ( DABS( dg ) <= conv_ ) THEN
 
@@ -1616,8 +1617,7 @@
             IF( nit == 1 .AND. loop == 1 ) dgorig = dg
             d3 = dg
             ! ... steepen the Newton's slope (accelerate)
-            ! IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
-            IF( kros < 2 .AND. loop == inmax ) CALL betas( conv_, abeta_, ijk )
+            IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
 
           ELSE IF ( DABS( dg ) <= conv_ ) THEN
 

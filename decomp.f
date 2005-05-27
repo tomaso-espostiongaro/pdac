@@ -3065,8 +3065,9 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
 ! ... cell face is inside the topography.
 !
       USE control_flags, ONLY: job_type
-      USE grid, ONLY: z, zb, flag, dz
+      USE grid, ONLY: z, zb, flag, dz, dome_cell
       USE immersed_boundaries, ONLY: bd, vf
+      USE io_files, ONLY: tempunit
       USE volcano_topography, ONLY: topo_c, topo_x
       USE volcano_topography, ONLY: topo2d_c, topo2d_x, topo2d_y
       USE indijk_module
@@ -3225,7 +3226,6 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
 
             IF (vf(ijk) == 0.D0) flag(ijk) = noslip_wall
 
-
             IF (bd(ijk) /= filled  .AND. lpr > 1 ) THEN
               WRITE( 7, fmt = "( I8,3I4,2X,B8,I4 )" ) ijk, i, j, k, bd(ijk), flag(ijk)
             END IF
@@ -3233,6 +3233,9 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
           END IF
 
         END DO
+        OPEN(tempunit,FILE='vf.dat',STATUS='UNKNOWN',FORM='UNFORMATTED')  
+        WRITE(tempunit) vf
+        CLOSE(tempunit)
         CALL data_exchange(flag)
       
       RETURN

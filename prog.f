@@ -150,6 +150,11 @@
           !call MP_WALLTIME(p2,myrank)
         END IF            
 !
+! ... Print the total residuals of the mass conservation equation
+! ... and the mass-flow rate
+!
+        IF ( imr >= 1 ) CALL print_mass_residuals(sweep)
+!
 ! ... If needed, update gas density (check algorithm)
 ! ... Notice that the update of the gas density could
 ! ... result in an error in the gas mass conservation ...
@@ -341,11 +346,6 @@
         w1 = elapsed_seconds()
         WRITE(testunit,fmt="('  walltime = ',F10.2,', ',F10.2)") w1, w1-w0
         w0 = w1
-!
-! ... Print the total residuals of the mass conservation equation
-! ... and the mass-flow rate
-!
-        IF ( imr >= 1 ) CALL print_mass_residuals(sweep)
 !
         !IF (mpime == psmp) CALL sample_pressure(ismp)
 !

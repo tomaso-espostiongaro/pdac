@@ -158,10 +158,11 @@
         CALL generate_grid(dx,nx,domain_x,alpha_x,dxmin,dxmax,n0x,iv) 
 
         IF (job_type == '3D') THEN
-
           IF (mpime == root .AND. lpr > 0) &
             WRITE(testunit,*) 'Generating grid along y'
           CALL generate_grid(dy,ny,domain_y,alpha_y,dymin,dymax,n0y,jv) 
+        ELSE IF (job_type == '2D') THEN
+          dy = 0.D0
         END IF
 
         IF (mpime == root .AND. lpr > 0) &
