@@ -391,7 +391,7 @@
 ! ... If convergence is not reached in some cell
 ! ... start a new external sweep.
 !
-       IF( MOD( nit, 1000 ) == 0 ) THEN
+       IF( MOD( nit, 500 ) == 0 ) THEN
          omega = omega * 0.9D0
          IF (lpr > 0) THEN
            WRITE(testunit, fmt="('  reducing relaxation parameter omega')")
@@ -400,7 +400,6 @@
        END IF
 !
 ! ... Check the closure relation for solid phases on all processors
-! ... Crash if the number of "frozen" cells exceeds 1000
 !
         CALL parallel_sum_integer(ierr, 1)
         IF (ierr > 1) CALL data_exchange(flag)
@@ -446,7 +445,7 @@
         !
         !CALL error( ' iter ', 'max number of iters exceeded ', 1)
         omega = omega0
-
+        !
       END IF
 !*******************************************************************
 !

@@ -74,7 +74,7 @@
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE gas_solid_viscosity, ONLY: mus
       USE grid, ONLY: z, dz, iob
-      USE grid, ONLY: flag, fluid, int_immb, ext_immb, free_io, nrfree_io, &
+      USE grid, ONLY: flag, fluid, free_io, nrfree_io, &
                       slip_wall, noslip_wall
       USE particles_constants, ONLY: rl, inrl, cmus
       USE pressure_epsilon, ONLY: ep, p
@@ -180,12 +180,13 @@
 ! 
 ! ... initial conditions already set from RESTART file
 ! ... or OUTPUT file
+! ... Just check that boundary velocity are zero.
 !
       ELSE IF (itd >= 2) THEN 
 
         DO ijk = 1, ncint
           CALL meshinds(ijk,imesh,i,j,k)
-
+          
           ! ... Set boundary velocity profiles
           !
           SELECT CASE ( flag(ijk) )
@@ -203,12 +204,14 @@
             !
             rlk(ijk,:) = 0.D0
             !
+            CONTINUE
+
           CASE DEFAULT
 
             CONTINUE
 
           END SELECT
-          !
+!
         END DO
       END IF
 !

@@ -30,7 +30,7 @@
       USE tilde_momentum, ONLY: allocate_fluxes, deallocate_fluxes
       USE tilde_momentum, ONLY: tilde, fieldn
       USE time_parameters, ONLY: time, tpr, tdump, tstop, dt, itd
-      USE time_parameters, ONLY: rungekut, sweep
+      USE time_parameters, ONLY: rungekut, sweep, ndump, nprint
       USE turbulence_model, ONLY: iturb, iss
       USE turbulence_model, ONLY: sgsg, sgss
       USE volcano_topography, ONLY: itp
@@ -39,7 +39,6 @@
       IMPLICIT NONE
 !
       INTEGER :: ismp, psmp
-      INTEGER :: nprint, ndump
       INTEGER :: info
       INTEGER :: is
       INTEGER :: ijk,i

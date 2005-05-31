@@ -47,8 +47,10 @@
       INTEGER, PARAMETER :: nrfree_io      = 32           ! OLD flag = 6 NEW flag = 2**5
       INTEGER, PARAMETER :: vent_cell      = 64           ! OLD flag = 7 NEW flag = 2**6
       INTEGER, PARAMETER :: dome_cell      = 129          ! OLD flag = 8 NEW flag = 2**7 + fluid
-      INTEGER, PARAMETER :: int_immb       = 257          !              NEW flag = 2**8 + fluid
-      INTEGER, PARAMETER :: ext_immb       = 512          !              NEW flag = 2**9
+      ! ... immersed boundaries
+      INTEGER, PARAMETER :: immb_cell      = 257          !              NEW flag = 2**8 + fluid
+      ! ... non-computed immersed boundaries
+      INTEGER, PARAMETER :: filled_cell    = 512          !              NEW flag = 2**9
 !
 ! ... origin of atmospheric stratification
       REAL*8 :: zzero

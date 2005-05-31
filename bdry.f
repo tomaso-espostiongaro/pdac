@@ -29,7 +29,7 @@
       USE io_files, ONLY: tempunit
       USE domain_decomposition, ONLY: ncint, myijk, meshinds
       USE grid, ONLY: flag, x, y, z, xb, yb, zb
-      USE grid, ONLY: slip_wall, noslip_wall, fluid, int_immb, ext_immb
+      USE grid, ONLY: slip_wall, noslip_wall, fluid, immb_cell, filled_cell
       USE grid, ONLY: free_io, nrfree_io, inlet_cell, vent_cell
       USE immersed_boundaries, ONLY: fptx, fpty, fptz
       USE immersed_boundaries, ONLY: numx, numy, numz, immb
@@ -76,7 +76,7 @@
 ! ... In fluid cells and immersed boundaries, update the 
 ! ... neighbours on boundaries
 !
-        IF( flag(ijk) == int_immb .OR. flag(ijk) == ext_immb) THEN
+        IF( flag(ijk) == immb_cell .OR. flag(ijk) == filled_cell) THEN
           !
           ! ... Check if 'ijk' is a forcing point
           !
@@ -98,7 +98,7 @@
               ! ... Set the pressure in non-resolved forcing points
               ! ... (zero-gradient)
               IF( fptx(fx)%int >= 20 ) THEN
-                      IF (flag(ijk) == ext_immb) THEN
+                      IF (flag(ijk) == filled_cell) THEN
                               p(ijk) = p(ipjk)
                       ELSE
                               p(ipjk) = p(ijk)
@@ -136,7 +136,7 @@
               !
               ! ... Set the pressure in non-resolved forcing points
               IF( fptx(fx)%int >= 20 ) THEN
-                      IF (flag(ijk) == ext_immb) THEN
+                      IF (flag(ijk) == filled_cell) THEN
                               p(ijk) = p(ipjk)
                       ELSE
                               p(ipjk) = p(ijk)
@@ -156,7 +156,7 @@
 
               ! ... Set the pressure in non-resolved forcing points
               IF( fpty(fy)%int >= 20 ) THEN
-                      IF (flag(ijk) == ext_immb) THEN
+                      IF (flag(ijk) == filled_cell) THEN
                               p(ijk) = p(ijpk)
                       ELSE
                               p(ijpk) = p(ijk)

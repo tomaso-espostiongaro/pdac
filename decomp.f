@@ -6,7 +6,7 @@
 !
 !----------------------------------------------------------------------
         USE grid, ONLY: fl, flag
-        USE grid, ONLY: slip_wall, noslip_wall, ext_immb, int_immb
+        USE grid, ONLY: slip_wall, noslip_wall, filled_cell
         USE indijk_module
         USE immersed_boundaries, ONLY: immb
         USE control_flags, ONLY: lpr
@@ -2238,28 +2238,28 @@
 ! ... impose homogeneous Neumann conditions
 !
               SELECT CASE (flag(ipjk))
-                CASE (noslip_wall, slip_wall, ext_immb)
+                CASE (noslip_wall, slip_wall, filled_cell)
                         ijke = ijk
                 CASE DEFAULT
                         ijke = ipjk
               END SELECT
 
               SELECT CASE (flag(imjk))
-                CASE (noslip_wall, slip_wall, ext_immb)
+                CASE (noslip_wall, slip_wall, filled_cell)
                         ijkw = ijk
                 CASE DEFAULT
                         ijkw = imjk
               END SELECT
 
               SELECT CASE (flag(ijkp))
-                CASE (noslip_wall, slip_wall, ext_immb)
+                CASE (noslip_wall, slip_wall, filled_cell)
                         ijkt = ijk
                 CASE DEFAULT
                         ijkt = ijkp
               END SELECT
 
               SELECT CASE (flag(ijkm))
-                CASE (noslip_wall, slip_wall, ext_immb)
+                CASE (noslip_wall, slip_wall, filled_cell)
                         ijkb = ijk
                 CASE DEFAULT
                         ijkb = ijkm
@@ -2358,42 +2358,42 @@
               ijkmm  = myijk( ip0_jp0_km2_ , ijk )
   
               SELECT CASE (flag(ipjk))
-                CASE (noslip_wall, slip_wall, ext_immb)
+                CASE (noslip_wall, slip_wall, filled_cell)
                         ijke = ijk
                 CASE DEFAULT
                         ijke  =  ipjk
               END SELECT
 
               SELECT CASE (flag(imjk))
-                CASE (noslip_wall, slip_wall, ext_immb)
+                CASE (noslip_wall, slip_wall, filled_cell)
                         ijkw = ijk
                 CASE DEFAULT
                         ijkw  =  imjk
               END SELECT
 
               SELECT CASE (flag(ijpk))
-                CASE (noslip_wall, slip_wall, ext_immb)
+                CASE (noslip_wall, slip_wall, filled_cell)
                         ijkn = ijk
                 CASE DEFAULT
                         ijkn  =  ijpk
               END SELECT
 
               SELECT CASE (flag(ijmk))
-                CASE (noslip_wall, slip_wall, ext_immb)
+                CASE (noslip_wall, slip_wall, filled_cell)
                         ijks = ijk
                 CASE DEFAULT
                         ijks  =  ijmk
               END SELECT
 
               SELECT CASE (flag(ijkp))
-                CASE (noslip_wall, slip_wall, ext_immb)
+                CASE (noslip_wall, slip_wall, filled_cell)
                         ijkt = ijk
                 CASE DEFAULT
                         ijkt  =  ijkp
               END SELECT
 
               SELECT CASE (flag(ijkm))
-                CASE (noslip_wall, slip_wall, ext_immb)
+                CASE (noslip_wall, slip_wall, filled_cell)
                         ijkb = ijk
                 CASE DEFAULT
                         ijkb  =  ijkm
@@ -3111,9 +3111,9 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
             IF (job_type == '2D') THEN
               ! 
               ! East
-!              IF (z(k) > topo_x(i) .AND. flag(ipjk) /= ext_immb) THEN
+!              IF (z(k) > topo_x(i) .AND. flag(ipjk) /= filled_cell) THEN
                IF (z(k) > topo_x(i)) THEN
-                  IF (flag(ipjk) == ext_immb) THEN
+                  IF (flag(ipjk) == filled_cell) THEN
                      vf(ijk) = vf(ijk) + 2.D0
                   ELSE
                      bd(ijk) = bd(ijk) + 1
@@ -3122,9 +3122,9 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
                END IF
               !
               ! West
-!              IF (z(k) > topo_x(i-1) .AND. flag(imjk) /= ext_immb) THEN
+!              IF (z(k) > topo_x(i-1) .AND. flag(imjk) /= filled_cell) THEN
                IF (z(k) > topo_x(i-1)) THEN
-                  IF (flag(imjk) == ext_immb) THEN
+                  IF (flag(imjk) == filled_cell) THEN
                      vf(ijk) = vf(ijk) + 2.D0
                   ELSE
                      bd(ijk) = bd(ijk) + 2
@@ -3139,9 +3139,9 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
                END IF
               !
               ! Bottom
-!              IF (zb(k-1) >= topo_c(i) .AND. flag(ijkm) /= ext_immb) THEN
+!              IF (zb(k-1) >= topo_c(i) .AND. flag(ijkm) /= filled_cell) THEN
                IF (zb(k-1) >= topo_c(i)) THEN
-                  IF (flag(ijkm) == ext_immb) THEN
+                  IF (flag(ijkm) == filled_cell) THEN
                      vf(ijk) = vf(ijk) + 2.D0   
                   ELSE
                      bd(ijk) = bd(ijk) + 8  
@@ -3152,9 +3152,9 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
             ELSE IF (job_type == '3D') THEN
               ! 
               ! East
-!              IF (z(k) > topo2d_x(i,j) .AND. flag(ipjk) /= ext_immb) THEN
+!              IF (z(k) > topo2d_x(i,j) .AND. flag(ipjk) /= filled_cell) THEN
               IF (z(k) > topo2d_x(i,j)) THEN
-                 IF (flag(ipjk) == ext_immb) THEN
+                 IF (flag(ipjk) == filled_cell) THEN
                     vf(ijk) = vf(ijk) + 2.D0
                  ELSE
                     bd(ijk) = bd(ijk) + 1
@@ -3163,9 +3163,9 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               END IF
               !
               ! West
-!              IF (z(k) > topo2d_x(i-1,j) .AND. flag(imjk) /= ext_immb) THEN
+!              IF (z(k) > topo2d_x(i-1,j) .AND. flag(imjk) /= filled_cell) THEN
               IF (z(k) > topo2d_x(i-1,j)) THEN
-                 IF (flag(imjk) == ext_immb) THEN
+                 IF (flag(imjk) == filled_cell) THEN
                     vf(ijk) = vf(ijk) + 2.D0  
                  ELSE
                     bd(ijk) = bd(ijk) + 2
@@ -3180,9 +3180,9 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               END IF
               !
               ! Bottom
-!              IF (zb(k-1) >= topo2d_c(i,j) .AND. flag(ijkm) /= ext_immb) THEN
+!              IF (zb(k-1) >= topo2d_c(i,j) .AND. flag(ijkm) /= filled_cell) THEN
               IF (zb(k-1) >= topo2d_c(i,j)) THEN
-                IF (flag(ijkm) == ext_immb) THEN
+                IF (flag(ijkm) == filled_cell) THEN
                    vf(ijk) = vf(ijk) + 2.D0                   
                 ELSE
                    bd(ijk) = bd(ijk) + 8
@@ -3191,9 +3191,9 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
              END IF
               !
               ! North
-!              IF (z(k) > topo2d_y(i,j) .AND. flag(ijpk) /= ext_immb) THEN
+!              IF (z(k) > topo2d_y(i,j) .AND. flag(ijpk) /= filled_cell) THEN
               IF (z(k) > topo2d_y(i,j)) THEN
-                IF (flag(ijpk) == ext_immb) THEN
+                IF (flag(ijpk) == filled_cell) THEN
                    vf(ijk) = vf(ijk) + 2.D0
                 ELSE
                    bd(ijk) = bd(ijk) + 16
@@ -3202,9 +3202,9 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
              END IF
               !
               ! South
-!              IF (z(k) > topo2d_y(i,j-1) .AND. flag(ijmk) /= ext_immb) THEN
+!              IF (z(k) > topo2d_y(i,j-1) .AND. flag(ijmk) /= filled_cell) THEN
               IF (z(k) > topo2d_y(i,j-1)) THEN
-                 IF (flag(ijmk) == ext_immb) THEN
+                 IF (flag(ijmk) == filled_cell) THEN
                     vf(ijk) = vf(ijk) + 1.D0
                  ELSE
                     bd(ijk) = bd(ijk) + 32
@@ -3223,8 +3223,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
             ! ... cells that are completely immersed
             ! ... are excluded from computation. 
             !
-
-            IF (vf(ijk) == 0.D0) flag(ijk) = noslip_wall
+            IF (vf(ijk) == 0.D0) flag(ijk) = filled_cell
 
             IF (bd(ijk) /= filled  .AND. lpr > 1 ) THEN
               WRITE( 7, fmt = "( I8,3I4,2X,B8,I4 )" ) ijk, i, j, k, bd(ijk), flag(ijk)
