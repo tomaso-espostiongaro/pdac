@@ -1,5 +1,5 @@
 &control
-  act        = 2        ! 1: mount time sequence, 2: time-space sampling, 3: mass partition        
+  act        = 1        ! 1: mount time sequence, 2: time-space sampling, 3: mass partition        
   first_out  = 100     
   last_out   = 120   
   incr_out   = 10
@@ -18,6 +18,7 @@
 &masspart
   number_of_boxes = 3,
   boxes_file = 'boxes.dat'
+/
 
 &animation
 /
