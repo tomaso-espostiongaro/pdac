@@ -78,6 +78,7 @@
                       slip_wall, noslip_wall
       USE particles_constants, ONLY: rl, inrl, cmus
       USE pressure_epsilon, ONLY: ep, p
+      USE set_indexes, ONLY: ipjk, ijpk, ijkp
       USE time_parameters, ONLY: itd
       USE turbulence_model, ONLY: turbulence_setup, iturb
       USE vent_conditions, ONLY: set_ventc, ivent
@@ -188,30 +189,38 @@
           CALL meshinds(ijk,imesh,i,j,k)
           
           ! ... Set boundary velocity profiles
+          ! ... Set the velocity = 0 on all faces
+          ! ... of blocked cells
           !
-          SELECT CASE ( flag(ijk) )
-
-          CASE (slip_wall, noslip_wall)
-
+          IF ( flag(ijk) == slip_wall .OR. flag(ijk) == noslip_wall ) THEN
             ug(ijk) = 0.D0
-            us(ijk,:) = ug(ijk)
+            us(ijk,:) = 0.D0
             IF ( job_type == '3D') THEN
               vg(ijk) = 0.D0
-              vs(ijk,:) = vg(ijk)
+              vs(ijk,:) = 0.D0
             END IF
             wg(ijk) = 0.D0
-            ws(ijk,:) = wg(ijk)
-            !
+            ws(ijk,:) = 0.D0
             rlk(ijk,:) = 0.D0
-            !
-            CONTINUE
-
-          CASE DEFAULT
-
-            CONTINUE
-
-          END SELECT
-!
+          END IF
+          !
+          IF ( flag(ipjk) == slip_wall .OR. flag(ipjk) == noslip_wall ) THEN
+            ug(ijk) = 0.D0
+            us(ijk,:) = 0.D0
+          END IF
+          !
+          IF ( job_type == '3D') THEN
+            IF ( flag(ijpk) == slip_wall .OR. flag(ijpk) == noslip_wall ) THEN
+              vg(ijk) = 0.D0
+              vs(ijk,:) = 0.D0
+            END IF
+          END IF
+          !
+          IF ( flag(ijkp) == slip_wall .OR. flag(ijkp) == noslip_wall ) THEN
+            wg(ijk) = 0.D0
+            ws(ijk,:) = 0.D0
+          END IF
+          !
         END DO
       END IF
 !
