@@ -178,9 +178,10 @@
           !
           IF (tforce) THEN
                   IF (info == 1 ) THEN
-                          CALL temperature_limiter(ijk)
+                          CALL temperature_filter(ijk)
                   END IF
           END IF
+          !CALL temperature_limiter(ijk)
           
         END IF
       END DO
@@ -199,7 +200,7 @@
       RETURN
       END SUBROUTINE
 !----------------------------------------------------------------------
-      SUBROUTINE temperature_limiter(ijk)
+      SUBROUTINE temperature_filter(ijk)
 
       USE control_flags, ONLY: job_type, lpr
       USE dimensions, ONLY: nsolid, ngas
@@ -233,7 +234,7 @@
           cg(ijk) = hc
           sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
           IF (lpr >=1) THEN
-            WRITE(testunit,*) 'Limiting gas temperature in cell: ', ijk
+            WRITE(testunit,*) 'Filtering gas temperature in cell: ', ijk
             WRITE(testunit,*) 'Tg = ', tg(ijk)
           END IF
         !
@@ -246,7 +247,7 @@
             CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
             sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
             IF (lpr >=1) THEN
-              WRITE(testunit,*) 'Limiting particle ',is,' temperature in cell: ', ijk
+              WRITE(testunit,*) 'Filtering particle ',is,' temperature in cell: ', ijk
               WRITE(testunit,*) 'Ts = ', ts(ijk,is)
             END IF
         END DO
@@ -266,7 +267,7 @@
           cg(ijk) = hc
           sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
           IF (lpr >=1) THEN
-            WRITE(testunit,*) 'Limiting gas temperature in cell: ', ijk
+            WRITE(testunit,*) 'Filtering gas temperature in cell: ', ijk
             WRITE(testunit,*) 'Tg = ', tg(ijk)
           END IF
         !
@@ -279,7 +280,7 @@
             CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
             sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
             IF (lpr >=1) THEN
-              WRITE(testunit,*) 'Limiting particle ', is, ' temperature in cell: ', ijk
+              WRITE(testunit,*) 'Filtering particle ', is, ' temperature in cell: ', ijk
               WRITE(testunit,*) 'Ts = ', ts(ijk,is)
             END IF
         END DO
@@ -287,10 +288,53 @@
       END IF
 
       RETURN
+      END SUBROUTINE temperature_filter
+!----------------------------------------------------------------------
+      SUBROUTINE temperature_limiter(ijk)
+
+      USE control_flags, ONLY: job_type
+      USE dimensions, ONLY: nsolid, ngas
+      USE eos_gas, ONLY: ygc, cg
+      USE gas_constants, ONLY: gas_type, gmw, rgas, tzero, hzerog, hzeros
+      USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
+      USE io_files, ONLY: testunit
+      USE set_indexes, ONLY: imjk, ijmk, ijkm, ipjk, ijpk, ijkp
+      USE specific_heat_module, ONLY: ck, cp, hcapg, hcaps
+      USE particles_constants, ONLY: inrl, cps
+
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: ijk
+      INTEGER :: ig, is
+      REAL*8 :: av_tg
+      REAL*8 :: av_ts
+      REAL*8 :: hc
+
+      IF (tg(ijk) > 1133.D0) THEN
+        tg(ijk) = 1133.D0
+        WRITE(testunit,*) 'Limiting gas temperature in cell: ', ijk
+        CALL hcapg(cp(:,ijk), tg(ijk))
+        hc = 0.D0
+        DO ig = 1, ngas
+          hc = hc + cp(gas_type(ig),ijk) * ygc(ijk,ig)
+        END DO
+        cg(ijk) = hc
+        sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
+      END IF
+      !
+      DO is = 1, nsolid
+        IF (ts(ijk,is) > 1133.D0) THEN
+          ts(ijk,is) = 1133.D0
+          WRITE(testunit,*) 'Limiting particle ', is, ' temperature in cell: ', ijk
+          CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
+          sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
+        END IF
+      END DO
+      !
+      RETURN
       END SUBROUTINE temperature_limiter
 !----------------------------------------------------------------------
       SUBROUTINE invdm(a, b, ijk)
-!----------------------------------------------------------------------
+!
 ! ... this routine solves the N-Phases Energy-Equation Matrix
 ! ... (Gauss elimination)
 !

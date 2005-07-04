@@ -178,7 +178,6 @@
         STOP
       END IF
 !
-!
 ! ... Domain Decomposition
 !
       !Simulate the domain decomposition!
