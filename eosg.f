@@ -144,6 +144,7 @@
 ! ... Iterative inversion of the enthalpy-temperature law
 ! ... (the gas thermal capacity depends on the temperature cg=cg(T) )
 !
+      USE control_flags, ONLY: lpr
       USE dimensions
       USE domain_decomposition, ONLY: meshinds
       USE grid, ONLY: z, zb
@@ -172,7 +173,7 @@
           tg0   = tg
           sieg0 = sieg
 
-          IF( sieg <= 0.0D0 ) THEN
+          IF( sieg <= 0.0D0 .AND. lpr >= 1) THEN
             CALL meshinds(ijk,imesh,i,j,k)
             WRITE(testunit,*) 'WARNING! from proc: ', mpime
             WRITE(testunit,*) 'Zero or negative enthalpy in caloric_eosg'
@@ -194,7 +195,7 @@
             END IF
           END DO
 
-          IF (info == 1) THEN
+          IF (info == 1 .AND. lpr >=1) THEN
 !**********************************************************************
             !  Error report
             CALL meshinds(ijk,imesh,i,j,k)
@@ -210,7 +211,7 @@
 !**********************************************************************
           END IF
 
-          IF( tg <= 0.0d0 ) THEN
+          IF( tg <= 0.0d0 .AND. lpr >=1) THEN
             CALL meshinds(ijk,imesh,i,j,k)
             WRITE(testunit,*) 'WARNING from proc: ', mpime
             WRITE(testunit,*) 'zero or negative temperature in caloric_eosg'

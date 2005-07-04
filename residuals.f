@@ -18,6 +18,7 @@
       USE grid, ONLY: dx, dy, dz, r, rb, flag
       USE grid, ONLY: inlet_cell, vent_cell
       USE immersed_boundaries, ONLY: immb, faces
+      USE io_files, ONLY: checkunit
       USE time_parameters, ONLY: dt
       IMPLICIT NONE
 
@@ -113,7 +114,7 @@
       CALL compute_mass_flow_rate(mfr)
 
       IF (mpime == root) THEN
-        WRITE(13,55) nswp, res_g, (res_s(is),  is=1,nsolid), &
+        WRITE(checkunit,55) nswp, res_g, (res_s(is),  is=1,nsolid), &
                                   (res_gc(ig), ig=1, ngas), mfr
       END IF
 

@@ -316,7 +316,7 @@
       RETURN
       END SUBROUTINE outp
 !----------------------------------------------------------------------
-      SUBROUTINE outp_recover
+      SUBROUTINE outp_recover(nf)
 !
       USE dimensions, ONLY: nsolid, ngas
       USE eos_gas, ONLY: xgc
@@ -336,13 +336,14 @@
 !
       IMPLICIT NONE
 !
+      INTEGER, INTENT(INOUT) :: nf
       CHARACTER( LEN =  4 ) :: lettera
       LOGICAL :: lform
       INTEGER :: ig,is
       REAL*4 :: time4
       REAL*8, ALLOCATABLE :: otmp(:)
 !
-      filnam='output.'//lettera(nfil)
+      filnam='output.'//lettera(nf)
       lform = formatted_output
 
       IF( mpime == root ) THEN
@@ -455,7 +456,7 @@
         CLOSE (outpunit)
       END IF
 
-      nfil=nfil+1
+      nf=nf+1
 !
  122  FORMAT(1x,//,6x,/)
 

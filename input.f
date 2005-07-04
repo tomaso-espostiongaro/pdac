@@ -776,7 +776,7 @@
       END IF
 !.....................................................................
 !
-      CALL write_xml
+      IF (lpr > 1) CALL write_xml
 
 
       IF(mpime == root) &

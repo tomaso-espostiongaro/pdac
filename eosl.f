@@ -9,6 +9,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE caloric_eosl(tk, cps, ck, siek, ijk)
 !
+      USE control_flags, ONLY: lpr
       USE dimensions
       USE domain_decomposition, ONLY: meshinds
       USE gas_constants, ONLY: tzero, hzeros
@@ -24,7 +25,7 @@
       CALL hcaps( ck, cps, tk )
       tk = tzero + ( siek - hzeros ) / ck
 
-      IF( tk < 0.0d0 ) THEN
+      IF( tk < 0.0d0 .AND. lpr>=1) THEN
          CALL meshinds(ijk,imesh,i,j,k)
          WRITE(testunit,*) 'WARNING from proc: ', mpime
          WRITE(testunit,*) 'negative temperature in eosl'

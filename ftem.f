@@ -201,7 +201,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE temperature_limiter(ijk)
 
-      USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: job_type, lpr
       USE dimensions, ONLY: nsolid, ngas
       USE eos_gas, ONLY: ygc, cg
       USE gas_constants, ONLY: gas_type, gmw, rgas, tzero, hzerog, hzeros
@@ -232,8 +232,10 @@
           END DO
           cg(ijk) = hc
           sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
-          WRITE(testunit,*) 'Limiting gas temperature in cell: ', ijk
-          WRITE(testunit,*) 'Tg = ', tg(ijk)
+          IF (lpr >=1) THEN
+            WRITE(testunit,*) 'Limiting gas temperature in cell: ', ijk
+            WRITE(testunit,*) 'Tg = ', tg(ijk)
+          END IF
         !
         ! ... Solid Temperature and Enthalpy
         DO is = 1, nsolid
@@ -243,8 +245,10 @@
             !
             CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
             sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
-            WRITE(testunit,*) 'Limiting particle ',is,' temperature in cell: ', ijk
-            WRITE(testunit,*) 'Ts = ', ts(ijk,is)
+            IF (lpr >=1) THEN
+              WRITE(testunit,*) 'Limiting particle ',is,' temperature in cell: ', ijk
+              WRITE(testunit,*) 'Ts = ', ts(ijk,is)
+            END IF
         END DO
         !
       ELSE IF (job_type == '2D') THEN
@@ -261,8 +265,10 @@
           END DO
           cg(ijk) = hc
           sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
-          WRITE(testunit,*) 'Limiting gas temperature in cell: ', ijk
-          WRITE(testunit,*) 'Tg = ', tg(ijk)
+          IF (lpr >=1) THEN
+            WRITE(testunit,*) 'Limiting gas temperature in cell: ', ijk
+            WRITE(testunit,*) 'Tg = ', tg(ijk)
+          END IF
         !
         ! ... Solid Temperature and Enthalpy
         DO is = 1, nsolid
@@ -272,8 +278,10 @@
             !
             CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
             sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
-            WRITE(testunit,*) 'Limiting particle ', is, ' temperature in cell: ', ijk
-            WRITE(testunit,*) 'Ts = ', ts(ijk,is)
+            IF (lpr >=1) THEN
+              WRITE(testunit,*) 'Limiting particle ', is, ' temperature in cell: ', ijk
+              WRITE(testunit,*) 'Ts = ', ts(ijk,is)
+            END IF
         END DO
         !
       END IF

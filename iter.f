@@ -97,7 +97,7 @@
 
       LOGICAL, ALLOCATABLE :: converge(:)
       LOGICAL :: cvg
-      LOGICAL :: compute, immersed
+      LOGICAL :: compute
 !
 ! ... Initialize the cell fractions for immersed boundaries
 !
@@ -231,24 +231,20 @@
          
          mesh_loop: DO ijk = 1, ncint
            !
-           ! ... Fluid cells or internal immersed boundary cell
-           compute  = BTEST(flag(ijk),0)
-           !
-           ! ... Immersed boundary cell
-           immersed = BTEST(flag(ijk),8) 
-
            converge(ijk) = .FALSE.
 
+           ! ... Fluid cells or internal immersed boundary cell
+           compute  = BTEST(flag(ijk),0)
            IF( compute ) THEN
 
              CALL meshinds(ijk,imesh,i,j,k)
              CALL first_subscr(ijk)
-             IF (muscl > 0 .AND. .NOT.immersed) CALL third_subscr(ijk)
 
              ! ... Compute the volumes partially filled by the
              ! ... topography
              !
              IF (immb == 1) CALL faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
+             IF (muscl > 0) CALL third_subscr(ijk)
 
              ! ... Compute locally the residual 'dg' of the
              ! ... mass balance equation of the gas phase and store it
@@ -511,7 +507,6 @@
         ! ... and volumetric fractions ...
 !
         IF( (loop > 1) .OR. (nit > 1) ) THEN
-          CALL betas(conv_, abeta_, ijk )
           CALL padjust(p(ijk), kros, d3, p3, omega, abeta_ )
         END IF
 !
@@ -595,9 +590,6 @@
       IMPLICIT NONE
 
       INTEGER :: ijk, info
-      LOGICAL :: immersed
-
-      immersed = BTEST(flag(ijk),8)
 
         IF (job_type == '2D') THEN
 !
@@ -612,7 +604,7 @@
           CALL masf( rgfe( ijk ), rgft( ijk ), rgfe( imjk ), rgft( ijkm ), &
                     dens, u, w, ijk )
 
-          IF (muscl > 0 .AND. .NOT.immersed) THEN
+          IF (muscl > 0) THEN
 !
 ! ... Second order MUSCL correction
 !
@@ -638,7 +630,7 @@
                      rgfe( imjk ), rgfn( ijmk ), rgft( ijkm ),  &
                      dens, u, v, w, ijk )
             
-          IF (muscl > 0 .AND. .NOT.immersed) THEN
+          IF (muscl > 0) THEN
 !
 ! ... Second order MUSCL correction
 !
@@ -706,9 +698,6 @@
 
       INTEGER :: ijk
       INTEGER :: is
-      LOGICAL :: immersed
-
-      immersed = BTEST(flag(ijk),8)
 !
         DO is = 1, nsolid
 
@@ -725,7 +714,7 @@
                     rsfe(imjk,is), rsft(ijkm,is),   &
                     dens, u, w, ijk)
                      
-            IF (muscl > 0 .AND. .NOT.immersed) THEN
+            IF (muscl > 0) THEN
 !
 ! ... Second order MUSCL correction
 !
@@ -751,7 +740,7 @@
                   rsfe(imjk,is), rsfn(ijmk,is), rsft(ijkm,is),   &
                   dens, u, v, w, ijk)
 
-            IF (muscl > 0 .AND. .NOT.immersed) THEN
+            IF (muscl > 0) THEN
 !
 ! ... Second order MUSCL correction
 !
@@ -1077,7 +1066,8 @@
 !
 ! ... rbeta = dD_g/dP
 !
-          rbeta = ep(ijk) * rags + dt**2 * (iepx+iepy+iepz)
+          rbeta = ep(ijk) * rags 
+          rbeta = rbeta + dt**2 * (iepx+iepy+iepz)
 !
           abt = 1.D0 / rbeta
           cnv = delg * rgp(ijk)
@@ -1138,9 +1128,6 @@
         INTEGER :: loop, kros, ig, is
 !
         REAL*8 :: xgcl(max_ngas)
-        LOGICAL :: immersed
-
-        immersed = BTEST(flag(ijk),8)
 !
 ! ... Here prepare the stencils and the fluxes
 !
@@ -1175,7 +1162,7 @@
         CALL first_rnb(wg_,wg,ijk)
         IF (job_type == '3D') CALL first_rnb(vg_,vg,ijk)
         !
-        IF (muscl > 0 .AND. .NOT.immersed) THEN
+        IF (muscl > 0) THEN
           CALL third_nb(rgp_,rgp,ijk)
           CALL third_rnb(ug_,ug,ijk)
           CALL third_rnb(wg_,wg,ijk)
@@ -1188,7 +1175,7 @@
           CALL first_rnb(ws_(is),ws(:,is),ijk)
           IF (job_type == '3D') CALL first_rnb(vs_(is),vs(:,is),ijk)
 
-          IF (muscl > 0 .AND. .NOT.immersed) THEN
+          IF (muscl > 0) THEN
             CALL third_nb(rlk_(is),rlk(:,is),ijk)
             CALL third_rnb(us_(is),us(:,is),ijk)
             CALL third_rnb(ws_(is),ws(:,is),ijk)
@@ -1260,7 +1247,7 @@
               CALL masf(rsfe_(is), rsft_(is), rsfw_(is), rsfb_(is), &
                         rlk_(is), us_(is), ws_(is), ijk)
                      
-              IF (muscl > 0 .AND. .NOT.immersed) THEN
+              IF (muscl > 0) THEN
                 CALL fmas(rsfe_(is), rsft_(is), rsfw_(is), rsfb_(is), &
                           rlk_(is), us_(is), ws_(is), ijk)
               END IF
@@ -1271,7 +1258,7 @@
                         rsfw_(is), rsfs_(is), rsfb_(is), &
                         rlk_(is), us_(is), vs_(is), ws_(is), ijk)
 
-              IF (muscl > 0 .AND. .NOT.immersed) THEN
+              IF (muscl > 0) THEN
                 CALL fmas(rsfe_(is), rsfn_(is), rsft_(is), &
                           rsfw_(is), rsfs_(is), rsfb_(is), &
                           rlk_(is), us_(is), vs_(is), ws_(is), ijk)
@@ -1319,7 +1306,7 @@
 
             CALL masf( rgfe_, rgft_, rgfw_, rgfb_, rgp_, ug_, wg_, ijk )
 
-            IF (muscl > 0 .AND. .NOT.immersed) THEN
+            IF (muscl > 0) THEN
               CALL fmas( rgfe_, rgft_, rgfw_, rgfb_, rgp_, ug_, wg_, ijk )
             END IF
 
@@ -1327,7 +1314,7 @@
 
             CALL masf( rgfe_, rgfn_, rgft_, rgfw_, rgfs_, rgfb_, rgp_, ug_, vg_, wg_, ijk)
 
-            IF (muscl > 0 .AND. .NOT.immersed) THEN
+            IF (muscl > 0) THEN
               CALL fmas( rgfe_, rgfn_, rgft_, rgfw_, rgfs_, rgfb_, rgp_, ug_, vg_, wg_, ijk)
             END IF
 
@@ -1435,11 +1422,8 @@
         TYPE(stencil) :: us2_, vs2_, ws2_, rlk2_
 
         INTEGER :: loop, kros, ig
-        LOGICAL :: immersed
         REAL*8 :: xgcl(max_ngas)
         xgcl(1:ngas) = xgc(ijk,:)
-
-        immersed = BTEST(flag(ijk),8)
 !
         kros = -1
 
@@ -1476,7 +1460,7 @@
         CALL first_rnb( wg_, wg, ijk )
         CALL first_rnb( vg_, vg, ijk )
 
-        IF (muscl > 0 .AND. .NOT.immersed) THEN
+        IF (muscl > 0) THEN
           CALL third_nb(rlk1_,rlk(:,1),ijk)
           CALL third_nb(rlk2_,rlk(:,2),ijk)
           CALL third_rnb(us1_,us(:,1),ijk)
@@ -1549,7 +1533,7 @@
           CALL masf( rsfe1_,  rsfn1_,  rsft1_, rsfw1_, rsfs1_, rsfb1_,   &
                  rlk1_, us1_, vs1_, ws1_, ijk)
 
-          IF (muscl > 0 .AND. .NOT.immersed) THEN
+          IF (muscl > 0) THEN
             CALL fmas( rsfe1_,  rsfn1_,  rsft1_, rsfw1_, rsfs1_, rsfb1_, &
                  rlk1_, us1_, vs1_, ws1_, ijk)
           END IF
@@ -1564,7 +1548,7 @@
           CALL masf( rsfe2_,  rsfn2_,  rsft2_, rsfw2_, rsfs2_, rsfb2_,   &
                  rlk2_, us2_, vs2_, ws2_, ijk)
 
-          IF (muscl > 0 .AND. .NOT.immersed) THEN
+          IF (muscl > 0) THEN
             CALL fmas( rsfe2_,  rsfn2_,  rsft2_, rsfw2_, rsfs2_, rsfb2_, &
                  rlk2_, us2_, vs2_, ws2_, ijk)
           END IF
@@ -1600,7 +1584,7 @@
           CALL masf( rgfe_ ,  rgfn_ ,  rgft_ , rgfw_ , rgfs_ , rgfb_ ,   &
                       rgp_, ug_, vg_, wg_, ijk )
 
-          IF (muscl > 0 .AND. .NOT.immersed) THEN
+          IF (muscl > 0) THEN
             CALL fmas( rgfe_ ,  rgfn_ ,  rgft_ , rgfw_ , rgfs_ , rgfb_ ,   &
                       rgp_, ug_, vg_, wg_, ijk )
           END IF
@@ -1669,13 +1653,17 @@
         CALL subscr(ijk)
         CALL meshinds(ijk,imesh,i,j,k)
 
-        IF (i==45 .AND. j==8 .AND. k==10) THEN
-                WRITE(tempunit,101) rgfe(ijk), rgfn(ijk), rgft(ijk)
-                WRITE(tempunit,101) rgfe(imjk), rgfn(ijmk), rgft(ijkm)
+        IF (i==11 .AND. k==51) THEN
+                WRITE(tempunit,101) rgfe(ijk), rgft(ijk)
+                WRITE(tempunit,101) rgfe(imjk), rgft(ijkm)
         END IF
-        IF (i==45 .AND. j==10 .AND. k==10) THEN
-                WRITE(tempunit,101) rgfe(ijk), rgfn(ijk), rgft(ijk)
-                WRITE(tempunit,101) rgfe(imjk), rgfn(ijmk), rgft(ijkm)
+        IF (i==10 .AND. k==52) THEN
+                WRITE(tempunit,101) rgfe(ijk), rgft(ijk)
+                WRITE(tempunit,101) rgfe(imjk), rgft(ijkm)
+        END IF
+        IF (i==11 .AND. k==52) THEN
+                WRITE(tempunit,101) rgfe(ijk), rgft(ijk)
+                WRITE(tempunit,101) rgfe(imjk), rgft(ijkm)
         END IF
 
       END DO

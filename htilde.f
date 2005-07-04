@@ -50,9 +50,8 @@
       REAL*8 :: flx
       INTEGER :: is, m, l, is1
       INTEGER :: i, j, k, ijk, imesh
-
+!
       INTEGER :: b_e, b_w, b_t, b_b, b_n, b_s
-      !REAL*8 :: b_e, b_w, b_t, b_b, b_n, b_s
       REAL*8 :: ivf
       LOGICAL :: compute
 !
@@ -208,7 +207,7 @@
       INTEGER :: ijk
       TYPE(stencil) :: u, v, w, dens, enth
       TYPE(stencil) :: eps, temp, kappa
-      LOGICAL :: compute, immersed
+      LOGICAL :: compute
 !
 ! ... Exchange heat conductivity for diffusive fluxes
 !
@@ -222,8 +221,6 @@
 !
       DO ijk = 1, ncint
         compute  = BTEST(flag(ijk),0)
-        immersed = BTEST(flag(ijk),8)
-
         IF( compute ) THEN
           CALL subscr(ijk)
 !
@@ -245,7 +242,7 @@
 !
 ! ... MUSCL second order correction
 !
-            IF (muscl > 0 .AND. .NOT.immersed) THEN
+            IF (muscl > 0) THEN
               CALL third_nb(enth,sieg,ijk)
               CALL third_nb(dens,rgp,ijk)
               CALL muscl_fsc(egfe(ijk), egft(ijk),    & 
@@ -283,7 +280,7 @@
 !
 ! ... MUSCL second order correction
 !
-            IF (muscl > 0 .AND. .NOT.immersed) THEN
+            IF (muscl > 0) THEN
               CALL third_nb(enth,sieg,ijk)
               CALL third_nb(dens,rgp,ijk)
               CALL muscl_fsc(egfe(ijk), egfn(ijk), egft(ijk),    &
@@ -339,7 +336,7 @@
 !
 ! ... MUSCL second order correction
 !
-              IF (muscl > 0 .AND. .NOT.immersed) THEN
+              IF (muscl > 0) THEN
                 CALL third_nb(enth,sies(:,is),ijk)
                 CALL third_nb(dens,rlk(:,is),ijk)
                 CALL muscl_fsc(esfe(ijk, is), esft(ijk, is),  &
@@ -377,7 +374,7 @@
 !
 ! ... MUSCL second order correction
 !
-              IF (muscl > 0 .AND. .NOT.immersed) THEN
+              IF (muscl > 0) THEN
                 CALL third_nb(enth,sies(:,is),ijk)
                 CALL third_nb(dens,rlk(:,is),ijk)
                 CALL muscl_fsc(esfe(ijk, is), esfn(ijk, is), esft(ijk, is),  &

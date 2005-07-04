@@ -172,13 +172,12 @@
 
       INTEGER :: ijk, ig
       TYPE(stencil) :: dens, conc, u, v, w
-      LOGICAL :: compute, immersed
+      LOGICAL :: compute
 !
       CALL data_exchange(ygc)
 !
       DO ijk = 1, ncint
         compute  = BTEST(flag(ijk),0)
-        immersed = BTEST(flag(ijk),8)
        IF( compute ) THEN
          CALL subscr(ijk)
 
@@ -200,7 +199,7 @@
 !
 ! ... Second order MUSCL correction
 !
-             IF (muscl > 0 .AND. .NOT.immersed) THEN
+             IF (muscl > 0) THEN
 
                CALL third_nb(dens,rgp(:),ijk)
                CALL third_nb(conc,ygc(:,ig),ijk)
@@ -226,7 +225,7 @@
 !
 ! ... Second order MUSCL correction
 !
-             IF (muscl > 0 .AND. .NOT.immersed) THEN
+             IF (muscl > 0) THEN
 
                CALL third_nb(dens,rgp(:),ijk)
                CALL third_nb(conc,ygc(:,ig),ijk)

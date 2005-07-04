@@ -3,7 +3,7 @@
 !----------------------------------------------------------------------
       USE dimensions, ONLY: nx, ny, nz, ntot, no
       USE parallel, ONLY: mpime, root
-      USE io_files, ONLY: testunit, logunit
+      USE io_files, ONLY: logunit
 
       IMPLICIT NONE
 !
@@ -148,6 +148,9 @@
       IF (mpime == root) THEN
         DO n=1, noditop
           READ(tempunit,*) xtop(n),ztop(n)
+          !
+          ztop(n) = MAX(ztop(n),0.D0)
+          !
         END DO
         CLOSE(tempunit)
       END IF
@@ -614,8 +617,6 @@
 
         ! ... Topography must be accurate to centimeters
         !
-
-
         DO j=1,ny
           DO i=1,nx
             topo2d(i,j) = topo2d(i,j) * 1.D2
@@ -623,8 +624,6 @@
             topo2d(i,j) = itopo * 1.D-2
           END DO
         END DO
-
-
         !
         ! ... Translate vertically the numerical mesh to minimize the
         ! ... number of topographic cells
@@ -841,13 +840,14 @@
       USE control_flags, ONLY: job_type, lpr
       USE grid, ONLY: x, xb, y, yb, z, zb
       USE grid, ONLY: iob, fl, noslip_wall
-      USE io_files, ONLY: tempunit, logunit
+      USE io_files, ONLY: tempunit
 !
       IMPLICIT NONE
       INTEGER :: n, i, j, k, ijk, cntz
 !
 ! ... Write out the georeferenced mesh coordinates
 !
+      IF (mpime == root) THEN
       OPEN(tempunit,FILE='mesh.dat')
       WRITE(tempunit,*) 'Georeferenced x-y mesh'
       WRITE(tempunit,*) 'x'
@@ -863,6 +863,7 @@
       WRITE(tempunit,*) 'zb'
       WRITE(tempunit,14) zb
       CLOSE(tempunit)
+      END IF
 !
  14   FORMAT(5(F20.6))
 !

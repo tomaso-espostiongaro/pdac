@@ -209,7 +209,7 @@
           
           IF (lpr > 0 .AND. mpime == root) &
             WRITE(logunit,10) nv, ijk, i, j, k, vcell(nv)%frac, fl(ijk)
- 10       FORMAT(I3,I7,3(I3),F8.4,I2)
+ 10       FORMAT(I3,I7,3(I3),F8.4,I4)
 
           ! ... Above the vent quota, cell flags are set to '1'
           ! ... (fluid cells)
@@ -378,10 +378,11 @@
           END IF
 
           ! ... determine the initial random seed
+! ... ERRORE!!!!!!!!!!
           !
           seed = 0
-          IF (mpime == root) seed = INT(cpclock())
-          CALL bcast_integer(seed,1,root)
+          !IF (mpime == root) seed = INT(cpclock())
+          !CALL bcast_integer(seed,1,root)
         
         END IF
       END DO

@@ -240,7 +240,7 @@
 !
       CALL flic
 !      
-      IF( prog == 'PDAC' ) THEN
+      IF( prog == 'PDAC' .AND. mpime == root) THEN
         OPEN( tempunit, FILE='mesh.dat')
             WRITE(tempunit,*) 'Georeferenced x-y mesh'
             WRITE(tempunit,*) 'x'
@@ -656,7 +656,7 @@
         delta(i) = idelta / 10000.D0
       END DO
       
-      IF (ionode) THEN
+      IF (lpr > 0 .AND. ionode) THEN
         WRITE(testunit,777) domain_size
         WRITE(testunit,888) SUM(delta)
       END IF

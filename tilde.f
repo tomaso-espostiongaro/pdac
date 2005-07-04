@@ -711,14 +711,13 @@
       INTEGER :: i, j, k, is, imesh
       TYPE(stencil) :: u, v, w, dens
       TYPE(stencil) :: dens_stagx, dens_stagy, dens_stagz
-      LOGICAL :: compute, immersed
+      LOGICAL :: compute
 !
 ! ... Compute fluxes on East, North and Top sides of a cell
 ! ... in the whole computational domain.
 !
       DO ijk = 1, ncint
         compute  = BTEST(flag(ijk),0)
-        immersed = BTEST(flag(ijk),8)
 
         IF( compute ) THEN
           CALL subscr(ijk)
@@ -747,7 +746,7 @@
 !
 ! ... Second order MUSCL correction
 !
-            IF (muscl > 0 .AND. .NOT.immersed ) THEN
+            IF (muscl > 0 ) THEN
               IF ( i /= nx-1 ) CALL muscl_flu(ugfe(ijk), ugft(ijk),   &
                                         dens_stagx, u, w, i, k)
               IF ( k /= nz-1 ) CALL muscl_flw(wgfe(ijk), wgft(ijk),   &
@@ -777,7 +776,7 @@
 !
 ! ... Second order MUSCL correction
 !
-              IF (muscl > 0 .AND. .NOT.immersed) THEN
+              IF (muscl > 0) THEN
                 IF ( i /= nx-1 ) CALL muscl_flu(usfe(ijk,is), usft(ijk,is),  &
                                           dens_stagx, u, w, i, k)
                 IF ( k /= nz-1 ) CALL muscl_flw(wsfe(ijk,is), wsft(ijk,is),  &
@@ -817,7 +816,7 @@
 !
 ! ... Second order MUSCL correction
 !
-            IF (muscl > 0.AND. .NOT.immersed) THEN
+            IF (muscl > 0) THEN
               IF ( i /= nx-1 ) &
                 CALL muscl_flu(ugfe(ijk), ugfn(ijk), ugft(ijk), &
                          dens_stagx, u, v, w, i, j, k)
@@ -860,7 +859,7 @@
 !
 ! ... Second order MUSCL correction
 !
-              IF (muscl > 0.AND. .NOT.immersed) THEN
+              IF (muscl > 0) THEN
                 IF ( i /= nx-1 ) &
                   CALL muscl_flu(usfe(ijk,is), usfn(ijk,is), usft(ijk,is), &
                            dens_stagx, u, v, w, i, j, k)
@@ -923,9 +922,20 @@
         CALL subscr(ijk)
         CALL meshinds(ijk,imesh,i,j,k)
           
-        IF (i == 10 .AND. k == 84) THEN
-          WRITE(tempunit,101) ugfe(ijk), ugft(ijk)
-          WRITE(tempunit,101) wgfe(ijk), wgft(ijk)
+        IF (i == 11 .AND. k == 51) THEN
+          WRITE(tempunit,101) ugfe(ijk), ugft(ijk), ugfe(imjk), ugft(ijkm)
+          WRITE(tempunit,101) wgfe(ijk), wgft(ijk), wgfe(imjk), wgft(ijkm)
+          WRITE(tempunit,101)
+        END IF
+        IF (i == 10 .AND. k == 52) THEN
+          WRITE(tempunit,101) ugfe(ijk), ugft(ijk), ugfe(imjk), ugft(ijkm)
+          WRITE(tempunit,101) wgfe(ijk), wgft(ijk), wgfe(imjk), wgft(ijkm)
+          WRITE(tempunit,101)
+        END IF
+        IF (i == 11 .AND. k == 52) THEN
+          WRITE(tempunit,101) ugfe(ijk), ugft(ijk), ugfe(imjk), ugft(ijkm)
+          WRITE(tempunit,101) wgfe(ijk), wgft(ijk), wgfe(imjk), wgft(ijkm)
+          WRITE(tempunit,101)
         END IF
 
       END DO

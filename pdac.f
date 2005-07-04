@@ -26,7 +26,7 @@
       USE immersed_boundaries, ONLY: set_forcing, immb
       USE initial_conditions, ONLY: setpar, setup, cnvert, allocate_setup, npr
       USE input_module, ONLY: input, initc, number_of_block
-      USE io_restart, ONLY: taperd, tapewr
+      USE io_restart, ONLY: taperd, tapewr, nfil
       USE output_dump, ONLY: outp_recover
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
      &    mpime, root, nproc
@@ -44,7 +44,7 @@
                                     export_topography
       USE environment, ONLY: cpclock, timing, elapsed_seconds
       USE io_files
-      USE control_flags, ONLY: prog
+      USE control_flags, ONLY: prog, lpr
 !
       IMPLICIT NONE
       CHARACTER(LEN=3) :: procnum
@@ -73,20 +73,19 @@
              s0 = cpclock()
              call MP_WALLTIME(pt0,mpime)
           END IF
-
+!
 ! ... date and time
+!
       CALL date_and_time( values = mydate )
-
-      testnb = testfile//procnum(mpime)
+!
+! ... Root processor Opens log and error files
+!
       IF(mpime == root) THEN
         IF(.NOT.debug ) OPEN(UNIT=logunit,FILE=logfile,STATUS='UNKNOWN')
-        OPEN(UNIT=testunit,  FILE=testfile,  STATUS='UNKNOWN')
         OPEN(UNIT=errorunit, FILE=errorfile, STATUS='UNKNOWN')
-        OPEN(UNIT=checkunit, FILE=checkfile, STATUS='UNKNOWN')
-      ELSE
-        OPEN(UNIT=testunit,  FILE=testnb,    STATUS='UNKNOWN')
+        OPEN(UNIT=checkunit, FILE=checkfile, POSITION='APPEND',STATUS='UNKNOWN')
       END IF
-
+!
       IF( mpime == root ) THEN
         WRITE(logunit,100) mydate(5), mydate(6), mydate(7), mydate(3), mydate(2), mydate(1)
         WRITE(logunit,*)
@@ -110,6 +109,15 @@
 
       INQUIRE(UNIT=inputunit,OPENED=topen)
       IF(topen) CLOSE(inputunit)
+!
+! ... Open Test files (WARNING: opens 'nproc' files on the same unit!)
+!
+      testnb = testfile//procnum(mpime)
+      IF(mpime == root) THEN
+        IF ( lpr > 0 ) OPEN(UNIT=testunit,  FILE=testfile,  STATUS='UNKNOWN')
+      ELSE
+        IF ( lpr > 0 ) OPEN(UNIT=testunit,  FILE=testnb,    STATUS='UNKNOWN')
+      END IF
 !
 ! ... set dimensions ...
 !
@@ -170,10 +178,14 @@
         STOP
       END IF
 !
-      !CALL partition( 128, mpime, root ) ! TEST
+!
+! ... Domain Decomposition
+!
+      !Simulate the domain decomposition!
+      !CALL partition( 456, mpime, root ) ! TEST
       !CALL parallel_hangup   ! TEST
       !STOP                   ! TEST
-
+      !
       CALL partition( nproc, mpime, root )
 
           IF (timing) then
@@ -225,7 +237,7 @@
       IF(itd == 2) THEN 
 	CALL taperd
       ELSE IF (itd == 3) THEN
-        CALL outp_recover
+        CALL outp_recover(nfil)
       END IF
 !
 ! ... Compute initial conditions depending on restart mode

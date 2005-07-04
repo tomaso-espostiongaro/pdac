@@ -7,7 +7,7 @@
       USE volcano_topography, ONLY: xtop, ytop, ztop
       USE volcano_topography, ONLY: topo2d_c, topo2d_x, topo2d_y
       USE volcano_topography, ONLY: topo_c, topo_x
-      USE io_files, ONLY: errorunit, logunit
+      USE io_files, ONLY: logunit, testunit
 
       IMPLICIT NONE
 !
@@ -536,6 +536,7 @@
       CONTAINS
 !----------------------------------------------------------------------
       SUBROUTINE increasing_profile(i,fp,fpt)
+      USE control_flags, ONLY: job_type, lpr
 
       IMPLICIT NONE
 
@@ -569,9 +570,9 @@
         dzs = ztop(n) - cz(ord(i-1))
 
         s = sol2(norm(1), dxt, norm(2), dzt, dxs, dzs, err)
-        IF (err > 0) THEN
-          WRITE(errorunit,*) 'WARNING! from proc: ',mpime
-          WRITE(errorunit,*) 'Error in fp: ', fp
+        IF (err > 0 .AND. lpr > 0) THEN
+          WRITE(testunit,*) 'WARNING! from proc: ',mpime
+          WRITE(testunit,*) 'Error in fp: ', fp
         END IF
 
         IF ((s >= 0).AND.(s <= 1)) THEN
@@ -634,9 +635,9 @@
         dzs = ztop(n) - cz(ord(i))
 
         s = sol2( norm(1), dxt, norm(2), dzt, dxs, dzs , err)
-        IF (err > 0) THEN
-          WRITE(errorunit,*) 'WARNING! from proc: ', mpime
-!          WRITE(errorunit,*) 'Error in fp: ', fp
+        IF (err > 0 .AND. lpr >0) THEN
+          WRITE(testunit,*) 'WARNING! from proc: ', mpime
+!          WRITE(testunit,*) 'Error in fp: ', fp
         END IF
 
         IF ((s >= 0).AND.(s <= 1))	THEN
@@ -649,6 +650,7 @@
       END SUBROUTINE increasing_profile
 !----------------------------------------------------------------------
       SUBROUTINE decreasing_profile(i,fp,fpt)
+      USE control_flags, ONLY: lpr
 
       IMPLICIT NONE
 
@@ -683,9 +685,9 @@
         dzs = ztop(n) - cz(ord(i))
 
         s = sol2( norm(1), dxt, norm(2), dzt, dxs, dzs, err )
-        IF (err > 0) THEN
-          WRITE(errorunit,*) 'WARNING! from proc: ', mpime
-          WRITE(errorunit,*) 'Error in fp: ', fp
+        IF (err > 0 .AND. lpr >0) THEN
+          WRITE(testunit,*) 'WARNING! from proc: ', mpime
+          WRITE(testunit,*) 'Error in fp: ', fp
         END IF
 
         IF ((s >= 0).AND.(s <= 1)) THEN
@@ -750,9 +752,9 @@
         dzs = ztop(n) - cz(ord(i+1))
 
 	s = sol2( norm(1), dxt, norm(2), dzt, dxs, dzs, err )
-        IF (err > 0) THEN
-          WRITE(errorunit,*) 'WARNING! from proc: ', mpime
-          WRITE(errorunit,*) 'Error in fp: ', fp
+        IF (err > 0 .AND. lpr >0) THEN
+          WRITE(testunit,*) 'WARNING! from proc: ', mpime
+          WRITE(testunit,*) 'Error in fp: ', fp
         END IF
 
  	IF ((s >= 0).AND.(s <= 1))	THEN

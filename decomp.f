@@ -1320,7 +1320,7 @@
       ALLOCATE(snd_map( 0:(nproc-1) ) )
       
 !
-      WRITE( 7, * ) 'Entering Ghost ... '
+      IF (mpime == root) WRITE( logunit, * ) 'Entering Ghost ... '
 !
       rcv_map(:)%nrcv = 0
       snd_map(:)%nsnd = 0
@@ -1331,6 +1331,7 @@
 ! ... count the neighbouring cells on other processors:
 ! ... 'nset' is the number of the neighbouring cells on other processors,
 ! ... summed over each local cell.
+! ... Only fluid cells, immersed_cells, and filled_cells are considered
 !
       nset  = 0
       ncext = 0
@@ -1670,7 +1671,7 @@
 !
       IF (immb == 1) CALL local_forcing
 
-      WRITE(testunit,*) 'End of Ghost'
+      IF (mpime == root) WRITE(logunit,*) 'End of Ghost'
 !
       RETURN
       END SUBROUTINE ghost
@@ -2292,20 +2293,36 @@
 !
 ! ... Second neighbours are not available on boundaries
 !
-              ijkee = ippjk
-              IF( (flag(ippjk) == slip_wall) .OR. (flag(ippjk) == noslip_wall) ) ijkee = ipjk
+              SELECT CASE (flag(ippjk))
+              CASE (slip_wall, noslip_wall, filled_cell)
+                      ijkee = ipjk
+              CASE DEFAULT
+                      ijkee = ippjk
+              END SELECT
               IF(i == (nx-1)) ijkee = ijke
-
-              ijktt = ijkpp
-              IF( (flag(ijkpp) == slip_wall) .OR. (flag(ijkpp) == noslip_wall) ) ijktt = ijkp
+!
+              SELECT CASE (flag(ijkpp))
+              CASE (slip_wall, noslip_wall, filled_cell)
+                      ijktt = ijkp
+              CASE DEFAULT
+                      ijktt = ijkpp
+              END SELECT
               IF(k == (nz-1)) ijktt = ijkt
-  
-              ijkww = immjk
-              IF( (flag(immjk) == slip_wall) .OR. (flag(immjk) == noslip_wall) ) ijkww = imjk
+!
+              SELECT CASE (flag(immjk))
+              CASE (slip_wall, noslip_wall, filled_cell)
+                      ijkww = imjk
+              CASE DEFAULT
+                      ijkww = immjk
+              END SELECT
               IF(i == 2) ijkww = ijkw
-
-              ijkbb = ijkmm
-              IF( (flag(ijkmm) == slip_wall) .OR. (flag(ijkmm) == noslip_wall) ) ijkbb = ijkm
+!
+              SELECT CASE (flag(ijkmm))
+              CASE (slip_wall, noslip_wall, filled_cell)
+                      ijkbb = ijkm
+              CASE DEFAULT
+                      ijkbb = ijkmm
+              END SELECT
               IF(k == 2) ijkbb = ijkb
 !
               myinds(ip0_jp0_km2_, ijk) = ijkbb
@@ -2402,30 +2419,54 @@
 !
 ! ... Second neighbours are not available on boundaries
 !
-              ijkee =  ippjk
-              if( flag( ippjk ) == slip_wall .OR. flag( ippjk ) == noslip_wall ) ijkee = ijke
-              if( i == (nx-1) ) ijkee = ijke
-
-              ijkww =  immjk
-              if( flag( immjk ) == slip_wall .OR. flag( immjk ) == noslip_wall ) ijkww = ijkw
-              if( (i == 2) ) ijkww = ijkw
-
-              ijknn =  ijppk
-              if( flag( ijppk ) == slip_wall .OR. flag( ijppk ) == noslip_wall ) ijknn = ijkn
+              SELECT CASE (flag(ippjk))
+              CASE (slip_wall, noslip_wall, filled_cell)
+                      ijkee = ipjk
+              CASE DEFAULT
+                      ijkee = ippjk
+              END SELECT
+              IF(i == (nx-1)) ijkee = ijke
+!
+              SELECT CASE (flag(ijkpp))
+              CASE (slip_wall, noslip_wall, filled_cell)
+                      ijktt = ijkp
+              CASE DEFAULT
+                      ijktt = ijkpp
+              END SELECT
+              IF(k == (nz-1)) ijktt = ijkt
+!
+              SELECT CASE (flag(ijppk))
+              CASE (slip_wall, noslip_wall, filled_cell)
+                      ijknn = ijkn
+              CASE DEFAULT
+                      ijknn =  ijppk
+              END SELECT
               if( (j == (ny-1)) ) ijknn = ijkn
 
-              ijkss =  ijmmk
-              if( flag( ijmmk ) == slip_wall .OR. flag( ijmmk ) == noslip_wall ) ijkss = ijks
+              SELECT CASE (flag(ijmmk))
+              CASE (slip_wall, noslip_wall, filled_cell)
+                      ijkss = ijks
+              CASE DEFAULT
+                      ijkss =  ijmmk
+              END SELECT
               if( (j == 2) ) ijkss = ijks
-
-              ijktt =  ijkpp
-              if( flag( ijkpp ) == slip_wall .OR. flag( ijkpp ) == noslip_wall ) ijktt = ijkt
-              if( k == (nz-1) ) ijktt = ijkt
-
-              ijkbb =  ijkmm
-              if( flag( ijkmm ) == slip_wall .OR. flag( ijkmm ) == noslip_wall ) ijkbb = ijkb
-              if( k == 2 ) ijkbb = ijkb
-
+!
+              SELECT CASE (flag(immjk))
+              CASE (slip_wall, noslip_wall, filled_cell)
+                      ijkww = imjk
+              CASE DEFAULT
+                      ijkww = immjk
+              END SELECT
+              IF(i == 2) ijkww = ijkw
+!
+              SELECT CASE (flag(ijkmm))
+              CASE (slip_wall, noslip_wall, filled_cell)
+                      ijkbb = ijkm
+              CASE DEFAULT
+                      ijkbb = ijkmm
+              END SELECT
+              IF(k == 2) ijkbb = ijkb
+!
               !!!!! check diagonals
 
               ijken =  ipjpk
@@ -2500,12 +2541,12 @@
           ALLOCATE( rcvbuf( MAX(rcv_map(isour)%nrcv,1) ), STAT=ierr )
 
           IF( ierr /= 0 ) THEN
-            WRITE(testunit,*) 'Trying to allocate ', MAX(rcv_map(isour)%nrcv,1), ' elements '
+            IF (lpr > 1) WRITE(testunit,*) 'Trying to allocate ', MAX(rcv_map(isour)%nrcv,1), ' elements '
             CALL error(' data_exchange_r ', ' allocating rcvbuf ', ierr )
           END IF
           ALLOCATE( sndbuf( MAX(snd_map(idest)%nsnd,1) ), STAT=ierr )
           IF( ierr /= 0 ) THEN
-            WRITE(testunit,*) 'Trying to allocate ', MAX(snd_map(idest)%nsnd,1), ' elements '
+            IF (lpr > 1) WRITE(testunit,*) 'Trying to allocate ', MAX(snd_map(idest)%nsnd,1), ' elements '
             CALL error(' data_exchange_r ', ' allocating sndbuf ', ierr )
           END IF
 
@@ -2565,12 +2606,12 @@
           rdim = MAX( SIZE(array,2) * rcv_map(isour)%nrcv, 1)
           ALLOCATE( rcvbuf( rdim ), STAT=ierr )
           IF( ierr /= 0 ) THEN
-            WRITE(testunit,*) 'Trying to allocate ', rdim, ' elements '
+            IF (lpr > 1) WRITE(testunit,*) 'Trying to allocate ', rdim, ' elements '
             CALL error(' data_exchange_rm ', ' allocating rcvbuf ', ierr )
           END IF
           ALLOCATE( sndbuf( sdim ), STAT=ierr )
           IF( ierr /= 0 ) THEN
-            WRITE(testunit,*) 'Trying to allocate ', sdim, ' elements '
+            IF (lpr > 1) WRITE(testunit,*) 'Trying to allocate ', sdim, ' elements '
             CALL error(' data_exchange_rm ', ' allocating sndbuf ', ierr )
           END IF
 
@@ -2630,12 +2671,12 @@
           idest = MOD(mpime + ip        , nproc)
           ALLOCATE( rcvbuf( MAX(rcv_map(isour)%nrcv,1) ), STAT=ierr )
           IF( ierr /= 0 ) THEN
-            WRITE(testunit,*) 'Trying to allocate ', MAX(rcv_map(isour)%nrcv,1), ' elements '
+            IF (lpr > 1) WRITE(testunit,*) 'Trying to allocate ', MAX(rcv_map(isour)%nrcv,1), ' elements '
             CALL error(' data_exchange_i ', ' allocating rcvbuf ', ierr )
           END IF
           ALLOCATE( sndbuf( MAX(snd_map(idest)%nsnd,1) ), STAT=ierr )
           IF( ierr /= 0 ) THEN
-            WRITE(testunit,*) 'Trying to allocate ', MAX(snd_map(idest)%nsnd,1), ' elements '
+            IF (lpr > 1) WRITE(testunit,*) 'Trying to allocate ', MAX(snd_map(idest)%nsnd,1), ' elements '
             CALL error(' data_exchange_i ', ' allocating sndbuf ', ierr )
           END IF
           DO ib = 1, snd_map(idest)%nsnd
@@ -2669,12 +2710,12 @@
           idest = MOD(mpime + ip        , nproc)
           ALLOCATE( rcvbuf( MAX(rcv_map(isour)%nrcv,1) ), STAT=ierr )
           IF( ierr /= 0 ) THEN
-            WRITE(testunit,*) 'Trying to allocate ', MAX(rcv_map(isour)%nrcv,1), ' elements '
+            IF (lpr > 1) WRITE(testunit,*) 'Trying to allocate ', MAX(rcv_map(isour)%nrcv,1), ' elements '
             CALL error(' data_exchange_l ', ' allocating rcvbuf ', ierr )
           END IF
           ALLOCATE( sndbuf( MAX(snd_map(idest)%nsnd,1) ), STAT=ierr )
           IF( ierr /= 0 ) THEN
-            WRITE(testunit,*) 'Trying to allocate ', MAX(snd_map(idest)%nsnd,1), ' elements '
+            IF (lpr > 1) WRITE(testunit,*) 'Trying to allocate ', MAX(snd_map(idest)%nsnd,1), ' elements '
             CALL error(' data_exchange_l ', ' allocating sndbuf ', ierr )
           END IF
           DO ib = 1, snd_map(idest)%nsnd
@@ -2944,7 +2985,7 @@
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nx, ny, nz
       USE immersed_boundaries, ONLY: numx, fptx, numy, fpty, numz, fptz
-      USE parallel, ONLY: mpime
+      USE parallel, ONLY: mpime, root
 
       IMPLICIT NONE
       INTEGER :: n, i, j, k, ijk, ijkl
@@ -2980,8 +3021,10 @@ set_numx: IF (i/=0 .AND. k/=0) THEN
               numx(ijkl) = n 
 
               IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. j==1 .OR. j==ny) THEN
-                WRITE(errorunit,*) 'WARNING! from ghost'
-                WRITE(errorunit,*) 'skipping x-forcing on boundaries', i, j, k
+                IF (mpime == root) THEN
+                  WRITE(errorunit,*) 'WARNING! from ghost'
+                  WRITE(errorunit,*) 'skipping x-forcing on boundaries', i, j, k
+                END IF
               END IF
             END IF
           ELSE
@@ -3009,8 +3052,10 @@ set_numy:   IF (i/=0 .AND. k/=0) THEN
                 numy(ijkl) = n 
 
                 IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. j==1 .OR. j==ny) THEN
-                  WRITE(errorunit,*) 'WARNING! from ghost'
-                  WRITE(errorunit,*) 'skipping y-forcing on boundaries', i, j, k
+                  IF (mpime == root) THEN
+                    WRITE(errorunit,*) 'WARNING! from ghost'
+                    WRITE(errorunit,*) 'skipping y-forcing on boundaries', i, j, k
+                  END IF
                 END IF
               END IF
             ELSE
@@ -3038,8 +3083,10 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               numz(ijkl) = n 
 
               IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. j==1 .OR. j==ny) THEN
-                WRITE(errorunit,*) 'WARNING! from ghost'
-                WRITE(errorunit,*) 'skipping z-forcing on boundaries', i, j, k
+                IF (mpime == root) THEN
+                  WRITE(errorunit,*) 'WARNING! from ghost'
+                  WRITE(errorunit,*) 'skipping z-forcing on boundaries', i, j, k
+                END IF
               END IF
             END IF
           ELSE
@@ -3068,6 +3115,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
       USE grid, ONLY: z, zb, flag, dz, dome_cell
       USE immersed_boundaries, ONLY: bd, vf
       USE io_files, ONLY: tempunit
+      USE parallel, ONLY: mpime, root
       USE volcano_topography, ONLY: topo_c, topo_x
       USE volcano_topography, ONLY: topo2d_c, topo2d_x, topo2d_y
       USE indijk_module
@@ -3092,9 +3140,9 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
       vf(:) = 0.D0
 
       IF( lpr > 1 ) THEN
-        WRITE( 7, * ) 
-        WRITE( 7, * ) 'b coefficients for immersed bndaries' 
-        WRITE( 7, * ) '     ijk   i   j   k     b (int)'
+        WRITE( testunit, * ) 
+        WRITE( testunit, * ) 'b coefficients for immersed bndaries' 
+        WRITE( testunit, * ) '     ijk   i   j   k     b (int)'
       END IF
 !
         DO ijk=1, ncint
@@ -3226,15 +3274,17 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
             IF (vf(ijk) == 0.D0) flag(ijk) = filled_cell
 
             IF (bd(ijk) /= filled  .AND. lpr > 1 ) THEN
-              WRITE( 7, fmt = "( I8,3I4,2X,B8,I4 )" ) ijk, i, j, k, bd(ijk), flag(ijk)
+              WRITE( testunit, fmt = "( I8,3I4,2X,B8,I4 )" ) ijk, i, j, k, bd(ijk), flag(ijk)
             END IF
 
           END IF
 
         END DO
-        OPEN(tempunit,FILE='vf.dat',STATUS='UNKNOWN',FORM='UNFORMATTED')  
-        WRITE(tempunit) vf
-        CLOSE(tempunit)
+        IF (mpime == root) THEN
+          OPEN(tempunit,FILE='vf.dat',STATUS='UNKNOWN',FORM='UNFORMATTED')  
+          WRITE(tempunit) vf
+          CLOSE(tempunit)
+        END IF
         CALL data_exchange(flag)
       
       RETURN
@@ -3250,6 +3300,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
       USE control_flags, ONLY: job_type, lpr
       USE grid, ONLY: z, zb, flag, dz
       USE immersed_boundaries, ONLY: bdr, vf
+      USE parallel, ONLY: mpime, root
       USE volcano_topography, ONLY: topo_c, topo_x
       USE volcano_topography, ONLY: topo2d_c, topo2d_x, topo2d_y
       IMPLICIT NONE
@@ -3263,10 +3314,10 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
       ALLOCATE(bdr(ncint,6)); bdr(:,:) = 0.D0
       ALLOCATE(vf(ncint)); vf(:) = 0.D0
 !
-      IF( lpr > 1 ) THEN
-        WRITE( 7, * ) 
-        WRITE( 7, * ) 'b coefficients for immersed bndaries' 
-        WRITE( 7, * ) '     ijk   i   j   k     b (real)'
+      IF( lpr > 1) THEN
+        WRITE( testunit, * ) 
+        WRITE( testunit, * ) 'b coefficients for immersed bndaries' 
+        WRITE( testunit, * ) '     ijk   i   j   k     b (real)'
       END IF
 !
         DO ijk=1, ncint
@@ -3322,7 +3373,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               vf(ijk)  = 0.25D0 * vf(ijk)
             END IF
 
-            IF( lpr > 1 ) WRITE( 7, fmt = "( I8,3I4,2X,6F8.4 )" ) ijk, i, j, k, bdr(ijk,:)
+            IF( lpr > 1) WRITE( testunit, fmt = "( I8,3I4,2X,6F8.4 )" ) ijk, i, j, k, bdr(ijk,:)
 
           END IF
 

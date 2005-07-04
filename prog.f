@@ -126,8 +126,10 @@
 !
         sweep = sweep + 1
 
-        WRITE(testunit,fmt="(/,'* Starting iteration ',I5,' * ')" ) sweep
-        WRITE(testunit,fmt="('  Simulated time = ',F20.14)" ) time
+        IF (lpr > 0) THEN
+          WRITE(testunit,fmt="(/,'* Starting iteration ',I5,' * ')" ) sweep
+          WRITE(testunit,fmt="('  Simulated time = ',F20.14)" ) time
+        END IF
 !
         IF( timing ) then
            s1 = cpclock()
@@ -304,7 +306,15 @@
 !
 ! ... Write OUTPUT file
 ! 
-        IF(MOD(sweep,nprint) == 0) CALL outp
+        IF(MOD(sweep,nprint) == 0) THEN
+                !
+                CALL outp
+                !
+                ! ... Print the total residuals of the mass conservation 
+                ! ... equation and the mass-flow rate
+                !
+                CALL print_mass_residuals(sweep)
+        END IF
 !
         IF( timing ) then
           s11 = cpclock()
@@ -343,7 +353,7 @@
 !        mptimres  = mptimres  + (p12 - p11)
 !
         w1 = elapsed_seconds()
-        WRITE(testunit,fmt="('  walltime = ',F10.2,', ',F10.2)") w1, w1-w0
+        IF (lpr > 0) WRITE(testunit,fmt="('  walltime = ',F10.2,', ',F10.2)") w1, w1-w0
         w0 = w1
 !
         !IF (mpime == psmp) CALL sample_pressure(ismp)
