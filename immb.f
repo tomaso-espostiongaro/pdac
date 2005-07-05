@@ -2,7 +2,7 @@
       MODULE immersed_boundaries
 !----------------------------------------------------------------------
       USE dimensions, ONLY: nx, ny, nz, ntot, ntr
-      USE grid, ONLY: fl, noslip_wall, immb_cell, filled_cell
+      USE grid, ONLY: fl, immb_cell, filled_cell
       USE parallel, ONLY: mpime, root
       USE volcano_topography, ONLY: xtop, ytop, ztop
       USE volcano_topography, ONLY: topo2d_c, topo2d_x, topo2d_y

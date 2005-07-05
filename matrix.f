@@ -279,7 +279,7 @@
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nphase
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      USE grid, ONLY: flag, inlet_cell, vent_cell, noslip_wall, slip_wall, fluid
+      USE grid, ONLY: flag, inlet_cell, vent_cell, noslip_wall, slip_wall, filled_cell
       USE set_indexes, ONLY: imjk, ijmk, ijkm, ipjk, ijpk, ijkp
       IMPLICIT NONE
 !
@@ -291,7 +291,7 @@
 !
 ! ... Use Gauss-Jordan method for matrix inversion
 !
-      wall  = (flag(imjk)==slip_wall .OR. flag(imjk)==noslip_wall)
+      wall  = (flag(imjk)==slip_wall .OR. flag(imjk)==noslip_wall .OR. flag(imjk)==filled_cell)
       inlet = (flag(imjk)==inlet_cell .OR. flag(imjk)==vent_cell)
       IF (.NOT.(wall .OR. inlet)) THEN
         DO l=2,nphase
@@ -331,7 +331,7 @@
       END IF
 !
       IF (job_type == '3D') THEN
-        wall  = (flag(ijmk)==slip_wall .OR. flag(ijmk)==noslip_wall)
+        wall  = (flag(ijmk)==slip_wall .OR. flag(ijmk)==noslip_wall .OR. flag(ijmk)==filled_cell)
         inlet = (flag(ijmk)==inlet_cell .OR. flag(ijmk)==vent_cell)
         IF (.NOT.(wall .OR. inlet)) THEN
           DO l=2,nphase
@@ -371,7 +371,7 @@
         END IF
       END IF
 !
-      wall  = (flag(ijkm)==slip_wall .OR. flag(ijkm)==noslip_wall)
+      wall  = (flag(ijkm)==slip_wall .OR. flag(ijkm)==noslip_wall .OR. flag(ijkm)==filled_cell)
       inlet = (flag(ijkm)==inlet_cell .OR. flag(ijkm)==vent_cell)
       IF (.NOT.(wall .OR. inlet)) THEN
         DO l=2,nphase
@@ -422,7 +422,7 @@
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nphase
       USE domain_decomposition, ONLY:  meshinds
-      USE grid, ONLY: flag, inlet_cell, vent_cell, noslip_wall, slip_wall
+      USE grid, ONLY: flag, inlet_cell, vent_cell, noslip_wall, slip_wall, filled_cell
       USE set_indexes, ONLY: ipjk, ijpk, ijkp
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       IMPLICIT NONE
@@ -437,7 +437,7 @@
 !
 ! ... Use Gauss-Jordan method for matrix inversion
 !
-      wall  = (flag(ipjk)==slip_wall .OR. flag(ipjk)==noslip_wall)
+      wall  = (flag(ipjk)==slip_wall .OR. flag(ipjk)==noslip_wall .OR. flag(ipjk)==filled_cell)
       inlet = (flag(ipjk)==inlet_cell .OR. flag(ipjk)==vent_cell)
       IF (.NOT.(wall .OR. inlet)) THEN
         DO l=2,nphase
@@ -477,7 +477,7 @@
       END IF
 !
       IF (job_type == '3D') THEN
-        wall  = (flag(ijpk)==slip_wall .OR. flag(ijpk)==noslip_wall)
+        wall  = (flag(ijpk)==slip_wall .OR. flag(ijpk)==noslip_wall .OR. flag(ijpk)==filled_cell)
         inlet = (flag(ijpk)==inlet_cell .OR. flag(ijpk)==vent_cell)
         IF (.NOT.(wall .OR. inlet)) THEN
           DO l=2,nphase
@@ -517,7 +517,7 @@
         END IF
       END IF
 !
-      wall  = (flag(ijkp)==slip_wall .OR. flag(ijkp)==noslip_wall)
+      wall  = (flag(ijkp)==slip_wall .OR. flag(ijkp)==noslip_wall .OR. flag(ijkp)==filled_cell)
       inlet = (flag(ijkp)==inlet_cell .OR. flag(ijkp)==vent_cell)
       IF (.NOT.(wall .OR. inlet)) THEN
         DO l=2,nphase
@@ -663,7 +663,7 @@
       USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
       USE time_parameters, ONLY: dt
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      USE grid, ONLY: flag, slip_wall, noslip_wall, inlet_cell, vent_cell
+      USE grid, ONLY: flag, slip_wall, noslip_wall, inlet_cell, vent_cell, filled_cell
 
 
       IMPLICIT NONE
@@ -725,17 +725,17 @@
         dzdp =dz(k)   * indzp
         dzpdp=dz(k+1) * indzp
 
-        flim = .NOT.( flag(imjk)==slip_wall .OR. flag(imjk)==noslip_wall .OR. &
+        flim = .NOT.( flag(imjk)==slip_wall .OR. flag(imjk)==noslip_wall .OR. flag(imjk)==filled_cell .OR. &
                  flag(imjk)==inlet_cell .OR. flag(imjk)==vent_cell)
-        fljm = .NOT.( flag(ijmk)==slip_wall .OR. flag(ijmk)==noslip_wall .OR. &
+        fljm = .NOT.( flag(ijmk)==slip_wall .OR. flag(ijmk)==noslip_wall .OR. flag(ijmk)==filled_cell .OR. &
                  flag(ijmk)==inlet_cell .OR. flag(ijmk)==vent_cell)
-        flkm = .NOT.( flag(ijkm)==slip_wall .OR. flag(ijkm)==noslip_wall .OR. &
+        flkm = .NOT.( flag(ijkm)==slip_wall .OR. flag(ijkm)==noslip_wall .OR. flag(ijkm)==filled_cell .OR. &
                  flag(ijkm)==inlet_cell .OR. flag(ijkm)==vent_cell)
-        flip = .NOT.( flag(ipjk)==slip_wall .OR. flag(ipjk)==noslip_wall .OR. &
+        flip = .NOT.( flag(ipjk)==slip_wall .OR. flag(ipjk)==noslip_wall .OR. flag(ipjk)==filled_cell .OR. &
                  flag(ipjk)==inlet_cell .OR. flag(ipjk)==vent_cell)
-        fljp = .NOT.( flag(ijpk)==slip_wall .OR. flag(ijpk)==noslip_wall .OR. &
+        fljp = .NOT.( flag(ijpk)==slip_wall .OR. flag(ijpk)==noslip_wall .OR. flag(ijpk)==filled_cell .OR. &
                  flag(ijpk)==inlet_cell .OR. flag(ijpk)==vent_cell)
-        flkp = .NOT.( flag(ijkp)==slip_wall .OR. flag(ijkp)==noslip_wall .OR. &
+        flkp = .NOT.( flag(ijkp)==slip_wall .OR. flag(ijkp)==noslip_wall .OR. flag(ijkp)==filled_cell .OR. &
                  flag(ijkp)==inlet_cell .OR. flag(ijkp)==vent_cell)
 
         pw   = p(ijkw)
