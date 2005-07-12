@@ -421,31 +421,31 @@
         IF (job_type == '2D') THEN
 
           IF( lform .AND. mpime == root ) READ(outpunit,122)
-          us = 0.D0
+          us(:,is) = 0.D0
           CALL read_array( outpunit, us(:,is), sgl, lform )  ! solid_velocity_r
 
           IF( lform .AND. mpime == root ) READ(outpunit,122)
-          ws = 0.D0
+          ws(:,is) = 0.D0
           CALL read_array( outpunit, ws(:,is), sgl, lform )  ! solid_velocity_z
 
         ELSE IF (job_type == '3D') THEN
 
           IF( lform .AND. mpime == root ) READ(outpunit,122)
-          us = 0.D0
+          us(:,is) = 0.D0
           CALL read_array( outpunit, us(:,is), sgl, lform )  ! solid_velocity_x
 
           IF( lform .AND. mpime == root ) READ(outpunit,122)
-          vs = 0.D0
+          vs(:,is) = 0.D0
           CALL read_array( outpunit, vs(:,is), sgl, lform )  ! solid_velocity_y
 
           IF( lform .AND. mpime == root ) READ(outpunit,122)
-          ws = 0.D0
+          ws(:,is) = 0.D0
           CALL read_array( outpunit, ws(:,is), sgl, lform )  ! solid_velocity_z
 
         END IF
 
         IF( lform .AND. mpime == root ) READ(outpunit,122)
-        ts = 0.D0
+        ts(:,is) = 0.D0
         CALL read_array( outpunit, ts(:,is), sgl, lform )  ! solid_temperature
 
       END DO

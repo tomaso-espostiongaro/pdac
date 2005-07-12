@@ -431,10 +431,10 @@
               CALL meshinds( ijk , imesh, i , j , k )
               WRITE(testunit,*) imesh, i , j , k
               CALL cell_report(testunit, ijk, imesh, i, j, k)
+              CALL velocity_limiter(ijk)
             END IF
           END DO
  700      FORMAT('max number of iterations (',I5,') reached at time: ', F8.3)
- 701      FORMAT(10(F14.6))
         END IF
 !
         ! ... CRASH! ...
@@ -1638,6 +1638,22 @@
         RETURN
       
       END SUBROUTINE opt3_inner_loop
+!----------------------------------------------------------------------
+      SUBROUTINE velocity_limiter(ijk)
+      USE control_flags, ONLY: job_type
+      USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: ijk
+!
+      ug(ijk) = 0.D0
+      IF (job_type == '3D') vg(ijk) = 0.D0
+      wg(ijk) = 0.D0
+      us(ijk,:) = 0.D0
+      IF (job_type == '3D') vs(ijk,:) = 0.D0
+      ws(ijk,:) = 0.D0
+!
+      RETURN
+      END SUBROUTINE velocity_limiter
 !----------------------------------------------------------------------
       SUBROUTINE test_fluxes
       USE domain_decomposition, ONLY: ncint, meshinds
