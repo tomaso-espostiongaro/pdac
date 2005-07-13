@@ -424,6 +424,7 @@
                 READ(tempunit,*) (ts_rad(n,is), n=1, raddim)
                 READ(tempunit,*) (ep_rad(n,is), n=1, raddim)
               END DO
+              CLOSE(tempunit)
       END IF
 !
       CALL bcast_real(rad,raddim,root)
@@ -436,8 +437,6 @@
       CALL bcast_real(ws_rad,raddim*nsolid,root)
       CALL bcast_real(ts_rad,raddim*nsolid,root)
       CALL bcast_real(ep_rad,raddim*nsolid,root)
-!
-      IF (mpime == root) CLOSE(tempunit)
 !
       RETURN
       END SUBROUTINE read_radial_profile

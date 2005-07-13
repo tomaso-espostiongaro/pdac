@@ -125,8 +125,8 @@
       ionode = ( mpime == root )
 
       IF ( lpr > 0 .AND. ionode ) THEN
-        WRITE( 6, * ) 
-        WRITE( 6, * ) 'Starting Grid Decomposition ...'
+        WRITE( logunit , * ) 
+        WRITE( logunit , * ) 'Starting Grid Decomposition ...'
       END IF
 
       IF (ALLOCATED(nctot)) DEALLOCATE(nctot)
@@ -150,8 +150,8 @@
       countfl = COUNT( BTEST(fl(:),0) )
 !
       IF ( lpr > 0 .AND. ionode ) THEN
-        WRITE( 6, fmt = '(a13)' ) ' # countfl :'
-        WRITE( 6, fmt = '(10I8)') countfl
+        WRITE( logunit, fmt = '(a13)' ) ' # countfl :'
+        WRITE( logunit, fmt = '(10I8)') countfl
       END IF
 !
 ! ... domain decomposition (build maps)
@@ -212,7 +212,7 @@
       END IF
 
       IF( ionode ) &
-        WRITE( 6, * ) 'End of Mesh decomposition'
+        WRITE( logunit, * ) 'End of Mesh decomposition'
 !
       RETURN
       END SUBROUTINE partition
@@ -248,7 +248,7 @@
       ionode = ( mpime == root )
 !
       IF( ionode ) &
-        WRITE( 6, * ) 'Using Layers Mesh decomposition' 
+        WRITE( logunit, * ) 'Using Layers Mesh decomposition' 
 !
       ALLOCATE(lay_map(0:nproc-1,2))
 !
@@ -393,7 +393,7 @@
       ionode = ( mpime == root )
 
       IF( ionode ) &
-        WRITE( 6, * ) 'Using Blocks ( 2D ) Mesh decomposition' 
+        WRITE( logunit, * ) 'Using Blocks ( 2D ) Mesh decomposition' 
 !
 ! ... Initially subdivides the domain into 'nbz' layers. Each layer
 ! ... will be in turn subdivided into 'nbx' blocks.
@@ -668,7 +668,7 @@
       ionode = ( mpime == root )
 
       IF( ionode ) &
-        WRITE( 6, * ) 'Using Colomns ( 3D ) Mesh decomposition' 
+        WRITE( logunit, * ) 'Using Colomns ( 3D ) Mesh decomposition' 
 
 !
 ! ... subdivides the domain into 'nby' Slabs. Each slab
@@ -935,7 +935,7 @@
       ionode = ( mpime == root )
 
       IF( ionode ) &
-        WRITE( 6, * ) 'Using Blocks ( 3D ) Grid partition' 
+        WRITE( logunit, * ) 'Using Blocks ( 3D ) Grid partition' 
 !
 ! ... Factorize the number of processors, into plane processors nprocxy
 ! ... and z processors nprocz
@@ -1555,7 +1555,7 @@
 !
       CALL set_rcv_map(rcv_map, myijk, rcv_cell_set, nset, nrcv)
 
-! ... print out basic information on the map
+! ... Each processor prints out the basic information on the map
 !
       IF (lpr > 1) THEN
         DO ipe = 0, nproc - 1
@@ -1622,6 +1622,8 @@
 
       END DO
 !
+! ... Each processor prints out the information of the received cells
+!
       IF (lpr > 1) THEN
         DO ipe = 0, nproc - 1
           WRITE(testunit,100) rcv_map(ipe)%nrcv, ipe
@@ -1634,7 +1636,9 @@
  110      FORMAT(10i8)
         END DO
       END IF
-
+!
+! ... Each processor prints out the information of the sent cells
+!
       IF (lpr > 1) THEN
         DO ipe = 0, nproc - 1
           WRITE(testunit,200) snd_map(ipe)%nsnd, ipe

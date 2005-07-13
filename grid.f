@@ -260,9 +260,7 @@
 
  17   FORMAT(5(F20.6))
 
-      IF( mpime == root ) THEN
-        WRITE(logunit,*) 'END Grid setup'
-      END IF
+      IF( mpime == root ) WRITE(logunit,*) 'END Grid setup'
 
       RETURN 
       END SUBROUTINE grid_setup
@@ -556,7 +554,7 @@
         ELSE 
            IF ( (1.D0-dbeta) <= 1.D-15 ) THEN
               print_mesh= .TRUE.
-              IF( lpr >= 1 .AND. ionode) &
+              IF( lpr > 0 .AND. ionode) &
                 WRITE(testunit,*) 'Final beta = ', beta, ' n= ', (n01+m1+n11)+(n02+m2+n12)+1
            ELSE
              already = .TRUE.

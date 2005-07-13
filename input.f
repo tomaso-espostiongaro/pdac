@@ -392,9 +392,7 @@
 
 !
 
-      IF(mpime == root) &
-        WRITE(logunit,*) 'Reading input ...'
-!
+      IF(mpime == root) WRITE(logunit,*) 'Reading input ...'
 !
 ! :::::::::::::::::::::::  R E A D   N A M E L I S T S ::::::::::::::::
 !
@@ -545,11 +543,11 @@
       CALL bcast_real(w_gas,1,root)
       CALL bcast_real(p_gas,1,root)
       CALL bcast_real(t_gas,1,root)
-      CALL bcast_real(u_solid,nsolid,root)
-      CALL bcast_real(v_solid,nsolid,root)
-      CALL bcast_real(w_solid,nsolid,root)
-      CALL bcast_real(ep_solid,nsolid,root)
-      CALL bcast_real(t_solid,nsolid,root)
+      CALL bcast_real(u_solid,max_nsolid,root)
+      CALL bcast_real(v_solid,max_nsolid,root)
+      CALL bcast_real(w_solid,max_nsolid,root)
+      CALL bcast_real(ep_solid,max_nsolid,root)
+      CALL bcast_real(t_solid,max_nsolid,root)
       CALL bcast_real(vent_O2,1,root)
       CALL bcast_real(vent_N2,1,root)
       CALL bcast_real(vent_CO2,1,root)
@@ -569,7 +567,7 @@
       CALL bcast_real(dome_volume,1,root)
       CALL bcast_real(temperature,1,root)
       CALL bcast_real(overpressure,1,root)
-      CALL bcast_real(particle_fraction,nsolid,root)
+      CALL bcast_real(particle_fraction,max_nsolid,root)
       CALL bcast_real(gas_flux,1,root)
       CALL bcast_real(permeability,1,root)
       CALL bcast_real(dome_gasvisc,1,root)

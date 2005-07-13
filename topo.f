@@ -182,8 +182,8 @@
 !
       IF (mpime == root) THEN
         topo_file = TRIM(dem_file)
-        OPEN(UNIT=tempunit, FILE=topo_file, STATUS='OLD')
         WRITE(logunit,*) 'Reading topography file: ', topo_file
+        OPEN(UNIT=tempunit, FILE=topo_file, STATUS='OLD')
         READ(tempunit,*) nodidemx
         READ(tempunit,*) nodidemy
         READ(tempunit,*) xul
@@ -230,13 +230,10 @@
             zdem(i,j) = DBLE(elevation) / 100.D0
           END DO
         END DO
+        CLOSE(tempunit)
       END IF
 !
       CALL bcast_real(zdem,nodidemx*nodidemy,root)
-
-      IF (mpime == root) THEN
-        CLOSE(tempunit)
-      END IF
 !
       RETURN
       END SUBROUTINE read_dem_ascii

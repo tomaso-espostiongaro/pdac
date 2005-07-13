@@ -637,7 +637,7 @@
         s = sol2( norm(1), dxt, norm(2), dzt, dxs, dzs , err)
         IF (err > 0 .AND. lpr >0) THEN
           WRITE(testunit,*) 'WARNING! from proc: ', mpime
-!          WRITE(testunit,*) 'Error in fp: ', fp
+          WRITE(testunit,*) 'Error in fp: ', fp
         END IF
 
         IF ((s >= 0).AND.(s <= 1))	THEN

@@ -56,7 +56,6 @@
       REAL*8 :: timtot, timprog, timdist, timsetup, timinit, timres, timghost
       REAL*8 :: mptimtot, mptimprog, mptimdist, mptimsetup, &
      &          mptiminit, mptimres, mptimghost
-      LOGICAL :: debug = .FALSE.
       LOGICAL :: topen
 !
 ! ... initialize parallel environment
@@ -78,10 +77,10 @@
 !
       CALL date_and_time( values = mydate )
 !
-! ... Root processor Opens log and error files
+! ... Root processor opens log and error files
 !
       IF(mpime == root) THEN
-        IF(.NOT.debug ) OPEN(UNIT=logunit,FILE=logfile,STATUS='UNKNOWN')
+        OPEN(UNIT=logunit,FILE=logfile,STATUS='UNKNOWN')
         OPEN(UNIT=errorunit, FILE=errorfile, STATUS='UNKNOWN')
         OPEN(UNIT=checkunit, FILE=checkfile, POSITION='APPEND',STATUS='UNKNOWN')
       END IF
@@ -101,22 +100,19 @@
 !
 ! ... Read Input file
 !
-      IF(mpime == root) THEN
-        OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN')
-      END IF
-
+      IF(mpime == root) OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN')
       CALL input( inputunit )
-
-      INQUIRE(UNIT=inputunit,OPENED=topen)
-      IF(topen) CLOSE(inputunit)
+      IF(mpime == root) CLOSE(inputunit)
 !
 ! ... Open Test files (WARNING: opens 'nproc' files on the same unit!)
 !
       testnb = testfile//procnum(mpime)
-      IF(mpime == root) THEN
-        IF ( lpr > 0 ) OPEN(UNIT=testunit,  FILE=testfile,  STATUS='UNKNOWN')
-      ELSE
-        IF ( lpr > 0 ) OPEN(UNIT=testunit,  FILE=testnb,    STATUS='UNKNOWN')
+      IF (lpr > 0) THEN
+        IF(mpime == root) THEN
+          OPEN(UNIT=testunit,  FILE=testfile,  STATUS='UNKNOWN')
+        ELSE
+          OPEN(UNIT=testunit,  FILE=testnb,    STATUS='UNKNOWN')
+        END IF
       END IF
 !
 ! ... set dimensions ...
@@ -289,10 +285,8 @@
 110   FORMAT( ' This run ended at ', I2, ':', I2, ':', I2, 3X, 'day ', I2, &
               ' month ', I2, ' year ', I4 )
 !
-      IF( .NOT. debug ) THEN
-        INQUIRE(UNIT=logunit,OPENED=topen)
-        IF(topen) CLOSE(logunit)
-      END IF
+      INQUIRE(UNIT=logunit,OPENED=topen)
+      IF(topen) CLOSE(logunit)
       INQUIRE(UNIT=errorunit,OPENED=topen)
       IF(topen) CLOSE(errorunit)
       INQUIRE(UNIT=testunit,OPENED=topen)
