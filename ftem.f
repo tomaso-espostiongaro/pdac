@@ -180,15 +180,14 @@
                   IF (info == 1 ) THEN
                           CALL temperature_filter(ijk)
                   END IF
+                  CALL temperature_limiter(ijk)
           END IF
-          !CALL temperature_limiter(ijk)
           
         END IF
       END DO
 !
 ! ... Check the simultaneous convergence of the caloric eos 
 ! ... for all procs.
-! ... Crash if the number of cells not converged exceeds 1000
 !
       CALL parallel_sum_integer( num, 1 )
       IF ( num > 1 .AND. .NOT.tforce) &

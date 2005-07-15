@@ -114,7 +114,7 @@
           crater_radius, vent_radius, xvent, yvent, ivent, iali, irand, &
           ipro, rad_file
       USE immersed_boundaries, ONLY: immb
-      USE iterative_solver, ONLY: inmax, maxout, omega, optimization, delg
+      USE iterative_solver, ONLY: inmax, maxout, omega, optimization, delg, vforce
       USE io_restart, ONLY: max_seconds, nfil
       USE output_dump, ONLY: formatted_output
       USE parallel, ONLY: mpime, root
@@ -176,7 +176,7 @@
 
       NAMELIST / numeric / rungekut, beta, muscl, mass_limiter, vel_limiter, &
         inmax, maxout, omega, delg, implicit_fluxes, implicit_enthalpy, &
-        update_eosg, optimization, lim_type, tforce, rlim, flim
+        update_eosg, optimization, lim_type, tforce, rlim, flim, vforce
 
       INTEGER :: i, j, k, n, m, ig, ierr, lim_type
       CHARACTER(LEN=80) :: card
@@ -314,7 +314,7 @@
       ydome = 0.0             ! UTM latitude of the dome center
       dome_volume = 0.0        ! total volume of exploded mass
       overpressure = 100.D5             ! overpressure of the dome
-      particle_fraction = 0.0          ! particle fractions
+      particle_fraction = 0.D0          ! particle fractions
       gas_flux = 400.D0        ! gas flux through the conduit
       temperature = 1100.D0        ! gas temperature
       permeability = 1.D-12    ! permeability of the dome
@@ -382,6 +382,7 @@
       omega = 1.1       !  relaxation parameter  ( 0.5 under - 2.0 over)
       optimization = 1  !  optimization degree on iterative solver
       tforce  = .FALSE. !  force temperatures
+      vforce  = .FALSE. !  force velocities
       implicit_fluxes   = .FALSE. ! fluxes are computed implicitly
       implicit_enthalpy = .FALSE. ! enthalpy solved implicitly
       update_eosg       = .FALSE.  ! update density after temperature
@@ -644,6 +645,7 @@
       CALL bcast_integer(optimization,1,root)
       CALL bcast_real(omega,1,root)
       CALL bcast_logical(tforce,1,root)
+      CALL bcast_logical(vforce,1,root)
       CALL bcast_logical(implicit_fluxes,1,root)
       CALL bcast_logical(implicit_enthalpy,1,root)
       CALL bcast_logical(update_eosg,1,root)
@@ -1009,6 +1011,7 @@
             CALL iotk_write_dat( iuni_nml, "optimization", optimization )
             CALL iotk_write_dat( iuni_nml, "omega", omega )
             CALL iotk_write_dat( iuni_nml, "tforce", tforce)
+            CALL iotk_write_dat( iuni_nml, "vforce", vforce)
             CALL iotk_write_dat( iuni_nml, "implicit_fluxes",   &
                                           & implicit_fluxes )
             CALL iotk_write_dat( iuni_nml, "implicit_enthalpy", &

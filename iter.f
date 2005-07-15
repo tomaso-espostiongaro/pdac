@@ -22,6 +22,7 @@
 
       INTEGER :: b_e, b_w, b_t, b_b, b_n, b_s
       REAL*8 :: ivf
+      LOGICAL :: vforce
 
       TYPE(stencil) :: u, v, w, dens         
 
@@ -431,10 +432,20 @@
               CALL meshinds( ijk , imesh, i , j , k )
               WRITE(testunit,*) imesh, i , j , k
               CALL cell_report(testunit, ijk, imesh, i, j, k)
-              CALL velocity_limiter(ijk)
             END IF
           END DO
  700      FORMAT('max number of iterations (',I5,') reached at time: ', F8.3)
+        END IF
+!
+        ! ... Reset the velocity in cells that do not converge
+        ! ... WARNING!: can lead to wrong solutions!
+        !
+        IF (vforce) THEN
+          DO ijk = 1, ncint
+            IF ( .NOT. converge( ijk ) ) THEN
+              CALL velocity_limiter(ijk)
+            END IF
+          END DO
         END IF
 !
         ! ... CRASH! ...
