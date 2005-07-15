@@ -216,6 +216,9 @@
       DO i = 1, vdem%nx
         xdem(i) = vdem%xcorner + (i-1) * vdem%cellsize
       END DO
+      !
+      ! ... upper left corner
+      !
       DO j = vdem%ny, 1, -1
         ydem(j) = vdem%ycorner - (vdem%ny - j) * vdem%cellsize
       END DO

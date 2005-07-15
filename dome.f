@@ -380,7 +380,7 @@
           ! ... volume of a cell
           IF (job_type == '2D') THEN
             dvol = twopi * r(i) * (xb(i)-xb(i-1))*(zb(k)-zb(k-1))
-          ELSE IF (job_type == '2D') THEN
+          ELSE IF (job_type == '3D') THEN
             dvol = (xb(i)-xb(i-1))*(yb(j)-yb(j-1))*(zb(k)-zb(k-1))
           END IF
           !
