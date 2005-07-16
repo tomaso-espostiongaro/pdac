@@ -28,6 +28,7 @@
       REAL*8 :: gas_flux
       REAL*8 :: permeability
       REAL*8 :: dome_gasvisc
+      REAL*8 :: conduit_radius
       PUBLIC
       
       SAVE
@@ -450,7 +451,7 @@
       REAL*8, INTENT(IN) :: r2, pa, beta
       REAL*8 :: r1, fact
 
-      r1 = MAX(r2, 10.D0)
+      r1 = MAX(r2, conduit_radius)
       IF (r1 <= dome_radius) THEN
               fact = dome_radius / r1 - 1.D0
       ELSE
