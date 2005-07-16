@@ -129,7 +129,7 @@
      &                            timestart, rungekut, tau
       USE turbulence_model, ONLY: iturb, cmut, iss, modturbo
       USE volcano_topography, ONLY: itp, iavv, cellsize, filtersize, &
-                         dem_file, nocrater, rim_quota, ismt, itrans
+                         dem_file, nocrater, rim_quota, ismt, itrans, seatable
 !
       IMPLICIT NONE
  
@@ -152,7 +152,7 @@
         immb, ibl
 
       NAMELIST / topography / dem_file, itp, iavv, nocrater, &
-        rim_quota, filtersize, cellsize, ismt, zrough, itrans
+        rim_quota, filtersize, cellsize, ismt, zrough, itrans, seatable
       
       NAMELIST / inlet / ivent, iali, irand, ipro, rad_file, wrat, &
         crater_radius, &
@@ -270,6 +270,7 @@
       iavv   = 0              ! iavv = 1 => average volcano topography
       nocrater = .FALSE. ! flatten the crater
       itrans = .TRUE.         ! translate vertically
+      seatable = .TRUE.       ! flatten negative topography
       rim_quota = 1000.D0     ! index of the rim quota 
       filtersize  = 50        ! low-pass filter size
       cellsize  = 10          ! resolution of the resized dem
@@ -520,6 +521,7 @@
       CALL bcast_integer(iavv,1,root)
       CALL bcast_logical(nocrater,1,root)
       CALL bcast_logical(itrans,1,root)
+      CALL bcast_logical(seatable,1,root)
       CALL bcast_real(rim_quota,1,root)
       CALL bcast_real(filtersize,1,root)
       CALL bcast_real(cellsize,1,root)
@@ -897,6 +899,7 @@
             CALL iotk_write_dat( iuni_nml, "iavv", iavv )
             CALL iotk_write_dat( iuni_nml, "nocrater", nocrater )
             CALL iotk_write_dat( iuni_nml, "itrans", itrans )
+            CALL iotk_write_dat( iuni_nml, "seatable", seatable )
             CALL iotk_write_dat( iuni_nml, "rim_quota", rim_quota )
             CALL iotk_write_dat( iuni_nml, "filtersize", filtersize )
             CALL iotk_write_dat( iuni_nml, "cellsize", cellsize )

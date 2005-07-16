@@ -67,7 +67,7 @@
       INTEGER :: itp, iavv, ismt
       REAL*8 :: cellsize, filtersize
       REAL*8 :: rim_quota
-      LOGICAL :: nocrater, itrans
+      LOGICAL :: nocrater, itrans, seatable
 !
 ! ... file name for the topography
       CHARACTER(LEN=80) :: dem_file
@@ -149,7 +149,7 @@
         DO n=1, noditop
           READ(tempunit,*) xtop(n),ztop(n)
           !
-          ztop(n) = MAX(ztop(n),0.D0)
+          IF (seatable) ztop(n) = MAX(ztop(n),0.D0)
           !
         END DO
         CLOSE(tempunit)
@@ -231,6 +231,9 @@
           DO i = 1, vdem%nx
             READ(tempunit,*) elevation
             zdem(i,j) = DBLE(elevation) / 100.D0
+            !
+            IF (seatable) zdem(i,j) = MAX(zdem(i,j),0.D0)
+            !
           END DO
         END DO
         CLOSE(tempunit)
