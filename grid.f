@@ -75,8 +75,16 @@
 ! ... coordinates of the mesh 'center'
       REAL*8 :: center_x, center_y
 !
-! ... flag for increasing cell sizes: 1-constant rate; 2-constant slope
+! ... flag for grid input (0), automatic generation (1)
       INTEGER :: grigen
+!
+! ... Number of cells in the inner grid and
+! ... number of cells to add in the new grid
+      INTEGER :: nx_inner, ny_inner, nz_inner
+      INTEGER :: npx, nmx, npy, nmy, npz, nmz
+      REAL*8, DIMENSION(:), ALLOCATABLE :: dx_inner, dy_inner, dz_inner
+      INTEGER, ALLOCATABLE :: new_ijk(:)
+      LOGICAL :: remap_grid
 !
       SAVE
 !----------------------------------------------------------------------
@@ -87,12 +95,21 @@
       USE dimensions, ONLY: nx, ny, nz, ntot, ntr
       USE control_flags, ONLY: job_type
       USE parallel, ONLY: mpime, root
+      USE time_parameters, ONLY: itd
 !
       IMPLICIT NONE
 !
 ! ... Set the appropriate total number of cells
 ! ... and the coordinate system
 
+      nx_inner = nx
+      ny_inner = ny
+      nz_inner = nz
+      nx = nx_inner + npx + nmx
+      ny = ny_inner + npy + nmy
+      nz = nz_inner + npz + nmz
+      remap_grid = (npx+nmx+npy+nmy+npz+nmz /= 0)
+!
       IF( job_type == '2D' ) THEN
         ntot = nx*nz
         ntr  = nx
@@ -104,6 +121,7 @@
       END IF
 
       ALLOCATE( dx(nx), dy(ny), dz(nz) ) 
+      ALLOCATE( dx_inner(nx_inner), dy_inner(ny_inner), dz_inner(nz_inner) ) 
       ALLOCATE( indx(nx), indy(ny), indz(nz) )
       ALLOCATE( r(nx), rb(nx) )
       ALLOCATE( inr(nx), inrb(nx) )
@@ -117,9 +135,27 @@
         WRITE(logunit,*) 'Simulation Grid      : ', nx, ny, nz
         WRITE(logunit,*) 'Total number of cells: ', ntot
       END IF
-
+!
       RETURN
       END SUBROUTINE allocate_grid
+!----------------------------------------------------------------------
+      SUBROUTINE grid_remap(map)
+      USE dimensions, ONLY: nx, ny
+      IMPLICIT NONE
+      INTEGER, INTENT(OUT) :: map(:)
+      INTEGER :: i, j, k, ijk
+!
+      DO k = 1, nz_inner
+        DO j = 1, ny_inner
+          DO i = 1, nx_inner
+            ijk = i + (j-1) * nx_inner + (k-1) * nx_inner * ny_inner
+            map(ijk) = (i+nmx) + (j+nmy-1)*nx + (k+nmz-1)*nx*ny
+          END DO
+        END DO
+      END DO
+!
+      RETURN
+      END SUBROUTINE grid_remap
 !----------------------------------------------------------------------
       SUBROUTINE allocate_blbody
       USE dimensions
@@ -134,46 +170,79 @@
 !
       USE control_flags, ONLY: job_type, lpr, prog
       USE dimensions, ONLY: nx, ny, nz
-      USE parallel, ONLY: mpime, root
       USE io_files, ONLY: tempunit
+      USE parallel, ONLY: mpime, root
+      USE time_parameters, ONLY: itd
 
       REAL*8, PARAMETER :: VERYBIG = 1.0d+10
       INTEGER :: i, j, k, ijk
       REAL*8 :: zrif
-
-      IF( mpime == root ) THEN
-        WRITE(logunit,*)
-        WRITE(logunit,*) 'Entering Grid setup'
-      END IF
 !
-! ... generate the non-uniform mesh (without geographic referencing)
+! ... Set the cell dimensions
 !
-      iv = 1; jv = 1; kv = 1
-
-      IF (grigen > 0) THEN
-
-        IF( mpime == root ) &
-          WRITE(logunit,*) 'Generating grid ...'
-
-        IF (mpime == root .AND. lpr > 0) &
-          WRITE(testunit,*) 'Generating grid along x'
-        CALL generate_grid(dx,nx,domain_x,alpha_x,dxmin,dxmax,n0x,iv) 
-
-        IF (job_type == '3D') THEN
-          IF (mpime == root .AND. lpr > 0) &
-            WRITE(testunit,*) 'Generating grid along y'
-          CALL generate_grid(dy,ny,domain_y,alpha_y,dymin,dymax,n0y,jv) 
-        ELSE IF (job_type == '2D') THEN
+      SELECT CASE (grigen)
+      CASE(0)
+        !
+        ! ... if the cell dimensions are prescribed in input, 
+        ! ... compute the domain parameters
+        !
+        dxmax = MAXVAL(dx_inner)
+        dymax = MAXVAL(dy_inner)
+        dzmax = MAXVAL(dz_inner)
+        dxmin = MINVAL(dx_inner)
+        dymin = MINVAL(dy_inner)
+        dzmin = MINVAL(dz_inner)
+        domain_x = SUM(dx_inner)
+        domain_y = SUM(dy_inner)
+        domain_z = SUM(dz_inner)
+        iv = nx/2; jv = ny/2; kv = nz/2
+        !
+      CASE(1)
+        !
+        ! ... generate the non-uniform mesh
+        !
+        CALL generate_grid(dx_inner,nx_inner,domain_x,alpha_x,dxmin,dxmax,n0x,iv) 
+        IF (job_type == '2D') THEN
           dy = 0.D0
+        ELSE IF (job_type == '3D') THEN
+          CALL generate_grid(dy_inner,ny_inner,domain_y,alpha_y,dymin,dymax,n0y,jv) 
         END IF
-
-        IF (mpime == root .AND. lpr > 0) &
-          WRITE(testunit,*) 'Generating grid along z'
-        CALL generate_grid(dz,nz,domain_z,alpha_z,dzmin,dzmax,n0z,kv) 
-
+        CALL generate_grid(dz_inner,nz_inner,domain_z,alpha_z,dzmin,dzmax,n0z,kv) 
+        !
+      CASE DEFAULT
+        CONTINUE
+      END SELECT
+      !
+      ! ... Set the grid
+      ! ... and add new cells if prescribed
+      !
+      IF (nmx /= 0) dx(1:nmx) = dxmax
+      dx(nmx+1:nmx+nx_inner) = dx_inner(1:nx_inner)
+      IF (npx /= 0) dx(nx-npx+1:nx) = dxmax
+      alpha_x = (alpha_x*domain_x + nmx*dxmax)/(domain_x + (nmx+npx)*dxmax)
+      domain_x = domain_x + (nmx+npx)*dxmax
+      iv = iv + nmx
+      !
+      IF (nmy /= 0) dy(1:nmy) = dymax
+      dy(nmy+1:nmy+ny_inner) = dy_inner(1:ny_inner)
+      IF (npy /= 0) dy(ny-npy+1:ny) = dymax
+      alpha_y = (alpha_y*domain_y + nmy*dymax)/(domain_y + (nmy+npy)*dymax)
+      domain_y = domain_y + (nmy+npy)*dymax
+      jv = jv + nmy
+      !
+      IF (nmz /= 0) dz(1:nmz) = dzmax
+      dz(nmz+1:nmz+nz_inner) = dz_inner(1:nz_inner)
+      IF (npz /= 0) dx(nz-npz+1:nz) = dzmax
+      alpha_z = (alpha_z*domain_z + nmz*dzmax)/(domain_z + (nmz+npz)*dzmax)
+      domain_z = domain_z + (nmz+npz)*dzmax
+      kv = kv + nmz
+!
+      IF (remap_grid) THEN
+        ALLOCATE(new_ijk(nx_inner*ny_inner*nz_inner))
+        CALL grid_remap(new_ijk)
       END IF
 !
-! ... Compute grid point (x,y,z) locations
+! ... Compute grid point (x,y,z) locations (without geographic referencing)
 !
       xb(1)=0.D0
       x(1)=-0.5D0*dx(1)+xb(1)
@@ -259,8 +328,7 @@
       END IF
 
  17   FORMAT(5(F20.6))
-
-      IF( mpime == root ) WRITE(logunit,*) 'END Grid setup'
+      DEALLOCATE(dx_inner, dy_inner, dz_inner)
 
       RETURN 
       END SUBROUTINE grid_setup

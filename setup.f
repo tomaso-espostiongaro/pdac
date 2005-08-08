@@ -58,38 +58,21 @@
 ! ... Set initial conditions
 ! ... (2D/3D_Compliant and fully parallel)
 !
-      USE atmospheric_conditions, ONLY: wind_x, wind_y, wind_z, void_fraction
-      USE atmospheric_conditions, ONLY: p_atm, t_atm, atm_ygc
       USE control_flags, ONLY: job_type
       USE dimensions
       USE domain_decomposition, ONLY: ncint, meshinds, myijk
       USE dome_conditions, ONLY: idome, set_domec
-      USE eos_gas, ONLY: mas, mole, ygc
-      USE gas_constants, ONLY: gmw, rgas, gammaair
-      USE gas_constants, ONLY: gas_type
-      USE gas_solid_density, ONLY: rlk
-      USE gas_solid_temperature, ONLY: tg, ts
-      USE gas_solid_temperature, ONLY: sieg
-      USE gas_solid_velocity, ONLY: ug, wg, vg
-      USE gas_solid_velocity, ONLY: us, vs, ws
       USE gas_solid_viscosity, ONLY: mus
-      USE grid, ONLY: z, dz, iob
-      USE grid, ONLY: flag, fluid, free_io, nrfree_io, &
-                      slip_wall, noslip_wall
-      USE particles_constants, ONLY: rl, inrl, cmus
-      USE pressure_epsilon, ONLY: ep, p
-      USE set_indexes, ONLY: ipjk, ijpk, ijkp
+      USE grid, ONLY: iob
+      USE particles_constants, ONLY: cmus
       USE time_parameters, ONLY: itd
       USE turbulence_model, ONLY: turbulence_setup, iturb
       USE vent_conditions, ONLY: set_ventc, ivent
-      USE indijk_module, ONLY: ip0_jp0_kp0_
 
       IMPLICIT NONE
 !
-      INTEGER :: i, j, k, ijk, ikpr, kpr, n, imesh
+      INTEGER :: n
       INTEGER :: ig, is
-      REAL*8 :: zrif
-      REAL*8 :: mass, tem
       LOGICAL :: forced = .FALSE.
 !
 ! ... Initialize particle's viscosity
@@ -104,12 +87,64 @@
         CALL turbulence_setup
       END IF
 !
-! ... Set initial conditions from prescribed input data
-!
-      IF (itd <= 1) THEN
-!
 ! ... Set initial atmospheric conditions in all computational 
 ! ... domain (---> including boundary cells <---)
+!
+      CALL set_atmc
+!
+! ... Set initial conditions from prescribed input data
+!
+      SELECT CASE(itd)
+!
+      CASE (1)
+! 
+! ... Set initial conditions in boundary cells 
+! ... with specified fluid flow 
+!
+        IF (ivent >= 1) CALL set_ventc
+        IF (idome >= 1) CALL set_domec
+!
+        DO n = 1, no
+          SELECT CASE (iob(n)%typ)
+          CASE (1,5) ! ... Specified Fluid Flow in a block
+            CALL specified_flow(n)
+          CASE (3) ! ... Obstacles
+            CONTINUE
+          END SELECT
+        END DO 
+!
+      CASE DEFAULT
+! 
+! ... Initial conditions will be set from RESTART file
+! ... or OUTPUT file
+! ... Just check that boundary velocity are zero.
+!
+        CALL reset_velocities
+!
+      END SELECT
+!
+      RETURN
+      END SUBROUTINE setup
+!-----------------------------------------------------------------------
+      SUBROUTINE set_atmc
+!
+      USE atmospheric_conditions, ONLY: p_atm, t_atm, atm_ygc
+      USE atmospheric_conditions, ONLY: wind_x, wind_y, wind_z, void_fraction
+      USE control_flags, ONLY: job_type
+      USE dimensions
+      USE domain_decomposition, ONLY: ncint, meshinds, myijk
+      USE eos_gas, ONLY: ygc, xgc, mole
+      USE gas_constants, ONLY: gas_type
+      USE gas_solid_density, ONLY: rlk
+      USE gas_solid_temperature, ONLY: tg, ts
+      USE gas_solid_velocity, ONLY: ug, wg, vg
+      USE gas_solid_velocity, ONLY: us, vs, ws
+      USE grid, ONLY: z, flag, fluid, free_io, nrfree_io
+      USE particles_constants, ONLY: rl
+      USE pressure_epsilon, ONLY: ep, p
+      IMPLICIT NONE
+      REAL*8 :: zrif
+      INTEGER :: ijk, imesh, i, j, k, is, ig
 !
         DO ijk = 1, ncint
           CALL meshinds(ijk,imesh,i,j,k)
@@ -126,6 +161,10 @@
 
           DO ig = 1, ngas 
             ygc(ijk,ig) = atm_ygc(gas_type(ig))
+            ! ... Compute gas components molar fractions 
+            ! ... from mass fractions
+            !
+            CALL mole( xgc(ijk,:), ygc(ijk,:) )
           END DO
 
           DO is = 1, nsolid
@@ -154,78 +193,10 @@
 
           END SELECT
 !
-        END DO
-! 
-! ... Set initial conditions in boundary cells 
-!! ... with specified fluid flow 
-!
-        IF (ivent >= 1) CALL set_ventc
-        IF (idome >= 1) CALL set_domec
-
-        DO n = 1, no
-
-          SELECT CASE (iob(n)%typ)
-
-          CASE (1,5) ! ... Specified Fluid Flow in a block
-
-            CALL specified_flow(n)
-
-          CASE (3) ! ... Obstacles
-
-            CONTINUE
-
-          END SELECT
-        
-        END DO 
-
-! 
-! ... initial conditions already set from RESTART file
-! ... or OUTPUT file
-! ... Just check that boundary velocity are zero.
-!
-      ELSE IF (itd >= 2) THEN 
-
-        DO ijk = 1, ncint
-          CALL meshinds(ijk,imesh,i,j,k)
-          
-          ! ... Set boundary velocity profiles
-          ! ... Set the velocity = 0 on all faces
-          ! ... of blocked cells
-          !
-          IF ( flag(ijk) == slip_wall .OR. flag(ijk) == noslip_wall ) THEN
-            ug(ijk) = 0.D0
-            us(ijk,:) = 0.D0
-            IF ( job_type == '3D') THEN
-              vg(ijk) = 0.D0
-              vs(ijk,:) = 0.D0
-            END IF
-            wg(ijk) = 0.D0
-            ws(ijk,:) = 0.D0
-            rlk(ijk,:) = 0.D0
-          END IF
-          !
-          IF ( flag(ipjk) == slip_wall .OR. flag(ipjk) == noslip_wall ) THEN
-            ug(ijk) = 0.D0
-            us(ijk,:) = 0.D0
-          END IF
-          !
-          IF ( job_type == '3D') THEN
-            IF ( flag(ijpk) == slip_wall .OR. flag(ijpk) == noslip_wall ) THEN
-              vg(ijk) = 0.D0
-              vs(ijk,:) = 0.D0
-            END IF
-          END IF
-          !
-          IF ( flag(ijkp) == slip_wall .OR. flag(ijkp) == noslip_wall ) THEN
-            wg(ijk) = 0.D0
-            ws(ijk,:) = 0.D0
-          END IF
-          !
-        END DO
-      END IF
+       END DO
 !
       RETURN
-      END SUBROUTINE setup
+      END SUBROUTINE set_atmc
 !----------------------------------------------------------------------
       SUBROUTINE cnvert
 !
@@ -570,6 +541,59 @@
 
       RETURN
       END SUBROUTINE gas_check
+!----------------------------------------------------------------------
+      SUBROUTINE reset_velocities
+!
+      USE control_flags, ONLY: job_type
+      USE domain_decomposition, ONLY: ncint, meshinds
+      USE gas_solid_density, ONLY: rlk
+      USE gas_solid_velocity, ONLY: ug, wg, vg
+      USE gas_solid_velocity, ONLY: us, vs, ws
+      USE grid, ONLY: flag, slip_wall, noslip_wall
+      USE set_indexes, ONLY: ipjk, ijpk, ijkp
+!
+      IMPLICIT NONE
+      INTEGER :: ijk, imesh, i, j, k
+!
+        DO ijk = 1, ncint
+          CALL meshinds(ijk,imesh,i,j,k)
+          
+          ! ... Set boundary velocity profiles
+          ! ... Set the velocity = 0 on all faces
+          ! ... of blocked cells
+          !
+          IF ( flag(ijk) == slip_wall .OR. flag(ijk) == noslip_wall ) THEN
+            ug(ijk) = 0.D0
+            us(ijk,:) = 0.D0
+            IF ( job_type == '3D') THEN
+              vg(ijk) = 0.D0
+              vs(ijk,:) = 0.D0
+            END IF
+            wg(ijk) = 0.D0
+            ws(ijk,:) = 0.D0
+            rlk(ijk,:) = 0.D0
+          END IF
+          !
+          IF ( flag(ipjk) == slip_wall .OR. flag(ipjk) == noslip_wall ) THEN
+            ug(ijk) = 0.D0
+            us(ijk,:) = 0.D0
+          END IF
+          !
+          IF ( job_type == '3D') THEN
+            IF ( flag(ijpk) == slip_wall .OR. flag(ijpk) == noslip_wall ) THEN
+              vg(ijk) = 0.D0
+              vs(ijk,:) = 0.D0
+            END IF
+          END IF
+          !
+          IF ( flag(ijkp) == slip_wall .OR. flag(ijkp) == noslip_wall ) THEN
+            wg(ijk) = 0.D0
+            ws(ijk,:) = 0.D0
+          END IF
+          !
+        END DO
+      RETURN
+      END SUBROUTINE reset_velocities
 !----------------------------------------------------------------------
       END MODULE initial_conditions
 !----------------------------------------------------------------------

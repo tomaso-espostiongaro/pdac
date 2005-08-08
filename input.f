@@ -2,7 +2,7 @@
       MODULE input_module
 !----------------------------------------------------------------------
       USE dimensions, ONLY: max_nsolid, ngas, nroughx, max_size, &
-          max_nblock, max_ngas, nz, nx, ny
+          max_nblock, max_ngas
       USE io_files, ONLY: logunit
 
       PRIVATE
@@ -93,6 +93,7 @@
       USE blunt_body, ONLY: ibl, nblu
       USE control_flags, ONLY: job_type, lpr, imr
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
+      USE dimensions
       USE domain_decomposition, ONLY: mesh_partition
       USE dome_conditions, ONLY: xdome, ydome, dome_volume, temperature, particle_fraction, overpressure, &
           idome, gas_flux, permeability, dome_gasvisc, idw, conduit_radius
@@ -107,7 +108,7 @@
       USE grid, ONLY: alpha_x, alpha_y, alpha_z
       USE grid, ONLY: center_x, center_y
       USE grid, ONLY: dxmin, dxmax, dymin, dymax, dzmin, dzmax
-      USE grid, ONLY: maxbeta, grigen
+      USE grid, ONLY: maxbeta, grigen, npx, npy, npz, nmx, nmy, nmz
       USE initial_conditions, ONLY: density_specified
       USE vent_conditions, ONLY: u_gas,v_gas,w_gas,p_gas,t_gas, wrat, &
           u_solid, v_solid, w_solid,  ep_solid, t_solid, base_radius, &
@@ -146,7 +147,8 @@
       NAMELIST / mesh / nx, ny, nz, itc, iuni, dx0, dy0, dz0, zzero, &
         center_x, center_y, alpha_x, alpha_y, alpha_z,  &
         dxmin, dxmax, dymin, dymax, dzmin, dzmax, n0x, n0y, n0z,     &
-        domain_x, domain_y, domain_z, maxbeta, grigen, mesh_partition
+        domain_x, domain_y, domain_z, maxbeta, grigen, mesh_partition, &
+        npx, nmx, npy, nmy, npz, nmz
 
       NAMELIST / boundaries / west, east, south, north, bottom, top, &
         immb, ibl
@@ -224,6 +226,12 @@
       nx = 100                !  number of cell in the X directions
       nz = 100                !  number of cell in the Z directions
       ny = 1                  !  number of cell in the Y directions
+      npx = 0                 !  number of cells added in the X positive direction
+      npz = 0                 !  number of cells added in the Z positive direction
+      npy = 0                 !  number of cells added in the Y positive direction
+      nmx = 0                 !  number of cells added in the X negative direction
+      nmz = 0                 !  number of cells added in the Z negative direction
+      nmy = 0                 !  number of cells added in the Y negative direction
       n0x = 10                !  number of cell with minimum size
       n0y = 10                !  number of cell with minimum size
       n0z = 10                !  number of cell with minimum size
@@ -430,6 +438,8 @@
           itd = 2
         CASE ('outp_recover')
           itd = 3
+        CASE ('outp_remap')
+          itd = 4
         CASE DEFAULT
           CALL error(' input ',' unknown restart_mode '//TRIM(restart_mode), 1 )
       END SELECT
@@ -471,6 +481,12 @@
       CALL bcast_integer(nx,1,root)
       CALL bcast_integer(ny,1,root)
       CALL bcast_integer(nz,1,root)
+      CALL bcast_integer(npx,1,root)
+      CALL bcast_integer(npy,1,root)
+      CALL bcast_integer(npz,1,root)
+      CALL bcast_integer(nmx,1,root)
+      CALL bcast_integer(nmy,1,root)
+      CALL bcast_integer(nmz,1,root)
       CALL bcast_integer(n0x,1,root)
       CALL bcast_integer(n0y,1,root)
       CALL bcast_integer(n0z,1,root)
@@ -693,9 +709,9 @@
       IF( tend ) THEN
         CALL error( ' input ', ' MESH card not found ', 1 )
       END IF
-      CALL bcast_real(delta_x,nx,root)
-      CALL bcast_real(delta_y,ny,root)
-      CALL bcast_real(delta_z,nz,root)
+      CALL bcast_real(delta_x,max_size,root)
+      CALL bcast_real(delta_y,max_size,root)
+      CALL bcast_real(delta_z,max_size,root)
 !
 ! ... Fixed Flows Card (Inlet conditions) .............................
 !
@@ -785,8 +801,7 @@
 
       IF(mpime == root) &
         WRITE(logunit,*) 'END input'
-
-
+!
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
@@ -851,6 +866,12 @@
             CALL iotk_write_dat( iuni_nml, "nx", nx )
             CALL iotk_write_dat( iuni_nml, "ny", ny )
             CALL iotk_write_dat( iuni_nml, "nz", nz )
+            CALL iotk_write_dat( iuni_nml, "npx", npx )
+            CALL iotk_write_dat( iuni_nml, "npy", npy )
+            CALL iotk_write_dat( iuni_nml, "npz", npz )
+            CALL iotk_write_dat( iuni_nml, "nmx", nmx )
+            CALL iotk_write_dat( iuni_nml, "nmy", nmy )
+            CALL iotk_write_dat( iuni_nml, "nmz", nmz )
             CALL iotk_write_dat( iuni_nml, "itc", itc )
             CALL iotk_write_dat( iuni_nml, "iuni", iuni )
             CALL iotk_write_dat( iuni_nml, "dx0", dx0 )
@@ -1077,12 +1098,16 @@
       USE dimensions
       USE dome_conditions, ONLY: dome_ygc, idome
       USE flux_limiters, ONLY: lv, lm
-      USE grid, ONLY: dx, dy, dz, itc
+      USE grid, ONLY: itc
+      USE grid, ONLY: nx_inner, ny_inner, nz_inner
+      USE grid, ONLY: dx_inner, dy_inner, dz_inner
+      USE grid, ONLY: nmx, npx, nmy, npy, nmz, npz
       USE grid, ONLY: iob, zzero, grigen
       USE immersed_boundaries, ONLY: immb
       USE initial_conditions, ONLY: epsob, tpob, ygcob,   &
      &     ugob, vgob, wgob, upob, vpob, wpob, pob, tgob, epob
       USE particles_constants, ONLY: rl, inrl, kap, cmus, phis, cps, dk
+      USE time_parameters, ONLY: itd
       USE vent_conditions, ONLY: vent_ygc, ivent
       USE volcano_topography, ONLY: itp
 
@@ -1096,21 +1121,23 @@
       IF (itp < 1) immb = 0
       IF (idome >= 1) ivent = 0
 !
-! ... numeric
+! ... numerics
 !
       lv = vel_limiter
       lm = mass_limiter
 !
 ! ... mesh
+! ... Please notice that the actual arrays are shifted if (nmx, npx, nmy, npy, nmz, npz) are non-zero.
+! ... Otherwise, nx_inner=nx, ny_inner=ny, nz_inner=nz (see 'grid' module)
 !
-      IF( grigen == 0) THEN
-        dx(1:nx) = delta_x(1:nx)
+      IF( grigen == 0 ) THEN
+        dx_inner(1:nx_inner) = delta_x(1:nx_inner)
         IF( job_type == '3D' ) THEN
-          dy(1:ny) = delta_y(1:ny)
+          dy_inner(1:ny_inner) = delta_y(1:ny_inner)
         ELSE IF( job_type == '2D' ) THEN
-          dy(1:ny) = 0.D0
+          dy_inner(:) = 0.D0
         END IF
-        dz(1:nz) = delta_z(1:nz)
+        dz_inner(1:nz_inner) = delta_z(1:nz_inner)
       END IF
 !
 ! ... specified flows
@@ -1120,14 +1147,14 @@
         ! ... blocks specification
         !
         iob(1:no)%typ = block_type(1:no)
-        iob(1:no)%xlo = block_bounds(1,1:no)
-        iob(1:no)%xhi = block_bounds(2,1:no)
+        iob(1:no)%xlo = block_bounds(1,1:no) + nmx
+        iob(1:no)%xhi = block_bounds(2,1:no) + nmx
         IF ( job_type == '3D' ) THEN
-          iob(1:no)%ylo = block_bounds(3,1:no)
-          iob(1:no)%yhi = block_bounds(4,1:no)
+          iob(1:no)%ylo = block_bounds(3,1:no) + nmy
+          iob(1:no)%yhi = block_bounds(4,1:no) + nmy
         END IF
-        iob(1:no)%zlo = block_bounds(5,1:no)
-        iob(1:no)%zhi = block_bounds(6,1:no)
+        iob(1:no)%zlo = block_bounds(5,1:no) + nmz
+        iob(1:no)%zhi = block_bounds(6,1:no) + nmz
         !
         ! ... specified flow
         !

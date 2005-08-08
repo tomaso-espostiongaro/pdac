@@ -53,7 +53,7 @@ ftem.o : control.o decomp.o dens.o dimensions.o eosg.o eosl.o gas.o grid.o  \
 
 gas.o : dimensions.o 
 
-grid.o : control.o dimensions.o io_files.o parallel.o 
+grid.o : control.o dimensions.o io_files.o parallel.o time.o 
 
 hcapgs.o : atmosphere.o decomp.o dimensions.o gas.o 
 

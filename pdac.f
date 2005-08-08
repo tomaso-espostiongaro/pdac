@@ -27,7 +27,7 @@
       USE initial_conditions, ONLY: setpar, setup, cnvert, allocate_setup, npr
       USE input_module, ONLY: input, initc, number_of_block
       USE io_restart, ONLY: taperd, tapewr, nfil
-      USE output_dump, ONLY: outp_recover
+      USE output_dump, ONLY: outp_recover, outp_remap
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
      &    mpime, root, nproc
       USE particles_constants, ONLY: allocate_part_constants
@@ -104,7 +104,8 @@
       CALL input( inputunit )
       IF(mpime == root) CLOSE(inputunit)
 !
-! ... Open Test files (WARNING: opens 'nproc' files on the same unit!)
+! ... Open Test files 
+! ... (WARNING!: opening 'nproc' files on the same unit could cause file-system problems on some architectures)
 !
       testnb = testfile//procnum(mpime)
       IF (lpr > 0) THEN
@@ -233,6 +234,8 @@
 	CALL taperd
       ELSE IF (itd == 3) THEN
         CALL outp_recover(nfil)
+      ELSE IF (itd == 4) THEN
+        CALL outp_remap(nfil)
       END IF
 !
 ! ... Compute initial conditions depending on restart mode

@@ -463,6 +463,140 @@
       RETURN
       END SUBROUTINE outp_recover
 !----------------------------------------------------------------------
+      SUBROUTINE outp_remap(nf)
+!
+      USE dimensions, ONLY: nsolid, ngas
+      USE eos_gas, ONLY: xgc
+      USE gas_constants, ONLY: gas_type
+      USE gas_solid_density, ONLY: rlk
+      USE gas_solid_velocity, ONLY: ug, vg, wg
+      USE gas_solid_velocity, ONLY: us, vs, ws
+      USE gas_solid_temperature, ONLY: tg, ts
+      USE io_restart, ONLY: read_inner_array
+      USE parallel, ONLY: nproc, mpime, root, group
+      USE particles_constants, ONLY: rl, inrl
+      USE pressure_epsilon, ONLY: p
+      USE time_parameters, ONLY: time
+      USE turbulence_model, ONLY: modturbo
+      USE control_flags, ONLY: job_type
+      USE io_files, ONLY: filnam, outpunit
+!
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(INOUT) :: nf
+      CHARACTER( LEN =  4 ) :: lettera
+      LOGICAL :: lform
+      INTEGER :: ig,is
+      REAL*4 :: time4
+      REAL*8, ALLOCATABLE :: otmp(:)
+!
+      filnam='output.'//lettera(nf)
+      lform = formatted_output
+
+      IF( mpime == root ) THEN
+
+        IF (lform) THEN
+          OPEN(UNIT=outpunit,FILE=filnam)
+          READ(outpunit,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
+        ELSE 
+          OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam)
+          READ(outpunit) time4
+          time = REAL(time4,dbl)
+        END IF
+
+        WRITE(logunit,fmt="('  from outp: recovering file ',A20)") filnam
+        WRITE(logunit,*) 'time = ', time
+ 
+      END IF
+!
+      CALL bcast_real(time, 1, root)
+!
+      IF( lform .AND. mpime == root ) READ(outpunit,122)
+      CALL read_inner_array( outpunit, p, sgl, lform )  ! gas_pressure
+
+      IF (job_type == '2D') THEN
+
+        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        CALL read_inner_array( outpunit, ug, sgl, lform ) ! gas_velocity_r
+
+        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        CALL read_inner_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
+
+      ELSE IF (job_type == '3D') THEN
+
+        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        CALL read_inner_array( outpunit, ug, sgl, lform ) ! gas_velocity_x
+
+        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        CALL read_inner_array( outpunit, vg, sgl, lform ) ! gas_velocity_y
+
+        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        CALL read_inner_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
+
+      ELSE
+        CALL error('outp_','Unknown job type',1)
+      END IF
+
+      IF( lform .AND. mpime == root ) READ(outpunit,122)
+      CALL read_inner_array( outpunit, tg, sgl, lform )  ! gas_temperature
+!
+      ALLOCATE( otmp( SIZE( xgc, 1 ) ) )
+      DO ig=1,ngas
+          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          otmp = xgc(:,ig)
+          CALL read_inner_array( outpunit, otmp, sgl, lform )  ! gc_molar_fraction
+          xgc(:,ig) = otmp
+      END DO
+      DEALLOCATE( otmp )
+!
+      ALLOCATE( otmp( SIZE( rlk, 1 ) ) )
+
+      DO is = 1, nsolid
+
+        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        otmp = rlk(:,is) * inrl(is)
+        CALL read_inner_array( outpunit, otmp, sgl, lform )  ! solid_bulk_density
+        rlk(:,is) = otmp * rl(is)
+
+        IF (job_type == '2D') THEN
+
+          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          CALL read_inner_array( outpunit, us(:,is), sgl, lform )  ! solid_velocity_r
+
+          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          CALL read_inner_array( outpunit, ws(:,is), sgl, lform )  ! solid_velocity_z
+
+        ELSE IF (job_type == '3D') THEN
+
+          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          CALL read_inner_array( outpunit, us(:,is), sgl, lform )  ! solid_velocity_x
+
+          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          CALL read_inner_array( outpunit, vs(:,is), sgl, lform )  ! solid_velocity_y
+
+          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          CALL read_inner_array( outpunit, ws(:,is), sgl, lform )  ! solid_velocity_z
+
+        END IF
+
+        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        CALL read_inner_array( outpunit, ts(:,is), sgl, lform )  ! solid_temperature
+
+      END DO
+
+      DEALLOCATE( otmp )
+
+      IF( mpime == root ) THEN
+        CLOSE (outpunit)
+      END IF
+
+      nf=nf+1
+!
+ 122  FORMAT(1x,//,6x,/)
+
+      RETURN
+      END SUBROUTINE outp_remap
+!----------------------------------------------------------------------
       SUBROUTINE cell_report(iunit, ijk, imesh, i, j, k)
       USE dimensions, ONLY: nsolid, ngas
       USE eos_gas, ONLY: xgc

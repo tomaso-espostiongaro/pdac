@@ -25,7 +25,7 @@
       REAL*8 :: max_seconds
 
       PUBLIC :: taperd, tapewr
-      PUBLIC :: write_array, read_array
+      PUBLIC :: write_array, read_array, read_inner_array
       PUBLIC :: max_seconds
       PUBLIC :: nfil
 
@@ -445,6 +445,114 @@
 
       RETURN
       END SUBROUTINE read_array
+!----------------------------------------------------------------------
+      SUBROUTINE read_inner_array( iunit, array, prec, lform )
+      USE grid, ONLY: new_ijk, nx_inner, ny_inner, nz_inner
+
+      !  This subroutine reads a REAL*8 array ( array ) of
+      !  ntot elements from file iunit.
+      !  The array pertains to a 'inner' mesh nested in a new, larger mesh.
+      !  The array 'new_ijk' maps the old mesh onto the new one.
+      !  Only root processor read the data, then the array
+      !  is distributed across other processors
+      !  iunit  (input)  file to be read
+      !  array  (output) data read from file and distributed to processors
+      !  prec   (input)  precision of the data to be read
+      !                  sgl  = single precision data
+      !                  dbl  = double precision data
+      !  lform  (input)  format of the file 
+      !                  .TRUE.  = formatted
+      !                  .FALSE. = unformatted
+
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: iunit, prec
+      LOGICAL, INTENT(IN) :: lform
+      REAL*8, INTENT(INOUT) :: array(:)
+
+      INTEGER :: ijk, ierr, ntot_inner
+      REAL*8, ALLOCATABLE :: io_buf(:), io_buf_inner(:)
+      REAL(sgl), ALLOCATABLE :: io_bufs(:), io_bufs_inner(:)
+
+      ntot_inner = nx_inner * ny_inner * nz_inner
+
+      IF( ntot < 1 ) &
+        CALL error(' read_array ', ' ntot too small ', ntot )
+
+      IF( prec /= sgl .AND. prec /= dbl ) &
+        CALL error(' read_array ', ' unknown precision ', prec )
+
+      IF( lform ) THEN
+         ALLOCATE( io_buf( ntot ), STAT=ierr )
+         ALLOCATE( io_buf_inner( ntot_inner ), STAT=ierr )
+         IF( ierr /= 0 ) &
+            CALL error(' read_array ', ' cannot allocate io_buf ', ntot )
+         IF( mpime == root ) THEN
+            READ(iunit,*) ( io_buf_inner(ijk), ijk = 1, ntot_inner )
+         END IF
+         !
+         ! Assemble global atmospheric initial conditions
+         CALL data_collect( io_buf, array, 1, ntot )
+         !
+         ! Superimpose the initial conditions red from file
+         DO ijk = 1, ntot_inner
+           io_buf(new_ijk(ijk)) = io_buf_inner(ijk)
+         END DO 
+         !
+         ! Distribute the array after merging
+         CALL data_distribute( io_buf, array, 1, ntot )
+         !
+         DEALLOCATE( io_buf )
+         DEALLOCATE( io_buf_inner )
+      ELSE
+         IF( prec == sgl ) THEN
+           ALLOCATE( io_bufs( ntot ), STAT=ierr )
+           ALLOCATE( io_bufs_inner( ntot_inner ), STAT=ierr )
+           IF( ierr /= 0 ) &
+              CALL error(' read_array ', ' cannot allocate io_buf ', ntot )
+           IF( mpime == root ) THEN
+              READ(iunit) ( io_bufs_inner(ijk), ijk = 1, ntot_inner )
+           END IF
+           !
+           ! Assemble global atmospheric initial conditions
+           CALL data_collect( io_bufs, array, 1, ntot )
+           !
+           ! Superimpose the initial conditions red from file
+           DO ijk = 1, ntot_inner
+             io_bufs(new_ijk(ijk)) = io_bufs_inner(ijk)
+           END DO 
+           !
+           ! Distribute the array after merging
+           CALL data_distribute( io_bufs, array, 1, ntot )
+           !
+           DEALLOCATE( io_bufs )
+           DEALLOCATE( io_bufs_inner )
+         ELSE
+           ALLOCATE( io_buf( ntot ), STAT=ierr )
+           ALLOCATE( io_buf_inner( ntot_inner ), STAT=ierr )
+           IF( ierr /= 0 ) &
+              CALL error(' read_array ', ' cannot allocate io_buf ', ntot )
+           IF( mpime == root ) THEN
+              READ(iunit) ( io_buf_inner(ijk), ijk = 1, ntot_inner )
+           END IF
+           !
+           ! Assemble global atmospheric initial conditions
+           CALL data_collect( io_buf, array, 1, ntot )
+           !
+           ! Superimpose the initial conditions red from file
+           DO ijk = 1, ntot_inner
+             io_buf(new_ijk(ijk)) = io_buf_inner(ijk)
+           END DO 
+           !
+           ! Distribute the array after merging
+           CALL data_distribute( io_buf, array, 1, ntot )
+           ! 
+           DEALLOCATE( io_buf )
+           DEALLOCATE( io_buf_inner )
+         END IF
+      END IF
+
+      RETURN
+      END SUBROUTINE read_inner_array
 !----------------------------------------------------------------------
       END MODULE io_restart
 !----------------------------------------------------------------------

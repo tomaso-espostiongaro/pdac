@@ -209,7 +209,7 @@
           
           IF (lpr > 0 .AND. mpime == root) &
             WRITE(logunit,10) nv, ijk, i, j, k, vcell(nv)%frac, fl(ijk)
- 10       FORMAT(I3,I7,3(I3),F8.4,I4)
+ 10       FORMAT(I3,I8,3(I4),F8.4,I4)
 
           ! ... Above the vent quota, cell flags are set to '1'
           ! ... (fluid cells)

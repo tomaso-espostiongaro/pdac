@@ -170,7 +170,7 @@
       CHARACTER(LEN=80) :: topo_file
       INTEGER :: nodidemx, nodidemy
       ! ... Coordinates of the upper-left (ul) corner
-      REAL*8  :: xul, yul
+      REAL*8  :: xll, yll, xur, yur, xul, yul
       REAL*8  :: dd
       INTEGER :: noval
       INTEGER :: elevation
@@ -206,6 +206,11 @@
       vdem%cellsize     = dd
       vdem%nodata_value = noval
 !
+      xur = xul + vdem%cellsize * (vdem%nx - 1)
+      yll = yul - vdem%cellsize * (vdem%ny - 1)
+      xll = xul
+      yur = yul
+!
       ALLOCATE(zdem(vdem%nx,vdem%ny))
       ALLOCATE(xdem(vdem%nx))
       ALLOCATE(ydem(vdem%ny))
@@ -222,6 +227,13 @@
       DO j = vdem%ny, 1, -1
         ydem(j) = vdem%ycorner - (vdem%ny - j) * vdem%cellsize
       END DO
+!
+      IF (mpime == root) THEN
+        WRITE(logunit,*) 'DEM resolution: ', vdem%cellsize, ' [m]'
+        WRITE(logunit,*) 'DEM limits: '
+        WRITE(logunit,'(2F12.2)') xdem(1), xdem(vdem%nx)
+        WRITE(logunit,'(2F12.2)') ydem(1), ydem(vdem%ny)
+      END IF
 !
 ! ... Processor 'root' reads the matrix of the elevation
 ! ... ( in centimeters ) and broadcasts.
@@ -269,6 +281,10 @@
       newsizey = domain_y + 2.D0 * dymax
       noditopx = INT(newsizex / cellsize) + 1
       noditopy = INT(newsizey / cellsize) + 1
+      !
+      ! ... Old dimensions
+      nodidemx = vdem%nx
+      nodidemy = vdem%ny
 !      
       ALLOCATE( xtop(noditopx) )
       ALLOCATE( ytop(noditopy) )
@@ -282,65 +298,68 @@
       !
       xll = center_x - alpha_x * domain_x - dxmax
       yll = center_y - alpha_y * domain_y - dymax
-      xtop(1) = MAX(xdem(1),xll)
-      ytop(1) = MAX(ydem(1),yll)
+      !
+      xtop(1) = xll
+      ytop(1) = yll
       xur = xll + cellsize * (noditopx - 1)
       yur = yll + cellsize * (noditopy - 1)
       xul = xll
       yul = yur
-      nodidemx = vdem%nx
-      nodidemy = vdem%ny
-      IF (xur > xdem(nodidemx)) &
-        noditopx = INT( (xdem(nodidemx) - xtop(1)) / cellsize) 
-      IF (yur > ydem(nodidemy)) &
-        noditopy = INT( (ydem(nodidemy) - ytop(1)) / cellsize) 
-!     
+      !
       ! ... Reset the resized DEM parameters as default
       !
-      IF (mpime == root) THEN
-        WRITE(logunit,*) 'DEM is resized'
-        WRITE(logunit,*) 'Old resolution: ', vdem%cellsize, ' [m]'
-      END IF
-!
       vdem%nx           = noditopx
       vdem%ny           = noditopy
       vdem%xcorner      = xul
       vdem%ycorner      = yul
       vdem%cellsize     = cellsize
-!
-      IF (mpime == root) THEN
-        WRITE(logunit,*) 'New resolution: ', vdem%cellsize, ' [m]'
-      END IF
-!
+!     
       ! ... Compute the new UTM coordinates of each element.
       !
-      DO i = 2, noditopx
-        xtop(i) = xtop(i-1) + cellsize
+      DO i = 2, vdem%nx
+        xtop(i) = xtop(i-1) + vdem%cellsize
       END DO
-      DO j = 2, noditopy
-        ytop(j) = ytop(j-1) + cellsize
+      DO j = 2, vdem%ny
+        ytop(j) = ytop(j-1) + vdem%cellsize
       END DO
+!
+      IF (mpime == root) THEN
+        WRITE(logunit,*) 'DEM is resized'
+        WRITE(logunit,*) 'New resolution: ', vdem%cellsize, ' [m]'
+        WRITE(logunit,*) 'New DEM limits: '
+        WRITE(logunit,'(2F12.2)') xtop(1), xtop(vdem%nx)
+        WRITE(logunit,'(2F12.2)') ytop(1), ytop(vdem%ny)
+      END IF
+!
+      IF ( xll < xdem(1) ) &
+        CALL error('resize_dem','Domain exceeds West DEM limits',1)
+      IF ( xur > xdem(nodidemx) ) &
+        CALL error('resize_dem','Domain exceeds East DEM limits',1)
+      IF ( yll < ydem(1) ) &
+        CALL error('resize_dem','Domain exceeds South DEM limits',1)
+      IF ( yul > ydem(nodidemy) ) &
+        CALL error('resize_dem','Domain exceeds North DEM limits',1)
 !
       ! ... Interpolate the DEM over the new mesh.
       !
       CALL interp(xdem, ydem, zdem, xtop, ytop, ztop2d, ntx, nty)
 !
-      ! ... Find the closest topographic element
-      ! ... to the prescribed vent center.
-      !
-      DO i = 1, noditopx
-        IF (xtop(i) <= center_x) icenter = i
-      END DO
-      DO j = 1, noditopy
-        IF (ytop(j) <= center_y) jcenter = j
-      END DO
-!      
-      ! ... The vent center must coincide with the
-      ! ... topographic element.
-      !
-      center_x = xtop(icenter)
-      center_y = ytop(jcenter)
+! ... Find the closest topographic element
+! ... to the prescribed vent center.
 !
+!      DO i = 1, noditopx
+!        IF (xtop(i) - center_x <= 0.1D0) icenter = i
+!      END DO
+!      DO j = 1, noditopy
+!        IF (ytop(j) - center_y <= 0.1D0) jcenter = j
+!      END DO
+!!      
+!      ! ... The vent center must coincide with the
+!      ! ... topographic element.
+!      !
+!      center_x = xtop(icenter)
+!      center_y = ytop(jcenter)
+!!
       IF (filtersize >= cellsize) THEN
          IF (ismt == 1) THEN
                  CALL mean_filter(xtop,ytop,ztop2d,filtersize)
@@ -843,7 +862,7 @@
       USE control_flags, ONLY: job_type, lpr
       USE grid, ONLY: x, xb, y, yb, z, zb
       USE grid, ONLY: iob, fl, noslip_wall
-      USE io_files, ONLY: tempunit
+      USE io_files, ONLY: tempunit, logunit
 !
       IMPLICIT NONE
       INTEGER :: n, i, j, k, ijk, cntz
@@ -910,7 +929,10 @@
 ! ... Write out the topographic map based on noslip cells
 !
       IF (lpr >= 2) THEN
-              IF (mpime == root) WRITE(logunit,*) 'Top no-slip cells: '
+              IF (mpime == root) THEN
+                OPEN(tempunit,FILE='topo.log')
+                WRITE(logunit,*) 'Writing top no-slip cells on file: "topo.log"'
+              END IF
               IF (job_type == '2D') THEN
                       DO i = 1, nx
                         cntz = 0
@@ -918,7 +940,7 @@
                           ijk = i + (k-1) * nx
                           IF (fl(ijk) == noslip_wall) cntz = k
                         END DO
-                        IF (mpime == root) WRITE(logunit,*) i, cntz
+                        IF (mpime == root) WRITE(tempunit,*) i, cntz
                       END DO
               ELSE IF (job_type == '3D') THEN
                       DO j = 1, ny
@@ -928,11 +950,11 @@
                             ijk = i + (j-1) * nx + (k-1) * nx * ny
                             IF (fl(ijk) == noslip_wall) cntz = k
                           END DO
-                          IF (mpime == root) WRITE(logunit,*) i, j, cntz
+                          IF (mpime == root) WRITE(tempunit,*) i, j, cntz
                         END DO
                       END DO
               END IF
-              IF (mpime == root) WRITE(logunit,*)
+              IF (mpime == root) CLOSE(tempunit)
       END IF
 !
 ! ... Deallocate all arrays in the topography module
