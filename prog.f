@@ -314,6 +314,7 @@
                 ! ... equation and the mass-flow rate
                 !
                 CALL print_mass_residuals(sweep)
+                !CALL write_radial_profile_2d
         END IF
 !
         IF( timing ) then

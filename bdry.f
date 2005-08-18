@@ -108,7 +108,7 @@
               ! ... Initialize x-velocity in the forced points
               ug(ijk) = vel
               DO is=1,nsolid
-                IF (rlk(ijk,is)>0.D0) us(ijk,is) = vel
+                us(ijk,is) = vel
               END DO
             END IF
 
@@ -124,7 +124,7 @@
               ! ... Initialize z-velocity in the forced points
               wg(ijk) = vel
               DO is=1,nsolid
-                IF (rlk(ijk,is)>0.D0) ws(ijk,is) = vel
+                ws(ijk,is) = vel
               END DO
             END IF
 
@@ -146,7 +146,7 @@
               ! ... Initialize x-velocity in the forced points
               ug(ijk) = vel
               DO is=1,nsolid
-                IF (rlk(ijk,is)>0.D0) us(ijk,is) = vel
+                us(ijk,is) = vel
               END DO
             END IF
             
@@ -166,7 +166,7 @@
               ! ... Initialize y-velocity in the forced points
               vg(ijk) = vel
               DO is=1,nsolid
-                IF (rlk(ijk,is)>0.D0) vs(ijk,is) = vel
+                vs(ijk,is) = vel
               END DO
             END IF
             
@@ -182,7 +182,7 @@
               ! ... Initialize z-velocity in the forced points
               wg(ijk) = vel
               DO is=1,nsolid
-                IF (rlk(ijk,is)>0.D0) ws(ijk,is) = vel
+                ws(ijk,is) = vel
               END DO
             END IF
           END IF

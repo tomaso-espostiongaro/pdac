@@ -55,7 +55,7 @@
 !
       CALL postin( postunit )
 !
-! ... By default, postp cannot read restart file ... 
+! ... By default, postp cannot restart
       itd = 1
 !
 ! ... set dimensions ...

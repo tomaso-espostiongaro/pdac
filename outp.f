@@ -93,7 +93,6 @@
       USE control_flags, ONLY: job_type
       USE domain_decomposition, ONLY: data_collect, data_distribute
       USE io_files, ONLY: tempunit
-
 !
       IMPLICIT NONE
 !
@@ -107,7 +106,6 @@
       filnam = 'shtube.' // lettera( nfil )
 
       IF( mpime == root ) THEN
-
         OPEN(UNIT=tempunit,FILE=filnam)
         DO ijk = 1, ncint
           IF ( BTEST(flag(ijk),0) ) THEN
@@ -115,9 +113,7 @@
             WRITE(tempunit,550)rog(ijk),wg(ijk),p(ijk),energy,tg(ijk)
           END IF
         END DO
-
         CLOSE (tempunit)
-
       END IF
 !
       RETURN

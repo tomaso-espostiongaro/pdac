@@ -1,6 +1,8 @@
 --   Modification of the 3d BLOCK distribution to avoid large processor 
      unbalancing of computational load
 
+--   Restart with different domain size
+
 !    Refinement of the procedure for random perturbation of the inlet 
      conditions to include "non-top-hat" velocity profiles
 
