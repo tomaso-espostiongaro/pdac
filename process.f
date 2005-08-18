@@ -349,7 +349,8 @@
                 map = alpha * array(ijk) + (1.D0-alpha) * array(ijk)
                 ! ... Map the maximum value reached at any given position in
                 ! ... time
-                array_map_max(i,j) = MAX(map, array_map_max(i,j))
+                !array_map_max(i,j) = MAX(map, array_map_max(i,j))
+                array_map_max(i,j) = map
                 EXIT search
             END IF
           END DO search

@@ -97,7 +97,7 @@
       USE domain_decomposition, ONLY: mesh_partition
       USE dome_conditions, ONLY: xdome, ydome, dome_volume, temperature, particle_fraction, overpressure, &
           idome, gas_flux, permeability, dome_gasvisc, idw, conduit_radius
-      USE enthalpy_matrix, ONLY: flim, tforce
+      USE enthalpy_matrix, ONLY: flim, tlim, tforce
       USE eos_gas, ONLY: update_eosg
       USE flux_limiters, ONLY: beta, muscl
       USE gas_solid_viscosity, ONLY: gas_viscosity, part_viscosity
@@ -178,7 +178,7 @@
 
       NAMELIST / numeric / rungekut, beta, muscl, mass_limiter, vel_limiter, &
         inmax, maxout, omega, delg, implicit_fluxes, implicit_enthalpy, &
-        update_eosg, optimization, lim_type, tforce, rlim, flim, vforce
+        update_eosg, optimization, lim_type, tlim, tforce, rlim, flim, vforce
 
       INTEGER :: i, j, k, n, m, ig, ierr, lim_type
       CHARACTER(LEN=80) :: card
@@ -391,7 +391,8 @@
       delg = 1.D-8      !  residual limit relative to gas bulk density
       omega = 1.1       !  relaxation parameter  ( 0.5 under - 2.0 over)
       optimization = 1  !  optimization degree on iterative solver
-      tforce  = .FALSE. !  force temperatures
+      tforce  = .FALSE. !  force temperature
+      tlim  = 1500.D0   !  maximum temperature
       vforce  = .FALSE. !  force velocities
       implicit_fluxes   = .FALSE. ! fluxes are computed implicitly
       implicit_enthalpy = .FALSE. ! enthalpy solved implicitly
@@ -664,6 +665,7 @@
       CALL bcast_integer(maxout,1,root)
       CALL bcast_integer(optimization,1,root)
       CALL bcast_real(omega,1,root)
+      CALL bcast_real(tlim,1,root)
       CALL bcast_logical(tforce,1,root)
       CALL bcast_logical(vforce,1,root)
       CALL bcast_logical(implicit_fluxes,1,root)
@@ -1037,6 +1039,7 @@
             CALL iotk_write_dat( iuni_nml, "maxout", maxout )
             CALL iotk_write_dat( iuni_nml, "optimization", optimization )
             CALL iotk_write_dat( iuni_nml, "omega", omega )
+            CALL iotk_write_dat( iuni_nml, "tlim", tlim)
             CALL iotk_write_dat( iuni_nml, "tforce", tforce)
             CALL iotk_write_dat( iuni_nml, "vforce", vforce)
             CALL iotk_write_dat( iuni_nml, "implicit_fluxes",   &

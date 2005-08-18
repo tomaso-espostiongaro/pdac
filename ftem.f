@@ -11,6 +11,7 @@
 
       REAL*8 :: flim
       REAL*8, PRIVATE :: hv
+      REAL*8 :: tlim
       LOGICAL :: tforce
 !
       SAVE
@@ -180,7 +181,7 @@
                   IF (info == 1 ) THEN
                           CALL temperature_filter(ijk)
                   END IF
-                  CALL temperature_limiter(ijk)
+                  CALL temperature_limiter(ijk,tlim)
           END IF
           
         END IF
@@ -239,7 +240,8 @@
         !
         ! ... Solid Temperature and Enthalpy
         DO is = 1, nsolid
-            av_ts = ts(imjk,is) + ts(ijmk,is) + ts(ijkm,is) + ts(ipjk,is) + ts(ijpk,is) + ts(ijkp,is)
+            av_ts = ts(imjk,is) + ts(ijmk,is) + ts(ijkm,is) + &
+                    ts(ipjk,is) + ts(ijpk,is) + ts(ijkp,is)
             av_ts = av_ts / 6.D0
             ts(ijk,is) = av_ts
             !
@@ -289,7 +291,7 @@
       RETURN
       END SUBROUTINE temperature_filter
 !----------------------------------------------------------------------
-      SUBROUTINE temperature_limiter(ijk)
+      SUBROUTINE temperature_limiter(ijk,tmax)
 
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nsolid, ngas
@@ -303,13 +305,14 @@
 
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: ijk
+      REAL*8, INTENT(IN) :: tmax
       INTEGER :: ig, is
       REAL*8 :: av_tg
       REAL*8 :: av_ts
       REAL*8 :: hc
 
-      IF (tg(ijk) > 1133.D0) THEN
-        tg(ijk) = 1133.D0
+      IF (tg(ijk) > tmax) THEN
+        tg(ijk) = tmax
         WRITE(testunit,*) 'Limiting gas temperature in cell: ', ijk
         CALL hcapg(cp(:,ijk), tg(ijk))
         hc = 0.D0
@@ -321,8 +324,8 @@
       END IF
       !
       DO is = 1, nsolid
-        IF (ts(ijk,is) > 1133.D0) THEN
-          ts(ijk,is) = 1133.D0
+        IF (ts(ijk,is) > tmax) THEN
+          ts(ijk,is) = tmax
           WRITE(testunit,*) 'Limiting particle ', is, ' temperature in cell: ', ijk
           CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
           sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
