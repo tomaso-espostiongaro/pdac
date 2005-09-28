@@ -18,13 +18,13 @@
       REAL, ALLOCATABLE, DIMENSION(:,:) :: xgc
       REAL, ALLOCATABLE, DIMENSION(:,:) :: eps, us, vs, ws, ts
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: array_map
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: array_map_max
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: topo2d
 !
 ! ... derived fields
 !
       REAL, ALLOCATABLE, DIMENSION(:) :: rm, rg, bd, m, um, vm, wm, mvm, c, mc 
       REAL, ALLOCATABLE, DIMENSION(:) :: epstot, lepstot, pd
+      REAL, ALLOCATABLE, DIMENSION(:,:) :: sbd
 
       INTEGER :: imap
       REAL*8 :: deltaz
@@ -42,10 +42,8 @@
                 ws(dime,nsolid), ts(dime,nsolid))
       ALLOCATE(xgc(dime,ngas))
       ALLOCATE(array_map(nx,ny))
-      ALLOCATE(array_map_max(nx,ny))
       ALLOCATE(topo2d(nx,ny))
       array_map = 0.D0
-      array_map_max = 0.D0
       topo2d = -9999
 
       RETURN
@@ -72,6 +70,7 @@
       ALLOCATE(epstot(dime))  ! Total particle fraction
       ALLOCATE(lepstot(dime))  ! Log10 of the total part. frac.
       ALLOCATE(pd(dime))  ! Dynamic Pressure
+      ALLOCATE(sbd(dime,nsolid))  ! Solid Bulk density
 
       RETURN
       END SUBROUTINE allocate_derived_fields
@@ -189,17 +188,10 @@
       CALL allocate_main_fields(ntot)
       CALL allocate_derived_fields(ntot)
 !
-      filnam='map_max.'//lettera(first_out-incr_out)
-      INQUIRE(FILE=filnam,EXIST=ex)
-      IF (ex) THEN
-              OPEN(UNIT=tempunit,FILE=filnam)
-              READ(tempunit,*) array_map_max(:,:)
-              CLOSE(tempunit)
-      END IF
-!
       DO tn = first_out, last_out, incr_out
 
         WRITE(logunit,fmt="(/,'* Starting post-processing ',I5,' * ')" ) tn
+        WRITE(*,fmt="(/,'* Starting post-processing ',I5,' * ')" ) tn
 
         ! ... Read PDAC output file
         !
@@ -208,19 +200,26 @@
         ! ... Derived fields are computed as a function of
         ! ... primary fields and other derived fields
         !
-        rm = rhom(eps,p,tg,xgc)
 !        rg = rhog(p,tg,xgc)
 !        bd = rgp(eps,p,tg,xgc)
 !        m  = mg(xgc)
+!        c  = cm(bd,rg,rm,m,tg)
+!        mc = mach(mvm,c)
+        epstot = epst(eps)
+        lepstot = leps(epstot)
+        rm = rhom(eps,p,tg,xgc)
         um = velm(ug,us,eps,p,tg,xgc)
         IF (job_type == '3D') vm = velm(vg,vs,eps,p,tg,xgc)
         wm = velm(wg,ws,eps,p,tg,xgc)
         mvm = vel(um,vm)
-!        c  = cm(bd,rg,rm,m,tg)
-!        mc = mach(mvm,c)
-        pd = pdyn(rm,mvm)
-        epstot = epst(eps)
-        lepstot = leps(epstot)
+        !
+        ! ... Compute the dynamic pressure as the sum of PARTICLE dynamic pressures
+        !
+        sbd  = rlk(eps)
+        mvm = vel(us(:,1),vs(:,1))
+        pd = pdyn(sbd(:,1),mvm)
+        mvm = vel(us(:,2),vs(:,2))
+        pd = pd + pdyn(sbd(:,2),mvm)
 
         ! ... Write out fields of interest
         !
@@ -245,8 +244,11 @@
         ! ... Print the map of any interesting variable above ground
         !
         IF (imap > 0) THEN
-                CALL write_map_max(tn,pd)
-                CALL write_map(tn,tg)
+                CALL write_topo2d
+                CALL write_map(tn,pd,'pd')
+                CALL write_map(tn,tg,'tg')
+                !CALL write_map(tn,ts(:,1),'t1')
+                !CALL write_map(tn,ts(:,2),'t2')
         END IF
 
       END DO
@@ -254,7 +256,50 @@
       RETURN
       END SUBROUTINE process
 !-----------------------------------------------------------------------
-      SUBROUTINE write_map(nfil,array)
+      SUBROUTINE write_topo2d
+
+      USE control_flags, ONLY: job_type
+      USE dimensions, ONLY: nx, ny, nz
+      USE filter_outp, ONLY: improfile
+      USE grid, ONLY: z
+      USE io_files, ONLY: tempunit
+      IMPLICIT NONE
+      
+      REAL*8 :: alpha, map, quota
+      INTEGER :: i, j, k, ijk, ijkm
+      CHARACTER( LEN = 4 ) :: lettera
+      CHARACTER( LEN = 20 ) :: filnam
+
+      IF (job_type == '2D') RETURN
+
+      DO i = 1, nx
+        DO j = 1, ny
+          !
+          search: DO k = 1, nz
+            quota = improfile(i,j,k)
+            IF (quota >= 0.D0 .AND. topo2d(i,j) == -9999) THEN
+              topo2d(i,j) = z(k) - quota
+              EXIT search
+            END IF
+          END DO search
+          !
+        END DO
+      END DO
+!
+! ... Print out the new 2D DEM file
+!
+      OPEN(UNIT=tempunit,FILE='topo2d.dat')
+      DO j = 1, ny
+          WRITE(tempunit,122) (topo2d(i,j), i=1, nx)
+      END DO
+      CLOSE(tempunit)
+
+ 122  FORMAT(10(1x,G14.6E3))
+
+      RETURN
+      END SUBROUTINE write_topo2d
+!-----------------------------------------------------------------------
+      SUBROUTINE write_map(nfil,array,labl)
 
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nx, ny, nz
@@ -265,21 +310,21 @@
       
       REAL, INTENT(IN), DIMENSION(:) :: array
       INTEGER, INTENT(IN) :: nfil
+      CHARACTER(LEN=2), INTENT(IN) :: labl
       REAL*8 :: alpha, map, quota
       INTEGER :: i, j, k, ijk, ijkm
       CHARACTER( LEN = 4 ) :: lettera
-      CHARACTER( LEN = 8 ) :: filnam
+      CHARACTER( LEN = 20 ) :: filnam
 
       IF (job_type == '2D') RETURN
 
-      filnam='map.'//lettera(nfil)
+      filnam='map_'//labl//'.'//lettera(nfil)
 
       DO i = 1, nx
         DO j = 1, ny
           !
           search: DO k = 1, nz
             quota = improfile(i,j,k)
-            IF (quota >= 0.D0 .AND. topo2d(i,j) == -9999) topo2d(i,j) = z(k) - quota
             IF (quota >= deltaz) THEN
                 ijk  = i + (j-1) * nx + (k-1) * nx * ny
                 ijkm = i + (j-1) * nx + (k-2) * nx * ny
@@ -303,11 +348,6 @@
           WRITE(tempunit,122) (array_map(i,j), i=1, nx)
       END DO
       CLOSE(tempunit)
-      OPEN(UNIT=tempunit,FILE='topo2d.dat')
-      DO j = 1, ny
-          WRITE(tempunit,122) (topo2d(i,j), i=1, nx)
-      END DO
-      CLOSE(tempunit)
 
  122  FORMAT(10(1x,G14.6E3))
  123  CONTINUE
@@ -315,63 +355,6 @@
       RETURN
       END SUBROUTINE write_map
 !-----------------------------------------------------------------------
-      SUBROUTINE write_map_max(nfil,array)
-
-      USE control_flags, ONLY: job_type
-      USE dimensions, ONLY: nx, ny, nz
-      USE filter_outp, ONLY: improfile
-      USE grid, ONLY: z
-      USE io_files, ONLY: tempunit
-      IMPLICIT NONE
-      
-      REAL, INTENT(IN), DIMENSION(:) :: array
-      INTEGER, INTENT(IN) :: nfil
-      REAL*8 :: alpha, map, quota
-      INTEGER :: i, j, k, ijk, ijkm
-      CHARACTER( LEN = 4 ) :: lettera
-      CHARACTER( LEN = 12 ) :: filnam
-      LOGICAL :: ex
-
-      IF (job_type == '2D') RETURN
-
-      filnam='map_max.'//lettera(nfil)
-
-      DO i = 1, nx
-        DO j = 1, ny
-          !
-          search: DO k = 1, nz
-            quota = improfile(i,j,k)
-            IF (quota >= deltaz) THEN
-                ijk  = i + (j-1) * nx + (k-1) * nx * ny
-                ijkm = i + (j-1) * nx + (k-2) * nx * ny
-                alpha = deltaz - z(k-1)
-                alpha = alpha / (z(k) - z(k-1)) 
-                map = alpha * array(ijk) + (1.D0-alpha) * array(ijk)
-                ! ... Map the maximum value reached at any given position in
-                ! ... time
-                !array_map_max(i,j) = MAX(map, array_map_max(i,j))
-                array_map_max(i,j) = map
-                EXIT search
-            END IF
-          END DO search
-          !
-        END DO
-      END DO
-!
-! ... Print out the map of maxima
-!
-      OPEN(UNIT=tempunit,FILE=filnam)
-      DO j = 1, ny
-          WRITE(tempunit,122) (array_map_max(i,j), i=1, nx)
-      END DO
-      CLOSE(tempunit)
-
- 122  FORMAT(10(1x,G14.6E3))
- 123  CONTINUE
-
-      RETURN
-      END SUBROUTINE write_map_max
-!----------------------------------------------------------------------
       SUBROUTINE sample
       USE control_flags, ONLY: job_type
       USE derived_fields

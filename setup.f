@@ -96,7 +96,7 @@
 !
       SELECT CASE(itd)
 !
-      CASE (1)
+      CASE (0,1)
 ! 
 ! ... Set initial conditions in boundary cells 
 ! ... with specified fluid flow 

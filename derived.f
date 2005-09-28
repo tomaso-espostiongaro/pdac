@@ -156,6 +156,21 @@
       RETURN
       END FUNCTION rhom
 !----------------------------------------------------------------------
+      FUNCTION rhos(eps)
+      !
+      ! ... computes particle mixture density
+
+      IMPLICIT NONE
+      REAL, INTENT(IN) :: eps(:,:)
+      REAL, DIMENSION(SIZE(eps,1)) :: rhos
+      REAL, DIMENSION(SIZE(eps,1),SIZE(eps,2)) :: bds
+
+      bds = rlk(eps)
+      rhos = SUM(bds,DIM=2) 
+
+      RETURN
+      END FUNCTION rhos
+!----------------------------------------------------------------------
       FUNCTION velm(ug,us,eps,p,tg,xgc)
       !
       ! ... computes gas-particle mixture velocity (one component)
@@ -167,7 +182,6 @@
       REAL, DIMENSION(SIZE(ug)) :: velm
       
       velm = rgp(eps,p,tg,xgc) * ug + SUM( rlk(eps) * us ,DIM=2) 
-      !velm = SUM( rlk(eps) * us ,DIM=2) 
       velm = velm / rhom(eps,p,tg,xgc)
 
       RETURN
