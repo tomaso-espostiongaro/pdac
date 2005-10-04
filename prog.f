@@ -8,7 +8,7 @@
       USE control_flags, ONLY: job_type, lpr, imr
       USE control_flags, ONLY: implicit_enthalpy, implicit_fluxes
       USE dimensions
-      USE domain_decomposition, ONLY: ncint, myijk, ncdom
+      USE domain_mapping, ONLY: ncint, myijk, ncdom
       USE enthalpy_matrix, ONLY: ftem
       USE environment, ONLY: cpclock, timing, elapsed_seconds
       USE eos_gas, ONLY: thermal_eosg, update_eosg

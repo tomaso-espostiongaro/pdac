@@ -15,7 +15,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE allocate_species
       USE dimensions
-      USE domain_decomposition, ONLY: ncint
+      USE domain_mapping, ONLY: ncint
       IMPLICIT NONE
       
       ALLOCATE(rgpgcn(ncint,ngas))
@@ -28,7 +28,7 @@
 !
       USE control_flags, ONLY: job_type, lpr
       USE dimensions
-      USE domain_decomposition, ONLY: ncint, ncdom, meshinds
+      USE domain_mapping, ONLY: ncint, ncdom, meshinds
       USE eos_gas, ONLY: ygc, xgc, mole
       USE gas_constants, ONLY: gas_type
       USE gas_solid_density, ONLY: rgp, rgpn
@@ -158,7 +158,7 @@
       USE control_flags, ONLY: job_type
       USE convective_fluxes_sc, ONLY: fsc, muscl_fsc
       USE dimensions, ONLY: ngas
-      USE domain_decomposition, ONLY: ncint, data_exchange
+      USE domain_mapping, ONLY: ncint, data_exchange
       USE eos_gas, ONLY: ygc
       USE flux_limiters, ONLY: muscl
       USE gas_solid_density, ONLY: rgp

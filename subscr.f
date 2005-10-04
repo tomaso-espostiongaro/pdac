@@ -1,7 +1,7 @@
 !-----------------------------------------------------------------------
       MODULE set_indexes
 !-----------------------------------------------------------------------
-      USE domain_decomposition, ONLY: myinds, myijk
+      USE domain_mapping, ONLY: myinds, myijk
       USE indijk_module
 
       IMPLICIT NONE

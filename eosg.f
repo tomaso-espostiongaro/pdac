@@ -22,7 +22,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE allocate_eosg
       USE dimensions
-      USE domain_decomposition, ONLY: ncdom, ncint
+      USE domain_mapping, ONLY: ncdom, ncint
       IMPLICIT NONE
 !
        ALLOCATE(cg(ncint))
@@ -146,7 +146,7 @@
 !
       USE control_flags, ONLY: lpr
       USE dimensions
-      USE domain_decomposition, ONLY: meshinds
+      USE domain_mapping, ONLY: meshinds
       USE grid, ONLY: z, zb
       USE gas_constants, ONLY: gmw, c_joule, rgas, tzero, hzerog, gammaair
       USE gas_constants, ONLY: gas_type

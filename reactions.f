@@ -32,7 +32,7 @@
       SUBROUTINE rexion
 !
       USE dimensions
-      USE domain_decomposition, ONLY: ncint, myijk, ncdom
+      USE domain_mapping, ONLY: ncint, myijk, ncdom
       USE grid, ONLY: flag
       USE indijk_module, ONLY: ip0_jp0_kp0_
       IMPLICIT NONE

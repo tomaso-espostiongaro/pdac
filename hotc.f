@@ -12,7 +12,7 @@
       SUBROUTINE hotc(hgfe, hgfn, hgft, hgfw, hgfs, hgfb, ep, tg, kapgt, ijk)
 !
       USE dimensions
-      USE domain_decomposition, ONLY: myijk, meshinds
+      USE domain_mapping, ONLY: myijk, meshinds
       USE grid, ONLY: flag
       USE grid, ONLY: dx, dy, dz, rb
       USE set_indexes, ONLY: imjk, ijmk, ijkm

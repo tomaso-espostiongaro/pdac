@@ -1,28 +1,34 @@
 !-----------------------------------------------------------------------
       MODULE vent_conditions
+!
+! ... Identify vent cells on the topography
+! ... Set vent conditions within vent cells
+! ... Modify vent conditions in time
+!
 !-----------------------------------------------------------------------
       USE dimensions, ONLY: max_nsolid, max_ngas, nsolid, ngas
       USE io_files, ONLY: errorunit, logunit
       IMPLICIT NONE
       PUBLIC
-
+      !
       ! ... flags
       !
       INTEGER :: ivent, irand, iali, ipro
-
+      !
+      CHARACTER(LEN=80) :: rad_file
+      !
       REAL*8 :: xvent, yvent, vent_radius, base_radius, crater_radius
       REAL*8 :: wrat
       REAL*8 :: u_gas, v_gas, w_gas, p_gas, t_gas
       REAL*8 :: u_solid(max_nsolid), v_solid(max_nsolid), w_solid(max_nsolid), &
                 ep_solid(max_nsolid), t_solid(max_nsolid)
-      !
+      REAL*8 :: vent_ygc(max_ngas)
+!      
       REAL*8, ALLOCATABLE, DIMENSION(:) :: ug_rad, wg_rad, &
                                            p_rad, tg_rad, rad
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: ygc_rad
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: us_rad, ws_rad, &
                                              ep_rad, ts_rad
-      REAL*8 :: vent_ygc(max_ngas)
-
       TYPE icvent_cell
         INTEGER :: imesh
         REAL*8  :: frac
@@ -33,9 +39,10 @@
 
       INTEGER :: nvt
       INTEGER, SAVE :: seed
-      CHARACTER(LEN=80) :: rad_file
+!
+      PRIVATE :: icvent_cell, vcell, nvt, seed
       PRIVATE :: ug_rad, wg_rad, p_rad, tg_rad, rad, ygc_rad,  &
-                 us_rad, ws_rad, ep_rad, ts_rad, vcell
+                 us_rad, ws_rad, ep_rad, ts_rad
       SAVE
 !-----------------------------------------------------------------------
       CONTAINS
@@ -235,7 +242,7 @@
 !
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nsolid, ngas
-      USE domain_decomposition, ONLY: ncint, meshinds
+      USE domain_mapping, ONLY: ncint, meshinds
       USE environment, ONLY: cpclock
       USE eos_gas, ONLY: ygc
       USE gas_constants, ONLY: gas_type
@@ -444,7 +451,7 @@
       SUBROUTINE correct_vent_density(ijk,k,alpha)
 !
 ! ... Correct the density in the inlet cells partially filled by the
-! ... topography
+! ... topography ("antialiasing")
 !
       USE atmospheric_conditions, ONLY: p_atm, t_atm
       USE dimensions, ONLY: nsolid, ngas
@@ -512,7 +519,7 @@
       RETURN
       END SUBROUTINE correct_velocity_profile
 !-----------------------------------------------------------------------
-      SUBROUTINE update_ventc(ijk,imesh,sweep)
+      SUBROUTINE update_vent_cell(ijk,imesh,sweep)
 !
       USE dimensions, ONLY: nsolid
       USE gas_solid_velocity, ONLY: wg, ws
@@ -548,9 +555,9 @@
       END DO
 
       RETURN
-      END SUBROUTINE update_ventc
+      END SUBROUTINE update_vent_cell
 !-----------------------------------------------------------------------
-      SUBROUTINE update_vent_cell(ijk)
+      SUBROUTINE update_inlet_cell(ijk)
 !
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nsolid
@@ -579,7 +586,7 @@
       END DO
 
       RETURN
-      END SUBROUTINE update_vent_cell
+      END SUBROUTINE update_inlet_cell
 !-----------------------------------------------------------------------
       SUBROUTINE random_switch(sweep)
 !

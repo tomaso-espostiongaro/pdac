@@ -2,7 +2,7 @@
       MODULE turbulence_model
 !----------------------------------------------------------------------
 !
-      USE domain_decomposition, ONLY: ncint, ncdom, data_exchange
+      USE domain_mapping, ONLY: ncint, ncdom, data_exchange
       USE environment, ONLY: timing, cpclock
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE io_files, ONLY: errorunit
@@ -48,7 +48,7 @@
 ! ... (2D/3D-Compliant)
 !
         USE dimensions, ONLY: nz, no, nx, ny
-        USE domain_decomposition, ONLY: myijk, meshinds
+        USE domain_mapping, ONLY: myijk, meshinds
         USE grid, ONLY: dz, zb, rb, dx, dy, z
         USE volcano_topography, ONLY: topo_c, topo2d_c
         USE roughness_module, ONLY: roughness, roughness2d,  roughness_setup
@@ -134,7 +134,7 @@
 
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nx, ny, nz
-      USE domain_decomposition, ONLY: meshinds
+      USE domain_mapping, ONLY: meshinds
       USE grid, ONLY: dx, dy, dz, flag
       USE eos_gas, ONLY: cg
       USE gas_solid_density, ONLY: rog
@@ -502,7 +502,7 @@
 ! ... here computes the components of the gas strain rate tensor and its module.
 
       USE dimensions, ONLY: nx, ny, nz   
-      USE domain_decomposition, ONLY: myijk
+      USE domain_mapping, ONLY: myijk
       USE grid, ONLY: dx, dy, dz, indx, indy, indz
       USE set_indexes
       IMPLICIT NONE
@@ -566,7 +566,7 @@
 ! ... here computes the components of the strain rate tensor and its module.
 
       USE dimensions, ONLY: nx    
-      USE domain_decomposition, ONLY: myijk
+      USE domain_mapping, ONLY: myijk
       USE grid, ONLY:dx, dz, indx, indz,itc,inr 
       USE set_indexes, ONLY: imjk, ijkm, ijkp, imjkp, imjkm, ipjk, ipjkm 
       IMPLICIT NONE

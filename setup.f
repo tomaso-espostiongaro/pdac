@@ -60,7 +60,7 @@
 !
       USE control_flags, ONLY: job_type
       USE dimensions
-      USE domain_decomposition, ONLY: ncint, meshinds, myijk
+      USE domain_mapping, ONLY: ncint, meshinds, myijk
       USE dome_conditions, ONLY: idome, set_domec
       USE gas_solid_viscosity, ONLY: mus
       USE grid, ONLY: iob
@@ -132,7 +132,7 @@
       USE atmospheric_conditions, ONLY: wind_x, wind_y, wind_z, void_fraction
       USE control_flags, ONLY: job_type
       USE dimensions
-      USE domain_decomposition, ONLY: ncint, meshinds, myijk
+      USE domain_mapping, ONLY: ncint, meshinds, myijk
       USE eos_gas, ONLY: ygc, xgc, mole
       USE gas_constants, ONLY: gas_type
       USE gas_solid_density, ONLY: rlk
@@ -206,7 +206,7 @@
 !
       USE control_flags, ONLY: job_type
       USE dimensions
-      USE domain_decomposition, ONLY: ncint
+      USE domain_mapping, ONLY: ncint
       USE eos_gas, ONLY: mas, xgc, ygc
       USE eos_gas, ONLY: cg, thermal_eosg, mole
       USE gas_constants, ONLY: gas_type, gmw, rgas, tzero, hzerog, hzeros
@@ -363,7 +363,7 @@
 
       USE control_flags, ONLY: job_type
       USE dimensions
-      USE domain_decomposition, ONLY: ncint, meshinds, myijk
+      USE domain_mapping, ONLY: ncint, meshinds, myijk
       USE eos_gas, ONLY: ygc
       USE gas_constants, ONLY: gmw, rgas, gammaair, gas_type
       USE gas_solid_density, ONLY: rlk
@@ -545,7 +545,7 @@
       SUBROUTINE reset_velocities
 !
       USE control_flags, ONLY: job_type
-      USE domain_decomposition, ONLY: ncint, meshinds
+      USE domain_mapping, ONLY: ncint, meshinds
       USE gas_solid_density, ONLY: rlk
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws

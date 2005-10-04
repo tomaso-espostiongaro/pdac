@@ -81,17 +81,18 @@
       SUBROUTINE shock_tube_out
 !
       USE dimensions, ONLY: nx, nz, nsolid
-      USE domain_decomposition, ONLY: flag, ncint
+      USE domain_mapping, ONLY: ncint
       USE gas_constants, ONLY: gas_type, gammaair
       USE gas_solid_density, ONLY: rog
       USE gas_solid_velocity, ONLY: ug, wg
       USE gas_solid_temperature, ONLY: sieg, tg
+      USE grid, ONLY: flag
       USE parallel, ONLY: nproc, mpime, root, group
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p
       USE time_parameters, ONLY: time
       USE control_flags, ONLY: job_type
-      USE domain_decomposition, ONLY: data_collect, data_distribute
+      USE domain_mapping, ONLY: data_collect, data_distribute
       USE io_files, ONLY: tempunit
 !
       IMPLICIT NONE

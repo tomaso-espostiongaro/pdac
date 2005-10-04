@@ -6,7 +6,7 @@
 ! version: 3.0
 ! date: Jan 2005
 ! authors: A.Neri, G.Macedonio, D.Gidaspow, T. Esposti Ongaro
-! parallelized by: T. Esposti Ongaro, C. Cavazzoni, A. Neri
+! parallelized by: T. Esposti Ongaro, C. Cavazzoni
 ! 3d version implemented by: T. Esposti Ongaro, C. Cavazzoni
 !******************************************************************************
 !
@@ -14,7 +14,8 @@
 
       USE blunt_body, ONLY: set_blunt, ibl
       USE dimensions
-      USE domain_decomposition, ONLY: partition, ghost
+      USE domain_decomposition, ONLY: partition
+      USE domain_mapping, ONLY: ghost
       USE eos_gas, ONLY: allocate_eosg
       USE gas_components, ONLY: allocate_species
       USE gas_constants, ONLY: allocate_gas_constants
@@ -231,7 +232,7 @@
 ! ... conditions from an output file
 !
       IF(itd == 2) THEN 
-	CALL taperd
+        CALL taperd
       ELSE IF (itd == 3) THEN
         CALL outp_recover(nfil)
       ELSE IF (itd == 4) THEN

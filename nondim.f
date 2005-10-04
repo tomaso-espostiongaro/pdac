@@ -2,7 +2,7 @@
       MODULE nondim_numbers
 !------------------------------------------------------------------------
       USE dimensions
-      USE domain_decomposition, ONLY: ncint
+      USE domain_mapping, ONLY: ncint
       IMPLICIT NONE
       SAVE
 !
@@ -72,7 +72,7 @@
       SUBROUTINE richardson(p,rgp,rhog,rlk,ug,wg,uk,wk,ijk,ijpk)
 !
         USE atmospheric_conditions, ONLY : gravz, p_atm, t_atm
-        USE domain_decomposition, ONLY: myijk
+        USE domain_mapping, ONLY: myijk
         USE gas_constants, ONLY: gmw, rgas, gammaair, gamn
         USE grid, ONLY: zb, dz
         USE indijk_module, ONLY: ip0_jp0_kp0_

@@ -37,7 +37,7 @@
 ! ... Uses First Order Donor-cell tecnique
 !
       USE dimensions
-      USE domain_decomposition, ONLY: myijk, meshinds
+      USE domain_mapping, ONLY: myijk, meshinds
       USE grid, ONLY: dx, flag
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE set_indexes, ONLY: stencil
@@ -188,10 +188,10 @@
       !cn = cs * dt * 2.D0 * indyp
       IF (cs >= 0.D0) THEN
         IF (gradc /= 0.0) erre = grads / gradc    
-	incr = 0.5D0 * dy(j)
+        incr = 0.5D0 * dy(j)
       ELSE IF (cs < 0.D0) THEN
         IF (gradc /= 0.0) erre = gradn / gradc    
-	incr = - 0.5D0 * dy(j+1)
+        incr = - 0.5D0 * dy(j+1)
       END IF 
 !
       CALL limiters(lv,lim,erre)
@@ -215,10 +215,10 @@
       !cn = cs * dt * 2.D0 * indzp
       IF (cs >= 0.D0) THEN
         IF (gradc /= 0.0) erre = gradb / gradc    
-	incr = 0.5D0 * dz(k)
+        incr = 0.5D0 * dz(k)
       ELSE IF (cs < 0.D0) THEN
         IF (gradc /= 0.0) erre = gradt / gradc    
-	incr = - 0.5D0 * dz(k+1)
+        incr = - 0.5D0 * dz(k+1)
       END IF 
 !
       CALL limiters(lv,lim,erre)

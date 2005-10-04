@@ -25,7 +25,7 @@
 !
       USE control_flags, ONLY: job_type
       USE dimensions
-      USE domain_decomposition, ONLY: ncint, meshinds
+      USE domain_mapping, ONLY: ncint, meshinds
       USE eos_gas, ONLY: cg, ygc, caloric_eosg, thermal_eosg
       USE eos_solid, ONLY: caloric_eosl
       USE gas_solid_density, ONLY: rgp, rgpn, rlk, rlkn, rog

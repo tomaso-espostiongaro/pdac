@@ -11,7 +11,7 @@
 !
       USE control_flags, ONLY: lpr
       USE dimensions
-      USE domain_decomposition, ONLY: meshinds
+      USE domain_mapping, ONLY: meshinds
       USE gas_constants, ONLY: tzero, hzeros
       USE parallel, ONLY: mpime
       USE specific_heat_module, ONLY: hcaps

@@ -1,6 +1,12 @@
 !----------------------------------------------------------------------
       MODULE check_residuals
-      USE domain_decomposition, ONLY: ncint
+!
+! ... Check the residuals of mass in the whole domain
+!
+! ... Authors: Tomaso Esposti Ongaro
+! ... Date   : 
+!----------------------------------------------------------------------
+      USE domain_mapping, ONLY: ncint
       USE parallel, ONLY: root, mpime
       IMPLICIT NONE
       SAVE
@@ -11,7 +17,7 @@
 
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: ngas, nsolid
-      USE domain_decomposition, ONLY: meshinds
+      USE domain_mapping, ONLY: meshinds
       USE eos_gas, ONLY: ygc
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
@@ -130,7 +136,7 @@
 
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: ngas, nsolid
-      USE domain_decomposition, ONLY: meshinds
+      USE domain_mapping, ONLY: meshinds
       USE eos_gas, ONLY: ygc
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: tg, ts

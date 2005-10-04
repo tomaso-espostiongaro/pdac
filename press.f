@@ -12,7 +12,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE allocate_press_eps
       USE dimensions
-      USE domain_decomposition, ONLY: ncdom
+      USE domain_mapping, ONLY: ncdom
       IMPLICIT NONE
 !
       ALLOCATE( ep( ncdom ), p( ncdom ), pn( ncdom ))

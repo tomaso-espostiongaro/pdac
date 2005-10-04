@@ -43,7 +43,7 @@
 !
       USE control_flags, ONLY: job_type
       USE dimensions
-      USE domain_decomposition, ONLY: myijk, meshinds
+      USE domain_mapping, ONLY: myijk, meshinds
       USE gas_solid_density, ONLY: rgp, rlk
       USE grid, ONLY: dx, dy, dz
       USE indijk_module
@@ -166,7 +166,7 @@
 !
       USE control_flags, ONLY: job_type
       USE dimensions
-      USE domain_decomposition, ONLY: myijk, meshinds, ip0_jp0_kp0_
+      USE domain_mapping, ONLY: myijk, meshinds
       USE gas_solid_density, ONLY: rgp, rlk
       USE grid, ONLY: dx, dy, dz
       USE indijk_module
@@ -421,7 +421,7 @@
 !
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nphase
-      USE domain_decomposition, ONLY:  meshinds
+      USE domain_mapping, ONLY:  meshinds
       USE grid, ONLY: flag, inlet_cell, vent_cell, noslip_wall, slip_wall, filled_cell
       USE set_indexes, ONLY: ipjk, ijpk, ijkp
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws

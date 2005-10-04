@@ -35,7 +35,7 @@
       SUBROUTINE fsc_3d(fe, fn, ft, fw, fs, fb, dens, field, u, v, w, ijk)
 !
       USE dimensions
-      USE domain_decomposition, ONLY: myijk
+      USE domain_mapping, ONLY: myijk
       USE grid, ONLY: flag
       USE grid, ONLY: dx, dy, dz
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -123,7 +123,7 @@
       SUBROUTINE muscl_fsc_3d(fe, fn, ft, dens, field, u, v, w, ijk)
 !
       USE dimensions
-      USE domain_decomposition, ONLY: myijk
+      USE domain_mapping, ONLY: myijk
       USE grid, ONLY: flag
       USE grid, ONLY: dx, dy, dz
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -262,7 +262,7 @@
       SUBROUTINE fsc_2d(fe, ft, fw, fb, dens, field, u, w, ijk)
 !
       USE dimensions
-      USE domain_decomposition, ONLY: myijk
+      USE domain_mapping, ONLY: myijk
       USE grid, ONLY: flag
       USE grid, ONLY: dz
       USE grid, ONLY: dx, rb
@@ -335,7 +335,7 @@
       SUBROUTINE muscl_fsc_2d(fe, ft, dens, field, u, w, ijk)
 !
       USE dimensions
-      USE domain_decomposition, ONLY: myijk
+      USE domain_mapping, ONLY: myijk
       USE grid, ONLY: flag
       USE grid, ONLY: dz
       USE grid, ONLY: dx, rb

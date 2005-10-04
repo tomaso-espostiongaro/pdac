@@ -4,7 +4,7 @@
 
       USE control_flags, ONLY: job_type
       USE dimensions
-      USE domain_decomposition, ONLY: data_collect, data_distribute, ncint
+      USE domain_mapping, ONLY: data_collect, data_distribute, ncint
       USE eos_gas, ONLY: xgc, ygc
       USE gas_solid_density, ONLY: rog, rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg
@@ -131,7 +131,7 @@
       SUBROUTINE taperd
 !
       USE dimensions
-      USE domain_decomposition, ONLY: ncint, meshinds
+      USE domain_mapping, ONLY: ncint, meshinds
       USE atmospheric_conditions, ONLY: p_atm, t_atm
       USE grid, ONLY: zb, dz
       USE specific_heat_module, ONLY: hcapg

@@ -44,8 +44,8 @@
       USE control_flags, ONLY: job_type, lpr
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
       USE dimensions
-      USE domain_decomposition, ONLY: ncint, ncdom, data_exchange
-      USE domain_decomposition, ONLY: myijk, meshinds
+      USE domain_mapping, ONLY: ncint, ncdom, data_exchange
+      USE domain_mapping, ONLY: myijk, meshinds
       USE enthalpy_matrix, ONLY: ftem
       USE environment, ONLY: cpclock, timing
       USE flux_limiters, ONLY: muscl
@@ -956,7 +956,7 @@
 ! ... pressure 
 !
       USE dimensions
-      USE domain_decomposition, ONLY: ncint, myijk, meshinds
+      USE domain_mapping, ONLY: ncint, myijk, meshinds
       USE convective_mass_fluxes, ONLY: upc_e, upc_n, upc_t
       USE convective_mass_fluxes, ONLY: upc_w, upc_s, upc_b
       USE control_flags, ONLY: job_type
@@ -1667,7 +1667,7 @@
       END SUBROUTINE velocity_limiter
 !----------------------------------------------------------------------
       SUBROUTINE test_fluxes
-      USE domain_decomposition, ONLY: ncint, meshinds
+      USE domain_mapping, ONLY: ncint, meshinds
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
       USE io_files, ONLY: tempunit
       IMPLICIT NONE

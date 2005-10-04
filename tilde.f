@@ -33,7 +33,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE allocate_momentum
       USE dimensions
-      USE domain_decomposition, ONLY: ncint
+      USE domain_mapping, ONLY: ncint
       USE control_flags, ONLY: job_type
       IMPLICIT NONE
 !
@@ -54,7 +54,7 @@
       SUBROUTINE allocate_fluxes
 !
       USE dimensions, ONLY: nsolid
-      USE domain_decomposition, ONLY: ncint, ncdom
+      USE domain_mapping, ONLY: ncint, ncdom
       USE control_flags, ONLY: job_type
       USE tilde_energy, ONLY: rhg, rhs
       IMPLICIT NONE
@@ -127,8 +127,8 @@
 !
       USE control_flags, ONLY: job_type
       USE dimensions
-      USE domain_decomposition, ONLY: ncint, myijk, ncdom
-      USE domain_decomposition, ONLY: meshinds, data_exchange
+      USE domain_mapping, ONLY: ncint, myijk, ncdom
+      USE domain_mapping, ONLY: meshinds, data_exchange
       USE eos_gas, ONLY: xgc, ygc
       USE gas_components, ONLY: rgpgcn
       USE gas_solid_density, ONLY: rgp, rgpn, rlk, rlkn
@@ -261,8 +261,8 @@
 !
       USE atmospheric_conditions, ONLY: gravz, gravx, gravy
       USE dimensions
-      USE domain_decomposition, ONLY: meshinds
-      USE domain_decomposition, ONLY: ncint, myijk, ncdom, data_exchange
+      USE domain_mapping, ONLY: meshinds
+      USE domain_mapping, ONLY: ncint, myijk, ncdom, data_exchange
       USE control_flags, ONLY: job_type
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
@@ -689,8 +689,8 @@
       SUBROUTINE compute_all_fluxes
 !
       USE dimensions, ONLY: nsolid, nx, ny, nz
-      USE domain_decomposition, ONLY: meshinds
-      USE domain_decomposition, ONLY: ncint, myijk, data_exchange
+      USE domain_mapping, ONLY: meshinds
+      USE domain_mapping, ONLY: ncint, myijk, data_exchange
       USE convective_fluxes_u, ONLY: flu, muscl_flu
       USE convective_fluxes_v, ONLY: flv, muscl_flv
       USE convective_fluxes_w, ONLY: flw, muscl_flw
@@ -907,7 +907,7 @@
       END SUBROUTINE compute_all_fluxes
 !----------------------------------------------------------------------
       SUBROUTINE test_fluxes
-      USE domain_decomposition, ONLY: ncint, meshinds
+      USE domain_mapping, ONLY: ncint, meshinds
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
       USE gas_solid_velocity, ONLY: ug
       USE io_files, ONLY: tempunit

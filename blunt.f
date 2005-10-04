@@ -38,7 +38,8 @@
 
       USE control_flags, ONLY: lpr
       USE dimensions
-      USE domain_decomposition, ONLY: cell_g2l, cell_owner, meshinds
+      USE domain_decomposition, ONLY: cell_g2l, cell_owner
+      USE domain_mapping, ONLY: meshinds
       USE grid, ONLY: dx, dz, flag
       USE io_files, ONLY: blunit, blfile
 
@@ -209,7 +210,8 @@
       END SUBROUTINE bluntb
 !----------------------------------------------------------------------
       SUBROUTINE dragbl(m,fd)
-      USE domain_decomposition, ONLY: cell_g2l, cell_owner, meshinds
+      USE domain_decomposition, ONLY: cell_g2l, cell_owner
+      USE domain_mapping, ONLY: meshinds
       IMPLICIT NONE
 !
         INTEGER, INTENT(IN) :: m

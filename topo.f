@@ -1,5 +1,10 @@
 !----------------------------------------------------------------------
       MODULE volcano_topography
+!
+! ... Import the topography from a Digital Elevation Model (DEM)
+! ... The topography is discretized into a step-wise geometry and 
+! ... the opportune flag is assigned to topographic cells
+!
 !----------------------------------------------------------------------
       USE dimensions, ONLY: nx, ny, nz, ntot, no
       USE parallel, ONLY: mpime, root
@@ -27,7 +32,6 @@
         REAL*8  :: cellsize   
         REAL*8  :: nodata_value
       END TYPE dem_header
-
       TYPE(dem_header) :: vdem
 !
 ! ... arrays used for the interpolation
@@ -46,15 +50,30 @@
 ! ... 'dist' defines implicitly the profile
 !
       REAL*8, ALLOCATABLE  :: dist(:)  ! vertical distance above topography
-
-! ... input topography points
+!
+! ... Input parameters
+!
+      INTEGER :: itp, iavv, ismt
+      REAL*8 :: cellsize, filtersize
+      REAL*8 :: rim_quota
+      LOGICAL :: nocrater, itrans, seatable
+      !
+      ! ... file name for the topography
+      CHARACTER(LEN=80) :: dem_file
+!
+! ... Input topography points (from DEM)
 !
       REAL*8, ALLOCATABLE :: xtop(:), ytop(:), ztop(:), ztop2d(:,:)
+!
+! ... Temporary arrays for topographic points
+!
       REAL*8, ALLOCATABLE :: xdem(:), ydem(:), zdem(:,:)
+!
+! ... Coordinates of the vent center
+!
       INTEGER :: icenter, jcenter
 !
-!
-! ... Topographic elevation at the mesh points
+! ... Output: Topographic elevation at the mesh points
 ! ... (centered and staggered)
 !
       REAL*8, ALLOCATABLE  :: topo_c(:)
@@ -62,18 +81,10 @@
       REAL*8, ALLOCATABLE  :: topo2d_c(:,:)
       REAL*8, ALLOCATABLE  :: topo2d_x(:,:)
       REAL*8, ALLOCATABLE  :: topo2d_y(:,:)
-
-      ! ... Input parameters
-      INTEGER :: itp, iavv, ismt
-      REAL*8 :: cellsize, filtersize
-      REAL*8 :: rim_quota
-      LOGICAL :: nocrater, itrans, seatable
-!
-! ... file name for the topography
-      CHARACTER(LEN=80) :: dem_file
 !
       PUBLIC
-      PRIVATE :: icenter,jcenter,xdem,ydem,zdem
+      PRIVATE :: icenter,jcenter,xdem,ydem,zdem, dist
+      PRIVATE :: dem_header, vdem
       SAVE
 !----------------------------------------------------------------------
       CONTAINS

@@ -208,7 +208,7 @@
       REAL*8, INTENT(IN) :: delta, sigma
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: g, old_f1
       REAL*8 :: pi, twopi
-      REAL*8 :: fact, rat, summa
+      REAL*8 :: fact, rat, summa, norm
       INTEGER :: i, j, l, m, lmax, mmax, ssize
       INTEGER :: nsmx, nsmy
 
@@ -222,6 +222,7 @@
       pi       = 4.D0 * ATAN(1.D0)
       twopi    = 2.D0 * pi
       fact     = 0.5D0 * delta**2 / sigma**2
+      norm     = 1.D0 / twopi / sigma**2
       
       ! ... number of cells within the kernel
       !
@@ -233,9 +234,9 @@
       DO m = -mmax, mmax
         DO l = -lmax, lmax
           rat = (l**2 + m**2) * fact
-          g(l,m) = fact/pi * EXP(-rat)
+          g(l,m) = norm * EXP(-rat) * delta**2
           !WRITE(*,*) l, m, g(l,m)
-          summa = summa + g(l,m)
+          summa = summa + g(l,m) 
         END DO
       END DO
       WRITE(*,*) 'gaussian filter integral: ', summa
@@ -263,7 +264,7 @@
       RETURN
       END SUBROUTINE gaussian_filter_2d
 !----------------------------------------------------------------------
-! ... Filter out high frequency modes by applying a Gaussian filter
+! ... Filter out high frequency modes by applying a Barnes filter
 ! ... of sigma standard deviation (cutoff wave-length)
 ! ... WARNING!: It can be applied only to evenly-spaced arrays!
 !
@@ -494,6 +495,114 @@
 !      
       RETURN
       END SUBROUTINE interp_2d
+!----------------------------------------------------------------------
+      SUBROUTINE interp_3d(x1, y1, z1, f1, x2, y2, z2, f2, tx, ty, tz)
+      IMPLICIT NONE
+
+      REAL*8, INTENT(IN), DIMENSION(:) :: x1, y1, z1, x2, y2, z2
+      REAL*8, INTENT(IN), DIMENSION(:,:,:) :: f1
+      REAL*8, INTENT(OUT), DIMENSION(:,:,:) :: f2
+      INTEGER, INTENT(OUT), DIMENSION(:) :: tx, ty, tz
+!
+      REAL*8 :: dist1x, dist2x
+      REAL*8 :: dist1y, dist2y
+      REAL*8 :: dist1z, dist2z
+      REAL*8 :: alpha, beta, gam
+      INTEGER :: i,j,k,ii,jj,kk
+      INTEGER :: l,m,n
+      INTEGER :: n1x, n1y, n1z, n2x, n2y, n2z
+      REAL*8 :: p1, p2, p3, p4, tp1, tp2
+!
+      n1x = SIZE(x1)
+      n1y = SIZE(y1)
+      n1z = SIZE(z1)
+      n2x = SIZE(x2)
+      n2y = SIZE(y2)
+      n2z = SIZE(z2)
+!
+! ... Find the position of the new mesh points with respect to the old mesh
+!
+      l=1
+      DO i = 1, n1x
+        DO ii = l, n2x
+          IF (x1(i) >= x2(ii)) THEN
+            tx(ii)=i
+            l=l+1
+          ENDIF
+        ENDDO
+      ENDDO
+!
+      m=1
+      DO j = 1, n1y
+        DO jj = m, n2y
+          IF (y1(j) >= y2(jj)) THEN
+            ty(jj)=j
+            m=m+1
+          ENDIF
+        ENDDO
+      ENDDO
+!
+      n=1
+      DO k = 1, n1z
+        DO kk = n, n2z
+          IF (z1(k) >= z2(kk)) THEN
+            tz(kk)=k
+            n=n+1
+          ENDIF
+        ENDDO
+      ENDDO
+
+      DO k=1,n2z
+        DO j=1,n2y
+          DO i=1,n2x
+            f2(i,j,k) = f1(tx(i),ty(j),tz(k))
+          END DO
+        END DO
+      END DO
+!
+! ... Trilinear interpolation
+!
+        alpha = 1.D0
+        beta = 1.D0
+        gam = 1.D0
+        DO k=1,n2z
+           !
+           dist1z = z2(k) - z1(tz(k)-1)
+           dist2z = z1(tz(k)) - z2(k)
+           gam    = dist1z/(dist1z+dist2z)
+           !
+           DO j=1,n2y
+              !
+              dist1y = y2(j) - y1(ty(j)-1)
+              dist2y = y1(ty(j)) - y2(j)
+              beta   = dist1y/(dist1y+dist2y)
+              !
+              DO i=1,n2x
+                 !
+                 dist1x = x2(i) - x1(tx(i)-1)
+                 dist2x = x1(tx(i)) - x2(i)
+                 alpha  = dist1x/(dist1x+dist2x)
+                 !
+                 p1    = alpha * f1(tx(i),ty(j),tz(k))   + &
+                          (1.D0 - alpha) * f1(tx(i)-1,ty(j),tz(k))
+                 p2    = alpha * f1(tx(i),ty(j)-1,tz(k)) + &
+                          (1.D0 - alpha) * f1(tx(i)-1,ty(j)-1,tz(k))
+                 tp1    = beta * p1 + (1.D0 - beta) * p2
+                 !
+                 p3    = alpha * f1(tx(i),ty(j),tz(k)-1)   + &
+                          (1.D0 - alpha) * f1(tx(i)-1,ty(j),tz(k)-1)
+                 p4    = alpha * f1(tx(i),ty(j)-1,tz(k)-1) + &
+                          (1.D0 - alpha) * f1(tx(i)-1,ty(j)-1,tz(k)-1)
+                 tp2    = beta * p3 + (1.D0 - beta) * p4
+                 !
+                 f2(i,j,k) = gam * tp1 + (1.D0 - gam) * tp2
+                 !
+              ENDDO
+           ENDDO
+        ENDDO
+!      
+      RETURN
+      END SUBROUTINE interp_3d
 !----------------------------------------------------------------------
       END MODULE array_filters
 !----------------------------------------------------------------------

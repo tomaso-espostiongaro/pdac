@@ -1,5 +1,9 @@
 !-----------------------------------------------------------------------
       MODULE dome_conditions
+!
+! ... Identify the dome cells
+! ... Set the initial conditions within the dome cells
+!
 !-----------------------------------------------------------------------
       USE dimensions, ONLY: max_nsolid, max_ngas, nsolid, ngas
       USE io_files, ONLY: logunit
@@ -12,6 +16,10 @@
       REAL*8 :: xdome, ydome, zdome, dome_volume, dome_radius
       REAL*8 :: temperature, overpressure
       REAL*8 :: particle_fraction(max_nsolid)
+      REAL*8 :: gas_flux
+      REAL*8 :: permeability
+      REAL*8 :: dome_gasvisc
+      REAL*8 :: conduit_radius
       !
       REAL*8 :: dome_ygc(max_ngas)
 
@@ -21,15 +29,11 @@
         REAL*8  :: angle
         REAL*8  :: p_hydro
       END TYPE icdome_cell
-
       TYPE(icdome_cell), ALLOCATABLE :: dcell(:)
 
       INTEGER :: ndm
-      REAL*8 :: gas_flux
-      REAL*8 :: permeability
-      REAL*8 :: dome_gasvisc
-      REAL*8 :: conduit_radius
       PUBLIC
+      PRIVATE :: icdome_cell, dcell, ndm
       
       SAVE
 !-----------------------------------------------------------------------
@@ -234,7 +238,7 @@
       USE atmospheric_conditions, ONLY: p_atm
       USE control_flags, ONLY: job_type, lpr
       USE dimensions, ONLY: nsolid, ngas, nx
-      USE domain_decomposition, ONLY: ncint, meshinds
+      USE domain_mapping, ONLY: ncint, meshinds
       USE environment, ONLY: cpclock
       USE eos_gas, ONLY: ygc
       USE gas_constants, ONLY: gas_type, rgas
@@ -346,7 +350,7 @@
       USE atmospheric_conditions, ONLY: p_atm
       USE control_flags, ONLY: job_type, lpr
       USE dimensions, ONLY: nx, ny, nz
-      USE domain_decomposition, ONLY: ncint, meshinds
+      USE domain_mapping, ONLY: ncint, meshinds
       USE gas_constants, ONLY: rgas
       USE grid, ONLY: x, y, z, xb, yb, zb, r
       USE grid, ONLY: flag, dome_cell

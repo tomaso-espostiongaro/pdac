@@ -21,7 +21,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE allocate_hcapgs
       USE dimensions
-      USE domain_decomposition, ONLY: ncint
+      USE domain_mapping, ONLY: ncint
 !
       ALLOCATE(cp(max_ngas,ncint))
       ALLOCATE(ck(nsolid,ncint))

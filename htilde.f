@@ -28,7 +28,7 @@
 !
       USE control_flags, ONLY: job_type
       USE dimensions
-      USE domain_decomposition, ONLY: ncint, ncdom, meshinds
+      USE domain_mapping, ONLY: ncint, ncdom, meshinds
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: sieg, sies, tg, ts
@@ -181,8 +181,8 @@
       USE convective_fluxes_sc, ONLY: fsc, muscl_fsc
       USE diffusive_fluxes, ONLY: hotc
       USE dimensions, ONLY: nsolid
-      USE domain_decomposition, ONLY: ncint, ncdom
-      USE domain_decomposition, ONLY: data_exchange
+      USE domain_mapping, ONLY: ncint, ncdom
+      USE domain_mapping, ONLY: data_exchange
       USE flux_limiters, ONLY: muscl
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_density, ONLY: rgp, rlk
@@ -429,7 +429,7 @@
       END SUBROUTINE compute_all_fluxes
 !----------------------------------------------------------------------
       SUBROUTINE test_fluxes
-      USE domain_decomposition, ONLY: ncint, meshinds
+      USE domain_mapping, ONLY: ncint, meshinds
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
       USE gas_solid_velocity, ONLY: ug
       USE io_files, ONLY: tempunit
