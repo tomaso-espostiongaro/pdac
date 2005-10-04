@@ -26,6 +26,7 @@
 !
 ! ... momentum exchange coefficients
       REAL*8, DIMENSION(:,:), ALLOCATABLE  :: appu, appv, appw
+      PUBLIC
 !
       SAVE
 !----------------------------------------------------------------------
