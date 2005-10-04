@@ -245,10 +245,11 @@
         !
         IF (imap > 0) THEN
                 CALL write_topo2d
-                CALL write_map(tn,pd,'pd')
-                CALL write_map(tn,tg,'tg')
-                !CALL write_map(tn,ts(:,1),'t1')
-                !CALL write_map(tn,ts(:,2),'t2')
+!               CALL write_map(tn,pd,'pd')
+!               CALL write_map(tn,tg,'tg')
+!               CALL write_map(tn,ts(:,1),'t1')
+!               CALL write_map(tn,ts(:,2),'t2')
+                CALL write_map(tn,lepstot,'lg')
         END IF
 
       END DO
