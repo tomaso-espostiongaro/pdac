@@ -117,9 +117,6 @@
 ! 
 ! ... Initial conditions will be set from RESTART file
 ! ... or OUTPUT file
-! ... Just check that boundary velocity are zero.
-!
-        CALL reset_velocities
 !
       END SELECT
 !
@@ -278,6 +275,8 @@
 !
       ELSE IF (itd == 2) THEN 
 !
+! ... Binary Restart
+!
         DO ijk = 1, ncint
           ! ... compute gas components molar fractions 
           ! ... from mass fractions
@@ -306,10 +305,16 @@
           DO is = 1, nsolid
             CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
           END DO
-        END DO
 !
+! ... Just check that boundary velocity are zero.
+!
+          CALL reset_velocities(ijk)
+!
+        END DO
       ELSE IF (itd > 2) THEN 
-
+!
+! ... Output Restart
+!
         DO ijk = 1, ncint
           ! ... compute gas components mass fractions 
           ! ... from molar fractions
@@ -352,7 +357,11 @@
             CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
             sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
           END DO
-
+!
+! ... Just check that boundary velocity are zero.
+!
+          CALL reset_velocities(ijk)
+!
         END DO
       END IF
 
@@ -542,7 +551,7 @@
       RETURN
       END SUBROUTINE gas_check
 !----------------------------------------------------------------------
-      SUBROUTINE reset_velocities
+      SUBROUTINE reset_velocities(ijk)
 !
       USE control_flags, ONLY: job_type
       USE domain_mapping, ONLY: ncint, meshinds
@@ -553,14 +562,29 @@
       USE set_indexes, ONLY: ipjk, ijpk, ijkp
 !
       IMPLICIT NONE
-      INTEGER :: ijk, imesh, i, j, k
+      INTEGER, INTENT(IN) :: ijk
 !
-        DO ijk = 1, ncint
-          CALL meshinds(ijk,imesh,i,j,k)
-          
+! ... Sometimes useful to reset velocities on restart
+!
+!          IF (DABS(us(ijk,2))>300.D0) THEN
+!            us(ijk,2) = 0.D0
+!            WRITE(*,*) 'Reset u, cell: ',ijk
+!          END IF
+!          IF ( job_type == '3D') THEN
+!            IF (DABS(vs(ijk,2))>300.D0) THEN
+!              vs(ijk,2) = 0.D0
+!              WRITE(*,*) 'Reset v, cell: ',ijk
+!            END IF
+!          END IF
+!          IF (DABS(ws(ijk,2))>300.D0) THEN
+!            ws(ijk,2) = 0.D0
+!            WRITE(*,*) 'Reset w, cell: ',ijk
+!          END IF
+!          
           ! ... Set boundary velocity profiles
           ! ... Set the velocity = 0 on all faces
           ! ... of blocked cells
+          !
           !
           IF ( flag(ijk) == slip_wall .OR. flag(ijk) == noslip_wall ) THEN
             ug(ijk) = 0.D0
@@ -591,7 +615,6 @@
             ws(ijk,:) = 0.D0
           END IF
           !
-        END DO
       RETURN
       END SUBROUTINE reset_velocities
 !----------------------------------------------------------------------

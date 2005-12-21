@@ -143,7 +143,10 @@
 
         ! ... write initial conditions
         IF (sweep == 1) CALL outp
-        IF (itd == 0) EXIT time_sweep
+        IF (itd == 0) THEN
+          IF ( imr >= 1 ) CALL print_mass_residuals(sweep)
+          EXIT time_sweep
+        END IF
 
         IF( timing ) then
           s2 = cpclock()
@@ -154,7 +157,7 @@
 ! ... Print the total residuals of the mass conservation equation
 ! ... and the mass-flow rate
 !
-        IF ( imr >= 1 ) CALL print_mass_residuals(sweep)
+        !IF ( imr >= 1 ) CALL print_mass_residuals(sweep)
 !
 ! ... If needed, update gas density (check algorithm)
 ! ... Notice that the update of the gas density could
