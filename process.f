@@ -102,6 +102,7 @@
       ELSE 
         OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam)
         READ(outpunit) stime
+        time = stime
       END IF
 
       IF( lform ) READ(outpunit,'(///)')
