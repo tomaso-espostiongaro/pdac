@@ -179,7 +179,7 @@
 ! ... Domain Decomposition
 !
       !Simulate the domain decomposition!
-      !CALL partition( 456, mpime, root ) ! TEST
+      !CALL partition( 256, mpime, root ) ! TEST
       !CALL parallel_hangup   ! TEST
       !STOP                   ! TEST
       !

@@ -13,6 +13,7 @@
       USE initial_conditions, ONLY: allocate_setup, setpar
       USE input_module, ONLY: input, initc, number_of_block
       USE io_files, ONLY: inputunit,postunit,logunit,testunit,ppunit,inputfile
+      USE mass_orthoflux, ONLY: fluxn
       USE mass_partition, ONLY: massn
       USE parallel, ONLY: parallel_startup, parallel_hangup
       USE particles_constants, ONLY: allocate_part_constants
@@ -70,7 +71,9 @@
       CALL allocate_gas_constants
       CALL allocate_part_constants
       CALL allocate_setup
-
+!
+! ... Initialize some input variables
+!
       CALL initc
 !
 ! ... Set cell-type flags
@@ -103,6 +106,7 @@
       IF (act == 1) CALL process
       IF (act == 2) CALL sample
       IF (act == 3) CALL massn
+      IF (act == 4) CALL fluxn
 !
 !********************************************************
 !

@@ -13,12 +13,9 @@
 !
 ! ... main fields
 !
-      REAL, ALLOCATABLE, DIMENSION(:)   :: p, ug, vg, wg, tg
+      REAL, ALLOCATABLE, DIMENSION(:)   :: p, ug, vg, wg, tg, eptemp
       REAL, ALLOCATABLE, DIMENSION(:,:) :: xgc
       REAL, ALLOCATABLE, DIMENSION(:,:) :: eps, us, vs, ws, ts
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: array_map
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: array_map_max
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: topo2d
 !
       TYPE subdomain 
         INTEGER :: i1
@@ -29,9 +26,10 @@
         INTEGER :: k2
       END TYPE subdomain 
 !
-      INTEGER :: imap, number_of_boxes
+      INTEGER :: number_of_boxes
       CHARACTER(LEN=80) :: boxes_file
-      REAL*8 :: deltaz
+      REAL*8   :: time
+      REAL*4   :: stime
 !
       SAVE
 !----------------------------------------------------------------------
@@ -43,15 +41,10 @@
       INTEGER, INTENT(IN) :: dime
 
       ALLOCATE(p(dime), ug(dime), vg(dime), wg(dime), tg(dime))
+      ALLOCATE(eptemp(dime))
       ALLOCATE(eps(dime,nsolid), us(dime,nsolid), vs(dime,nsolid), &
                 ws(dime,nsolid), ts(dime,nsolid))
       ALLOCATE(xgc(dime,ngas))
-      ALLOCATE(array_map(nx,ny))
-      ALLOCATE(array_map_max(nx,ny))
-      ALLOCATE(topo2d(nx,ny))
-      array_map = 0.D0
-      array_map_max = 0.D0
-      topo2d = -9999
 
       RETURN
       END SUBROUTINE allocate_main_fields
@@ -70,11 +63,13 @@
       CHARACTER(LEN = 2 ) :: lettera2
       LOGICAL :: lform
 !
-      INTEGER :: ig, is, i
-      REAL*8   :: time
-      REAL*4   :: stime
+      INTEGER :: ig, is, i, k, ijk
 !
       filnam='output.'//lettera(tn)
+!
+! ... OLD OUTPUT name
+!
+!      filnam='OUTPUT.'//lettera(tn)
 
       lform = formatted_output
       IF (lform) THEN
@@ -87,7 +82,16 @@
 
       IF( lform ) READ(outpunit,'(///)')
       CALL read_array( outpunit, p, lform )  ! gas_pressure
-
+!
+! ... OLD OUTPUT format had volume fractions here ...
+!
+!      DO is = 1, nsolid
+!
+!        IF( lform ) READ(outpunit,'(///)')
+!        CALL read_array( outpunit, eps(:,is), lform )  ! solid_bulk_density
+!
+!      END DO
+!
       IF (job_type == '2D') THEN
 
         IF( lform ) READ(outpunit,'(///)')
@@ -111,16 +115,23 @@
       IF( lform ) READ(outpunit,'(///)')
       CALL read_array( outpunit, tg, lform )  ! gas_temperature
 
+      ! ... OLD format
+      !DO ig=1,1
+!      
+! ... NEW output contains all gas species in
+!
       DO ig=1,ngas
         IF( lform ) READ(outpunit,'(///)')
         CALL read_array( outpunit, xgc(:,ig), lform )  ! gc_molar_fraction
       END DO
 
       DO is = 1, nsolid
-
+!
+! ... NEW output format has volume fractions here ...
+!
         IF( lform ) READ(outpunit,'(///)')
         CALL read_array( outpunit, eps(:,is), lform )  ! solid_bulk_density
-
+!
         IF (job_type == '2D') THEN
 
         IF( lform ) READ(outpunit,'(///)')
@@ -146,6 +157,19 @@
 
       CLOSE (outpunit)
 !
+! ... OLD OUTPUT were written starting from the domain top
+!
+!      DO is = 1, nsolid
+!      eptemp = 0.D0
+!      DO k = 1, nz
+!        DO i = 1, nx
+!          ijk = i + (k-1) * nx
+!          eptemp(ijk) = eps(i + (nz-k)*nx,is)
+!          END DO
+!        END DO
+!        eps(:,is) = eptemp(:)
+!      END DO
+!
       RETURN
       END SUBROUTINE read_output
 !-----------------------------------------------------------------------
@@ -160,11 +184,11 @@
       IMPLICIT NONE
 !
       INTEGER :: i1, i2, j1, j2, k1, k2
-      INTEGER :: is, ijk, i, j, k, nfil, n, tn
+      INTEGER :: is, ijk, i, j, k, nfil, n, tn, counter
       LOGICAL :: lform
       CHARACTER(LEN = 14) :: filnam
       CHARACTER(LEN = 4 ) :: lettera
-      REAL*8 :: volume, pi, twopi
+      REAL*8 :: volume, pi, twopi, totalmass
       REAL*8, ALLOCATABLE :: vf(:)
       REAL*8, ALLOCATABLE :: smass(:,:)
       TYPE( subdomain ), ALLOCATABLE :: box(:)
@@ -210,6 +234,8 @@
                           IF (zb(k) < z1) box(n)%k1 = k
                           IF (zb(k) < z2) box(n)%k2 = k
                         END DO
+                        box(n)%j1 = 1
+                        box(n)%j2 = 1
                 ELSE IF (job_type == '3D') THEN
                         READ(tempunit,*) x1, x2, y1, y2, z1, z2
                         DO i=1,nx
@@ -227,6 +253,9 @@
                 END IF
       END DO
       CLOSE(tempunit)
+      WRITE(*,*) 'Box limits'
+      WRITE(*,*) (box(n)%i1, box(n)%i2, box(n)%j1, box(n)%j2, box(n)%k1, box(n)%k2, &
+       n=1,number_of_boxes)
 !
       OPEN(tempunit, FILE='masspart.dat', STATUS='UNKNOWN', POSITION='APPEND')
       WRITE(tempunit,*) '****************************'
@@ -241,7 +270,9 @@
         ! ... Compute the total solid mass in a box
         !
         smass(:,:) = 0.D0
+        totalmass = 0.D0
         DO n = 1, number_of_boxes
+          counter = 0
           i1 = box(n)%i1
           i2 = box(n)%i2
           j1 = box(n)%j1
@@ -254,12 +285,14 @@
                 IF (job_type == '2D') THEN
                   ijk = i + (k-1)*nx
                   volume = r(i) * dx(i) * dz(k) * vf(ijk)
+                  volume = twopi * volume
                 ELSE IF (job_type == '3D') THEN
                   ijk = i + (j-1)*nx + (k-1)*nx*ny
                   volume = dx(i) * dy(j) * dz(k) * vf(ijk)
                 END IF
                 IF (i/=1 .AND. i/=nx .AND. k/=1 .AND. k/=nz) THEN
                   IF ((j/=1 .AND. j/=ny) .OR. (job_type == '2D')) THEN
+                          counter = counter + 1
                           DO is = 1, nsolid
                             smass(n,is)  = smass(n,is) + eps(ijk,is) * rl(is) * volume
                           END DO
@@ -268,11 +301,14 @@
               END DO
             END DO
           END DO
+          !WRITE(*,*) 'Block ', n, ' Counts: ', counter 
         END DO
-        WRITE(tempunit,100) ((smass(n,is),is=1,nsolid),n=1,number_of_boxes)
+        totalmass = SUM(smass(1:3,:))
+        WRITE(tempunit,100) &
+          time, ((smass(n,is),is=1,nsolid),n=1,number_of_boxes),totalmass
       END DO
       CLOSE(tempunit)
- 100  FORMAT(20(G30.15))
+ 100  FORMAT(20(G30.15E3))
 !
       RETURN
       END SUBROUTINE massn

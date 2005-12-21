@@ -211,15 +211,16 @@
         um = velm(ug,us,eps,p,tg,xgc)
         IF (job_type == '3D') vm = velm(vg,vs,eps,p,tg,xgc)
         wm = velm(wg,ws,eps,p,tg,xgc)
-        mvm = vel(um,vm)
+        mvm = vel2(um,vm)
+        pd = pdyn(rm,mvm)
         !
         ! ... Compute the dynamic pressure as the sum of PARTICLE dynamic pressures
         !
-        sbd  = rlk(eps)
-        mvm = vel(us(:,1),vs(:,1))
-        pd = pdyn(sbd(:,1),mvm)
-        mvm = vel(us(:,2),vs(:,2))
-        pd = pd + pdyn(sbd(:,2),mvm)
+        !sbd  = rlk(eps)
+        !mvm = vel2(us(:,1),vs(:,1))
+        !pd = pdyn(sbd(:,1),mvm)
+        !mvm = vel2(us(:,2),vs(:,2))
+        !pd = pd + pdyn(sbd(:,2),mvm)
 
         ! ... Write out fields of interest
         !
@@ -231,25 +232,25 @@
         END IF
         CALL write_array( tempunit, lepstot, lform )
         CLOSE(tempunit)
-        !
-        filnam = 'tg.'//lettera(tn)
-        IF (lform) THEN
-          OPEN(tempunit,FILE=filnam)
-        ELSE 
-          OPEN(tempunit,FILE=filnam, FORM='UNFORMATTED')
-        END IF
-        CALL write_array( tempunit, tg, lform )
-        CLOSE(tempunit)
+!        !
+!        filnam = 'tg.'//lettera(tn)
+!        IF (lform) THEN
+!          OPEN(tempunit,FILE=filnam)
+!        ELSE 
+!          OPEN(tempunit,FILE=filnam, FORM='UNFORMATTED')
+!        END IF
+!        CALL write_array( tempunit, tg, lform )
+!        CLOSE(tempunit)
 
         ! ... Print the map of any interesting variable above ground
         !
         IF (imap > 0) THEN
                 CALL write_topo2d
-!               CALL write_map(tn,pd,'pd')
-!               CALL write_map(tn,tg,'tg')
+               CALL write_map(tn,pd,'pd')
+               CALL write_map(tn,tg,'tg')
 !               CALL write_map(tn,ts(:,1),'t1')
 !               CALL write_map(tn,ts(:,2),'t2')
-                CALL write_map(tn,lepstot,'lg')
+                CALL write_map(tn,lepstot,'lt')
         END IF
 
       END DO
@@ -516,7 +517,8 @@
         um = velm(ug,us,eps,p,tg,xgc)
         IF (job_type == '3D') vm = velm(vg,vs,eps,p,tg,xgc)
         wm = velm(wg,ws,eps,p,tg,xgc)
-        mvm = vel(um,wm)
+        !mvm = vel3(um,vm,wm)
+        mvm = vel2(ug,vg)
         c  = cm(bd,rg,rm,m,tg)
         mc = mach(mvm,c)
         pd = pdyn(rm,mvm)

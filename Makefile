@@ -9,7 +9,8 @@ outp.o parallel.o particles.o press.o prog.o reactions.o rannum.o\
 residuals.o roughness.o sampling.o setup.o subscr.o temp.o tilde.o time.o topo.o \
 turbo.o types.o velocity.o vent.o visc.o ygas.o iotk_module.o io_files.o
 
-PPFOBJS = derived.o filter.o process.o postin.o postout.o postp.o masspart.o
+PPFOBJS = derived.o filter.o process.o postin.o postout.o postp.o masspart.o \
+massflux.o
 
 all: comm.a pdac.x postp.x
 

@@ -932,9 +932,10 @@
         side  = DSQRT( area )       ! side of the base area
         nbx   = NINT( nx / side )   ! per processor number of column blocks along "x" 
         nby   = NINT( DBLE( nprocxy ) / nbx )
+!
         IF (nbx == 0) nbx = 1
         IF (nby == 0) nby = 1
-
+!
         DO WHILE ( nbx*nby < nprocxy )
          IF ( INT( nx / nbx ) .GT. INT( ny / nby ) ) THEN
            nbx = nbx + 1
@@ -943,7 +944,10 @@
          END IF
         END DO
         rest = nbx*nby - nprocxy
-
+        !
+        ! ... Check for errors: 'rest' must be strictly less than 'nby'
+        IF (MOD(rest,nby) == 0) nbx = nbx - rest/nby
+!
         IF( lpr > 1 .AND. ionode ) THEN
           WRITE(logunit,*) 'Report on domain decomposition'
           WRITE(logunit,*) 'nbx, nby, nbz, nprocz, nprocxy = ', nbx, nby, nbz, nprocz, nprocxy

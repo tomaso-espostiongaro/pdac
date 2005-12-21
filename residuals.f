@@ -1,10 +1,9 @@
 !----------------------------------------------------------------------
       MODULE check_residuals
 !
-! ... Check the residuals of mass in the whole domain
-!
-! ... Authors: Tomaso Esposti Ongaro
-! ... Date   : 
+! ... Integrate the gas and solid densities over the whole domain,
+! ... including a correction for immersed-boundary cells. 
+! ... Compute the istantaneous mass flow-rate from a vent.
 !----------------------------------------------------------------------
       USE domain_mapping, ONLY: ncint
       USE parallel, ONLY: root, mpime
@@ -51,6 +50,9 @@
       DO ijk = 1, ncint
         CALL meshinds(ijk,imesh,i,j,k)
 
+        ! ... On computational fluid cells, compute the density and the volume
+        ! ... to obtain the total mass
+        !
         IF ( BTEST(flag(ijk),0) ) THEN
           !
           ! ... Compute the volumes partially filled by the
@@ -78,7 +80,8 @@
 
         ELSE IF (flag(ijk) == inlet_cell .OR. flag(ijk) == vent_cell) THEN
           !
-          ! ... Compute the mass entered since the beginning
+          ! ... Compute the mass entered since the beginning and subtract from 
+          ! ... the total mass
           !
           IF (job_type == '2D') THEN
             sx = dz(k)*rb(i)

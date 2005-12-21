@@ -219,22 +219,29 @@
       RETURN
       END FUNCTION cm
 !----------------------------------------------------------------------
-      FUNCTION vel(v1, v2, v3)
+      FUNCTION vel2(v1, v2)
       !
       ! ... compute the modulus of a velocity field
       IMPLICIT NONE
       REAL, INTENT(IN), DIMENSION(:) :: v1, v2
-      REAL, INTENT(IN), DIMENSION(:), OPTIONAL :: v3
-      REAL, DIMENSION(SIZE(v1)) :: vel
+      REAL, DIMENSION(SIZE(v1)) :: vel2
 
-      IF (PRESENT(v3)) THEN
-        vel = SQRT( v1**2 + v2**2 + v3**2 )
-      ELSE
-        vel = SQRT( v1**2 + v2**2 )
-      END IF
+      vel2 = SQRT( v1**2 + v2**2 )
       
       RETURN
-      END FUNCTION vel
+      END FUNCTION vel2
+!----------------------------------------------------------------------
+      FUNCTION vel3(v1, v2, v3)
+      !
+      ! ... compute the modulus of a velocity field
+      IMPLICIT NONE
+      REAL, INTENT(IN), DIMENSION(:) :: v1, v2, v3
+      REAL, DIMENSION(SIZE(v1)) :: vel3
+
+      vel3 = SQRT( v1**2 + v2**2 + v3**2 )
+      
+      RETURN
+      END FUNCTION vel3
 !----------------------------------------------------------------------
       FUNCTION mach(vel, c)
       !

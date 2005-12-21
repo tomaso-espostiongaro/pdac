@@ -554,7 +554,8 @@
       USE grid, ONLY: x, y, xb, yb
       USE grid, ONLY: iv, jv
       IMPLICIT NONE
-
+      
+      LOGICAL :: rotate
       REAL*8 :: transl_x, transl_y
 !
       transl_x = center_x - x(iv)

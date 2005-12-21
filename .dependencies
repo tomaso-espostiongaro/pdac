@@ -101,6 +101,9 @@ letter.o :
 
 limiters.o : 
 
+massflux.o : control.o dimensions.o filter.o grid.o io_files.o kinds.o  \
+    outp.o particles.o 
+
 masspart.o : control.o dimensions.o filter.o grid.o immb.o io_files.o  \
     kinds.o outp.o particles.o 
 
@@ -123,14 +126,14 @@ pdac.o : blunt.o control.o decomp.o dens.o dimensions.o dome.o environment.o  \
     matrix.o outp.o parallel.o particles.o press.o setup.o temp.o tilde.o  \
     time.o topo.o turbo.o velocity.o vent.o visc.o ygas.o 
 
-postin.o : filter.o masspart.o process.o 
+postin.o : filter.o massflux.o masspart.o process.o 
 
 postout.o : control.o dimensions.o grid.o input.o io_files.o iotk_module.o  \
     kinds.o outp.o process.o time.o 
 
 postp.o : control.o dimensions.o filter.o gas.o grid.o input.o io_files.o  \
-    masspart.o parallel.o particles.o postin.o postout.o process.o setup.o  \
-    time.o topo.o 
+    massflux.o masspart.o parallel.o particles.o postin.o postout.o  \
+    process.o setup.o time.o topo.o 
 
 press.o : dimensions.o ghost.o 
 

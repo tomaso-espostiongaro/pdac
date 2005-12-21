@@ -321,7 +321,7 @@
             WRITE(tempunit,*) 'yb'
             WRITE(tempunit,17) yb
             WRITE(tempunit,*) 'z' 
-            WRITE(tempunit,17) z 
+            WRITE(tempunit,17) z
             WRITE(tempunit,*) 'zb' 
             WRITE(tempunit,17) zb
         CLOSE( tempunit )
