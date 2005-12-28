@@ -51,7 +51,7 @@
       CHARACTER(LEN=3) :: procnum
       INTEGER :: mydate(10)
 !
-      INTEGER :: ig
+      INTEGER :: ig, n
       REAL*8 :: s0, s1, s2, s3, s4, s5, s6, t0
       REAL*8 :: pt0, pt1, pt2, pt3, pt4, pt5, pt6
       REAL*8 :: timtot, timprog, timdist, timsetup, timinit, timres, timghost
@@ -179,7 +179,9 @@
 ! ... Domain Decomposition
 !
       !Simulate the domain decomposition!
-      !CALL partition( 256, mpime, root ) ! TEST
+      !DO n = 180, 256
+      !CALL partition( n, mpime, root ) ! TEST
+      !END DO
       !CALL parallel_hangup   ! TEST
       !STOP                   ! TEST
       !

@@ -880,6 +880,7 @@
 !
       REAL*8 :: side, area, volume, zavg, fact
       LOGICAL :: ionode
+      INTEGER :: divnby, modnby
 
 ! ... Subroutine Body
 
@@ -913,7 +914,6 @@
 ! ... compute blocks in z direction 
 
       nbz = nprocz  
-
 !
 ! ... subdivides the XY domain into 'nby' Slabs. Each slab
 ! ... will be in turn subdivided into 'nbx' column blocks.
@@ -924,7 +924,6 @@
 ! ... units of volume, that should be equally distributed across 
 ! ... processors.
 !
-
         zavg = DBLE( countfl) / ( nx * ny )         ! average no. of counts along z dim
         volume = DBLE( countfl ) / DBLE( nprocxy )  ! per (columns) processor no. of counts
 
@@ -937,7 +936,7 @@
         IF (nby == 0) nby = 1
 !
         DO WHILE ( nbx*nby < nprocxy )
-         IF ( INT( nx / nbx ) .GT. INT( ny / nby ) ) THEN
+         IF ( INT( nx / nbx ) > INT( ny / nby ) ) THEN
            nbx = nbx + 1
          ELSE
            nby = nby + 1
@@ -946,7 +945,18 @@
         rest = nbx*nby - nprocxy
         !
         ! ... Check for errors: 'rest' must be strictly less than 'nby'
-        IF (MOD(rest,nby) == 0) nbx = nbx - rest/nby
+        !
+        divnby = INT(rest/nby)
+        IF (divnby >= 1) THEN
+          nbx = nbx - divnby
+          rest = nbx*nby - nprocxy
+        END IF
+        !
+        modnby = MOD(rest,nby)
+        IF (modnby == 0) THEN
+          nbx = nbx - rest/nby
+          rest = 0
+        END IF
 !
         IF( lpr > 1 .AND. ionode ) THEN
           WRITE(logunit,*) 'Report on domain decomposition'
