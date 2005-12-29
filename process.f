@@ -508,21 +508,21 @@
             ts(:,is) = vars(:,cnt+5)
           END DO
         END IF
-        DO is = 1, nsolid
-        WRITE(*,*) eps(:,is)
-        END DO
         rm = rhom(eps,p,tg,xgc)
         rg = rhog(p,tg,xgc)
         bd = rgp(eps,p,tg,xgc)
         m  = mg(xgc)
         um = velm(ug,us,eps,p,tg,xgc)
-        IF (job_type == '3D') vm = velm(vg,vs,eps,p,tg,xgc)
         wm = velm(wg,ws,eps,p,tg,xgc)
-        !mvm = vel3(um,vm,wm)
-        mvm = vel2(ug,vg)
+        IF (job_type == '3D') THEN
+                vm = velm(vg,vs,eps,p,tg,xgc)
+                mvm = vel3(um,vm,wm)
+        ELSE IF (job_type == '2D') THEN
+                mvm = vel2(um,wm)
+        END IF
+        pd = pdyn(rm,mvm)
         c  = cm(bd,rg,rm,m,tg)
         mc = mach(mvm,c)
-        pd = pdyn(rm,mvm)
         epstot = epst(eps)
         lepstot = leps(epstot)
         !
@@ -533,7 +533,11 @@
           i = probe(n)%i
           j = probe(n)%j
           k = probe(n)%k
-          probenam ='S'//lettera(n)//'_'//lettera(i)//'_'//lettera(j)//'_'//lettera(k)
+          IF (job_type == '3D') THEN
+            probenam ='S'//lettera(n)//'_'//lettera(i)//'_'//lettera(j)//'_'//lettera(k)
+          ELSE IF (job_type == '2D') THEN
+            probenam ='S'//lettera(n)//'_'//lettera(i)//'_'//lettera(k)
+          END IF
           OPEN(UNIT=tempunit, FILE=probenam, POSITION='APPEND')
             WRITE(tempunit,100) time, (vars(nop,nv), nv=1, nvars), rm(nop), mvm(nop), pd(nop)
           CLOSE(tempunit)
