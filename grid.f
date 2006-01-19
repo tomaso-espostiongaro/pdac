@@ -232,7 +232,7 @@
       !
       IF (nmz /= 0) dz(1:nmz) = dzmax
       dz(nmz+1:nmz+nz_inner) = dz_inner(1:nz_inner)
-      IF (npz /= 0) dx(nz-npz+1:nz) = dzmax
+      IF (npz /= 0) dz(nz-npz+1:nz) = dzmax
       alpha_z = (alpha_z*domain_z + nmz*dzmax)/(domain_z + (nmz+npz)*dzmax)
       domain_z = domain_z + (nmz+npz)*dzmax
       kv = kv + nmz
@@ -435,6 +435,9 @@
         END DO
         !
       END IF
+!      DO ijk = 1, nx*ny*nz
+!      WRITE(*,*) fl(ijk)
+!      END DO
 !
       RETURN
       END SUBROUTINE flic

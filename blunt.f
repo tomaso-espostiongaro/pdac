@@ -214,9 +214,9 @@
       USE domain_mapping, ONLY: meshinds
       IMPLICIT NONE
 !
-        INTEGER, INTENT(IN) :: m
-	REAL*8, INTENT(OUT) :: fd
-        INTEGER :: pp, ijk
+      INTEGER, INTENT(IN) :: m
+      REAL*8, INTENT(OUT) :: fd
+      INTEGER :: pp, ijk
 !
         fd = 0.D0
         DO pp = 1, perim
@@ -224,7 +224,7 @@
           IF (mpime == surfp(m,pp)%np) surfp(m,pp)%p = p(ijk)
           fd = fd + surfp(m,pp)%ds * surfp(m,pp)%p * surfp(m,pp)%n(1)
           !WRITE(testunit,*) ijk, surfp(m,pp)%p, ep(ijk)
-	END DO
+        END DO
 !
       END SUBROUTINE dragbl
 !----------------------------------------------------------------------
