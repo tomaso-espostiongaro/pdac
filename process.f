@@ -333,7 +333,7 @@
                 ijkm = i + (j-1) * nx + (k-2) * nx * ny
                 alpha = deltaz - z(k-1)
                 alpha = alpha / (z(k) - z(k-1)) 
-                map = alpha * array(ijk) + (1.D0-alpha) * array(ijk)
+                map = alpha * array(ijk) + (1.D0-alpha) * array(ijkm)
                 ! ... Map the value reached at any given position at
                 ! ... given time
                 array_map(i,j) = map
