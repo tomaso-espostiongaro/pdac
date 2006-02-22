@@ -25,6 +25,10 @@
   planes_file = 'planes.dat'
 /
 
+&massgsedim
+  iground = 0,
+  thickness = 200.D0
+
 &animation
 /
 

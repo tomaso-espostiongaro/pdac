@@ -13,6 +13,7 @@
       USE initial_conditions, ONLY: allocate_setup, setpar
       USE input_module, ONLY: input, initc, number_of_block
       USE io_files, ONLY: inputunit,postunit,logunit,testunit,ppunit,inputfile
+      USE mass_ground, ONLY: massgs
       USE mass_orthoflux, ONLY: fluxn
       USE mass_partition, ONLY: massn
       USE parallel, ONLY: parallel_startup, parallel_hangup
@@ -107,6 +108,7 @@
       IF (act == 2) CALL sample
       IF (act == 3) CALL massn
       IF (act == 4) CALL fluxn
+      IF (act == 5) CALL massgs
 !
 !********************************************************
 !

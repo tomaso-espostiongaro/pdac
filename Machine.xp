@@ -5,7 +5,7 @@ MACROS= -D__SCALAR
 CPPFLAGS= $(MACROS)
 LINKFLAGS= 
 LIBS=
-FREEFORM= -Mfree
+FREEFORM= -Mfree #-Mbyteswapio
 ARFLAGS=rv
 #----------------------------------------
 FFLAGS= -O2 -fastsse -tp athlonxp $(CPPFLAGS)

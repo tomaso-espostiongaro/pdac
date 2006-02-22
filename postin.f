@@ -18,6 +18,7 @@
       USE filter_outp, ONLY: variable_n, field_n
       USE mass_orthoflux, ONLY: number_of_planes, planes_file
       USE mass_partition, ONLY: number_of_boxes, boxes_file
+      USE mass_ground, ONLY: iground, thickness
       USE process_outp, ONLY: imap, deltaz
 
       IMPLICIT NONE
@@ -33,6 +34,8 @@
       NAMELIST / masspart / number_of_boxes, boxes_file
 
       NAMELIST / massflux / number_of_planes, planes_file
+
+      NAMELIST / massgsedim / iground, thickness
 
       NAMELIST / animation / variable_n
 
@@ -70,6 +73,10 @@
   number_of_planes = 1
   planes_file = 'planes.dat'
 
+! ... Mass ground deposit
+  iground = 0
+  thickness = 500.D0
+
 ! ... Animation
   variable_n = 0
 
@@ -83,6 +90,7 @@
       READ(punit, sampling)
       READ(punit, masspart)
       READ(punit, massflux)
+      READ(punit, massgsedim)
       READ(punit, animation)
       READ(punit, post_processing)
 

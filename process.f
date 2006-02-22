@@ -353,7 +353,6 @@
       CLOSE(tempunit)
 
  122  FORMAT(10(1x,G14.6E3))
- 123  CONTINUE
 
       RETURN
       END SUBROUTINE write_map
