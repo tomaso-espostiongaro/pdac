@@ -5,8 +5,8 @@
   incr_out   = 10
 /
 
-&iflds
-  ifilds = 0
+&fields
+  iflds = 1
 /
 
 &map
@@ -36,6 +36,7 @@
 &massgsedim
   iground = 0,
   thickness = 200.D0
+/
 
 &animation
 /
