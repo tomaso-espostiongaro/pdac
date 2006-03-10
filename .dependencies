@@ -34,7 +34,8 @@ eosg.o : control.o dimensions.o gas.o ghost.o grid.o hcapgs.o io_files.o  \
 
 eosl.o : control.o dimensions.o gas.o ghost.o hcapgs.o io_files.o parallel.o 
 
-filter.o : control.o dimensions.o grid.o io_files.o kinds.o outp.o 
+filter.o : control.o dimensions.o grid.o io_files.o io_serial.o kinds.o  \
+    outp.o 
 
 flux_m.o : dimensions.o ghost.o grid.o indijk.o limiters.o subscr.o time.o 
 
@@ -86,6 +87,8 @@ io.o : atmosphere.o control.o dens.o dimensions.o eosg.o gas.o ghost.o grid.o  \
 
 io_files.o : 
 
+io_serial.o : control.o dimensions.o grid.o io_files.o kinds.o 
+
 iotk_module.o : 
 
 iter.o : control.o dens.o dimensions.o environment.o eosg.o flux_m.o ftem.o  \
@@ -101,14 +104,13 @@ letter.o :
 
 limiters.o : 
 
-massflux.o : control.o dimensions.o filter.o grid.o io_files.o kinds.o  \
-    outp.o particles.o 
+massflux.o : control.o dimensions.o grid.o io_files.o particles.o postvar.o 
 
-massgsedim.o : control.o dimensions.o filter.o grid.o immb.o io_files.o  \
-    kinds.o outp.o particles.o 
+massgsedim.o : control.o dimensions.o grid.o immb.o io_files.o io_serial.o  \
+    particles.o postvar.o 
 
-masspart.o : control.o dimensions.o filter.o grid.o immb.o io_files.o  \
-    kinds.o outp.o particles.o 
+masspart.o : control.o dimensions.o grid.o immb.o io_files.o particles.o  \
+    postvar.o 
 
 matrix.o : control.o dens.o dimensions.o ghost.o grid.o indijk.o particles.o  \
     press.o subscr.o tilde.o time.o velocity.o 
@@ -129,24 +131,27 @@ pdac.o : blunt.o control.o decomp.o dens.o dimensions.o dome.o environment.o  \
     matrix.o outp.o parallel.o particles.o press.o setup.o temp.o tilde.o  \
     time.o topo.o turbo.o velocity.o vent.o visc.o ygas.o 
 
-postin.o : filter.o massflux.o massgsedim.o masspart.o process.o 
+postin.o : filter.o io_serial.o massflux.o massgsedim.o masspart.o  \
+    process.o sampling.o 
 
-postout.o : control.o dimensions.o grid.o input.o io_files.o iotk_module.o  \
-    kinds.o outp.o process.o time.o 
+postout.o : control.o dimensions.o grid.o input.o io_files.o io_serial.o  \
+    iotk_module.o kinds.o outp.o time.o 
 
 postp.o : control.o dimensions.o filter.o gas.o grid.o input.o io_files.o  \
-    massflux.o massgsedim.o masspart.o parallel.o particles.o postin.o  \
-    postout.o process.o setup.o time.o topo.o 
+    io_serial.o parallel.o particles.o postin.o postout.o process.o setup.o  \
+    time.o topo.o 
+
+postvar.o : control.o derived.o dimensions.o 
 
 press.o : dimensions.o ghost.o 
 
-process.o : control.o derived.o dimensions.o filter.o grid.o io_files.o  \
-    kinds.o outp.o 
+process.o : control.o dimensions.o grid.o io_files.o io_serial.o kinds.o  \
+    massflux.o massgsedim.o masspart.o outp.o postvar.o sampling.o 
 
 prog.o : bdry.o blunt.o control.o dens.o dimensions.o environment.o eosg.o  \
     ftem.o ghost.o htilde.o indijk.o io.o io_files.o iter.o outp.o parallel.o  \
-    particles.o press.o reactions.o residuals.o sampling.o temp.o tilde.o  \
-    time.o topo.o turbo.o ygas.o 
+    particles.o press.o reactions.o residuals.o temp.o tilde.o time.o topo.o  \
+    turbo.o ygas.o 
 
 rannum.o : 
 
@@ -157,7 +162,7 @@ residuals.o : control.o dens.o dimensions.o eosg.o ghost.o grid.o immb.o  \
 
 roughness.o : control.o dimensions.o topo.o 
 
-sampling.o : control.o decomp.o dimensions.o grid.o press.o time.o 
+sampling.o : control.o dimensions.o grid.o io_files.o postvar.o 
 
 setup.o : atmosphere.o control.o dens.o dimensions.o dome.o eosg.o gas.o  \
     ghost.o grid.o hcapgs.o indijk.o io_files.o parallel.o particles.o  \

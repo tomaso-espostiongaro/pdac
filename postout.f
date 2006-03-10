@@ -320,7 +320,7 @@
       USE grid
       USE output_dump, ONLY: formatted_output
       USE input_module, ONLY: run_name
-      USE process_outp, ONLY: first_out, last_out, incr_out
+      USE io_serial, ONLY: first_out, last_out, incr_out
       USE time_parameters, ONLY: dt, timestart
       USE kinds
       USE io_files, ONLY: iunxml, xmlfile

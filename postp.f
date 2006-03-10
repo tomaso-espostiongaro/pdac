@@ -6,24 +6,22 @@
 !
       PROGRAM postp
 
+      USE control_flags, ONLY: prog
       USE dimensions
-      USE filter_outp, ONLY: filter, read_implicit_profile, act
+      USE filter_outp, ONLY: filter
+      USE io_serial, ONLY: read_implicit_profile
       USE gas_constants, ONLY: allocate_gas_constants
       USE grid, ONLY: flic, allocate_blbody, allocate_grid, grid_setup, zzero
       USE initial_conditions, ONLY: allocate_setup, setpar
       USE input_module, ONLY: input, initc, number_of_block
       USE io_files, ONLY: inputunit,postunit,logunit,testunit,ppunit,inputfile
-      USE mass_ground, ONLY: massgs
-      USE mass_orthoflux, ONLY: fluxn
-      USE mass_partition, ONLY: massn
       USE parallel, ONLY: parallel_startup, parallel_hangup
       USE particles_constants, ONLY: allocate_part_constants
       USE postp_input, ONLY: postin
       USE postp_output, ONLY: write_avs_files, write_xml_files
-      USE process_outp, ONLY: process, sample
+      USE process_outp, ONLY: process, act
       USE time_parameters, ONLY: itd
       USE volcano_topography, ONLY: itp
-      USE control_flags, ONLY: prog
 !
       IMPLICIT NONE
       CHARACTER(LEN=8) :: postfile, logfile, testfile, ppfile
@@ -105,10 +103,6 @@
 ! ... map hazard variables at a given height above ground
 !
       IF (act == 1) CALL process
-      IF (act == 2) CALL sample
-      IF (act == 3) CALL massn
-      IF (act == 4) CALL fluxn
-      IF (act == 5) CALL massgs
 !
 !********************************************************
 !

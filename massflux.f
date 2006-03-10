@@ -1,21 +1,9 @@
 !----------------------------------------------------------------------
       MODULE mass_orthoflux
 !----------------------------------------------------------------------
-      USE dimensions
-      USE filter_outp, ONLY: first_out, last_out, incr_out
-      USE filter_outp, ONLY: read_array, write_array
-      USE kinds
-      USE control_flags, ONLY: job_type
-      USE io_files, ONLY: logunit
-      USE output_dump, ONLY: formatted_output
+      USE postp_variables, ONLY: time, eps, us, vs, ws
 !
       IMPLICIT NONE
-!
-! ... main fields
-!
-      REAL, ALLOCATABLE, DIMENSION(:)   :: p, ug, vg, wg, tg, eptemp
-      REAL, ALLOCATABLE, DIMENSION(:,:) :: xgc
-      REAL, ALLOCATABLE, DIMENSION(:,:) :: eps, us, vs, ws, ts
 !
       TYPE orthoslice 
         INTEGER :: axis
@@ -26,156 +14,16 @@
         INTEGER :: t2
       END TYPE orthoslice 
 !
-      INTEGER :: number_of_planes
+      INTEGER :: number_of_planes, ifluxn
       CHARACTER(LEN=80) :: planes_file
-      REAL*8   :: time
-      REAL*4   :: stime
 !
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE allocate_main_fields(dime)
-!
-      IMPLICIT NONE
-      INTEGER, INTENT(IN) :: dime
-
-      ALLOCATE(p(dime), ug(dime), vg(dime), wg(dime), tg(dime))
-      ALLOCATE(eptemp(dime))
-      ALLOCATE(eps(dime,nsolid), us(dime,nsolid), vs(dime,nsolid), &
-                ws(dime,nsolid), ts(dime,nsolid))
-      ALLOCATE(xgc(dime,ngas))
-
-      RETURN
-      END SUBROUTINE allocate_main_fields
-!----------------------------------------------------------------------
-      SUBROUTINE read_output( tn )
-!
-! ... Read THe PDAC Output files
-!
-      USE io_files, ONLY: outpunit
-!
-      IMPLICIT NONE
-!
-      INTEGER, INTENT(IN) :: tn
-      CHARACTER(LEN = 11) :: filnam
-      CHARACTER(LEN = 4 ) :: lettera
-      CHARACTER(LEN = 2 ) :: lettera2
-      LOGICAL :: lform
-!
-      INTEGER :: ig, is, i, k, ijk
-!
-      filnam='output.'//lettera(tn)
-!
-! ... OLD OUTPUT name
-!
-!      filnam='OUTPUT.'//lettera(tn)
-
-      lform = formatted_output
-      IF (lform) THEN
-        OPEN(UNIT=outpunit, FILE=filnam, STATUS='OLD')
-        READ(outpunit,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
-      ELSE 
-        OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam)
-        READ(outpunit) stime
-        time = stime
-      END IF
-
-      IF( lform ) READ(outpunit,'(///)')
-      CALL read_array( outpunit, p, lform )  ! gas_pressure
-!
-! ... OLD OUTPUT format had volume fractions here ...
-!
-!      DO is = 1, nsolid
-!
-!        IF( lform ) READ(outpunit,'(///)')
-!        CALL read_array( outpunit, eps(:,is), lform )  ! solid_bulk_density
-!
-!      END DO
-!
-      IF (job_type == '2D') THEN
-
-        IF( lform ) READ(outpunit,'(///)')
-        CALL read_array( outpunit, ug, lform ) ! gas_velocity_r
-        IF( lform ) READ(outpunit,'(///)')
-        CALL read_array( outpunit, wg, lform ) ! gas_velocity_z
-
-      ELSE IF (job_type == '3D') THEN
-
-        IF( lform ) READ(outpunit,'(///)')
-        CALL read_array( outpunit, ug, lform ) ! gas_velocity_x
-        IF( lform ) READ(outpunit,'(///)')
-        CALL read_array( outpunit, vg, lform ) ! gas_velocity_y
-        IF( lform ) READ(outpunit,'(///)')
-        CALL read_array( outpunit, wg, lform ) ! gas_velocity_z
-
-      ELSE
-        CALL error('outp_','Unknown job type',1)
-      END IF
-
-      IF( lform ) READ(outpunit,'(///)')
-      CALL read_array( outpunit, tg, lform )  ! gas_temperature
-
-      ! ... OLD format
-      !DO ig=1,1
-!      
-! ... NEW output contains all gas species in
-!
-      DO ig=1,ngas
-        IF( lform ) READ(outpunit,'(///)')
-        CALL read_array( outpunit, xgc(:,ig), lform )  ! gc_molar_fraction
-      END DO
-
-      DO is = 1, nsolid
-!
-! ... NEW output format has volume fractions here ...
-!
-        IF( lform ) READ(outpunit,'(///)')
-        CALL read_array( outpunit, eps(:,is), lform )  ! solid_bulk_density
-!
-        IF (job_type == '2D') THEN
-
-        IF( lform ) READ(outpunit,'(///)')
-          CALL read_array( outpunit, us(:,is), lform )  ! solid_velocity_r
-        IF( lform ) READ(outpunit,'(///)')
-          CALL read_array( outpunit, ws(:,is), lform )  ! solid_velocity_z
-
-        ELSE IF (job_type == '3D') THEN
-
-        IF( lform ) READ(outpunit,'(///)')
-          CALL read_array( outpunit, us(:,is), lform )  ! solid_velocity_x
-        IF( lform ) READ(outpunit,'(///)')
-          CALL read_array( outpunit, vs(:,is), lform )  ! solid_velocity_y
-        IF( lform ) READ(outpunit,'(///)')
-          CALL read_array( outpunit, ws(:,is), lform )  ! solid_velocity_z
-
-        END IF
-
-        IF( lform ) READ(outpunit,'(///)')
-        CALL read_array( outpunit, ts(:,is), lform )  ! solid_temperature
-
-      END DO
-
-      CLOSE (outpunit)
-!
-! ... OLD OUTPUT were written starting from the domain top
-!
-!      DO is = 1, nsolid
-!      eptemp = 0.D0
-!      DO k = 1, nz
-!        DO i = 1, nx
-!          ijk = i + (k-1) * nx
-!          eptemp(ijk) = eps(i + (nz-k)*nx,is)
-!          END DO
-!        END DO
-!        eps(:,is) = eptemp(:)
-!      END DO
-!
-      RETURN
-      END SUBROUTINE read_output
-!-----------------------------------------------------------------------
       SUBROUTINE fluxn
 ! 
+      USE control_flags, ONLY: job_type
       USE dimensions
       USE grid, ONLY: dx, dy, dz, r, xb, yb, zb, rb
       USE io_files, ONLY: tempunit
@@ -183,9 +31,8 @@
 
       IMPLICIT NONE
 !
-      LOGICAL :: lform
       INTEGER :: n1, n2, t1, t2, axis, plane
-      INTEGER :: i, j, k, ijk, is, n, t, tn, counter, np
+      INTEGER :: i, j, k, ijk, is, n, t, counter, np
       INTEGER :: ijkm, ijmk, imjk, ipjk, ijpk, ijkp
       REAL*8, ALLOCATABLE :: vel(:), epsm(:)
       REAL*8, ALLOCATABLE :: sflux_p(:,:), sflux_n(:,:)
@@ -196,8 +43,6 @@
       pi = 4.D0 * ATAN(1.D0)
       twopi = 2.D0 * pi
 !
-      lform = formatted_output
-
       ALLOCATE(vel(nsolid), epsm(nsolid))
       vel = 0.D0
       epsm = 0.D0
@@ -214,8 +59,6 @@
       slice(:)%n2 = 1
       slice(:)%t1 = 1
       slice(:)%t2 = 1
-!
-      CALL allocate_main_fields(ntot)
 !
       OPEN(tempunit, FILE=planes_file, STATUS='OLD')
 !
@@ -297,16 +140,10 @@
                   slice(np)%n1, slice(np)%n2, slice(np)%t1, slice(np)%t2, &
                   np=1,number_of_planes)
 !
-      OPEN(tempunit, FILE='massflux.dat', STATUS='UNKNOWN', POSITION='APPEND')
-      WRITE(tempunit,*) '****************************'
-      DO tn = first_out, last_out, incr_out
-
-        WRITE(logunit,fmt="(/,'* Starting post-processing ',I5,' * ')" ) tn
-
-        ! ... Read PDAC output file
-        !
-        CALL read_output ( tn )
-
+      OPEN(tempunit, FILE='massflux.dat', STATUS='UNKNOWN', &
+                                          POSITION='APPEND')
+!      WRITE(tempunit,*) '****************************'
+!
         ! ... Compute the total solid mass flux across a slice plane
         !
         sflux_p(:,:) = 0.D0
@@ -385,7 +222,7 @@
         END DO
         WRITE(tempunit,100) &
           time, ((sflux_p(np,is),sflux_n(np,is),is=1,nsolid),np=1,number_of_planes)
-      END DO
+!
       CLOSE(tempunit)
  100  FORMAT(50(G30.15E3))
 !

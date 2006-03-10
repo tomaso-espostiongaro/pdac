@@ -6,11 +6,11 @@ flux_u.o flux_v.o flux_w.o flux_sc.o flux_m.o gas.o ghost.o grid.o \
 hcapgs.o hotc.o hvs.o htilde.o kinds.o immb.o indijk.o input.o \
 interp.o inoutflow.o io.o iter.o kb07ad.o limiters.o letter.o matrix.o \
 outp.o parallel.o particles.o press.o prog.o reactions.o rannum.o\
-residuals.o roughness.o sampling.o setup.o subscr.o temp.o tilde.o time.o topo.o \
+residuals.o roughness.o setup.o subscr.o temp.o tilde.o time.o topo.o \
 turbo.o types.o velocity.o vent.o visc.o ygas.o iotk_module.o io_files.o
 
-PPFOBJS = derived.o filter.o process.o postin.o postout.o postp.o masspart.o \
-massflux.o massgsedim.o
+PPFOBJS = derived.o filter.o io_serial.o  process.o postin.o postout.o postp.o \
+sampling.o masspart.o massflux.o massgsedim.o postvar.o
 
 all: comm.a pdac.x postp.x
 

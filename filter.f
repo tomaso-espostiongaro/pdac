@@ -5,35 +5,14 @@
       USE kinds
       USE control_flags, ONLY: job_type
       USE io_files, ONLY: logunit
+      USE io_serial, ONLY: read_array
       USE output_dump, ONLY: formatted_output
 !
       IMPLICIT NONE
 !
 ! ... parameters for filters
 !
-      INTEGER :: act
-      INTEGER :: first_out, last_out, incr_out
       INTEGER :: downsize_x, downsize_y, downsize_z
-!
-! ... parameters for sampling
-!
-      INTEGER :: number_of_probes
-      LOGICAL :: assign_index
-      CHARACTER(LEN=80) :: probe_file
-!
-      REAL*8, ALLOCATABLE :: improfile(:,:,:)
-
-      TYPE probe_point
-           INTEGER :: nop
-           INTEGER :: i
-           INTEGER :: j
-           INTEGER :: k
-           REAL*8  :: x
-           REAL*8  :: y
-           REAL*8  :: z
-      END TYPE probe_point
-!
-! ... not used
       INTEGER :: variable_n, field_n
 
       SAVE
@@ -41,6 +20,7 @@
       CONTAINS
 !----------------------------------------------------------------------
       SUBROUTINE read_points( iunit, lform, ind, time, variables )
+
       USE dimensions, ONLY: nx, ny, nz, ntot
 
       IMPLICIT NONE
@@ -78,9 +58,10 @@
       END SUBROUTINE read_points
 !----------------------------------------------------------------------
       SUBROUTINE filter
-      USE grid, ONLY: dx, dy, dz
 
+      USE grid, ONLY: dx, dy, dz
       USE io_files, ONLY: outpunit
+      USE io_serial, ONLY: first_out, last_out, incr_out
 !
       IMPLICIT NONE
 !
@@ -112,7 +93,7 @@
           OPEN( UNIT=outpunit, FILE=filnam, STATUS='OLD')
           READ (outpunit,*) time
         ELSE 
-          OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam, STATUS='OLD')
+          OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam,STATUS='OLD')
           READ (outpunit) stime
         END IF
 !
@@ -241,9 +222,9 @@
         REAL, ALLOCATABLE :: sarray(:)
         filwri='filter.' // var // '.' // lettera(irest)
         IF (lform) THEN
-          OPEN( UNIT=iunit, FILE=filwri, STATUS='UNKNOWN' )
+         OPEN( UNIT=iunit, FILE=filwri, STATUS='UNKNOWN' )
         ELSE 
-          OPEN( UNIT=iunit, FORM='UNFORMATTED', FILE=filwri, STATUS='UNKNOWN' )
+         OPEN(UNIT=iunit,FORM='UNFORMATTED',FILE=filwri,STATUS='UNKNOWN')
         END IF
         WRITE(logunit,fmt="('  inte_array_x: writing file ',A16)") filwri
         ALLOCATE( sarray( ntot ) )
@@ -298,9 +279,9 @@
         REAL, ALLOCATABLE :: sarray(:)
         filwri='filter.' // var // '.' // lettera(irest)
         IF (lform) THEN
-          OPEN( UNIT=iunit, FILE=filwri, STATUS='UNKNOWN' )
+         OPEN( UNIT=iunit, FILE=filwri, STATUS='UNKNOWN' )
         ELSE 
-          OPEN( UNIT=iunit, FORM='UNFORMATTED', FILE=filwri, STATUS='UNKNOWN' )
+         OPEN(UNIT=iunit,FORM='UNFORMATTED',FILE=filwri,STATUS='UNKNOWN')
         END IF
         WRITE(logunit,fmt="('  inte_array_y: writing file ',A16)") filwri
         ALLOCATE( sarray( ntot ) )
@@ -355,9 +336,9 @@
         REAL, ALLOCATABLE :: sarray(:)
         filwri='filter.' // var // '.' // lettera(irest)
         IF (lform) THEN
-          OPEN( UNIT=iunit, FILE=filwri, STATUS='UNKNOWN' )
+         OPEN( UNIT=iunit, FILE=filwri, STATUS='UNKNOWN' )
         ELSE 
-          OPEN( UNIT=iunit, FORM='UNFORMATTED', FILE=filwri, STATUS='UNKNOWN' )
+         OPEN(UNIT=iunit,FORM='UNFORMATTED',FILE=filwri,STATUS='UNKNOWN')
         END IF
         WRITE(logunit,fmt="('  inte_array_z: writing file ',A16)") filwri
         ALLOCATE( sarray( ntot ) )
@@ -405,102 +386,6 @@
       END SUBROUTINE inte_array_z
 !-----------------------------------------------------------------------
       END SUBROUTINE filter
-!----------------------------------------------------------------------
-      SUBROUTINE read_array( iunit, sarray, lform )
-
-      !  This subroutine reads a REAL array ( sarray ) of
-      !  ntot elements from file iunit
-      !  iunit  (input)  file to be read
-      !  array  (output) data read from file and distributed to processors
-      !  lform  (input)  format of the file 
-      !                  .TRUE.  = formatted
-      !                  .FALSE. = unformatted
-
-      INTEGER, INTENT(IN) :: iunit
-      LOGICAL, INTENT(IN) :: lform
-      REAL :: sarray(:)
-
-      INTEGER :: ijk, ierr
-
-      IF( lform ) THEN
-            READ(iunit,*) ( sarray(ijk), ijk = 1, ntot )
-      ELSE
-            READ(iunit) ( sarray(ijk), ijk = 1, ntot )
-      END IF
-
-      RETURN
-      END SUBROUTINE read_array
-!----------------------------------------------------------------------
-      SUBROUTINE write_array( iunit, sarray, lform )
-
-      !  This subroutine writes a REAL array ( sarray ) of
-      !  ntot elements from file iunit
-      !  iunit  (input)  file to be read
-      !  array  (output) data read from file and distributed to processors
-      !  lform  (input)  format of the file 
-      !                  .TRUE.  = formatted
-      !                  .FALSE. = unformatted
-
-      INTEGER, INTENT(IN) :: iunit
-      LOGICAL, INTENT(IN) :: lform
-      REAL :: sarray(:)
-
-      INTEGER :: ijk, ierr
-
-      IF( lform ) THEN
-        WRITE(iunit,100) ( sarray(ijk), ijk = 1, ntot )
-      ELSE
-        WRITE(iunit) ( sarray(ijk), ijk = 1, ntot )
-      END IF
-
- 100  FORMAT( 5(G14.6E3,1X) )
-      RETURN
-      END SUBROUTINE write_array
-!----------------------------------------------------------------------
-      SUBROUTINE read_implicit_profile
-      USE grid, ONLY: x, y, z, xb, yb, zb
-      USE io_files, ONLY: tempunit
-
-      !  This subroutine reads the implicit profile
-      !  and the mesh file computed by PDAC when a 3D
-      !  volcano topography is imported from a DEM file
-
-      INTEGER :: i,j,k
-      ALLOCATE(improfile(nx,ny,nz))
-!
-! ... Read the georeferenced mesh
-!
-      OPEN(tempunit,FILE='mesh.dat',STATUS='OLD')
-      READ(tempunit,*)
-      READ(tempunit,*)
-      READ(tempunit,*) (x(i), i=1,nx)
-      READ(tempunit,*)
-      READ(tempunit,*) (xb(i), i=1,nx)
-      READ(tempunit,*)
-      READ(tempunit,*) (y(j), j=1,ny)
-      READ(tempunit,*)
-      READ(tempunit,*) (yb(j), j=1,ny)
-      READ(tempunit,*)
-      READ(tempunit,*) (z(k), k=1,nz)
-      READ(tempunit,*)
-      READ(tempunit,*) (zb(k), k=1,nz)
-      CLOSE(tempunit)
-!      
-! ... Read the Implicit Profile
-!
-      OPEN(tempunit,FILE='improfile.dat',STATUS='OLD')
-      DO k=1,nz
-        DO j=1,ny
-          DO i=1,nx
-            READ(tempunit,*) improfile(i,j,k)
-          END DO
-        END DO
-      END DO
-      CLOSE(tempunit)
-
- 100  FORMAT(5(F20.6))
-      RETURN
-      END SUBROUTINE read_implicit_profile
 !----------------------------------------------------------------------
       END MODULE filter_outp
 !----------------------------------------------------------------------

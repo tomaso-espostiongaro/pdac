@@ -25,7 +25,6 @@
       USE particles_constants, ONLY: cps
       USE pressure_epsilon, ONLY: p, ep
       USE reactions, ONLY: rexion, irex
-      USE sample_points, ONLY: set_sampling, sample_pressure
       USE tilde_energy, ONLY: htilde
       USE tilde_momentum, ONLY: allocate_fluxes, deallocate_fluxes
       USE tilde_momentum, ONLY: tilde, fieldn
@@ -115,8 +114,6 @@
 !
       w0 = elapsed_seconds()
 !
-      !CALL set_sampling( 1000.D0, 0.D0, 1500.D0, ismp, psmp)
-      !IF( mpime == psmp ) OPEN(sampunit,FILE='p_samp.dat')
 !
 !//////////////////////////////////////////////////////////////////////
 !
@@ -360,7 +357,6 @@
         IF (lpr > 0) WRITE(testunit,fmt="('  walltime = ',F10.2,', ',F10.2)") w1, w1-w0
         w0 = w1
 !
-        !IF (mpime == psmp) CALL sample_pressure(ismp)
 !
 !//////////////////////////////////////////////////////////////////////
 !

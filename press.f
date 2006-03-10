@@ -4,8 +4,8 @@
       IMPLICIT NONE
       SAVE
 !
-      REAL*8, DIMENSION(:), ALLOCATABLE :: ep
-      REAL*8, DIMENSION(:), ALLOCATABLE :: p, pn
+      REAL*8, DIMENSION(:), ALLOCATABLE :: ep ! (void fraction)
+      REAL*8, DIMENSION(:), ALLOCATABLE :: p, pn ! (pressure)
 !
 !----------------------------------------------------------------------
       CONTAINS
