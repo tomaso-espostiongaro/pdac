@@ -12,7 +12,6 @@
         USE io_files, ONLY: errorunit, testunit, logunit
 !
         IMPLICIT NONE
-        SAVE
 !
         INTEGER, PARAMETER :: LAYER_MAP   = 1
         INTEGER, PARAMETER :: BLOCK2D_MAP = 2

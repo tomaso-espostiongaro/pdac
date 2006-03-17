@@ -38,7 +38,7 @@
       TYPE(icvent_cell), ALLOCATABLE :: vcell(:)
 
       INTEGER :: nvt
-      INTEGER, SAVE :: seed
+      INTEGER :: seed
 !
       PRIVATE :: icvent_cell, vcell, nvt, seed
       PRIVATE :: ug_rad, wg_rad, p_rad, tg_rad, rad, ygc_rad,  &

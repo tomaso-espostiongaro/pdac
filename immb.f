@@ -55,7 +55,7 @@
 !
       PRIVATE
       PUBLIC :: immb, set_forcing
-      PUBLIC :: fptx, fpty, fptz, numx, numy, numz, forcing_point
+      PUBLIC :: fptx, fpty, fptz, numx, numy, numz, forcing_point, point
       PUBLIC :: bd, vf, faces
 !
       SAVE

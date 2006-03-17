@@ -1,0 +1,32 @@
+#----------------------------------------
+# Linux with Intel compiler
+#----------------------------------------
+MACROS= -D__MPI
+#MACROS= -D__SCALAR
+#----------------------------------------
+FFLAGS= -O2 -ffree-form
+CPPFLAGS= -cpp $(MACROS)
+CFLAGS= -O2 $(MACROS)
+LINKFLAGS=
+LIBS= 
+ARFLAGS=rv
+#----------------------------------------
+# scalar compiler
+FC=~/g95-install/bin/mpif95
+# parallel compiler
+MPFC=~/g95-install/bin/mpif95
+#----------------------------------------
+# ... linker
+LINKER= ~/g95-install/bin/mpif95
+
+.SUFFIXES:
+.SUFFIXES:.F .o .f .c
+
+.c.o:
+	$(CC) -c $(CFLAGS) $<
+
+.f.o:
+	$(FC) -c $(PREPROCESSING) $(FREEFORM) $(FFLAGS) $(MODULES) $<
+
+.F.o:
+	$(MPFC) -c $(PREPROCESSINGF) $(MPFFLAGS) $(CPPFLAGS) $(MODULES) $<
