@@ -167,7 +167,7 @@
       CHARACTER(LEN = 4 ) :: lettera
 !
       lform = formatted_output
-
+!
       CALL allocate_main_fields(ntot)
       CALL allocate_derived_fields(ntot)
 !

@@ -224,7 +224,7 @@
           time, ((sflux_p(np,is),sflux_n(np,is),is=1,nsolid),np=1,number_of_planes)
 !
       CLOSE(tempunit)
- 100  FORMAT(50(G30.15E3))
+ 100  FORMAT(150(G30.15E3))
 !
       RETURN
       END SUBROUTINE fluxn

@@ -142,11 +142,11 @@
           END DO
           !WRITE(*,*) 'Block ', n, ' Counts: ', counter 
         END DO
-        totalmass = SUM(smass(1:3,:))
+        totalmass = SUM(smass(1:number_of_boxes,:))
         WRITE(tempunit,100) &
           time, ((smass(n,is),is=1,nsolid),n=1,number_of_boxes),totalmass
       CLOSE(tempunit)
- 100  FORMAT(20(G30.15E3))
+ 100  FORMAT(100(G30.15E3))
 !
       RETURN
       END SUBROUTINE massn

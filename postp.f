@@ -29,7 +29,6 @@
 ! ... Define the parallel environment
 ! ... (needed to use routines written for PDAC)
 !
-
       prog = 'POSP'
 
       CALL parallel_startup

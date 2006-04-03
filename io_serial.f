@@ -186,7 +186,8 @@
       array_map = 0.D0
       
       filnam='map_'//labl//'.'//lettera(nfil)
-
+!
+      alpha = 0.0D0
       DO i = 1, nx
         DO j = 1, ny
           !
@@ -195,9 +196,12 @@
             IF (quota >= deltaz) THEN
                 ijk  = i + (j-1) * nx + (k-1) * nx * ny
                 ijkm = i + (j-1) * nx + (k-2) * nx * ny
-                alpha = deltaz - z(k-1)
+                alpha = deltaz - improfile(i,j,k-1)
                 alpha = alpha / (z(k) - z(k-1))
-                map = alpha * array(ijk) + (1.D0-alpha) * array(ijkm)
+                !
+                !...errore!!!
+                !map = alpha* array(ijk) + (1.D0-alpha) * array(ijkm)
+                map = alpha* array(ijk) + (1.D0-alpha) * array(ijk)
                 ! ... Map the value reached at any given position at
                 ! ... given time
                 array_map(i,j) = map
@@ -207,7 +211,6 @@
           !
         END DO
       END DO
-
 !
 ! ... Print out the map and the new 2D DEM file
 !
@@ -218,6 +221,8 @@
       CLOSE(tempunit)
 
  122  FORMAT(10(1x,G14.6E3))
+
+      DEALLOCATE(array_map)
 
       RETURN
       END SUBROUTINE write_map

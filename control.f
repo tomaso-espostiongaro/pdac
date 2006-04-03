@@ -8,7 +8,7 @@
         INTEGER :: imr
         LOGICAL :: implicit_fluxes
         LOGICAL :: implicit_enthalpy
-        CHARACTER(LEN=4) :: prog   ! "PDAC" "POSTP"
+        CHARACTER(LEN=4) :: prog   ! "PDAC" "POSP"
 !-----------------------------------------------------------------------
       END MODULE
 !-----------------------------------------------------------------------
