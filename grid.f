@@ -501,7 +501,7 @@
 !
       IF (demin == demax) THEN
               delta = demin
-              alpha = 1.D0
+!              alpha = 0.5D0
               center = nd/2
               RETURN
       END IF

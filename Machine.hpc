@@ -4,7 +4,8 @@
 MACROS= -D__MPI
 #MACROS= -D__SCALAR
 #----------------------------------------
-FFLAGS= -O2 -ffree-form
+#FFLAGS= -O2 -ffree-form  -ftrace=full -fbounds-check
+FFLAGS= -O2 -ffree-form 
 CPPFLAGS= -cpp $(MACROS)
 CFLAGS= -O2 $(MACROS)
 LINKFLAGS=
