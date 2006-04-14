@@ -95,6 +95,10 @@
 
  122  FORMAT(10(1x,G14.6E3))
 
+      DEALLOCATE(tmap)
+      DEALLOCATE(m_map)
+      DEALLOCATE(t_map)
+
       RETURN
       END SUBROUTINE massgs
 !-----------------------------------------------------------------------

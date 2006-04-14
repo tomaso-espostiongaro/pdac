@@ -160,6 +160,8 @@ reactions.o : dimensions.o ghost.o grid.o indijk.o time.o
 residuals.o : control.o dens.o dimensions.o eosg.o ghost.o grid.o immb.o  \
     io_files.o parallel.o press.o temp.o time.o velocity.o 
 
+restart_convert.o : 
+
 roughness.o : control.o dimensions.o topo.o 
 
 sampling.o : control.o dimensions.o grid.o io_files.o postvar.o 

@@ -161,6 +161,8 @@
 
  122  FORMAT(10(1x,G14.6E3))
 
+      DEALLOCATE(topo2d)
+
       RETURN
       END SUBROUTINE write_topo2d
 !-----------------------------------------------------------------------

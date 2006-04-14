@@ -147,7 +147,7 @@
           time, ((smass(n,is),is=1,nsolid),n=1,number_of_boxes),totalmass
       CLOSE(tempunit)
  100  FORMAT(100(G30.15E3))
-!
+
       RETURN
       END SUBROUTINE massn
 !-----------------------------------------------------------------------
