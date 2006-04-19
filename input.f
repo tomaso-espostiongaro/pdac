@@ -115,7 +115,7 @@
           crater_radius, vent_radius, xvent, yvent, ivent, iali, irand, &
           ipro, rad_file
       USE immersed_boundaries, ONLY: immb
-      USE iterative_solver, ONLY: inmax, maxout, omega, optimization, delg, vforce
+      USE iterative_solver, ONLY: inmax, maxout, omega, optimization, delg
       USE io_restart, ONLY: max_seconds, nfil
       USE output_dump, ONLY: formatted_output
       USE parallel, ONLY: mpime, root
@@ -178,7 +178,7 @@
 
       NAMELIST / numeric / rungekut, beta, muscl, mass_limiter, vel_limiter, &
         inmax, maxout, omega, delg, implicit_fluxes, implicit_enthalpy, &
-        update_eosg, optimization, lim_type, tlim, tforce, rlim, flim, vforce
+        update_eosg, optimization, lim_type, tlim, tforce, rlim, flim
 
       INTEGER :: i, j, k, n, m, ig, ierr, lim_type
       CHARACTER(LEN=80) :: card
@@ -393,10 +393,9 @@
       optimization = 1  !  optimization degree on iterative solver
       tforce  = .FALSE. !  force temperature
       tlim  = 1500.D0   !  maximum temperature
-      vforce  = .FALSE. !  force velocities
       implicit_fluxes   = .FALSE. ! fluxes are computed implicitly
       implicit_enthalpy = .FALSE. ! enthalpy solved implicitly
-      update_eosg       = .FALSE.  ! update density after temperature
+      update_eosg       = .FALSE.  ! cpdate density after temperature
       rlim = 1.0D-8     ! 
                         ! limit for off-diagonal contribution in matrix
       flim = 1.0D-6     ! inversion
@@ -667,7 +666,6 @@
       CALL bcast_real(omega,1,root)
       CALL bcast_real(tlim,1,root)
       CALL bcast_logical(tforce,1,root)
-      CALL bcast_logical(vforce,1,root)
       CALL bcast_logical(implicit_fluxes,1,root)
       CALL bcast_logical(implicit_enthalpy,1,root)
       CALL bcast_logical(update_eosg,1,root)
@@ -1041,7 +1039,6 @@
             CALL iotk_write_dat( iuni_nml, "omega", omega )
             CALL iotk_write_dat( iuni_nml, "tlim", tlim)
             CALL iotk_write_dat( iuni_nml, "tforce", tforce)
-            CALL iotk_write_dat( iuni_nml, "vforce", vforce)
             CALL iotk_write_dat( iuni_nml, "implicit_fluxes",   &
                                           & implicit_fluxes )
             CALL iotk_write_dat( iuni_nml, "implicit_enthalpy", &

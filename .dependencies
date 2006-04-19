@@ -141,7 +141,7 @@ postp.o : control.o dimensions.o filter.o gas.o grid.o input.o io_files.o  \
     io_serial.o parallel.o particles.o postin.o postout.o process.o setup.o  \
     time.o topo.o 
 
-postvar.o : control.o derived.o dimensions.o 
+postvar.o : control.o derived.o dimensions.o io_files.o 
 
 press.o : dimensions.o ghost.o 
 

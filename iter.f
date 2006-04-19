@@ -22,7 +22,6 @@
 
       INTEGER :: b_e, b_w, b_t, b_b, b_n, b_s
       REAL*8 :: ivf
-      LOGICAL :: vforce
 
       TYPE(stencil) :: u, v, w, dens         
 
@@ -432,18 +431,14 @@
               CALL meshinds( ijk , imesh, i , j , k )
               WRITE(testunit,*) imesh, i , j , k
               CALL cell_report(testunit, ijk, imesh, i, j, k)
+              CALL correct_particles(ijk, imesh, i, j, k)
             END IF
           END DO
  700      FORMAT('max number of iterations (',I5,') reached at time: ', F8.3)
-        END IF
-!
-        ! ... Reset the velocity in cells that do not converge
-        ! ... WARNING!: can lead to wrong solutions!
-        !
-        IF (vforce) THEN
+        ELSE
           DO ijk = 1, ncint
             IF ( .NOT. converge( ijk ) ) THEN
-              CALL velocity_limiter(ijk)
+              CALL correct_particles(ijk, imesh, i, j, k)
             END IF
           END DO
         END IF
@@ -1650,22 +1645,6 @@
       
       END SUBROUTINE opt3_inner_loop
 !----------------------------------------------------------------------
-      SUBROUTINE velocity_limiter(ijk)
-      USE control_flags, ONLY: job_type
-      USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      IMPLICIT NONE
-      INTEGER, INTENT(IN) :: ijk
-!
-      ug(ijk) = 0.D0
-      IF (job_type == '3D') vg(ijk) = 0.D0
-      wg(ijk) = 0.D0
-      us(ijk,:) = 0.D0
-      IF (job_type == '3D') vs(ijk,:) = 0.D0
-      ws(ijk,:) = 0.D0
-!
-      RETURN
-      END SUBROUTINE velocity_limiter
-!----------------------------------------------------------------------
       SUBROUTINE test_fluxes
       USE domain_mapping, ONLY: ncint, meshinds
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
@@ -1701,6 +1680,31 @@
 
       RETURN
       END SUBROUTINE test_fluxes
+!----------------------------------------------------------------------
+      SUBROUTINE correct_particles(ijk, imesh, i, j, k)
+      USE dimensions, ONLY: nsolid, ngas
+      USE gas_solid_density, ONLY: rlk
+      USE gas_solid_temperature, ONLY: sies
+      USE gas_solid_velocity, ONLY: ug, vg, wg
+      USE gas_solid_velocity, ONLY: us, vs, ws
+      USE particles_constants, ONLY: rl, inrl
+
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: ijk, imesh, i, j, k
+      INTEGER :: ig, is
+!
+      DO is = 1, nsolid
+        IF (rlk(ijk,is)*inrl(is) <= 1.D-10) THEN
+          rlk(ijk,is) = 0.D0
+          us(ijk,is)  = 0.D0
+          vs(ijk,is)  = 0.D0
+          ws(ijk,is)  = 0.D0
+          sies(ijk,is) = 0.D0
+        END IF
+      END DO
+!
+      RETURN
+      END SUBROUTINE correct_particles
 !----------------------------------------------------------------------
       END MODULE iterative_solver
 !----------------------------------------------------------------------

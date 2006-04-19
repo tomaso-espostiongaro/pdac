@@ -68,6 +68,7 @@
 !
       USE control_flags, ONLY: job_type
       USE derived_fields
+      USE io_files, ONLY: logunit
 !
       IMPLICIT NONE
 !

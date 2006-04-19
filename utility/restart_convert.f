@@ -4,8 +4,8 @@
 
       IMPLICIT NONE
 
-      CALL bin2ascii
-      ! CALL ascii2bin
+      !CALL bin2ascii
+      CALL ascii2bin
 
     END PROGRAM
 
@@ -107,7 +107,7 @@
 !
       INTEGER :: i, is
       INTEGER :: nx, ny, nz, nsolid, ngas, nfil
-      INTEGER :: ig, gas_type( 100 )
+      INTEGER :: ig, gas_type( 7 )
       REAL*8, ALLOCATABLE :: tmp1d( : )
       REAL*8 :: time
       
