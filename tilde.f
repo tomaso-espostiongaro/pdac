@@ -719,11 +719,11 @@
 !
       DO ijk = 1, ncint
         compute  = BTEST(flag(ijk),0)
-
+        !
         IF( compute ) THEN
           CALL subscr(ijk)
           CALL meshinds(ijk,imesh,i,j,k)
-!
+          !
           IF (job_type == '2D') THEN
 !
 ! ... (GAS) ...

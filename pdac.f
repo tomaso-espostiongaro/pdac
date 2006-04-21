@@ -13,9 +13,12 @@
       PROGRAM pdac
 
       USE blunt_body, ONLY: set_blunt, ibl
+      USE control_flags, ONLY: prog, lpr, nfil
       USE dimensions
       USE domain_decomposition, ONLY: partition
       USE domain_mapping, ONLY: ghost
+      USE dome_conditions, ONLY: idome, locate_dome
+      USE environment, ONLY: cpclock, timing, elapsed_seconds
       USE eos_gas, ONLY: allocate_eosg
       USE gas_components, ONLY: allocate_species
       USE gas_constants, ONLY: allocate_gas_constants
@@ -27,8 +30,8 @@
       USE immersed_boundaries, ONLY: set_forcing, immb
       USE initial_conditions, ONLY: setpar, setup, cnvert, allocate_setup, npr
       USE input_module, ONLY: input, initc, number_of_block
-      USE io_restart, ONLY: taperd, tapewr, nfil
-      USE output_dump, ONLY: outp_recover, outp_remap
+      USE io_files
+      USE io_restart, ONLY: taperd, tapewr, outp_recover, outp_remap
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
      &    mpime, root, nproc
       USE particles_constants, ONLY: allocate_part_constants
@@ -40,12 +43,8 @@
      &                            timestart, rungekut
       USE turbulence_model, ONLY: allocate_turbo
       USE vent_conditions, ONLY: ivent, locate_vent
-      USE dome_conditions, ONLY: idome, locate_dome
       USE volcano_topography, ONLY: import_topography, write_profile, itp, &
                                     export_topography
-      USE environment, ONLY: cpclock, timing, elapsed_seconds
-      USE io_files
-      USE control_flags, ONLY: prog, lpr
 !
       IMPLICIT NONE
       CHARACTER(LEN=3) :: procnum

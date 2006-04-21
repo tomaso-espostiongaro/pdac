@@ -1,6 +1,7 @@
 !----------------------------------------------------------------------
       MODULE postp_input
 !----------------------------------------------------------------------
+      USE parallel, ONLY: mpime, root
       IMPLICIT NONE
 ! ... read PP input file
 ! ... initialize some parameters
@@ -19,8 +20,8 @@
       USE mass_ground, ONLY: thickness, iground
       USE process_outp, ONLY: act
       USE process_outp, ONLY: iflds, imap
-      USE io_serial, ONLY: first_out, last_out, incr_out
-      USE io_serial, ONLY: deltaz
+      USE postp_output, ONLY: first_out, last_out, incr_out
+      USE postp_output, ONLY: deltaz
 
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: punit
@@ -98,16 +99,66 @@
 
 !:::::::::::::::::::::::::::::  Read Namelists  ::::::::::::::::::::::::
 !
-      READ(punit, control)
-      READ(punit, fields)
-      READ(punit, map)
-      READ(punit, sampling)
-      READ(punit, masspart)
-      READ(punit, massflux)
-      READ(punit, massgsedim)
-      READ(punit, animation)
-      READ(punit, post_processing)
-
+! ... Control namelist .................................................
+!
+      IF (mpime == root) READ(punit, control)
+      CALL bcast_integer(act,1,root)
+      CALL bcast_integer(first_out,1,root)
+      CALL bcast_integer(last_out,1,root)
+      CALL bcast_integer(incr_out,1,root)
+      CALL bcast_integer(downsize_x,1,root)
+      CALL bcast_integer(downsize_y,1,root)
+      CALL bcast_integer(downsize_z,1,root)
+!
+! ... Fields namelist ..................................................
+!
+      IF (mpime == root) READ(punit, fields)
+      CALL bcast_integer(iflds,1,root)
+!
+! ... Map namelist ......................................................
+!
+      IF (mpime == root) READ(punit, map)
+      CALL bcast_integer(imap,1,root)
+      CALL bcast_real(deltaz,1,root)
+!
+! ... Sampling namelist ..................................................
+!
+      IF (mpime == root) READ(punit, sampling)
+      CALL bcast_integer(isamp,1,root)
+      CALL bcast_integer(number_of_probes,1,root)
+      CALL bcast_logical(assign_index,1,root)
+      CALL bcast_character(probe_file,80,root)
+!
+! ... Masspart namelist ................................................
+!
+      IF (mpime == root) READ(punit, masspart)
+      CALL bcast_integer(imassn,1,root)
+      CALL bcast_integer(number_of_boxes,1,root)
+      CALL bcast_character(boxes_file,80,root)
+!
+! ... Massflux namelist .................................................
+!
+      IF (mpime == root) READ(punit, massflux)
+      CALL bcast_integer(ifluxn,1,root)
+      CALL bcast_integer(number_of_planes,1,root)
+      CALL bcast_character(planes_file,80,root)
+!
+! ... Massgsedim namelist ...............................................
+!
+      IF (mpime == root) READ(punit, massgsedim)
+      CALL bcast_integer(iground,1,root)
+      CALL bcast_real(thickness,1,root)
+!
+! ... Animation namelist ...............................................
+!
+      IF (mpime == root) READ(punit, animation)
+      CALL bcast_integer(variable_n,1,root)
+!
+! ... Post-processing namelist .........................................
+!
+      IF (mpime == root) READ(punit, post_processing)
+      CALL bcast_integer(field_n,1,root)
+!
       RETURN
       END SUBROUTINE postin
 !----------------------------------------------------------------------

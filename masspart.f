@@ -25,15 +25,21 @@
 ! 
       USE control_flags, ONLY: job_type
       USE dimensions
+      USE domain_decomposition, ONLY: cell_owner, cell_g2l
+      USE domain_mapping, ONLY: ncdom
       USE grid, ONLY: dx, dy, dz, r, xb, yb, zb
+      USE kinds
       USE immersed_boundaries, ONLY: immb
-      USE io_files, ONLY: tempunit
+      USE io_files, ONLY: tempunit, logunit
+      USE io_parallel, ONLY: read_array
+      USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl
 
       IMPLICIT NONE
 !
       INTEGER :: i1, i2, j1, j2, k1, k2
-      INTEGER :: is, ijk, i, j, k, n, counter
+      INTEGER :: is, n
+      INTEGER :: ijk, i, j, k, imesh
       REAL*8 :: volume, pi, twopi, totalmass
       REAL*8, ALLOCATABLE :: vf(:)
       REAL*8, ALLOCATABLE :: smass(:,:)
@@ -41,13 +47,14 @@
       REAL*8 :: x1, x2, y1, y2, z1, z2
       CHARACTER(LEN = 14) :: filnam
       CHARACTER(LEN = 4 ) :: lettera
-
-      ALLOCATE(vf(ntot))
+!
+      ALLOCATE(vf(ncdom))
       vf(:) = 1.D0
       IF (immb >= 1) THEN
-             OPEN(tempunit,FILE='vf.dat',STATUS='OLD',FORM='UNFORMATTED')
-             READ(tempunit) (vf(ijk), ijk=1,ntot)
-             CLOSE(tempunit)
+        IF (mpime == root) &
+          OPEN(tempunit,FILE='vf.dat',STATUS='OLD',FORM='UNFORMATTED')
+        CALL read_array( tempunit, vf, dbl, .FALSE. )
+        IF (mpime == root) CLOSE(tempunit)
       END IF
 !
       pi = 4.D0 * ATAN(1.D0)
@@ -64,13 +71,16 @@
       box(:)%j2 = 1
       box(:)%k1 = 1
       box(:)%k2 = 1
-
 !
-      OPEN(tempunit, FILE=boxes_file, STATUS='OLD')
+      IF (mpime == root) OPEN(tempunit, FILE=boxes_file, STATUS='OLD')
 !
       DO n = 1, number_of_boxes
                 IF (job_type == '2D') THEN
-                        READ(tempunit,*) x1, x2, z1, z2
+                        IF (mpime == root) READ(tempunit,*) x1, x2, z1, z2
+                        CALL bcast_real(x1,1,root)
+                        CALL bcast_real(x2,1,root)
+                        CALL bcast_real(z1,1,root)
+                        CALL bcast_real(z2,1,root)
                         DO i=1,nx
                           IF (xb(i) < x1) box(n)%i1 = i
                           IF (xb(i) < x2) box(n)%i2 = i
@@ -82,7 +92,13 @@
                         box(n)%j1 = 1
                         box(n)%j2 = 1
                 ELSE IF (job_type == '3D') THEN
-                        READ(tempunit,*) x1, x2, y1, y2, z1, z2
+                        IF (mpime == root) READ(tempunit,*) x1, x2, y1, y2, z1, z2
+                        CALL bcast_real(x1,1,root)
+                        CALL bcast_real(x2,1,root)
+                        CALL bcast_real(y1,1,root)
+                        CALL bcast_real(y2,1,root)
+                        CALL bcast_real(z1,1,root)
+                        CALL bcast_real(z2,1,root)
                         DO i=1,nx
                           IF (xb(i) < x1) box(n)%i1 = i
                           IF (xb(i) < x2) box(n)%i2 = i
@@ -97,55 +113,64 @@
                         END DO
                 END IF
       END DO
-      CLOSE(tempunit)
-      WRITE(*,*) 'Box limits'
-      WRITE(*,*) (box(n)%i1, box(n)%i2, box(n)%j1, box(n)%j2, box(n)%k1,&
-                  box(n)%k2, n=1,number_of_boxes)
 !
-      OPEN(tempunit, FILE='masspart.dat', STATUS='UNKNOWN', &
-                                          POSITION='APPEND')
-!      WRITE(tempunit,*) '****************************'
-
-        ! ... Compute the total solid mass in a box
-        !
-        smass(:,:) = 0.D0
-        totalmass = 0.D0
-        DO n = 1, number_of_boxes
-          counter = 0
-          i1 = box(n)%i1
-          i2 = box(n)%i2
-          j1 = box(n)%j1
-          j2 = box(n)%j2
-          k1 = box(n)%k1
-          k2 = box(n)%k2
-          DO k = k1, k2
-            DO j = j1, j2
-              DO i = i1, i2
-                IF (job_type == '2D') THEN
-                  ijk = i + (k-1)*nx
+      IF (mpime == root) THEN
+        CLOSE(tempunit)
+        WRITE(logunit,*) 'Box limits'
+        WRITE(logunit,*) (box(n)%i1, box(n)%i2, box(n)%j1, box(n)%j2, box(n)%k1,&
+                    box(n)%k2, n=1,number_of_boxes)
+      END IF
+!
+      ! ... Compute the total solid mass in a box
+      !
+      smass(:,:) = 0.D0
+      totalmass = 0.D0
+      DO n = 1, number_of_boxes
+        i1 = box(n)%i1
+        i2 = box(n)%i2
+        j1 = box(n)%j1
+        j2 = box(n)%j2
+        k1 = box(n)%k1
+        k2 = box(n)%k2
+        DO k = k1, k2
+          DO j = j1, j2
+            DO i = i1, i2
+              IF (job_type == '2D') THEN
+                imesh = i + (k-1)*nx
+                IF (cell_owner(imesh) == mpime) THEN
+                  ijk = cell_g2l(imesh,mpime)
                   volume = r(i) * dx(i) * dz(k) * vf(ijk)
                   volume = twopi * volume
-                ELSE IF (job_type == '3D') THEN
-                  ijk = i + (j-1)*nx + (k-1)*nx*ny
+                END IF
+              ELSE IF (job_type == '3D') THEN
+                imesh = i + (j-1)*nx + (k-1)*nx*ny
+                IF (cell_owner(imesh) == mpime) THEN
+                  ijk = cell_g2l(imesh,mpime)
                   volume = dx(i) * dy(j) * dz(k) * vf(ijk)
                 END IF
-                IF (i/=1 .AND. i/=nx .AND. k/=1 .AND. k/=nz) THEN
-                  IF ((j/=1 .AND. j/=ny) .OR. (job_type == '2D')) THEN
-                          counter = counter + 1
-                          DO is = 1, nsolid
-                            smass(n,is)  = smass(n,is) + eps(ijk,is) * rl(is) * volume
-                          END DO
-                  END IF
+              END IF
+              IF (i/=1 .AND. i/=nx .AND. k/=1 .AND. k/=nz) THEN
+                IF ((j/=1 .AND. j/=ny) .OR. (job_type == '2D')) THEN
+                        DO is = 1, nsolid
+                          smass(n,is)  = smass(n,is) + eps(ijk,is) * rl(is) * volume
+                        END DO
                 END IF
-              END DO
+              END IF
             END DO
           END DO
-          !WRITE(*,*) 'Block ', n, ' Counts: ', counter 
         END DO
-        totalmass = SUM(smass(1:number_of_boxes,:))
+      END DO
+!
+      CALL parallel_sum_real(smass,number_of_boxes*nsolid)
+      totalmass = SUM(smass(1:number_of_boxes,:))
+!
+      IF (mpime == root) THEN
+        OPEN(tempunit, FILE='masspart.dat', STATUS='UNKNOWN', &
+                                            POSITION='APPEND')
         WRITE(tempunit,100) &
           time, ((smass(n,is),is=1,nsolid),n=1,number_of_boxes),totalmass
-      CLOSE(tempunit)
+        CLOSE(tempunit)
+      END IF
  100  FORMAT(100(G30.15E3))
 
       RETURN

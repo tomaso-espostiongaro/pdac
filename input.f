@@ -91,7 +91,7 @@
       USE atmospheric_conditions, ONLY: wind_x, wind_y, wind_z, &
           p_ground, t_ground, void_fraction, max_packing
       USE blunt_body, ONLY: ibl, nblu
-      USE control_flags, ONLY: job_type, lpr, imr
+      USE control_flags, ONLY: job_type, lpr, imr, nfil, formatted_output
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
       USE dimensions
       USE domain_decomposition, ONLY: mesh_partition
@@ -116,8 +116,7 @@
           ipro, rad_file
       USE immersed_boundaries, ONLY: immb
       USE iterative_solver, ONLY: inmax, maxout, omega, optimization, delg
-      USE io_restart, ONLY: max_seconds, nfil
-      USE output_dump, ONLY: formatted_output
+      USE io_restart, ONLY: max_seconds
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl, kap, &
      &     cmus, phis, cps, dk, nsolid
@@ -796,7 +795,7 @@
       END IF
 !.....................................................................
 !
-      IF (lpr > 1) CALL write_xml
+      IF (lpr > 2) CALL write_xml
 
 
       IF(mpime == root) &

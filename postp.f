@@ -6,25 +6,30 @@
 !
       PROGRAM postp
 
-      USE control_flags, ONLY: prog
+      USE control_flags, ONLY: prog, lpr
       USE dimensions
+      USE domain_decomposition, ONLY: partition
+      USE domain_mapping, ONLY: ghost
       USE filter_outp, ONLY: filter
-      USE io_serial, ONLY: read_implicit_profile
       USE gas_constants, ONLY: allocate_gas_constants
       USE grid, ONLY: flic, allocate_blbody, allocate_grid, grid_setup, zzero
       USE initial_conditions, ONLY: allocate_setup, setpar
       USE input_module, ONLY: input, initc, number_of_block
-      USE io_files, ONLY: inputunit,postunit,logunit,testunit,ppunit,inputfile
-      USE parallel, ONLY: parallel_startup, parallel_hangup
+      USE io_files, ONLY: inputunit,postunit,logunit,testunit, &
+                          inputfile, errorunit
+      USE parallel, ONLY: parallel_startup, parallel_hangup, mpime, root, nproc
       USE particles_constants, ONLY: allocate_part_constants
       USE postp_input, ONLY: postin
+      USE postp_output, ONLY: read_implicit_profile
       USE postp_output, ONLY: write_avs_files, write_xml_files
       USE process_outp, ONLY: process, act
       USE time_parameters, ONLY: itd
       USE volcano_topography, ONLY: itp
 !
       IMPLICIT NONE
-      CHARACTER(LEN=8) :: postfile, logfile, testfile, ppfile
+      CHARACTER(LEN=3) :: procnum
+      CHARACTER(LEN=6) :: postfile, logfile, testfile, errfile
+      CHARACTER(LEN=9) :: testnb
 !
 ! ... Define the parallel environment
 ! ... (needed to use routines written for PDAC)
@@ -38,19 +43,33 @@
       logfile   = 'pp.log'
       testfile  = 'pp.tst'
       postfile  = 'pp.dat'
-      ppfile    = 'dpd.dat'
+      errfile   = 'pp.err'
 !
-      OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN')
-      OPEN(UNIT=postunit,  FILE=postfile,  STATUS='UNKNOWN')
-      OPEN(UNIT=logunit, FILE=logfile, STATUS='UNKNOWN')
-      OPEN(UNIT=testunit,  FILE=testfile,  STATUS='UNKNOWN')
-      OPEN(UNIT=ppunit,  FILE=ppfile,  STATUS='UNKNOWN')
+      IF (mpime == root) THEN
+        OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN')
+        OPEN(UNIT=postunit,  FILE=postfile,  STATUS='UNKNOWN')
+        OPEN(UNIT=logunit, FILE=logfile, STATUS='UNKNOWN')
+        OPEN(UNIT=errorunit,  FILE=errfile,  STATUS='UNKNOWN')
+      END IF
 !
-! ... Read Input files 'pdac.dat'
+! ... Processor 'root' read Input file 'pdac.dat'
+! ... and broadcasts data
 !
       CALL input( inputunit )
 !
-! ... Read Input files
+! ... Open Test files
+!
+      testnb = testfile//procnum(mpime)
+      IF (lpr > 0) THEN
+        IF(mpime == root) THEN
+          OPEN(UNIT=testunit,  FILE=testfile,  STATUS='UNKNOWN')
+        ELSE
+          OPEN(UNIT=testunit,  FILE=testnb,    STATUS='UNKNOWN')
+        END IF
+      END IF
+!
+! ... Processor 'root' read Input file 'pp.dat'
+! ... and broadcasts data
 !
       CALL postin( postunit )
 !
@@ -62,7 +81,7 @@
       no = number_of_block
       nphase = nsolid + 1
 !
-! ... allocate global arrays 
+! ... allocate global arrays (all processes)
 !
       CALL allocate_grid
       CALL allocate_blbody
@@ -82,35 +101,52 @@
 !
       IF (itp >= 1) CALL read_implicit_profile
 !
-! ... Set physical parameters and useful constants
+! ... Set physical parameters and useful constants (All processes)
 !
       CALL setpar
+!
+! ... Domain Decomposition (WARNING: the number of cells
+! ... within subdomain could be unbalanced, due to the
+! ... lack of the topography setup)
+!
+      CALL partition( nproc, mpime, root )
+!
+! ... Setting the ghost cells for parallel data exchange
+! ... and the indexes
+!
+      CALL ghost
 !
 ! ... Here start the post-processing core
 !********************************************************
 !
+! ... Root Writes input files for visualization tools
+!
+      IF (mpime == root) THEN
+        CALL write_avs_files
+        CALL write_xml_files
+      END IF
+!
 ! ... Split OUTPUT files, downsize, crop, etc.
 !
-      IF (act == 0) CALL filter
-!
-! ... Write input files for visualization tools
-!
-      CALL write_avs_files
-      CALL write_xml_files
+      IF (act == 0) CONTINUE ! CALL filter
 !
 ! ... Compute derived fields from the primary OUTPUT fields;
 ! ... map hazard variables at a given height above ground
 !
       IF (act == 1) CALL process
+      CALL parallel_hangup
+      STOP
 !
 !********************************************************
 !
-      CLOSE(inputunit)
-      CLOSE(postunit)
-      CLOSE(logunit)
-      CLOSE(testunit)
-      CLOSE(ppunit)
-
+ 111  CONTINUE
+      IF (mpime == root) THEN
+        CLOSE(inputunit)
+        CLOSE(postunit)
+        CLOSE(logunit)
+        CLOSE(testunit)
+      END IF
+!
 ! ... close parallel environment
 !
       CALL parallel_hangup

@@ -14,8 +14,8 @@
       ! ... computes the total particle volumetric fraction
       
       IMPLICIT NONE
-      REAL, INTENT(IN) :: eps(:,:)
-      REAL, DIMENSION(SIZE(eps,DIM=1)) :: epst
+      REAL*8, INTENT(IN) :: eps(:,:)
+      REAL*8, DIMENSION(SIZE(eps,DIM=1)) :: epst
 
       epst = SUM(eps,DIM=2)
 
@@ -27,9 +27,9 @@
       ! ... computes the log10 of the particle volumetric fraction
       
       IMPLICIT NONE
-      REAL, INTENT(IN) :: eps(:)
-      REAL, DIMENSION(SIZE(eps)) :: ceps
-      REAL, DIMENSION(SIZE(eps)) :: leps
+      REAL*8, INTENT(IN) :: eps(:)
+      REAL*8, DIMENSION(SIZE(eps)) :: ceps
+      REAL*8, DIMENSION(SIZE(eps)) :: leps
 
       ceps = clamp(eps,-10)
       leps = log10(ceps)
@@ -42,9 +42,9 @@
       ! ... set minimum value
 
       IMPLICIT NONE
-      REAL, INTENT(IN) :: array(:)
+      REAL*8, INTENT(IN) :: array(:)
       INTEGER, INTENT(IN) :: expmin
-      REAL, DIMENSION(SIZE(array)) :: clamp
+      REAL*8, DIMENSION(SIZE(array)) :: clamp
 
       clamp = MAX(10.E0**expmin, array)
 
@@ -56,8 +56,8 @@
       ! ... compute the averaged gas molecular weight
 
       IMPLICIT NONE
-      REAL, DIMENSION(:,:) :: xgc
-      REAL, DIMENSION(SIZE(xgc,DIM=1)) :: mg
+      REAL*8, DIMENSION(:,:) :: xgc
+      REAL*8, DIMENSION(SIZE(xgc,DIM=1)) :: mg
       INTEGER :: ig
 
       mg = 0.D0
@@ -73,9 +73,9 @@
       ! ... computes gas thermodynamic density
 
       IMPLICIT NONE
-      REAL, INTENT(IN) :: p(:), tg(:), xgc(:,:) 
-      REAL, DIMENSION(SIZE(p)) :: rhog
-      REAL, DIMENSION(SIZE(p)) :: mgas
+      REAL*8, INTENT(IN) :: p(:), tg(:), xgc(:,:) 
+      REAL*8, DIMENSION(SIZE(p)) :: rhog
+      REAL*8, DIMENSION(SIZE(p)) :: mgas
 
       mgas = mg(xgc) 
       rhog = p / ( rgas * tg ) * mgas
@@ -88,8 +88,8 @@
       ! ... computes gas components mass fractions
       
       IMPLICIT NONE
-      REAL, INTENT(IN), DIMENSION(:,:) :: xgc
-      REAL, DIMENSION(SIZE(xgc,1),SIZE(xgc,2)) :: ygc
+      REAL*8, INTENT(IN), DIMENSION(:,:) :: xgc
+      REAL*8, DIMENSION(SIZE(xgc,1),SIZE(xgc,2)) :: ygc
       INTEGER :: ig
 
       DO ig=1,ngas
@@ -104,8 +104,8 @@
       ! ... computes the void fraction
 
       IMPLICIT NONE
-      REAL, INTENT(IN) :: eps(:,:)
-      REAL, DIMENSION(SIZE(eps,DIM=1)) :: ep
+      REAL*8, INTENT(IN) :: eps(:,:)
+      REAL*8, DIMENSION(SIZE(eps,DIM=1)) :: ep
 
       ep = 1.D0 - SUM(eps,DIM=2)
 
@@ -117,9 +117,9 @@
       ! ... computes gas bulk density
 
       IMPLICIT NONE
-      REAL, INTENT(IN) :: eps(:,:)
-      REAL, INTENT(IN) :: p(:), tg(:), xgc(:,:)
-      REAL, DIMENSION(SIZE(p)) :: rgp
+      REAL*8, INTENT(IN) :: eps(:,:)
+      REAL*8, INTENT(IN) :: p(:), tg(:), xgc(:,:)
+      REAL*8, DIMENSION(SIZE(p)) :: rgp
 
       rgp = ep(eps) * rhog(p,tg,xgc)
 
@@ -131,8 +131,8 @@
 
       IMPLICIT NONE
       INTEGER :: ijk
-      REAL, INTENT(IN) :: eps(:,:)
-      REAL, DIMENSION(SIZE(eps,1),SIZE(eps,2)) :: rlk
+      REAL*8, INTENT(IN) :: eps(:,:)
+      REAL*8, DIMENSION(SIZE(eps,1),SIZE(eps,2)) :: rlk
 
       DO ijk = 1, SIZE(eps,DIM=1)
         rlk(ijk,:) = eps(ijk,:) * rl(:)
@@ -145,10 +145,10 @@
       ! ... computes gas-particle mixture density
 
       IMPLICIT NONE
-      REAL, INTENT(IN) :: eps(:,:)
-      REAL, INTENT(IN) :: p(:), tg(:), xgc(:,:)
-      REAL, DIMENSION(SIZE(p)) :: rhom
-      REAL, DIMENSION(SIZE(eps,1),SIZE(eps,2)) :: bds
+      REAL*8, INTENT(IN) :: eps(:,:)
+      REAL*8, INTENT(IN) :: p(:), tg(:), xgc(:,:)
+      REAL*8, DIMENSION(SIZE(p)) :: rhom
+      REAL*8, DIMENSION(SIZE(eps,1),SIZE(eps,2)) :: bds
 
       bds = rlk(eps)
       rhom = rgp(eps,p,tg,xgc) + SUM(bds,DIM=2) 
@@ -161,9 +161,9 @@
       ! ... computes particle mixture density
 
       IMPLICIT NONE
-      REAL, INTENT(IN) :: eps(:,:)
-      REAL, DIMENSION(SIZE(eps,1)) :: rhos
-      REAL, DIMENSION(SIZE(eps,1),SIZE(eps,2)) :: bds
+      REAL*8, INTENT(IN) :: eps(:,:)
+      REAL*8, DIMENSION(SIZE(eps,1)) :: rhos
+      REAL*8, DIMENSION(SIZE(eps,1),SIZE(eps,2)) :: bds
 
       bds = rlk(eps)
       rhos = SUM(bds,DIM=2) 
@@ -176,10 +176,10 @@
       ! ... computes gas-particle mixture velocity (one component)
 
       IMPLICIT NONE
-      REAL, INTENT(IN), DIMENSION(:,:) :: eps, us
-      REAL, INTENT(IN), DIMENSION(:,:) :: xgc
-      REAL, INTENT(IN), DIMENSION(:) :: ug, p,tg
-      REAL, DIMENSION(SIZE(ug)) :: velm
+      REAL*8, INTENT(IN), DIMENSION(:,:) :: eps, us
+      REAL*8, INTENT(IN), DIMENSION(:,:) :: xgc
+      REAL*8, INTENT(IN), DIMENSION(:) :: ug, p,tg
+      REAL*8, DIMENSION(SIZE(ug)) :: velm
       
       velm = rgp(eps,p,tg,xgc) * ug + SUM( rlk(eps) * us ,DIM=2) 
       velm = velm / rhom(eps,p,tg,xgc)
@@ -192,8 +192,8 @@
       ! ... computes the mixture dynamic pressure
       
       IMPLICIT NONE
-      REAL, INTENT(IN), DIMENSION(:) :: rm, velom
-      REAL, DIMENSION(SIZE(rm)) :: pdyn
+      REAL*8, INTENT(IN), DIMENSION(:) :: rm, velom
+      REAL*8, DIMENSION(SIZE(rm)) :: pdyn
 
       pdyn = 0.5 * rm * velom**2
 
@@ -205,9 +205,9 @@
       ! ... computes the inverse of the mixture sound speed
 
       IMPLICIT NONE
-      REAL, INTENT(IN), DIMENSION(:) :: rgp, rhog, rm, tg, mg
-      REAL, DIMENSION(SIZE(tg)) :: cm
-      REAL, DIMENSION(SIZE(rgp)) :: fact, y
+      REAL*8, INTENT(IN), DIMENSION(:) :: rgp, rhog, rm, tg, mg
+      REAL*8, DIMENSION(SIZE(tg)) :: cm
+      REAL*8, DIMENSION(SIZE(rgp)) :: fact, y
 
 !
 ! ... Mixture sound speed (Wallis, 1969)
@@ -223,8 +223,8 @@
       !
       ! ... compute the modulus of a velocity field
       IMPLICIT NONE
-      REAL, INTENT(IN), DIMENSION(:) :: v1, v2
-      REAL, DIMENSION(SIZE(v1)) :: vel2
+      REAL*8, INTENT(IN), DIMENSION(:) :: v1, v2
+      REAL*8, DIMENSION(SIZE(v1)) :: vel2
 
       vel2 = SQRT( v1**2 + v2**2 )
       
@@ -235,8 +235,8 @@
       !
       ! ... compute the modulus of a velocity field
       IMPLICIT NONE
-      REAL, INTENT(IN), DIMENSION(:) :: v1, v2, v3
-      REAL, DIMENSION(SIZE(v1)) :: vel3
+      REAL*8, INTENT(IN), DIMENSION(:) :: v1, v2, v3
+      REAL*8, DIMENSION(SIZE(v1)) :: vel3
 
       vel3 = SQRT( v1**2 + v2**2 + v3**2 )
       
@@ -248,8 +248,8 @@
       ! ... compute the Mach number for the mixture
 
       IMPLICIT NONE
-      REAL, INTENT(IN), DIMENSION(:) :: vel, c
-      REAL, DIMENSION(SIZE(vel)) :: mach
+      REAL*8, INTENT(IN), DIMENSION(:) :: vel, c
+      REAL*8, DIMENSION(SIZE(vel)) :: mach
 
       mach = vel / c
 

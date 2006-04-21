@@ -1257,7 +1257,7 @@
 !----------------------------------------------------------------------
       INTEGER FUNCTION cell_owner( ijk )
 
-! ... gives the owner of a cells from its global index (ijk)
+! ... gives the owner of a cells from its ->> global <<- index (ijk)
 
         USE dimensions
         USE parallel, ONLY: nproc

@@ -5,15 +5,15 @@
 !
 ! ... main fields
 !
-      REAL, ALLOCATABLE, DIMENSION(:)   :: p, ug, vg, wg, tg
-      REAL, ALLOCATABLE, DIMENSION(:,:) :: xgc
-      REAL, ALLOCATABLE, DIMENSION(:,:) :: eps, us, vs, ws, ts
+      REAL*8, ALLOCATABLE, DIMENSION(:)   :: p, ug, vg, wg, tg
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: xgc
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: eps, us, vs, ws, ts, rlk
 !
 ! ... derived fields
 !
-      REAL, ALLOCATABLE, DIMENSION(:) :: rm, rg, bd, m, um, vm, wm, mvm, c, mc
-      REAL, ALLOCATABLE, DIMENSION(:) :: epstot, lepstot, pd, pdp, mvmp
-      REAL, ALLOCATABLE, DIMENSION(:,:) :: sbd
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: rm, rg, bd, m, um, vm, wm, mvm, c, mc
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: epstot, lepstot, pd, pdp, mvmp
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: sbd
 !
       REAL*8 :: time
 !
@@ -29,7 +29,7 @@
 
       ALLOCATE(p(dime), ug(dime), vg(dime), wg(dime), tg(dime))
       ALLOCATE(eps(dime,nsolid), us(dime,nsolid), vs(dime,nsolid), &
-                ws(dime,nsolid), ts(dime,nsolid))
+                ws(dime,nsolid), ts(dime,nsolid), rlk(dime,nsolid))
       ALLOCATE(xgc(dime,ngas))
 
       RETURN
@@ -113,10 +113,9 @@
                 mvmp = vel2(um,wm)
         END IF
         pdp = pdyn(rm,mvmp)
-
-
+!
       RETURN
       END SUBROUTINE compute_derived_fields
-!-----------------------------------------------------------------------
+!----------------------------------------------------------------------
       END MODULE postp_variables
 !-----------------------------------------------------------------------

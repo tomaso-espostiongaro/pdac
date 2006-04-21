@@ -1,15 +1,393 @@
 !-----------------------------------------------------------------------
       MODULE postp_output
-      SAVE
 !-----------------------------------------------------------------------
+      USE dimensions
+      USE kinds
+      IMPLICIT NONE
+!
+      REAL*8, ALLOCATABLE :: improfile(:,:,:)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: array_map
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: topo2d
+
+      INTEGER :: first_out, last_out, incr_out
+      REAL*8 :: deltaz
+!
+      PUBLIC
+      SAVE
+!----------------------------------------------------------------------
       CONTAINS
+!----------------------------------------------------------------------
+      SUBROUTINE read_output( nf )
+      USE control_flags, ONLY: job_type, formatted_output
+      USE dimensions, ONLY: nsolid, ngas
+      USE gas_constants, ONLY: gas_type
+      USE kinds
+      USE io_files, ONLY: filnam, outpunit, logunit
+      USE io_parallel, ONLY: read_array
+      USE postp_variables
+      USE parallel, ONLY: nproc, mpime, root, group
+      USE particles_constants, ONLY: rl, inrl
+!
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: nf
+      CHARACTER( LEN =  4 ) :: lettera
+      LOGICAL :: lform
+      INTEGER :: ig,is
+      REAL*4 :: time4
+      REAL*8, ALLOCATABLE :: otmp(:)
+!
+      filnam='output.'//lettera(nf)
+      lform = formatted_output
+
+      IF( mpime == root ) THEN
+
+        IF (lform) THEN
+          OPEN(UNIT=outpunit,FILE=filnam)
+          READ(outpunit,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
+        ELSE 
+          OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam)
+          READ(outpunit) time4
+          time = REAL(time4,dbl)
+        END IF
+
+        WRITE(logunit,fmt="('  from process: reading file ',A20)") filnam
+        WRITE(logunit,*) 'time = ', time
+ 
+      END IF
+!
+      CALL bcast_real(time, 1, root)
+!
+      IF( lform .AND. mpime == root ) READ(outpunit,122)
+      p = 0.D0
+      CALL read_array( outpunit, p, sgl, lform )  ! gas_pressure
+
+      IF (job_type == '2D') THEN
+
+        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        ug = 0.D0
+        CALL read_array( outpunit, ug, sgl, lform ) ! gas_velocity_r
+
+        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        wg = 0.D0
+        CALL read_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
+
+      ELSE IF (job_type == '3D') THEN
+
+        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        ug = 0.D0
+        CALL read_array( outpunit, ug, sgl, lform ) ! gas_velocity_x
+
+        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        vg = 0.D0
+        CALL read_array( outpunit, vg, sgl, lform ) ! gas_velocity_y
+
+        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        wg = 0.D0
+        CALL read_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
+
+      ELSE
+        CALL error('outp_','Unknown job type',1)
+      END IF
+
+      IF( lform .AND. mpime == root ) READ(outpunit,122)
+      tg = 0.D0
+      CALL read_array( outpunit, tg, sgl, lform )  ! gas_temperature
+!
+      ALLOCATE( otmp( SIZE( xgc, 1 ) ) )
+      DO ig=1,ngas
+          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          otmp = 0.D0
+          CALL read_array( outpunit, otmp, sgl, lform )  ! gc_molar_fraction
+          xgc(:,ig) = otmp
+      END DO
+      DEALLOCATE( otmp )
+!
+      ALLOCATE( otmp( SIZE( rlk, 1 ) ) )
+
+      DO is = 1, nsolid
+
+        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        otmp = 0.D0
+        CALL read_array( outpunit, otmp, sgl, lform )  ! solid_volume_fraction
+        eps(:,is) = otmp
+
+        IF (job_type == '2D') THEN
+
+          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          us(:,is) = 0.D0
+          CALL read_array( outpunit, us(:,is), sgl, lform )  ! solid_velocity_r
+
+          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          ws(:,is) = 0.D0
+          CALL read_array( outpunit, ws(:,is), sgl, lform )  ! solid_velocity_z
+
+        ELSE IF (job_type == '3D') THEN
+
+          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          us(:,is) = 0.D0
+          CALL read_array( outpunit, us(:,is), sgl, lform )  ! solid_velocity_x
+
+          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          vs(:,is) = 0.D0
+          CALL read_array( outpunit, vs(:,is), sgl, lform )  ! solid_velocity_y
+
+          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          ws(:,is) = 0.D0
+          CALL read_array( outpunit, ws(:,is), sgl, lform )  ! solid_velocity_z
+
+        END IF
+
+        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        ts(:,is) = 0.D0
+        CALL read_array( outpunit, ts(:,is), sgl, lform )  ! solid_temperature
+
+      END DO
+
+      DEALLOCATE( otmp )
+
+      IF( mpime == root ) THEN
+        CLOSE (outpunit)
+      END IF
+!
+ 122  FORMAT(1x,//,6x,/)
+
+      RETURN
+      END SUBROUTINE read_output
+!----------------------------------------------------------------------
+      SUBROUTINE read_implicit_profile
+      USE grid, ONLY: x, y, z, xb, yb, zb
+      USE io_files, ONLY: tempunit
+      USE parallel, ONLY: mpime, root
+
+      !  This subroutine reads the implicit profile
+      !  and the mesh file computed by PDAC when a 3D
+      !  volcano topography is imported from a DEM file
+
+      INTEGER :: i,j,k
+      ALLOCATE(improfile(nx,ny,nz))
+!
+! ... Read the georeferenced mesh
+!
+      IF (mpime == root) THEN
+        OPEN(tempunit,FILE='mesh.dat',STATUS='OLD')
+        READ(tempunit,*)
+        READ(tempunit,*)
+        READ(tempunit,*) (x(i), i=1,nx)
+        READ(tempunit,*)
+        READ(tempunit,*) (xb(i), i=1,nx)
+        READ(tempunit,*)
+        READ(tempunit,*) (y(j), j=1,ny)
+        READ(tempunit,*)
+        READ(tempunit,*) (yb(j), j=1,ny)
+        READ(tempunit,*)
+        READ(tempunit,*) (z(k), k=1,nz)
+        READ(tempunit,*)
+        READ(tempunit,*) (zb(k), k=1,nz)
+        CLOSE(tempunit)
+      END IF
+!
+      CALL bcast_real(x,nx,root)
+      CALL bcast_real(xb,nx,root)
+      CALL bcast_real(y,ny,root)
+      CALL bcast_real(yb,ny,root)
+      CALL bcast_real(z,nz,root)
+      CALL bcast_real(zb,nz,root)
+!      
+! ... Read the Implicit Profile
+!
+      IF (mpime == root) THEN
+        OPEN(tempunit,FILE='improfile.dat',STATUS='OLD')
+        DO k=1,nz
+          DO j=1,ny
+            DO i=1,nx
+              READ(tempunit,*) improfile(i,j,k)
+            END DO
+          END DO
+        END DO
+        CLOSE(tempunit)
+      END IF
+      CALL bcast_real(improfile,ntot,root)
+
+ 100  FORMAT(5(F20.6))
+      RETURN
+      END SUBROUTINE read_implicit_profile
+!-----------------------------------------------------------------------
+      SUBROUTINE write_topo2d
+
+      USE control_flags, ONLY: job_type
+      USE dimensions, ONLY: nx, ny, nz
+      USE grid, ONLY: z
+      USE io_files, ONLY: tempunit
+      USE parallel, ONLY: mpime, root
+
+      IMPLICIT NONE
+
+      REAL*8 :: quota
+      INTEGER :: i, j, k, ijk
+
+      IF (job_type == '2D' .OR. mpime /= root) RETURN
+
+      ALLOCATE(topo2d(nx,ny))
+      topo2d = -9999 
+
+      DO i = 1, nx
+        DO j = 1, ny
+          !
+          search: DO k = 1, nz
+            quota = improfile(i,j,k)
+            IF (quota >= 0.D0 .AND. topo2d(i,j) == -9999) THEN
+              topo2d(i,j) = z(k) - quota
+              EXIT search
+            END IF
+          END DO search
+          !
+        END DO
+      END DO
+!
+! ... Print out the new 2D DEM file
+!
+      OPEN(UNIT=tempunit,FILE='topo2d.dat')
+      DO j = 1, ny
+          WRITE(tempunit,122) (topo2d(i,j), i=1, nx)
+      END DO
+      CLOSE(tempunit)
+
+ 122  FORMAT(10(1x,G14.6E3))
+
+      DEALLOCATE(topo2d)
+
+      RETURN
+      END SUBROUTINE write_topo2d
+!-----------------------------------------------------------------------
+      SUBROUTINE write_map(nf,array,labl)
+
+      USE control_flags, ONLY: job_type
+      USE dimensions, ONLY: nx, ny, nz
+      USE domain_decomposition, ONLY: cell_owner, cell_g2l
+      USE grid, ONLY: z
+      USE io_files, ONLY: tempunit
+      USE parallel, ONLY: mpime, root
+      USE set_indexes, ONLY: first_subscr, ijkm
+      IMPLICIT NONE
+
+      REAL*8, INTENT(IN), DIMENSION(:) :: array
+      INTEGER, INTENT(IN) :: nf
+      CHARACTER(LEN=2), INTENT(IN) :: labl
+      REAL*8 :: alpha, map, quota
+      INTEGER :: i, j, k, ijk, imesh
+      CHARACTER( LEN = 4 ) :: lettera
+      CHARACTER( LEN = 20 ) :: filnam
+
+      IF (job_type == '2D') RETURN
+
+      ALLOCATE(array_map(nx,ny))
+      array_map = 0.D0
+      
+      filnam='map_'//labl//'.'//lettera(nf)
+!
+      alpha = 0.0D0
+      DO i = 1, nx
+        DO j = 1, ny
+          !
+          search: DO k = 1, nz
+            quota = improfile(i,j,k)
+            IF (quota >= deltaz) THEN
+                imesh  = i + (j-1) * nx + (k-1) * nx * ny
+                IF (cell_owner(imesh) == mpime) THEN
+                  ijk  = cell_g2l(imesh, mpime)
+                  !
+                  ! ... identify the first neighbours
+                  !
+                  CALL first_subscr(ijk)
+                  alpha = deltaz - improfile(i,j,k-1)
+                  alpha = alpha / (z(k) - z(k-1))
+                  !
+                  !...errore!!!
+                  map = alpha* array(ijk) + (1.D0-alpha) * array(ijkm)
+                  !map = alpha* array(ijk) + (1.D0-alpha) * array(ijk)
+                  ! ... Map the value reached at any given position at
+                  ! ... given time
+                  array_map(i,j) = map
+                END IF
+                EXIT search
+            END IF
+          END DO search
+          !
+        END DO
+      END DO
+!
+! ... Assemble the map array
+!
+      CALL parallel_sum_real(array_map, nx*ny)
+!
+! ... Print out the map and the new 2D DEM file
+!
+      IF (mpime == root) THEN
+        OPEN(UNIT=tempunit,FILE=filnam)
+        DO j = 1, ny
+            WRITE(tempunit,122) (array_map(i,j), i=1, nx)
+        END DO
+        CLOSE(tempunit)
+      END IF
+
+ 122  FORMAT(10(1x,G14.6E3))
+
+      DEALLOCATE(array_map)
+
+      RETURN
+      END SUBROUTINE write_map
+!----------------------------------------------------------------------
+      SUBROUTINE write_fields(tn)
+      USE control_flags, ONLY: formatted_output
+      USE kinds
+      USE io_files, ONLY: tempunit
+      USE io_parallel, ONLY: write_array
+      USE parallel, ONLY: mpime, root
+      USE postp_variables, ONLY: lepstot, tg
+!
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: tn
+      CHARACTER(LEN = 14) :: filnam
+      CHARACTER(LEN = 4 ) :: lettera
+      LOGICAL :: lform
+!
+      lform = formatted_output
+!
+      IF (mpime == root) THEN
+        filnam = 'log10epst.'//lettera(tn)
+        IF (lform) THEN
+          OPEN(tempunit,FILE=filnam)
+        ELSE
+          OPEN(tempunit,FILE=filnam, FORM='UNFORMATTED')
+        END IF
+      END IF
+      !
+      CALL write_array( tempunit, lepstot, sgl, lform )
+      !
+      IF (mpime == root) CLOSE(tempunit)
+      !
+      IF (mpime == root) THEN
+        filnam = 'tg.'//lettera(tn)
+        IF (lform) THEN
+          OPEN(tempunit,FILE=filnam)
+        ELSE
+          OPEN(tempunit,FILE=filnam, FORM='UNFORMATTED')
+        END IF
+      END IF
+      !
+      CALL write_array( tempunit, tg, sgl, lform )
+      !
+      IF (mpime == root) CLOSE(tempunit)
+!
+      RETURN
+      END SUBROUTINE write_fields
 !-----------------------------------------------------------------------
       SUBROUTINE write_AVS_files
-      USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: job_type, formatted_output
       USE dimensions
       USE iotk_module
       USE grid
-      USE output_dump, ONLY: formatted_output
       USE io_files, ONLY: iuni_scalar, iuni_u, iuni_v, iuni_w
       IMPLICIT NONE
  
@@ -305,22 +683,14 @@
 
       RETURN
       END SUBROUTINE write_AVS_files
-
-!=----------------------------------------------------------------------------=!
-!
-!
-!
-!
-!=----------------------------------------------------------------------------=!
-    SUBROUTINE write_XML_files
+!----------------------------------------------------------------------
+      SUBROUTINE write_XML_files
       !
-      USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: job_type, formatted_output
       USE dimensions
       USE iotk_module
       USE grid
-      USE output_dump, ONLY: formatted_output
       USE input_module, ONLY: run_name
-      USE io_serial, ONLY: first_out, last_out, incr_out
       USE time_parameters, ONLY: dt, timestart
       USE kinds
       USE io_files, ONLY: iunxml, xmlfile
@@ -615,9 +985,6 @@
 !
       RETURN
       END SUBROUTINE write_XML_files
-
-
-
 !-----------------------------------------------------------------------
       END MODULE postp_output
 !----------------------------------------------------------------------

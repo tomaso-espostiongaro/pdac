@@ -17,7 +17,6 @@
         INTEGER :: resunit   = 10
         INTEGER :: outpunit  = 12
         INTEGER :: postunit  = 11
-        INTEGER :: ppunit    = 16
 
         INTEGER :: iuni_scalar = 21
         INTEGER :: iuni_u = 22
@@ -32,7 +31,7 @@
         CHARACTER(LEN=8)  :: errorfile = 'pdac.err'
         CHARACTER(LEN=8)  :: checkfile = 'pdac.chm'
         CHARACTER(LEN=8)  :: blfile    = 'body.dat'
-        CHARACTER(LEN=8)  :: nmlfile   = 'pdac.nml'
+        CHARACTER(LEN=8)  :: nmlfile   = 'pdac.xml'
         CHARACTER(LEN=8)  :: resfile   = 'pdac.res'
         CHARACTER(LEN=10) :: xmlfile   = 'output.xml'
         CHARACTER(LEN=11) :: testnb
