@@ -1682,6 +1682,7 @@
       END SUBROUTINE test_fluxes
 !----------------------------------------------------------------------
       SUBROUTINE correct_particles(ijk, imesh, i, j, k)
+      USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nsolid, ngas
       USE gas_solid_density, ONLY: rlk
       USE gas_solid_temperature, ONLY: sies
@@ -1697,7 +1698,7 @@
         IF (rlk(ijk,is)*inrl(is) <= 1.D-10) THEN
           rlk(ijk,is) = 0.D0
           us(ijk,is)  = 0.D0
-          vs(ijk,is)  = 0.D0
+          IF (job_type == '3D') vs(ijk,is)  = 0.D0
           ws(ijk,is)  = 0.D0
           sies(ijk,is) = 0.D0
         END IF
