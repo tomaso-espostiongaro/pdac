@@ -341,8 +341,6 @@
       USE parallel, ONLY: nproc, mpime, root, group
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p
-      USE time_parameters, ONLY: time
-      USE turbulence_model, ONLY: modturbo
       USE control_flags, ONLY: job_type
       USE io_files, ONLY: filnam, outpunit
 !
@@ -362,7 +360,11 @@
 
         IF (lform) THEN
           OPEN(UNIT=outpunit,FILE=filnam)
-          READ(outpunit,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
+          !READ(outpunit,222) time
+          READ(outpunit,*)
+          READ(outpunit,*)
+          READ(outpunit,*)
+          READ(outpunit,'(12x,g11.4)') time
         ELSE 
           OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam)
           READ(outpunit) time4
@@ -373,6 +375,7 @@
         WRITE(logunit,*) 'time = ', time
  
       END IF
+ 222  FORMAT(1x,///,1x,"@@@ TIME = ",g11.4)
 !
       CALL bcast_real(time, 1, root)
 !
@@ -489,7 +492,6 @@
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p
       USE time_parameters, ONLY: time
-      USE turbulence_model, ONLY: modturbo
       USE control_flags, ONLY: job_type
       USE io_files, ONLY: filnam, outpunit
 !
