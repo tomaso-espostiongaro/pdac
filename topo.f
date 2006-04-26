@@ -867,7 +867,7 @@
         END DO
         OPEN(tempunit, FILE='topo2d.dat',STATUS='NEW')
         IF (mpime == root) THEN
-                WRITE(tempunit,'10F15.6') topo2d_c
+                WRITE(tempunit,'(10F15.6)') topo2d_c
                 !WRITE(logunit,*) fl
         END IF
         CLOSE(tempunit)
