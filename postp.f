@@ -134,8 +134,6 @@
 ! ... map hazard variables at a given height above ground
 !
       IF (act == 1) CALL process
-      CALL parallel_hangup
-      STOP
 !
 !********************************************************
 !

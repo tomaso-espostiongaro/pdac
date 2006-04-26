@@ -46,7 +46,7 @@
       INTEGER, INTENT(IN) :: expmin
       REAL*8, DIMENSION(SIZE(array)) :: clamp
 
-      clamp = MAX(10.E0**expmin, array)
+      clamp = MAX(10.D0**expmin, array)
 
       RETURN
       END FUNCTION clamp

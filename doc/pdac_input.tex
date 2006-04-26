@@ -20,11 +20,15 @@ some simmetry in the physical domain (translation in one cartesian
 direction or cylindrical symmetry)}
 
 \item
-\PDACCONFWDEF{restart\_mode}{flag for restart}{{\tt 'from\_scratch'}, {\tt 'restart'}}
+\PDACCONFWDEF{restart\_mode}{flag for restart}{{\tt 'from\_scratch'}, {\tt 'restart'}, {\tt 'check\_geom'}, {\tt 'check\_init'}, {\tt 'outp\_recover'}}
 {{\tt 'from\_scratch'}}
 {If {\tt restart} is selected, initial conditions are set up by using the fields
 dumped (in double precision) into the restart file {\tt pdac.res} (see above). 
-Otherwise, initial conditions are set up from input data in {\tt pdac.dat}} 
+Otherwise, initial conditions are set up from input data in {\tt pdac.dat}.
+If {\tt 'check\_geom'}, or {\tt 'check\_init'} are selected, the program stops
+after the mesh and topography or the initial conditions are set, respectively.
+{\tt 'outp\_recover'} can be set to restart from the output file specified
+by the \OBJ{nfil} parameter.} 
 
 \item
 \PDACCONFWDEF{time}{initial time}{double real}{0.0}
@@ -68,7 +72,8 @@ scheduling). Default time is set to 6 hours}
 
 \item
 \PDACCONFWDEF{nfil}{number of first OUTPUT file}{any positive integer up to 9999}{0}
-{OUTPUT files are written with 4 digits extension ({\tt OUTPUT.XXXX}). 
+{Initial value for numbering the output files or for recovering.
+Output files are written with 4 digits extension ({\tt OUTPUT.XXXX}). 
 The output time can be recovered as $({\tt XXXX - nfil})* {\tt tpr}$ }
 
 \item
@@ -81,9 +86,9 @@ F - binary 4-bytes }
 {If .FALSE. is selected, the run stops after writing log files, the setup and the boundary conditions}
 
 \item
-\PDACCONFWDEF{imr}{flag for output maps}{0/1}{0}
-{ When 1 selected, writes out a geo-referenced map of hazard variables, computed by projecting the
-field values at a distance {\em zdist} from the ground at time intervals of {\em tpr}}
+\PDACCONFWDEF{imr}{flag for mass residuals}{0/1}{0}
+{ When 1 selected, writes out the total gas and particle mass in the domain
+and the mass flow rate, in a specific file \FIL{pdac.chm}}
 \end{itemize}
 
 \subsubsection{\OBJ{model} namelist}
@@ -99,6 +104,10 @@ and submodels.
 {The chemical reaction module has not yet been implemented}
 
 \item
+\PDACCONFWDEF{icpc}{gas specific heat}{0,1}{1}
+{1: specific heat depends on temperature}
+
+\item
 \PDACCONFWDEF{gas\_viscosity}{gas diffusive transport}{{\tt T/F}}{{\tt T}}
 {T to solve the full set of model equations. F switches the diffusive
 transport terms off for the gas phase (viscous and turbulent term in momentum 
@@ -110,6 +119,11 @@ energy exchange terms.}
 \PDACCONFWDEF{part\_viscosity}{particle diffusive transport}{{\tt T/F}}{{\tt T}}
 {Switches on/off the diffusive terms in the particle transport equations 
 (viscous terms in the momentum equation and thermal conductivity).}
+
+\item
+\PDACCONFWDEF{density\_specified}{flag for i.c.}{{\tt T/F}}{{\tt F}}
+{If .TRUE., specify gas density instead of temperature for initial conditions.
+Particle temperature is set equal to gas temperature.}
 
 \item
 \PDACCONFWDEF{iss}{turbulence model for particles}{0,1}{0}
@@ -139,18 +153,6 @@ Smagorinsky model (see above) makes the assignment of this constant
 non-necessary}
 
 \item
-\PDACCONFWDEF{rlim}{Multiphase limit}{very small real value}{$10^{-8}$}
-{It is related to minimum particle concentration for which multiphase flow
-equations of momentum are solved. Below this limit one-phase equations are solved
-(often critical for convergence on the cloud margins).}
-
-\item
-\PDACCONFWDEF{flim}{Multiphase limit}{very small real value}{$10^{-8}$}
-{It is related to minimum particle concentration for which multiphase flow
-equations of energy are solved. Below this limit one-phase equations are solved
-(often critical for convergence on the cloud margins).}
-
-\item
 \PDACCONFWDEF{gravx}{acceleration along x}{any real}{0.0}
 {Body-force in x(r)-direction}
 
@@ -174,12 +176,6 @@ atmosphere are considered by the model. The total number of gas
 species specified by this flag must be therefore consistent with 
 input conditions, otherwise the program stops.}
 
-\item
-\PDACCONFWDEF{density\_specified}{flag for specified flow conditions}{T/F}{F}
-{Setting this flag to T allows to specify gas density at the inlet instead of
-temperature. Gas temperature is then computed by using the perfect gas thermal
-equation of state.}
-
 \end{itemize}
 
 \subsubsection{\OBJ{mesh} namelist}
@@ -202,6 +198,42 @@ selected only in 2D.
 \item
 \PDACCONFWDEF{nz}{Number of cells in z-direction}{up to 512}{100}
 {z is the second space coordinate in 2D. It includes the boundary ghost cells.}
+
+\item
+\PDACCONFWDEF{n0x}{Number of uniform cells in x-direction}{up to 512}{10}
+{Number of cells with minimum size in x-direction}
+
+\item
+\PDACCONFWDEF{n0y}{Number of uniform cells in y-direction}{up to 512}{10}
+{Number of cells with minimum size in y-direction}
+
+\item
+\PDACCONFWDEF{n0z}{Number of uniform cells in z-direction}{up to 512}{10}
+{Number of cells with minimum size in z-direction}
+
+\item
+\PDACCONFWDEF{npx}{Number of cells to add in x-direction }{up to 512}{0}
+{Adds cells with maximum size \OBJ{dxmax} at the end of the x mesh.}
+
+\item
+\PDACCONFWDEF{nmx}{Number of cells to add in x-direction }{up to 512}{0}
+{Adds cells with maximum size \OBJ{dxmax} at the beginning of the x mesh.}
+
+\item
+\PDACCONFWDEF{npy}{Number of cells to add in y-direction }{up to 512}{0}
+{Adds cells with maximum size \OBJ{dymax} at the end of the y mesh.}
+
+\item
+\PDACCONFWDEF{nmy}{Number of cells to add in y-direction }{up to 512}{1}
+{Adds cells with maximum size \OBJ{dymax} at the beginning of the y mesh.}
+
+\item
+\PDACCONFWDEF{npz}{Number of cells to add in z-direction }{up to 512}{1}
+{Adds cells with maximum size \OBJ{dzmax} at the end of the z mesh.}
+
+\item
+\PDACCONFWDEF{nmz}{Number of cells to add in z-direction }{up to 512}{1}
+{Adds cells with maximum size \OBJ{dzmax} at the beginning of the z mesh.}
 
 \item
 \PDACCONFWDEF{itc}{flag for cylindrical coordinates}{0,1}{0}
@@ -295,18 +327,6 @@ cells size in the two/three coordinate directions.}
 described below 80 Km.}
 
 \item
-\PDACCONFWDEF{origin\_x}{origin of the cartesian space}{any real}{0.0}
-{Origin of the x-axis}
-
-\item
-\PDACCONFWDEF{origin\_y}{origin of the cartesian space}{any real}{0.0}
-{Origin of the y-axis}
-
-\item
-\PDACCONFWDEF{origin\_z}{origin of the cartesian space}{any real}{0.0}
-{Origin of the z-axis}
-
-\item
 \PDACCONFWDEF{mesh\_partition}{domain decomposition criterion}{1,2,3}{1}
 {1 - Layers decomposition, 2 - 2D Blocks decomposition, 3 - 3D Blocks decomposition}
 
@@ -357,9 +377,6 @@ procedure can be computationally expensive.}
 {When ibl = 1, the code writes out the lift and drag forces at each time-step
 on a rectangular block defined in the FIXED\_FLOWS card.}
 
-\item
-\PDACCONFWDEF{deltaz}{Height above the ground for mapping}{any real $>$ 0.0}{20.0}
-{Field values are interpolated vertically at this level to produce a 2D map.}
 \end{itemize}
 
 \subsubsection{\OBJ{topography} namelist}
@@ -373,6 +390,12 @@ The present version of \PDAC can include (in 2D and 3D) an external file specify
 \item
 \PDACCONFWDEF{itp}{Flag for importing DEM file}{0/1}{0}
 {If itp = 1, read the topography from a file.}
+
+\item
+\PDACCONFWDEF{ismt}{Flag for smoothing DEM}{1/2/3}{1}
+{Smoothing of the DEM is performed accordingly to a median filter (1), a 
+Gaussian filter (2) or a Barnes filter (3). The filtersize is defined
+by the corresponding input parameter.}
 
 \item
 \PDACCONFWDEF{iavv}{Flag for averaging the topography}{0/1}{0}
@@ -398,6 +421,12 @@ above the ground, at each OUTPUT time.}
 \item
 \PDACCONFWDEF{cellsize}{Resample the topography on a given mesh}{any real $>$ 0.0}{10}
 {This value is usually set equal to the dxmin, dymin values}
+
+\item
+\PDACCONFWDEF{zrough}{roughness length}{real}{1.0}
+{Default Roughness length. Typical values for ground
+ranges from few centimeters to some metres.}
+
 \end{itemize}
 
 \subsubsection{\OBJ{Inlet} namelist}
@@ -409,7 +438,7 @@ of a circular source within a cartesian mesh.
 \begin{itemize}
 \item
 \PDACCONFWDEF{ivent}{Flag for inlet conditions on a circular vent}{0/1}{0}
-{Vent conditions can be also imposed through the FIXED\_FLOWS card.}
+{Vent conditions are automatically imposed on the topography if {\tt ibl=1}}
 
 \item
 \PDACCONFWDEF{iali}{Flag for anti-aliasing}{0/1}{0}
@@ -439,11 +468,11 @@ occupied by the topography.}
 {The mesh is translated so that the vent is located in the more refined region}
 
 \item
-\PDACCONFWDEF{vent\_radius}{Radius of the vent}{any real > 0.0}{100}
+\PDACCONFWDEF{vent\_radius}{Radius of the vent}{any real $>$ 0.0}{100}
 {The radius in metres}
 
 \item
-\PDACCONFWDEF{base\_radius}{The radius of the base of the crater}{any real > 0.0}{200}
+\PDACCONFWDEF{base\_radius}{The radius of the base of the crater}{any real $>$ 0.0}{200}
 {This value must be equal, at least, to the double of the vent radius.}
 
 \item
@@ -463,15 +492,15 @@ occupied by the topography.}
 {}
 
 \item
-\PDACCONFWDEF{wrat}{Ratio between the maximum and the averaged vertical gas veloctiy}{any real > 1.0}{1.0}
-{If this value is > 1.0, the velocity has a maximum on the axis and falls to zero at the vent rim. The average is constant.}
+\PDACCONFWDEF{wrat}{Ratio between the maximum and the averaged vertical gas veloctiy}{any real $>$ 1.0}{1.0}
+{If this value is $>$ 1.0, the velocity has a maximum on the axis and falls to zero at the vent rim. The average is constant.}
 
 \item
 \PDACCONFWDEF{p\_gas}{Pressure at the vent}{any real}{101325.0}
 {}
 
 \item
-\PDACCONFWDEF{t\_gas}{Temperature at the vent}{any real > 0.0}{288.15}{}
+\PDACCONFWDEF{t\_gas}{Temperature at the vent}{any real $>$ 0.0}{288.15}{}
 
 \item
 \PDACCONFWDEF{u\_solid}{Inlet particle velocity x}{any real}{0.0}
@@ -486,11 +515,11 @@ occupied by the topography.}
 {The values for different particle classes must be separated by commas.}
 
 \item
-\PDACCONFWDEF{ep\_solid}{Averaged particle fraction}{any real > 0.0}{0.0}
+\PDACCONFWDEF{ep\_solid}{Averaged particle fraction}{any real $>$ 0.0}{0.0}
 {The values for different particle classes must be separated by commas.}
 
 \item
-\PDACCONFWDEF{t\_solid}{Particle temperature}{any real > 0.0}{288.15}
+\PDACCONFWDEF{t\_solid}{Particle temperature}{any real $>$ 0.0}{288.15}
 {The values for different particle classes must be separated by commas.}
 
 \item
@@ -515,6 +544,86 @@ occupied by the topography.}
 \PDACCONFWDEF{vent\_SO2}{Averaged concentration of SO2 at the vent}{any real [0.0:1.0]}{0.0}{}
 \end{itemize}
 
+\subsubsection{\OBJ{Dome} namelist}
+This namelist contains the numerical and model parameters to define initial
+conditions for dome explosion simulations. It includes the parameters for
+the Woods et al. (2002) model for the dome pressurization.
+This namelist is intended for both 2D/3D simulations. For 2D cylindrical
+simulations, the dome center is located on the symmetry axis.
+
+\begin{itemize}
+\item
+\PDACCONFWDEF{idome}{Flag for inlet conditions on a spherical dome}{0/1/2}{0}
+{0: no dome; 1: gas overpressure set through porous dome model; 2: constant overpressure.
+Dome cells are automatically imposed over the topography if {\tt ibl=1}}
+
+\item
+\PDACCONFWDEF{idw}{Flag for hydrostatic pressure}{0/1}{0}
+{1: add hydrostatic pressure of the dome edifice to the gas overpressure}
+
+\item
+\PDACCONFWDEF{xdome}{UTM longitude of the center of the dome}{any real}{0.0}
+{The mesh is translated so that the dome is located in the more refined region}
+
+\item
+\PDACCONFWDEF{ydome}{UTM latitude of the center of the dome}{any real}{0.0}
+{The mesh is translated so that the dome is located in the more refined region}
+
+\item
+\PDACCONFWDEF{dome\_volume}{Volume of the dome}{any real $>$ 0.0}{1.D6}
+{Note: the dome volume includes the gas fraction (it does NOT correspond to the
+Dense Rock Equivalent volume). The total mass in the dome resulting from the
+automatic procedure depends on the mesh discretization and on the topography.}
+
+\item
+\PDACCONFWDEF{conduit\_radius}{minimal radius of the dome}{any real $>$ 0.0}{15.D0}
+{The dome pressure is constant within the conduit\_radius}
+
+\item
+\PDACCONFWDEF{overpressure}{Constant overpressure can be imposed within the dome}{any real $>$ 0.0}{100.D5}
+{This value is used if {\tt idome = 2}}
+
+\item
+\PDACCONFWDEF{particle\_fraction}{particle volumetric fractions}{array of real [0.0:1.0]}{0.7}
+{The size of the array equals {\tt nsolid}. The sum of the particle volumetric fractions
+must not exceed 1.0}
+
+\item
+\PDACCONFWDEF{gas\_flux}{Gas flux from the conduit}{any real $>$ 0.0}{400.0}
+{}
+
+\item
+\PDACCONFWDEF{temperature}{Dome temperature in Kelvin}{any real $>$ 0.0}{1100.D0}
+{}
+
+\item
+\PDACCONFWDEF{permeability}{Dome permeability}{any real $>$ 0.0}{1.D-12}{}
+
+\item
+\PDACCONFWDEF{dome\_gasvisc}{Gas viscosity}{any real $>$ 0.0}{1.D-5}{}
+
+\item
+\PDACCONFWDEF{dome\_O2}{O2 mass fraction}{any real [0.0:1.0]}{0.0}{}
+
+\item
+\PDACCONFWDEF{dome\_N2}{N2 mass fraction}{any real [0.0:1.0]}{0.0}{}
+
+\item
+\PDACCONFWDEF{dome\_CO2}{CO2 mass fraction}{any real [0.0:1.0]}{0.0}{}
+
+\item
+\PDACCONFWDEF{dome\_H2}{H2 mass fraction}{any real [0.0:1.0]}{0.0}{}
+
+\item
+\PDACCONFWDEF{dome\_H2O}{H2O mass fraction}{any real [0.0:1.0]}{1.0}{}
+
+\item
+\PDACCONFWDEF{dome\_Air}{Air mass fraction}{any real [0.0:1.0]}{0.0}{}
+
+\item
+\PDACCONFWDEF{dome\_SO2}{SO2 mass fraction}{any real [0.0:1.0]}{0.0}{}
+\end{itemize}
+
 \subsubsection{\OBJ{Atmosphere} namelist}
 This namelist contains the parameters to build a stratified atmosphere from
 the ground pressure and temperature. For seven atmospheric layers (troposphere,
@@ -536,7 +645,7 @@ tropopause, lower\_stratosphere, upper\_stratosphere, ozone\_layer, lower\_mesos
 {If stratification is switched off (gravity equals zero), this corresponds to the ambient pressure}
 
 \item
-\PDACCONFWDEF{t\_ground}{Temperature at sea level}{any real > 0.0}{288.15}
+\PDACCONFWDEF{t\_ground}{Temperature at sea level}{any real $>$ 0.0}{288.15}
 {If stratification is switched off (gravity equals zero), this corresponds to the ambient temperature}
 
 \item
@@ -713,6 +822,18 @@ values above 1.0 overrelax.}
 {Level 1: not optimized. Level 2: Optimized memory access. Level 3: Optimized for 3D and 2 particle classes.}
 
 \item
+\PDACCONFWDEF{rlim}{Multiphase limit}{very small real value}{$10^{-8}$}
+{It is related to minimum particle concentration for which multiphase flow
+equations of momentum are solved. Below this limit one-phase equations are solved
+(often critical for convergence on the cloud margins).}
+
+\item
+\PDACCONFWDEF{flim}{Multiphase limit}{very small real value}{$10^{-6}$}
+{It is related to minimum particle concentration for which multiphase flow
+equations of energy are solved. Below this limit one-phase equations are solved
+(often critical for convergence on the cloud margins).}
+
+\item
 \PDACCONFWDEF{implicit\_fluxes}{flag for implicit computation of fluxes}{{\tt T/F}}{F}
 {By selecting T, convective fluxes are computed (at the first or second-order, 
 depending on flag \OBJ{muscl}) within the iterative solver. This modification
@@ -736,27 +857,6 @@ version of PDAC but gives wrong solutions in test case (e.g. 1D and 2D shock wav
 
 \subsection{\PDAC\ input cards}
 \label{section:cards}
-\subsubsection{\OBJ{'ROUGHNESS'} card}
-
-The \OBJ{'ROUGHNESS'} card is only valid for 2D 
-simulations (in 3D it will be replaced by the roughness matrix). In this
-card three elements must be specified:
-\begin{itemize}
-\item
-\PDACCONF{ir}{number of rough zones}{1,2}
-{The code allows the specification of one or two roughness regions, characterized
-by different roughness lengths.}
-
-\item
-\PDACCONF{zrough(:)}{roughness length}{real}
-{Specify one roughness length for each rough region. Typical values for ground
-ranges from few centimeters to some metres.}
-
-\item
-\PDACCONF{roucha}{distance of roughness change}{real}
-{The distance from the left boundary at which the roughness changes.}
-
-\end{itemize}
 
 \subsubsection{\OBJ{'MESH'} card}
 
@@ -795,6 +895,11 @@ first parameter specified in the card
 \item
 \PDACCONF{number\_of\_block}{number of blocks}{integer}
 {The number of blocks used to specify b.c.}
+\item
+\PDACCONF{nblu}{Block tagged for the blunt body routines}{array of integers}
+{If {\tt ibl=1} this array must contain a sequence of [0/1] indicating which
+blocks must be tagged for the computation of drag and lift forces. If
+{\tt ibl=0} it must not be present.}
 \end{itemize}
 
 Each block is characterized

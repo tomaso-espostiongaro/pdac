@@ -184,7 +184,7 @@
       SUBROUTINE ikb07ad(count,n,index)
 !     ==--------------------------------------------------------------==
 !     == sorting routine for the reciprocal space vectors (g)         ==
-!     == kb07ad handles DOuble precision variables                    ==
+!     == ikb07ad handles INTEGER variables                            ==
 !     == standard fortran 66 (a verIFied pfort SUBROUTINE)            ==
 !     == the work-space 'mark' of length 50 permits up to 2**(50/2)   ==
 !     == numbers to be sorted. this is more than the ibm virtual      ==

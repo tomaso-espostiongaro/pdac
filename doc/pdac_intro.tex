@@ -192,16 +192,37 @@ setup procedures. These include interpolation, filtering, averaging
 functions. The georeferencing of the computational mesh based on the 
 UTM coordinates of the volcanic vent has been introduced.
 
+\subsubsection*{New initial conditions at the vent}
+Vent conditions can now be set from scratch with a simple procedure.
+The vent is automatically located on the topography without the need
+to specify the inlet cells.
+
 \subsubsection*{New boundary conditions}
-New boundary conditions for the free in-outflow boundaries, for inlet
-flow and for the topography have been implemented. 
+New boundary conditions for the free in-outflow boundaries
+and for the topography have been implemented. 
 Non-reflecting atmospheric boundary conditions have been set.
-An automatic procedure for imposing flow conditions on a circular 
-volcanic vent has been devised to easily identify inlet cells on the
-topography.
 The topographic (no-slip) boundary
 conditions have been introduced by adopting an extension to multiphase
 compressible flows of the {\em immersed boundaries} technique.
+
+\subsection{Added features in release \RELEASEVERSION}
+
+Release \RELEASEVERSION fixed some minor bugs and re-organized
+the module hierarchy. Some new boundary conditions have been
+also implemented.
+
+\subsubsection*{New initial conditions for dome explosions}
+An automatic procedure to impose the initial conditions for the
+explosion of a pressurized, confined volume of particles has been
+implemented. This conditions can be representative of the initial
+state of an exploding lava dome. The grain size distribution, 
+the pressurization model, the dome porosity and permeability can
+be easily set.
+
+\subsubsection*{New automatic routines for the bluff-body problem}
+An automatic procedure to tag the blunt blocks and to compute the
+drag and lift forces have been implemented. This allow to compute,
+for example, the action exerted by a pyroclastic flow on a building.
 
 \subsection{User feedback}
 
@@ -217,16 +238,17 @@ community.  Your suggestions are welcome at \PDACADDRESS\
 We also appreciate hearing from you about how you are using \PDAC\ 
 in your work.
 
-
 \subsection{Collaborations}
 The formulation of the high-order numerical schemes, for both spatial
 and temporal discretizations, has been developed in collaboration with
 Maria Vittoria Salvetti (Dip.to di Ingegneria Aerospaziale, Universit\`a 
 di Pisa) and Fran\c{c}ois Beux (Scuola Normale Superiore, Pisa). The 
 immersed boundaries technique has been implemented in collaboration with
-Mattia De'Michieli Vitturi (Dip.to di Matematica, Universit\`a di Pisa). 
+Mattia De'Michieli Vitturi (Dip.to di Matematica, Universit\`a di Pisa, now 
+at INGV, Pisa). 
 We also credit Maria Vittoria Salvetti for the formulation of the turbulence 
-Large Eddy Simulation (LES) model and Sara Barsotti for the implementation.
+Large Eddy Simulation (LES) model and Sara Barsotti (INGV - Pisa) 
+for the implementation.
 
 \subsection{Acknowledgments}
 

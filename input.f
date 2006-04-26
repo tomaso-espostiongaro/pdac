@@ -320,10 +320,10 @@
       idw = 0                 ! Flag for adding dome hydrostatic pressure
       xdome = 0.0             ! UTM longitude of the dome center
       ydome = 0.0             ! UTM latitude of the dome center
-      dome_volume = 0.0        ! total volume of exploded mass
+      dome_volume = 1.D6        ! total volume of exploded mass
       conduit_radius = 15.D0   ! Radius of the conduit feeding the dome
       overpressure = 100.D5             ! overpressure of the dome
-      particle_fraction = 0.D0          ! particle fractions
+      particle_fraction = 0.7D0          ! particle fractions
       gas_flux = 400.D0        ! gas flux through the conduit
       temperature = 1100.D0        ! gas temperature
       permeability = 1.D-12    ! permeability of the dome

@@ -435,9 +435,7 @@
         END DO
         !
       END IF
-!      DO ijk = 1, nx*ny*nz
-!      WRITE(*,*) fl(ijk)
-!      END DO
+!      WRITE(*,*) fl
 !
       RETURN
       END SUBROUTINE flic

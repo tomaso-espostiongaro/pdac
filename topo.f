@@ -834,6 +834,7 @@
 !
       USE control_flags, ONLY: job_type, lpr
       USE grid, ONLY: fl, noslip_wall, zb
+      USE io_files, ONLY: tempunit, logunit
       IMPLICIT NONE
 
       INTEGER :: i, j, k, ijk
@@ -864,6 +865,12 @@
             topo2d_y(i,j) = topo2d_c(i,j)
           END DO
         END DO
+        OPEN(tempunit, FILE='topo2d.dat',STATUS='NEW')
+        IF (mpime == root) THEN
+                WRITE(tempunit,'10F15.6') topo2d_c
+                !WRITE(logunit,*) fl
+        END IF
+        CLOSE(tempunit)
       END IF
 !
       RETURN

@@ -1,17 +1,16 @@
 &control
- run_name = 'L_w2_t950___3d'
+ run_name = 'Ves3D_A2'
  job_type = '3D',
  restart_mode = 'from_scratch', ! ( from_scratch | restart )
  time =  0.0D0,
- tstop = 300.0D0,
+ tstop = 1200.0D0,
  dt    = 0.01D0,
  tpr   = 2.0D0,
  tdump = 10.0D0,
- nfil = 0,
- formatted_output = .TRUE.,
+ formatted_output = .FALSE.,
  tau = 0.D0,
- lpr = 1,
- max_seconds = 86000.D0
+ lpr = 0,
+ max_seconds = 21000.D0
 /
 
 &model
@@ -23,40 +22,40 @@
 /
 
 &mesh
-  nx = 128,
-  ny = 128,
-  nz = 128,
+  nx = 190,
+  ny = 170,
+  nz = 160,
   itc = 0,
   iuni = 0,
   grigen = 1,
   center_x =  451660.D0,
   center_y = 4519280.D0,
-  domain_x = 6.D3,
-  domain_y = 6.D3,
+  domain_x = 13.D3,
+  domain_y = 11.D3,
   domain_z = 8.D3,
-  alpha_x = 0.5D0,
-  alpha_y = 0.5D0,
-  alpha_z = 0.12D0,
+  alpha_x = 0.60D0,
+  alpha_y = 0.54D0,
+  alpha_z = 0.0D0,
   dxmin = 20.D0,
   dxmax = 100.D0,
   dymin = 20.D0,
   dymax = 100.D0,
   dzmin = 20.D0,
   dzmax = 100.D0,
-  n0x = 25,
-  n0y = 25,
-  n0z = 20,
+  n0x = 50,
+  n0y = 50,
+  n0z = 70,
   maxbeta = 1.1D0,
   mesh_partition = 3
 /
 
 &boundaries
-  immb = 1,
+  immb = 0,
   east   = 2,
   west   = 2,
   north  = 2,
   south  = 2,
-  top    = 6,
+  top    = 4,
   bottom = 3
 /
 
@@ -65,7 +64,8 @@
   dem_file = 'topo.dat',
   nocrater = .TRUE.,
   rim_quota = 1130.D0,
-  cellsize = 50.D0
+  cellsize = 20.D0,
+  filtersize = 50.D0
 /
 
 &inlet
@@ -74,16 +74,16 @@
   irand = 0,
   vent_radius = 125.D0,
   crater_radius = 1000.D0,
-  wrat = 1.0D0,
+  wrat = 1.1D0,
   u_gas = 0.D0,
   v_gas = 0.D0,
-  w_gas = 145.0D0,
-  p_gas = 88500,
+  w_gas = 175.0D0,
+  p_gas = 88500.D0,
   t_gas  = 1110.D0,
-  u_solid = 0.D0, 0.D0
-  v_solid = 0.D0, 0.D0
-  w_solid = 145.D0, 145.D0
-  ep_solid = 0.0012D0, 0.0034D0
+  u_solid = 0.D0, 0.D0,
+  v_solid = 0.D0, 0.D0,
+  w_solid = 175.D0, 175.D0,
+  ep_solid = 0.0011D0, 0.0031D0,
   t_solid  = 1110.D0,1110.D0,
   vent_H2O = 0.75D0,
   vent_Air = 0.25D0
@@ -97,7 +97,7 @@
 
 &particles
   nsolid = 2, 
-  diameter = 30., 500.
+  diameter = 30., 500.,
   density = 2800., 1000.,
   sphericity = 1.0, 1.0,
   viscosity = 0.5,  1.0,
@@ -108,11 +108,10 @@
 &numeric
   rungekut = 1,
   muscl = 0,
-  mass_limiter = 2,
-  vel_limiter = 2,
   maxout = 500,
-  omega = 1.1D0,
-  update_eosg = .FALSE.
+  omega = 1.2D0,
+  update_eosg = .FALSE.,
+  optimization = 3
 /
 
 'MESH'

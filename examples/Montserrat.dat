@@ -1,4 +1,3 @@
-
 &control
  run_name = 'MS_op10_w43_p3'
  job_type = '2D',
@@ -15,7 +14,6 @@
  iss = 0,
  repulsive_model = 1,
  iturb = 1,
- rlim = 1.D-8,
  ngas = 2
 /
 
@@ -56,6 +54,7 @@
   rungekut = 1,
   muscl = 0,
   omega = 1.25
+  rlim = 1.D-8,
 /
 
 'MESH'

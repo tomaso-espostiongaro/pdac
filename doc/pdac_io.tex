@@ -38,7 +38,7 @@ by the root processor (the one with MPI id equal to 0), that
 is charged of broadcasting data to the other computing units.
 
 \subsubsection{The \FIL{pdac.dat} file}
-\label{section:padc_dat}
+\label{section:pdac_dat}
 
 This file contains the parameters that define the physical system
 you want to simulate with \PDAC. \FIL{pdac.dat} is not red from standard 
@@ -147,7 +147,7 @@ information and data files.
 Information files (\FIL{pdac.log}, \FIL{pdac.tst} and
 \FIL{pdac.err} ) contain logging, testing and debugging information
 meant for the user to control the progress of the simulation.
-Data files (\FIL{OUTPUT.nnnn}) contain the values of all the 
+Data files (\FIL{output.nnnn}) contain the values of all the 
 independent physical fields saved at regular interval of time, in different 
 files distinguished by an incremental index (the ``nnnn'' in the file name).
 Obviously the restart file described above can be considered also as an 
@@ -180,6 +180,13 @@ The file \FIL{pdac.tst}, like \FIL{pdac.log}, is a free text file that contains 
 and testing informations. This is meant for developers only,
 therefore the information present in it is not particularly useful to the common user.
 The file is connected to the Fortran unit 7 and is cleared every new run.
+When a simulation is run on {\em nproc} processors on a parallel computer, 
+each process writes its own test file, named \FIL{pdac.tstnnn}, where
+the extension ``nnn'' is a progressive number, ranging from 1 to {\em nproc - 1}
+indicating the rank of the process. The input flag \OBJ{lpr} controls the 
+information written into the test files. Please notice that opening hundreds
+of test file could cause a system failure. We recommend that, for {\em nproc}
+larger than some tens, the level of verbosity is set to 0.
 
 \subsubsection{The \FIL{pdac.err} file}
 \label{section:padc_err}
@@ -190,7 +197,7 @@ all messages related to severe errors that cause the program to stop.
 Note that this file is not cleared at every run but it is opened in 
 {\it APPEND} mode.
 
-\subsubsection{Output file}
+\subsubsection{Output files}
 
 All scalar and vector fields related to the evolution of the simulated
 system are saved into the \FIL{OUTPUT.nnnn} files at regular intervals of
@@ -242,253 +249,21 @@ time and each variable is written in a separate record.
 In particular time is written in a record of lenght 1
 while all other fields in records of lenght {\tt nx*ny*nz}.
 
-\subsection{Post-processing files}
-\label{sect:pp}
+\subsubsection{Mesh information}
+The file \FIL{mesh.dat} contains the georeferenced mesh points
+corresponding to the centered and staggered grids.
 
-\PDAC\ release \PDACVERSION\ provides the executable \FIL{postp.x} utility,
-that is intended to be a pre-processing tool for the visualization of
-output files produced by \PDAC. Even though this tool is still under 
-development its usage is shortly described in this section in order to make it
-useful for the user, especially when the output of very large simulations
-are too big to be processed directly by a visualization tool.
-\FIL{postp.x} extracts from a series of \FIL{OUTPUT.nnnn} files the individual single fields,
-with the possibility of downsize, interpolate, and crop the data
-and stores them in separate files that can be easily plotted with
-various graphical application. Moreover it can process the flow fields to
-compute derived quantities of physical interest. 
-Another important feature of the post-processor \FIL{postp.x} is that
-together with the output filds it write a XML file containing the
-full descripion of the grid and of the output filds files, so that
-any analysis or graphic program with an XML importer/reader can
-read the code ouputs. XML meta-language is infact presently 
-considered as one of the most portable and flexible way of 
-exchanging data between applications, and it has the largely
-appreciated characteristic of being human readable.
-
-\subsubsection{Post-processing input files}
-
-The pre-processing tool must read the input file \FIL{pdac.dat} and an
-input file \FIL{pp.dat}, containing the parameters that control the post-processing.
-Some examples of these input files can be found in the \DIR{EXPLORIS/examples} directory
-in the repository.
-
-\subsubsection{Post-processing output files}
-
-The post-processing produces several output files
-containing all individual fields and grid information useful
-for visualization.
-In particular, post-processing \FIL{pp.x} reads a sequence
-of \FIL{OUTPUT.nnnn} files (the numbers indicating the first, the last, and
-the increment of ``nnnn'' are red in input)
-and writes out a sequence of files for each individual field.
-The name of new files are of the form \FIL{filter.[fieldname].nnnn}.
-The format of these file is the same of output, as specified above.
-A list of all files produced by the post-processing is the following:
-
-\begin{itemize}
-
-\item \FIL{pdac.xml}  \\
-      this file contains a detailed description of the grid, fields 
-      and of the other filds files, it is written using an XML compliant format
-
-\item \FIL{filter.pgas.nnnn} \\
-      these files contain the gas pressure field 
-
-\item \FIL{filter.ug.nnnn} \\
-      these files contain the gas velocity field in x-direction
-      for the gas phase
-
-\item \FIL{filter.vg.nnnn} \\
-      these files contain the gas velocity field in y-direction
-      for the gas phase
-      This file is not present in 2D simulations
-
-\item \FIL{filter.wg.nnnn} \\
-      these files contain the gas velocity field in z-direction
-for the gas phase
-
-\item \FIL{filter.tgas.nnnn} \\
-      these files contain the gas temperature field 
-
-\item \FIL{filter.xgGG.nnnn} \\
-      these files contain the molar fraction fields for all the gas 
-      components (GG runs from 01 to ngas) 
-
-\item \FIL{filter.epSS.nnnn} \\
-      these files contain the particle volume fraction fields for all the 
-      solid phases (SS runs from 01 to nsolid) 
-
-\item \FIL{filter.tsSS.nnnn} \\
-      these files contain the particles temperature fields
-      for all solid phases (SS run from 01 to nsolid)
-
-\item \FIL{filter.usSS.nnnn} \\
-      these files contain the particles velocity fields in x-direction
-      for all solid phases (SS run from 01 to nsolid)
-
-\item \FIL{filter.vsSS.nnnn} \\
-      these files contain the particles velocity fields in y-direction
-      for all solid phases (SS run from 01 to nsolid)
-      These files are not present in 2D simulations
-
-\item \FIL{filter.wsSS.nnnn} \\
-      these files contain the particles velocity fields in z-direction
-      for all solid phases (SS run from 01 to nsolid)
-
-\end{itemize}
-
-Note that when running the post-processing all 
-\FIL{OUTPUT.nnnn} files in the selected range should 
-be present in the running directory of \FIL{pp.x}
-
-\subsubsection{XML tags}
-
-This section explains the meaning of the tags used in the structure
-of the XML file, needed to its correct interpretation.
-Once a meaning has been associated to each tag, any code
-that can read XML can also import the ouput fields files 
-produced by the post-processor \FIL{postp.x} .
-The following XML tags have been defined:
-
-\begin{itemize}
-
-\item \FIL{\tt <dataset></dataset>} \\
-      the highest level tag specifying the complete output of a post-processor run,
-      all other tags should be contained in this one. Attribute:\\
-      {\it name} the name of the dataset (ex. \FIL{<dataset name="Vesuvius">})
-
-\item \FIL{\tt <grid></grid>} \\
-      identify the section containing information on the computational grid and
-      fields defined on it
-
-\item \FIL{\tt <structure></structure>} \\
-      defined in the grid section, identify the section containing grid sizes
-
-\item \FIL{\tt <x></x>} \\
-      identify a section containig sub-tags referring to x cartesian axis
-
-\item \FIL{\tt <y></y>} \\
-      identify a section containig sub-tags referring to y cartesian axis
-
-\item \FIL{\tt <z></z>} \\
-      identify a section containig sub-tags referring to z cartesian axis
-
-\item \FIL{\tt <dim> $N$ </dim>} \\
-      specify a dimension. Attributes:\\
-      {\it type} the type of the dimension (ex. \FIL{\tt <dim type="integer">})
-      {\it size} the size of the dimension (ex. \FIL{\tt <dim size="1">})
-
-\item \FIL{\tt <cfile> filename </cfile>} \\
-
-\item \FIL{\tt <file> filename </file>} \\
-
-\item \FIL{\tt <attributes> </attributes>} \\
-      identify a section the attributes of the discretized grid
-
-\item \FIL{\tt <profile> </profile>} \\
-      identify a section containig information abount profile
-
-\item \FIL{\tt <scalar> </scalar>} \\
-      identify a section containig scalar field data
-
-\item \FIL{\tt <staggered> </staggered>} \\
-      identify a section containig staggered vector field data
-
-\item \FIL{\tt <frames> </frames>} \\
-      identify a section containig information abount time frame
-
-\item \FIL{\tt <timestep> </timestep>} \\
-      specify a time frame
-       
-
-\end{itemize}
-
-
-example of post-processing XML output file:
-
-\begin{verbatim}
-<?xml version="1.0" encoding="UTF-8"?>
-<dataset name="jet_simulation">
-  <grid>
-    <structure>
-      <x>
-        <dim type="integer" size="1">64</dim>
-        <cfile type="ascii" linetoskip="2">mesh.dat</cfile>
-        <file type="ascii" linetoskip="16">mesh.dat</file>
-      </x>
-      <z>
-        <dim type="integer" size="1">128</dim>
-        <cfile type="ascii" linetoskip="34">mesh.dat</cfile>
-        <file type="ascii" linetoskip="61">mesh.dat</file>
-      </z>
-    </structure>
-    <attributes>
-      <profile name="profile">
-        <file type="ascii">improfile.dat</file>
-      </profile>
-      <scalar name="P">
-        <file type="ascii" linetoskip="8">output</file>
-      </scalar>
-      <staggered name="VG">
-        <x>
-          <file type="ascii" linetoskip="908">output</file>
-        </x>
-        <z>
-          <file type="ascii" linetoskip="1808">output</file>
-        </z>
-      </staggered>
-      <scalar name="TG">
-        <file type="ascii" linetoskip="2708">output</file>
-      </scalar>
-      <scalar name="XGC1">
-        <file type="ascii" linetoskip="3608">output</file>
-      </scalar>
-      <scalar name="XGC2">
-        <file type="ascii" linetoskip="4508">output</file>
-      </scalar>
-      <scalar name="EPS1">
-        <file type="ascii" linetoskip="5408">output </file>
-      </scalar>
-      <staggered name=" VS1">
-        <x>
-          <file type="ascii" linetoskip="6308">output</file>
-        </x>
-        <z>
-          <file type="ascii" linetoskip="7208">output</file>
-        </z>
-      </staggered>
-      <scalar name="TS1">
-        <file type="ascii" linetoskip="8108">output</file>
-      </scalar>
-      <scalar name="EPS2">
-        <file type="ascii" linetoskip="9008">output</file>
-      </scalar>
-      <staggered name=" VS2">
-        <x>
-          <file type="ascii" linetoskip="9908">output</file>
-        </x>
-        <z>
-          <file type="ascii" linetoskip="10808">output</file>
-        </z>
-      </staggered>
-      <scalar name="TS2">
-        <file type="ascii" linetoskip="11708">output</file>
-      </scalar>
-    </attributes>
-  </grid>
-  <frames timestart=".0000000D+00" timescale=".1000000D-01">
-    <timestep type="integer" size="1">1000</timestep>
-  </frames>
-</dataset>
-\end{verbatim}
-
-A dataset consists in a certain number of frames defined over a simulation grid. 
-A grid involves a structure (a geometry and therefore coordinates) and attributes: 
-scalars, vectors, staggered vectors and a profile of the terrain.
-The spatial dimension of the grid depends by the number of specified coordinates. 
-In the previous example only x and z appears therefore the grid is assumed 2D.
-
-
+\subsubsection{Other output files}
+Some output data files are written when specific control options
+are selected. Among these, \FIL{body.dat} contains the drag and
+lift forces exterted by the flow on a bluff body, and is generated 
+if the flag \OBJ{ibl} is set to 1. Analogously, \FIL{pdac.chm} 
+contains information on mass residuals and is written when
+the flag \OBJ{imr} is set to 1 (see Sect. \ref{section:input_par} ).
+The file \FIL{improfile.dat} contains, for each cell in the computational
+domain, its vertical distance from the topography. It is written
+only if a DEM file is used to acquire the topography (flag \OBJ{itp} set
+to 1).
 
 %\subsection{General remark}
 %
