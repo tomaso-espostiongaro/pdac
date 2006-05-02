@@ -4,190 +4,207 @@
       USE dimensions
       USE gas_constants, ONLY: gammaair, rgas, gmw, gas_type
       USE particles_constants, ONLY: rl
+      INTEGER :: imesh, ig, is
+      INTEGER :: meshsize
 !
+      PUBLIC
+      PRIVATE :: ig, is, imesh, meshsize
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      FUNCTION epst(eps)
+      SUBROUTINE total_particle_fraction(epst,eps)
       !
       ! ... computes the total particle volumetric fraction
       
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: eps(:,:)
-      REAL*8, DIMENSION(SIZE(eps,DIM=1)) :: epst
+      REAL*8, INTENT(OUT), DIMENSION(SIZE(eps,DIM=1)) :: epst
 
-      epst = SUM(eps,DIM=2)
+      meshsize = SIZE(eps,DIM=1)
+      DO imesh = 1, meshsize
+        epst(imesh) = SUM(eps(imesh,:))
+      END DO
 
       RETURN
-      END FUNCTION epst
+      END SUBROUTINE total_particle_fraction
 !----------------------------------------------------------------------
-      FUNCTION leps(eps)
+      SUBROUTINE void_fraction(ep,epst)
+      !
+      ! ... computes the void fraction
+
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: epst(:)
+      REAL*8, INTENT(OUT), DIMENSION(SIZE(epst)) :: ep
+
+      meshsize = SIZE(epst)
+      DO imesh = 1, meshsize
+        ep(imesh) = 1.D0 - epst(imesh)
+      END DO
+
+      RETURN
+      END SUBROUTINE void_fraction
+!----------------------------------------------------------------------
+      SUBROUTINE log10_epstot(lepst,epst)
       !
       ! ... computes the log10 of the particle volumetric fraction
       
       IMPLICIT NONE
-      REAL*8, INTENT(IN) :: eps(:)
-      REAL*8, DIMENSION(SIZE(eps)) :: ceps
-      REAL*8, DIMENSION(SIZE(eps)) :: leps
+      REAL*8, INTENT(IN) :: epst(:)
+      REAL*8, INTENT(OUT), DIMENSION(SIZE(epst)) :: lepst
+      REAL*8 :: clamp_epst
 
-      ceps = clamp(eps,-10)
-      leps = log10(ceps)
-
-      RETURN
-      END FUNCTION leps
-!----------------------------------------------------------------------
-      FUNCTION clamp(array,expmin)
-      !
-      ! ... set minimum value
-
-      IMPLICIT NONE
-      REAL*8, INTENT(IN) :: array(:)
-      INTEGER, INTENT(IN) :: expmin
-      REAL*8, DIMENSION(SIZE(array)) :: clamp
-
-      clamp = MAX(10.D0**expmin, array)
+      meshsize = SIZE(epst)
+      DO imesh = 1, meshsize
+        clamp_epst = MAX(1.D-10,epst(imesh))
+        lepst(imesh) = log10(clamp_epst) 
+      END DO
 
       RETURN
-      END FUNCTION clamp
+      END SUBROUTINE log10_epstot
 !----------------------------------------------------------------------
-      FUNCTION mg(xgc)
+      SUBROUTINE gas_molecular_weight(mg,xgc)
       !
       ! ... compute the averaged gas molecular weight
 
       IMPLICIT NONE
-      REAL*8, DIMENSION(:,:) :: xgc
-      REAL*8, DIMENSION(SIZE(xgc,DIM=1)) :: mg
-      INTEGER :: ig
+      REAL*8, INTENT(IN), DIMENSION(:,:) :: xgc
+      REAL*8, INTENT(OUT), DIMENSION(SIZE(xgc,DIM=1)) :: mg
 
       mg = 0.D0
-      DO ig = 1, ngas
-        mg = mg + xgc(:,ig) * gmw(gas_type(ig))
+      meshsize = SIZE(xgc,DIM=1)
+      DO imesh = 1, meshsize
+        DO ig = 1, ngas
+          mg(imesh) = mg(imesh) + xgc(imesh,ig) * gmw(gas_type(ig))
+        END DO
       END DO
 
       RETURN
-      END FUNCTION mg
+      END SUBROUTINE gas_molecular_weight
 !----------------------------------------------------------------------
-      FUNCTION rhog(p,tg,xgc)
+      SUBROUTINE gas_density(rhog,p,tg,xgc)
       !
       ! ... computes gas thermodynamic density
 
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: p(:), tg(:), xgc(:,:) 
-      REAL*8, DIMENSION(SIZE(p)) :: rhog
+      REAL*8, INTENT(OUT), DIMENSION(SIZE(p)) :: rhog
       REAL*8, DIMENSION(SIZE(p)) :: mgas
 
-      mgas = mg(xgc) 
-      rhog = p / ( rgas * tg ) * mgas
+      meshsize = SIZE(p)
+      CALL gas_molecular_weight(mgas,xgc)
+      DO imesh = 1, meshsize
+        rhog(imesh) = p(imesh) / ( rgas * tg(imesh) ) * mgas(imesh)
+      END DO
       
       RETURN
-      END FUNCTION rhog
+      END SUBROUTINE gas_density
 !----------------------------------------------------------------------
-      FUNCTION ygc(xgc)
+      SUBROUTINE gas_mass_fractions(ygc,xgc)
       !
       ! ... computes gas components mass fractions
       
       IMPLICIT NONE
       REAL*8, INTENT(IN), DIMENSION(:,:) :: xgc
-      REAL*8, DIMENSION(SIZE(xgc,1),SIZE(xgc,2)) :: ygc
+      REAL*8, INTENT(OUT), DIMENSION(SIZE(xgc,1),SIZE(xgc,2)) :: ygc
+      REAL*8, DIMENSION(SIZE(xgc,DIM=1)) :: mgas
       INTEGER :: ig
 
-      DO ig=1,ngas
-        ygc(ig,:) = xgc(:,ig) * gmw(gas_type(ig)) / mg(xgc)
+      CALL gas_molecular_weight(mgas,xgc)
+      meshsize = SIZE(xgc,DIM=1)
+      DO imesh = 1, meshsize
+        DO ig=1,ngas
+          ygc(imesh,ig) = xgc(imesh,ig) * gmw(gas_type(ig)) / mgas(imesh)
+        END DO
       END DO
 
       RETURN
-      END FUNCTION ygc
+      END SUBROUTINE gas_mass_fractions
 !----------------------------------------------------------------------
-      FUNCTION ep(eps)
-      !
-      ! ... computes the void fraction
-
-      IMPLICIT NONE
-      REAL*8, INTENT(IN) :: eps(:,:)
-      REAL*8, DIMENSION(SIZE(eps,DIM=1)) :: ep
-
-      ep = 1.D0 - SUM(eps,DIM=2)
-
-      RETURN
-      END FUNCTION ep
-!----------------------------------------------------------------------
-      FUNCTION rgp(eps,p,tg,xgc)
+      SUBROUTINE gas_bulk_density(rgp,ep,rhog)
       !
       ! ... computes gas bulk density
 
       IMPLICIT NONE
-      REAL*8, INTENT(IN) :: eps(:,:)
-      REAL*8, INTENT(IN) :: p(:), tg(:), xgc(:,:)
-      REAL*8, DIMENSION(SIZE(p)) :: rgp
+      REAL*8, INTENT(IN) :: ep(:), rhog(:)
+      REAL*8, INTENT(OUT), DIMENSION(SIZE(ep)) :: rgp
 
-      rgp = ep(eps) * rhog(p,tg,xgc)
+      meshsize = SIZE(ep)
+      DO imesh = 1, meshsize
+        rgp(imesh) = ep(imesh) * rhog(imesh)
+      END DO
 
-      END FUNCTION rgp
+      END SUBROUTINE gas_bulk_density
 !----------------------------------------------------------------------
-      FUNCTION rlk(eps)
+      SUBROUTINE solid_bulk_density(rlk,eps)
       !
       ! ... computes solid bulk densities
 
       IMPLICIT NONE
-      INTEGER :: ijk
       REAL*8, INTENT(IN) :: eps(:,:)
       REAL*8, DIMENSION(SIZE(eps,1),SIZE(eps,2)) :: rlk
 
-      DO ijk = 1, SIZE(eps,DIM=1)
-        rlk(ijk,:) = eps(ijk,:) * rl(:)
+      meshsize = SIZE(eps,DIM=1)
+      DO imesh = 1, meshsize
+        DO is = 1, nsolid
+          rlk(imesh,is) = eps(imesh,is) * rl(is)
+        END DO
       END DO
 
-      END FUNCTION rlk
+      END SUBROUTINE solid_bulk_density
 !----------------------------------------------------------------------
-      FUNCTION rhom(eps,p,tg,xgc)
+      SUBROUTINE mixture_density(rhom,rlk,rgp)
       !
       ! ... computes gas-particle mixture density
 
       IMPLICIT NONE
-      REAL*8, INTENT(IN) :: eps(:,:)
-      REAL*8, INTENT(IN) :: p(:), tg(:), xgc(:,:)
-      REAL*8, DIMENSION(SIZE(p)) :: rhom
-      REAL*8, DIMENSION(SIZE(eps,1),SIZE(eps,2)) :: bds
+      REAL*8, INTENT(IN) :: rlk(:,:)
+      REAL*8, INTENT(IN) :: rgp(:)
+      REAL*8, DIMENSION(SIZE(rgp)) :: rhom
 
-      bds = rlk(eps)
-      rhom = rgp(eps,p,tg,xgc) + SUM(bds,DIM=2) 
+      meshsize = SIZE(rgp)
+      DO imesh = 1, meshsize
+        rhom(imesh) = rgp(imesh) + SUM(rlk(imesh,:)) 
+      END DO
 
       RETURN
-      END FUNCTION rhom
+      END SUBROUTINE mixture_density
 !----------------------------------------------------------------------
-      FUNCTION rhos(eps)
+      SUBROUTINE particle_density(rhos,rlk)
       !
       ! ... computes particle mixture density
 
       IMPLICIT NONE
-      REAL*8, INTENT(IN) :: eps(:,:)
-      REAL*8, DIMENSION(SIZE(eps,1)) :: rhos
-      REAL*8, DIMENSION(SIZE(eps,1),SIZE(eps,2)) :: bds
+      REAL*8, INTENT(IN) :: rlk(:,:)
+      REAL*8, DIMENSION(SIZE(rlk,1)) :: rhos
 
-      bds = rlk(eps)
-      rhos = SUM(bds,DIM=2) 
+      meshsize = SIZE(rlk,1)
+      DO imesh = 1, meshsize
+        rhos(imesh) = SUM(rlk(imesh,:)) 
+      END DO
 
       RETURN
-      END FUNCTION rhos
+      END SUBROUTINE particle_density
 !----------------------------------------------------------------------
-      FUNCTION velm(ug,us,eps,p,tg,xgc)
+      SUBROUTINE mixture_velocity(velm,ug,us,rlk,rgp,rhom)
       !
       ! ... computes gas-particle mixture velocity (one component)
 
       IMPLICIT NONE
-      REAL*8, INTENT(IN), DIMENSION(:,:) :: eps, us
-      REAL*8, INTENT(IN), DIMENSION(:,:) :: xgc
-      REAL*8, INTENT(IN), DIMENSION(:) :: ug, p,tg
+      REAL*8, INTENT(IN), DIMENSION(:,:) :: rlk, us
+      REAL*8, INTENT(IN), DIMENSION(:) :: ug, rgp, rhom
       REAL*8, DIMENSION(SIZE(ug)) :: velm
       
-      velm = rgp(eps,p,tg,xgc) * ug + SUM( rlk(eps) * us ,DIM=2) 
-      velm = velm / rhom(eps,p,tg,xgc)
+      meshsize = SIZE(ug)
+      DO imesh = 1, meshsize
+        velm(imesh) = rgp(imesh)*ug(imesh) + SUM(rlk(imesh,:)*us(imesh,:)) 
+        velm(imesh) = velm(imesh) / rhom(imesh)
+      END DO
 
       RETURN
-      END FUNCTION velm
+      END SUBROUTINE mixture_velocity
 !----------------------------------------------------------------------
-      FUNCTION pdyn(rm,velom)
+      SUBROUTINE dynamic_pressure(pdyn,rm,velom)
       !
       ! ... computes the mixture dynamic pressure
       
@@ -195,10 +212,43 @@
       REAL*8, INTENT(IN), DIMENSION(:) :: rm, velom
       REAL*8, DIMENSION(SIZE(rm)) :: pdyn
 
-      pdyn = 0.5 * rm * velom**2
+      meshsize = SIZE(rm)
+      DO imesh = 1, meshsize
+        pdyn(imesh) = 0.5D0 * rm(imesh) * velom(imesh)**2
+      END DO
 
       RETURN
-      END FUNCTION pdyn
+      END SUBROUTINE dynamic_pressure
+!----------------------------------------------------------------------
+      SUBROUTINE velocity_module_2D(vel2,v1,v2)
+      !
+      ! ... compute the modulus of a 2D velocity field
+      IMPLICIT NONE
+      REAL*8, INTENT(IN), DIMENSION(:) :: v1, v2
+      REAL*8, DIMENSION(SIZE(v1)) :: vel2
+
+      meshsize = SIZE(v1)
+      DO imesh = 1, meshsize
+        vel2(imesh) = SQRT( v1(imesh)**2 + v2(imesh)**2 )
+      END DO
+      
+      RETURN
+      END SUBROUTINE velocity_module_2D
+!----------------------------------------------------------------------
+      SUBROUTINE velocity_module_3D(vel3,v1,v2,v3)
+      !
+      ! ... compute the modulus of a velocity field
+      IMPLICIT NONE
+      REAL*8, INTENT(IN), DIMENSION(:) :: v1, v2, v3
+      REAL*8, DIMENSION(SIZE(v1)) :: vel3
+
+      meshsize = SIZE(v1)
+      DO imesh = 1, meshsize
+        vel3(imesh) = SQRT( v1(imesh)**2 + v2(imesh)**2 + v3(imesh)**2 )
+      END DO
+      
+      RETURN
+      END SUBROUTINE velocity_module_3D
 !----------------------------------------------------------------------
       FUNCTION cm(rgp,rhog,rm,mg,tg)
       ! 
@@ -218,30 +268,6 @@
 !
       RETURN
       END FUNCTION cm
-!----------------------------------------------------------------------
-      FUNCTION vel2(v1, v2)
-      !
-      ! ... compute the modulus of a velocity field
-      IMPLICIT NONE
-      REAL*8, INTENT(IN), DIMENSION(:) :: v1, v2
-      REAL*8, DIMENSION(SIZE(v1)) :: vel2
-
-      vel2 = SQRT( v1**2 + v2**2 )
-      
-      RETURN
-      END FUNCTION vel2
-!----------------------------------------------------------------------
-      FUNCTION vel3(v1, v2, v3)
-      !
-      ! ... compute the modulus of a velocity field
-      IMPLICIT NONE
-      REAL*8, INTENT(IN), DIMENSION(:) :: v1, v2, v3
-      REAL*8, DIMENSION(SIZE(v1)) :: vel3
-
-      vel3 = SQRT( v1**2 + v2**2 + v3**2 )
-      
-      RETURN
-      END FUNCTION vel3
 !----------------------------------------------------------------------
       FUNCTION mach(vel, c)
       !

@@ -50,6 +50,7 @@
         OPEN(UNIT=postunit,  FILE=postfile,  STATUS='UNKNOWN')
         OPEN(UNIT=logunit, FILE=logfile, STATUS='UNKNOWN')
         OPEN(UNIT=errorunit,  FILE=errfile,  STATUS='UNKNOWN')
+        WRITE(logunit,*) 'Number of processor in use: ', nproc
       END IF
 !
 ! ... Processor 'root' read Input file 'pdac.dat'

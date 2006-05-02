@@ -134,14 +134,14 @@
              (eps(ijk,nv), us(ijk,nv), & 
               vs(ijk,nv), ws(ijk,nv), &
               ts(ijk,nv), nv=1, nsolid), &
-              rm(ijk), mvmp(ijk), pdp(ijk)
+              rhom(ijk), mvm(ijk), pd(ijk)
           ELSE IF (job_type == '2D') THEN
              WRITE(tempunit,100) time, p(ijk), &
              ug(ijk), wg(ijk), tg(ijk), &
              (xgc(ijk,nv),nv=1, ngas), &
              (eps(ijk,nv), us(ijk,nv), &
               ws(ijk,nv), ts(ijk,nv),nv=1, nsolid), &
-              rm(ijk), mvmp(ijk), pdp(ijk)
+              rhom(ijk), mvm(ijk), pd(ijk)
           END IF
         END IF
         CLOSE(tempunit)

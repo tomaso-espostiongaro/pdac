@@ -4,8 +4,8 @@
 
       IMPLICIT NONE
 
-      !CALL bin2ascii
-      CALL ascii2bin
+      CALL bin2ascii
+      !CALL ascii2bin
 
     END PROGRAM
 
@@ -188,3 +188,4 @@
 !
       RETURN
       END SUBROUTINE ascii2bin
+!----------------------------------------------------------------------

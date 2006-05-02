@@ -31,7 +31,7 @@
       USE mass_ground, ONLY: iground, massgs
       USE parallel, ONLY: mpime, root
       USE postp_variables, ONLY: allocate_main_fields, allocate_derived_fields
-      USE postp_variables, ONLY: compute_derived_fields, pd, tg, ts, lepstot
+      USE postp_variables, ONLY: compute_derived_fields, pd, tg, ts, lepst
 !
       IMPLICIT NONE
       INTEGER :: tn, nv, cnt
@@ -75,7 +75,7 @@
                CALL write_map(tn,tg,'tg')
                CALL write_map(tn,ts(:,1),'t1')
                CALL write_map(tn,ts(:,2),'t2')
-               CALL write_map(tn,lepstot,'lt')
+               CALL write_map(tn,lepst,'lt')
         END IF
         IF (isamp   > 0)  CALL sample
         IF (imassn  > 0)  CALL massn

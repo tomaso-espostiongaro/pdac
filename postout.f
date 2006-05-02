@@ -344,7 +344,7 @@
       USE io_files, ONLY: tempunit
       USE io_parallel, ONLY: write_array
       USE parallel, ONLY: mpime, root
-      USE postp_variables, ONLY: lepstot, tg
+      USE postp_variables, ONLY: lepst, tg
 !
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: tn
@@ -363,7 +363,7 @@
         END IF
       END IF
       !
-      CALL write_array( tempunit, lepstot, sgl, lform )
+      CALL write_array( tempunit, lepst, sgl, lform )
       !
       IF (mpime == root) CLOSE(tempunit)
       !
