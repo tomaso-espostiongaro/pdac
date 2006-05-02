@@ -7,8 +7,12 @@
       INTEGER :: imesh, ig, is
       INTEGER :: meshsize
 !
-      PUBLIC
-      PRIVATE :: ig, is, imesh, meshsize
+      PUBLIC :: total_particle_fraction, void_fraction, &
+               log10_epstot, gas_density, gas_mass_fractions, &
+               gas_bulk_density, solid_bulk_density, &
+               mixture_density, mixture_velocity, &
+               velocity_module_2D, velocity_module_3D, &
+               dynamic_pressure
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
