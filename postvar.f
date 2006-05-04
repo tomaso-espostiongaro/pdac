@@ -73,6 +73,8 @@
       USE io_files, ONLY: logunit
 !
       IMPLICIT NONE
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: pd1, pd2
+      ALLOCATE(pd1(SIZE(pd)),pd2(SIZE(pd)))
 !
 ! ... Compute the derived fields
 !
@@ -94,16 +96,18 @@
         CALL mixture_velocity(wm,wg,ws,rlk,rgp,rhom)
         CALL velocity_module_2D(mvm,um,vm)
         !CALL velocity_module_3D(mvm,um,vm,wm)
-        CALL dynamic_pressure(pd,rhom,mvm)
+        !CALL dynamic_pressure(pd,rhom,mvm)
         !
         ! ... Dynamic pressure can be computed as the sum of 
         ! ... PARTICLE dynamic pressures
         !
-        !CALL velocity_module_2D(mvm,us(:,1),vs(:,1))
-        !CALL dynamic_pressure(pd1,rlk(:,1),mvm)
-        !CALL velocity_module_2D(mvm,us(:,2),vs(:,2))
-        !CALL dynamic_pressure(pd2,rlk(:,2),mvm)
-        !pd = pd1 + pd2
+        CALL velocity_module_2D(mvm,us(:,1),vs(:,1))
+        CALL dynamic_pressure(pd1,rlk(:,1),mvm)
+        CALL velocity_module_2D(mvm,us(:,2),vs(:,2))
+        CALL dynamic_pressure(pd2,rlk(:,2),mvm)
+        pd = pd1 + pd2
+!
+        DEALLOCATE(pd1,pd2)
 !
       RETURN
       END SUBROUTINE compute_derived_fields
