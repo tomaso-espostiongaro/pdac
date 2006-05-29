@@ -309,6 +309,7 @@
         IF(MOD(sweep,nprint) == 0) THEN
                 !
                 CALL outp
+                !CALL shock_tube_out
                 !
                 ! ... Print the total residuals of the mass conservation 
                 ! ... equation and the mass-flow rate

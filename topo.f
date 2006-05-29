@@ -274,6 +274,7 @@
 !
       USE grid, ONLY: domain_x, domain_y, dxmax, dymax, dxmin, dymin
       USE grid, ONLY: center_x, center_y, alpha_x, alpha_y
+      USE grid, ONLY: dx, dy
       USE array_filters, ONLY: interp, mean_filter, gaussian_filter, &
                                        barnes_filter
       IMPLICIT NONE
@@ -282,6 +283,7 @@
       REAL*8 :: newsizex, newsizey
       REAL*8 :: xll, yll, xur, yur, xul, yul
       REAL*8 :: zmin
+      REAL*8 :: maxcellsize
       INTEGER, ALLOCATABLE :: ntx(:), nty(:)
       INTEGER :: i,j
 !
@@ -370,7 +372,9 @@
 !      !
 !      center_x = xtop(icenter)
 !      center_y = ytop(jcenter)
-!!
+!
+      maxcellsize = MAX(MAXVAL(dx),MAXVAL(dy))*0.5D0
+      filtersize  = MAX(filtersize,maxcellsize)
       IF (filtersize >= cellsize) THEN
          IF (ismt == 1) THEN
                  CALL mean_filter(xtop,ytop,ztop2d,filtersize)
@@ -868,7 +872,6 @@
         OPEN(tempunit, FILE='topo2d.dat',STATUS='UNKNOWN')
         IF (mpime == root) THEN
                 WRITE(tempunit,'(10F15.6)') topo2d_c
-                !WRITE(logunit,*) fl
         END IF
         CLOSE(tempunit)
       END IF

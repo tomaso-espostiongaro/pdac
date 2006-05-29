@@ -279,7 +279,7 @@
       itrans = .TRUE.         ! translate vertically
       seatable = .TRUE.       ! flatten negative topography
       rim_quota = 1000.D0     ! index of the rim quota 
-      filtersize  = 50        ! low-pass filter size
+      filtersize  = 100        ! low-pass filter size
       cellsize  = 10          ! resolution of the resized dem
       zrough = 1.D0           ! average roughness length
 

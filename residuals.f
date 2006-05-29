@@ -152,22 +152,25 @@
 
       INTEGER :: ijk, i, j, k, imesh
       INTEGER :: ig, is
-      REAL*8 :: volume, sx, sy, sz, flux
+      REAL*8 :: volume, sx, sy, sz, flux, pi, twopi
       REAL*8, INTENT(OUT) :: mfr
-
+!
+      pi = 4.D0 * ATAN(1.D0)
+      twopi = 2.D0 * pi
+!            
       mfr  = 0.D0
 
       DO ijk = 1, ncint
         CALL meshinds(ijk,imesh,i,j,k)
 
-        IF (flag(ijk) == vent_cell) THEN
+        IF (flag(ijk) == vent_cell .OR. flag(ijk) == inlet_cell) THEN
           !
           ! ... Compute the mass entered since the beginning
           !
           IF (job_type == '2D') THEN
             sx = dz(k)*rb(i)
             sy = 0.D0
-            sz = dx(i)*r(i)
+            sz = dx(i)*r(i)*twopi
           ELSE IF (job_type == '3D') THEN
             sx = dz(k)*dy(j)
             sy = dx(i)*dz(k)

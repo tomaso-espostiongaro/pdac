@@ -102,6 +102,15 @@
 !
       IF (itp >= 1) CALL read_implicit_profile
 !
+! ... Root Writes input files for visualization tools
+!
+      IF (mpime == root) THEN
+        CALL write_avs_files
+        CALL write_xml_files
+      END IF
+!
+      IF (act == 0) GOTO 111 
+!
 ! ... Set physical parameters and useful constants (All processes)
 !
       CALL setpar
@@ -120,16 +129,9 @@
 ! ... Here start the post-processing core
 !********************************************************
 !
-! ... Root Writes input files for visualization tools
-!
-      IF (mpime == root) THEN
-        CALL write_avs_files
-        CALL write_xml_files
-      END IF
-!
 ! ... Split OUTPUT files, downsize, crop, etc.
 !
-      IF (act == 0) CONTINUE ! CALL filter
+      ! CALL filter
 !
 ! ... Compute derived fields from the primary OUTPUT fields;
 ! ... map hazard variables at a given height above ground

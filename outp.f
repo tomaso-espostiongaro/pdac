@@ -83,9 +83,9 @@
       USE dimensions, ONLY: nx, nz, nsolid
       USE domain_mapping, ONLY: ncint
       USE gas_constants, ONLY: gas_type, gammaair
-      USE gas_solid_density, ONLY: rog
-      USE gas_solid_velocity, ONLY: ug, wg
-      USE gas_solid_temperature, ONLY: sieg, tg
+      USE gas_solid_density, ONLY: rog, rlk
+      USE gas_solid_velocity, ONLY: ug, wg, us, ws
+      USE gas_solid_temperature, ONLY: sieg, tg, ts
       USE grid, ONLY: flag
       USE parallel, ONLY: nproc, mpime, root, group
       USE particles_constants, ONLY: rl, inrl
@@ -111,7 +111,7 @@
         DO ijk = 1, ncint
           IF ( BTEST(flag(ijk),0) ) THEN
             energy = p(ijk)/(rog(ijk)*(gammaair - 1.D0))
-            WRITE(tempunit,550)rog(ijk),wg(ijk),p(ijk),energy,tg(ijk)
+            WRITE(tempunit,550)rog(ijk),wg(ijk),p(ijk),energy,tg(ijk),rlk(ijk,1), ws(ijk,1), ts(ijk,1)
           END IF
         END DO
         CLOSE (tempunit)
@@ -119,7 +119,7 @@
 !
       RETURN
 
- 550  FORMAT(1x,10(1x,g12.6))
+ 550  FORMAT(1x,20(1x,g12.6))
 !
       END SUBROUTINE shock_tube_out
 !----------------------------------------------------------------------
