@@ -393,7 +393,7 @@
       USE io_files, ONLY: tempunit
       USE io_parallel, ONLY: write_array
       USE parallel, ONLY: mpime, root
-      USE postp_variables !, ONLY: lepst, tg
+      USE postp_variables, ONLY: rhom_av, tm_av, um_av, vm_av, wm_av, time
 !
 !
       IMPLICIT NONE
@@ -419,24 +419,66 @@
         END IF
       END IF
 !
-        CALL write_array( tempunit, rhom_av, sgl, lform )  ! time-averaged mixture_density
+      CALL write_array( tempunit, rhom_av, sgl, lform )
 !
       IF (job_type == '2D') THEN
-        CALL write_array( tempunit, um_av, sgl, lform ) ! time-averaged mixture_velocity_r
-        CALL write_array( tempunit, wm_av, sgl, lform ) ! time-averaged mixture_velocity_z
+        CALL write_array( tempunit, um_av, sgl, lform )
+        CALL write_array( tempunit, wm_av, sgl, lform )
       ELSE IF (job_type == '3D') THEN
-        CALL write_array( tempunit, um_av, sgl, lform ) ! time-averaged mixture_velocity_x
-        CALL write_array( tempunit, vm_av, sgl, lform ) ! time-averaged mixture_velocity_y
-        CALL write_array( tempunit, wm_av, sgl, lform ) ! time-averaged mixture_velocity_z
+        CALL write_array( tempunit, um_av, sgl, lform )
+        CALL write_array( tempunit, vm_av, sgl, lform )
+        CALL write_array( tempunit, wm_av, sgl, lform )
       ELSE
         CALL error('outp_','Unknown job type',1)
       END IF
+!
+      CALL write_array( tempunit, tm_av, sgl, lform )
 !
       IF (mpime == root) CLOSE(tempunit)
 !
       RETURN
 
       END SUBROUTINE write_mean_field
+!-----------------------------------------------------------------------
+      SUBROUTINE write_vertical_profiles(nf)
+
+      USE control_flags, ONLY: job_type
+      USE dimensions, ONLY: nz
+      USE grid, ONLY: z
+      USE io_files, ONLY: tempunit
+      USE parallel, ONLY: mpime, root
+      USE postp_variables, ONLY: rhom_z, tm_z, um_z, vm_z, wm_z, time, surface
+      IMPLICIT NONE
+
+      INTEGER, INTENT(IN) :: nf
+      INTEGER :: k
+      CHARACTER( LEN = 4 ) :: lettera
+      CHARACTER( LEN = 13 ) :: filnam
+      REAL*8 :: pi, invpi
+!
+      pi = 4.D0 * ATAN(1.D0)
+      invpi = 1.D0 / pi
+
+      IF (job_type == '2D') RETURN
+      
+      filnam='zprofile.'//lettera(nf)
+!
+! ... Print out the profile
+!
+      IF (mpime == root) THEN
+        OPEN(UNIT=tempunit,FILE=filnam)
+        DO k = 1, nz
+          IF (job_type == '3D') THEN
+            WRITE(tempunit,122) z(k),rhom_z(k),um_z(k),vm_z(k),wm_z(k),tm_z(k), DSQRT(surface(k)*invpi)
+          END IF
+        END DO
+        CLOSE(tempunit)
+      END IF
+
+ 122  FORMAT(7(1x,G14.6E3))
+
+      RETURN
+      END SUBROUTINE write_vertical_profiles
 !-----------------------------------------------------------------------
       SUBROUTINE write_AVS_files
       USE control_flags, ONLY: job_type, formatted_output

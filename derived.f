@@ -174,6 +174,35 @@
       RETURN
       END SUBROUTINE mixture_density
 !----------------------------------------------------------------------
+      SUBROUTINE mixture_temperature(tm,ts,tg,rlk,rgp,ygc)
+      USE gas_constants, ONLY: gas_type
+      USE particles_constants, ONLY: cps
+      USE specific_heat_module, ONLY: hcapg
+      !
+      ! ... computes gas-particle mixture density
+
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: rlk(:,:), ts(:,:), ygc(:,:)
+      REAL*8, INTENT(IN) :: rgp(:), tg(:)
+      REAL*8, DIMENSION(SIZE(rgp)) :: tm
+      REAL*8 :: den, cgas, cpgc(7)
+
+      meshsize = SIZE(rgp)
+      DO imesh = 1, meshsize
+        CALL hcapg( cpgc(:), tg(imesh) )
+        cgas = 0.D0
+        DO ig = 1, ngas
+          cgas = cpgc( gas_type(ig) ) * ygc(imesh,ig) + cgas
+        END DO
+        tm(imesh) = rgp(imesh)*cgas*tg(imesh) + &
+                  SUM(rlk(imesh,:)*cps(:)*ts(imesh,:)) 
+        den = rgp(imesh)*cgas + SUM(rlk(imesh,:)*cps(:))
+        tm(imesh) = tm(imesh) / den
+      END DO
+
+      RETURN
+      END SUBROUTINE mixture_temperature
+!----------------------------------------------------------------------
       SUBROUTINE particle_density(rhos,rlk)
       !
       ! ... computes particle mixture density

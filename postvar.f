@@ -12,12 +12,19 @@
 ! ... derived fields
 !
       REAL*8, ALLOCATABLE, DIMENSION(:) :: epst, vf, lepst, rhog, rgp
-      REAL*8, ALLOCATABLE, DIMENSION(:) :: rhom, um, vm, wm, pd, mvm
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: rhom, um, vm, wm, pd, mvm 
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: tm
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: rlk, ygc
 !
 ! ... derived averaged fields
 !
       REAL*8, ALLOCATABLE, DIMENSION(:) :: rhom_av, um_av, vm_av, wm_av
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: tm_av
+!
+! ... vertical profiles
+!
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: rhom_z, um_z, vm_z, wm_z
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: tm_z, surface
 !
       REAL*8 :: time
 !
@@ -54,6 +61,7 @@
       ALLOCATE(rhog(dime))  ! Gas Density
       ALLOCATE(rgp(dime))   ! Gas Density
       ALLOCATE(rhom(dime))  ! Mixture Density
+      ALLOCATE(tm(dime))  ! Mixture Temperature
       ALLOCATE(um(dime))  ! Mixture Velocity X
       ALLOCATE(vm(dime))  ! Mixture Velocity Y
       ALLOCATE(wm(dime))  ! Mixture Velocity Z
@@ -63,11 +71,12 @@
       ALLOCATE(ygc(dime,ngas))  ! Gas mass fractions
 !
       epst  = 0.D0
-      vf    = 0.D0
+      vf    = 1.D0
       lepst = 0.D0
       rhog  = 0.D0
       rgp   = 0.D0
       rhom  = 0.D0
+      tm    = 300.D0
       um    = 0.D0
       vm    = 0.D0
       wm    = 0.D0
@@ -80,19 +89,34 @@
       END SUBROUTINE allocate_derived_fields
 !----------------------------------------------------------------------
       SUBROUTINE allocate_derived_fields_av (dime)
+      USE dimensions, ONLY: nz
 !
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: dime
 !
       ALLOCATE(rhom_av(dime))  ! Mixture Density
+      ALLOCATE(tm_av(dime))  ! Mixture Density
       ALLOCATE(um_av(dime))    ! Mixture Velocity X
       ALLOCATE(vm_av(dime))    ! Mixture Velocity Y
       ALLOCATE(wm_av(dime))    ! Mixture Velocity Z
-! 
       rhom_av = 0.0D0
+      tm_av   = 300.0D0
       um_av   = 0.0D0
       vm_av   = 0.0D0
       wm_av   = 0.0D0
+!
+      ALLOCATE(surface(nz)) ! jet plane surface
+      ALLOCATE(rhom_z(nz))  ! Mixture Density along z
+      ALLOCATE(tm_z(nz))    ! Mixture Density along z
+      ALLOCATE(um_z(nz))    ! Mixture Velocity X along z
+      ALLOCATE(vm_z(nz))    ! Mixture Velocity Y along z
+      ALLOCATE(wm_z(nz))    ! Mixture Velocity Z along z
+      surface = 0.0D0
+      rhom_z = 0.0D0
+      tm_z   = 300.0D0
+      um_z   = 0.0D0
+      vm_z   = 0.0D0
+      wm_z   = 0.0D0
 !
       RETURN
       END SUBROUTINE allocate_derived_fields_av
@@ -105,7 +129,7 @@
                                 gas_bulk_density, solid_bulk_density, &
                                 mixture_density, mixture_velocity, &
                                 velocity_module_2D, velocity_module_3D, &
-                                dynamic_pressure
+                                dynamic_pressure, mixture_temperature
       USE io_files, ONLY: logunit
 !
       IMPLICIT NONE
@@ -125,6 +149,7 @@
         CALL gas_bulk_density(rgp,vf,rhog)
         CALL solid_bulk_density(rlk,eps)
         CALL mixture_density(rhom,rlk,rgp)
+        CALL mixture_temperature(tm,ts,tg,rlk,rgp,ygc)
 
         CALL mixture_velocity(um,ug,us,rlk,rgp,rhom)
         IF (job_type == '3D') CALL mixture_velocity(vm,vg,vs,rlk,rgp,rhom)
