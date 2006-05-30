@@ -15,6 +15,10 @@
       REAL*8, ALLOCATABLE, DIMENSION(:) :: rhom, um, vm, wm, pd, mvm
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: rlk, ygc
 !
+! ... derived averaged fields
+!
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: rhom_av, um_av, vm_av, wm_av
+!
       REAL*8 :: time
 !
       SAVE
@@ -57,9 +61,41 @@
       ALLOCATE(pd(dime))  ! Dynamic Pressure
       ALLOCATE(rlk(dime,nsolid))  ! Solid Bulk density
       ALLOCATE(ygc(dime,ngas))  ! Gas mass fractions
-
+!
+      epst  = 0.D0
+      vf    = 0.D0
+      lepst = 0.D0
+      rhog  = 0.D0
+      rgp   = 0.D0
+      rhom  = 0.D0
+      um    = 0.D0
+      vm    = 0.D0
+      wm    = 0.D0
+      mvm   = 0.D0
+      pd    = 0.D0
+      rlk   = 0.D0
+      ygc   = 0.D0
+!
       RETURN
       END SUBROUTINE allocate_derived_fields
+!----------------------------------------------------------------------
+      SUBROUTINE allocate_derived_fields_av (dime)
+!
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: dime
+!
+      ALLOCATE(rhom_av(dime))  ! Mixture Density
+      ALLOCATE(um_av(dime))    ! Mixture Velocity X
+      ALLOCATE(vm_av(dime))    ! Mixture Velocity Y
+      ALLOCATE(wm_av(dime))    ! Mixture Velocity Z
+! 
+      rhom_av = 0.0D0
+      um_av   = 0.0D0
+      vm_av   = 0.0D0
+      wm_av   = 0.0D0
+!
+      RETURN
+      END SUBROUTINE allocate_derived_fields_av
 !-----------------------------------------------------------------------
       SUBROUTINE compute_derived_fields
 !

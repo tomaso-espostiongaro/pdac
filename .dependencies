@@ -117,6 +117,8 @@ masspart.o : control.o decomp.o dimensions.o ghost.o grid.o immb.o  \
 matrix.o : control.o dens.o dimensions.o ghost.o grid.o indijk.o particles.o  \
     press.o subscr.o tilde.o time.o velocity.o 
 
+mean_fields.o : control.o io_files.o kinds.o parallel.o postvar.o 
+
 nondim.o : atmosphere.o dimensions.o gas.o ghost.o grid.o indijk.o  \
     io_files.o particles.o time.o 
 
@@ -149,8 +151,8 @@ postvar.o : control.o derived.o dimensions.o io_files.o
 press.o : dimensions.o ghost.o 
 
 process.o : control.o dimensions.o ghost.o grid.o io_files.o kinds.o  \
-    massflux.o massgsedim.o masspart.o parallel.o postout.o postvar.o  \
-    sampling.o 
+    massflux.o massgsedim.o masspart.o mean_fields.o parallel.o postout.o  \
+    postvar.o sampling.o 
 
 prog.o : bdry.o blunt.o control.o dens.o dimensions.o environment.o eosg.o  \
     ftem.o ghost.o htilde.o indijk.o io_files.o io_restart.o iter.o outp.o  \

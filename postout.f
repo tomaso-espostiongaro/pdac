@@ -383,12 +383,67 @@
       RETURN
       END SUBROUTINE write_fields
 !-----------------------------------------------------------------------
+      SUBROUTINE write_mean_field(last_out)
+!
+! ... Write the mean field of all process fields
+!
+      USE control_flags, ONLY: formatted_output,  job_type
+      USE kinds
+      USE dimensions, ONLY: nsolid
+      USE io_files, ONLY: tempunit
+      USE io_parallel, ONLY: write_array
+      USE parallel, ONLY: mpime, root
+      USE postp_variables !, ONLY: lepst, tg
+!
+!
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: last_out
+
+      CHARACTER(LEN = 14) :: filnam
+      CHARACTER*4 :: lettera
+      LOGICAL :: lform
+!
+      INTEGER :: ig,is
+      REAL*8, ALLOCATABLE :: otmp(:)
+!
+      filnam='m_outp.'//lettera(last_out)
+      lform = formatted_output
+
+      IF (mpime == root ) THEN
+        IF (lform) THEN
+          OPEN(UNIT=tempunit,FILE=filnam)
+          WRITE(tempunit,*) time
+        ELSE
+          OPEN(UNIT=tempunit,FORM='UNFORMATTED',FILE=filnam)
+          WRITE(tempunit) REAL(time,4)
+        END IF
+      END IF
+!
+        CALL write_array( tempunit, rhom_av, sgl, lform )  ! time-averaged mixture_density
+!
+      IF (job_type == '2D') THEN
+        CALL write_array( tempunit, um_av, sgl, lform ) ! time-averaged mixture_velocity_r
+        CALL write_array( tempunit, wm_av, sgl, lform ) ! time-averaged mixture_velocity_z
+      ELSE IF (job_type == '3D') THEN
+        CALL write_array( tempunit, um_av, sgl, lform ) ! time-averaged mixture_velocity_x
+        CALL write_array( tempunit, vm_av, sgl, lform ) ! time-averaged mixture_velocity_y
+        CALL write_array( tempunit, wm_av, sgl, lform ) ! time-averaged mixture_velocity_z
+      ELSE
+        CALL error('outp_','Unknown job type',1)
+      END IF
+!
+      IF (mpime == root) CLOSE(tempunit)
+!
+      RETURN
+
+      END SUBROUTINE write_mean_field
+!-----------------------------------------------------------------------
       SUBROUTINE write_AVS_files
       USE control_flags, ONLY: job_type, formatted_output
       USE dimensions
       USE iotk_module
       USE grid
-      USE io_files, ONLY: iuni_scalar, iuni_u, iuni_v, iuni_w
+      USE io_files, ONLY: iuni_scalar, iuni_u, iuni_v, iuni_w, iuni_mean
       IMPLICIT NONE
  
       CHARACTER(LEN=15) :: filetype
@@ -401,6 +456,8 @@
       OPEN( UNIT=iuni_u, FILE='u.fld', STATUS='UNKNOWN')
       OPEN( UNIT=iuni_v, FILE='v.fld', STATUS='UNKNOWN')
       OPEN( UNIT=iuni_w, FILE='w.fld', STATUS='UNKNOWN')
+      OPEN( UNIT=iuni_mean, FILE='m_outp.fld', STATUS='UNKNOWN')
+
 !
 ! ... control parameters
 !
@@ -651,6 +708,57 @@
 ! ... EOF
 !
       WRITE( iuni_w, fmt = 14 )
+
+!
+!***** M E A N   F I E L D ********************************************
+! ... Common Header
+!
+      WRITE( iuni_mean, fmt = 1 )
+      WRITE( iuni_mean, fmt = 2 ) ndim
+      IF (ndim == 3) THEN
+        WRITE( iuni_mean, fmt = 3 ) nx
+        WRITE( iuni_mean, fmt = 4 ) ny
+        WRITE( iuni_mean, fmt = 5 ) nz
+      ELSE IF (ndim == 2) THEN
+        WRITE( iuni_mean, fmt = 3 ) nx
+        WRITE( iuni_mean, fmt = 4 ) nz
+      END IF
+      WRITE( iuni_mean, fmt = 6 ) ndim
+      WRITE( iuni_mean, fmt = 7 )
+      WRITE( iuni_mean, fmt = 8 )
+!
+! ... specify variables and meshes
+!
+      veclen = 4 
+      WRITE( iuni_mean, fmt = 9 ) veclen
+      skip_m(1) = 2
+      WRITE( iuni_mean, fmt = 10 ) skip_m(1)
+      IF (ndim == 3) THEN
+        skip_m(2) = 2 + 2*nlx
+        WRITE( iuni_mean, fmt = 11 ) skip_m(2)
+        skip_m(3) = 2 + 2*nlx + 2*nly
+        WRITE( iuni_mean, fmt = 12 ) skip_m(3)
+      ELSE IF (ndim == 2) THEN
+        skip_m(3) = 2 + 2*nlx + 2*nly
+        WRITE( iuni_mean, fmt = 11 ) skip_m(3)
+      END IF
+!
+! ... Mean Mixture Density
+!
+      skip = skip_time
+      WRITE( iuni_mean, fmt = 15 ) 1, filetype, skip
+!
+! ... Mean Mixture Velocity component X Y Z
+!
+      DO is = 1, 3
+        skip = skip_time + skip_block * is
+        WRITE( iuni_mean, fmt = 15 ) is + 1, filetype, skip
+      END DO
+!
+! ... EOF
+!
+      WRITE( iuni_mean, fmt = 14 )
+
 !
 !**********************************************************************
 ! ... Common Header
@@ -664,13 +772,17 @@
   7   FORMAT('data=float')
   8   FORMAT('field=rectilinear')
 
-! ... Specify variables and meshes
+! ... Specify meshes
 !
   9   FORMAT('veclen=',I3)
  10   FORMAT('coord 1 file=mesh.dat, filetype=ascii, skip= ',I6)
  11   FORMAT('coord 2 file=mesh.dat, filetype=ascii, skip= ',I6)
  12   FORMAT('coord 3 file=mesh.dat, filetype=ascii, skip= ',I6)
+
+! ... Specify variables
+!
  13   FORMAT('variable',I3,' file=./output, filetype = ',A15,' skip= ',I12)
+ 15   FORMAT('variable',I3,' file=./m_outp, filetype = ',A15,' skip= ',I12)
 
 ! ... Common EOF
 !
@@ -680,6 +792,7 @@
       CLOSE( UNIT=iuni_u )
       CLOSE( UNIT=iuni_v )
       CLOSE( UNIT=iuni_w )
+      CLOSE( UNIT=iuni_mean )
 
       RETURN
       END SUBROUTINE write_AVS_files

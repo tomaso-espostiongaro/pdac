@@ -6,7 +6,11 @@
 /
 
 &fields
-  iflds = 1
+  iflds = 0
+/
+
+&mean_outp
+  imnfld = 1
 /
 
 &map

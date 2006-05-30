@@ -19,7 +19,7 @@
       USE mass_partition, ONLY: number_of_boxes, boxes_file, imassn
       USE mass_ground, ONLY: thickness, iground
       USE process_outp, ONLY: act
-      USE process_outp, ONLY: iflds, imap
+      USE process_outp, ONLY: iflds, imnfld, imap
       USE postp_output, ONLY: first_out, last_out, incr_out
       USE postp_output, ONLY: deltaz
 
@@ -30,6 +30,8 @@
                downsize_x, downsize_y, downsize_z
 
       NAMELIST / fields / iflds
+
+      NAMELIST / mean_outp / imnfld
 
       NAMELIST / map / imap, deltaz
 
@@ -61,6 +63,10 @@
 ! ... Fields
   
   iflds = 0
+
+! ... Mean Field
+
+  imnfld = 0
 
 ! ... Map
 
@@ -114,6 +120,11 @@
 !
       IF (mpime == root) READ(punit, fields)
       CALL bcast_integer(iflds,1,root)
+!
+! ... Maen Field namelist ...............................................
+!
+      IF (mpime == root) READ(punit, mean_outp)
+      CALL bcast_integer(imnfld,1,root)
 !
 ! ... Map namelist ......................................................
 !
