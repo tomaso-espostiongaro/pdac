@@ -34,11 +34,10 @@
       USE postp_variables, ONLY: rhom_z, um_z, vm_z, wm_z, tm_z, surface
       IMPLICIT NONE
 !
-      REAL*8, ALLOCATABLE :: invsurf(:)
-      REAL*8 :: ds
+      REAL*8 :: ds, invrhom, invsurf
       INTEGER :: ijk, imesh, i, j, k
 !
-      ALLOCATE(invsurf(SIZE(surface)))
+      invrhom = 0.D0
       invsurf = 0.D0
       ds = 0.D0
 !
@@ -47,9 +46,9 @@
           CALL meshinds(ijk,imesh,i,j,k)
           ds = dx(i)*dy(j)
           rhom_z(k) = rhom_z(k) + rhom(ijk) * ds
-          um_z(k) = um_z(k) + um(ijk) * ds
-          vm_z(k) = vm_z(k) + vm(ijk) * ds
-          wm_z(k) = wm_z(k) + wm(ijk) * ds
+          um_z(k) = um_z(k) + rhom(ijk) * um(ijk) * ds
+          vm_z(k) = vm_z(k) + rhom(ijk) * vm(ijk) * ds
+          wm_z(k) = wm_z(k) + rhom(ijk) * wm(ijk) * ds
           tm_z(k) = tm_z(k) + tm(ijk) * ds
           surface(k) = surface(k) + ds
         END IF
@@ -63,14 +62,17 @@
       CALL parallel_sum_real(tm_z,nz)
 !
 ! ... Spatial average on the plane
+! ... Velocities in each cell are weighted 
+! ... with the corresponding mixture density
 !
       DO k=1,nz
-        IF (surface(k)/=0.D0) invsurf(k) = 1.D0 / surface(k)
-        rhom_z(k) = rhom_z(k) * invsurf(k)
-        um_z(k) = um_z(k) * invsurf(k)
-        vm_z(k) = vm_z(k) * invsurf(k)
-        wm_z(k) = wm_z(k) * invsurf(k)
-        tm_z(k) = tm_z(k) * invsurf(k)
+        IF (surface(k)/=0.D0) invsurf = 1.D0 / surface(k)
+        rhom_z(k) = rhom_z(k) * invsurf
+        IF (rhom_z(k)/=0.D0) invrhom = 1.D0 / rhom_z(k)
+        um_z(k) = um_z(k) * invrhom *  invsurf
+        vm_z(k) = vm_z(k) * invrhom *  invsurf
+        wm_z(k) = wm_z(k) * invrhom *  invsurf
+        tm_z(k) = tm_z(k) * invsurf
       END DO
 !
       RETURN
