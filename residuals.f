@@ -33,13 +33,16 @@
       INTEGER :: b_e, b_w, b_t, b_b, b_n, b_s
       REAL*8 :: ivf
       REAL*8 :: volume, sx, sy, sz, flux
-      REAL*8 :: res_g, mfr
+      REAL*8 :: res_g, mfr, mgd, mxv
       REAL*8, ALLOCATABLE :: res_s(:), res_gc(:)
+      REAL*8, ALLOCATABLE :: msd(:)
+!
       !
       ! ... Initialize the cell fractions for immersed boundaries
       !
       b_e = 1; b_w = 1; b_t = 1; b_b = 1; b_n = 1; b_s = 1; ivf = 1.D0
 
+      ALLOCATE(msd(nsolid))
       ALLOCATE(res_s(nsolid))
       ALLOCATE(res_gc(ngas))
 
@@ -119,9 +122,9 @@
       CALL parallel_sum_real(res_g, 1)
       CALL parallel_sum_real(res_s, nsolid)
       CALL parallel_sum_real(res_gc,ngas)
-
-      CALL compute_mass_flow_rate(mfr)
-
+!
+      CALL compute_mass_flow_rate(mfr, mgd, msd, mxv)
+!
       IF (mpime == root) THEN
         WRITE(checkunit,55) nswp, res_g, (res_s(is),  is=1,nsolid), &
                                   (res_gc(ig), ig=1, ngas), mfr
@@ -129,13 +132,37 @@
 
  55   FORMAT(I8,15(G30.20E3))
 
+      DEALLOCATE(msd)
       DEALLOCATE(res_s)
       DEALLOCATE(res_gc)
 
       RETURN
       END SUBROUTINE print_mass_residuals
 !----------------------------------------------------------------------
-      SUBROUTINE compute_mass_flow_rate(mfr)
+      SUBROUTINE print_mass_flow_rate
+      USE dimensions
+      USE io_files, ONLY: logunit
+      IMPLICIT NONE
+      REAL*8 :: mfr, mgd, mxv
+      REAL*8, ALLOCATABLE :: msd(:)
+!
+      ALLOCATE(msd(nsolid))
+!
+      CALL compute_mass_flow_rate(mfr, mgd, msd, mxv)
+!
+      IF (mpime == root) THEN
+        WRITE(logunit,*) 'Mass flow rate          : ', mfr
+        WRITE(logunit,*) 'Gas Density at vent     : ', mgd
+        WRITE(logunit,*) 'Solid Density at vent   : ', msd
+        WRITE(logunit,*) 'Mixture Velocity at vent: ', mxv 
+      END IF
+!
+      DEALLOCATE(msd)
+!
+      RETURN
+      END SUBROUTINE print_mass_flow_rate
+!----------------------------------------------------------------------
+      SUBROUTINE compute_mass_flow_rate(mfr, mgd, msd, mxv)
 
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: ngas, nsolid
@@ -152,13 +179,19 @@
 
       INTEGER :: ijk, i, j, k, imesh
       INTEGER :: ig, is
-      REAL*8 :: volume, sx, sy, sz, flux, pi, twopi
-      REAL*8, INTENT(OUT) :: mfr
+      REAL*8 :: volume, sx, sy, sz, surface
+      REAL*8 :: flux, pi, twopi, mixd
+      REAL*8, INTENT(OUT) :: mfr, mgd, mxv
+      REAL*8, INTENT(OUT), DIMENSION(:) :: msd
 !
       pi = 4.D0 * ATAN(1.D0)
       twopi = 2.D0 * pi
 !            
+      surface = 0.D0
       mfr  = 0.D0
+      mgd = 0.D0
+      msd = 0.D0
+      mxv = 0.D0
 
       DO ijk = 1, ncint
         CALL meshinds(ijk,imesh,i,j,k)
@@ -176,20 +209,31 @@
             sy = dx(i)*dz(k)
             sz = dy(j)*dx(i)
           END IF
+          surface = surface + sz
           
           flux = rgp(ijk) * wg(ijk) * sz
           mfr = mfr + flux
+          mgd = mgd + rgp(ijk) * sz
 
           DO is = 1, nsolid
             flux = rlk(ijk,is) * ws(ijk,is) * sz
             mfr = mfr + flux
+            msd(is) = msd(is) + rlk(ijk,is) * sz
           END DO
-          
+
         END IF
 
       END DO
 
+      CALL parallel_sum_real(surface, 1)
       CALL parallel_sum_real(mfr, 1)
+      CALL parallel_sum_real(mgd, 1)
+      CALL parallel_sum_real(msd, nsolid)
+      
+      mgd = mgd / surface
+      msd = msd / surface
+      mixd = mgd + SUM(msd)
+      mxv = mfr / mixd / surface
 
       RETURN
       END SUBROUTINE compute_mass_flow_rate

@@ -4,6 +4,7 @@
 
       USE blunt_body, ONLY: bluntb, ibl
       USE boundary_conditions, ONLY: boundary
+      USE check_residuals, ONLY: print_mass_flow_rate
       USE check_residuals, ONLY: print_mass_residuals
       USE control_flags, ONLY: job_type, lpr, imr
       USE control_flags, ONLY: implicit_enthalpy, implicit_fluxes
@@ -139,12 +140,15 @@
         CALL boundary
 
         ! ... write initial conditions
-        IF (sweep == 1) CALL outp
-        IF (itd == 0) THEN
-          IF ( imr >= 1 ) CALL print_mass_residuals(sweep)
-          EXIT time_sweep
+        IF (sweep == 1) THEN
+          CALL outp
+          CALL print_mass_flow_rate
         END IF
-
+!
+! ... 'Check init' stops here
+!
+        IF (itd == 0) EXIT time_sweep
+!
         IF( timing ) then
           s2 = cpclock()
           !call cpu_time(t2)
@@ -152,7 +156,6 @@
         END IF            
 !
 ! ... Print the total residuals of the mass conservation equation
-! ... and the mass-flow rate
 !
         !IF ( imr >= 1 ) CALL print_mass_residuals(sweep)
 !
