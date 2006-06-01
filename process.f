@@ -101,7 +101,7 @@
         IF (imassn  > 0)  CALL massn
         IF (ifluxn  > 0)  CALL fluxn
         IF (iground > 0)  CALL massgs(tn)
-        IF (imnfld  > 0)  CALL write_vertical_profiles(tn)
+        IF (imnfld  > 1)  CALL write_vertical_profiles(tn)
         !
       END DO
 !
