@@ -373,7 +373,7 @@
 !      center_x = xtop(icenter)
 !      center_y = ytop(jcenter)
 !
-      maxcellsize = MAX(MAXVAL(dx),MAXVAL(dy))*0.5D0
+      maxcellsize = MAX(MAXVAL(dx),MAXVAL(dy))
       filtersize  = MAX(filtersize,maxcellsize)
       IF (filtersize >= cellsize) THEN
          IF (ismt == 1) THEN

@@ -82,10 +82,8 @@
         !
         ! ... Compute time-averaged fields
         !
-        IF (imnfld > 0) THEN
-          CALL compute_time_averages
-          CALL compute_vertical_mean_profiles
-        END IF
+        IF (imnfld > 0) CALL compute_time_averages
+        IF (imnfld > 1) CALL compute_vertical_mean_profiles
         !
         ! ... Print the map of any interesting variable above ground
         !
