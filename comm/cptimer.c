@@ -67,7 +67,8 @@ double CCLOCK2( void )
     double s;
     times( &tmp );
     s = (double) tmp.tms_utime ;
-    s = s / (double) CLK_TCK ;
+/*    s = s / (double) CLK_TCK ; */
+    s = s / (double) CLOCKS_PER_SEC ;
     return s;
 
 }

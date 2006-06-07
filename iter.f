@@ -205,6 +205,10 @@
          !
          IF (implicit_fluxes) THEN
 
+           !
+           ! ... Need to exchange velocities to compute
+           ! ... either first or second-order momentum fluxes
+           !
            CALL data_exchange(ug)
            IF (job_type == '3D') CALL data_exchange(vg)
            CALL data_exchange(wg)
@@ -336,6 +340,9 @@
 
 ! ... Exchange all updated physical quantities on boundaries
 ! ... before starting a new sweep on the mesh.
+! ... Please notice that velocity MUST NOT be exchanged,
+! ... since the West, South and Bottom are computed in-cell
+! ... and East, North and Top are not used to compute scalar fluxes
 !
         CALL data_exchange(rgp)
         CALL data_exchange(rlk)
