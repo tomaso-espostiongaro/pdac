@@ -74,7 +74,7 @@
 !
       USE control_flags, ONLY: lpr
       USE dimensions, ONLY: nz
-      USE grid, ONLY: dz
+      USE grid, ONLY: dz, kv
       USE parallel, only: mpime, root
 !
       IMPLICIT NONE
@@ -123,7 +123,6 @@
             WRITE(logunit,*) tbot, layer(l)%ttop
           END IF
         END IF
-
       END DO
 !
 ! ... Compute the discrete atmospheric profile

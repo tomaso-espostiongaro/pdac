@@ -33,7 +33,7 @@
       INTEGER :: b_e, b_w, b_t, b_b, b_n, b_s
       REAL*8 :: ivf
       REAL*8 :: volume, sx, sy, sz, flux
-      REAL*8 :: res_g, mfr, mgd, mxv
+      REAL*8 :: res_g, mfr, mgd, mxv, mrd
       REAL*8, ALLOCATABLE :: res_s(:), res_gc(:)
       REAL*8, ALLOCATABLE :: msd(:)
 !
@@ -123,7 +123,7 @@
       CALL parallel_sum_real(res_s, nsolid)
       CALL parallel_sum_real(res_gc,ngas)
 !
-      CALL compute_mass_flow_rate(mfr, mgd, msd, mxv)
+      CALL compute_mass_flow_rate(mfr, mgd, msd, mxv, mrd)
 !
       IF (mpime == root) THEN
         WRITE(checkunit,55) nswp, res_g, (res_s(is),  is=1,nsolid), &
@@ -143,18 +143,19 @@
       USE dimensions
       USE io_files, ONLY: logunit
       IMPLICIT NONE
-      REAL*8 :: mfr, mgd, mxv
+      REAL*8 :: mfr, mgd, mxv, mrd
       REAL*8, ALLOCATABLE :: msd(:)
 !
       ALLOCATE(msd(nsolid))
 !
-      CALL compute_mass_flow_rate(mfr, mgd, msd, mxv)
+      CALL compute_mass_flow_rate(mfr, mgd, msd, mxv, mrd)
 !
       IF (mpime == root) THEN
         WRITE(logunit,*) 'Mass flow rate          : ', mfr
         WRITE(logunit,*) 'Gas Density at vent     : ', mgd
         WRITE(logunit,*) 'Solid Density at vent   : ', msd
         WRITE(logunit,*) 'Mixture Velocity at vent: ', mxv 
+        WRITE(logunit,*) 'Averaged vent radius    : ', mrd 
       END IF
 !
       DEALLOCATE(msd)
@@ -162,17 +163,18 @@
       RETURN
       END SUBROUTINE print_mass_flow_rate
 !----------------------------------------------------------------------
-      SUBROUTINE compute_mass_flow_rate(mfr, mgd, msd, mxv)
+      SUBROUTINE compute_mass_flow_rate(mfr, mgd, msd, mxv, mrd)
 
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: ngas, nsolid
       USE domain_mapping, ONLY: meshinds
-      USE eos_gas, ONLY: ygc
+      USE eos_gas, ONLY: ygc, xgc
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: dx, dy, dz, r, rb, flag
       USE grid, ONLY: inlet_cell, vent_cell
+      USE io_files, ONLY: testunit
       USE pressure_epsilon, ONLY: p, ep
       USE time_parameters, ONLY: dt
       IMPLICIT NONE
@@ -181,7 +183,7 @@
       INTEGER :: ig, is
       REAL*8 :: volume, sx, sy, sz, surface
       REAL*8 :: flux, pi, twopi, mixd
-      REAL*8, INTENT(OUT) :: mfr, mgd, mxv
+      REAL*8, INTENT(OUT) :: mfr, mgd, mxv, mrd
       REAL*8, INTENT(OUT), DIMENSION(:) :: msd
 !
       pi = 4.D0 * ATAN(1.D0)
@@ -234,6 +236,7 @@
       msd = msd / surface
       mixd = mgd + SUM(msd)
       mxv = mfr / mixd / surface
+      mrd = DSQRT(surface / pi)
 
       RETURN
       END SUBROUTINE compute_mass_flow_rate

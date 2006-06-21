@@ -52,6 +52,7 @@
 !
       SUBROUTINE locate_vent
 
+      USE atmospheric_conditions, ONLY: p_atm
       USE control_flags, ONLY: job_type, lpr
       USE dimensions, ONLY: nx, ny, nz
       USE grid, ONLY: x, y, z, fl, xb, yb, zb, dz

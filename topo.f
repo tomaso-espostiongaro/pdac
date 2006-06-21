@@ -882,8 +882,9 @@
       SUBROUTINE write_profile
 
       USE control_flags, ONLY: job_type, lpr
+      USE dimensions
       USE grid, ONLY: x, xb, y, yb, z, zb
-      USE grid, ONLY: iob, fl, noslip_wall
+      USE grid, ONLY: iob, fl, noslip_wall, filled_cell
       USE io_files, ONLY: tempunit, logunit
 !
       IMPLICIT NONE
@@ -992,7 +993,21 @@
         DEALLOCATE (dist)
         DEALLOCATE (xtop, ytop, ztop2d)
       END IF
-! 
+!
+      IF (mpime == root) THEN
+      WRITE(logunit,*) 'Filled_cells (forced externally)'
+      DO k = 1, nz
+        DO j = 1, ny
+          DO i = 1, nx
+            ijk = i + (j-1) * nx + (k-1) * nx * ny
+            IF (fl(ijk) == filled_cell) THEN
+              WRITE(logunit,*) ijk, i, j, k 
+            END IF
+          END DO
+        END DO
+      END DO
+      END IF
+!
       RETURN
       END SUBROUTINE write_profile
 !----------------------------------------------------------------------

@@ -236,46 +236,41 @@
  
               ! ... Add external Forcing in x
               !
-              IF (forcez(ijk) .AND.                    &
-                  forcey(ijk) .AND. forcey(ijmk) .AND. &
-                  forcex(ijk) .AND.                    &
-                  (z(k) > topo2d_x(i-1,j)) ) THEN
+              IF (zb(k) < topo2d_c(i,j) .AND. &
+                  z(k) < topo2d_y(i,j) .AND. z(k) < topo2d_y(i,j-1) .AND. &
+                  z(k) < topo2d_x(i,j) .AND. z(k) > topo2d_x(i-1,j) ) THEN
                     extfx(imjk) = .TRUE.
                     IF( fl(ijk) /= inlet_cell .AND. fl(ijk) /= vent_cell ) fl(ijk) = filled_cell
               END IF
 
-              IF (forcez(ijk) .AND.                    &
-                  forcey(ijk) .AND. forcey(ijmk) .AND. &
-                  forcex(imjk) .AND.                   &
-                  (z(k) > topo2d_x(i,j)) ) THEN
+              IF (zb(k) < topo2d_c(i,j) .AND.                    &
+                  z(k) < topo2d_y(i,j) .AND. z(k) < topo2d_y(i,j-1) .AND. &
+                  z(k) > topo2d_x(i,j) .AND. z(k) < topo2d_x(i-1,j) ) THEN
                     extfx(ijk) = .TRUE.
                     IF( fl(ijk) /= inlet_cell .AND. fl(ijk) /= vent_cell ) fl(ijk) = filled_cell
               END IF
 
               ! ... Add external Forcing in y 
               !
-              IF (forcez(ijk) .AND.                    &
-                  forcex(ijk) .AND. forcex(imjk) .AND. &
-                  forcey(ijk) .AND.                    &
-                  (z(k) > topo2d_y(i,j-1)) ) THEN
+              IF (zb(k) < topo2d_c(i,j) .AND.                    &
+                  z(k) < topo2d_y(i,j) .AND. z(k) > topo2d_y(i,j-1) .AND. &
+                  z(k) < topo2d_x(i,j) .AND. z(k) < topo2d_x(i-1,j) ) THEN
                     extfy(ijmk) = .TRUE.
                     IF( fl(ijk) /= inlet_cell .AND. fl(ijk) /= vent_cell ) fl(ijk) = filled_cell
               END IF
 
-              IF (forcez(ijk) .AND.                    &
-                  forcex(ijk) .AND. forcex(imjk) .AND. &
-                  forcey(ijmk) .AND.                   &
-                  (z(k) > topo2d_y(i,j)) ) THEN
+              IF (zb(k) < topo2d_c(i,j) .AND.                    &
+                  z(k) > topo2d_y(i,j) .AND. z(k) < topo2d_y(i,j-1) .AND. &
+                  z(k) < topo2d_x(i,j) .AND. z(k) < topo2d_x(i-1,j) ) THEN
                     extfy(ijk) = .TRUE.
                     IF( fl(ijk) /= inlet_cell .AND. fl(ijk) /= vent_cell ) fl(ijk) = filled_cell
               END IF
 
               ! ... Add external Forcing in z
               !
-              IF (forcex(ijk) .AND. forcex(imjk) .AND. &
-                  forcey(ijk) .AND. forcey(ijmk) .AND. &
-                  forcez(ijkm) .AND.                   &
-                  (zb(k) > topo2d_c(i,j)) ) THEN
+              IF (z(k) < topo2d_x(i,j) .AND. z(k) < topo2d_x(i-1,j) .AND. &
+                  z(k) < topo2d_y(i,j) .AND. z(k) < topo2d_y(i,j-1) .AND. &
+                  zb(k-1) < topo2d_c(i,j) .AND. zb(k) > topo2d_c(i,j) ) THEN
                     extfz(ijk) = .TRUE.
                     IF( fl(ijk) /= inlet_cell .AND. fl(ijk) /= vent_cell ) fl(ijk) = filled_cell
               END IF
@@ -319,6 +314,7 @@
           k = fptx(np)%k
           ijk = i + (j-1) * nx + (k-1) * nx * ny
           IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell .AND. fl(ijk)/=filled_cell) fl(ijk) = immb_cell
+          IF (ijk == 680413) WriTE(testunit,*) 'cell 680413: ', np, fl(ijk)
         END DO
         
         ! ... Interpolate the topography on y-staggered mesh.

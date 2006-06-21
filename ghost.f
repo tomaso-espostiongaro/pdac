@@ -1658,7 +1658,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
 
       INTEGER :: i,j,k,ijk,imesh
       INTEGER :: ipjk, imjk, ijpk, ijmk, ijkm
-      INTEGER :: filled
+      INTEGER :: full
 !
 ! ... Allocate and initialize coefficients
 !
@@ -1666,9 +1666,9 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
       ALLOCATE(vf(ncint))
 
       IF (job_type == '2D') THEN
-        filled = 15
+        full = 15
       ELSE IF (job_type == '3D') THEN
-        filled = 63
+        full = 63
       END IF
 
       bd(:) = 0
@@ -1808,7 +1808,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
             !
             IF (vf(ijk) == 0.D0) flag(ijk) = filled_cell
 
-            IF (bd(ijk) /= filled  .AND. lpr > 1 ) THEN
+            IF (bd(ijk) /= full  .AND. lpr > 1 ) THEN
               WRITE( testunit, fmt = "( I8,3I4,2X,B8,I4 )" ) ijk, i, j, k, bd(ijk), flag(ijk)
             END IF
 

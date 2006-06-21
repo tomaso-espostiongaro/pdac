@@ -24,7 +24,7 @@
 ! ... This routine computes (x,y,z) boundary conditions 
 !
       USE control_flags, ONLY: job_type, lpr
-      USE io_files, ONLY: tempunit
+      USE io_files, ONLY: tempunit, testunit
       USE domain_mapping, ONLY: ncint, myijk, meshinds
       USE grid, ONLY: flag, x, y, z, xb, yb, zb
       USE grid, ONLY: slip_wall, noslip_wall, fluid, immb_cell, filled_cell
