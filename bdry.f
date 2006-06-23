@@ -29,7 +29,7 @@
       USE grid, ONLY: flag, x, y, z, xb, yb, zb
       USE grid, ONLY: slip_wall, noslip_wall, fluid, immb_cell, filled_cell
       USE grid, ONLY: free_io, nrfree_io, inlet_cell, vent_cell
-      USE immersed_boundaries, ONLY: fptx, fpty, fptz
+      USE immersed_boundaries, ONLY: fptx, fpty, fptz, forcing_point
       USE immersed_boundaries, ONLY: numx, numy, numz, immb
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE inflow_outflow, ONLY: n0, n1, n2
@@ -50,7 +50,10 @@
       REAL*8 :: d1, d2 
       REAL*8 :: vel
       INTEGER :: fx, fy, fz
+      INTEGER :: nfptx, nfpty, nfptz
       LOGICAL :: forced
+
+      TYPE(forcing_point), ALLOCATABLE :: tfptx(:), tfpty(:), tfptz(:)
 !
       IF (irand >= 1) CALL random_switch(sweep)
 !
@@ -706,26 +709,41 @@
       END DO mesh_loop
 !
       IF (lpr > 1 .AND. immb >= 1) THEN
+        nfptx = SIZE(fptx)
+        nfpty = SIZE(fpty)
+        nfptz = SIZE(fptz)
+        ALLOCATE(tfptx(nfptx))
+        ALLOCATE(tfpty(nfpty))
+        ALLOCATE(tfptz(nfptz))
+        tfptx = fptx
+        tfpty = fpty
+        tfptz = fptz
+        CALL parallel_sum_real(tfptx(:)%vel,nfptx)
+        CALL parallel_sum_real(tfpty(:)%vel,nfpty)
+        CALL parallel_sum_real(tfptz(:)%vel,nfptz)
         IF (mpime == root) THEN
           OPEN(UNIT=tempunit,FILE='fptx.dat',STATUS='UNKNOWN')
-          DO np = 1, SIZE(fptx)
-            WRITE(tempunit,33) np, fptx(np)
+          DO np = 1, nfptx
+            WRITE(tempunit,33) np, tfptx(np)
           END DO
           CLOSE(tempunit)
           IF (job_type == '3D') THEN
             OPEN(UNIT=tempunit,FILE='fpty.dat',STATUS='UNKNOWN')
-            DO np = 1, SIZE(fpty)
-              WRITE(tempunit,33) np, fpty(np)
+            DO np = 1, nfpty
+              WRITE(tempunit,33) np, tfpty(np)
             END DO
             CLOSE(tempunit)
           END IF
           OPEN(UNIT=tempunit,FILE='fptz.dat',STATUS='UNKNOWN')
-          DO np = 1, SIZE(fptz)
-            WRITE(tempunit,33) np, fptz(np)
+          DO np = 1, nfptz
+            WRITE(tempunit,33) np, tfptz(np)
           END DO
           CLOSE(tempunit)
         END IF
  33   FORMAT(5(I6),10(F16.3))
+        DEALLOCATE(tfptx)
+        DEALLOCATE(tfpty)
+        DEALLOCATE(tfptz)
       END IF
 !
       RETURN

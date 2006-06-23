@@ -1689,25 +1689,36 @@
       END SUBROUTINE test_fluxes
 !----------------------------------------------------------------------
       SUBROUTINE correct_particles(ijk, imesh, i, j, k)
-      USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: job_type, lpr
       USE dimensions, ONLY: nsolid, ngas
+      USE gas_constants, ONLY: tzero, hzeros
       USE gas_solid_density, ONLY: rlk
-      USE gas_solid_temperature, ONLY: sies
+      USE gas_solid_temperature, ONLY: sies, ts, tg
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE gas_solid_velocity, ONLY: us, vs, ws
-      USE particles_constants, ONLY: rl, inrl
-
+      USE particles_constants, ONLY: rl, inrl, cps
+      USE specific_heat_module, ONLY: ck, hcaps
+!
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: ijk, imesh, i, j, k
       INTEGER :: ig, is
 !
       DO is = 1, nsolid
         IF (rlk(ijk,is)*inrl(is) <= 1.D-10) THEN
+          ! ... Drop out particles
           rlk(ijk,is) = 0.D0
           us(ijk,is)  = 0.D0
           IF (job_type == '3D') vs(ijk,is)  = 0.D0
           ws(ijk,is)  = 0.D0
-          sies(ijk,is) = 0.D0
+          sies(ijk,is) = MAX(sies(ijk,is),0.D0)
+        ELSE
+          ! ... Assume istantaneous momentum and thermal equilibrium
+          us(ijk,is)  = ug(ijk)
+          IF (job_type == '3D') vs(ijk,is)  = vg(ijk)
+          ws(ijk,is)  = wg(ijk)
+          ts(ijk,is) = tg(ijk)
+          CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
+          sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
         END IF
       END DO
 !
