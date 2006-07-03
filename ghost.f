@@ -71,7 +71,7 @@
 ! 
       USE dimensions
       USE basic_types, ONLY: imatrix
-      USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: job_type, prog
       USE parallel, ONLY: nproc, mpime, root
 !
       IMPLICIT NONE
@@ -446,7 +446,7 @@
 ! ... by using array numx/y/z. Scatter the array
 ! ... of forcing points among processors.
 !
-      IF (immb == 1) CALL local_forcing
+      IF (immb == 1 .AND. prog == 'PDAC') CALL local_forcing
 
       IF (mpime == root) WRITE(logunit,*) 'End of Ghost'
 !

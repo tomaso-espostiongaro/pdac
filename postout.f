@@ -24,7 +24,7 @@
       USE kinds
       USE io_files, ONLY: filnam, outpunit, logunit
       USE io_parallel, ONLY: read_array
-      USE postp_variables
+      USE postp_variables, ONLY: time, p,ug,vg,wg,tg,xgc,us,vs,ws,ts,eps
       USE parallel, ONLY: nproc, mpime, root, group
       USE particles_constants, ONLY: rl, inrl
 !
@@ -44,12 +44,13 @@
 
         IF (lform) THEN
           OPEN(UNIT=outpunit,FILE=filnam)
-          READ(outpunit,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
+          READ(outpunit,155) time
         ELSE 
           OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam)
           READ(outpunit) time4
           time = REAL(time4,dbl)
         END IF
+ 155    FORMAT(1x,///,12x,g11.4)
 
         WRITE(logunit,fmt="('  from process: reading file ',A20)") filnam
         WRITE(logunit,*) 'time = ', time
@@ -103,7 +104,7 @@
       END DO
       DEALLOCATE( otmp )
 !
-      ALLOCATE( otmp( SIZE( rlk, 1 ) ) )
+      ALLOCATE( otmp( SIZE( eps, 1 ) ) )
 
       DO is = 1, nsolid
 
