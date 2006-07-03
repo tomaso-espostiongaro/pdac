@@ -52,8 +52,7 @@
       INTEGER :: fx, fy, fz
       INTEGER :: nfptx, nfpty, nfptz
       LOGICAL :: forced
-
-      TYPE(forcing_point), ALLOCATABLE :: tfptx(:), tfpty(:), tfptz(:)
+      REAL*8, ALLOCATABLE :: tfptx(:), tfpty(:), tfptz(:)
 !
       IF (irand >= 1) CALL random_switch(sweep)
 !
@@ -709,40 +708,46 @@
       END DO mesh_loop
 !
       IF (lpr > 1 .AND. immb >= 1) THEN
+        !
         nfptx = SIZE(fptx)
-        nfpty = SIZE(fpty)
-        nfptz = SIZE(fptz)
         ALLOCATE(tfptx(nfptx))
-        ALLOCATE(tfpty(nfpty))
+        tfptx(:) = fptx(:)%vel
+        CALL parallel_sum_real(tfptx(:),nfptx)
+        !
+        IF (job_type == '3D') THEN
+          nfpty = SIZE(fpty)
+          ALLOCATE(tfpty(nfpty))
+          tfpty(:) = fpty(:)%vel
+          CALL parallel_sum_real(tfpty(:),nfpty)
+        END IF
+        !
+        nfptz = SIZE(fptz)
         ALLOCATE(tfptz(nfptz))
-        tfptx = fptx
-        tfpty = fpty
-        tfptz = fptz
-        CALL parallel_sum_real(tfptx(:)%vel,nfptx)
-        CALL parallel_sum_real(tfpty(:)%vel,nfpty)
-        CALL parallel_sum_real(tfptz(:)%vel,nfptz)
+        tfptz(:) = fptz(:)%vel
+        CALL parallel_sum_real(tfptz(:),nfptz)
+        !
         IF (mpime == root) THEN
           OPEN(UNIT=tempunit,FILE='fptx.dat',STATUS='UNKNOWN')
           DO np = 1, nfptx
-            WRITE(tempunit,33) np, tfptx(np)
+            WRITE(tempunit,33) np, fptx(np), tfptx(np)
           END DO
           CLOSE(tempunit)
           IF (job_type == '3D') THEN
             OPEN(UNIT=tempunit,FILE='fpty.dat',STATUS='UNKNOWN')
             DO np = 1, nfpty
-              WRITE(tempunit,33) np, tfpty(np)
+              WRITE(tempunit,33) np, fpty(np), tfpty(np)
             END DO
             CLOSE(tempunit)
           END IF
           OPEN(UNIT=tempunit,FILE='fptz.dat',STATUS='UNKNOWN')
           DO np = 1, nfptz
-            WRITE(tempunit,33) np, tfptz(np)
+            WRITE(tempunit,33) np, fptz(np), tfptz(np)
           END DO
           CLOSE(tempunit)
         END IF
- 33   FORMAT(5(I6),10(F16.3))
+ 33     FORMAT(5(I6),10(F16.3))
         DEALLOCATE(tfptx)
-        DEALLOCATE(tfpty)
+        IF (job_type == '3D') DEALLOCATE(tfpty)
         DEALLOCATE(tfptz)
       END IF
 !

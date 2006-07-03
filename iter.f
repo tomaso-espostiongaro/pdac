@@ -394,8 +394,8 @@
 ! ... If convergence is not reached in some cell
 ! ... start a new external sweep.
 !
-       IF( MOD( nit, 500 ) == 0 ) THEN
-         omega = omega * 0.9D0
+       IF( MOD( nit, 100 ) == 0 ) THEN
+         omega = 0.5D0 * (omega + 1.D0)
          IF (lpr > 0) THEN
            WRITE(testunit, fmt="('  reducing relaxation parameter omega')")
            WRITE(testunit, fmt="('  new value = ',F12.4)") omega
@@ -405,7 +405,7 @@
 ! ... Check the closure relation for solid phases on all processors
 !
         CALL parallel_sum_integer(ierr, 1)
-        IF (ierr > 1) CALL data_exchange(flag)
+        !IF (ierr > 1) CALL data_exchange(flag)
         !IF (ierr > 1) CALL error('iter','solid fraction exceeded 1',ierr)
 !
       END DO sor_loop
@@ -826,7 +826,8 @@
           WRITE(testunit,*) ' time, i, j, k ', time, i, j, k
           WRITE(testunit,*) ' rls, volfrac ', rls, 1.D0/ivf
         END IF
-        IF (flag(ijkm) == noslip_wall) flag(ijk) = noslip_wall
+        ! ... cells exceeding the maximum packing are 'frozen'
+        !IF (flag(ijkm) == noslip_wall) flag(ijk) = noslip_wall
         ierr = ierr + 1
       ENDIF
 !
@@ -1300,7 +1301,7 @@
               WRITE(testunit,*) ' i, j, k, rls ', i, j, k, rls
               WRITE(testunit,*) ' rls, volfrac ', rls, 1.D0/ivf
             ENDIF
-            IF (flag(ijkm) == noslip_wall) flag(ijk) = noslip_wall
+            !IF (flag(ijkm) == noslip_wall) flag(ijk) = noslip_wall
             ierr = ierr + 1
           ENDIF
 
@@ -1705,21 +1706,20 @@
 !
       DO is = 1, nsolid
         IF (rlk(ijk,is)*inrl(is) <= 1.D-10) THEN
-          ! ... Drop out particles
+          !... Drop out particles
           rlk(ijk,is) = 0.D0
           us(ijk,is)  = 0.D0
           IF (job_type == '3D') vs(ijk,is)  = 0.D0
-          ws(ijk,is)  = 0.D0
-          sies(ijk,is) = MAX(sies(ijk,is),0.D0)
+          ws(ijk,is) = 0.D0
         ELSE
           ! ... Assume istantaneous momentum and thermal equilibrium
           us(ijk,is)  = ug(ijk)
           IF (job_type == '3D') vs(ijk,is)  = vg(ijk)
-          ws(ijk,is)  = wg(ijk)
-          ts(ijk,is) = tg(ijk)
-          CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
-          sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
+          ws(ijk,is) = wg(ijk)
         END IF
+        ts(ijk,is) = tg(ijk)
+        CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
+        sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
       END DO
 !
       RETURN

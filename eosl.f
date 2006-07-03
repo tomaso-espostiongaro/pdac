@@ -7,7 +7,7 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-      SUBROUTINE caloric_eosl(tk, cps, ck, siek, ijk)
+      SUBROUTINE caloric_eosl(tk, cps, ck, siek, ijk, info)
 !
       USE control_flags, ONLY: lpr
       USE dimensions
@@ -21,15 +21,19 @@
       REAL*8, INTENT(OUT) :: ck
       INTEGER, INTENT(IN) :: ijk
       INTEGER :: imesh, i,j,k
+      INTEGER, INTENT(INOUT) :: info
 
       CALL hcaps( ck, cps, tk )
       tk = tzero + ( siek - hzeros ) / ck
 
-      IF( tk < 0.0d0 .AND. lpr>=1) THEN
-         CALL meshinds(ijk,imesh,i,j,k)
-         WRITE(testunit,*) 'WARNING from proc: ', mpime
-         WRITE(testunit,*) 'negative temperature in eosl'
-         WRITE(testunit,*) 'local cell: ', ijk, i, j, k
+      IF( tk < 0.0d0) THEN
+        info = info + 1
+        IF(lpr>=1) THEN
+           CALL meshinds(ijk,imesh,i,j,k)
+           WRITE(testunit,*) 'WARNING from proc: ', mpime
+           WRITE(testunit,*) 'negative temperature in eosl'
+           WRITE(testunit,*) 'local cell: ', ijk, i, j, k
+        END IF
       END IF
 
       RETURN

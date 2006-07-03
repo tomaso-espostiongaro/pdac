@@ -210,12 +210,14 @@
 !**********************************************************************
           END IF
 
-          IF( tg <= 0.0d0 .AND. lpr >=1) THEN
-            CALL meshinds(ijk,imesh,i,j,k)
-            WRITE(testunit,*) 'WARNING from proc: ', mpime
-            WRITE(testunit,*) 'zero or negative temperature in caloric_eosg'
-            WRITE(testunit,*) 'coord: ',i,j,k,' tg= ', tg
+          IF( tg <= 0.0d0 ) THEN
             info = 1
+            IF( lpr >=1 ) THEN
+              CALL meshinds(ijk,imesh,i,j,k)
+              WRITE(testunit,*) 'WARNING from proc: ', mpime
+              WRITE(testunit,*) 'zero or negative temperature in caloric_eosg'
+              WRITE(testunit,*) 'coord: ',i,j,k,' tg= ', tg
+            END IF
           END IF
 
       RETURN

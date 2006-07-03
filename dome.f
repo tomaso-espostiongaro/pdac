@@ -247,7 +247,6 @@
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE grid, ONLY: flag, x, y, kv, dome_cell
-      USE io_files, ONLY: testunit
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p

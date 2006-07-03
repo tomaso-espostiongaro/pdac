@@ -119,6 +119,7 @@
 ! ... within subdomain could be unbalanced, due to the
 ! ... lack of the topography setup)
 !
+      IF (lpr > 0) WRITE(testunit,*) 'Starting domain decomposition'
       CALL partition( nproc, mpime, root )
 !
 ! ... Setting the ghost cells for parallel data exchange

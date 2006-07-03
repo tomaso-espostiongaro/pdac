@@ -59,7 +59,6 @@
       REAL*8 :: ivf
 
       LOGICAL :: forced = .FALSE.
-      info = 0
       num = 0
       fx = 0
       fy = 0
@@ -169,20 +168,14 @@
 !
           CALL caloric_eosg(cp(:,ijk), cg(ijk), tg(ijk), ygc(ijk,:), &
                             sieg(ijk), ijk, info)
-          num = num + info
-
           DO is=1, nsolid
-            CALL caloric_eosl(ts(ijk,is),cps(is),ck(is,ijk),sies(ijk,is),ijk) 
+            CALL caloric_eosl(ts(ijk,is),cps(is),ck(is,ijk),sies(ijk,is),ijk,info) 
           END DO
+          num = num + info
 
           ! ... Constrain the temperature variation
           !
-          IF (tforce) THEN
-                  IF (info == 1 ) THEN
-                          CALL temperature_filter(ijk)
-                  END IF
-                  CALL temperature_limiter(ijk,tlim)
-          END IF
+          IF (info >= 1) CALL temperature_limiter(ijk,k,tlim)
           
         END IF
       END DO
@@ -199,6 +192,110 @@
 !
       RETURN
       END SUBROUTINE
+!----------------------------------------------------------------------
+      SUBROUTINE invdm(a, b, ijk)
+!
+! ... this routine solves the N-Phases Energy-Equation Matrix
+! ... (Gauss elimination)
+!
+      USE dimensions
+      USE gas_solid_density, ONLY: rlk
+      USE particles_constants, ONLY: inrl, dk
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: ijk
+      REAL*8 :: a(nphase,nphase),b(nphase)
+!
+      INTEGER :: is 
+      REAL*8 :: div
+      REAL*8 :: slim
+!
+! ... 'flim' can measure the limiting low concentration
+! ... to compute the heat exchange 
+! ... The limiting concentration is given by flim*1.D-3
+! ... 'slim' is a correction depending on the particle size.
+!
+      DO is=nphase,2,-1
+        slim = flim * 1.D-15 / dk(is)**3
+        IF(ABS(a(is,is)) < flim) THEN
+          a(1,is)=0.D0
+          a(is,1)=0.D0
+          b(is)=0.D0
+        ELSE
+!
+! ... eliminate all cross elements in the gas enthalpy equation
+!
+          div=1.D0/a(is,is)
+          a(is,1)=a(is,1)*div
+          b(is)=b(is)*div
+          b(1)=b(1)-a(1,is)*b(is)
+          a(1,1)=a(1,1)-a(1,is)*a(is,1)
+        ENDIF
+      END DO
+!
+      b(1)=b(1)/a(1,1)
+      DO is=2,nphase
+        b(is)=b(is)-a(is,1)*b(1)
+      END DO
+!
+      RETURN
+      END SUBROUTINE invdm
+!----------------------------------------------------------------------
+      SUBROUTINE temperature_limiter(ijk,k,tmax)
+
+      USE atmospheric_conditions, ONLY: t_atm
+      USE control_flags, ONLY: job_type, lpr
+      USE dimensions, ONLY: nsolid, ngas
+      USE eos_gas, ONLY: ygc, cg
+      USE gas_constants, ONLY: gas_type, gmw, rgas, tzero, hzerog, hzeros
+      USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
+      USE io_files, ONLY: testunit
+      USE set_indexes, ONLY: imjk, ijmk, ijkm, ipjk, ijpk, ijkp
+      USE specific_heat_module, ONLY: ck, cp, hcapg, hcaps
+      USE particles_constants, ONLY: inrl, cps
+
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: ijk,k
+      REAL*8, INTENT(IN) :: tmax
+      INTEGER :: ig, is
+      REAL*8 :: hc
+
+      IF (tg(ijk) > tmax) THEN
+        IF (lpr > 0) &
+          WRITE(testunit,*) 'Limiting Tg ',tg(ijk),' in cell: ', ijk
+        tg(ijk) = tmax
+        CALL hcapg(cp(:,ijk), tg(ijk))
+        hc = 0.D0
+        DO ig = 1, ngas
+          hc = hc + cp(gas_type(ig),ijk) * ygc(ijk,ig)
+        END DO
+        cg(ijk) = hc
+        sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
+      ELSE IF (tg(ijk) < 0.D0) THEN
+        IF (lpr > 0) &
+          WRITE(testunit,*) 'Limiting Tg ',tg(ijk),' in cell: ', ijk
+        tg(ijk) = t_atm(k)
+        CALL hcapg(cp(:,ijk), tg(ijk))
+        hc = 0.D0
+        DO ig = 1, ngas
+          hc = hc + cp(gas_type(ig),ijk) * ygc(ijk,ig)
+        END DO
+        cg(ijk) = hc
+        sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
+      END IF
+      !
+      DO is = 1, nsolid
+        IF (ts(ijk,is) > tmax .OR. ts(ijk,is) <= 0.D0) THEN
+          IF (lpr > 0) &
+            WRITE(testunit,*) 'Limiting Ts ', is, ts(ijk,is),' in cell: ', ijk
+          ts(ijk,is) = tg(ijk)
+          CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
+          sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
+        END IF
+      END DO
+      !
+      RETURN
+      END SUBROUTINE temperature_limiter
 !----------------------------------------------------------------------
       SUBROUTINE temperature_filter(ijk)
 
@@ -290,92 +387,6 @@
 
       RETURN
       END SUBROUTINE temperature_filter
-!----------------------------------------------------------------------
-      SUBROUTINE temperature_limiter(ijk,tmax)
-
-      USE control_flags, ONLY: job_type
-      USE dimensions, ONLY: nsolid, ngas
-      USE eos_gas, ONLY: ygc, cg
-      USE gas_constants, ONLY: gas_type, gmw, rgas, tzero, hzerog, hzeros
-      USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
-      USE io_files, ONLY: testunit
-      USE set_indexes, ONLY: imjk, ijmk, ijkm, ipjk, ijpk, ijkp
-      USE specific_heat_module, ONLY: ck, cp, hcapg, hcaps
-      USE particles_constants, ONLY: inrl, cps
-
-      IMPLICIT NONE
-      INTEGER, INTENT(IN) :: ijk
-      REAL*8, INTENT(IN) :: tmax
-      INTEGER :: ig, is
-      REAL*8 :: av_tg
-      REAL*8 :: av_ts
-      REAL*8 :: hc
-
-      IF (tg(ijk) > tmax) THEN
-        tg(ijk) = tmax
-        WRITE(testunit,*) 'Limiting gas temperature in cell: ', ijk
-        CALL hcapg(cp(:,ijk), tg(ijk))
-        hc = 0.D0
-        DO ig = 1, ngas
-          hc = hc + cp(gas_type(ig),ijk) * ygc(ijk,ig)
-        END DO
-        cg(ijk) = hc
-        sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
-      END IF
-      !
-      DO is = 1, nsolid
-        IF (ts(ijk,is) > tmax) THEN
-          ts(ijk,is) = tmax
-          WRITE(testunit,*) 'Limiting particle ', is, ' temperature in cell: ', ijk
-          CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
-          sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
-        END IF
-      END DO
-      !
-      RETURN
-      END SUBROUTINE temperature_limiter
-!----------------------------------------------------------------------
-      SUBROUTINE invdm(a, b, ijk)
-!
-! ... this routine solves the N-Phases Energy-Equation Matrix
-! ... (Gauss elimination)
-!
-      USE dimensions
-      USE gas_solid_density, ONLY: rlk
-      USE particles_constants, ONLY: inrl
-      IMPLICIT NONE
-!
-      INTEGER, INTENT(IN) :: ijk
-      REAL*8 :: a(nphase,nphase),b(nphase)
-!
-      INTEGER :: is 
-      REAL*8 :: div
-!
-      DO is=nphase,2,-1
-        !IF(rlk(ijk,is-1)*inrl(is-1) < flim*1.D-3) THEN
-        IF(ABS(a(is,is)) < flim) THEN
-          a(1,is)=0.D0
-          a(is,1)=0.D0
-          b(is)=0.D0
-        ELSE
-!
-! ... eliminate all cross elements in the gas enthalpy equation
-!
-          div=1.D0/a(is,is)
-          a(is,1)=a(is,1)*div
-          b(is)=b(is)*div
-          b(1)=b(1)-a(1,is)*b(is)
-          a(1,1)=a(1,1)-a(1,is)*a(is,1)
-        ENDIF
-      END DO
-!
-      b(1)=b(1)/a(1,1)
-      DO is=2,nphase
-        b(is)=b(is)-a(is,1)*b(1)
-      END DO
-!
-      RETURN
-      END SUBROUTINE invdm
 !----------------------------------------------------------------------
       END MODULE enthalpy_matrix
 !----------------------------------------------------------------------
