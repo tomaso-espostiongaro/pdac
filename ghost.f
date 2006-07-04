@@ -6,6 +6,7 @@
         USE domain_decomposition, ONLY: block2d_map, block3d_map, layer_map
         USE grid, ONLY: fl, flag
         USE grid, ONLY: slip_wall, noslip_wall, filled_cell
+        USE kinds, ONLY: sgl, dbl
         USE indijk_module
         USE immersed_boundaries, ONLY: immb
         USE control_flags, ONLY: lpr
@@ -76,7 +77,7 @@
 !
       IMPLICIT NONE
 !
-      INTEGER :: icnt, ipe, icnt_ipe, ncomm
+      INTEGER :: icnt, ipe, icnt_ipe
       INTEGER :: i, j, n, ijkl, k, ijk
       INTEGER :: nrcv(0:nproc-1), nrcvx, jpe
       INTEGER :: nset(0:nproc-1)
@@ -86,6 +87,7 @@
       INTEGER :: localdim
       INTEGER :: layer, k2, k1, j2, j1, i2, i1, nkt
       INTEGER :: me, whose
+      REAL*8  :: ratio
 !
       IF(ALLOCATED(rcv_map)) DEALLOCATE(rcv_map)
       IF(ALLOCATED(snd_map)) DEALLOCATE(snd_map)
@@ -288,15 +290,12 @@
 ! .... (see test below)
 
       IF (lpr > 1) THEN
-        ncomm = SUM(nset(:))
-        WRITE(testunit,290) ncint, ncomm, ncint/ncomm
         DO ipe = 0, nproc - 1
           WRITE(testunit,300) nset(ipe), ipe
           IF ( nset(ipe) > 0 .AND. lpr > 2) THEN
             WRITE(testunit,310) rcv_cell_set(ipe)%i(1,:)
           END IF
- 290      FORMAT(' # communication: ',i8,' # computation: ',i8, 'ratio: ', i8)
- 300      FORMAT(' # neighbours set SIZE ',i5,' from ',i3)
+ 300      FORMAT(' # neighbours set SIZE ',i8,' from ',i3)
  310      FORMAT(10i8)
         END DO
       END IF
@@ -306,9 +305,12 @@
 !
       ncext = SUM( nrcv ) 
       ncdom = ncint + ncext
+      ratio = REAL(ncint,dbl)/ncext
       IF (lpr > 1) THEN
+        WRITE(testunit,* ) ' # ncint ', ncint
         WRITE(testunit,* ) ' # ncext ', ncext
         WRITE(testunit,* ) ' # ncdom ', ncdom
+        WRITE(testunit,* ) ' # ratio ', ratio
       END IF
 !
 ! ... prepare the receive map 
@@ -1382,7 +1384,6 @@
 
         USE parallel, ONLY: nproc, mpime
         USE indijk_module, ONLY: ip0_jp0_kp0_
-        USE kinds, ONLY: sgl
 
         IMPLICIT NONE
         REAL(sgl) :: garray(:) ! global array that is set with collected data
@@ -1464,7 +1465,6 @@
 
         USE parallel, ONLY: nproc, mpime
         USE indijk_module, ONLY: ip0_jp0_kp0_
-        USE kinds, ONLY: sgl
 
         IMPLICIT NONE
         REAL(sgl) :: garray(:) ! input global array ( on root ) with data to be distributed
