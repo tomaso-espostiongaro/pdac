@@ -76,7 +76,7 @@
 !
       IMPLICIT NONE
 !
-      INTEGER :: icnt, ipe, icnt_ipe
+      INTEGER :: icnt, ipe, icnt_ipe, ncomm
       INTEGER :: i, j, n, ijkl, k, ijk
       INTEGER :: nrcv(0:nproc-1), nrcvx, jpe
       INTEGER :: nset(0:nproc-1)
@@ -288,11 +288,14 @@
 ! .... (see test below)
 
       IF (lpr > 1) THEN
+        ncomm = SUM(nset(:))
+        WRITE(testunit,290) ncint, ncomm, ncint/ncomm
         DO ipe = 0, nproc - 1
           WRITE(testunit,300) nset(ipe), ipe
           IF ( nset(ipe) > 0 .AND. lpr > 2) THEN
             WRITE(testunit,310) rcv_cell_set(ipe)%i(1,:)
           END IF
+ 290      FORMAT(' # communication: ',i8,' # computation: ',i8, 'ratio: ', i8)
  300      FORMAT(' # neighbours set SIZE ',i5,' from ',i3)
  310      FORMAT(10i8)
         END DO

@@ -1020,8 +1020,6 @@
          g_EXT(2) = g(2) * g(6)      !  SE-NW
          g_EXT(3) = g(3) * g(7)      !  S-N
          g_EXT(4) = g(4) * g(8)      !  SW-NE
-
-
 !
 ! ... Select the direction which minimize the distance 
 ! ... between the forcing point and the no-slip point

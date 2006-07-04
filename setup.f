@@ -558,8 +558,10 @@
       USE gas_solid_density, ONLY: rlk
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
-      USE grid, ONLY: flag, slip_wall, noslip_wall
-      USE set_indexes, ONLY: ipjk, ijpk, ijkp
+      USE grid, ONLY: flag, slip_wall, noslip_wall, immb_cell
+      USE immersed_boundaries, ONLY: immb
+      USE set_indexes, ONLY: ipjk, ijpk, ijkp, imjk, ijmk, ijkm
+      USE set_indexes, ONLY: first_subscr
 !
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: ijk
@@ -581,38 +583,59 @@
 !            WRITE(*,*) 'Reset w, cell: ',ijk
 !          END IF
 !          
+
+          CALL first_subscr(ijk)
+          !
           ! ... Set boundary velocity profiles
           ! ... Set the velocity = 0 on all faces
           ! ... of blocked cells
           !
           !
-          IF ( flag(ijk) == slip_wall .OR. flag(ijk) == noslip_wall ) THEN
-            ug(ijk) = 0.D0
-            us(ijk,:) = 0.D0
+          IF (immb == 0) THEN
+            IF ( flag(ijk) == slip_wall .OR. flag(ijk) == noslip_wall ) THEN
+              ug(ijk) = 0.D0
+              us(ijk,:) = 0.D0
+              IF ( job_type == '3D') THEN
+                vg(ijk) = 0.D0
+                vs(ijk,:) = 0.D0
+              END IF
+              wg(ijk) = 0.D0
+              ws(ijk,:) = 0.D0
+              rlk(ijk,:) = 0.D0
+            END IF
+            !
+            IF ( flag(ipjk) == slip_wall .OR. flag(ipjk) == noslip_wall ) THEN
+              ug(ijk) = 0.D0
+              us(ijk,:) = 0.D0
+            END IF
+            !
             IF ( job_type == '3D') THEN
-              vg(ijk) = 0.D0
-              vs(ijk,:) = 0.D0
+              IF ( flag(ijpk) == slip_wall .OR. flag(ijpk) == noslip_wall ) THEN
+                vg(ijk) = 0.D0
+                vs(ijk,:) = 0.D0
+              END IF
             END IF
-            wg(ijk) = 0.D0
-            ws(ijk,:) = 0.D0
-            rlk(ijk,:) = 0.D0
-          END IF
-          !
-          IF ( flag(ipjk) == slip_wall .OR. flag(ipjk) == noslip_wall ) THEN
-            ug(ijk) = 0.D0
-            us(ijk,:) = 0.D0
-          END IF
-          !
-          IF ( job_type == '3D') THEN
-            IF ( flag(ijpk) == slip_wall .OR. flag(ijpk) == noslip_wall ) THEN
-              vg(ijk) = 0.D0
-              vs(ijk,:) = 0.D0
+            !
+            IF ( flag(ijkp) == slip_wall .OR. flag(ijkp) == noslip_wall ) THEN
+              wg(ijk) = 0.D0
+                ws(ijk,:) = 0.D0
             END IF
-          END IF
-          !
-          IF ( flag(ijkp) == slip_wall .OR. flag(ijkp) == noslip_wall ) THEN
-            wg(ijk) = 0.D0
-            ws(ijk,:) = 0.D0
+          ELSE IF (immb == 1) THEN
+            IF (flag(ijk) == immb_cell) THEN
+              ug(ijk) = 0.D0
+              IF (job_type == '3D') vg(ijk) = 0.D0
+              wg(ijk) = 0.D0
+              us(ijk,:) = 0.D0
+              IF (job_type == '3D') vs(ijk,:) = 0.D0
+              ws(ijk,:) = 0.D0
+              !
+              ug(imjk) = 0.D0
+              IF (job_type == '3D') vg(ijmk) = 0.D0
+              wg(ijkm) = 0.D0
+              us(imjk,:) = 0.D0
+              IF (job_type == '3D') vs(ijmk,:) = 0.D0
+              ws(ijkm,:) = 0.D0
+            END IF
           END IF
           !
       RETURN

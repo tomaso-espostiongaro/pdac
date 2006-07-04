@@ -111,7 +111,7 @@
         DO ijk = 1, ncint
           IF ( BTEST(flag(ijk),0) ) THEN
             energy = p(ijk)/(rog(ijk)*(gammaair - 1.D0))
-            WRITE(tempunit,550)rog(ijk),wg(ijk),p(ijk),energy,tg(ijk),rlk(ijk,1), ws(ijk,1), ts(ijk,1)
+            WRITE(tempunit,550) rog(ijk),wg(ijk),tg(ijk),p(ijk),energy,tg(ijk),rlk(ijk,1),ws(ijk,1),ts(ijk,1)
           END IF
         END DO
         CLOSE (tempunit)

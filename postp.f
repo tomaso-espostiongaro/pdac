@@ -151,7 +151,6 @@
 ! ... close parallel environment
 !
       CALL parallel_hangup
-
       STOP
       END PROGRAM postp
 !----------------------------------------------------------------------
