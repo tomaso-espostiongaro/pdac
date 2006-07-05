@@ -10,6 +10,7 @@
         LOGICAL :: implicit_fluxes
         LOGICAL :: implicit_enthalpy
         LOGICAL :: formatted_output
+        LOGICAL :: formatted_input
         CHARACTER(LEN=4) :: prog   ! "PDAC" "POSP"
 !-----------------------------------------------------------------------
       END MODULE

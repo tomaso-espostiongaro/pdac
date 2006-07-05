@@ -57,6 +57,7 @@
 ! ... and broadcasts data
 !
       CALL input( inputunit )
+      IF (mpime == root) WRITE(logunit,*) 'input file 1 read'
 !
 ! ... Open Test files
 !
@@ -73,6 +74,7 @@
 ! ... and broadcasts data
 !
       CALL postin( postunit )
+      IF (mpime == root) WRITE(logunit,*) 'input file 2 read'
 !
 ! ... By default, postp cannot restart
       itd = 1

@@ -46,9 +46,9 @@ flux_v.o : dimensions.o grid.o limiters.o subscr.o time.o
 
 flux_w.o : dimensions.o grid.o limiters.o subscr.o time.o 
 
-ftem.o : control.o dens.o dimensions.o eosg.o eosl.o gas.o ghost.o grid.o  \
-    hcapgs.o htilde.o hvs.o immb.o io_files.o particles.o press.o reactions.o  \
-    subscr.o temp.o time.o velocity.o visc.o 
+ftem.o : atmosphere.o control.o dens.o dimensions.o eosg.o eosl.o gas.o  \
+    ghost.o grid.o hcapgs.o htilde.o hvs.o immb.o io_files.o particles.o  \
+    press.o reactions.o subscr.o temp.o time.o velocity.o visc.o 
 
 gas.o : dimensions.o 
 
@@ -92,9 +92,9 @@ io_restart.o : atmosphere.o control.o dens.o dimensions.o eosg.o gas.o  \
 iotk_module.o : 
 
 iter.o : control.o dens.o dimensions.o environment.o eosg.o flux_m.o ftem.o  \
-    gas.o ghost.o grid.o htilde.o immb.o indijk.o io_files.o limiters.o  \
-    matrix.o outp.o parallel.o particles.o press.o subscr.o temp.o tilde.o  \
-    time.o velocity.o 
+    gas.o ghost.o grid.o hcapgs.o htilde.o immb.o indijk.o io_files.o  \
+    limiters.o matrix.o outp.o parallel.o particles.o press.o subscr.o temp.o  \
+    tilde.o time.o velocity.o 
 
 kb07ad.o : 
 

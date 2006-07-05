@@ -91,7 +91,7 @@
       USE atmospheric_conditions, ONLY: wind_x, wind_y, wind_z, &
           p_ground, t_ground, void_fraction, max_packing
       USE blunt_body, ONLY: ibl, nblu
-      USE control_flags, ONLY: job_type, lpr, imr, nfil, formatted_output
+      USE control_flags, ONLY: job_type, lpr, imr, nfil, formatted_output, formatted_input
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
       USE dimensions
       USE domain_decomposition, ONLY: mesh_partition
@@ -137,7 +137,7 @@
 
       NAMELIST / control / run_name, job_type, restart_mode,       &
         time, tstop, dt, lpr, imr, tpr, tdump, nfil, tau,          &
-        formatted_output, max_seconds
+        formatted_output, formatted_input, max_seconds
 
       NAMELIST / model / icpc, irex, gas_viscosity, part_viscosity,      &
         iss, repulsive_model, iturb, modturbo, cmut,                     &
@@ -200,6 +200,7 @@
       tdump = 20.0D0    ! write restart every tdump seconds of simulated time
       nfil = 0          ! output file index
       formatted_output = .TRUE.
+      formatted_input  = .TRUE.
       max_seconds = 40000.0
       tau = 0.D0
 
@@ -423,6 +424,7 @@
       CALL bcast_real(tdump,1,root)
       CALL bcast_integer(nfil,1,root)
       CALL bcast_logical(formatted_output,1,root)
+      CALL bcast_logical(formatted_input,1,root)
       CALL bcast_real(max_seconds,1,root)
       CALL bcast_real(tau,1,root)
 
@@ -841,6 +843,7 @@
             CALL iotk_write_dat( iuni_nml, "max_seconds", max_seconds )
             CALL iotk_write_dat( iuni_nml, "tau", tau )
             CALL iotk_write_dat( iuni_nml, "formatted_output", formatted_output )
+            CALL iotk_write_dat( iuni_nml, "formatted_input", formatted_input )
           CALL iotk_write_end( iuni_nml, "control" )
 
           CALL iotk_write_begin( iuni_nml, "model" )

@@ -1,7 +1,7 @@
 !----------------------------------------------------------------------
       MODULE io_restart
 !----------------------------------------------------------------------
-      USE control_flags, ONLY: job_type, nfil, formatted_output
+      USE control_flags, ONLY: job_type, nfil, formatted_input
       USE dimensions
       USE domain_mapping, ONLY: data_collect, data_distribute, ncint
       USE eos_gas, ONLY: xgc, ygc
@@ -354,7 +354,7 @@
       REAL*8, ALLOCATABLE :: otmp(:)
 !
       filnam='output.'//lettera(nf)
-      lform = formatted_output
+      lform = formatted_input
 
       IF( mpime == root ) THEN
 
@@ -505,7 +505,7 @@
       REAL*8, ALLOCATABLE :: otmp(:)
 !
       filnam='output.'//lettera(nf)
-      lform = formatted_output
+      lform = formatted_input
 
       IF( mpime == root ) THEN
 
