@@ -22,7 +22,7 @@
       USE immersed_boundaries, ONLY: immb
       USE io_files, ONLY: tempunit, logunit
       USE io_parallel, ONLY: read_array
-      USE postp_output, ONLY: improfile
+      USE postp_output, ONLY: improfile_3d
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl
       USE postp_variables, ONLY: eps, time
@@ -64,7 +64,7 @@
           tmap(:) = 0.D0
           mmap = 0.D0
           DO k = 1, nz
-            quota = improfile(i,j,k)
+            quota = improfile_3d(i,j,k)
             IF (quota >= 0.D0 .AND. quota<=thickness) THEN 
                 imesh  = i + (j-1) * nx + (k-1) * nx * ny
                 IF (cell_owner(imesh) == mpime) THEN

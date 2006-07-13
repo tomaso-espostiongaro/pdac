@@ -53,7 +53,7 @@
       IF (immb >= 1) THEN
         IF (mpime == root) &
           OPEN(tempunit,FILE='vf.dat',STATUS='OLD',FORM='UNFORMATTED')
-        CALL read_array( tempunit, vf, dbl, .FALSE. )
+        CALL read_array( tempunit, vf, sgl, .FALSE. )
         IF (mpime == root) CLOSE(tempunit)
       END IF
 !

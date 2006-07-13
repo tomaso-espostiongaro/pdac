@@ -17,10 +17,11 @@
       USE gas_components, ONLY: ygas
       USE gas_solid_density, ONLY: rog, rgp, rlk
       USE gas_solid_temperature, ONLY: sieg, sies, ts, tg
+      USE immersed_boundaries, ONLY: immb
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE io_restart, ONLY: tapewr, max_seconds
       USE iterative_solver, ONLY: iter, nit
-      USE output_dump, ONLY: outp, shock_tube_out
+      USE output_dump, ONLY: outp, shock_tube_out, print_volumes
       USE output_dump, ONLY: write_radial_profile_2d
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: cps
@@ -143,6 +144,7 @@
         IF (sweep == 1) THEN
           CALL outp
           CALL print_mass_flow_rate
+          IF (immb >= 1) CALL print_volumes
         END IF
 !
 ! ... 'Check init' stops here

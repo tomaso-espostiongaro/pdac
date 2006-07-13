@@ -36,7 +36,7 @@
       USE parallel, ONLY: mpime, root
       USE postp_variables, ONLY: allocate_main_fields, allocate_derived_fields, tg
       USE postp_variables, ONLY: compute_derived_fields, allocate_derived_fields_av
-      USE postp_variables, ONLY: pd, tg, ts, lepst, rhom, um, vm, wm
+      USE postp_variables, ONLY: pd, tg, ts, lepst, rhom, um, vm, wm, mvm, tm
       USE postp_variables, ONLY: rhom_av, um_av, vm_av, wm_av, tm_av
 !
       IMPLICIT NONE
@@ -90,10 +90,9 @@
         IF (imap > 0) THEN
                CALL write_topo2d
                CALL write_map(tn,pd,'pd')
-               CALL write_map(tn,tg,'tg')
-               CALL write_map(tn,ts(:,1),'t1')
-               CALL write_map(tn,ts(:,2),'t2')
-               CALL write_map(tn,lepst,'lt')
+               CALL write_map(tn,tm,'tm')
+               CALL write_map(tn,rhom,'rm')
+               CALL write_map(tn,mvm,'vm')
         END IF
         IF (isamp   > 0)  CALL sample
         IF (imassn  > 0)  CALL massn

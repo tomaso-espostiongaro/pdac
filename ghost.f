@@ -1818,11 +1818,6 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
           END IF
 
         END DO
-        IF (mpime == root) THEN
-          OPEN(tempunit,FILE='vf.dat',STATUS='UNKNOWN',FORM='UNFORMATTED')  
-          WRITE(tempunit) vf
-          CLOSE(tempunit)
-        END IF
         CALL data_exchange(flag)
       
       RETURN

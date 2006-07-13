@@ -5,8 +5,10 @@
       USE kinds
       IMPLICIT NONE
 !
-      REAL*8, ALLOCATABLE :: improfile(:,:,:)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: array_map
+      REAL*8, ALLOCATABLE :: improfile_2d(:,:)
+      REAL*8, ALLOCATABLE :: improfile_3d(:,:,:)
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: map1d
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: map2d
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: topo2d
 
       INTEGER :: first_out, last_out, incr_out
@@ -157,6 +159,7 @@
       END SUBROUTINE read_output
 !----------------------------------------------------------------------
       SUBROUTINE read_implicit_profile
+      USE control_flags, ONLY: job_type
       USE grid, ONLY: x, y, z, xb, yb, zb
       USE io_files, ONLY: tempunit
       USE parallel, ONLY: mpime, root
@@ -166,7 +169,11 @@
       !  volcano topography is imported from a DEM file
 
       INTEGER :: i,j,k
-      ALLOCATE(improfile(nx,ny,nz))
+      IF (job_type == '2D') THEN
+        ALLOCATE(improfile_2d(nx,nz))
+      ELSE IF (job_type == '3D') THEN
+        ALLOCATE(improfile_3d(nx,ny,nz))
+      END IF
 !
 ! ... Read the georeferenced mesh
 !
@@ -199,16 +206,25 @@
 !
       IF (mpime == root) THEN
         OPEN(tempunit,FILE='improfile.dat',STATUS='OLD')
-        DO k=1,nz
-          DO j=1,ny
-            DO i=1,nx
-              READ(tempunit,*) improfile(i,j,k)
+        IF (job_type == '2D') THEN
+          DO k=1,nz
+              DO i=1,nx
+                READ(tempunit,*) improfile_2d(i,k)
+              END DO
+          END DO
+          CALL bcast_real(improfile_2d,ntot,root)
+        ELSE IF (job_type == '3D') THEN
+          DO k=1,nz
+            DO j=1,ny
+              DO i=1,nx
+                READ(tempunit,*) improfile_3d(i,j,k)
+              END DO
             END DO
           END DO
-        END DO
+          CALL bcast_real(improfile_3d,ntot,root)
+        END IF
         CLOSE(tempunit)
       END IF
-      CALL bcast_real(improfile,ntot,root)
 
  100  FORMAT(5(F20.6))
       RETURN
@@ -236,7 +252,7 @@
         DO j = 1, ny
           !
           search: DO k = 1, nz
-            quota = improfile(i,j,k)
+            quota = improfile_3d(i,j,k)
             IF (quota >= 0.D0 .AND. topo2d(i,j) == -9999) THEN
               topo2d(i,j) = z(k) - quota
               EXIT search
@@ -266,7 +282,7 @@
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nx, ny, nz
       USE domain_decomposition, ONLY: cell_owner, cell_g2l
-      USE grid, ONLY: z
+      USE grid, ONLY: z, x, y
       USE io_files, ONLY: tempunit
       USE parallel, ONLY: mpime, root
       USE set_indexes, ONLY: first_subscr, ijkm
@@ -280,62 +296,113 @@
       CHARACTER( LEN = 4 ) :: lettera
       CHARACTER( LEN = 20 ) :: filnam
 
-      IF (job_type == '2D') RETURN
-
-      ALLOCATE(array_map(nx,ny))
-      array_map = 0.D0
-      
-      filnam='map_'//labl//'.'//lettera(nf)
+      IF (job_type == '2D') THEN
 !
-      alpha = 0.0D0
-      DO i = 1, nx
-        DO j = 1, ny
-          !
-          search: DO k = 1, nz
-            quota = improfile(i,j,k)
-            IF (quota >= deltaz) THEN
-                imesh  = i + (j-1) * nx + (k-1) * nx * ny
-                IF (cell_owner(imesh) == mpime) THEN
-                  ijk  = cell_g2l(imesh, mpime)
-                  !
-                  ! ... identify the first neighbours
-                  !
-                  CALL first_subscr(ijk)
-                  alpha = deltaz - improfile(i,j,k-1)
-                  alpha = alpha / (z(k) - z(k-1))
-                  !
-                  !...errore!!!
-                  !map = alpha* array(ijk) + (1.D0-alpha) * array(ijkm)
-                  map = alpha* array(ijk) + (1.D0-alpha) * array(ijk)
-                  ! ... Map the value reached at any given position at
-                  ! ... given time
-                  array_map(i,j) = map
-                END IF
-                EXIT search
-            END IF
-          END DO search
+        ALLOCATE(map1d(nx))
+        map1d = 0.D0
+      
+        filnam='map_'//labl//'.'//lettera(nf)
+!
+        alpha = 0.0D0
+        DO i = 1, nx
+            !
+            search1: DO k = 1, nz
+              quota = improfile_2d(i,k)
+              IF (quota >= deltaz) THEN
+                  imesh  = i + (k-1) * nx
+                  IF (cell_owner(imesh) == mpime) THEN
+                    ijk  = cell_g2l(imesh, mpime)
+                    !
+                    ! ... identify the first neighbours
+                    !
+                    CALL first_subscr(ijk)
+                    alpha = deltaz - improfile_2d(i,k-1)
+                    alpha = alpha / (z(k) - z(k-1))
+                    !
+                    map = alpha* array(ijk) + (1.D0-alpha) * array(ijkm)
+                    WRITE(*,*) ijk, ijkm, ijk-ijkm
+                    ! ... Map the value reached at any given position at
+                    ! ... given time
+                    map1d(i) = map
+                  END IF
+                  EXIT search1
+              END IF
+            END DO search1
           !
         END DO
-      END DO
 !
 ! ... Assemble the map array
 !
-      CALL parallel_sum_real(array_map, nx*ny)
+        CALL parallel_sum_real(map1d, nx)
 !
 ! ... Print out the map and the new 2D DEM file
 !
-      IF (mpime == root) THEN
-        OPEN(UNIT=tempunit,FILE=filnam)
+        IF (mpime == root) THEN
+          OPEN(UNIT=tempunit,FILE=filnam)
+          DO i = 2, nx-1
+              WRITE(tempunit,'G10.4,G14.6E3') x(i), map1d(i)
+          END DO
+          CLOSE(tempunit)
+        END IF
+        DEALLOCATE(map1d)
+!
+      ELSE IF (job_type == '3D') THEN
+
+        ALLOCATE(map2d(nx,ny))
+        map2d = 0.D0
+      
+        filnam='map_'//labl//'.'//lettera(nf)
+!
+        alpha = 0.0D0
+        DO i = 1, nx
         DO j = 1, ny
-            WRITE(tempunit,122) (array_map(i,j), i=1, nx)
+            !
+            search2: DO k = 1, nz
+              quota = improfile_3d(i,j,k)
+              IF (quota >= deltaz) THEN
+                  imesh  = i + (j-1) * nx + (k-1) * nx * ny
+                  IF (cell_owner(imesh) == mpime) THEN
+                    ijk  = cell_g2l(imesh, mpime)
+                    !
+                    ! ... identify the first neighbours
+                    !
+                    CALL first_subscr(ijk)
+                    alpha = deltaz - improfile_3d(i,j,k-1)
+                    alpha = alpha / (z(k) - z(k-1))
+                    !
+                    !...errore!!!
+                    !map = alpha* array(ijk) + (1.D0-alpha) * array(ijkm)
+                    map = alpha* array(ijk) + (1.D0-alpha) * array(ijk)
+                    ! ... Map the value reached at any given position at
+                    ! ... given time
+                    map2d(i,j) = map
+                  END IF
+                  EXIT search2
+              END IF
+            END DO search2
+            !
+          END DO
         END DO
-        CLOSE(tempunit)
+!
+! ... Assemble the map array
+!
+        CALL parallel_sum_real(map2d, nx*ny)
+!
+! ... Print out the map and the new 2D DEM file
+!
+        IF (mpime == root) THEN
+          OPEN(UNIT=tempunit,FILE=filnam)
+          DO j = 1, ny
+              WRITE(tempunit,122) (map2d(i,j), i=1, nx)
+          END DO
+          CLOSE(tempunit)
+        END IF
+        DEALLOCATE(map2d)
+!
       END IF
-
+!
  122  FORMAT(10(1x,G14.6E3))
-
-      DEALLOCATE(array_map)
-
+!
       RETURN
       END SUBROUTINE write_map
 !----------------------------------------------------------------------

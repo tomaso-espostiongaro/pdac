@@ -9,7 +9,8 @@
       PRIVATE
 
       LOGICAL :: interpolate = .TRUE.
-      PUBLIC :: outp, cell_report, write_radial_profile_2D, shock_tube_out
+      PUBLIC :: outp, write_radial_profile_2D, shock_tube_out
+      PUBLIC :: print_volumes, cell_report
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
@@ -342,6 +343,23 @@
 
       RETURN
       END SUBROUTINE cell_report
+!----------------------------------------------------------------------
+      SUBROUTINE print_volumes
+!
+      USE immersed_boundaries, ONLY: vf
+      USE io_files, ONLY: tempunit
+      USE io_parallel, ONLY: write_array
+      USE parallel, ONLY: mpime, root
+      IMPLICIT NONE
+!
+      IF (mpime == root) THEN
+        OPEN(tempunit,FILE='vf.dat',STATUS='UNKNOWN',FORM='UNFORMATTED')
+        CALL write_array( tempunit, vf, sgl, .FALSE. )
+        CLOSE(tempunit)
+      END IF
+!
+      RETURN
+      END SUBROUTINE print_volumes
 !----------------------------------------------------------------------
       END MODULE output_dump
 !----------------------------------------------------------------------
