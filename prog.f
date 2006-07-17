@@ -143,7 +143,7 @@
         ! ... write initial conditions
         IF (sweep == 1) THEN
           CALL outp
-          CALL print_mass_flow_rate
+          !CALL print_mass_flow_rate
           IF (immb >= 1) CALL print_volumes
         END IF
 !
@@ -398,10 +398,12 @@
 !        cptimtot  = ( t13 - t0 ) 
 !        mptimtot   = ( p13 - p0 ) 
                 
-        WRITE(logunit,*) '  WALL TIME computed calling SYSTEM_CLOCK (s)'
-        WRITE(logunit,900) 'Bdry','Dyn','Tilde','Iter','Ygas','Tem','Out','Restart','Total'
-        WRITE(logunit,999) timbdry,  timturbo, timtilde, timiter, timygas, timtem, &
-                     timout, timres, timtot
+        IF (mpime == root) THEN
+          WRITE(logunit,*) '  WALL TIME computed calling SYSTEM_CLOCK (s)'
+          WRITE(logunit,900) 'Bdry','Dyn','Tilde','Iter','Ygas','Tem','Out','Restart','Total'
+          WRITE(logunit,999) timbdry,  timturbo, timtilde, timiter, timygas, timtem, &
+                       timout, timres, timtot
+        END IF
 
 995     FORMAT(/,A45)                   
 900     FORMAT(10(1X,A10))
