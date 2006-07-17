@@ -412,7 +412,7 @@
       USE io_files, ONLY: tempunit
       USE io_parallel, ONLY: write_array
       USE parallel, ONLY: mpime, root
-      USE postp_variables, ONLY: lepst, tg
+      USE postp_variables, ONLY: lepst, tg, mn, cm, pd
 !
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: tn
@@ -423,7 +423,7 @@
       lform = formatted_output
 !
       IF (mpime == root) THEN
-        filnam = 'log10epst.'//lettera(tn)
+        filnam = 'mach.'//lettera(tn)
         IF (lform) THEN
           OPEN(tempunit,FILE=filnam)
         ELSE
@@ -431,12 +431,12 @@
         END IF
       END IF
       !
-      CALL write_array( tempunit, lepst, sgl, lform )
+      CALL write_array( tempunit, mn, sgl, lform )
       !
       IF (mpime == root) CLOSE(tempunit)
       !
       IF (mpime == root) THEN
-        filnam = 'tg.'//lettera(tn)
+        filnam = 'cm.'//lettera(tn)
         IF (lform) THEN
           OPEN(tempunit,FILE=filnam)
         ELSE
@@ -444,7 +444,20 @@
         END IF
       END IF
       !
-      CALL write_array( tempunit, tg, sgl, lform )
+      CALL write_array( tempunit, cm, sgl, lform )
+      !
+      IF (mpime == root) CLOSE(tempunit)
+      !
+      IF (mpime == root) THEN
+        filnam = 'pd.'//lettera(tn)
+        IF (lform) THEN
+          OPEN(tempunit,FILE=filnam)
+        ELSE
+          OPEN(tempunit,FILE=filnam, FORM='UNFORMATTED')
+        END IF
+      END IF
+      !
+      CALL write_array( tempunit, pd, sgl, lform )
       !
       IF (mpime == root) CLOSE(tempunit)
 !

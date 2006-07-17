@@ -283,37 +283,52 @@
       RETURN
       END SUBROUTINE velocity_module_3D
 !----------------------------------------------------------------------
-      FUNCTION cm(rgp,rhog,rm,mg,tg)
+      SUBROUTINE wallis_sound_speed(cm,xgc,rgp,rlk,rhom,rhog,epst,tg)
       ! 
       ! ... computes the inverse of the mixture sound speed
 
       IMPLICIT NONE
-      REAL*8, INTENT(IN), DIMENSION(:) :: rgp, rhog, rm, tg, mg
+      REAL*8, INTENT(IN), DIMENSION(:,:) :: rlk, xgc
+      REAL*8, INTENT(IN), DIMENSION(:) :: rgp,rhom,rhog,epst,tg
       REAL*8, DIMENSION(SIZE(tg)) :: cm
-      REAL*8, DIMENSION(SIZE(rgp)) :: fact, y
+      REAL*8, DIMENSION(SIZE(rgp)) :: mgas
+      REAL*8 :: fact, y, avrl
 
+      meshsize = SIZE(rgp)
 !
 ! ... Mixture sound speed (Wallis, 1969)
 !
-      y = rgp / rm
-      fact = y + (1.0 - y) * rhog / rl(1)
-      cm = SQRT(gammaair * rgas * tg / mg / y ) * fact
+      CALL gas_molecular_weight(mgas,xgc)
+      DO imesh = 1, meshsize
+        IF (epst(imesh) /= 0.D0) THEN
+          y = rgp(imesh) / rhom(imesh)
+          avrl = SUM(rlk(imesh,:))/epst(imesh)
+          fact = y + (1.0 - y) * rhog(imesh) / avrl
+          cm(imesh) = SQRT(gammaair * rgas * tg(imesh) / mgas(imesh) / y )
+          cm(imesh) = cm(imesh) * fact
+        ELSE
+          cm(imesh) = SQRT(gammaair * rgas * tg(imesh) / mgas(imesh) )
+        END IF
+      END DO
 !
       RETURN
-      END FUNCTION cm
+      END SUBROUTINE wallis_sound_speed
 !----------------------------------------------------------------------
-      FUNCTION mach(vel, c)
+      SUBROUTINE mach_number(mn,vel, c)
       !
       ! ... compute the Mach number for the mixture
 
       IMPLICIT NONE
       REAL*8, INTENT(IN), DIMENSION(:) :: vel, c
-      REAL*8, DIMENSION(SIZE(vel)) :: mach
+      REAL*8, DIMENSION(SIZE(vel)) :: mn
 
-      mach = vel / c
+      meshsize = SIZE(vel)
+      DO imesh = 1, meshsize
+        mn(imesh) = vel(imesh) / c(imesh)
+      END DO
 
       RETURN
-      END FUNCTION mach
+      END SUBROUTINE mach_number
 !----------------------------------------------------------------------
       END MODULE derived_fields
 !----------------------------------------------------------------------

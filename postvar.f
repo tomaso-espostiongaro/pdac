@@ -13,7 +13,7 @@
 !
       REAL*8, ALLOCATABLE, DIMENSION(:) :: epst, vf, lepst, rhog, rgp
       REAL*8, ALLOCATABLE, DIMENSION(:) :: rhom, um, vm, wm, pd, mvm 
-      REAL*8, ALLOCATABLE, DIMENSION(:) :: tm
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: tm, cm, mn
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: rlk, ygc
 !
 ! ... derived averaged fields
@@ -66,6 +66,8 @@
       ALLOCATE(vm(dime))  ! Mixture Velocity Y
       ALLOCATE(wm(dime))  ! Mixture Velocity Z
       ALLOCATE(mvm(dime)) ! Mixture Velocity Modulus
+      ALLOCATE(cm(dime)) ! Mixture Sound Speed
+      ALLOCATE(mn(dime)) ! Mixture Mach Number
       ALLOCATE(pd(dime))  ! Dynamic Pressure
       ALLOCATE(rlk(dime,nsolid))  ! Solid Bulk density
       ALLOCATE(ygc(dime,ngas))  ! Gas mass fractions
@@ -81,6 +83,8 @@
       vm    = 0.D0
       wm    = 0.D0
       mvm   = 0.D0
+      cm    = 0.D0
+      mn    = 0.D0
       pd    = 0.D0
       rlk   = 0.D0
       ygc   = 0.D0
@@ -129,7 +133,8 @@
                                 gas_bulk_density, solid_bulk_density, &
                                 mixture_density, mixture_velocity, &
                                 velocity_module_2D, velocity_module_3D, &
-                                dynamic_pressure, mixture_temperature
+                                dynamic_pressure, mixture_temperature,  &
+                                wallis_sound_speed, mach_number
       USE io_files, ONLY: logunit
 !
       IMPLICIT NONE
@@ -150,7 +155,7 @@
         CALL solid_bulk_density(rlk,eps)
         CALL mixture_density(rhom,rlk,rgp)
         CALL mixture_temperature(tm,ts,tg,rlk,rgp,ygc)
-
+        !
         CALL mixture_velocity(um,ug,us,rlk,rgp,rhom)
         IF (job_type == '3D') CALL mixture_velocity(vm,vg,vs,rlk,rgp,rhom)
         CALL mixture_velocity(wm,wg,ws,rlk,rgp,rhom)
@@ -168,6 +173,9 @@
         !CALL dynamic_pressure(pd2,rlk(:,2),mvm)
         !pd = pd1 + pd2
         !DEALLOCATE(pd1,pd2)
+        !
+        CALL wallis_sound_speed(cm,xgc,rgp,rlk,rhom,rhog,epst,tg)
+        CALL mach_number(mn,mvm,cm)
 !
       RETURN
       END SUBROUTINE compute_derived_fields
