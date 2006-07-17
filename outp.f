@@ -351,12 +351,14 @@
       USE io_parallel, ONLY: write_array
       USE parallel, ONLY: mpime, root
       IMPLICIT NONE
+      LOGICAL :: vform
 !
-      IF (mpime == root) THEN
-        OPEN(tempunit,FILE='vf.dat',STATUS='UNKNOWN',FORM='UNFORMATTED')
-        CALL write_array( tempunit, vf, sgl, .FALSE. )
-        CLOSE(tempunit)
-      END IF
+      vform = .FALSE.
+      IF (mpime == root) OPEN(tempunit,FILE='vf.dat',STATUS='UNKNOWN',FORM='UNFORMATTED')
+!
+      CALL write_array( tempunit, vf, sgl, vform )
+!
+      IF (mpime == root) CLOSE(tempunit)
 !
       RETURN
       END SUBROUTINE print_volumes

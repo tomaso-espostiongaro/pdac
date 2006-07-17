@@ -143,7 +143,7 @@
         ! ... write initial conditions
         IF (sweep == 1) THEN
           CALL outp
-          !CALL print_mass_flow_rate
+          CALL print_mass_flow_rate
           IF (immb >= 1) CALL print_volumes
         END IF
 !
