@@ -212,7 +212,6 @@
                 READ(tempunit,*) improfile_2d(i,k)
               END DO
           END DO
-          CALL bcast_real(improfile_2d,ntot,root)
         ELSE IF (job_type == '3D') THEN
           DO k=1,nz
             DO j=1,ny
@@ -221,11 +220,16 @@
               END DO
             END DO
           END DO
-          CALL bcast_real(improfile_3d,ntot,root)
         END IF
         CLOSE(tempunit)
       END IF
-
+!
+      IF (job_type == '2D') THEN
+        CALL bcast_real(improfile_2d,ntot,root)
+      ELSE IF (job_type == '3D') THEN
+        CALL bcast_real(improfile_3d,ntot,root)
+      END IF
+!
  100  FORMAT(5(F20.6))
       RETURN
       END SUBROUTINE read_implicit_profile
