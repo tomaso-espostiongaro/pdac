@@ -4,8 +4,8 @@
       USE dimensions
       USE gas_constants, ONLY: gammaair, rgas, gmw, gas_type
       USE particles_constants, ONLY: rl
-      INTEGER :: imesh, ig, is
-      INTEGER :: meshsize
+      INTEGER :: ind, ig, is
+      INTEGER :: arraysize
 !
       PUBLIC :: total_particle_fraction, void_fraction, &
                log10_epstot, gas_density, gas_mass_fractions, &
@@ -17,6 +17,65 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
+      SUBROUTINE gradient(array,grx,gry,grz)
+      USE control_flags, ONLY: job_type
+      USE domain_mapping, ONLY: meshinds, ncint
+      USE set_indexes, ONLY: first_subscr
+      USE set_indexes, ONLY: imjk,ipjk,ijmk,ijpk,ijkm,ijkp
+      USE grid, ONLY: dx, dy, dz
+      USE parallel, ONLY: mpime, root
+      !
+      ! ... computes the gradient components of a scalar array
+      !
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: array(:)
+      REAL*8, INTENT(OUT), DIMENSION(SIZE(array)) :: grx(:),gry(:),grz(:)
+      REAL*8 :: delta
+      INTEGER :: ijk,i,j,k,imesh
+!       
+      DO ijk = 1, ncint
+        CALL first_subscr(ijk)
+        CALL meshinds(ijk,imesh,i,j,k)
+        IF (i/=1 .AND. i/=nx) THEN
+          delta = dx(i)+0.5D0*(dx(i-1)+dx(i+1))
+          grx(ijk) = (array(ipjk)-array(imjk))/delta
+        ELSE IF (i==1) THEN
+          delta = 0.5D0*(dx(i)+dx(i+1))
+          grx(ijk) = (array(ipjk)-array(ijk))/delta
+        ELSE IF (i==nx) THEN
+          delta = 0.5D0*(dx(i)+dx(i-1))
+          grx(ijk) = (array(ijk)-array(imjk))/delta
+        END IF
+        !
+        IF (job_type == '3D') THEN
+          IF (j/=1 .AND. j/=ny) THEN
+            delta = dy(j)+0.5D0*(dy(j-1)+dy(j+1))
+            gry(ijk) = (array(ijpk)-array(ijmk))/delta
+          ELSE IF (j==1) THEN
+            delta = 0.5D0*(dy(j)+dy(j+1))
+            gry(ijk) = (array(ijpk)-array(ijk))/delta
+          ELSE IF (j==ny) THEN
+            delta = 0.5D0*(dy(j)+dy(j-1))
+            gry(ijk) = (array(ijk)-array(ijmk))/delta
+          END IF
+        ELSE
+          gry(ijk) = 0.D0
+        END IF
+        !
+        IF (k/=1 .AND. k/=nz) THEN
+          delta = dz(k)+0.5D0*(dz(k-1)+dz(k+1))
+          grz(ijk) = (array(ijk)-array(ijkm))/delta
+        ELSE IF (k==1) THEN
+          delta = 0.5D0*(dz(k)+dz(k+1))
+          grz(ijk) = (array(ijkp)-array(ijk))/delta
+        ELSE IF (k==nz) THEN
+          delta = 0.5D0*(dz(k)+dz(k-1))
+          grz(ijk) = (array(ijk)-array(ijkm))/delta
+        END IF
+      END DO
+      RETURN
+      END SUBROUTINE gradient
+!----------------------------------------------------------------------
       SUBROUTINE total_particle_fraction(epst,eps)
       !
       ! ... computes the total particle volumetric fraction
@@ -25,9 +84,9 @@
       REAL*8, INTENT(IN) :: eps(:,:)
       REAL*8, INTENT(OUT), DIMENSION(SIZE(eps,DIM=1)) :: epst
 
-      meshsize = SIZE(eps,DIM=1)
-      DO imesh = 1, meshsize
-        epst(imesh) = SUM(eps(imesh,:))
+      arraysize = SIZE(eps,DIM=1)
+      DO ind = 1, arraysize
+        epst(ind) = SUM(eps(ind,:))
       END DO
 
       RETURN
@@ -41,9 +100,9 @@
       REAL*8, INTENT(IN) :: epst(:)
       REAL*8, INTENT(OUT), DIMENSION(SIZE(epst)) :: ep
 
-      meshsize = SIZE(epst)
-      DO imesh = 1, meshsize
-        ep(imesh) = 1.D0 - epst(imesh)
+      arraysize = SIZE(epst)
+      DO ind = 1, arraysize
+        ep(ind) = 1.D0 - epst(ind)
       END DO
 
       RETURN
@@ -58,10 +117,10 @@
       REAL*8, INTENT(OUT), DIMENSION(SIZE(epst)) :: lepst
       REAL*8 :: clamp_epst
 
-      meshsize = SIZE(epst)
-      DO imesh = 1, meshsize
-        clamp_epst = MAX(1.D-10,epst(imesh))
-        lepst(imesh) = log10(clamp_epst) 
+      arraysize = SIZE(epst)
+      DO ind = 1, arraysize
+        clamp_epst = MAX(1.D-10,epst(ind))
+        lepst(ind) = log10(clamp_epst) 
       END DO
 
       RETURN
@@ -76,10 +135,10 @@
       REAL*8, INTENT(OUT), DIMENSION(SIZE(xgc,DIM=1)) :: mg
 
       mg = 0.D0
-      meshsize = SIZE(xgc,DIM=1)
-      DO imesh = 1, meshsize
+      arraysize = SIZE(xgc,DIM=1)
+      DO ind = 1, arraysize
         DO ig = 1, ngas
-          mg(imesh) = mg(imesh) + xgc(imesh,ig) * gmw(gas_type(ig))
+          mg(ind) = mg(ind) + xgc(ind,ig) * gmw(gas_type(ig))
         END DO
       END DO
 
@@ -95,10 +154,10 @@
       REAL*8, INTENT(OUT), DIMENSION(SIZE(p)) :: rhog
       REAL*8, DIMENSION(SIZE(p)) :: mgas
 
-      meshsize = SIZE(p)
+      arraysize = SIZE(p)
       CALL gas_molecular_weight(mgas,xgc)
-      DO imesh = 1, meshsize
-        rhog(imesh) = p(imesh) / ( rgas * tg(imesh) ) * mgas(imesh)
+      DO ind = 1, arraysize
+        rhog(ind) = p(ind) / ( rgas * tg(ind) ) * mgas(ind)
       END DO
       
       RETURN
@@ -115,10 +174,10 @@
       INTEGER :: ig
 
       CALL gas_molecular_weight(mgas,xgc)
-      meshsize = SIZE(xgc,DIM=1)
-      DO imesh = 1, meshsize
+      arraysize = SIZE(xgc,DIM=1)
+      DO ind = 1, arraysize
         DO ig=1,ngas
-          ygc(imesh,ig) = xgc(imesh,ig) * gmw(gas_type(ig)) / mgas(imesh)
+          ygc(ind,ig) = xgc(ind,ig) * gmw(gas_type(ig)) / mgas(ind)
         END DO
       END DO
 
@@ -133,9 +192,9 @@
       REAL*8, INTENT(IN) :: ep(:), rhog(:)
       REAL*8, INTENT(OUT), DIMENSION(SIZE(ep)) :: rgp
 
-      meshsize = SIZE(ep)
-      DO imesh = 1, meshsize
-        rgp(imesh) = ep(imesh) * rhog(imesh)
+      arraysize = SIZE(ep)
+      DO ind = 1, arraysize
+        rgp(ind) = ep(ind) * rhog(ind)
       END DO
 
       END SUBROUTINE gas_bulk_density
@@ -148,10 +207,10 @@
       REAL*8, INTENT(IN) :: eps(:,:)
       REAL*8, DIMENSION(SIZE(eps,1),SIZE(eps,2)) :: rlk
 
-      meshsize = SIZE(eps,DIM=1)
-      DO imesh = 1, meshsize
+      arraysize = SIZE(eps,DIM=1)
+      DO ind = 1, arraysize
         DO is = 1, nsolid
-          rlk(imesh,is) = eps(imesh,is) * rl(is)
+          rlk(ind,is) = eps(ind,is) * rl(is)
         END DO
       END DO
 
@@ -166,9 +225,9 @@
       REAL*8, INTENT(IN) :: rgp(:)
       REAL*8, DIMENSION(SIZE(rgp)) :: rhom
 
-      meshsize = SIZE(rgp)
-      DO imesh = 1, meshsize
-        rhom(imesh) = rgp(imesh) + SUM(rlk(imesh,:)) 
+      arraysize = SIZE(rgp)
+      DO ind = 1, arraysize
+        rhom(ind) = rgp(ind) + SUM(rlk(ind,:)) 
       END DO
 
       RETURN
@@ -187,17 +246,17 @@
       REAL*8, DIMENSION(SIZE(rgp)) :: tm
       REAL*8 :: den, cgas, cpgc(7)
 
-      meshsize = SIZE(rgp)
-      DO imesh = 1, meshsize
-        CALL hcapg( cpgc(:), tg(imesh) )
+      arraysize = SIZE(rgp)
+      DO ind = 1, arraysize
+        CALL hcapg( cpgc(:), tg(ind) )
         cgas = 0.D0
         DO ig = 1, ngas
-          cgas = cpgc( gas_type(ig) ) * ygc(imesh,ig) + cgas
+          cgas = cpgc( gas_type(ig) ) * ygc(ind,ig) + cgas
         END DO
-        tm(imesh) = rgp(imesh)*cgas*tg(imesh) + &
-                  SUM(rlk(imesh,:)*cps(:)*ts(imesh,:)) 
-        den = rgp(imesh)*cgas + SUM(rlk(imesh,:)*cps(:))
-        tm(imesh) = tm(imesh) / den
+        tm(ind) = rgp(ind)*cgas*tg(ind) + &
+                  SUM(rlk(ind,:)*cps(:)*ts(ind,:)) 
+        den = rgp(ind)*cgas + SUM(rlk(ind,:)*cps(:))
+        tm(ind) = tm(ind) / den
       END DO
 
       RETURN
@@ -211,9 +270,9 @@
       REAL*8, INTENT(IN) :: rlk(:,:)
       REAL*8, DIMENSION(SIZE(rlk,1)) :: rhos
 
-      meshsize = SIZE(rlk,1)
-      DO imesh = 1, meshsize
-        rhos(imesh) = SUM(rlk(imesh,:)) 
+      arraysize = SIZE(rlk,1)
+      DO ind = 1, arraysize
+        rhos(ind) = SUM(rlk(ind,:)) 
       END DO
 
       RETURN
@@ -228,10 +287,11 @@
       REAL*8, INTENT(IN), DIMENSION(:) :: ug, rgp, rhom
       REAL*8, DIMENSION(SIZE(ug)) :: velm
       
-      meshsize = SIZE(ug)
-      DO imesh = 1, meshsize
-        velm(imesh) = rgp(imesh)*ug(imesh) + SUM(rlk(imesh,:)*us(imesh,:)) 
-        velm(imesh) = velm(imesh) / rhom(imesh)
+      arraysize = SIZE(ug)
+      DO ind = 1, arraysize
+        !velm(ind) = rgp(ind)*ug(ind) + SUM(rlk(ind,:)*us(ind,:)) 
+        velm(ind) = SUM(rlk(ind,:)*us(ind,:)) 
+        velm(ind) = velm(ind) / rhom(ind)
       END DO
 
       RETURN
@@ -245,9 +305,9 @@
       REAL*8, INTENT(IN), DIMENSION(:) :: rm, velom
       REAL*8, DIMENSION(SIZE(rm)) :: pdyn
 
-      meshsize = SIZE(rm)
-      DO imesh = 1, meshsize
-        pdyn(imesh) = 0.5D0 * rm(imesh) * velom(imesh)**2
+      arraysize = SIZE(rm)
+      DO ind = 1, arraysize
+        pdyn(ind) = 0.5D0 * rm(ind) * velom(ind)**2
       END DO
 
       RETURN
@@ -260,9 +320,9 @@
       REAL*8, INTENT(IN), DIMENSION(:) :: v1, v2
       REAL*8, DIMENSION(SIZE(v1)) :: vel2
 
-      meshsize = SIZE(v1)
-      DO imesh = 1, meshsize
-        vel2(imesh) = SQRT( v1(imesh)**2 + v2(imesh)**2 )
+      arraysize = SIZE(v1)
+      DO ind = 1, arraysize
+        vel2(ind) = SQRT( v1(ind)**2 + v2(ind)**2 )
       END DO
       
       RETURN
@@ -275,9 +335,9 @@
       REAL*8, INTENT(IN), DIMENSION(:) :: v1, v2, v3
       REAL*8, DIMENSION(SIZE(v1)) :: vel3
 
-      meshsize = SIZE(v1)
-      DO imesh = 1, meshsize
-        vel3(imesh) = SQRT( v1(imesh)**2 + v2(imesh)**2 + v3(imesh)**2 )
+      arraysize = SIZE(v1)
+      DO ind = 1, arraysize
+        vel3(ind) = SQRT( v1(ind)**2 + v2(ind)**2 + v3(ind)**2 )
       END DO
       
       RETURN
@@ -294,20 +354,20 @@
       REAL*8, DIMENSION(SIZE(rgp)) :: mgas
       REAL*8 :: fact, y, avrl
 
-      meshsize = SIZE(rgp)
+      arraysize = SIZE(rgp)
 !
 ! ... Mixture sound speed (Wallis, 1969)
 !
       CALL gas_molecular_weight(mgas,xgc)
-      DO imesh = 1, meshsize
-        IF (epst(imesh) /= 0.D0) THEN
-          y = rgp(imesh) / rhom(imesh)
-          avrl = SUM(rlk(imesh,:))/epst(imesh)
-          fact = y + (1.0 - y) * rhog(imesh) / avrl
-          cm(imesh) = SQRT(gammaair * rgas * tg(imesh) / mgas(imesh) / y )
-          cm(imesh) = cm(imesh) * fact
+      DO ind = 1, arraysize
+        IF (epst(ind) /= 0.D0) THEN
+          y = rgp(ind) / rhom(ind)
+          avrl = SUM(rlk(ind,:))/epst(ind)
+          fact = y + (1.0 - y) * rhog(ind) / avrl
+          cm(ind) = SQRT(gammaair * rgas * tg(ind) / mgas(ind) / y )
+          cm(ind) = cm(ind) * fact
         ELSE
-          cm(imesh) = SQRT(gammaair * rgas * tg(imesh) / mgas(imesh) )
+          cm(ind) = SQRT(gammaair * rgas * tg(ind) / mgas(ind) )
         END IF
       END DO
 !
@@ -322,13 +382,31 @@
       REAL*8, INTENT(IN), DIMENSION(:) :: vel, c
       REAL*8, DIMENSION(SIZE(vel)) :: mn
 
-      meshsize = SIZE(vel)
-      DO imesh = 1, meshsize
-        mn(imesh) = vel(imesh) / c(imesh)
+      arraysize = SIZE(vel)
+      DO ind = 1, arraysize
+        mn(ind) = vel(ind) / c(ind)
       END DO
 
       RETURN
       END SUBROUTINE mach_number
+!----------------------------------------------------------------------
+      SUBROUTINE normal_mach_number(mnn,v1,v2,v3,p1,p2,p3,c)
+      !
+      ! ... compute the Mach number for the mixture
+
+      IMPLICIT NONE
+      REAL*8, INTENT(IN), DIMENSION(:) :: v1,v2,v3,p1,p2,p3,c
+      REAL*8, DIMENSION(SIZE(c)) :: mnn
+      REAL*8 :: pm
+
+      arraysize = SIZE(c)
+      DO ind = 1, arraysize
+        pm = DSQRT(p1(ind)**2+p2(ind)**2+p3(ind)**2)
+        mnn(ind)=(v1(ind)*p1(ind)+v2(ind)*p2(ind)+v3(ind)*p3(ind))/c(ind)/pm
+      END DO
+
+      RETURN
+      END SUBROUTINE normal_mach_number
 !----------------------------------------------------------------------
       END MODULE derived_fields
 !----------------------------------------------------------------------

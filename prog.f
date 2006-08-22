@@ -27,6 +27,7 @@
       USE particles_constants, ONLY: cps
       USE pressure_epsilon, ONLY: p, ep
       USE reactions, ONLY: rexion, irex
+      USE runtime_sampling, ONLY: set_sampling, sample_pressure, isrt
       USE tilde_energy, ONLY: htilde
       USE tilde_momentum, ONLY: allocate_fluxes, deallocate_fluxes
       USE tilde_momentum, ONLY: tilde, fieldn
@@ -145,6 +146,7 @@
           CALL outp
           CALL print_mass_flow_rate
           IF (immb >= 1) CALL print_volumes
+          IF (isrt >= 1) CALL set_sampling
         END IF
 !
 ! ... 'Check init' stops here
@@ -322,6 +324,7 @@
                 CALL print_mass_residuals(sweep)
                 !CALL write_radial_profile_2d
         END IF
+        IF (isrt >= 1) CALL sample_pressure
 !
         IF( timing ) then
           s11 = cpclock()

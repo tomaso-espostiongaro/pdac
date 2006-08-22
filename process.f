@@ -26,7 +26,7 @@
       USE compute_mean_fields, ONLY: compute_time_averages
       USE compute_mean_fields, ONLY: compute_vertical_mean_profiles
       USE dimensions, ONLY: ntot
-      USE domain_mapping, ONLY: ncdom, meshinds, ncint
+      USE domain_mapping, ONLY: ncdom, ncint
       USE grid, ONLY: z
       USE io_files, ONLY: tempunit, testunit
       USE sample_points, ONLY: isamp, sample
@@ -89,10 +89,7 @@
         !
         IF (imap > 0) THEN
                CALL write_topo2d
-               CALL write_map(tn,pd,'pd')
-               CALL write_map(tn,tm,'tm')
-               CALL write_map(tn,rhom,'rm')
-               CALL write_map(tn,mvm,'vm')
+               CALL write_map(tn,um,'um')
         END IF
         IF (isamp   > 0)  CALL sample
         IF (imassn  > 0)  CALL massn

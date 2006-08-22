@@ -416,7 +416,7 @@
       USE io_files, ONLY: tempunit
       USE io_parallel, ONLY: write_array
       USE parallel, ONLY: mpime, root
-      USE postp_variables, ONLY: lepst, tg, mn, cm, pd
+      USE postp_variables, ONLY: lepst, tg, mn, cm, pd, mnn
 !
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: tn
@@ -453,7 +453,7 @@
       IF (mpime == root) CLOSE(tempunit)
       !
       IF (mpime == root) THEN
-        filnam = 'pd.'//lettera(tn)
+        filnam = 'macn.'//lettera(tn)
         IF (lform) THEN
           OPEN(tempunit,FILE=filnam)
         ELSE
@@ -461,7 +461,7 @@
         END IF
       END IF
       !
-      CALL write_array( tempunit, pd, sgl, lform )
+      CALL write_array( tempunit, mnn, sgl, lform )
       !
       IF (mpime == root) CLOSE(tempunit)
 !

@@ -205,7 +205,7 @@
           IF (job_type == '2D') THEN
             sx = dz(k)*rb(i)
             sy = 0.D0
-            sz = dx(i)*rb(i)*twopi
+            sz = pi*dx(i)*(2.D0*rb(i) - dx(i))
           ELSE IF (job_type == '3D') THEN
             sx = dz(k)*dy(j)
             sy = dx(i)*dz(k)

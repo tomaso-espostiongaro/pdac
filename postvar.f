@@ -13,7 +13,7 @@
 !
       REAL*8, ALLOCATABLE, DIMENSION(:) :: epst, vf, lepst, rhog, rgp
       REAL*8, ALLOCATABLE, DIMENSION(:) :: rhom, um, vm, wm, pd, mvm 
-      REAL*8, ALLOCATABLE, DIMENSION(:) :: tm, cm, mn
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: tm, cm, mn, mnn, gpx, gpy, gpz
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: rlk, ygc
 !
 ! ... derived averaged fields
@@ -68,6 +68,10 @@
       ALLOCATE(mvm(dime)) ! Mixture Velocity Modulus
       ALLOCATE(cm(dime)) ! Mixture Sound Speed
       ALLOCATE(mn(dime)) ! Mixture Mach Number
+      ALLOCATE(mnn(dime)) ! Mixture Normal Mach Number
+      ALLOCATE(gpx(dime)) ! Mixture Normal Mach Number
+      ALLOCATE(gpy(dime)) ! Mixture Normal Mach Number
+      ALLOCATE(gpz(dime)) ! Mixture Normal Mach Number
       ALLOCATE(pd(dime))  ! Dynamic Pressure
       ALLOCATE(rlk(dime,nsolid))  ! Solid Bulk density
       ALLOCATE(ygc(dime,ngas))  ! Gas mass fractions
@@ -85,6 +89,10 @@
       mvm   = 0.D0
       cm    = 0.D0
       mn    = 0.D0
+      mnn   = 0.D0
+      gpx   = 0.D0
+      gpy   = 0.D0
+      gpz   = 0.D0
       pd    = 0.D0
       rlk   = 0.D0
       ygc   = 0.D0
@@ -134,7 +142,8 @@
                                 mixture_density, mixture_velocity, &
                                 velocity_module_2D, velocity_module_3D, &
                                 dynamic_pressure, mixture_temperature,  &
-                                wallis_sound_speed, mach_number
+                                wallis_sound_speed, mach_number,        &
+                                gradient, normal_mach_number
       USE io_files, ONLY: logunit
 !
       IMPLICIT NONE
@@ -159,7 +168,7 @@
         CALL mixture_velocity(um,ug,us,rlk,rgp,rhom)
         IF (job_type == '3D') CALL mixture_velocity(vm,vg,vs,rlk,rgp,rhom)
         CALL mixture_velocity(wm,wg,ws,rlk,rgp,rhom)
-        CALL velocity_module_2D(mvm,um,vm)
+        CALL velocity_module_2D(mvm,um,wm)
         !CALL velocity_module_3D(mvm,um,vm,wm)
         CALL dynamic_pressure(pd,rhom,mvm)
         !
@@ -176,6 +185,8 @@
         !
         CALL wallis_sound_speed(cm,xgc,rgp,rlk,rhom,rhog,epst,tg)
         CALL mach_number(mn,mvm,cm)
+        CALL gradient(p,gpx,gpy,gpz)
+        CALL normal_mach_number(mnn,um,vm,wm,gpx,gpy,gpz,cm)
 !
       RETURN
       END SUBROUTINE compute_derived_fields

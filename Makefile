@@ -7,7 +7,8 @@ hcapgs.o hotc.o hvs.o htilde.o kinds.o immb.o indijk.o input.o \
 interp.o inoutflow.o io_parallel.o io_restart.o iter.o kb07ad.o \
 limiters.o letter.o matrix.o \
 outp.o parallel.o particles.o press.o prog.o reactions.o rannum.o\
-residuals.o roughness.o setup.o subscr.o temp.o tilde.o time.o topo.o \
+residuals.o roughness.o samplert.o setup.o subscr.o temp.o tilde.o time.o \
+topo.o \
 turbo.o types.o velocity.o vent.o visc.o ygas.o iotk_module.o io_files.o
 
 PPFOBJS = derived.o filter.o mean_fields.o masspart.o massflux.o massgsedim.o \

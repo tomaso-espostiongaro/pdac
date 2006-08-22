@@ -17,7 +17,8 @@ decomp.o : control.o dimensions.o grid.o immb.o indijk.o io_files.o  \
 
 dens.o : dimensions.o ghost.o 
 
-derived.o : dimensions.o gas.o hcapgs.o particles.o 
+derived.o : control.o dimensions.o gas.o ghost.o grid.o hcapgs.o parallel.o  \
+    particles.o subscr.o 
 
 dimensions.o : 
 
@@ -77,7 +78,8 @@ inoutflow.o : atmosphere.o dens.o dimensions.o eosg.o gas.o grid.o  \
 input.o : atmosphere.o blunt.o control.o decomp.o dimensions.o dome.o eosg.o  \
     ftem.o grid.o hcapgs.o immb.o io_files.o io_restart.o iotk_module.o  \
     iter.o limiters.o matrix.o parallel.o particles.o reactions.o  \
-    roughness.o setup.o subscr.o time.o topo.o turbo.o vent.o visc.o 
+    roughness.o samplert.o setup.o subscr.o time.o topo.o turbo.o vent.o  \
+    visc.o 
 
 interp.o : dimensions.o grid.o immb.o subscr.o 
 
@@ -157,8 +159,8 @@ process.o : control.o dimensions.o ghost.o grid.o io_files.o kinds.o  \
 
 prog.o : bdry.o blunt.o control.o dens.o dimensions.o environment.o eosg.o  \
     ftem.o ghost.o htilde.o immb.o indijk.o io_files.o io_restart.o iter.o  \
-    outp.o parallel.o particles.o press.o reactions.o residuals.o temp.o  \
-    tilde.o time.o topo.o turbo.o ygas.o 
+    outp.o parallel.o particles.o press.o reactions.o residuals.o samplert.o  \
+    temp.o tilde.o time.o topo.o turbo.o ygas.o 
 
 rannum.o : 
 
@@ -170,6 +172,9 @@ residuals.o : control.o dens.o dimensions.o eosg.o ghost.o grid.o immb.o  \
 restart_convert.o : 
 
 roughness.o : control.o dimensions.o topo.o 
+
+samplert.o : control.o decomp.o dimensions.o grid.o io_files.o parallel.o  \
+    press.o time.o 
 
 sampling.o : control.o decomp.o dimensions.o grid.o io_files.o parallel.o  \
     postvar.o 

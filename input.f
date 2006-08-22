@@ -123,6 +123,7 @@
       USE phases_matrix, ONLY: rlim
       USE reactions, ONLY: irex
       USE roughness_module, ONLY: zrough
+      USE runtime_sampling, ONLY: isrt
       USE set_indexes, ONLY: subsc_setup
       USE specific_heat_module, ONLY: icpc
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
@@ -136,7 +137,7 @@
       INTEGER, INTENT(IN) :: iunit
 
       NAMELIST / control / run_name, job_type, restart_mode,       &
-        time, tstop, dt, lpr, imr, tpr, tdump, nfil, tau,          &
+        time, tstop, dt, lpr, imr, isrt, tpr, tdump, nfil, tau,          &
         formatted_output, formatted_input, max_seconds
 
       NAMELIST / model / icpc, irex, gas_viscosity, part_viscosity,      &
@@ -196,6 +197,7 @@
       dt = 0.01D0       ! time increment seconds
       lpr = 0           ! verbosity 
       imr = 0           ! =1 print mass residuals
+      isrt = 0          ! =1 sample pressure at given locations
       tpr = 1.0D0       ! write to output file every tpr seconds of simulated time
       tdump = 20.0D0    ! write restart every tdump seconds of simulated time
       nfil = 0          ! output file index
@@ -420,6 +422,7 @@
       CALL bcast_real(dt,1,root)
       CALL bcast_integer(lpr,1,root)
       CALL bcast_integer(imr,1,root)
+      CALL bcast_integer(isrt,1,root)
       CALL bcast_real(tpr,1,root)
       CALL bcast_real(tdump,1,root)
       CALL bcast_integer(nfil,1,root)
@@ -837,6 +840,7 @@
             CALL iotk_write_dat( iuni_nml, "dt", dt )
             CALL iotk_write_dat( iuni_nml, "lpr", lpr )
             CALL iotk_write_dat( iuni_nml, "imr", imr )
+            CALL iotk_write_dat( iuni_nml, "isrt", isrt )
             CALL iotk_write_dat( iuni_nml, "tpr", tpr )
             CALL iotk_write_dat( iuni_nml, "tdump", tdump )
             CALL iotk_write_dat( iuni_nml, "nfil", nfil )
