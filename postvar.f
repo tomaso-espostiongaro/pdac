@@ -143,6 +143,7 @@
                                 velocity_module_2D, velocity_module_3D, &
                                 dynamic_pressure, mixture_temperature,  &
                                 wallis_sound_speed, mach_number,        &
+                                kieffer_sound_speed,       &
                                 gradient, normal_mach_number
       USE io_files, ONLY: logunit
 !
@@ -168,8 +169,12 @@
         CALL mixture_velocity(um,ug,us,rlk,rgp,rhom)
         IF (job_type == '3D') CALL mixture_velocity(vm,vg,vs,rlk,rgp,rhom)
         CALL mixture_velocity(wm,wg,ws,rlk,rgp,rhom)
-        CALL velocity_module_2D(mvm,um,wm)
-        !CALL velocity_module_3D(mvm,um,vm,wm)
+        IF (job_type == '3D') THEN
+          CALL velocity_module_2D(mvm,um,vm)
+          !CALL velocity_module_3D(mvm,um,vm,wm)
+        ELSE IF (job_type == '2D') THEN
+          CALL velocity_module_2D(mvm,um,wm)
+        END IF
         CALL dynamic_pressure(pd,rhom,mvm)
         !
         ! ... Dynamic pressure can be computed as the sum of 
@@ -183,7 +188,8 @@
         !pd = pd1 + pd2
         !DEALLOCATE(pd1,pd2)
         !
-        CALL wallis_sound_speed(cm,xgc,rgp,rlk,rhom,rhog,epst,tg)
+        !CALL wallis_sound_speed(cm,xgc,rgp,rlk,rhom,rhog,epst,tg)
+        CALL kieffer_sound_speed(cm,xgc,rgp,rlk,rhom,rhog,epst,tg)
         CALL mach_number(mn,mvm,cm)
         CALL gradient(p,gpx,gpy,gpz)
         CALL normal_mach_number(mnn,um,vm,wm,gpx,gpy,gpz,cm)

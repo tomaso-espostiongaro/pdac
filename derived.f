@@ -343,6 +343,37 @@
       RETURN
       END SUBROUTINE velocity_module_3D
 !----------------------------------------------------------------------
+      SUBROUTINE kieffer_sound_speed(cm,xgc,rgp,rlk,rhom,rhog,epst,tg)
+      ! 
+      ! ... computes the inverse of the mixture sound speed
+
+      IMPLICIT NONE
+      REAL*8, INTENT(IN), DIMENSION(:,:) :: rlk, xgc
+      REAL*8, INTENT(IN), DIMENSION(:) :: rgp,rhom,rhog,epst,tg
+      REAL*8, DIMENSION(SIZE(tg)) :: cm
+      REAL*8, DIMENSION(SIZE(rgp)) :: mgas
+      REAL*8 :: fact, y, avrl
+
+      arraysize = SIZE(rgp)
+!
+! ... Mixture sound speed (Kieffer, 1981)
+!
+      CALL gas_molecular_weight(mgas,xgc)
+      DO ind = 1, arraysize
+        IF (epst(ind) /= 0.D0) THEN
+          y = rhog(ind) / rhom(ind)
+          fact = DSQRT(y/(1.D0-epst(ind)))
+          fact = DSQRT(y)
+          cm(ind) = DSQRT(rgas * tg(ind) / mgas(ind))
+          cm(ind) = cm(ind) * fact
+        ELSE
+          cm(ind) = DSQRT(gammaair * rgas * tg(ind) / mgas(ind) )
+        END IF
+      END DO
+!
+      RETURN
+      END SUBROUTINE kieffer_sound_speed
+!----------------------------------------------------------------------
       SUBROUTINE wallis_sound_speed(cm,xgc,rgp,rlk,rhom,rhog,epst,tg)
       ! 
       ! ... computes the inverse of the mixture sound speed
