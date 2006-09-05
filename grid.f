@@ -437,7 +437,7 @@
         END DO
         !
       END IF
-      IF (mpime == root) WRITE(logunit,*) fl
+      !IF (mpime == root) WRITE(logunit,*) fl
 !
       RETURN
       END SUBROUTINE flic
