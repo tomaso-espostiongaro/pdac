@@ -256,7 +256,7 @@
 
       IF( mpime == root ) WRITE(blunit,200) time, fdrag(:), flift(:)
 
- 200  FORMAT(F14.6,20(G18.6))
+ 200  FORMAT(F14.6,100(G18.6))
 
       END SUBROUTINE print_action
 

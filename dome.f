@@ -113,6 +113,7 @@
         END DO
 !      
 ! ... Allocate the data-type representing dome cells
+! ... Allocate the array for the dome pressure profile
 !
         ALLOCATE(dcell(ndm))
 !
@@ -237,7 +238,7 @@
 !
       USE atmospheric_conditions, ONLY: p_atm
       USE control_flags, ONLY: job_type, lpr
-      USE dimensions, ONLY: nsolid, ngas, nx
+      USE dimensions, ONLY: nsolid, ngas, nx, nz
       USE domain_mapping, ONLY: ncint, meshinds
       USE environment, ONLY: cpclock
       USE eos_gas, ONLY: ygc
@@ -246,7 +247,7 @@
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
-      USE grid, ONLY: flag, x, y, kv, dome_cell
+      USE grid, ONLY: flag, x, y, z, kv, dome_cell
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
@@ -267,7 +268,7 @@
 !
       IF (lpr > 1) THEN
         IF (mpime == root) THEN
-          WRITE(logunit,*) 'Dome Radial pressure profile'
+          WRITE(logunit,*) 'Woods radial pressure profile'
           raddo = 0.D0
           DO WHILE (raddo <= dome_radius)
             WRITE(logunit,*) raddo, p_dome(raddo,p_atm(kv),beta)
@@ -308,7 +309,7 @@
             IF (idome == 1) THEN
               p(ijk)  = p_dome(ra,p_atm(kv),beta)
             ELSE IF (idome == 2) THEN
-              p(ijk) = overpressure
+              p(ijk) = p(ijk) + overpressure
             END IF
             !
             ! ... Add the hydrostatic pressure due to dome mass
@@ -339,7 +340,7 @@
           END IF
         END DO mesh_loop
         CALL compute_dome_mass_energy
-
+!
       DEALLOCATE(dcell)
 
       RETURN

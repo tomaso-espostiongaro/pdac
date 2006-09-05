@@ -27,7 +27,7 @@
       USE dimensions
       USE domain_decomposition, ONLY: cell_owner, cell_g2l
       USE domain_mapping, ONLY: ncdom
-      USE grid, ONLY: dx, dy, dz, r, xb, yb, zb
+      USE grid, ONLY: dx, dy, dz, r, xb, yb, zb, itc
       USE kinds
       USE immersed_boundaries, ONLY: immb
       USE io_files, ONLY: tempunit, logunit
@@ -135,12 +135,17 @@
         DO k = k1, k2
           DO j = j1, j2
             DO i = i1, i2
+              volume = 0.D0
               IF (job_type == '2D') THEN
                 imesh = i + (k-1)*nx
                 IF (cell_owner(imesh) == mpime) THEN
                   ijk = cell_g2l(imesh,mpime)
-                  volume = r(i) * dx(i) * dz(k) * vf(ijk)
-                  volume = twopi * volume
+                  IF (itc == 1) THEN
+                    volume = r(i) * dx(i) * dz(k) * vf(ijk)
+                    volume = twopi * volume
+                  ELSEIF (itc == 0) THEN
+                    volume = dx(i) * dz(k)
+                  END IF
                 END IF
               ELSE IF (job_type == '3D') THEN
                 imesh = i + (j-1)*nx + (k-1)*nx*ny
@@ -162,7 +167,11 @@
       END DO
 !
       CALL parallel_sum_real(smass,number_of_boxes*nsolid)
-      totalmass = SUM(smass(1:number_of_boxes,:))
+      DO n = 1, number_of_boxes
+        DO is = 1, nsolid
+          totalmass = totalmass + smass(n,is)
+        END DO
+      END DO
 !
       IF (mpime == root) THEN
         OPEN(tempunit, FILE='masspart.dat', STATUS='UNKNOWN', &

@@ -336,6 +336,8 @@
       SUBROUTINE flic
       USE dimensions, ONLY: nx, ny, nz, no
       USE control_flags, ONLY: job_type
+      USE io_files, ONLY: logunit
+      USE parallel, ONLY: mpime, root
 !
       IMPLICIT NONE
       INTEGER :: i, j, k, n, ijk
@@ -435,7 +437,7 @@
         END DO
         !
       END IF
-!      WRITE(*,*) fl
+      IF (mpime == root) WRITE(logunit,*) fl
 !
       RETURN
       END SUBROUTINE flic
