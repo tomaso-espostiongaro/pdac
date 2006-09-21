@@ -161,7 +161,7 @@
 !
 ! ... Print the total residuals of the mass conservation equation
 !
-        !IF ( imr >= 1 ) CALL print_mass_residuals(sweep)
+        IF ( imr >= 1 ) CALL print_mass_residuals(sweep)
 !
 ! ... If needed, update gas density (check algorithm)
 ! ... Notice that the update of the gas density could

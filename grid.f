@@ -195,7 +195,7 @@
         domain_x = SUM(dx_inner)
         domain_y = SUM(dy_inner)
         domain_z = SUM(dz_inner)
-        iv = nx/2; jv = ny/2; kv = nz/2
+        iv = nx/2+1; jv = ny/2+1; kv = nz/2+1
         !
       CASE(1)
         !
@@ -466,7 +466,7 @@
 !
 ! ... size of computational domain
 !
-      REAL*8, INTENT(IN) ::  domain_size
+      REAL*8, INTENT(INOUT) ::  domain_size
 !
 ! ... relative center of the mesh (for refinement)
 !
@@ -503,6 +503,7 @@
               delta = demin
 !              alpha = 0.5D0
               center = nd/2
+              domain_size = nd * demin
               RETURN
       END IF
       IF ( domain_size/demin < nd )  CALL error('grid_generator', &

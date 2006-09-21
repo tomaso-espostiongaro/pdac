@@ -633,6 +633,8 @@
 
       IF (tr > 0.D0 .AND. tr <= 1.D0) THEN
         ft = 3.D0 * (tr)**2 - 2.D0 * (tr)**3     
+      ELSE IF (tr > 10.D0) THEN
+        ft = 0.D0
       ELSE
         ft = 1.D0
       END IF

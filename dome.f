@@ -105,7 +105,7 @@
           DO i = 1, nx
             ijk = i + (k-1) * nx
             distance2 = (x(i)-x(iv))**2 + (z(k)-z(kv))**2
-            IF (distance2 <= dome_radius**2 .AND. fl(ijk) == fluid ) THEN
+            IF (distance2 <= dome_radius**2 .AND. fl(ijk) == fluid) THEN
                     ndm = ndm + 1
                     fl(ijk) = dome_cell
             END IF
@@ -179,7 +179,7 @@
             DO i = 1, nx
               ijk = i + (j-1) * nx + (k-1) * nx * ny
               distance2 = (x(i)-x(iv))**2 + (y(j)-y(jv))**2 + (z(k)-z(kv))**2
-              IF (distance2 <= dome_radius**2 .AND. fl(ijk) == fluid ) THEN
+              IF (distance2 <= dome_radius**2 .AND. fl(ijk) == fluid) THEN
                       ndm = ndm + 1
                       fl(ijk) = dome_cell
               END IF
@@ -247,10 +247,11 @@
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
-      USE grid, ONLY: flag, x, y, z, kv, dome_cell
+      USE grid, ONLY: flag, x, y, z, kv, dome_cell, immb_cell
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
+      USE set_indexes, ONLY: ijkp, first_subscr
       USE array_filters, ONLY: interp
       IMPLICIT NONE
 
@@ -281,7 +282,9 @@
 ! ... (Immersed Boundaries are NOT considered within the dome!)
 !
       mesh_loop: DO ijk = 1, ncint      
-      IF(flag(ijk) == dome_cell) THEN
+        CALL first_subscr(ijk)
+        IF(flag(ijk) == dome_cell .OR. &
+          (flag(ijk) == immb_cell .AND. flag(ijkp)==dome_cell)) THEN
           CALL meshinds(ijk,imesh,i,j,k)
           !
           ! ... Loop over the dome cells to find the
@@ -337,9 +340,9 @@
             END IF
           END IF
 !          
-          END IF
-        END DO mesh_loop
-        CALL compute_dome_mass_energy
+        END IF
+      END DO mesh_loop
+      CALL compute_dome_mass_energy
 !
       DEALLOCATE(dcell)
 

@@ -154,13 +154,13 @@
 !
       IF (ivent >= 1) CALL locate_vent
 
-! ... Initialize the array of elevations on the computational mesh
-! 
-      CALL export_topography
-
 ! ... Define volcanic dome position on the 3D topography
 !
       IF (idome >= 1) CALL locate_dome
+
+! ... Initialize the array of elevations on the computational mesh
+! 
+      CALL export_topography
 
 ! ... Set immersed boundary parameters (if prescribed)
 !

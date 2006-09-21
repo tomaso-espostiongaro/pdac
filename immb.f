@@ -176,7 +176,8 @@
           i = fptx(np)%i
           k = fptx(np)%k
           ijk = i + (k-1) * nx
-          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell .AND. fl(ijk)/=filled_cell) fl(ijk) = immb_cell
+          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell .AND. &
+                        fl(ijk)/=filled_cell) fl(ijk) = immb_cell
         END DO
 
         ! ... Interpolate the topography on z-staggered mesh
@@ -205,7 +206,8 @@
           i = fptz(np)%i
           k = fptz(np)%k
           ijk = i + (k-1) * nx
-          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell .AND. fl(ijk)/=filled_cell) fl(ijk) = immb_cell
+          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell .AND. &
+                        fl(ijk)/=filled_cell) fl(ijk) = immb_cell
         END DO
         !
       ELSE IF (job_type == '3D') THEN
@@ -313,8 +315,8 @@
           j = fptx(np)%j
           k = fptx(np)%k
           ijk = i + (j-1) * nx + (k-1) * nx * ny
-          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell .AND. fl(ijk)/=filled_cell) fl(ijk) = immb_cell
-          IF (ijk == 680413) WriTE(testunit,*) 'cell 680413: ', np, fl(ijk)
+          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell .AND. &
+                        fl(ijk)/=filled_cell) fl(ijk) = immb_cell
         END DO
         
         ! ... Interpolate the topography on y-staggered mesh.
@@ -344,7 +346,8 @@
           j = fpty(np)%j
           k = fpty(np)%k
           ijk = i + (j-1) * nx + (k-1) * nx * ny
-          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell .AND. fl(ijk)/=filled_cell) fl(ijk) = immb_cell
+          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell .AND. &
+                        fl(ijk)/=filled_cell) fl(ijk) = immb_cell
         END DO
         
         ! ... Interpolate the topography on z-staggered mesh.
@@ -374,7 +377,8 @@
           j = fptz(np)%j
           k = fptz(np)%k
           ijk = i + (j-1) * nx + (k-1) * nx * ny
-          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell .AND. fl(ijk)/=filled_cell) fl(ijk) = immb_cell
+          IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell .AND. &
+                        fl(ijk)/=filled_cell) fl(ijk) = immb_cell
         END DO
         
       END IF

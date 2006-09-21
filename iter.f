@@ -822,7 +822,7 @@
 !
       IF( rls > 1.D0 ) THEN
         IF (lpr > 0) THEN
-          WRITE(testunit,*) ' Mass is not conserved'
+          WRITE(testunit,*) ' Mass is not conserved', flag(ijk)
           WRITE(testunit,*) ' time, i, j, k ', time, i, j, k
           WRITE(testunit,*) ' rls, volfrac ', rls, 1.D0/ivf
         END IF
@@ -1297,7 +1297,7 @@
 
           IF( rls > 1.D0 ) THEN
             IF (lpr > 0) THEN
-              WRITE(testunit,*) ' Mass is not conserved'
+              WRITE(testunit,*) ' Mass is not conserved', flag(ijk)
               WRITE(testunit,*) ' i, j, k, rls ', i, j, k, rls
               WRITE(testunit,*) ' rls, volfrac ', rls, 1.D0/ivf
             ENDIF
@@ -1576,11 +1576,11 @@
 
           IF( rls > 1.D0 ) THEN
             IF( lpr > 0 ) THEN
-              WRITE(testunit,*) ' Mass is not conserved'
+              WRITE(testunit,*) ' Mass is not conserved', flag(ijk)
               WRITE(testunit,*) ' i, j, k, rls ', i, j, k, rls
               WRITE(testunit,*) ' rls, volfrac ', rls, 1.D0/ivf
             ENDIF
-            IF (flag(ijkm) == noslip_wall) flag(ijk) = noslip_wall
+            !IF (flag(ijkm) == noslip_wall) flag(ijk) = noslip_wall
             ierr = ierr + 1
           ENDIF
 

@@ -1650,7 +1650,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
 ! ... cell face is inside the topography.
 !
       USE control_flags, ONLY: job_type
-      USE grid, ONLY: z, zb, flag, dz, dome_cell
+      USE grid, ONLY: z, zb, flag, dz
       USE immersed_boundaries, ONLY: bd, vf
       USE io_files, ONLY: tempunit
       USE parallel, ONLY: mpime, root
