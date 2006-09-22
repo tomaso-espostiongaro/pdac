@@ -785,13 +785,13 @@
 
       ! ... Topography must be accurate to centimeters
       !
-      DO j=1,ny
-        DO i=1,nx
-          topo2d(i,j) = topo2d(i,j) * 1.D2
-          itopo = NINT(topo2d(i,j))
-          topo2d(i,j) = itopo * 1.D-2
-        END DO
-      END DO
+!      DO j=1,ny
+!        DO i=1,nx
+!          topo2d(i,j) = topo2d(i,j) * 1.D2
+!          itopo = NINT(topo2d(i,j))
+!          topo2d(i,j) = itopo * 1.D-2
+!        END DO
+!      END DO
 
 ! ... Locate cells laying below the topography 'ord2d(i,j)'
 
@@ -849,7 +849,7 @@
         DO i = 1, nx
           DO k = 1, nz
             ijk = i + (k-1) * nx
-            IF( fl(ijk) == noslip_wall ) topo_c(i) = zb(k)
+            IF( fl(ijk) == noslip_wall) topo_c(i) = zb(k)
           END DO
           topo_x(i) = topo_c(i)
         END DO
@@ -861,7 +861,7 @@
           DO i = 1, nx
             DO k = 1, nz
               ijk = i + (j-1) * nx + (k-1) * nx * ny
-              IF( fl(ijk) == noslip_wall ) THEN
+              IF( fl(ijk) == noslip_wall) THEN
                       topo2d_c(i,j) = zb(k)
               END IF
             END DO

@@ -394,7 +394,7 @@
       omega = 1.1       !  relaxation parameter  ( 0.5 under - 2.0 over)
       optimization = 1  !  optimization degree on iterative solver
       tforce  = .FALSE. !  force temperature
-      tlim  = 1500.D0   !  maximum temperature
+      tlim  = 1000.D0   !  maximum temperature
       implicit_fluxes   = .FALSE. ! fluxes are computed implicitly
       implicit_enthalpy = .FALSE. ! enthalpy solved implicitly
       update_eosg       = .FALSE.  ! cpdate density after temperature

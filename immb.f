@@ -267,7 +267,6 @@
                     extfy(ijk) = .TRUE.
                     IF( fl(ijk) /= inlet_cell .AND. fl(ijk) /= vent_cell ) fl(ijk) = filled_cell
               END IF
-
               ! ... Add external Forcing in z
               !
               IF (z(k) < topo2d_x(i,j) .AND. z(k) < topo2d_x(i-1,j) .AND. &

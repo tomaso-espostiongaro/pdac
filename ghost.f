@@ -1661,7 +1661,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
 
       INTEGER :: i,j,k,ijk,imesh
       INTEGER :: ipjk, imjk, ijpk, ijmk, ijkm
-      INTEGER :: full
+      INTEGER :: full, counter
 !
 ! ... Allocate and initialize coefficients
 !
@@ -1695,6 +1695,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
             CALL meshinds(ijk,imesh,i,j,k)
   
             IF (job_type == '2D') THEN
+              counter = 0
               ! 
               ! East
 !              IF (z(k) > topo_x(i) .AND. flag(ipjk) /= filled_cell) THEN
@@ -1704,6 +1705,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
                   ELSE
                      bd(ijk) = bd(ijk) + 1
                      vf(ijk) = vf(ijk) + 1.D0
+                     counter = counter + 1
                   END IF
                END IF
               !
@@ -1715,6 +1717,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
                   ELSE
                      bd(ijk) = bd(ijk) + 2
                      vf(ijk) = vf(ijk) + 1.D0
+                     counter = counter + 1
                   END IF
                END IF
               !  
@@ -1722,6 +1725,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
                IF (zb(k) > topo_c(i)) THEN
                   bd(ijk) = bd(ijk) + 4 
                   vf(ijk) = vf(ijk) + 1.D0
+                  counter = counter + 1
                END IF
               !
               ! Bottom
@@ -1732,10 +1736,12 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
                   ELSE
                      bd(ijk) = bd(ijk) + 8  
                      vf(ijk) = vf(ijk) + 1.D0
+                     counter = counter + 1
                   END IF
                END IF
               !
             ELSE IF (job_type == '3D') THEN
+              counter = 0
               ! 
               ! East
 !              IF (z(k) > topo2d_x(i,j) .AND. flag(ipjk) /= filled_cell) THEN
@@ -1745,6 +1751,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
                  ELSE
                     bd(ijk) = bd(ijk) + 1
                     vf(ijk) = vf(ijk) + 1.D0
+                    counter = counter + 1
                  END IF
               END IF
               !
@@ -1756,6 +1763,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
                  ELSE
                     bd(ijk) = bd(ijk) + 2
                     vf(ijk) = vf(ijk) + 1.D0
+                    counter = counter + 1
                  END IF
               END IF
               !
@@ -1763,6 +1771,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               IF (zb(k) > topo2d_c(i,j))  THEN
                 bd(ijk) = bd(ijk) + 4 
                 vf(ijk) = vf(ijk) + 1.D0
+                counter = counter + 1
               END IF
               !
               ! Bottom
@@ -1773,6 +1782,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
                 ELSE
                    bd(ijk) = bd(ijk) + 8
                    vf(ijk) = vf(ijk) + 1.D0
+                   counter = counter + 1
                 END IF
              END IF
               !
@@ -1784,6 +1794,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
                 ELSE
                    bd(ijk) = bd(ijk) + 16
                    vf(ijk) = vf(ijk) + 1.D0
+                   counter = counter + 1
                 END IF
              END IF
               !
@@ -1791,10 +1802,11 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
 !              IF (z(k) > topo2d_y(i,j-1) .AND. flag(ijmk) /= filled_cell) THEN
               IF (z(k) > topo2d_y(i,j-1)) THEN
                  IF (flag(ijmk) == filled_cell) THEN
-                    vf(ijk) = vf(ijk) + 1.D0
+                   vf(ijk) = vf(ijk) + 1.D0
                  ELSE
-                    bd(ijk) = bd(ijk) + 32
-                    vf(ijk) = vf(ijk) + 1.D0
+                   bd(ijk) = bd(ijk) + 32
+                   vf(ijk) = vf(ijk) + 1.D0
+                   counter = counter + 1
                  END IF
               END IF
               !
@@ -1810,6 +1822,8 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
             ! ... are excluded from computation. 
             !
             IF (vf(ijk) == 0.D0) flag(ijk) = filled_cell
+            IF (counter == 1 .AND. flag(ijk) /= filled_cell) &
+              WRITE(testunit,*) 'WARNING non-filled cell', ijk, i, j, k
 
             IF (bd(ijk) /= full  .AND. lpr > 1 ) THEN
               WRITE( testunit, fmt = "( I8,3I4,2X,B8,I4 )" ) ijk, i, j, k, bd(ijk), flag(ijk)

@@ -36,13 +36,14 @@
       USE grid, ONLY: flag
       USE grid, ONLY: dx, dy, dz
       USE immersed_boundaries, ONLY: faces, immb
-      USE specific_heat_module, ONLY: ck, cp
+      USE io_files, ONLY: testunit
       USE heat_transfer, ONLY: hvs
       USE particles_constants, ONLY: cps
       USE pressure_epsilon, ONLY: ep, p, pn
       USE reactions, ONLY: hrex, irex
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm, ipjk, ijpk, ijkp
       USE set_indexes, ONLY: ijke, ijkn, ijkt, ijkw, ijks, ijkb
+      USE specific_heat_module, ONLY: ck, cp
       USE tilde_energy, ONLY: rhg, rhs
       USE time_parameters, ONLY: time, dt
       IMPLICIT NONE

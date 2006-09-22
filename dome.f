@@ -356,10 +356,11 @@
       USE domain_mapping, ONLY: ncint, meshinds
       USE gas_constants, ONLY: rgas
       USE grid, ONLY: x, y, z, xb, yb, zb, r
-      USE grid, ONLY: flag, dome_cell
+      USE grid, ONLY: flag, dome_cell, immb_cell
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl
       USE pressure_epsilon, ONLY: p
+      USE set_indexes, ONLY: first_subscr, ijkp
       IMPLICIT NONE
       INTEGER :: ijk, i, j, k, imesh, counter, n
       REAL*8 :: cgam, gammawater, muwater
@@ -382,7 +383,9 @@
       adie = 0.D0
       isoe = 0.D0
       mesh_loop: DO ijk = 1, ncint      
-        IF(flag(ijk) == dome_cell) THEN
+        CALL first_subscr(ijk)
+        IF(flag(ijk) == dome_cell .OR.  &
+          (flag(ijk) == immb_cell .AND. flag(ijkp) == dome_cell)) THEN
           CALL meshinds(ijk,imesh,i,j,k)
           !
           ! ... volume of a cell

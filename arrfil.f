@@ -412,7 +412,8 @@
       REAL*8 :: dist1y,dist2y,dist1x,dist2x,alpha,beta
       INTEGER :: i,j,k,h,l,ii,jj
       INTEGER :: n1x, n2x, n1y, n2y
-      INTEGER :: tp1, tp2
+      !INTEGER :: tp1, tp2
+      REAL*8 :: tp1, tp2
 
       n1x = SIZE(x1)
       n1y = SIZE(y1)
