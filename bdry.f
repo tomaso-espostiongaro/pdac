@@ -53,6 +53,7 @@
       INTEGER :: nfptx, nfpty, nfptz
       LOGICAL :: forced
       REAL*8, ALLOCATABLE :: tfptx(:), tfpty(:), tfptz(:)
+      INTEGER :: indexq
 !
       IF (irand >= 1) CALL random_switch(sweep)
 !
@@ -103,15 +104,9 @@
               vel = velint(fptx(fx), ug, ijk, xb, y, z)  
               fptx(fx)%vel = vel
               !
-              ! ... Set the pressure in non-resolved forcing points
+              ! ... Set the homogeneous Neumann conditions in non-resolved forcing points
               ! ... (zero-gradient)
-              IF( fptx(fx)%int >= 20 ) THEN
-                      IF (flag(ijk) == filled_cell) THEN
-                              p(ijk) = p(ipjk)
-                      ELSE
-                              p(ipjk) = p(ijk)
-                      END IF
-              END IF
+              IF( fptx(fx)%int >= 20 ) CALL hneumann(ijk,ipjk)
               !
               ! ... Initialize x-velocity in the forced points
               ug(ijk) = vel
@@ -124,10 +119,8 @@
               vel = velint(fptz(fz), wg, ijk, x, y, zb)  
               fptz(fz)%vel = vel
               !
-              ! ... Set the pressure in non-resolved forcing points
-              IF( fptz(fz)%int >= 20 ) THEN
-                      p(ijk) = p(ijkp)
-              END IF
+              ! ... Set the homogeneous Neumann conditions in non-resolved forcing points
+              IF( fptz(fz)%int >= 20 ) CALL hneumann(ijk,ijkp)
               !
               ! ... Initialize z-velocity in the forced points
               wg(ijk) = vel
@@ -139,68 +132,54 @@
           ELSE IF (job_type == '3D') THEN
 
             IF( fx/=0 ) THEN
-              vel = velint3d(fptx(fx), ug, ijk, xb, y, z)  
+              vel = velint3d(fptx(fx), ug, ijk, xb, y, z, indexq)  
               fptx(fx)%vel = vel
               !
-              ! ... Set the pressure in non-resolved forcing points
-              IF( fptx(fx)%int >= 20 ) THEN
-                      IF (flag(ijk) == filled_cell) THEN
-                              p(ijk) = p(ipjk)
-                      ELSE
-                              p(ipjk) = p(ijk)
-                      END IF
-              END IF
+              ! ... Set the homogeneous Neumann conditions in non-resolved forcing points
+              IF( fptx(fx)%int >= 20 ) CALL hneumann(ijk,ipjk)
               !
               ! ... Initialize x-velocity in the forced points
               ug(ijk) = vel
               DO is=1,nsolid
-                us(ijk,is) = vel
+                us(ijk,is) = vel 
+                IF (ug(indexq)/=0.D0) us(ijk,is) = us(ijk,is) * us(indexq,is)/ug(indexq)
               END DO
             END IF
             
             IF( fy/=0 ) THEN
-              vel = velint3d(fpty(fy), vg, ijk, x, yb, z)  
+              vel = velint3d(fpty(fy), vg, ijk, x, yb, z, indexq)  
               fpty(fy)%vel = vel
 
-              ! ... Set the pressure in non-resolved forcing points
-              IF( fpty(fy)%int >= 20 ) THEN
-                      IF (flag(ijk) == filled_cell) THEN
-                              p(ijk) = p(ijpk)
-                      ELSE
-                              p(ijpk) = p(ijk)
-                      END IF
-              END IF
-              
+              ! ... Set the homogeneous Neumann conditions in non-resolved forcing points
+              IF( fpty(fy)%int >= 20 ) CALL hneumann(ijk,ijpk)
+              !
               ! ... Initialize y-velocity in the forced points
               vg(ijk) = vel
               DO is=1,nsolid
                 vs(ijk,is) = vel
+                IF (vg(indexq)/=0.D0) vs(ijk,is) = vs(ijk,is) * vs(indexq,is)/vg(indexq)
               END DO
             END IF
             
             IF( fz/=0 ) THEN
-              vel = velint3d(fptz(fz), wg, ijk, x, y, zb)  
+              vel = velint3d(fptz(fz), wg, ijk, x, y, zb, indexq)  
               fptz(fz)%vel = vel
 
-              ! ... Set the pressure in non-resolved forcing points
-              IF( fptz(fz)%int >= 20 ) THEN
-                      p(ijk) = p(ijkp)
-              END IF
-              
+              ! ... Set the homogeneous Neumann conditions in non-resolved forcing points
+              IF( fptz(fz)%int >= 20 ) CALL hneumann(ijk,ijkp)
+              !
               ! ... Initialize z-velocity in the forced points
               wg(ijk) = vel
               DO is=1,nsolid
                 ws(ijk,is) = vel
+                IF (wg(indexq)/=0.D0) ws(ijk,is) = ws(ijk,is) * ws(indexq,is)/wg(indexq)
               END DO
             END IF
           END IF
 !
 ! ... In fluid cells update the neighbours on boundaries
 !
-
-     ELSE IF( flag(ijk) == fluid ) THEN
-
-
+       ELSE IF( flag(ijk) == fluid ) THEN
 !
 ! ***** East boundary conditions ***** !
 !
@@ -753,6 +732,40 @@
 !
       RETURN
       END SUBROUTINE boundary
+!----------------------------------------------------------------------
+      SUBROUTINE hneumann(m,n)
+      USE grid, ONLY: flag, filled_cell
+      USE pressure_epsilon, ONLY: p, ep
+      USE gas_solid_density, ONLY: rlk, rgp
+      USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: m,n
+!
+! ... m is the local cell index; 
+! ... n is the index of the first neighbour used for the external forcing
+!
+      IF (flag(m) == filled_cell) THEN
+        p(m) = p(n)
+        ep(m) = ep(n)
+        rlk(m,:) = rlk(n,:)
+        rgp(m) = rgp(n)
+        tg(m) = tg(n)
+        ts(m,:) = ts(n,:)
+        sieg(m) = sieg(n)
+        sies(m,:) = sies(n,:)
+      ELSE
+        p(n) = p(m)
+        ep(n) = ep(m)
+        rlk(n,:) = rlk(m,:)
+        rgp(n) = rgp(m)
+        tg(n) = tg(m)
+        ts(n,:) = ts(m,:)
+        sieg(n) = sieg(m)
+        sies(n,:) = sies(m,:)
+      END IF
+!      
+      RETURN
+      END SUBROUTINE hneumann
 !----------------------------------------------------------------------
       END MODULE boundary_conditions
 !-----------------------------------------------------------------------

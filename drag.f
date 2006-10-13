@@ -118,8 +118,6 @@
       REAL*8 :: reynum, drvrel, drag_coeff
 !
       reynum = rgp * dk(is) * phis(is) * vrel/mug
-! ... ?
-      IF(reynum < 1.D-3) reynum=1.D-3
 !
       IF(reynum <= 1000.D0) THEN
         ! ... modified Stokes law
@@ -127,15 +125,14 @@
       ELSE
         drag_coeff = 0.44D0
       END IF
-
-      drvrel = drag_coeff * vrel / ep**2.7D0
-
-      IF(drvrel > 1.D30) THEN
-        drag=1.D30
-      ELSE
-        drag = 0.75D0 * drvrel * rgp / (dk(is)*phis(is))
-        drag = drag * rlk * inrl(is) 
-      END IF 
+!
+      drag = MIN(drag_coeff, 1.D4) 
+      drag = drag * rgp * rlk * inrl(is) * ep**(-2.7)
+      drag = 0.75D0 * drag * vrel / (dk(is)*phis(is)) 
+!
+! ... Impose the limit with no particles
+!
+!      IF (rlk < 1.D-10) drag = 0.D0
 !
       RETURN
       END SUBROUTINE

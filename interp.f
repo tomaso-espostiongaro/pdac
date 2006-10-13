@@ -339,7 +339,7 @@
         
       END FUNCTION velint
 !----------------------------------------------------------------------
-      REAL*8 FUNCTION velint3d(fpt, vel, ijk, cx, cy, cz)
+      REAL*8 FUNCTION velint3d(fpt, vel, ijk, cx, cy, cz, index_q)
 !
 ! ... Interpolate velocities on a forcing point to get no-slip
 ! ... conditions on a solid immersed boundary 
@@ -352,11 +352,12 @@
       REAL*8, DIMENSION(:), INTENT(IN) :: vel
       REAL*8, DIMENSION(:), INTENT(IN) :: cx, cy, cz
       INTEGER, INTENT(IN) :: ijk
+      INTEGER, INTENT(OUT) :: index_q
 
       INTEGER :: i, j, k
       REAL*8 :: nsx, nsy, nsz
       INTEGER :: interp, delta_i, delta_j, delta_k
-      INTEGER :: index_q, index_qq
+      INTEGER :: index_qq
       LOGICAL :: diagonal
 
       REAL*8 :: h          !distance between the (i,j,k)-node and boundary

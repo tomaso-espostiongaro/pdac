@@ -1117,7 +1117,7 @@
         USE set_indexes, ONLY: ijke, ijkn, ijkt, ijkw, ijks, ijkb
         USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
         USE control_flags, ONLY: job_type
-        USE time_parameters, ONLY: dt
+        USE time_parameters, ONLY: dt, time
         USE flux_limiters, ONLY: muscl
         USE convective_mass_fluxes, ONLY: fmas, masf
         USE gas_constants, ONLY: gmw, rgas, gas_type
@@ -1289,6 +1289,7 @@
             END IF
 
             rlk_tmp = rlkn( ijk, is ) - dt * ivf *  ( rlkx + rlky + rlkz )
+
             rlk( ijk, is) = MAX( 0.0d0, rlk_tmp )
 
             rls = rls + rlk( ijk, is ) * inrl(is)

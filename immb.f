@@ -5,7 +5,7 @@
 ! ... Set the geometric parameters characterizing each forcing point
 !
 !----------------------------------------------------------------------
-      USE dimensions, ONLY: nx, ny, nz, ntot, ntr
+      USE dimensions, ONLY: nx, ny, nz, ntot, ntr, max_nsolid
       USE grid, ONLY: fl, immb_cell, filled_cell
       USE parallel, ONLY: mpime, root
       USE volcano_topography, ONLY: xtop, ytop, ztop

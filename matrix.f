@@ -45,6 +45,8 @@
       USE dimensions
       USE domain_mapping, ONLY: myijk, meshinds
       USE gas_solid_density, ONLY: rgp, rlk
+      USE gas_solid_velocity, ONLY: ug, vg, wg
+      USE gas_solid_velocity, ONLY: us, vs, ws
       USE grid, ONLY: dx, dy, dz
       USE indijk_module
       USE particles_constants, ONLY: rl, inrl
@@ -98,7 +100,7 @@
       au1(1,1)=au1(1,1)+(dxi*rgp(ijkw)+dxim1*rgpijk)*indxm
       aw1(1,1)=(dzk*appw(ijkb,1)+dzkm1*appw(ijk,1))*indzm
       aw1(1,1)=aw1(1,1)+(dzk*rgp(ijkb)+dzkm1*rgpijk)*indzm
-
+!
       IF (job_type == '3D') THEN
 
         bv1(1) = rvg(ijmk)+ dt * indym *2.D0* ep_s * (p(ijks)-pijk)
@@ -127,19 +129,18 @@
         ls1 = l * (l-1) / 2
 !
 ! ... Off-diagonal elements
-        DO ll = 1, l
-          ls = ls1 + ll
-          au1(ll,l)=(dxi*appu(ijkw, ls)+dxim1*appu(ijk, ls))*indxm
-          au1(l,ll)=au1(ll,l)
-          aw1(ll,l)=(dzk*appw(ijkb, ls)+dzkm1*appw(ijk, ls))*indzm
-          aw1(l,ll)=aw1(ll,l)
-
-          IF (job_type == '3D') THEN
-            av1(ll,l)=(dyj*appv(ijks, ls)+dyjm1*appv(ijk, ls))*indym
-            av1(l,ll)=av1(ll,l)
-          END IF
-
-        END DO
+          DO ll = 1, l
+            ls = ls1 + ll
+            au1(ll,l)=(dxi*appu(ijkw,ls)+dxim1*appu(ijk,ls))*indxm
+            au1(l,ll)=au1(ll,l)
+            aw1(ll,l)=(dzk*appw(ijkb,ls)+dzkm1*appw(ijk,ls))*indzm
+            aw1(l,ll)=aw1(ll,l)
+  
+            IF (job_type == '3D') THEN
+              av1(ll,l)=(dyj*appv(ijks,ls)+dyjm1*appv(ijk,ls))*indym
+              av1(l,ll)=av1(ll,l)
+            END IF
+          END DO
 !
 ! ... Diagonal elements
 
@@ -168,14 +169,18 @@
       USE dimensions
       USE domain_mapping, ONLY: myijk, meshinds
       USE gas_solid_density, ONLY: rgp, rlk
+      USE gas_solid_velocity, ONLY: ug, vg, wg
+      USE gas_solid_velocity, ONLY: us, vs, ws
+      USE gas_solid_temperature, ONLY: tg
       USE grid, ONLY: dx, dy, dz
       USE indijk_module
+      USE io_files, ONLY: testunit
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: ijke, ijkn, ijkt
       USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
       USE tilde_momentum, ONLY: appu, appv, appw
-      USE time_parameters, ONLY: dt
+      USE time_parameters, ONLY: dt, time
 
       IMPLICIT NONE
 !
@@ -222,10 +227,12 @@
       IF (job_type == '3D') THEN
         ep_n = (dyj*ep(ijkn) + dyjp1*ep(ijk)) * indyp
         bv(1)  = rvg(ijk)+ dt * indyp *2.D0* ep_n * (pijk-p(ijkn))
+!
         av(1,1)=(dyj*appv(ijkn,1)+dyjp1*appv(ijk,1))*indyp
         av(1,1)=av(1,1)+(dyj*rgp(ijkn)+dyjp1*rgp(ijk))*indyp
+        !
       END IF
-
+      
       DO l=2,nphase
 !
 ! ... Explicit terms in the linear system
@@ -244,6 +251,8 @@
         ls1=l*(l-1)/2
 !
 ! ... Off-Diagonal elements
+
+
         DO ll=1,l
           ls=ls1+ll
           au(l,ll)=(dxi*appu(ijke,ls)+dxip1*appu(ijk,ls))*indxp
@@ -323,11 +332,14 @@
             END DO
           END IF
         END DO
-      !
+        !
+        ! ... Explicitly compute West velocities
+        !
         ug(imjk) = bu1(1)
         DO l=2,nphase
           us(imjk,l-1) = bu1(l)
         END DO
+        !
       END IF
 !
       IF (job_type == '3D') THEN
@@ -364,10 +376,13 @@
             END IF
           END DO
           !
+          ! ... Explicitly compute South velocities
+          !
           vg(ijmk) = bv1(1)
           DO l=2, nphase
             vs(ijmk,l-1) = bv1(l)
           END DO
+          !
         END IF
       END IF
 !
@@ -404,10 +419,13 @@
           END IF
         END DO
         !
+        ! ... Explicitly compute Bottom velocities
+        !
         wg(ijkm) = bw1(1)
         DO l=2, nphase
           ws(ijkm,l-1) = bw1(l)
         END DO
+        !
       END IF
 !
       CALL solve_velocities(ijk)
@@ -470,10 +488,13 @@
           END IF
         END DO
         !
+        ! ... Explicitly compute East velocities
+        !
         ug(ijk)=bu(1)
         DO l=2,nphase
           us(ijk,l-1)=bu(l)
         END DO
+        !
       END IF
 !
       IF (job_type == '3D') THEN
@@ -510,10 +531,13 @@
             END IF
           END DO
           !
+          ! ... Explicitly compute North velocities
+          !
           vg(ijk)=bv(1)
           DO l=2,nphase
             vs(ijk,l-1)=bv(l)
           END DO
+          !
         END IF
       END IF
 !
@@ -550,10 +574,13 @@
           END IF
         END DO
         !
+        ! ... Explicitly compute Top velocities
+        !
         wg(ijk)=bw(1)
         DO l=2,nphase
           ws(ijk,l-1)=bw(l)
         END DO
+        !
       END IF
 !
       RETURN

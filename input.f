@@ -162,8 +162,10 @@
         p_gas, t_gas, u_solid, v_solid, w_solid, ep_solid, t_solid, &
         vent_O2, vent_N2, vent_CO2, vent_H2, vent_H2O, vent_Air, vent_SO2
 
-      NAMELIST / dome / xdome, ydome, dome_volume, temperature, particle_fraction, idome, overpressure, &
-                        gas_flux, permeability, dome_gasvisc, idw, conduit_radius
+      NAMELIST / dome / xdome, ydome, dome_volume, temperature, &
+        particle_fraction, idome, overpressure, gas_flux, permeability, &
+        dome_gasvisc, idw, conduit_radius, &
+        dome_O2, dome_N2, dome_CO2, dome_H2, dome_H2O, dome_Air, dome_SO2
 
       NAMELIST / atmosphere / wind_x, wind_y, wind_z, p_ground, t_ground, &
         void_fraction, max_packing, atm_O2, atm_N2, atm_CO2, atm_H2, atm_H2O, &

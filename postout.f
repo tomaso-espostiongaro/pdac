@@ -344,7 +344,7 @@
         IF (mpime == root) THEN
           OPEN(UNIT=tempunit,FILE=filnam)
           DO i = 2, nx-1
-              WRITE(tempunit,('G10.4,G14.6E3')) x(i), map1d(i)
+              WRITE(tempunit,'(G10.4,G14.6E3)') x(i), map1d(i)
           END DO
           CLOSE(tempunit)
         END IF

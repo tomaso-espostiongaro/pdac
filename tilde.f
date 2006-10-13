@@ -521,7 +521,7 @@
             rws_tmp = rws_tmp - indzp * 2.D0 * wsfz  
             rws(ijk,is) = rwsn(ijk,is) + dt * rws_tmp
 !
-! ... Compute the gas-particle drag coefficients
+! ... Compute the gas-particle drag coefficients in the cell center
 !
             dugs(is) = ( (ug(ijk)-us(ijk,is)) + (ug(imjk)-us(imjk,is)) )*0.5D0
             dwgs(is) = ( (wg(ijk)-ws(ijk,is)) + (wg(ijkm)-ws(ijkm,is)) )*0.5D0

@@ -170,7 +170,7 @@
 !
       USE control_flags, ONLY: job_type, lpr, prog
       USE dimensions, ONLY: nx, ny, nz
-      USE io_files, ONLY: tempunit
+      USE io_files, ONLY: tempunit, testunit
       USE parallel, ONLY: mpime, root
       USE time_parameters, ONLY: itd
 
