@@ -105,7 +105,8 @@
       IF(mpime == root) CLOSE(inputunit)
 !
 ! ... Open Test files 
-! ... (WARNING!: opening 'nproc' files on the same unit could cause file-system problems on some architectures)
+! ... (WARNING!: opening 'nproc' files on the same unit could cause 
+! ... file-system problems on some architectures)
 !
       testnb = testfile//procnum(mpime)
       IF (lpr > 0) THEN

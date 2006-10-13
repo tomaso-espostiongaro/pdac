@@ -1289,7 +1289,6 @@
             END IF
 
             rlk_tmp = rlkn( ijk, is ) - dt * ivf *  ( rlkx + rlky + rlkz )
-
             rlk( ijk, is) = MAX( 0.0d0, rlk_tmp )
 
             rls = rls + rlk( ijk, is ) * inrl(is)

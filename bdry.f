@@ -27,7 +27,7 @@
       USE io_files, ONLY: tempunit, testunit
       USE domain_mapping, ONLY: ncint, myijk, meshinds
       USE grid, ONLY: flag, x, y, z, xb, yb, zb
-      USE grid, ONLY: slip_wall, noslip_wall, fluid, immb_cell, filled_cell
+      USE grid, ONLY: slip_wall, noslip_wall, fluid, immb_cell, filled_cell_1, filled_cell_2
       USE grid, ONLY: free_io, nrfree_io, inlet_cell, vent_cell
       USE immersed_boundaries, ONLY: fptx, fpty, fptz, forcing_point
       USE immersed_boundaries, ONLY: numx, numy, numz, immb
@@ -85,7 +85,8 @@
 ! ... In the immersed boundaries, update the velocity through linear
 ! ... interpolations 
 !
-        IF( flag(ijk) == immb_cell .OR. flag(ijk) == filled_cell) THEN
+        IF( flag(ijk) == immb_cell .OR. flag(ijk) == filled_cell_1 .OR. &
+              flag(ijk) == filled_cell_2) THEN
           !
           ! ... Check if 'ijk' is a forcing point
           !
@@ -734,17 +735,18 @@
       END SUBROUTINE boundary
 !----------------------------------------------------------------------
       SUBROUTINE hneumann(m,n)
-      USE grid, ONLY: flag, filled_cell
+      USE grid, ONLY: flag, filled_cell_1, filled_cell_2, fc2
       USE pressure_epsilon, ONLY: p, ep
       USE gas_solid_density, ONLY: rlk, rgp
       USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: m,n
+      LOGICAL :: fc2_
 !
 ! ... m is the local cell index; 
 ! ... n is the index of the first neighbour used for the external forcing
 !
-      IF (flag(m) == filled_cell) THEN
+      IF (flag(m) == filled_cell_1) THEN
         p(m) = p(n)
         ep(m) = ep(n)
         rlk(m,:) = rlk(n,:)
@@ -753,7 +755,7 @@
         ts(m,:) = ts(n,:)
         sieg(m) = sieg(n)
         sies(m,:) = sies(n,:)
-      ELSE
+      ELSE IF (flag(n) == filled_cell_1) THEN
         p(n) = p(m)
         ep(n) = ep(m)
         rlk(n,:) = rlk(m,:)
@@ -764,6 +766,52 @@
         sies(n,:) = sies(m,:)
       END IF
 !      
+      IF (flag(m) == filled_cell_2) THEN
+        fc2_ = fc2(m)
+        IF (.NOT.fc2_) THEN
+          p(m) = 0.5D0 * p(n)
+          ep(m) = 0.5D0 * ep(n)
+          rlk(m,:) = 0.5D0 * rlk(n,:)
+          rgp(m) = 0.5D0 * rgp(n)
+          tg(m) = 0.5D0 * tg(n)
+          ts(m,:) = 0.5D0 * ts(n,:)
+          sieg(m) = 0.5D0 * sieg(n)
+          sies(m,:) = 0.5D0 * sies(n,:)
+        ELSE
+          p(m) = p(m) + 0.5D0 * p(n)
+          ep(m) = ep(m) + 0.5D0 * ep(n)
+          rlk(m,:) = rlk(m,:) + 0.5D0 * rlk(n,:)
+          rgp(m) = rgp(m) + 0.5D0 * rgp(n)
+          tg(m) = tg(m) + 0.5D0 * tg(n)
+          ts(m,:) = ts(m,:) + 0.5D0 * ts(n,:)
+          sieg(m) = sieg(m) + 0.5D0 * sieg(n)
+          sies(m,:) = sies(m,:) + 0.5D0 * sies(n,:)
+        END IF
+        fc2(m) = .NOT.fc2_
+      ELSE IF (flag(n) == filled_cell_2) THEN
+        fc2_ = fc2(n)
+        IF (.NOT.fc2_) THEN
+          p(n) = 0.5D0 * p(m)
+          ep(n) = 0.5D0 * ep(m)
+          rlk(n,:) = 0.5D0 * rlk(m,:)
+          rgp(n) = 0.5D0 * rgp(m)
+          tg(n) = 0.5D0 * tg(m)
+          ts(n,:) = 0.5D0 * ts(m,:)
+          sieg(n) = 0.5D0 * sieg(m)
+          sies(n,:) = 0.5D0 * sies(m,:)
+        ELSE
+          p(n) = p(n) + 0.5D0 * p(m)
+          ep(n) = ep(n) + 0.5D0 * ep(m)
+          rlk(n,:) = rlk(n,:) + 0.5D0 * rlk(m,:)
+          rgp(n) = rgp(n) + 0.5D0 * rgp(m)
+          tg(n) = tg(n) + 0.5D0 * tg(m)
+          ts(n,:) = ts(n,:) + 0.5D0 * ts(m,:)
+          sieg(n) = sieg(n) + 0.5D0 * sieg(m)
+          sies(n,:) = sies(n,:) + 0.5D0 * sies(m,:)
+        END IF
+        fc2(n) = .NOT.fc2_
+      END IF 
+
       RETURN
       END SUBROUTINE hneumann
 !----------------------------------------------------------------------
