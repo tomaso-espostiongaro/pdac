@@ -51,8 +51,9 @@
       ! ... immersed boundaries
       INTEGER, PARAMETER :: immb_cell      = 257          !              NEW flag = 2**8 + fluid
       ! ... non-computed immersed boundaries
-      INTEGER, PARAMETER :: filled_cell_1    = 512          !              NEW flag = 2**9
-      INTEGER, PARAMETER :: filled_cell_2    = 1024         !              NEW flag = 2**10
+      INTEGER, PARAMETER :: filled_cell_1    = 512        !              NEW flag = 2**9
+      INTEGER, PARAMETER :: filled_cell_2    = 1024       !              NEW flag = 2**10
+      INTEGER, PARAMETER :: bl_cell          = 2049       !              NEW flag = 2**11 + fluid
 !
 ! ... origin of atmospheric stratification
       REAL*8 :: zzero

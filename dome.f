@@ -49,7 +49,7 @@
       USE dimensions, ONLY: nx, ny, nz, ntot
       USE grid, ONLY: x, y, z, fl, xb, yb, zb, dz, r, itc
       USE grid, ONLY: iv, jv, kv, grigen
-      USE grid, ONLY: flag, fluid, dome_cell, slip_wall, noslip_wall
+      USE grid, ONLY: flag, fluid, dome_cell, slip_wall, noslip_wall, bl_cell
       USE volcano_topography, ONLY: itp, ord2d
       USE volcano_topography, ONLY: flatten_dem
       USE parallel, ONLY: mpime, root
@@ -105,7 +105,7 @@
           DO i = 1, nx
             ijk = i + (k-1) * nx
             distance2 = (x(i)-x(iv))**2 + (z(k)-z(kv))**2
-            IF (distance2 <= dome_radius**2 .AND. fl(ijk) == fluid) THEN
+            IF (distance2 <= dome_radius**2 .AND. (fl(ijk) == fluid .OR. fl(ijk)==bl_cell)) THEN
                     ndm = ndm + 1
                     fl(ijk) = dome_cell
             END IF
@@ -179,7 +179,7 @@
             DO i = 1, nx
               ijk = i + (j-1) * nx + (k-1) * nx * ny
               distance2 = (x(i)-x(iv))**2 + (y(j)-y(jv))**2 + (z(k)-z(kv))**2
-              IF (distance2 <= dome_radius**2 .AND. fl(ijk) == fluid) THEN
+              IF (distance2 <= dome_radius**2 .AND. (fl(ijk) == fluid .OR. fl(ijk)==bl_cell)) THEN
                       ndm = ndm + 1
                       fl(ijk) = dome_cell
               END IF
@@ -247,7 +247,7 @@
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
-      USE grid, ONLY: flag, x, y, z, kv, dome_cell, immb_cell
+      USE grid, ONLY: flag, x, y, z, kv, dome_cell, immb_cell, filled_cell_2
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
@@ -284,7 +284,8 @@
       mesh_loop: DO ijk = 1, ncint      
         CALL first_subscr(ijk)
         IF(flag(ijk) == dome_cell .OR. &
-          (flag(ijk) == immb_cell .AND. flag(ijkp)==dome_cell)) THEN
+          (flag(ijk) == immb_cell .AND. flag(ijkp)==dome_cell) .OR. &
+          (flag(ijk) == filled_cell_2 .AND. flag(ijkp)==dome_cell)) THEN
           CALL meshinds(ijk,imesh,i,j,k)
           !
           ! ... Loop over the dome cells to find the

@@ -190,7 +190,7 @@
       USE gas_solid_temperature, ONLY: siegn
       USE gas_solid_viscosity, ONLY: kapg
       USE gas_solid_viscosity, ONLY: gas_viscosity, part_viscosity
-      USE grid, ONLY: flag
+      USE grid, ONLY: flag, fluid
       USE particles_constants, ONLY: inrl, kap
       USE pressure_epsilon, ONLY: ep
       !USE set_indexes, ONLY: nb, rnb, stencil, cte
@@ -242,7 +242,7 @@
 !
 ! ... MUSCL second order correction
 !
-            IF (muscl > 0) THEN
+            IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
               CALL third_nb(enth,sieg,ijk)
               CALL third_nb(dens,rgp,ijk)
               CALL muscl_fsc(egfe(ijk), egft(ijk),    & 
@@ -280,7 +280,7 @@
 !
 ! ... MUSCL second order correction
 !
-            IF (muscl > 0) THEN
+            IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
               CALL third_nb(enth,sieg,ijk)
               CALL third_nb(dens,rgp,ijk)
               CALL muscl_fsc(egfe(ijk), egfn(ijk), egft(ijk),    &
@@ -336,7 +336,7 @@
 !
 ! ... MUSCL second order correction
 !
-              IF (muscl > 0) THEN
+              IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
                 CALL third_nb(enth,sies(:,is),ijk)
                 CALL third_nb(dens,rlk(:,is),ijk)
                 CALL muscl_fsc(esfe(ijk, is), esft(ijk, is),  &
@@ -374,7 +374,7 @@
 !
 ! ... MUSCL second order correction
 !
-              IF (muscl > 0) THEN
+              IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
                 CALL third_nb(enth,sies(:,is),ijk)
                 CALL third_nb(dens,rlk(:,is),ijk)
                 CALL muscl_fsc(esfe(ijk, is), esfn(ijk, is), esft(ijk, is),  &

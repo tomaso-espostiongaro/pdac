@@ -699,7 +699,7 @@
       USE flux_limiters, ONLY: muscl
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      USE grid, ONLY: flag
+      USE grid, ONLY: flag, fluid
       USE interpolate_fields, ONLY: interpolate_x, interpolate_y, interpolate_z
       USE pressure_epsilon, ONLY: ep, p
       USE set_indexes, ONLY: subscr, stencil
@@ -747,7 +747,7 @@
 !
 ! ... Second order MUSCL correction
 !
-            IF (muscl > 0 ) THEN
+            IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
               IF ( i /= nx-1 ) CALL muscl_flu(ugfe(ijk), ugft(ijk),   &
                                         dens_stagx, u, w, i, k)
               IF ( k /= nz-1 ) CALL muscl_flw(wgfe(ijk), wgft(ijk),   &
@@ -777,7 +777,7 @@
 !
 ! ... Second order MUSCL correction
 !
-              IF (muscl > 0) THEN
+              IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
                 IF ( i /= nx-1 ) CALL muscl_flu(usfe(ijk,is), usft(ijk,is),  &
                                           dens_stagx, u, w, i, k)
                 IF ( k /= nz-1 ) CALL muscl_flw(wsfe(ijk,is), wsft(ijk,is),  &
@@ -817,7 +817,7 @@
 !
 ! ... Second order MUSCL correction
 !
-            IF (muscl > 0) THEN
+            IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
               IF ( i /= nx-1 ) &
                 CALL muscl_flu(ugfe(ijk), ugfn(ijk), ugft(ijk), &
                          dens_stagx, u, v, w, i, j, k)
@@ -860,7 +860,7 @@
 !
 ! ... Second order MUSCL correction
 !
-              IF (muscl > 0) THEN
+              IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
                 IF ( i /= nx-1 ) &
                   CALL muscl_flu(usfe(ijk,is), usfn(ijk,is), usft(ijk,is), &
                            dens_stagx, u, v, w, i, j, k)

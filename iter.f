@@ -51,7 +51,7 @@
       USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
-      USE grid, ONLY: flag
+      USE grid, ONLY: flag, fluid
       USE immersed_boundaries, ONLY: immb, faces
       USE indijk_module
       USE output_dump, ONLY: cell_report
@@ -594,7 +594,7 @@
       USE flux_limiters, ONLY: muscl
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE gas_solid_density, ONLY: rgp
-      USE grid, ONLY: flag
+      USE grid, ONLY: flag, fluid
       USE set_indexes, ONLY: first_nb, first_rnb, third_nb, third_rnb
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE control_flags, ONLY: job_type, implicit_fluxes, &
@@ -617,7 +617,7 @@
           CALL masf( rgfe( ijk ), rgft( ijk ), rgfe( imjk ), rgft( ijkm ), &
                     dens, u, w, ijk )
 
-          IF (muscl > 0) THEN
+          IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
 !
 ! ... Second order MUSCL correction
 !
@@ -643,7 +643,7 @@
                      rgfe( imjk ), rgfn( ijmk ), rgft( ijkm ),  &
                      dens, u, v, w, ijk )
             
-          IF (muscl > 0) THEN
+          IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
 !
 ! ... Second order MUSCL correction
 !
@@ -702,7 +702,7 @@
       USE flux_limiters, ONLY: muscl
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE gas_solid_density, ONLY: rlk
-      USE grid, ONLY: flag
+      USE grid, ONLY: flag, fluid
       USE set_indexes, ONLY: first_nb, first_rnb, third_nb, third_rnb
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE control_flags, ONLY: job_type
@@ -727,7 +727,7 @@
                     rsfe(imjk,is), rsft(ijkm,is),   &
                     dens, u, w, ijk)
                      
-            IF (muscl > 0) THEN
+            IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
 !
 ! ... Second order MUSCL correction
 !
@@ -753,7 +753,7 @@
                   rsfe(imjk,is), rsfn(ijmk,is), rsft(ijkm,is),   &
                   dens, u, v, w, ijk)
 
-            IF (muscl > 0) THEN
+            IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
 !
 ! ... Second order MUSCL correction
 !
@@ -966,7 +966,7 @@
       USE eos_gas, ONLY: csound
       USE gas_solid_density, ONLY: rog, rgp
       USE grid, ONLY: dx, dy, dz, flag, rb
-      USE grid, ONLY: fluid, free_io, nrfree_io
+      USE grid, ONLY: fluid, dome_cell, immb_cell, free_io, nrfree_io, bl_cell
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: ipjk, imjk, ijpk, ijmk, ijkp, ijkm
@@ -1006,7 +1006,7 @@
           nflb=flag(ijkm)
 
           SELECT CASE (nfle)
-            CASE(fluid,free_io,nrfree_io)
+            CASE(bl_cell,fluid,dome_cell,immb_cell,free_io,nrfree_io)
               iep_e = ( dx(i+1)*ep(ijk)+dx(i)*ep(ijke) )*indxp*indxp*2.D0
               !iep_e = iep_e * upc_e
             CASE DEFAULT
@@ -1014,7 +1014,7 @@
           END SELECT
 
           SELECT CASE (nflw)
-            CASE(fluid,free_io,nrfree_io)
+            CASE(bl_cell,fluid,dome_cell,immb_cell,free_io,nrfree_io)
               iep_w = ( dx(i-1)*ep(ijk)+dx(i)*ep(ijkw) )*indxm*indxm*2.D0 
               !iep_w = iep_w * upc_w
             CASE DEFAULT
@@ -1022,7 +1022,7 @@
           END SELECT
 !
           SELECT CASE (nflt)
-            CASE(fluid,free_io,nrfree_io)
+            CASE(bl_cell,fluid,dome_cell,immb_cell,free_io,nrfree_io)
               iep_t = ( dz(k+1)*ep(ijk)+dz(k)*ep(ijkt) )*indzp*indzp*2.D0 
               !iep_t = iep_t * upc_t 
             CASE DEFAULT
@@ -1030,7 +1030,7 @@
           END SELECT
 
           SELECT CASE (nflb)
-            CASE (fluid,free_io,nrfree_io)
+            CASE (bl_cell,fluid,dome_cell,immb_cell,free_io,nrfree_io)
               iep_b = ( dz(k-1)*ep(ijk)+dz(k)*ep(ijkb) )*indzm*indzm*2.D0
               !iep_b = iep_b * upc_b
             CASE DEFAULT
@@ -1047,7 +1047,7 @@
             nfls=flag(ijmk)
 
             SELECT CASE (nfln)
-              CASE (fluid,free_io,nrfree_io)
+              CASE (bl_cell,fluid,dome_cell,immb_cell,free_io,nrfree_io)
                 iep_n = ( dy(j+1)*ep(ijk)+dy(j)*ep(ijkn) )*indyp*indyp*2.D0 
                 !iep_n = iep_n * upc_n 
               CASE DEFAULT
@@ -1055,7 +1055,7 @@
             END SELECT
 
             SELECT CASE (nfls)
-              CASE (fluid,free_io,nrfree_io)
+              CASE (bl_cell,fluid,dome_cell,immb_cell,free_io,nrfree_io)
                 iep_s = ( dy(j-1)*ep(ijk)+dy(j)*ep(ijks) )*indym*indym*2.D0
                 !iep_s = iep_s * upc_s
               CASE DEFAULT
@@ -1109,7 +1109,7 @@
         USE pressure_epsilon, ONLY: p, ep
         USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
         USE gas_solid_temperature, ONLY: tg
-        USE grid, ONLY: flag, noslip_wall
+        USE grid, ONLY: flag, noslip_wall, fluid
         USE eos_gas, ONLY: thermal_eosg, xgc
         USE phases_matrix, ONLY: assemble_all_matrix, solve_all_velocities
         USE set_indexes, ONLY: third_nb, third_rnb, first_rnb, first_nb
@@ -1176,7 +1176,7 @@
         CALL first_rnb(wg_,wg,ijk)
         IF (job_type == '3D') CALL first_rnb(vg_,vg,ijk)
         !
-        IF (muscl > 0) THEN
+        IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
           CALL third_nb(rgp_,rgp,ijk)
           CALL third_rnb(ug_,ug,ijk)
           CALL third_rnb(wg_,wg,ijk)
@@ -1189,7 +1189,7 @@
           CALL first_rnb(ws_(is),ws(:,is),ijk)
           IF (job_type == '3D') CALL first_rnb(vs_(is),vs(:,is),ijk)
 
-          IF (muscl > 0) THEN
+          IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
             CALL third_nb(rlk_(is),rlk(:,is),ijk)
             CALL third_rnb(us_(is),us(:,is),ijk)
             CALL third_rnb(ws_(is),ws(:,is),ijk)
@@ -1261,7 +1261,7 @@
               CALL masf(rsfe_(is), rsft_(is), rsfw_(is), rsfb_(is), &
                         rlk_(is), us_(is), ws_(is), ijk)
                      
-              IF (muscl > 0) THEN
+              IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
                 CALL fmas(rsfe_(is), rsft_(is), rsfw_(is), rsfb_(is), &
                           rlk_(is), us_(is), ws_(is), ijk)
               END IF
@@ -1272,7 +1272,7 @@
                         rsfw_(is), rsfs_(is), rsfb_(is), &
                         rlk_(is), us_(is), vs_(is), ws_(is), ijk)
 
-              IF (muscl > 0) THEN
+              IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
                 CALL fmas(rsfe_(is), rsfn_(is), rsft_(is), &
                           rsfw_(is), rsfs_(is), rsfb_(is), &
                           rlk_(is), us_(is), vs_(is), ws_(is), ijk)
@@ -1320,7 +1320,7 @@
 
             CALL masf( rgfe_, rgft_, rgfw_, rgfb_, rgp_, ug_, wg_, ijk )
 
-            IF (muscl > 0) THEN
+            IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
               CALL fmas( rgfe_, rgft_, rgfw_, rgfb_, rgp_, ug_, wg_, ijk )
             END IF
 
@@ -1328,7 +1328,7 @@
 
             CALL masf( rgfe_, rgfn_, rgft_, rgfw_, rgfs_, rgfb_, rgp_, ug_, vg_, wg_, ijk)
 
-            IF (muscl > 0) THEN
+            IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
               CALL fmas( rgfe_, rgfn_, rgft_, rgfw_, rgfs_, rgfb_, rgp_, ug_, vg_, wg_, ijk)
             END IF
 
@@ -1399,7 +1399,7 @@
         USE pressure_epsilon, ONLY: p, ep
         USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
         USE gas_solid_temperature, ONLY: tg
-        USE grid, ONLY: flag, noslip_wall
+        USE grid, ONLY: flag, noslip_wall, fluid
         USE eos_gas, ONLY: thermal_eosg, xgc
         USE phases_matrix, ONLY: matsvels_3phase
         USE set_indexes, ONLY: third_nb, third_rnb, first_rnb, first_nb
@@ -1474,7 +1474,7 @@
         CALL first_rnb( wg_, wg, ijk )
         CALL first_rnb( vg_, vg, ijk )
 
-        IF (muscl > 0) THEN
+        IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
           CALL third_nb(rlk1_,rlk(:,1),ijk)
           CALL third_nb(rlk2_,rlk(:,2),ijk)
           CALL third_rnb(us1_,us(:,1),ijk)
@@ -1547,7 +1547,7 @@
           CALL masf( rsfe1_,  rsfn1_,  rsft1_, rsfw1_, rsfs1_, rsfb1_,   &
                  rlk1_, us1_, vs1_, ws1_, ijk)
 
-          IF (muscl > 0) THEN
+          IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
             CALL fmas( rsfe1_,  rsfn1_,  rsft1_, rsfw1_, rsfs1_, rsfb1_, &
                  rlk1_, us1_, vs1_, ws1_, ijk)
           END IF
@@ -1562,7 +1562,7 @@
           CALL masf( rsfe2_,  rsfn2_,  rsft2_, rsfw2_, rsfs2_, rsfb2_,   &
                  rlk2_, us2_, vs2_, ws2_, ijk)
 
-          IF (muscl > 0) THEN
+          IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
             CALL fmas( rsfe2_,  rsfn2_,  rsft2_, rsfw2_, rsfs2_, rsfb2_, &
                  rlk2_, us2_, vs2_, ws2_, ijk)
           END IF
@@ -1598,7 +1598,7 @@
           CALL masf( rgfe_ ,  rgfn_ ,  rgft_ , rgfw_ , rgfs_ , rgfb_ ,   &
                       rgp_, ug_, vg_, wg_, ijk )
 
-          IF (muscl > 0) THEN
+          IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
             CALL fmas( rgfe_ ,  rgfn_ ,  rgft_ , rgfw_ , rgfs_ , rgfb_ ,   &
                       rgp_, ug_, vg_, wg_, ijk )
           END IF

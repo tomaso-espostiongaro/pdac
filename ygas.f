@@ -163,7 +163,7 @@
       USE flux_limiters, ONLY: muscl
       USE gas_solid_density, ONLY: rgp
       USE gas_solid_velocity, ONLY: ug, vg, wg
-      USE grid, ONLY: flag
+      USE grid, ONLY: flag, fluid
       USE set_indexes, ONLY: stencil
       USE set_indexes, ONLY: first_nb, first_rnb, third_nb, third_rnb
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
@@ -199,7 +199,7 @@
 !
 ! ... Second order MUSCL correction
 !
-             IF (muscl > 0) THEN
+             IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
 
                CALL third_nb(dens,rgp(:),ijk)
                CALL third_nb(conc,ygc(:,ig),ijk)
@@ -225,7 +225,7 @@
 !
 ! ... Second order MUSCL correction
 !
-             IF (muscl > 0) THEN
+             IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
 
                CALL third_nb(dens,rgp(:),ijk)
                CALL third_nb(conc,ygc(:,ig),ijk)

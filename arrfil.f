@@ -239,7 +239,7 @@
           summa = summa + g(l,m) 
         END DO
       END DO
-      WRITE(*,*) 'gaussian filter integral: ', summa
+      !WRITE(*,*) 'gaussian filter integral: ', summa
       !
       ! ... Normalize
       !

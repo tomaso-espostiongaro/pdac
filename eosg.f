@@ -25,8 +25,8 @@
       USE domain_mapping, ONLY: ncdom, ncint
       IMPLICIT NONE
 !
-       ALLOCATE(cg(ncint))
-       ALLOCATE(ygc(ncdom,ngas),xgc(ncint,ngas))
+       ALLOCATE(cg(ncdom))
+       ALLOCATE(ygc(ncdom,ngas),xgc(ncdom,ngas))
 !
       cg     = 0.D0
       ygc    = 0.D0

@@ -624,8 +624,6 @@
 !
       IF( job_type_flag == 2 ) THEN
 
-        stncl%c  = array(ijk)
-
         stncl%ee  = array(ijkee)
         stncl%tt  = array(ijktt)
         stncl%ww  = array(ijkww)

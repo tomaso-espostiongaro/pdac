@@ -696,7 +696,7 @@
 !
 ! ... set cell flags on topography
 !
-      CALL set_flag3
+      CALL set_flags
 
       DEALLOCATE (dummy)
 
@@ -1011,17 +1011,17 @@
       RETURN
       END SUBROUTINE write_profile
 !----------------------------------------------------------------------
-      SUBROUTINE set_flag3
+      SUBROUTINE set_flags
 !
 ! ... Set cell-flag = 3 in cells laying below the topography
 ! ... "ord" and "ord2d" are the last cell COMPLETELY below the topography
 !
       USE control_flags, ONLY: lpr, job_type
       USE grid, ONLY: fl, zb
-      USE grid, ONLY: inlet_cell, noslip_wall, fluid
+      USE grid, ONLY: inlet_cell, noslip_wall, fluid, bl_cell
       IMPLICIT NONE
 
-      INTEGER :: i, j, k, ijk
+      INTEGER :: i, j, k, ijk, ii, jj
       INTEGER :: q
 !
       IF( job_type == '2D') THEN
@@ -1034,6 +1034,18 @@
             ELSE
                     IF( fl(ijk) == noslip_wall ) fl(ijk) = fluid
             END IF
+          END DO
+        END DO
+!
+! ... Define a layer of thickness == 2 above the topography
+!
+        DO i = 1, nx
+          q = ord(i)
+          DO k = q+1, q+2
+            DO ii=-2,+2
+              ijk = (i+ii) + (k-1) * nx
+                  IF( fl(ijk) == fluid ) fl(ijk) = bl_cell
+            END DO
           END DO
         END DO
       ELSE IF( job_type == '3D') THEN
@@ -1050,10 +1062,27 @@
             END DO
           END DO
         END DO
+!
+! ... Define a layer of thickness == 2 above the topography
+!
+        DO j = 1, ny
+          DO i = 1, nx
+            q = ord2d(i,j)
+            DO k = q+1, q+2
+              DO jj=-2,+2
+                DO ii=-2,+2
+                  ijk = (i+ii) + (j+jj-1) * nx + (k-1) * nx * ny
+                      IF( fl(ijk) == fluid ) fl(ijk) = bl_cell
+                END DO
+              END DO
+            END DO
+          END DO
+        END DO
+!
       END IF
 !
       RETURN
-      END SUBROUTINE set_flag3
+      END SUBROUTINE set_flags
 !----------------------------------------------------------------------
       END MODULE volcano_topography
 !----------------------------------------------------------------------

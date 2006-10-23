@@ -8,7 +8,7 @@
       USE gas_solid_temperature, ONLY: sieg, tg, sies, ts
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: dx, dy, dz, z
-      USE eos_gas, ONLY: xgc, ygc
+      USE eos_gas, ONLY: ygc
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p, ep
       USE time_parameters, ONLY: dt, time, sweep
@@ -27,8 +27,10 @@
       USE io_files, ONLY: tempunit, testunit
       USE domain_mapping, ONLY: ncint, myijk, meshinds
       USE grid, ONLY: flag, x, y, z, xb, yb, zb
-      USE grid, ONLY: slip_wall, noslip_wall, fluid, immb_cell, filled_cell_1, filled_cell_2
-      USE grid, ONLY: free_io, nrfree_io, inlet_cell, vent_cell
+      USE grid, ONLY: slip_wall, noslip_wall
+      USE grid, ONLY: immb_cell, filled_cell_1, filled_cell_2
+      USE grid, ONLY: free_io, nrfree_io
+      USE grid, ONLY: inlet_cell, vent_cell, dome_cell, fluid, bl_cell
       USE immersed_boundaries, ONLY: fptx, fpty, fptz, forcing_point
       USE immersed_boundaries, ONLY: numx, numy, numz, immb
       USE indijk_module, ONLY: ip0_jp0_kp0_
@@ -62,7 +64,6 @@
       mesh_loop: DO ijk = 1, ncint
         CALL subscr(ijk)
         CALL meshinds(ijk,imesh,i,j,k)
-
         !
         fx = 0
         fy = 0 
@@ -180,7 +181,7 @@
 !
 ! ... In fluid cells update the neighbours on boundaries
 !
-       ELSE IF( flag(ijk) == fluid ) THEN
+       ELSE IF( flag(ijk)==fluid .OR. flag(ijk)==dome_cell .OR. flag(ijk)==bl_cell) THEN
 !
 ! ***** East boundary conditions ***** !
 !
@@ -737,8 +738,10 @@
       SUBROUTINE hneumann(m,n)
       USE grid, ONLY: flag, filled_cell_1, filled_cell_2, fc2
       USE pressure_epsilon, ONLY: p, ep
+      USE eos_gas, ONLY: ygc
       USE gas_solid_density, ONLY: rlk, rgp
       USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
+      USE io_files, ONLY: testunit
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: m,n
       LOGICAL :: fc2_
@@ -755,6 +758,7 @@
         ts(m,:) = ts(n,:)
         sieg(m) = sieg(n)
         sies(m,:) = sies(n,:)
+        ygc(m,:) = ygc(n,:)
       ELSE IF (flag(n) == filled_cell_1) THEN
         p(n) = p(m)
         ep(n) = ep(m)
@@ -764,6 +768,7 @@
         ts(n,:) = ts(m,:)
         sieg(n) = sieg(m)
         sies(n,:) = sies(m,:)
+        ygc(n,:) = ygc(m,:)
       END IF
 !      
       IF (flag(m) == filled_cell_2) THEN
@@ -777,6 +782,7 @@
           ts(m,:) = 0.5D0 * ts(n,:)
           sieg(m) = 0.5D0 * sieg(n)
           sies(m,:) = 0.5D0 * sies(n,:)
+          ygc(m,:) = 0.5D0 * ygc(n,:)
         ELSE
           p(m) = p(m) + 0.5D0 * p(n)
           ep(m) = ep(m) + 0.5D0 * ep(n)
@@ -786,6 +792,7 @@
           ts(m,:) = ts(m,:) + 0.5D0 * ts(n,:)
           sieg(m) = sieg(m) + 0.5D0 * sieg(n)
           sies(m,:) = sies(m,:) + 0.5D0 * sies(n,:)
+          ygc(m,:) = ygc(m,:) + 0.5D0 * ygc(n,:)
         END IF
         fc2(m) = .NOT.fc2_
       ELSE IF (flag(n) == filled_cell_2) THEN
@@ -799,6 +806,7 @@
           ts(n,:) = 0.5D0 * ts(m,:)
           sieg(n) = 0.5D0 * sieg(m)
           sies(n,:) = 0.5D0 * sies(m,:)
+          ygc(n,:) = 0.5D0 * ygc(m,:)
         ELSE
           p(n) = p(n) + 0.5D0 * p(m)
           ep(n) = ep(n) + 0.5D0 * ep(m)
@@ -808,10 +816,11 @@
           ts(n,:) = ts(n,:) + 0.5D0 * ts(m,:)
           sieg(n) = sieg(n) + 0.5D0 * sieg(m)
           sies(n,:) = sies(n,:) + 0.5D0 * sies(m,:)
+          ygc(n,:) = ygc(n,:) + 0.5D0 * ygc(m,:)
         END IF
         fc2(n) = .NOT.fc2_
       END IF 
-
+!
       RETURN
       END SUBROUTINE hneumann
 !----------------------------------------------------------------------

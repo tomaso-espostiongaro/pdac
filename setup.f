@@ -120,8 +120,46 @@
 !
       END SELECT
 !
+      CALL setup_ghost
+!
       RETURN
       END SUBROUTINE setup
+!-----------------------------------------------------------------------
+      SUBROUTINE setup_ghost
+!
+! ... Initialize the flow field variables in the ghost cells
+!
+      USE control_flags, ONLY: job_type
+      USE dimensions
+      USE domain_mapping, ONLY: ncint, meshinds, myijk
+      USE domain_mapping, ONLY: data_exchange
+      USE eos_gas, ONLY: ygc
+      USE gas_solid_density, ONLY: rlk
+      USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
+      USE gas_solid_velocity, ONLY: ug, wg, vg
+      USE gas_solid_velocity, ONLY: us, vs, ws
+      USE pressure_epsilon, ONLY: ep, p
+      IMPLICIT NONE
+!
+      CALL data_exchange(p)      
+      CALL data_exchange(ep)      
+      CALL data_exchange(rlk)      
+      CALL data_exchange(tg)      
+      CALL data_exchange(ts)      
+      CALL data_exchange(sieg)      
+      CALL data_exchange(sies)      
+      CALL data_exchange(ug)      
+      CALL data_exchange(wg)      
+      CALL data_exchange(us)      
+      IF (job_type == '3D') THEN
+        CALL data_exchange(vg)      
+        CALL data_exchange(vs)      
+      END IF
+      CALL data_exchange(ws)      
+      CALL data_exchange(ygc)      
+!
+      RETURN
+      END SUBROUTINE setup_ghost
 !-----------------------------------------------------------------------
       SUBROUTINE set_atmc
 !
@@ -203,7 +241,7 @@
 !
       USE control_flags, ONLY: job_type
       USE dimensions
-      USE domain_mapping, ONLY: ncint
+      USE domain_mapping, ONLY: ncint, ncdom
       USE eos_gas, ONLY: mas, xgc, ygc
       USE eos_gas, ONLY: cg, thermal_eosg, mole
       USE gas_constants, ONLY: gas_type, gmw, rgas, tzero, hzerog, hzeros
@@ -223,7 +261,7 @@
 !
       IF (itd <= 1) THEN
 !
-        DO  ijk = 1, ncint
+        DO  ijk = 1, ncdom
 !
           ! ... compute gas components molar fractions 
           ! ... from mass fractions
@@ -277,7 +315,7 @@
 !
 ! ... Binary Restart
 !
-        DO ijk = 1, ncint
+        DO ijk = 1, ncdom
           ! ... compute gas components molar fractions 
           ! ... from mass fractions
           !
@@ -308,7 +346,7 @@
 !
 ! ... Just check that boundary velocity are zero.
 !
-          CALL reset_velocities(ijk)
+          IF (ijk <= ncint) CALL reset_velocities(ijk)
 !
         END DO
       ELSE IF (itd > 2) THEN 
@@ -559,6 +597,7 @@
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE grid, ONLY: flag, slip_wall, noslip_wall, immb_cell
+      USE grid, ONLY: filled_cell_1, filled_cell_2
       USE immersed_boundaries, ONLY: immb
       USE set_indexes, ONLY: ipjk, ijpk, ijkp, imjk, ijmk, ijkm
       USE set_indexes, ONLY: first_subscr
@@ -619,22 +658,6 @@
             IF ( flag(ijkp) == slip_wall .OR. flag(ijkp) == noslip_wall ) THEN
               wg(ijk) = 0.D0
                 ws(ijk,:) = 0.D0
-            END IF
-          ELSE IF (immb == 1) THEN
-            IF (flag(ijk) == immb_cell) THEN
-              ug(ijk) = 0.D0
-              IF (job_type == '3D') vg(ijk) = 0.D0
-              wg(ijk) = 0.D0
-              us(ijk,:) = 0.D0
-              IF (job_type == '3D') vs(ijk,:) = 0.D0
-              ws(ijk,:) = 0.D0
-              !
-              ug(imjk) = 0.D0
-              IF (job_type == '3D') vg(ijmk) = 0.D0
-              wg(ijkm) = 0.D0
-              us(imjk,:) = 0.D0
-              IF (job_type == '3D') vs(ijmk,:) = 0.D0
-              ws(ijkm,:) = 0.D0
             END IF
           END IF
           !

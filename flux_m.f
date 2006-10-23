@@ -9,7 +9,7 @@
 !
 !----------------------------------------------------------------------
 !
-      USE flux_limiters, ONLY: muscl, limiters, lm
+      USE flux_limiters, ONLY: limiters, lm
 
       IMPLICIT NONE
       SAVE
@@ -107,9 +107,9 @@
 !
       USE dimensions
       USE domain_mapping, ONLY: myijk, meshinds
-      USE grid, ONLY: dx, dy, dz
+      USE grid, ONLY: dx, dy, dz, flag, immb_cell, fluid
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE set_indexes, ONLY: stencil
+      USE set_indexes, ONLY: stencil, imjk, ijmk, ijkm, ipjk, ijpk, ijkp
       USE time_parameters, ONLY: dt
       IMPLICIT NONE
 !
@@ -187,7 +187,7 @@
 	incr = - 0.5D0 * dx(i)
       ENDIF
 !
-      IF (i/=2) CALL limiters(lm,lim,erre)
+      IF (i/=2 .AND. flag(imjk)==fluid) CALL limiters(lm,lim,erre)
 !
       upwnd = lim * gradc * incr
       centrd = ( dx(i) * dens%w + dx(i-1) * dens%c ) * indxm
@@ -215,7 +215,7 @@
 	incr = - 0.5D0 * dx(i+1)
       ENDIF
 !
-      IF (i/=nx-1) CALL limiters(lm,lim,erre)
+      IF (i/=nx-1 .AND. flag(ipjk)==fluid) CALL limiters(lm,lim,erre)
 !
       upwnd = lim * gradc * incr
       centrd = ( dx(i) * dens%e + dx(i+1) * dens%c ) * indxp
@@ -243,7 +243,7 @@
 	incr = - 0.5D0 * dy(j)
       ENDIF
 !
-      IF (j/=2) CALL limiters(lm,lim,erre)
+      IF (j/=2 .AND. flag(ijmk)==fluid) CALL limiters(lm,lim,erre)
 !
       upwnd = lim * gradc * incr
       centrd = ( dy(j) * dens%s + dy(j-1) * dens%c ) * indym
@@ -271,7 +271,7 @@
 	incr = - 0.5D0 * dy(j+1)
       ENDIF
 !
-      IF (j/=ny-1) CALL limiters(lm,lim,erre)
+      IF (j/=ny-1 .AND. flag(ijpk)==fluid) CALL limiters(lm,lim,erre)
 !
       upwnd = lim * gradc * incr
       centrd = ( dy(j) * dens%n + dy(j+1) * dens%c ) * indyp
@@ -299,7 +299,7 @@
 	incr = - 0.5D0 * dz(k)
       ENDIF
 !
-      IF (k/=2) CALL limiters(lm,lim,erre)
+      IF (k/=2 .AND. flag(ijkm)==fluid) CALL limiters(lm,lim,erre)
 !
       upwnd = lim * gradc * incr
       centrd = ( dz(k) * dens%b + dz(k-1) * dens%c ) * indzm
@@ -327,7 +327,7 @@
 	incr = - 0.5D0 * dz(k+1)
       ENDIF
 !
-      IF (k/=nz-1) CALL limiters(lm,lim,erre)
+      IF (k/=nz-1 .AND. flag(ijkp)==fluid) CALL limiters(lm,lim,erre)
 !
       upwnd = lim * gradc * incr
       centrd = ( dz(k) * dens%t + dz(k+1) * dens%c ) * indzp
@@ -401,9 +401,9 @@
 !
       USE dimensions
       USE domain_mapping, ONLY: myijk
-      USE grid, ONLY: dx, rb, dz
+      USE grid, ONLY: dx, rb, dz, fluid, flag
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE set_indexes, ONLY: stencil
+      USE set_indexes, ONLY: stencil, imjk, ijkm, ipjk, ijkp
       USE time_parameters, ONLY: dt
       IMPLICIT NONE
 !
@@ -466,7 +466,7 @@
 	incr = - 0.5D0 * dx(i)
       ENDIF
 !
-      IF (i/=2) CALL limiters(lm,lim,erre)
+      IF (i/=2 .AND. flag(imjk)==fluid) CALL limiters(lm,lim,erre)
 !
       upwnd = lim * gradc * incr
       centrd = (dx(i)*dens%w+dx(i-1)*dens%c)*indxm
@@ -494,7 +494,7 @@
 	incr = - 0.5D0 * dx(i+1)
       ENDIF
 !
-      IF (i/=nx-1) CALL limiters(lm,lim,erre)
+      IF (i/=nx-1 .AND. flag(ipjk)==fluid) CALL limiters(lm,lim,erre)
 !
       upwnd = lim * gradc * incr
       centrd = (dx(i)*dens%e+dx(i+1)*dens%c)*indxp
@@ -522,7 +522,7 @@
 	incr = - 0.5D0 * dz(k)
       ENDIF
 !
-      IF (k/=2) CALL limiters(lm,lim,erre)
+      IF (k/=2 .AND. flag(ijkm)==fluid) CALL limiters(lm,lim,erre)
 !
       upwnd = lim * gradc * incr
       centrd = (dz(k)*dens%b+dz(k-1)*dens%c)*indzm
@@ -550,7 +550,7 @@
 	incr = - 0.5D0 * dz(k+1)
       ENDIF
 !
-      IF (k/=nz-1) CALL limiters(lm,lim,erre)
+      IF (k/=nz-1 .AND. flag(ijkp)==fluid) CALL limiters(lm,lim,erre)
 !
       upwnd = lim * gradc * incr
       centrd = (dz(k)*dens%t+dz(k+1)*dens%c)*indzp

@@ -113,7 +113,7 @@
 
       IF ( proc_map(mpime)%type == LAYER_MAP ) THEN
         DO ijk = proc_map(mpime)%lay(1), proc_map(mpime)%lay(2)
-          IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) ) THEN
+          IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) .OR. BTEST(fl(ijk),10)) THEN
             ncext = ncext + cell_neighbours( ijk, mpime, nset)
           END IF
         END DO
@@ -126,7 +126,7 @@
           DO k = k1, k2
             DO i = i1, i2
               ijk = i + (k-1) * nx
-              IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) ) THEN
+              IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) .OR. BTEST(fl(ijk),10)) THEN
                 ncext = ncext + cell_neighbours(ijk, mpime, nset)
               END IF
             END DO
@@ -141,7 +141,7 @@
             DO j = j1, j2
               DO i = i1, i2
                 ijk = i + (j-1)*nx + (k-1)*nx*ny 
-                IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) ) THEN
+                IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) .OR. BTEST(fl(ijk),10)) THEN
                   ncext = ncext + cell_neighbours(ijk, mpime, nset)
                 END IF
               END DO
@@ -162,7 +162,7 @@
             DO j = j1, j2
               DO i = i1, i2
                 ijk = i + (j-1)*nx + (k-1)*nx*ny
-                IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) ) THEN
+                IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) .OR. BTEST(fl(ijk),10)) THEN
                   ncext = ncext + cell_neighbours(ijk, mpime, nset)
                 END IF
               END DO
@@ -210,7 +210,7 @@
 
       IF ( proc_map(mpime)%type == LAYER_MAP ) THEN
         DO ijk = proc_map(mpime)%lay(1), proc_map(mpime)%lay(2)
-          IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) ) THEN
+          IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) .OR. BTEST(fl(ijk),10)) THEN
             icnt = icnt + cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
           END IF
         END DO
@@ -223,7 +223,7 @@
           DO k = k1, k2
             DO i = i1, i2
               ijk = i + (k-1) * nx
-              IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) ) THEN
+              IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) .OR. BTEST(fl(ijk),10)) THEN
                 icnt = icnt + cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
               END IF
             END DO
@@ -237,7 +237,7 @@
             DO j = j1, j2
               DO i = i1, i2
                 ijk = i + (j-1)*nx + (k-1)*nx*ny
-                IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) ) THEN
+                IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) .OR. BTEST(fl(ijk),10)) THEN
                   icnt = icnt + cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
                 END IF
               END DO
@@ -258,7 +258,7 @@
             DO j = j1, j2
               DO i = i1, i2
                 ijk = i + (j-1)*nx + (k-1)*nx*ny
-                IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) ) THEN
+                IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) .OR. BTEST(fl(ijk),10)) THEN
                   icnt = icnt + cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
                 END IF
               END DO
@@ -444,15 +444,15 @@
 
       CALL data_exchange(flag)
 !
-! ... fill in the array myinds using myijk
-!
-      CALL set_myinds(myinds, myijk)
-!
 ! ... Map the forcing points on local domains
 ! ... by using array numx/y/z. Scatter the array
 ! ... of forcing points among processors.
 !
       IF (immb == 1 .AND. prog == 'PDAC') CALL local_forcing
+!
+! ... fill in the array myinds using myijk
+!
+      CALL set_myinds(myinds, myijk)
 
       IF (mpime == root) WRITE(logunit,*) 'End of Ghost'
 !
@@ -827,28 +827,28 @@
 ! ... impose homogeneous Neumann conditions
 !
               SELECT CASE (flag(ipjk))
-                CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
+                CASE (noslip_wall, slip_wall, filled_cell_1)
                         ijke = ijk
                 CASE DEFAULT
                         ijke = ipjk
               END SELECT
 
               SELECT CASE (flag(imjk))
-                CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
+                CASE (noslip_wall, slip_wall, filled_cell_1)
                         ijkw = ijk
                 CASE DEFAULT
                         ijkw = imjk
               END SELECT
 
               SELECT CASE (flag(ijkp))
-                CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
+                CASE (noslip_wall, slip_wall, filled_cell_1)
                         ijkt = ijk
                 CASE DEFAULT
                         ijkt = ijkp
               END SELECT
 
               SELECT CASE (flag(ijkm))
-                CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
+                CASE (noslip_wall, slip_wall, filled_cell_1)
                         ijkb = ijk
                 CASE DEFAULT
                         ijkb = ijkm
@@ -856,13 +856,6 @@
 !
 ! ... diagonal neighbours
 !
-              ijkwt = imjkp
-              IF(flag(imjkp) == slip_wall .OR. flag(imjkp) == noslip_wall) ijkwt = ijkp 
-
-              ijkeb = ipjkm
-              IF(flag(ipjkm) == slip_wall .OR. flag(ipjkm) == noslip_wall) ijkeb = ipjk 
-
-              ijket = ipjkp
               IF (flag(ipjkp) == slip_wall .OR. flag(ipjkp) == noslip_wall) THEN
                 IF (flag(ijkp) == slip_wall .OR. flag(ijkp) == noslip_wall) THEN
                   IF (flag(ipjk) == slip_wall .OR. flag(ipjk) == noslip_wall) THEN
@@ -882,7 +875,7 @@
 ! ... Second neighbours are not available on boundaries
 !
               SELECT CASE (flag(ippjk))
-              CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
+              CASE (slip_wall, noslip_wall, filled_cell_1)
                       ijkee = ipjk
               CASE DEFAULT
                       ijkee = ippjk
@@ -890,7 +883,7 @@
               IF(i == (nx-1)) ijkee = ijke
 !
               SELECT CASE (flag(ijkpp))
-              CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
+              CASE (slip_wall, noslip_wall, filled_cell_1)
                       ijktt = ijkp
               CASE DEFAULT
                       ijktt = ijkpp
@@ -898,7 +891,7 @@
               IF(k == (nz-1)) ijktt = ijkt
 !
               SELECT CASE (flag(immjk))
-              CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
+              CASE (slip_wall, noslip_wall, filled_cell_1)
                       ijkww = imjk
               CASE DEFAULT
                       ijkww = immjk
@@ -906,7 +899,7 @@
               IF(i == 2) ijkww = ijkw
 !
               SELECT CASE (flag(ijkmm))
-              CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
+              CASE (slip_wall, noslip_wall, filled_cell_1)
                       ijkbb = ijkm
               CASE DEFAULT
                       ijkbb = ijkmm
@@ -961,54 +954,75 @@
               ijmkm  = myijk( ip0_jm1_km1_ , ijk )
               ijkpp  = myijk( ip0_jp0_kp2_ , ijk )
               ijkmm  = myijk( ip0_jp0_km2_ , ijk )
-  
+!  
               SELECT CASE (flag(ipjk))
-                CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
+                !CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
+                CASE (noslip_wall, slip_wall, filled_cell_1)
                         ijke = ijk
                 CASE DEFAULT
                         ijke  =  ipjk
               END SELECT
-
+!
               SELECT CASE (flag(imjk))
-                CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
+                !CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
+                CASE (noslip_wall, slip_wall, filled_cell_1)
                         ijkw = ijk
                 CASE DEFAULT
                         ijkw  =  imjk
               END SELECT
-
+!
               SELECT CASE (flag(ijpk))
-                CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
+                !CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
+                CASE (noslip_wall, slip_wall, filled_cell_1)
                         ijkn = ijk
                 CASE DEFAULT
                         ijkn  =  ijpk
               END SELECT
-
+!
               SELECT CASE (flag(ijmk))
-                CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
+                !CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
+                CASE (noslip_wall, slip_wall, filled_cell_1)
                         ijks = ijk
                 CASE DEFAULT
                         ijks  =  ijmk
               END SELECT
-
+!
               SELECT CASE (flag(ijkp))
-                CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
+                !CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
+                CASE (noslip_wall, slip_wall, filled_cell_1)
                         ijkt = ijk
                 CASE DEFAULT
                         ijkt  =  ijkp
               END SELECT
-
+!
               SELECT CASE (flag(ijkm))
-                CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
+                !CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
+                CASE (noslip_wall, slip_wall, filled_cell_1)
                         ijkb = ijk
                 CASE DEFAULT
                         ijkb  =  ijkm
               END SELECT
-
+!
+! ... Diagonal neighbours
+!
+!              SELECT CASE (flag(ipjpk))
+!              SELECT CASE (flag(imjpk))
+!              SELECT CASE (flag(ipjmk))
+!              SELECT CASE (flag(imjmk))
+!              SELECT CASE (flag(ipjkp))
+!              SELECT CASE (flag(imjkp))
+!              SELECT CASE (flag(ijpkp))
+!              SELECT CASE (flag(ijmkp))
+!              SELECT CASE (flag(ipjkm))
+!              SELECT CASE (flag(imjkm))
+!              SELECT CASE (flag(ijpkm))
+!              SELECT CASE (flag(ijmkm))
 !
 ! ... Second neighbours are not available on boundaries
 !
               SELECT CASE (flag(ippjk))
-              CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
+              !CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
+              CASE (slip_wall, noslip_wall, filled_cell_1)
                       ijkee = ipjk
               CASE DEFAULT
                       ijkee = ippjk
@@ -1016,7 +1030,8 @@
               IF(i == (nx-1)) ijkee = ijke
 !
               SELECT CASE (flag(ijkpp))
-              CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
+              !CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
+              CASE (slip_wall, noslip_wall, filled_cell_1)
                       ijktt = ijkp
               CASE DEFAULT
                       ijktt = ijkpp
@@ -1024,7 +1039,8 @@
               IF(k == (nz-1)) ijktt = ijkt
 !
               SELECT CASE (flag(ijppk))
-              CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
+              !CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
+              CASE (slip_wall, noslip_wall, filled_cell_1)
                       ijknn = ijkn
               CASE DEFAULT
                       ijknn =  ijppk
@@ -1032,7 +1048,8 @@
               if( (j == (ny-1)) ) ijknn = ijkn
 
               SELECT CASE (flag(ijmmk))
-              CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
+              !CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
+              CASE (slip_wall, noslip_wall, filled_cell_1)
                       ijkss = ijks
               CASE DEFAULT
                       ijkss =  ijmmk
@@ -1040,7 +1057,8 @@
               if( (j == 2) ) ijkss = ijks
 !
               SELECT CASE (flag(immjk))
-              CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
+              !CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
+              CASE (slip_wall, noslip_wall, filled_cell_1)
                       ijkww = imjk
               CASE DEFAULT
                       ijkww = immjk
@@ -1048,7 +1066,8 @@
               IF(i == 2) ijkww = ijkw
 !
               SELECT CASE (flag(ijkmm))
-              CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
+              !CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
+              CASE (slip_wall, noslip_wall, filled_cell_1)
                       ijkbb = ijkm
               CASE DEFAULT
                       ijkbb = ijkmm
@@ -1056,7 +1075,7 @@
               IF(k == 2) ijkbb = ijkb
 !
               !!!!! check diagonals
-
+              !
               ijken =  ipjpk
               ijkwn =  imjpk
               ijkes =  ipjmk
@@ -1848,7 +1867,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
           END IF
 !
           IF (lpr > 1) THEN
-            IF( BTEST(flag(ijk),0) .OR. flag(ijk)==filled_cell_1 .OR. flag(ijk)==filled_cell_2) THEN
+            IF( BTEST(flag(ijk),0) .OR. BTEST(flag(ijk),9) .OR. BTEST(flag(ijk),10)) THEN
               CALL meshinds(ijk,imesh,i,j,k)
               IF (bd(ijk) /= full) &
                 WRITE( testunit, fmt = "( I8,3I4,2X,B8,I5 )" ) ijk, i, j, k, bd(ijk), flag(ijk)

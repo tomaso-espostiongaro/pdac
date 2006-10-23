@@ -14,7 +14,7 @@
       USE dimensions
       USE domain_mapping, ONLY: ncint, ncdom
 !
-      ALLOCATE(rgp(ncdom), rgpn(ncint), rog(ncint))
+      ALLOCATE(rgp(ncdom), rgpn(ncint), rog(ncdom))
       ALLOCATE(rlk(ncdom,nsolid), rlkn(ncint,nsolid))
       rgp = 0.D0
       rgpn = 0.D0
