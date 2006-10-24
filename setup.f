@@ -120,8 +120,6 @@
 !
       END SELECT
 !
-      CALL setup_ghost
-!
       RETURN
       END SUBROUTINE setup
 !-----------------------------------------------------------------------
@@ -133,8 +131,8 @@
       USE dimensions
       USE domain_mapping, ONLY: ncint, meshinds, myijk
       USE domain_mapping, ONLY: data_exchange
-      USE eos_gas, ONLY: ygc
-      USE gas_solid_density, ONLY: rlk
+      USE eos_gas, ONLY: ygc, xgc
+      USE gas_solid_density, ONLY: rlk, rgp, rog
       USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
@@ -144,6 +142,8 @@
       CALL data_exchange(p)      
       CALL data_exchange(ep)      
       CALL data_exchange(rlk)      
+      CALL data_exchange(rgp)      
+      CALL data_exchange(rog)      
       CALL data_exchange(tg)      
       CALL data_exchange(ts)      
       CALL data_exchange(sieg)      
@@ -157,6 +157,7 @@
       END IF
       CALL data_exchange(ws)      
       CALL data_exchange(ygc)      
+      CALL data_exchange(xgc)      
 !
       RETURN
       END SUBROUTINE setup_ghost
@@ -235,10 +236,6 @@
 !----------------------------------------------------------------------
       SUBROUTINE cnvert
 !
-! ... Compute derived thermodynamic quantities from initial conditions
-! ... in the whole computational domain (--> including boundaries <--)
-! ... (2D/3D_Compliant)
-!
       USE control_flags, ONLY: job_type
       USE dimensions
       USE domain_mapping, ONLY: ncint, ncdom
@@ -258,6 +255,14 @@
       INTEGER :: ig, is, dfg
       REAL*8  :: xgc_def, mass, tem, rls
       REAL*8  :: hc, mg , xgcl(1:max_ngas), eps
+!
+! ... Set the initial conditions in the ghost cells
+!
+      CALL setup_ghost
+!
+! ... Compute derived thermodynamic quantities from initial conditions
+! ... in the whole computational domain (--> including boundaries <--)
+! ... (2D/3D_Compliant)
 !
       IF (itd <= 1) THEN
 !
@@ -353,7 +358,7 @@
 !
 ! ... Output Restart
 !
-        DO ijk = 1, ncint
+        DO ijk = 1, ncdom
           ! ... compute gas components mass fractions 
           ! ... from molar fractions
           !
@@ -398,11 +403,11 @@
 !
 ! ... Just check that boundary velocity are zero.
 !
-          CALL reset_velocities(ijk)
+          IF (ijk <= ncint) CALL reset_velocities(ijk)
 !
         END DO
       END IF
-
+!
       RETURN
       END SUBROUTINE cnvert
 !----------------------------------------------------------------------
@@ -622,8 +627,6 @@
 !            WRITE(*,*) 'Reset w, cell: ',ijk
 !          END IF
 !          
-
-          CALL first_subscr(ijk)
           !
           ! ... Set boundary velocity profiles
           ! ... Set the velocity = 0 on all faces
@@ -631,6 +634,7 @@
           !
           !
           IF (immb == 0) THEN
+            CALL first_subscr(ijk)
             IF ( flag(ijk) == slip_wall .OR. flag(ijk) == noslip_wall ) THEN
               ug(ijk) = 0.D0
               us(ijk,:) = 0.D0

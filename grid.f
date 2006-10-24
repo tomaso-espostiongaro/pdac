@@ -98,7 +98,6 @@
       USE dimensions, ONLY: nx, ny, nz, ntot, ntr
       USE control_flags, ONLY: job_type
       USE parallel, ONLY: mpime, root
-      USE time_parameters, ONLY: itd
 !
       IMPLICIT NONE
 !
@@ -175,7 +174,6 @@
       USE dimensions, ONLY: nx, ny, nz
       USE io_files, ONLY: tempunit, testunit
       USE parallel, ONLY: mpime, root
-      USE time_parameters, ONLY: itd
 
       REAL*8, PARAMETER :: VERYBIG = 1.0d+10
       INTEGER :: i, j, k, ijk

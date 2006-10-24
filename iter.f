@@ -303,7 +303,6 @@
                END IF
 
              END IF
-
            ELSE 
              
              converge(ijk) = .TRUE.
@@ -1711,6 +1710,8 @@
           us(ijk,is)  = 0.D0
           IF (job_type == '3D') vs(ijk,is)  = 0.D0
           ws(ijk,is) = 0.D0
+          ts(ijk,is) = 0.D0
+          sies(ijk,is) = 0.D0
         ELSE
           ! ... Assume istantaneous momentum and thermal equilibrium
           us(ijk,is)  = ug(ijk)

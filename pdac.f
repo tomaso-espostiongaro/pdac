@@ -137,7 +137,7 @@
 ! ... set start time
       timestart = time
 !
-! ... Setup cell-sizes and cell-flags
+! ... Setup cell-sizes and cell flags
 !
       CALL grid_setup
 
@@ -147,15 +147,17 @@
           END IF   
 
 ! ... Import the topography from dem file and interpolate
-! ... on the computational mesh
+! ... on the computational mesh. Change the cell flags.
 !
       IF (itp >= 1)  CALL import_topography
 
 ! ... Define volcanic vent position on the 3D topography
+! ... and change the cell flags
 !
       IF (ivent >= 1) CALL locate_vent
 
 ! ... Define volcanic dome position on the 3D topography
+! ... and change the cell flags
 !
       IF (idome >= 1) CALL locate_dome
 
@@ -164,6 +166,7 @@
       CALL export_topography
 
 ! ... Set immersed boundary parameters (if prescribed)
+! ... and change the cell flags
 !
       IF (immb == 1) CALL set_forcing
 
@@ -193,7 +196,7 @@
           END IF
 !
 ! ... Setting the ghost cells for parallel data exchange
-! ... and the indexes
+! ... and the indexes. Change the cell flags.
 !
       CALL ghost
 
@@ -241,11 +244,12 @@
         CALL outp_remap(nfil)
       END IF
 !
-! ... Compute initial conditions depending on restart mode
+! ... Set the initial conditions in the ghost cells.
+! ... Compute initial conditions depending on restart mode.
 ! ... Compute derived thermodynamic quantities.
 !
       CALL cnvert
-
+!
           IF (timing) then
               s5 = cpclock()
               call MP_WALLTIME(pt5,mpime)

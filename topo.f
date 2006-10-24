@@ -1024,6 +1024,9 @@
       INTEGER :: i, j, k, ijk, ii, jj
       INTEGER :: q
 !
+! ... 2D
+! ... Define the topography through the no-slip cells
+!
       IF( job_type == '2D') THEN
         DO i = 1, nx
           q = ord(i)
@@ -1037,17 +1040,21 @@
           END DO
         END DO
 !
-! ... Define a layer of thickness == 2 above the topography
+! ... Define a layer of thickness == 3 above the topography
 !
         DO i = 1, nx
           q = ord(i)
-          DO k = q+1, q+2
-            DO ii=-2,+2
+          DO k = q+1, q+3
+            DO ii=-3,+3
               ijk = (i+ii) + (k-1) * nx
                   IF( fl(ijk) == fluid ) fl(ijk) = bl_cell
             END DO
           END DO
         END DO
+!
+! ... 3D
+! ... Define the topography through the no-slip cells
+!
       ELSE IF( job_type == '3D') THEN
         DO j = 1, ny
           DO i = 1, nx
@@ -1063,14 +1070,14 @@
           END DO
         END DO
 !
-! ... Define a layer of thickness == 2 above the topography
+! ... Define a layer of thickness == 3 above the topography
 !
         DO j = 1, ny
           DO i = 1, nx
             q = ord2d(i,j)
-            DO k = q+1, q+2
-              DO jj=-2,+2
-                DO ii=-2,+2
+            DO k = q+1, q+3
+              DO jj=-3,+3
+                DO ii=-3,+3
                   ijk = (i+ii) + (j+jj-1) * nx + (k-1) * nx * ny
                       IF( fl(ijk) == fluid ) fl(ijk) = bl_cell
                 END DO
