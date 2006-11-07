@@ -55,7 +55,7 @@
       USE set_indexes, ONLY: ijkw, ijks, ijkb
       USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
       USE tilde_momentum, ONLY: appu, appv, appw
-      USE time_parameters, ONLY: dt
+      USE time_parameters, ONLY: dt, time
 
       IMPLICIT NONE
 !
@@ -69,8 +69,7 @@
       REAL*8 :: eps_w, eps_s, eps_b
       REAL*8 :: dxi, dxim1, dyj, dyjm1, dzk, dzkm1
       REAL*8 :: pijk
-      REAL*8 :: epijk, rgpijk, rlklm1, rlklm
-      REAL*8 :: um, vm
+      REAL*8 :: epijk, rgpijk, rlklm1
 !
       CALL meshinds(ijk,imesh,i,j,k)
 !
@@ -156,7 +155,16 @@
         END DO
 !
       CALL assemble_matrix(ijk)
-
+!
+! ... TEST
+!      IF (i==88 .AND. j==58 .AND. k==50) THEN
+!        WRITE(21,'(25G20.10)') time, ug(ijk), ug(imjk), vg(ijk), vg(ijmk), wg(ijk), wg(ijkm), &
+!                    us(ijk,:), us(imjk,:), vs(ijk,:), vs(ijmk,:), ws(ijk,:), ws(ijkm,:), &
+!                    p(ijk), p(imjk), p(ijmk), p(ijkm), &
+!                    rgp(ijk), rgp(imjk), rgp(ijmk), rgp(ijkm), &
+!                    rlk(ijk,:), rlk(imjk,:), rlk(ijmk,:), rlk(ijkm,:)
+!      END IF
+!
       RETURN
       END SUBROUTINE assemble_all_matrix
 !----------------------------------------------------------------------
@@ -172,7 +180,6 @@
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE gas_solid_velocity, ONLY: us, vs, ws
-      USE gas_solid_temperature, ONLY: tg
       USE grid, ONLY: dx, dy, dz
       USE indijk_module
       USE io_files, ONLY: testunit
@@ -194,8 +201,7 @@
       REAL*8 :: eps_e, eps_n, eps_t
       REAL*8 :: dxi, dxim1, dyj, dyjm1, dzk, dzkm1
       REAL*8 :: dxip1, dyjp1, dzkp1
-      REAL*8 :: pijk, rlklm
-      REAL*8 :: um, vm
+      REAL*8 :: pijk
 !
       CALL meshinds(ijk,imesh,i,j,k)
 
@@ -236,7 +242,6 @@
       END IF
       
       DO l=2,nphase
-        rlklm = rlk(ijk,l-1)
 !
 ! ... Explicit terms in the linear system
 !

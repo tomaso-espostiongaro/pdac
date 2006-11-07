@@ -104,7 +104,10 @@
 ! ... here count the flags of fluid cells (including immersed boundaries and
 ! ... dome cells), array fl is replicated on all procs
 !
-      countfl = COUNT( BTEST(fl(:),0) )
+      countfl = 0
+      DO ijk = 1, ntot
+        IF (BTEST(fl(ijk),0)) countfl = countfl + 1
+      END DO
 !
       IF ( lpr > 0 .AND. ionode ) THEN
         WRITE( logunit, fmt = '(a13)' ) ' # countfl :'
@@ -186,6 +189,7 @@
 !
       USE dimensions
       USE control_flags, ONLY: job_type
+      USE io_files, ONLY: testunit
 !
       IMPLICIT NONE
       SAVE

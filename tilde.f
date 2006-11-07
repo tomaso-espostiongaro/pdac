@@ -642,7 +642,6 @@
           END IF
           
         END IF
-
       END DO mesh_loop
 !
       DEALLOCATE(ugfe, ugft)

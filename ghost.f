@@ -85,6 +85,7 @@
       INTEGER, ALLOCATABLE :: ijksnd(:)
       TYPE (imatrix) :: rcv_cell_set(0:nproc-1)
       INTEGER :: localdim
+      INTEGER :: numsend
       INTEGER :: layer, k2, k1, j2, j1, i2, i1, nkt
       INTEGER :: me, whose
       REAL*8  :: ratio
@@ -387,17 +388,17 @@
         CALL scatter_integer(ijkrcv, ijksnd, nrcvx, ipe)
 !
         IF( ipe /= mpime ) THEN
-          ALLOCATE( snd_map(ipe)%isnd( snd_map(ipe)%nsnd ) )
-          ALLOCATE( snd_map(ipe)%iloc( snd_map(ipe)%nsnd ) )
-          snd_map(ipe)%isnd( 1:snd_map(ipe)%nsnd ) = ijksnd( 1:snd_map(ipe)%nsnd )
-          DO ijk = 1, snd_map(ipe)%nsnd
+          numsend = snd_map(ipe)%nsnd
+          ALLOCATE( snd_map(ipe)%isnd( numsend ) )
+          ALLOCATE( snd_map(ipe)%iloc( numsend ) )
+          snd_map(ipe)%isnd( 1:numsend ) = ijksnd( 1:numsend )
+          DO ijk = 1, numsend
             snd_map(ipe)%iloc( ijk ) = cell_g2l( ijksnd( ijk ), mpime )
           END DO
         END IF 
 !
           DEALLOCATE(ijkrcv)
           DEALLOCATE(ijksnd)
-
       END DO
 !
 ! ... Each processor prints out the information of the received cells
@@ -523,7 +524,7 @@
                       rcv_cell_set(ipe)%i(4,nset(ipe)) = 0
                       rcv_cell_set(ipe)%i(5,nset(ipe)) = km
                     END IF
-                  ELSE IF( fill ) THEN
+                  ELSE IF( ipe==mpime .AND. fill ) THEN
 ! ...               the cell ijke is local, set the mapping with cell ijkl
                     ijkel = cell_g2l(ijke, mpime)
                     myijk( indijk( im, 0, km), ijkl ) = ijkel
@@ -856,6 +857,13 @@
 !
 ! ... diagonal neighbours
 !
+              ijkwt = imjkp
+              IF(flag(imjkp) == slip_wall .OR. flag(imjkp) == noslip_wall) ijkwt = ijkp
+
+              ijkeb = ipjkm
+              IF(flag(ipjkm) == slip_wall .OR. flag(ipjkm) == noslip_wall) ijkeb = ipjk
+
+              ijket = ipjkp 
               IF (flag(ipjkp) == slip_wall .OR. flag(ipjkp) == noslip_wall) THEN
                 IF (flag(ijkp) == slip_wall .OR. flag(ijkp) == noslip_wall) THEN
                   IF (flag(ipjk) == slip_wall .OR. flag(ipjk) == noslip_wall) THEN
@@ -871,6 +879,8 @@
                   END IF
                 END IF
               END IF
+              
+              ijkwb = imjkm
 !
 ! ... Second neighbours are not available on boundaries
 !
@@ -1552,8 +1562,7 @@
 !
 ! ... tag for filled_cells_2
 !
-        ALLOCATE( fc2(ncdom) )
-        fc2 = .FALSE.
+        ALLOCATE( fc2(ncdom) ); fc2 = .FALSE.
 !
         ALLOCATE( numx(ncdom) ); numx = 0
         nfpx = SIZE(fptx)
@@ -1686,7 +1695,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
       IMPLICIT NONE
 
       INTEGER :: i,j,k,ijk,imesh
-      INTEGER :: ipjk, imjk, ijpk, ijmk, ijkm
+      INTEGER :: ipjk, imjk, ijpk, ijmk, ijkp, ijkm
       INTEGER :: full, counter
 !
 ! ... Allocate and initialize coefficients
@@ -1716,6 +1725,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
           ijmk  = myijk( ip0_jm1_kp0_, ijk )
           ijpk  = myijk( ip0_jp1_kp0_, ijk )
           ijkm  = myijk( ip0_jp0_km1_, ijk )
+          ijkp  = myijk( ip0_jp0_kp1_, ijk )
 
           IF( BTEST(flag(ijk),0) ) THEN
             CALL meshinds(ijk,imesh,i,j,k)
@@ -1862,6 +1872,8 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
             IF (lpr > 1) THEN
               IF (counter == 1 .AND. flag(ijk) /= filled_cell_1) &
                 WRITE(testunit,*) 'WARNING non-filled cell', ijk, i, j, k
+              IF (counter == 2 .AND. flag(ijk) /= filled_cell_2) &
+                WRITE( testunit, fmt = "( 'NF2:',I8,3I4,2X,B8,I5 )" ) ijk, i, j, k, bd(ijk), flag(ijk)
             END IF
 
           END IF
@@ -1875,6 +1887,9 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
           END IF
 
         END DO
+!
+! ... Exchange modified flags
+!
         CALL data_exchange(flag)
       
       RETURN

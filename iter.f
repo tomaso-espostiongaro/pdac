@@ -594,6 +594,7 @@
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE gas_solid_density, ONLY: rgp
       USE grid, ONLY: flag, fluid
+      USE io_files, ONLY: testunit
       USE set_indexes, ONLY: first_nb, first_rnb, third_nb, third_rnb
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE control_flags, ONLY: job_type, implicit_fluxes, &
@@ -1710,17 +1711,16 @@
           us(ijk,is)  = 0.D0
           IF (job_type == '3D') vs(ijk,is)  = 0.D0
           ws(ijk,is) = 0.D0
-          ts(ijk,is) = 0.D0
           sies(ijk,is) = 0.D0
-        ELSE
-          ! ... Assume istantaneous momentum and thermal equilibrium
-          us(ijk,is)  = ug(ijk)
-          IF (job_type == '3D') vs(ijk,is)  = vg(ijk)
-          ws(ijk,is) = wg(ijk)
+!        ELSE
+!          ! ... Assume istantaneous momentum and thermal equilibrium
+!          us(ijk,is)  = ug(ijk)
+!          IF (job_type == '3D') vs(ijk,is)  = vg(ijk)
+!          ws(ijk,is) = wg(ijk)
+!          ts(ijk,is) = tg(ijk)
+!          CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
+!          sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
         END IF
-        ts(ijk,is) = tg(ijk)
-        CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
-        sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
       END DO
 !
       RETURN

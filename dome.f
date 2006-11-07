@@ -105,7 +105,7 @@
           DO i = 1, nx
             ijk = i + (k-1) * nx
             distance2 = (x(i)-x(iv))**2 + (z(k)-z(kv))**2
-            IF (distance2 <= dome_radius**2 .AND. (fl(ijk) == fluid .OR. fl(ijk)==bl_cell)) THEN
+            IF (distance2 <= dome_radius**2 .AND. (fl(ijk)==fluid .OR. fl(ijk)==bl_cell)) THEN
                     ndm = ndm + 1
                     fl(ijk) = dome_cell
             END IF

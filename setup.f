@@ -137,13 +137,13 @@
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE pressure_epsilon, ONLY: ep, p
+      USE specific_heat_module, ONLY: cp, ck
       IMPLICIT NONE
 !
       CALL data_exchange(p)      
       CALL data_exchange(ep)      
       CALL data_exchange(rlk)      
       CALL data_exchange(rgp)      
-      CALL data_exchange(rog)      
       CALL data_exchange(tg)      
       CALL data_exchange(ts)      
       CALL data_exchange(sieg)      
@@ -151,11 +151,11 @@
       CALL data_exchange(ug)      
       CALL data_exchange(wg)      
       CALL data_exchange(us)      
+      CALL data_exchange(ws)      
       IF (job_type == '3D') THEN
         CALL data_exchange(vg)      
         CALL data_exchange(vs)      
       END IF
-      CALL data_exchange(ws)      
       CALL data_exchange(ygc)      
       CALL data_exchange(xgc)      
 !
@@ -256,17 +256,13 @@
       REAL*8  :: xgc_def, mass, tem, rls
       REAL*8  :: hc, mg , xgcl(1:max_ngas), eps
 !
-! ... Set the initial conditions in the ghost cells
-!
-      CALL setup_ghost
-!
 ! ... Compute derived thermodynamic quantities from initial conditions
 ! ... in the whole computational domain (--> including boundaries <--)
 ! ... (2D/3D_Compliant)
 !
       IF (itd <= 1) THEN
 !
-        DO  ijk = 1, ncdom
+        DO  ijk = 1, ncint
 !
           ! ... compute gas components molar fractions 
           ! ... from mass fractions
@@ -320,7 +316,7 @@
 !
 ! ... Binary Restart
 !
-        DO ijk = 1, ncdom
+        DO ijk = 1, ncint
           ! ... compute gas components molar fractions 
           ! ... from mass fractions
           !
@@ -358,7 +354,7 @@
 !
 ! ... Output Restart
 !
-        DO ijk = 1, ncdom
+        DO ijk = 1, ncint
           ! ... compute gas components mass fractions 
           ! ... from molar fractions
           !
@@ -407,6 +403,10 @@
 !
         END DO
       END IF
+!
+! ... Set the initial conditions in the ghost cells
+!
+      CALL setup_ghost
 !
       RETURN
       END SUBROUTINE cnvert

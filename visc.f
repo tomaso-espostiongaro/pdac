@@ -205,14 +205,12 @@
       REAL*8, ALLOCATABLE :: rlkinrl(:)
 !
       CALL data_exchange( mus )
-
 !
       IF (iss >= 1) THEN
         must = must + mus
       ELSE IF (iss == 0) THEN
         must = mus
       END IF
-
 !
 ! ... Newtonian stress tensor
 !
@@ -569,6 +567,7 @@
       USE domain_mapping, ONLY: ncint
       USE grid, ONLY: itc, dz, dx, r, rb, indz, indx, inr, inrb
       USE grid, ONLY: flag
+      USE io_files, ONLY: testunit
       USE set_indexes
       USE indijk_module, ONLY: ip0_jp0_kp0_
 
@@ -603,7 +602,6 @@
          dxm=(dx(i)+dx(i-1))
          dzp=(dz(k)+dz(k+1))
          dzm=(dz(k)+dz(k-1))
-!
          indxp=1.D0/dxp
          indxm=1.D0/dxm
          indzp=1.D0/dzp
@@ -689,7 +687,6 @@
          gradxy   = gradxy * inr(i)*indx(i)
 
          visz(ijk) = gradyy + gradxy
-                    
         END IF
       END DO
 !

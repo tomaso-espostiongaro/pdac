@@ -337,11 +337,12 @@
       SUBROUTINE flic
       USE dimensions, ONLY: nx, ny, nz, no
       USE control_flags, ONLY: job_type
-      USE io_files, ONLY: logunit
+      USE io_files, ONLY: logunit, testunit
       USE parallel, ONLY: mpime, root
 !
       IMPLICIT NONE
       INTEGER :: i, j, k, n, ijk
+      INTEGER :: countfl
 !
 ! ... Default cell type corresponds to fluid flow
 !
@@ -377,7 +378,7 @@
               ijk = i + (k-1) * nx
 
               fl(ijk) = 2**(iob(n)%typ-1)
-              
+!              
             END DO
           END DO
         END DO
@@ -438,7 +439,6 @@
         END DO
         !
       END IF
-      !IF (mpime == root) WRITE(logunit,*) fl
 !
       RETURN
       END SUBROUTINE flic

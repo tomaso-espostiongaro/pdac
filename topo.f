@@ -135,7 +135,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE read_2Dprofile
       USE parallel, ONLY: mpime, root
-      USE io_files, ONLY: tempunit
+      USE io_files, ONLY: tempunit, testunit
       IMPLICIT NONE
 
       INTEGER :: n, noditop
@@ -580,6 +580,8 @@
       USE array_filters, ONLY: interp
       USE control_flags, ONLY: job_type, lpr
       USE grid, ONLY: x, xb, y, yb, z, zb, iv, jv, kv, dzmax
+      USE io_files, ONLY: testunit, logunit
+      USE parallel, ONLY: mpime, root
 
       IMPLICIT NONE
       REAL*8 :: transl_z = 0.D0
@@ -607,6 +609,8 @@
         ! ... Interpolate the topography on the cell top 
         ! ... (centered horizontally)
         !
+        IF (MAXVAL(xtop) < MAXVAL(x)) CALL error('topo','Computational domain exceeds topography',1)
+!
         CALL interp(xtop,ztop,x,topo,next)
 
         DO i = 1, nx
@@ -650,6 +654,9 @@
         IF (.NOT.ALLOCATED(ord2d)) ALLOCATE(ord2d(nx,ny))
         nextx = 0; nexty = 0; ord2d = 0
         ALLOCATE(topo2d(nx,ny))
+
+        IF (MAXVAL(xtop) < MAXVAL(x)) CALL error('topo','Computational domain exceeds topography x',1)
+        IF (MAXVAL(ytop) < MAXVAL(y)) CALL error('topo','Computational domain exceeds topography y',1)
 
         CALL interp(xtop, ytop, ztop2d, x, y, topo2d, nextx, nexty)
 
@@ -1019,6 +1026,8 @@
       USE control_flags, ONLY: lpr, job_type
       USE grid, ONLY: fl, zb
       USE grid, ONLY: inlet_cell, noslip_wall, fluid, bl_cell
+      USE io_files, ONLY: testunit
+      USE flux_limiters, ONLY: muscl
       IMPLICIT NONE
 
       INTEGER :: i, j, k, ijk, ii, jj

@@ -12,10 +12,10 @@
 !----------------------------------------------------------------------
       SUBROUTINE allocate_press_eps
       USE dimensions
-      USE domain_mapping, ONLY: ncdom
+      USE domain_mapping, ONLY: ncint, ncdom
       IMPLICIT NONE
 !
-      ALLOCATE( ep( ncdom ), p( ncdom ), pn( ncdom ))
+      ALLOCATE( ep( ncdom ), p( ncdom ), pn( ncint ))
       ep = 0.0d0
       p  = 0.0d0
       pn = 0.0d0

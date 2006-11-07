@@ -144,7 +144,7 @@
               ug(ijk) = vel
               DO is=1,nsolid
                 us(ijk,is) = vel 
-                IF (ug(indexq)/=0.D0) us(ijk,is) = us(ijk,is) * us(indexq,is)/ug(indexq)
+                !IF (ug(indexq)/=0.D0) us(ijk,is) = us(ijk,is) * us(indexq,is)/ug(indexq)
               END DO
             END IF
             
@@ -159,7 +159,7 @@
               vg(ijk) = vel
               DO is=1,nsolid
                 vs(ijk,is) = vel
-                IF (vg(indexq)/=0.D0) vs(ijk,is) = vs(ijk,is) * vs(indexq,is)/vg(indexq)
+                !IF (vg(indexq)/=0.D0) vs(ijk,is) = vs(ijk,is) * vs(indexq,is)/vg(indexq)
               END DO
             END IF
             
@@ -174,7 +174,7 @@
               wg(ijk) = vel
               DO is=1,nsolid
                 ws(ijk,is) = vel
-                IF (wg(indexq)/=0.D0) ws(ijk,is) = ws(ijk,is) * ws(indexq,is)/wg(indexq)
+                !IF (wg(indexq)/=0.D0) ws(ijk,is) = ws(ijk,is) * ws(indexq,is)/wg(indexq)
               END DO
             END IF
           END IF
