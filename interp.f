@@ -131,23 +131,26 @@
 !     I N T E R P O L A T I O N     P R O C E D U R E S 
 !
 !-----------------------------------------------------------------------
-      REAL*8 FUNCTION velint(fpt, vel, ijk, cx, cy, cz)
+      FUNCTION velint(fpt, velg, vels, ijk, cx, cy, cz) 
 !
 ! ... Interpolate velocities on a forcing point to get no-slip
 ! ... conditions on a solid immersed boundary 
 
+      USE dimensions, ONLY: nsolid, max_nsolid
       USE set_indexes, ONLY: ipjk, imjk, ippjk, immjk, ijpk, ipjpk,    &
         imjpk, ijmk, ipjmk, imjmk, ijppk, ijmmk, ijkp, ipjkp, imjkp,   &
         ijpkp, ijmkp, ijkm, ipjkm, imjkm, ijpkm, ijmkm, ijkpp, ijkmm
       USE immersed_boundaries, ONLY: forcing_point
       IMPLICIT NONE
 
+      REAL*8, DIMENSION(max_nsolid+1) :: velint
       TYPE(forcing_point), INTENT(IN) :: fpt
-      REAL*8, DIMENSION(:), INTENT(IN) :: vel
+      REAL*8, DIMENSION(:), INTENT(IN) :: velg
+      REAL*8, DIMENSION(:,:), INTENT(IN) :: vels
       REAL*8, DIMENSION(:), INTENT(IN) :: cx, cy, cz
       INTEGER, INTENT(IN) :: ijk
 
-      INTEGER :: i, j, k
+      INTEGER :: i, j, k, is
       REAL*8 :: nsx, nsy, nsz
       INTEGER :: immjkpp, ippjkpp
       INTEGER :: interp
@@ -158,7 +161,9 @@
       REAL*8 :: zB         !distance between the boundary and the second 
                            !external node
       REAL*8 :: alpha,beta !coefficients for bilinear interpolation
-
+!
+      velint = 0.D0
+!
       immjkpp = imjkp
       ippjkpp = ipjkp
       
@@ -177,16 +182,22 @@
 
 !===========================================
 !====   interpolazione lineare con i	====
-!====   valori nei nodi NW-NNWW		====
+!====   valori nei nodi TW-TTWW		====
 !===========================================	
    
          h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
          zA=SQRT((cx(i-1)-nsx)**2+(cz(k+1)-nsz)**2)
          IF (h <= zA) THEN
-            velint=-h/zA*vel(imjkp)
+            velint(1)=-h/zA*velg(imjkp)
+            DO is = 1, nsolid
+              velint(is+1)=-h/zA*vels(imjkp,is)
+            END DO
          ELSE
             zB=SQRT((cx(i-2)-nsx)**2+(cz(k+2)-nsz)**2)
-            velint=-((zB-h)*vel(imjkp)+(h-zA)*vel(immjkpp))/(zB-zA)
+            velint(1)=-((zB-h)*velg(imjkp)+(h-zA)*velg(immjkpp))/(zB-zA)
+            DO is = 1, nsolid
+              velint(is+1)=-((zB-h)*vels(imjkp,is)+(h-zA)*vels(immjkpp,is))/(zB-zA)
+            END DO
          ENDIF
 
       CASE (-2)
@@ -199,38 +210,54 @@
          h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
          zA=SQRT((cx(i-1)-nsx)**2+(cz(k)-nsz)**2)
          IF (h <= zA) THEN
-            velint=-h/zA*vel(imjk)
+            velint(1)=-h/zA*velg(imjk)
+            DO is= 1, nsolid
+              velint(1+is)=-h/zA*vels(imjk,is)
+            END DO
          ELSE
             zB=SQRT((cx(i-2)-nsx)**2+(cz(k)-nsz)**2)
-            velint=-((zB-h)*vel(imjk)+(h-zA)*vel(immjk))/(zB-zA)
+            velint(1)=-((zB-h)*velg(imjk)+(h-zA)*velg(immjk))/(zB-zA)
+            DO is= 1, nsolid
+              velint(1+is)=-((zB-h)*vels(imjk,is)+(h-zA)*vels(immjk,is))/(zB-zA)
+            END DO
          ENDIF
 
       CASE (-1)
    
 !===========================================
 !====   interpolazione bilin. con i	====
-!====   valori nei nodi W-NW-N		====
+!====   valori nei nodi W-TW-T		====
 !===========================================
 
          alpha=(cx(i-1)-nsx)/(cx(i-1)-cx(i))
          beta=(cz(k+1)-nsz)/(cz(k+1)-cz(k))
-         velint=-(alpha*(1-beta)*vel(ijkp)+(1-alpha)*(1-beta)*vel(imjkp)+ &
-                 (1-alpha)*beta*vel(imjk))/(alpha*beta)
+         velint(1)=-(alpha*(1-beta)*velg(ijkp)+(1-alpha)*(1-beta)*velg(imjkp)+ &
+                    (1-alpha)*beta*velg(imjk))/(alpha*beta)
+         DO is = 1, nsolid
+           velint(1+is)=-(alpha*(1-beta)*vels(ijkp,is)+(1-alpha)*(1-beta)*vels(imjkp,is)+ &
+                      (1-alpha)*beta*vels(imjk,is))/(alpha*beta)
+         END DO
 !
       CASE (0)
    
 !===========================================
 !====   interpolazione lineare con i	====
-!====   valori nei nodi N-NN		====
+!====   valori nei nodi T-TT		====
 !===========================================
    
          h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
          zA=SQRT((cx(i)-nsx)**2+(cz(k+1)-nsz)**2)
          IF (h <= zA) THEN
-            velint=-h/zA*vel(ijkp)
+            velint(1)=-h/zA*velg(ijkp)
+            DO is = 1, nsolid
+              velint(1+is)=-h/zA*vels(ijkp,is)
+            END DO
          ELSE
             zB=SQRT((cx(i)-nsx)**2+(cz(k+2)-nsz)**2)
-            velint=-((zB-h)*vel(ijkp)+(h-zA)*vel(ijkpp))/(zB-zA)
+            velint(1)=-((zB-h)*velg(ijkp)+(h-zA)*velg(ijkpp))/(zB-zA)
+            DO is = 1, nsolid
+              velint(1+is)=-((zB-h)*vels(ijkp,is)+(h-zA)*vels(ijkpp,is))/(zB-zA)
+            END DO
 
 ! ... Quadratic interpolation
 !            velint=- ((vel(ijkp)*zB-vel(ijkpp)*zA)/(zA*zB*(zA-zB))*h**2   &
@@ -241,13 +268,17 @@
    
 !===========================================
 !====   interpolazione bilin. con i	====
-!====   valori nei nodi E-NE-N		====
+!====   valori nei nodi E-TE-T		====
 !===========================================
    
          alpha=(cx(i+1)-nsx)/(cx(i+1)-cx(i))
          beta=(cz(k+1)-nsz)/(cz(k+1)-cz(k))
-         velint=-(alpha*(1-beta)*vel(ijkp)+(1-alpha)*(1-beta)*vel(ipjkp)+ &
-                 (1-alpha)*beta*vel(ipjk))/(alpha*beta)
+         velint(1)=-(alpha*(1-beta)*velg(ijkp)+(1-alpha)*(1-beta)*velg(ipjkp)+ &
+                 (1-alpha)*beta*velg(ipjk))/(alpha*beta)
+         DO is = 1, nsolid
+           velint(1+is)=-(alpha*(1-beta)*vels(ijkp,is)+(1-alpha)*(1-beta)*vels(ipjkp,is)+ &
+                   (1-alpha)*beta*vels(ipjk,is))/(alpha*beta)
+         END DO
          
       CASE (2)
    
@@ -259,26 +290,38 @@
          h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
          zA=SQRT((cx(i+1)-nsx)**2+(cz(k)-nsz)**2)
          IF (h <= zA) THEN
-            velint=-h/zA*vel(ipjk)
+            velint(1)=-h/zA*velg(ipjk)
+            DO is = 1, nsolid
+              velint(1+is)=-h/zA*vels(ipjk,is)
+            END DO
          ELSE
             zB=SQRT((cx(i+2)-nsx)**2+(cz(k)-nsz)**2)
-            velint=-((zB-h)*vel(ipjk)+(h-zA)*vel(ippjk))/(zB-zA)
+            velint(1)=-((zB-h)*velg(ipjk)+(h-zA)*velg(ippjk))/(zB-zA)
+            DO is = 1, nsolid
+              velint(1+is)=-((zB-h)*vels(ipjk,is)+(h-zA)*vels(ippjk,is))/(zB-zA)
+            END DO
          ENDIF
          
       CASE (3)
    
 !===========================================
 !====   interpolazione lineare con i	====
-!====   valori nei nodi NE-NNEE		====
+!====   valori nei nodi TE-TTEE		====
 !===========================================
    
          h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
          zA=SQRT((cx(i+1)-nsx)**2+(cz(k+1)-nsz)**2)
          IF (h <= zA) THEN
-            velint=-h/zA*vel(ipjkp)
+            velint(1)=-h/zA*velg(ipjkp)
+            DO is = 1, nsolid
+              velint(1+is)=-h/zA*vels(ipjkp,is)
+            END DO
          ELSE
             zB=SQRT((cx(i+2)-nsx)**2+(cz(k+2)-nsz)**2)
-            velint=-((zB-h)*vel(ipjkp)+(h-zA)*vel(ippjkpp))/(zB-zA)
+            velint(1)=-((zB-h)*velg(ipjkp)+(h-zA)*velg(ippjkpp))/(zB-zA)
+            DO is = 1, nsolid
+              velint(1+is)=-((zB-h)*vels(ipjkp,is)+(h-zA)*vels(ippjkpp,is))/(zB-zA)
+            END DO
          ENDIF
    
       CASE (22)
@@ -291,7 +334,10 @@
          IF (nsx < cx(i)) THEN
            h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
            zA=SQRT((cx(i+1)-nsx)**2+(cz(k)-nsz)**2)
-           velint= + h/zA*vel(ipjk)
+           velint(1)= + h/zA*velg(ipjk)
+           DO is = 1, nsolid
+             velint(1+is)= + h/zA*vels(ipjk,is)
+           END DO
          ELSE
                  CALL error('bdry','control fpoint',ijk)
          END IF
@@ -306,7 +352,10 @@
          IF (nsx > cx(i)) THEN
            h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
            zA=SQRT((cx(i-1)-nsx)**2+(cz(k)-nsz)**2)
-           velint= + h/zA*vel(imjk)
+           velint(1)= + h/zA*velg(imjk)
+           DO is = 1, nsolid
+             velint(1+is)= + h/zA*vels(imjk,is)
+           END DO
          ELSE
                  CALL error('bdry','control fpoint',ijk)
          END IF
@@ -320,7 +369,10 @@
    
          h=SQRT((cx(i)-nsx)**2+(cz(k)-nsz)**2)
          zA=SQRT((cx(i)-nsx)**2+(cz(k+1)-nsz)**2)
-         velint= + h/zA*vel(ijkp)
+         velint(1)= + h/zA*velg(ijkp)
+         DO is = 1, nsolid
+           velint(1+is)= + h/zA*vels(ijkp,is)
+         END DO
 
 ! ... Quadratic interpolation
 !         zB=SQRT((cx(i)-nsx)**2+(cz(k+2)-nsz)**2)
@@ -333,28 +385,34 @@
 !====   nessuna interpolazione  ============
 !===========================================
    
-         velint=vel(ijk)
+         velint(1)=velg(ijk)
+         DO is = 1, nsolid
+           velint(1+is)=vels(ijk,is)
+         END DO
 
       END SELECT
         
       END FUNCTION velint
 !----------------------------------------------------------------------
-      REAL*8 FUNCTION velint3d(fpt, vel, ijk, cx, cy, cz, index_q)
+      FUNCTION velint3d(fpt, velg, vels, ijk, cx, cy, cz, index_q)
 !
 ! ... Interpolate velocities on a forcing point to get no-slip
 ! ... conditions on a solid immersed boundary 
 
+      USE dimensions, ONLY: nsolid, max_nsolid
       USE set_indexes
       USE immersed_boundaries, ONLY: forcing_point
       IMPLICIT NONE
 
+      REAL*8, DIMENSION(max_nsolid+1) :: velint3d
       TYPE(forcing_point), INTENT(IN) :: fpt
-      REAL*8, DIMENSION(:), INTENT(IN) :: vel
+      REAL*8, DIMENSION(:), INTENT(IN) :: velg
+      REAL*8, DIMENSION(:,:), INTENT(IN) :: vels
       REAL*8, DIMENSION(:), INTENT(IN) :: cx, cy, cz
       INTEGER, INTENT(IN) :: ijk
       INTEGER, INTENT(OUT) :: index_q
 
-      INTEGER :: i, j, k
+      INTEGER :: i, j, k, is
       REAL*8 :: nsx, nsy, nsz
       INTEGER :: interp, delta_i, delta_j, delta_k
       INTEGER :: index_qq
@@ -521,13 +579,22 @@
                  (cz(k+delta_k)-nsz)**2 )
 
       IF (interp >= 20) THEN
-         velint3d = h/zA*vel(index_q)         
+         velint3d(1) = h/zA*velg(index_q)         
+         DO is = 1, nsolid
+           velint3d(1+is) = h/zA*vels(index_q,is)         
+         END DO
       ELSEIF (h <= zA .OR. diagonal) THEN
-         velint3d = -h/zA*vel(index_q)
+         velint3d(1) = -h/zA*velg(index_q)
+         DO is = 1, nsolid
+           velint3d(1+is) = -h/zA*vels(index_q,is)
+         END DO
       ELSE 
          zB=SQRT( (cx(i+2*delta_i)-nsx)**2 + (cy(j+2*delta_j)-nsy)**2 +  &
                   (cz(k+2*delta_k)-nsz)**2 )
-         velint3d = -((zB-h)*vel(index_q)+(h-zA)*vel(index_qq))/(zB-zA)
+         velint3d(1) = -((zB-h)*velg(index_q)+(h-zA)*velg(index_qq))/(zB-zA)
+         DO is = 1, nsolid
+           velint3d(1+is) = -((zB-h)*vels(index_q,is)+(h-zA)*vels(index_qq,is))/(zB-zA)
+         END DO
       ENDIF
         
       RETURN

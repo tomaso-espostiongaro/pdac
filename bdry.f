@@ -8,11 +8,12 @@
       USE gas_solid_temperature, ONLY: sieg, tg, sies, ts
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: dx, dy, dz, z
+      USE interpolate_fields, ONLY: velint, velint3d
       USE eos_gas, ONLY: ygc
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p, ep
       USE time_parameters, ONLY: dt, time, sweep
-
+!
       IMPLICIT NONE
 
       SAVE
@@ -36,7 +37,6 @@
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE inflow_outflow, ONLY: n0, n1, n2
       USE inflow_outflow, ONLY: ent_inout4, ent_inout6, wsb_inout4, wsb_inout6
-      USE interpolate_fields, ONLY: velint, velint3d
       USE parallel, ONLY: mpime, root
       USE set_indexes, ONLY: subscr
       USE set_indexes, ONLY: ipjk, imjk, ippjk, immjk, ijpk, ipjpk,    &
@@ -47,16 +47,17 @@
 !
       IMPLICIT NONE
 !
-      INTEGER :: ijk, i, j, k, imesh, ig, is
+      INTEGER :: ijk, i, j, k, imesh, ig, is, nph
       INTEGER :: fp, np
       REAL*8 :: d1, d2 
-      REAL*8 :: vel
+      REAL*8 :: vel(max_nsolid+1)
       INTEGER :: fx, fy, fz
       INTEGER :: nfptx, nfpty, nfptz
       LOGICAL :: forced
       REAL*8, ALLOCATABLE :: tfptx(:), tfpty(:), tfptz(:)
       INTEGER :: indexq
 !
+      vel = 0.D0
       IF (irand >= 1) CALL random_switch(sweep)
 !
 ! ... Loop over the mesh and check boundaries
@@ -103,78 +104,85 @@
           IF (job_type == '2D') THEN
 
             IF( fx/=0 ) THEN
-              vel = velint(fptx(fx), ug, ijk, xb, y, z)  
-              fptx(fx)%vel = vel
+              vel(:) = velint(fptx(fx), ug, us, ijk, xb, y, z)  
+              DO nph = 1, nsolid+1
+                fptx(fx)%vel(nph) = vel(nph)
+              END DO
               !
               ! ... Set the homogeneous Neumann conditions in non-resolved forcing points
               ! ... (zero-gradient)
               IF( fptx(fx)%int >= 20 ) CALL hneumann(ijk,ipjk)
               !
               ! ... Initialize x-velocity in the forced points
-              ug(ijk) = vel
+              ug(ijk) = vel(1)
               DO is=1,nsolid
-                us(ijk,is) = vel
+                us(ijk,is) = vel(1+is)
               END DO
             END IF
 
             IF( fz/=0 ) THEN
-              vel = velint(fptz(fz), wg, ijk, x, y, zb)  
-              fptz(fz)%vel = vel
+              vel(:) = velint(fptz(fz), wg, ws, ijk, x, y, zb)  
+              DO nph = 1, nsolid+1
+                fptz(fz)%vel(nph) = vel(nph)
+              END DO
               !
               ! ... Set the homogeneous Neumann conditions in non-resolved forcing points
               IF( fptz(fz)%int >= 20 ) CALL hneumann(ijk,ijkp)
               !
               ! ... Initialize z-velocity in the forced points
-              wg(ijk) = vel
+              wg(ijk) = vel(1)
               DO is=1,nsolid
-                ws(ijk,is) = vel
+                ws(ijk,is) = vel(1+is)
               END DO
             END IF
 
           ELSE IF (job_type == '3D') THEN
 
             IF( fx/=0 ) THEN
-              vel = velint3d(fptx(fx), ug, ijk, xb, y, z, indexq)  
-              fptx(fx)%vel = vel
+              vel(:) = velint3d(fptx(fx), ug, us, ijk, xb, y, z, indexq)  
+              DO nph = 1, nsolid+1
+                fptx(fx)%vel(nph) = vel(nph)
+              END DO
               !
               ! ... Set the homogeneous Neumann conditions in non-resolved forcing points
               IF( fptx(fx)%int >= 20 ) CALL hneumann(ijk,ipjk)
               !
               ! ... Initialize x-velocity in the forced points
-              ug(ijk) = vel
+              ug(ijk) = vel(1)
               DO is=1,nsolid
-                us(ijk,is) = vel 
-                !IF (ug(indexq)/=0.D0) us(ijk,is) = us(ijk,is) * us(indexq,is)/ug(indexq)
+                us(ijk,is) = vel(1+is) 
               END DO
             END IF
             
             IF( fy/=0 ) THEN
-              vel = velint3d(fpty(fy), vg, ijk, x, yb, z, indexq)  
-              fpty(fy)%vel = vel
+              vel(:) = velint3d(fpty(fy), vg, vs, ijk, x, yb, z, indexq)  
+              DO nph = 1, nsolid+1
+                fpty(fy)%vel(nph) = vel(nph)
+              END DO
 
               ! ... Set the homogeneous Neumann conditions in non-resolved forcing points
               IF( fpty(fy)%int >= 20 ) CALL hneumann(ijk,ijpk)
               !
               ! ... Initialize y-velocity in the forced points
-              vg(ijk) = vel
+              vg(ijk) = vel(1)
               DO is=1,nsolid
-                vs(ijk,is) = vel
-                !IF (vg(indexq)/=0.D0) vs(ijk,is) = vs(ijk,is) * vs(indexq,is)/vg(indexq)
+                vs(ijk,is) = vel(1+is)
               END DO
             END IF
             
             IF( fz/=0 ) THEN
-              vel = velint3d(fptz(fz), wg, ijk, x, y, zb, indexq)  
-              fptz(fz)%vel = vel
+              vel(:) = velint3d(fptz(fz), wg, ws, ijk, x, y, zb, indexq)  
+              DO nph = 1, nsolid+1
+                fptz(fz)%vel(nph) = vel(nph)
+              END DO
 
               ! ... Set the homogeneous Neumann conditions in non-resolved forcing points
               IF( fptz(fz)%int >= 20 ) CALL hneumann(ijk,ijkp)
               !
               ! ... Initialize z-velocity in the forced points
-              wg(ijk) = vel
+              wg(ijk) = vel(1)
               DO is=1,nsolid
-                ws(ijk,is) = vel
-                !IF (wg(indexq)/=0.D0) ws(ijk,is) = ws(ijk,is) * ws(indexq,is)/wg(indexq)
+                ws(ijk,is) = vel(1+is)
               END DO
             END IF
           END IF
@@ -692,19 +700,19 @@
         !
         nfptx = SIZE(fptx)
         ALLOCATE(tfptx(nfptx))
-        tfptx(:) = fptx(:)%vel
+        tfptx(:) = fptx(:)%vel(1)
         CALL parallel_sum_real(tfptx(:),nfptx)
         !
         IF (job_type == '3D') THEN
           nfpty = SIZE(fpty)
           ALLOCATE(tfpty(nfpty))
-          tfpty(:) = fpty(:)%vel
+          tfpty(:) = fpty(:)%vel(1)
           CALL parallel_sum_real(tfpty(:),nfpty)
         END IF
         !
         nfptz = SIZE(fptz)
         ALLOCATE(tfptz(nfptz))
-        tfptz(:) = fptz(:)%vel
+        tfptz(:) = fptz(:)%vel(1)
         CALL parallel_sum_real(tfptz(:),nfptz)
         !
         IF (mpime == root) THEN

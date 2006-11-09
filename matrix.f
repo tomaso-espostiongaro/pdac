@@ -156,15 +156,6 @@
 !
       CALL assemble_matrix(ijk)
 !
-! ... TEST
-!      IF (i==88 .AND. j==58 .AND. k==50) THEN
-!        WRITE(21,'(25G20.10)') time, ug(ijk), ug(imjk), vg(ijk), vg(ijmk), wg(ijk), wg(ijkm), &
-!                    us(ijk,:), us(imjk,:), vs(ijk,:), vs(ijmk,:), ws(ijk,:), ws(ijkm,:), &
-!                    p(ijk), p(imjk), p(ijmk), p(ijkm), &
-!                    rgp(ijk), rgp(imjk), rgp(ijmk), rgp(ijkm), &
-!                    rlk(ijk,:), rlk(imjk,:), rlk(ijmk,:), rlk(ijkm,:)
-!      END IF
-!
       RETURN
       END SUBROUTINE assemble_all_matrix
 !----------------------------------------------------------------------

@@ -555,7 +555,7 @@
             fx = numx(ijk)
 
             IF (fx/=0) THEN
-              pseudou = fptx(fx)%vel
+              pseudou = fptx(fx)%vel(1)
 
               force = ( indxp * (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke)) * &
                         pseudou - rug(ijk) ) / dt
@@ -569,6 +569,7 @@
               rug(ijk) = rug(ijk) + dt * force
 
               DO is = 1, nsolid
+                pseudou = fptx(fx)%vel(1+is)
                 force = ( indxp * (dx(i+1)*rlk(ijk,is)+dx(i)*rlk(ijke,is)) * &
                           pseudou - rus(ijk,is) ) / dt
                 ep_e  = (dx(i)*rlk(ijke,is) + dx(i+1)*rlk(ijk,is)) * indxp * &
@@ -585,7 +586,7 @@
               fy = numy(ijk)
 
               IF (fy/=0) THEN
-                pseudov = fpty(fy)%vel
+                pseudov = fpty(fy)%vel(1)
   
                 force = ( indyp * (dy(j+1)*rgp(ijk)+dy(j)*rgp(ijkn)) * &
                           pseudov - rvg(ijk) ) / dt
@@ -599,6 +600,7 @@
                 rvg(ijk) = rvg(ijk) + dt * force
  
                 DO is = 1, nsolid
+                  pseudov = fpty(fy)%vel(1+is)
                   force =( indyp * (dy(j+1)*rlk(ijk,is)+dy(j)*rlk(ijkn,is)) * &
                             pseudov - rvs(ijk,is) ) / dt
                   ep_n  =(dy(j)*rlk(ijkn,is) + dy(j+1)*rlk(ijk,is)) * indyp * &
@@ -614,7 +616,7 @@
             fz = numz(ijk)
 
             IF (fz/=0) THEN
-              pseudow = fptz(fz)%vel
+              pseudow = fptz(fz)%vel(1)
 
               force = ( indzp * (dz(k+1)*rgp(ijk)+dz(k)*rgp(ijkt)) * &
                         pseudow - rwg(ijk) ) / dt
@@ -628,6 +630,7 @@
               rwg(ijk) = rwg(ijk) + dt * force
 
               DO is = 1, nsolid
+                pseudow = fptz(fz)%vel(1+is)
                 force = ( indzp * (dz(k+1)*rlk(ijk,is)+dz(k)*rlk(ijkt,is)) * &
                           pseudow - rws(ijk,is) ) / dt
                 ep_t = (dz(k)*rlk(ijkt,is) + dz(k+1)*rlk(ijk,is)) * indzp * &

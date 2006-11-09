@@ -36,7 +36,7 @@
         INTEGER :: k
         INTEGER :: int
         TYPE(point) :: nsl
-        REAL*8  :: vel
+        REAL*8  :: vel(max_nsolid+1)
       END TYPE forcing_point
 !
       TYPE(forcing_point), ALLOCATABLE :: fptx(:), fpty(:), fptz(:)
