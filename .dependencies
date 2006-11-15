@@ -24,7 +24,7 @@ dimensions.o :
 
 dome.o : arrfil.o atmosphere.o control.o dens.o dimensions.o environment.o  \
     eosg.o gas.o ghost.o grid.o io_files.o parallel.o particles.o press.o  \
-    temp.o topo.o velocity.o 
+    subscr.o temp.o topo.o velocity.o 
 
 drag.o : dimensions.o particles.o subscr.o time.o 
 
@@ -56,7 +56,7 @@ gas.o : dimensions.o
 ghost.o : control.o decomp.o dimensions.o grid.o immb.o indijk.o io_files.o  \
     kinds.o parallel.o topo.o types.o 
 
-grid.o : control.o dimensions.o io_files.o parallel.o time.o 
+grid.o : control.o dimensions.o io_files.o parallel.o 
 
 hcapgs.o : atmosphere.o dimensions.o gas.o ghost.o 
 
@@ -116,8 +116,8 @@ massgsedim.o : control.o decomp.o dimensions.o ghost.o grid.o immb.o  \
 masspart.o : control.o decomp.o dimensions.o ghost.o grid.o immb.o  \
     io_files.o io_parallel.o kinds.o parallel.o particles.o postvar.o 
 
-matrix.o : control.o dens.o dimensions.o ghost.o grid.o indijk.o particles.o  \
-    press.o subscr.o tilde.o time.o velocity.o 
+matrix.o : control.o dens.o dimensions.o ghost.o grid.o indijk.o io_files.o  \
+    particles.o press.o subscr.o tilde.o time.o velocity.o 
 
 mean_fields.o : control.o dimensions.o ghost.o grid.o io_files.o parallel.o  \
     postvar.o 
@@ -199,7 +199,8 @@ tilde.o : atmosphere.o control.o dens.o dimensions.o drag.o eosg.o flux_u.o  \
 
 time.o : 
 
-topo.o : arrfil.o control.o dimensions.o grid.o io_files.o parallel.o 
+topo.o : arrfil.o control.o dimensions.o grid.o io_files.o limiters.o  \
+    parallel.o 
 
 turbo.o : control.o dens.o dimensions.o environment.o eosg.o ghost.o grid.o  \
     indijk.o io_files.o parallel.o particles.o roughness.o subscr.o topo.o  \
@@ -214,7 +215,7 @@ vent.o : arrfil.o atmosphere.o control.o dens.o dimensions.o environment.o  \
     temp.o time.o topo.o velocity.o 
 
 visc.o : control.o dens.o dimensions.o gas.o ghost.o grid.o indijk.o  \
-    particles.o press.o subscr.o turbo.o velocity.o 
+    io_files.o particles.o press.o subscr.o turbo.o velocity.o 
 
 ygas.o : control.o dens.o dimensions.o eosg.o flux_sc.o gas.o ghost.o grid.o  \
     immb.o io_files.o limiters.o subscr.o time.o velocity.o 

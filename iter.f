@@ -393,15 +393,21 @@
 ! ... If convergence is not reached in some cell
 ! ... start a new external sweep.
 !
-       IF( MOD( nit, 100 ) == 0 ) THEN
+       IF( MOD( nit, 200 ) == 0 .OR. (nit==maxout-1) ) THEN
          omega = 0.5D0 * (omega + 1.D0)
          IF (lpr > 0) THEN
            WRITE(testunit, fmt="('  reducing relaxation parameter omega')")
            WRITE(testunit, fmt="('  new value = ',F12.4)") omega
          END IF
+         DO ijk = 1, ncint
+           IF ( .NOT. converge( ijk ) ) THEN
+             CALL correct_particles(ijk, imesh, i, j, k)
+           END IF
+         END DO
        END IF
 !
 ! ... Check the closure relation for solid phases on all processors
+! ... (ierr=1 in all cells where the solid fraction exceeds 1)
 !
         CALL parallel_sum_integer(ierr, 1)
         !IF (ierr > 1) CALL data_exchange(flag)
@@ -437,16 +443,9 @@
               CALL meshinds( ijk , imesh, i , j , k )
               WRITE(testunit,*) imesh, i , j , k
               CALL cell_report(testunit, ijk, imesh, i, j, k)
-              CALL correct_particles(ijk, imesh, i, j, k)
             END IF
           END DO
  700      FORMAT('max number of iterations (',I5,') reached at time: ', F8.3)
-        ELSE
-          DO ijk = 1, ncint
-            IF ( .NOT. converge( ijk ) ) THEN
-              CALL correct_particles(ijk, imesh, i, j, k)
-            END IF
-          END DO
         END IF
 !
         ! ... CRASH! ...
@@ -1706,7 +1705,7 @@
 !
       DO is = 1, nsolid
         IF (rlk(ijk,is)*inrl(is) <= 1.D-10) THEN
-          !... Drop out particles
+          !... Drop particles out
           rlk(ijk,is) = 0.D0
           us(ijk,is)  = 0.D0
           IF (job_type == '3D') vs(ijk,is)  = 0.D0

@@ -1873,7 +1873,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               IF (counter == 1 .AND. flag(ijk) /= filled_cell_1) &
                 WRITE(testunit,*) 'WARNING non-filled cell', ijk, i, j, k
               IF (counter == 2 .AND. flag(ijk) /= filled_cell_2) &
-                WRITE( testunit, fmt = "( 'NF2:',I8,3I4,2X,B8,I5 )" ) ijk, i, j, k, bd(ijk), flag(ijk)
+                WRITE( testunit, fmt = "('NF2:')" )
             END IF
 
           END IF
