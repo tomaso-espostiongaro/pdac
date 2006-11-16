@@ -1,16 +1,22 @@
 &control
   act        = 1        ! 1: mount time sequence, 2: time-space sampling, 3: mass partition, 4: flux across a surface
-  first_out  = 100     
-  last_out   = 120   
-  incr_out   = 10
+  first_out  = 0     
+  last_out   = 10   
+  incr_out   = 1
 /
 
 &fields
   iflds = 0
+  print_log = .TRUE.
+  print_tg  = .TRUE.
+  print_mn  = .TRUE.
+  print_cm  = .TRUE. 
+  print_pd  = .TRUE.
+  print_mnn = .TRUE.
 /
 
 &mean_outp
-  imnfld = 1
+  imnfld = 0
 /
 
 &map

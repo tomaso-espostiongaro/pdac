@@ -12,6 +12,7 @@
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: topo2d
 
       INTEGER :: first_out, last_out, incr_out
+      LOGICAL ::  print_log, print_tg, print_mn, print_cm, print_pd, print_mnn 
       REAL*8 :: deltaz
 !
       PUBLIC
@@ -344,7 +345,8 @@
         IF (mpime == root) THEN
           OPEN(UNIT=tempunit,FILE=filnam)
           DO i = 2, nx-1
-              WRITE(tempunit,'(G10.4,G14.6E3)') x(i), map1d(i)
+!              WRITE (tempunit,( 'G10.4,G14.6E3' )) x(i), map1d(i)
+              WRITE (tempunit,121) x(i), map1d(i)
           END DO
           CLOSE(tempunit)
         END IF
@@ -405,6 +407,7 @@
 !
       END IF
 !
+ 121  FORMAT(G10.4,G14.6E3)
  122  FORMAT(10(1x,G14.6E3))
 !
       RETURN
@@ -426,44 +429,101 @@
 !
       lform = formatted_output
 !
-      IF (mpime == root) THEN
-        filnam = 'mach.'//lettera(tn)
-        IF (lform) THEN
-          OPEN(tempunit,FILE=filnam)
-        ELSE
-          OPEN(tempunit,FILE=filnam, FORM='UNFORMATTED')
+!
+      IF (print_log) THEN
+        IF (mpime == root) THEN
+          filnam = 'log10epst.'//lettera(tn)
+          IF (lform) THEN
+            OPEN(tempunit,FILE=filnam)
+          ELSE
+            OPEN(tempunit,FILE=filnam, FORM='UNFORMATTED')
+          END IF
         END IF
+        !
+        CALL write_array( tempunit, lepst, sgl, lform )
+        !
+        IF (mpime == root) CLOSE(tempunit)
       END IF
-      !
-      CALL write_array( tempunit, mn, sgl, lform )
-      !
-      IF (mpime == root) CLOSE(tempunit)
-      !
-      IF (mpime == root) THEN
-        filnam = 'cm.'//lettera(tn)
-        IF (lform) THEN
-          OPEN(tempunit,FILE=filnam)
-        ELSE
-          OPEN(tempunit,FILE=filnam, FORM='UNFORMATTED')
+!
+!
+      IF (print_tg) THEN
+        IF (mpime == root) THEN
+          filnam = 'tg.'//lettera(tn)
+          IF (lform) THEN
+            OPEN(tempunit,FILE=filnam)
+          ELSE
+            OPEN(tempunit,FILE=filnam, FORM='UNFORMATTED')
+          END IF
         END IF
+        !
+        CALL write_array( tempunit, tg, sgl, lform )
+        !
+        IF (mpime == root) CLOSE(tempunit)
       END IF
-      !
-      CALL write_array( tempunit, cm, sgl, lform )
-      !
-      IF (mpime == root) CLOSE(tempunit)
-      !
-      IF (mpime == root) THEN
-        filnam = 'macn.'//lettera(tn)
-        IF (lform) THEN
-          OPEN(tempunit,FILE=filnam)
-        ELSE
-          OPEN(tempunit,FILE=filnam, FORM='UNFORMATTED')
+!
+!
+      IF (print_mn) THEN
+        IF (mpime == root) THEN
+          filnam = 'mach.'//lettera(tn)
+          IF (lform) THEN
+            OPEN(tempunit,FILE=filnam)
+          ELSE
+            OPEN(tempunit,FILE=filnam, FORM='UNFORMATTED')
+          END IF
         END IF
+        !
+        CALL write_array( tempunit, mn, sgl, lform )
+        !
+        IF (mpime == root) CLOSE(tempunit)
       END IF
-      !
-      CALL write_array( tempunit, mnn, sgl, lform )
-      !
-      IF (mpime == root) CLOSE(tempunit)
+!
+!  
+      IF (print_cm) THEN
+        IF (mpime == root) THEN
+          filnam = 'cm.'//lettera(tn)
+          IF (lform) THEN
+            OPEN(tempunit,FILE=filnam)
+          ELSE
+            OPEN(tempunit,FILE=filnam, FORM='UNFORMATTED')
+          END IF
+        END IF
+        !
+        CALL write_array( tempunit, cm, sgl, lform )
+        !
+        IF (mpime == root) CLOSE(tempunit)
+      END IF
+!
+!
+      IF (print_pd) THEN
+        IF (mpime == root) THEN
+          filnam = 'pd.'//lettera(tn)
+          IF (lform) THEN
+            OPEN(tempunit,FILE=filnam)
+          ELSE
+            OPEN(tempunit,FILE=filnam, FORM='UNFORMATTED')
+          END IF
+        END IF
+        !
+        CALL write_array( tempunit, pd, sgl, lform )
+        !
+        IF (mpime == root) CLOSE(tempunit)
+      END IF
+!
+!
+      IF (print_mnn) THEN
+        IF (mpime == root) THEN
+          filnam = 'macn.'//lettera(tn)
+          IF (lform) THEN
+            OPEN(tempunit,FILE=filnam)
+          ELSE
+            OPEN(tempunit,FILE=filnam, FORM='UNFORMATTED')
+          END IF
+        END IF
+        !
+        CALL write_array( tempunit, mnn, sgl, lform )
+        !
+        IF (mpime == root) CLOSE(tempunit)
+      END IF
 !
       RETURN
       END SUBROUTINE write_fields

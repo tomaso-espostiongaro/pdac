@@ -22,6 +22,7 @@
       USE process_outp, ONLY: iflds, imnfld, imap
       USE postp_output, ONLY: first_out, last_out, incr_out
       USE postp_output, ONLY: deltaz
+      USE postp_output, ONLY: print_log, print_tg, print_mn, print_cm, print_pd, print_mnn 
 
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: punit
@@ -29,7 +30,7 @@
       NAMELIST / control / act, first_out, last_out, incr_out,  &
                downsize_x, downsize_y, downsize_z
 
-      NAMELIST / fields / iflds
+      NAMELIST / fields / iflds, print_log, print_tg, print_mn, print_cm, print_pd, print_mnn 
 
       NAMELIST / mean_outp / imnfld
 
@@ -63,6 +64,12 @@
 ! ... Fields
   
   iflds = 0
+  print_log = .FALSE.
+  print_tg  = .FALSE.
+  print_mn  = .FALSE.
+  print_cm  = .FALSE.
+  print_pd  = .FALSE.
+  print_mnn = .FALSE.
 
 ! ... Mean Field
 
@@ -120,6 +127,12 @@
 !
       IF (mpime == root) READ(punit, fields)
       CALL bcast_integer(iflds,1,root)
+      CALL bcast_logical(print_log,1,root)
+      CALL bcast_logical(print_tg,1,root)
+      CALL bcast_logical(print_mn,1,root)
+      CALL bcast_logical(print_cm,1,root)
+      CALL bcast_logical(print_pd,1,root)
+      CALL bcast_logical(print_mnn,1,root)
 !
 ! ... Maen Field namelist ...............................................
 !
