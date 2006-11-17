@@ -45,6 +45,7 @@
       USE dimensions
       USE domain_mapping, ONLY: myijk, meshinds
       USE gas_solid_density, ONLY: rgp, rlk
+      USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE grid, ONLY: dx, dy, dz
@@ -177,6 +178,7 @@
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: ijke, ijkn, ijkt
+      USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
       USE tilde_momentum, ONLY: appu, appv, appw
       USE time_parameters, ONLY: dt, time

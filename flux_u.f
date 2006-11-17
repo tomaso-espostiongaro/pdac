@@ -88,6 +88,7 @@
       cs = (dx(i+1) * v%c + dx(i) * v%e) * indxp
       IF ( cs >= 0.D0 ) fn  = dens%c * u%c * cs
       IF ( cs <  0.D0 ) fn  = dens%n * u%n * cs
+     
 !
 ! ... on Top volume boundary
 !

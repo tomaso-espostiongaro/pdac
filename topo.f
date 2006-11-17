@@ -374,7 +374,7 @@
 !      center_y = ytop(jcenter)
 !
       maxcellsize = MAX(MAXVAL(dx),MAXVAL(dy))
-      filtersize  = MAX(filtersize,maxcellsize)
+      !filtersize  = MAX(filtersize,maxcellsize)
       IF (filtersize >= cellsize) THEN
          IF (ismt == 1) THEN
                  CALL mean_filter(xtop,ytop,ztop2d,filtersize)

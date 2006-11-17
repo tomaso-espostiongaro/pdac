@@ -376,7 +376,7 @@
             DO i = 1, nx
               ijk = i + (j-1) * nx + (k-1) * nx * ny
               IF (extfx(ijk)) THEN
-                  CALL ext_forcing3d(i, j, k, xb, y, z, topo2d_x, fptx)
+                  CALL ext_forcing3d(i, j, k, xb, y, z, topo2d_x, fptx, 1)
               END IF
             END DO
           END DO
@@ -409,7 +409,7 @@
             DO i = 1, nx
               ijk = i + (j-1) * nx + (k-1) * nx * ny
               IF (extfy(ijk)) THEN
-                  CALL ext_forcing3d(i, j, k, x, yb, z, topo2d_y, fpty)
+                  CALL ext_forcing3d(i, j, k, x, yb, z, topo2d_y, fpty, 2)
               END IF
             END DO
           END DO
@@ -441,7 +441,7 @@
           DO j = 1, ny
             DO i = 1, nx
               ijk = i + (j-1) * nx + (k-1) * nx * ny
-              IF (extfz(ijk)) CALL ext_forcing3d(i, j, k, x, y, zb, topo2d_c, fptz)
+              IF (extfz(ijk)) CALL ext_forcing3d(i, j, k, x, y, zb, topo2d_c, fptz, 3)
             END DO
           END DO
         END DO
@@ -1050,13 +1050,14 @@
 !----------------------------------------------------------------------
       END SUBROUTINE forcing3d
 !----------------------------------------------------------------------
-      SUBROUTINE ext_forcing3d(i, j, k, cx, cy, cz, topo2d, fpt)
+      SUBROUTINE ext_forcing3d(i, j, k, cx, cy, cz, topo2d, fpt, axis)
 
       USE volcano_topography, ONLY: ord2d
 !
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: i, j, k
+      INTEGER, INTENT(IN) :: axis
        
       REAL*8, DIMENSION(:), INTENT(IN) :: cx, cy, cz
       REAL*8, DIMENSION(:,:), INTENT(IN) :: topo2d
@@ -1083,6 +1084,7 @@
       delta_i(8) = -1
       delta_j(8) = 1
 
+      g_EXT = 0.D0
       g = -1
       maxg = 1.D0
 
@@ -1100,10 +1102,10 @@
 ! ... If one of this products is < 0 then the external forcing
 ! ... can be applied along the corresponding direction
 !
-         g_EXT(1) = g(1) * g(5)      !  E-W
-         g_EXT(2) = g(2) * g(6)      !  SE-NW
-         g_EXT(3) = g(3) * g(7)      !  S-N
-         g_EXT(4) = g(4) * g(8)      !  SW-NE
+         IF (axis /= 1) g_EXT(1) = g(1) * g(5)      !  E-W
+         g_EXT(2) = g(2) * g(6)                     !  SE-NW
+         IF (axis /= 2) g_EXT(3) = g(3) * g(7)      !  S-N
+         g_EXT(4) = g(4) * g(8)                     !  SW-NE
 !
 ! ... Select the direction which minimize the distance 
 ! ... between the forcing point and the no-slip point
@@ -1169,6 +1171,7 @@
       END IF
 
       IF ( (maxg < 1) .AND. (maxg < maxg_Z) ) THEN
+!
 !
 ! ... Choose the external point for interpolation
 ! ... in the z-plane of the forcing point 

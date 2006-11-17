@@ -36,6 +36,7 @@
 !
       USE grid, ONLY: flag
       USE grid, ONLY: dy
+      USE io_files, ONLY: testunit
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE set_indexes, ONLY: stencil
 
