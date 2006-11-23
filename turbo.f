@@ -139,7 +139,7 @@
       USE eos_gas, ONLY: cg
       USE gas_solid_density, ONLY: rog
       USE gas_solid_velocity, ONLY: ug,vg,wg 
-      USE set_indexes, ONLY: subscr, stencil, rnb
+      USE set_indexes, ONLY: subscr, stencil, first_rnb
       USE parallel, ONLY: mpime, root
       IMPLICIT NONE
 !
@@ -261,22 +261,22 @@
              ! ... compute the local neighbours of 'p' and filter
              ! ... over the stencil 'sp'
              !
-             CALL rnb(sp11,p11,ijk)
+             CALL first_rnb(sp11,p11,ijk)
              fp11 = filter_3d(sp11)
              
-             CALL rnb(sp12,p12,ijk)
+             CALL first_rnb(sp12,p12,ijk)
              fp12 = filter_3d(sp12)   
              
-             CALL rnb(sp22,p22,ijk)
+             CALL first_rnb(sp22,p22,ijk)
              fp22 = filter_3d(sp22)
              
-             CALL rnb(sp13,p13,ijk)
+             CALL first_rnb(sp13,p13,ijk)
              fp13 = filter_3d(sp13)
              
-             CALL rnb(sp23,p23,ijk)
+             CALL first_rnb(sp23,p23,ijk)
              fp23 = filter_3d(sp23)
 
-             CALL rnb(sp33,p33,ijk)
+             CALL first_rnb(sp33,p33,ijk)
              fp33 = filter_3d(sp33)
 !         
              l11  = fug(ijk)**2 - fu2g(ijk)
@@ -380,16 +380,16 @@
       TYPE(stencil) :: um, up, vm, vp, wm, wp
       TYPE(stencil) :: u, v, w, u2, v2, w2, uv, uw, vw
 !
-      CALL rnb(up,ug,ijk)
-      CALL rnb(um,ug,imjk)
+      CALL first_rnb(up,ug,ijk)
+      CALL first_rnb(um,ug,imjk)
       u = 0.5D0 * (up + um) 
 
-      CALL rnb(vp,vg,ijk)
-      CALL rnb(vm,vg,ijmk)
+      CALL first_rnb(vp,vg,ijk)
+      CALL first_rnb(vm,vg,ijmk)
       v = 0.5D0 * (vp + vm)
 
-      CALL rnb(wp,wg,ijk)
-      CALL rnb(wm,wg,ijkm)
+      CALL first_rnb(wp,wg,ijk)
+      CALL first_rnb(wm,wg,ijkm)
       w = 0.5D0 * (wp + wm)
 
       u2 = u * u

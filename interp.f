@@ -394,6 +394,107 @@
         
       END FUNCTION velint
 !----------------------------------------------------------------------
+      SUBROUTINE init_delta
+      IMPLICIT NONE
+!
+      INTEGER :: delta_i_(0:30)
+      INTEGER :: delta_j_(0:30)
+      INTEGER :: delta_k_(0:30)
+      INTEGER :: index_q_(0:30)
+      INTEGER :: index_qq_(0:30)
+!
+! ... initialize
+!
+              delta_i_(:) = 0
+              delta_j_(:) = 0
+              delta_k_(:) = 0
+!
+! ... LINEAR interpolation criteria: 
+! ... 0: top
+! ... 1: west
+! ... 2: south-west
+! ... 3: south
+! ... 4: south-east
+! ... 5: east
+! ... 6: north-east
+! ... 7: north
+! ... 8: north-west
+
+              delta_i_(0) = 0
+              delta_j_(0) = 0
+              delta_k_(0) = 1
+!
+              delta_i_(1) = -1
+              delta_j_(1) = 0
+              delta_k_(1) = 0
+!
+              delta_i_(2) = -1
+              delta_j_(2) = -1
+              delta_k_(2) = 0
+!
+              delta_i_(3) = 0
+              delta_j_(3) = -1
+              delta_k_(3) = 0
+!
+              delta_i_(4) = 1
+              delta_j_(4) = -1
+              delta_k_(4) = 0
+!
+              delta_i_(5) = 1
+              delta_j_(5) = 0
+              delta_k_(5) = 0
+!
+              delta_i_(6) = 1
+              delta_j_(6) = 1
+              delta_k_(6) = 0
+!
+              delta_i_(7) = 0
+              delta_j_(7) = 1
+              delta_k_(7) = 0
+!
+              delta_i_(8) = -1
+              delta_j_(8) = 1
+              delta_k_(8) = 0
+! ... external NE
+              delta_i_(26) = 1
+              delta_j_(26) = 1
+              delta_k_(26) = 0
+! ... external E
+              delta_i_(25) = 1
+              delta_j_(25) = 0
+              delta_k_(25) = 0
+! ... external SE
+              delta_i_(24) = 1
+              delta_j_(24) = -1
+              delta_k_(24) = 0
+! ... external N
+              delta_i_(27) = 0
+              delta_j_(27) = 1
+              delta_k_(27) = 0
+! ... external TOP
+              delta_i_(20) = 0
+              delta_j_(20) = 0
+              delta_k_(20) = 1
+! ... external S
+              delta_i_(23) = 0
+              delta_j_(23) = -1
+              delta_k_(23) = 0
+! ... external NW
+              delta_i_(28) = -1
+              delta_j_(28) = 1
+              delta_k_(28) = 0
+! ... external W
+              delta_i_(21) = -1
+              delta_j_(21) = 0
+              delta_k_(21) = 0
+! ... external SW
+              delta_i_(22) = -1
+              delta_j_(22) = -1
+              delta_k_(22) = 0
+!
+      RETURN
+      END SUBROUTINE init_delta
+!----------------------------------------------------------------------
       FUNCTION velint3d(fpt, velg, vels, ijk, cx, cy, cz, index_q)
 !
 ! ... Interpolate velocities on a forcing point to get no-slip
@@ -417,14 +518,16 @@
       INTEGER :: interp, delta_i, delta_j, delta_k
       INTEGER :: index_qq
       LOGICAL :: diagonal
+      REAL*8 :: velint_1, velint_2
 
       REAL*8 :: h          !distance between the (i,j,k)-node and boundary
       REAL*8 :: zA         !distance between the boundary and the first 
                            !external node
       REAL*8 :: zB         !distance between the boundary and the second 
                            !external node
+      REAL*8 :: hza        !ratio between the distances
       REAL*8 :: alpha,beta !coefficients for bilinear interpolation
-
+!
       velint3d = 0.D0
 
       interp = fpt%int
@@ -435,165 +538,50 @@
       nsy    = fpt%nsl%y
       nsz    = fpt%nsl%z
 !
-! ... LINEAR interpolation criteria: 
-! ... 0: top
-! ... 1: west
-! ... 2: south-west
-! ... 3: south
-! ... 4: south-east
-! ... 5: east
-! ... 6: north-east
-! ... 7: north
-! ... 8: north-west
-
-      SELECT CASE (interp)
-
-        CASE (0)
-              delta_i = 0
-              delta_j = 0
-              delta_k = 1
-              index_q  = ijkp
-              index_qq = ijkpp
-
-        CASE (1)
-              delta_i = -1
-              delta_j = 0
-              delta_k = 0
-              index_q  = imjk
-              index_qq = immjk
-
-        CASE (2)
-              delta_i = -1
-              delta_j = -1
-              delta_k = 0
-              index_q  = imjmk
-
-        CASE (3)
-              delta_i = 0
-              delta_j = -1
-              delta_k = 0
-              index_q  = ijmk
-              index_qq = ijmmk
-
-        CASE (4)
-              delta_i = 1
-              delta_j = -1
-              delta_k = 0
-              index_q  = ipjmk
-
-        CASE (5)
-              delta_i = 1
-              delta_j = 0
-              delta_k = 0
-              index_q  = ipjk
-              index_qq = ippjk
-
-        CASE (6)
-              delta_i = 1
-              delta_j = 1
-              delta_k = 0
-              index_q  = ipjpk
-
-        CASE (7)
-              delta_i = 0
-              delta_j = 1
-              delta_k = 0
-              index_q  = ijpk
-              index_qq = ijppk
-
-        CASE (8)
-              delta_i = -1
-              delta_j = 1
-              delta_k = 0
-              index_q  = imjpk
-
-        ! ... external NE
-        CASE(26)
-              delta_i = 1
-              delta_j = 1
-              delta_k = 0
-              index_q  = ipjpk
-        ! ... external E
-        CASE(25)
-              delta_i = 1
-              delta_j = 0
-              delta_k = 0
-              index_q  = ipjk
-        ! ... external SE
-        CASE(24)
-              delta_i = 1
-              delta_j = -1
-              delta_k = 0
-              index_q  = ipjmk
-        ! ... external N
-        CASE(27)
-              delta_i = 0
-              delta_j = 1
-              delta_k = 0
-              index_q  = ijpk              
-        ! ... external TOP
-        CASE(20)
-              delta_i = 0
-              delta_j = 0
-              delta_k = 1
-              index_q  = ijkp
-        ! ... external S
-        CASE(23)
-              delta_i = 0
-              delta_j = -1
-              delta_k = 0
-              index_q  = ijmk  
-        ! ... external NW
-        CASE(28)
-              delta_i = -1
-              delta_j = 1
-              delta_k = 0
-              index_q  = imjpk              
-        ! ... external W
-        CASE(21)
-              delta_i = -1
-              delta_j = 0
-              delta_k = 0
-              index_q  = imjk              
-        ! ... external SW
-        CASE(22)
-              delta_i = -1
-              delta_j = -1
-              delta_k = 0
-              index_q  = imjmk              
-
-        CASE DEFAULT
-              delta_i = 0
-              delta_j = 0
-              delta_k = 0
-              index_q  = ijk
-              index_qq = ijk
-
-      END SELECT
-
+      delta_i = fpt%delta_i
+      delta_j = fpt%delta_j
+      delta_k = fpt%delta_k
+      index_q = fpt%index_q
+      index_qq = fpt%index_qq
+!
       diagonal = ( (MOD(interp,2) == 0) .AND. (interp/=0) )
 
       h  = SQRT( (cx(i)-nsx)**2 + (cy(j)-nsy)**2 + (cz(k)-nsz)**2 )
       
       zA = SQRT( (cx(i+delta_i)-nsx)**2 + (cy(j+delta_j)-nsy)**2 + &
                  (cz(k+delta_k)-nsz)**2 )
+      hzA = h/zA
 
       IF (interp >= 20) THEN
-         velint3d(1) = h/zA*velg(index_q)         
+         velint3d(1) = hzA*velg(index_q)         
          DO is = 1, nsolid
-           velint3d(1+is) = h/zA*vels(index_q,is)         
+           velint3d(1+is) = hzA*vels(index_q,is)         
          END DO
       ELSEIF (h <= zA .OR. diagonal) THEN
-         velint3d(1) = -h/zA*velg(index_q)
+         velint3d(1) = -hzA*velg(index_q)
          DO is = 1, nsolid
-           velint3d(1+is) = -h/zA*vels(index_q,is)
+           velint3d(1+is) = -hzA*vels(index_q,is)
          END DO
       ELSE 
          zB=SQRT( (cx(i+2*delta_i)-nsx)**2 + (cy(j+2*delta_j)-nsy)**2 +  &
                   (cz(k+2*delta_k)-nsz)**2 )
-         velint3d(1) = -((zB-h)*velg(index_q)+(h-zA)*velg(index_qq))/(zB-zA)
+         !
+         velint_2 = -((zB-h)*velg(index_q)+(h-zA)*velg(index_qq))/(zB-zA)
+         velint_1 = -hzA*velg(index_q)
+         IF (DABS(velint_1) < DABS(velint_2)) THEN
+           velint3d(1) = velint_1
+         ELSE
+           velint3d(1) = velint_2
+         END IF
+         !
          DO is = 1, nsolid
-           velint3d(1+is) = -((zB-h)*vels(index_q,is)+(h-zA)*vels(index_qq,is))/(zB-zA)
+           velint_2 = -((zB-h)*vels(index_q,is)+(h-zA)*vels(index_qq,is))/(zB-zA)
+           velint_1 = -hzA*vels(index_q,is)
+           IF (DABS(velint_1) < DABS(velint_2)) THEN
+             velint3d(1+is) = velint_1
+           ELSE
+             velint3d(1+is) = velint_2
+           END IF
          END DO
       ENDIF
         

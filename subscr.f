@@ -804,5 +804,56 @@
       RETURN
       END SUBROUTINE rnb
 !-----------------------------------------------------------------------
+      SUBROUTINE check_stencil(ijk,stx,sty,stz)
+      USE immersed_boundaries, ONLY: numx, numy, numz
+      IMPLICIT NONE
+      TYPE(stencil), INTENT(INOUT) :: stx, sty, stz
+      INTEGER, INTENT(IN) :: ijk
+!
+       IF (numx( ijk )>0) stx%c = 0.D0
+       IF (numx( ipjk )>0) stx%e = 0.D0
+       IF (numx( imjk )>0) stx%w = 0.D0
+       IF (numx( ijpk )>0) stx%n = 0.D0
+       IF (numx( imjpk )>0) stx%wn = 0.D0
+       IF (numx( ijmk )>0) stx%s = 0.D0
+       IF (numx( ipjmk )>0) stx%es = 0.D0
+       IF (numx( ijkp )>0) stx%t = 0.D0
+       IF (numx( imjkp )>0) stx%wt = 0.D0
+       IF (numx( ijmkp )>0) stx%st = 0.D0
+       IF (numx( ijkm )>0) stx%b = 0.D0
+       IF (numx( ipjkm )>0) stx%eb = 0.D0
+       IF (numx( ijpkm )>0) stx%nb = 0.D0
+!     
+       IF (numy( ijk )>0) sty%c = 0.D0
+       IF (numy( ipjk )>0) sty%e = 0.D0
+       IF (numy( imjk )>0) sty%w = 0.D0
+       IF (numy( ijpk )>0) sty%n = 0.D0
+       IF (numy( imjpk )>0) sty%wn = 0.D0
+       IF (numy( ijmk )>0) sty%s = 0.D0
+       IF (numy( ipjmk )>0) sty%es = 0.D0
+       IF (numy( ijkp )>0) sty%t = 0.D0
+       IF (numy( imjkp )>0) sty%wt = 0.D0
+       IF (numy( ijmkp )>0) sty%st = 0.D0
+       IF (numy( ijkm )>0) sty%b = 0.D0
+       IF (numy( ipjkm )>0) sty%eb = 0.D0
+       IF (numy( ijpkm )>0) sty%nb = 0.D0
+!
+       IF (numz( ijk )>0) stz%c = 0.D0
+       IF (numz( ipjk )>0) stz%e = 0.D0
+       IF (numz( imjk )>0) stz%w = 0.D0
+       IF (numz( ijpk )>0) stz%n = 0.D0
+       IF (numz( imjpk )>0) stz%wn = 0.D0
+       IF (numz( ijmk )>0) stz%s = 0.D0
+       IF (numz( ipjmk )>0) stz%es = 0.D0
+       IF (numz( ijkp )>0) stz%t = 0.D0
+       IF (numz( imjkp )>0) stz%wt = 0.D0
+       IF (numz( ijmkp )>0) stz%st = 0.D0
+       IF (numz( ijkm )>0) stz%b = 0.D0
+       IF (numz( ipjkm )>0) stz%eb = 0.D0
+       IF (numz( ijpkm )>0) stz%nb = 0.D0
+!
+      RETURN
+      END SUBROUTINE check_stencil
+!-----------------------------------------------------------------------
       END MODULE set_indexes
 !-----------------------------------------------------------------------

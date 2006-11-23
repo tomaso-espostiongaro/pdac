@@ -403,7 +403,7 @@
 !           IF ( .NOT. converge( ijk ) ) THEN
 !             CALL correct_particles(ijk, imesh, i, j, k)
 !           END IF
-!         END DO
+!        END DO
        END IF
 !
 ! ... Check the closure relation for solid phases on all processors
@@ -1704,22 +1704,22 @@
       INTEGER :: ig, is
 !
       DO is = 1, nsolid
-!        IF (rlk(ijk,is)*inrl(is) <= 1.D-10) THEN
+        IF (rlk(ijk,is)*inrl(is) <= 1.D-10) THEN
           !... Drop particles out
-!          rlk(ijk,is) = 0.D0
+          rlk(ijk,is) = 0.D0
           us(ijk,is)  = 0.D0
           IF (job_type == '3D') vs(ijk,is)  = 0.D0
           ws(ijk,is) = 0.D0
-!          sies(ijk,is) = 0.D0
-!        ELSE
-!          ! ... Assume istantaneous momentum equilibrium
-!          us(ijk,is)  = ug(ijk)
-!          IF (job_type == '3D') vs(ijk,is)  = vg(ijk)
-!          ws(ijk,is) = wg(ijk)
-!          ts(ijk,is) = tg(ijk)
-!          CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
-!          sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
-!        END IF
+          sies(ijk,is) = 0.D0
+        ELSE
+          ! ... Assume istantaneous momentum equilibrium
+          us(ijk,is)  = ug(ijk)
+          IF (job_type == '3D') vs(ijk,is)  = vg(ijk)
+          ws(ijk,is) = wg(ijk)
+          ts(ijk,is) = tg(ijk)
+          CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
+          sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
+        END IF
       END DO
 !
       RETURN

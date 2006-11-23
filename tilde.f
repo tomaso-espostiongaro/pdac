@@ -701,12 +701,13 @@
       USE flux_limiters, ONLY: muscl
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      USE grid, ONLY: flag, fluid
+      USE grid, ONLY: flag, fluid, bl_cell, immb_cell
+      USE immersed_boundaries, ONLY: immb
       USE interpolate_fields, ONLY: interpolate_x, interpolate_y, interpolate_z
       USE pressure_epsilon, ONLY: ep, p
       USE set_indexes, ONLY: subscr, stencil
       USE set_indexes, ONLY: imjk, ijmk, ijkm
-      USE set_indexes, ONLY: nb, rnb
+      USE set_indexes, ONLY: nb, rnb, check_stencil
 !
       IMPLICIT NONE
 !
@@ -800,6 +801,14 @@
             CALL rnb(w,wg,ijk) 
             CALL nb ( dens, rgp, ijk )
 
+            ! ... Check fluxes from Immersed Boundaries
+            !
+            IF (immb >= 1) THEN
+              IF (flag(ijk)==bl_cell .OR. flag(ijk)==immb_cell) THEN
+                CALL check_stencil(ijk,u,v,w)
+              END IF
+            END IF
+
             ! ... Interpolate density on the staggered grid
             CALL interpolate_x(dens, dens_stagx, i)
             CALL interpolate_y(dens, dens_stagy, j)
@@ -842,7 +851,15 @@
               CALL rnb(v,vs(:,is),ijk)
               CALL rnb(w,ws(:,is),ijk)
               CALL nb ( dens, rlk(:,is), ijk ) 
-!
+
+              ! ... Check fluxes from Immersed Boundaries
+              !
+              IF (immb >= 1) THEN
+                IF (flag(ijk)==bl_cell .OR. flag(ijk)==immb_cell) THEN
+                  CALL check_stencil(ijk,u,v,w)
+                END IF
+              END IF
+
               ! ... Interpolate density on the staggered grid
               CALL interpolate_x(dens, dens_stagx, i)
               CALL interpolate_y(dens, dens_stagy, j)

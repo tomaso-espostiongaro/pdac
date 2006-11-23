@@ -35,6 +35,11 @@
         INTEGER :: j
         INTEGER :: k
         INTEGER :: int
+        INTEGER :: delta_i
+        INTEGER :: delta_j
+        INTEGER :: delta_k
+        INTEGER :: index_q
+        INTEGER :: index_qq
         TYPE(point) :: nsl
         REAL*8  :: vel(max_nsolid+1)
       END TYPE forcing_point
@@ -485,7 +490,7 @@
           END DO
           CLOSE(tempunit)
         END IF
- 33   FORMAT(5(I6),10(F16.3))
+ 33   FORMAT(10(I6),10(F16.3))
       END IF
 !
       DEALLOCATE (forcex)
@@ -970,6 +975,9 @@
               fpt(fp)%j  = j
               fpt(fp)%k  = k
               fpt(fp)%int = gint
+              fpt(fp)%delta_i = delta_i(gint)
+              fpt(fp)%delta_j = delta_j(gint)
+              fpt(fp)%delta_k = 0
               fpt(fp)%nsl%x = g(gint) * cx(i) + &
                               (1.D0 - g(gint)) * cx(i+delta_i(gint))
               fpt(fp)%nsl%y = g(gint) * cy(j) + &
@@ -987,6 +995,9 @@
           fpt(fp)%j  = j
           fpt(fp)%k  = k
           fpt(fp)%int = 0
+          fpt(fp)%delta_i = 0
+          fpt(fp)%delta_j = 0
+          fpt(fp)%delta_k = 1
           fpt(fp)%nsl%x = cx(i)
           fpt(fp)%nsl%y = cy(j)
           fpt(fp)%nsl%z = topo2d(i,j)
@@ -1181,6 +1192,9 @@
          fpt(fp0)%j  = j
          fpt(fp0)%k  = k
          fpt(fp0)%int = fpint
+         fpt(fp0)%delta_i = delta_i(fpint - 20)
+         fpt(fp0)%delta_j = delta_j(fpint - 20)
+         fpt(fp0)%delta_k = 0
          fpt(fp0)%nsl%x = (1.D0 - g(gint)) * cx(i) + &
                           g(gint) * cx(i+delta_i(gint))
          fpt(fp0)%nsl%y = (1.D0 - g(gint)) * cy(j) + &
@@ -1197,6 +1211,9 @@
          fpt(fp0)%j  = j
          fpt(fp0)%k  = k
          fpt(fp0)%int = 20
+         fpt(fp0)%delta_i = 0
+         fpt(fp0)%delta_j = 0
+         fpt(fp0)%delta_k = 1
          fpt(fp0)%nsl%x = cx(i)
          fpt(fp0)%nsl%y = cy(j)
          fpt(fp0)%nsl%z = topo2d(i,j)

@@ -1558,6 +1558,7 @@
 
       IMPLICIT NONE
       INTEGER :: n, i, j, k, ijk, ijkl
+      INTEGER :: delta_i, delta_j, delta_k, ijk_q, ijk_qq
       INTEGER :: nfpx, nfpy, nfpz
 !
 ! ... tag for filled_cells_2
@@ -1581,17 +1582,29 @@
           i = fptx(n)%i
           j = fptx(n)%j
           k = fptx(n)%k
+          delta_i = fptx(n)%delta_i
+          delta_j = fptx(n)%delta_j
+          delta_k = fptx(n)%delta_k
 set_numx: IF (i/=0 .AND. k/=0) THEN
             IF (job_type == '2D') THEN
               ijk = i + (k-1) * nx
             ELSE IF (job_type == '3D') THEN
               IF (j == 0) CALL error('decomp','control numx',1)
               ijk = i + (j-1) * nx + (k-1) * nx * ny
+              ijk_q = (i+delta_i) + (j+delta_j-1) * nx + (k+delta_k-1) * nx * ny
+              ijk_qq = (i+2*delta_i) + (j+2*delta_j-1) * nx + (k+2*delta_k-1) * nx * ny
             END IF
             IF( cell_owner(ijk) == mpime ) THEN
 
               ijkl = cell_g2l(ijk,mpime)
               numx(ijkl) = n 
+              !
+              ! ... Identify the neighbours for imm.b. interpolations
+              ! ... Second neighbours 'ijk_qq' are not required along
+              ! ... diagonals
+              fptx(n)%index_q  = cell_g2l(ijk_q,mpime)
+              IF (MOD(fptx(n)%int,2)/=0 .OR. fptx(n)%int==0) & 
+                fptx(n)%index_qq = cell_g2l(ijk_qq,mpime)
 
               IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. j==1 .OR. j==ny) THEN
                 IF (mpime == root) THEN
@@ -1612,17 +1625,29 @@ set_numx: IF (i/=0 .AND. k/=0) THEN
             i = fpty(n)%i
             j = fpty(n)%j
             k = fpty(n)%k
+            delta_i = fpty(n)%delta_i
+            delta_j = fpty(n)%delta_j
+            delta_k = fpty(n)%delta_k
 set_numy:   IF (i/=0 .AND. k/=0) THEN
               IF (job_type == '2D') THEN
                 ijk = i + (k-1) * nx
               ELSE IF (job_type == '3D') THEN
                 IF (j == 0) CALL error('decomp','control numy',1)
                 ijk = i + (j-1) * nx + (k-1) * nx * ny
+                ijk_q = (i+delta_i) + (j+delta_j-1) * nx + (k+delta_k-1) * nx * ny
+                ijk_qq = (i+2*delta_i) + (j+2*delta_j-1) * nx + (k+2*delta_k-1) * nx * ny
               END IF
               IF( cell_owner(ijk)== mpime ) THEN
 
                 ijkl = cell_g2l(ijk,mpime)
                 numy(ijkl) = n 
+                !
+                ! ... Identify the neighbours for imm.b. interpolations
+                ! ... Second neighbours 'ijk_qq' are not required along
+                ! ... diagonals
+                fpty(n)%index_q  = cell_g2l(ijk_q,mpime)
+                IF (MOD(fpty(n)%int,2)/=0 .OR. fpty(n)%int==0) & 
+                  fpty(n)%index_qq = cell_g2l(ijk_qq,mpime)
 
                 IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. j==1 .OR. j==ny) THEN
                   IF (mpime == root) THEN
@@ -1643,17 +1668,29 @@ set_numy:   IF (i/=0 .AND. k/=0) THEN
           i = fptz(n)%i
           j = fptz(n)%j
           k = fptz(n)%k
+          delta_i = fptz(n)%delta_i
+          delta_j = fptz(n)%delta_j
+          delta_k = fptz(n)%delta_k
 set_numz: IF (i/=0 .AND. k/=0) THEN
             IF (job_type == '2D') THEN
               ijk = i + (k-1) * nx
             ELSE IF (job_type == '3D') THEN
               IF (j == 0) CALL error('decomp','control numz',n)
               ijk = i + (j-1) * nx + (k-1) * nx * ny
+              ijk_q = (i+delta_i) + (j+delta_j-1) * nx + (k+delta_k-1) * nx * ny
+              ijk_qq = (i+2*delta_i) + (j+2*delta_j-1) * nx + (k+2*delta_k-1) * nx * ny
             END IF
             IF( cell_owner(ijk)== mpime ) THEN
 
               ijkl = cell_g2l(ijk,mpime)
               numz(ijkl) = n 
+              !
+              ! ... Identify the neighbours for imm.b. interpolations
+              ! ... Second neighbours 'ijk_qq' are not required along
+              ! ... diagonals
+              fptz(n)%index_q  = cell_g2l(ijk_q,mpime)
+              IF (MOD(fptz(n)%int,2)/=0 .OR. fptz(n)%int==0) & 
+                fptz(n)%index_qq = cell_g2l(ijk_qq,mpime)
 
               IF (k==1 .OR. k==nz .OR. i==1 .OR. i==nx .OR. j==1 .OR. j==ny) THEN
                 IF (mpime == root) THEN

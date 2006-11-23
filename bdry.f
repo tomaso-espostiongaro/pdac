@@ -734,7 +734,7 @@
           END DO
           CLOSE(tempunit)
         END IF
- 33     FORMAT(5(I6),10(F16.3))
+ 33     FORMAT(10(I6),10(F16.3))
         DEALLOCATE(tfptx)
         IF (job_type == '3D') DEALLOCATE(tfpty)
         DEALLOCATE(tfptz)
