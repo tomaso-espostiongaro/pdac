@@ -1126,13 +1126,11 @@
   
             END IF
 
-
           ELSE
  
             CALL error(' set_myinds ',' unknown job_type ',1) 
             
           END IF
-
 
         END DO
 
@@ -1201,11 +1199,12 @@
           IF( ierr /= 0 ) &
             CALL error(' data_exchange_r ', ' deallocating sndbuf ', ierr )
         END DO
+!
         RETURN
       END SUBROUTINE data_exchange_r
-
+!
 !----------------------------------------------------------------------
-
+!
       SUBROUTINE data_exchange_rm(array)
         USE parallel, ONLY: nproc, mpime
         IMPLICIT NONE

@@ -144,7 +144,7 @@
 ! ... the dome center is located where the mesh is more refined.
 ! ... Otherwise its coordinates '(xdome, ydome)' are taken from the input.
 !
-        IF (grigen >= 1) THEN
+        IF (grigen == 1) THEN
           xdome = x(iv)
           ydome = y(jv)
         ELSE 

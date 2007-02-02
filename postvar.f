@@ -188,8 +188,8 @@
         !pd = pd1 + pd2
         !DEALLOCATE(pd1,pd2)
         !
-        !CALL wallis_sound_speed(cm,xgc,rgp,rlk,rhom,rhog,epst,tg)
-        CALL kieffer_sound_speed(cm,xgc,rgp,rlk,rhom,rhog,epst,tg)
+        CALL wallis_sound_speed(cm,xgc,rgp,rlk,rhom,rhog,epst,tg)
+        !CALL kieffer_sound_speed(cm,xgc,rgp,rlk,rhom,rhog,epst,tg)
         CALL mach_number(mn,mvm,cm)
         CALL gradient(p,gpx,gpy,gpz)
         CALL normal_mach_number(mnn,um,vm,wm,gpx,gpy,gpz,cm)

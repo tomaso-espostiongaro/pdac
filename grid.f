@@ -198,7 +198,7 @@
         domain_z = SUM(dz_inner)
         iv = nx/2+1; jv = ny/2+1; kv = nz/2+1
         !
-      CASE(1)
+      CASE(1,2)
         !
         ! ... generate the non-uniform mesh
         !

@@ -78,14 +78,14 @@
                             IF (xb(i) <= plane) slice(np)%plane = i
                           END DO
                           DO k=1,nz
-                            IF (zb(k) <= cn1) slice(np)%n1 = k
-                            IF (zb(k) <= cn2) slice(np)%n2 = k
+                            IF (zb(k) <= cn1) slice(np)%n1 = MAX(2,k)
+                            IF (zb(k) <= cn2) slice(np)%n2 = MIN(nz-1,k)
                           END DO
                         ELSE IF (axis == 2) THEN
                           slice(np)%axis = 2
                           DO i=1,nx
-                            IF (xb(i) <= cn1) slice(np)%n1 = i
-                            IF (xb(i) <= cn2) slice(np)%n2 = i
+                            IF (xb(i) <= cn1) slice(np)%n1 = MAX(2,i)
+                            IF (xb(i) <= cn2) slice(np)%n2 = MIN(nx-1,i)
                           END DO
                           DO k=1,nz
                             IF (zb(k) <= plane) slice(np)%plane= k

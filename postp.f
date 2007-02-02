@@ -108,7 +108,7 @@
 !
       IF (mpime == root) THEN
         CALL write_avs_files
-        CALL write_xml_files
+        !CALL write_xml_files
       END IF
 !
       IF (act == 0) GOTO 111 
