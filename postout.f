@@ -324,8 +324,11 @@
                     alpha = deltaz - improfile_2d(i,k-1)
                     alpha = alpha / (z(k) - z(k-1))
                     !
-                    map = alpha* array(ijk) + (1.D0-alpha) * array(ijkm)
-                    !WRITE(*,*) ijk, ijkm, ijk-ijkm
+                    IF (improfile_2d(i,k-1) > 0.D0) THEN
+                      map = alpha* array(ijk) + (1.D0-alpha) * array(ijkm)
+                    ELSE
+                      map = alpha* array(ijk) + (1.D0-alpha) * array(ijk)
+                    END IF
                     ! ... Map the value reached at any given position at
                     ! ... given time
                     map1d(i) = map
@@ -376,9 +379,11 @@
                     alpha = deltaz - improfile_3d(i,j,k-1)
                     alpha = alpha / (z(k) - z(k-1))
                     !
-                    !...errore!!!
-                    map = alpha* array(ijk) + (1.D0-alpha) * array(ijkm)
-                    !map = alpha* array(ijk) + (1.D0-alpha) * array(ijk)
+                    IF (improfile_3d(i,j,k-1) > 0.D0) THEN
+                      map = alpha* array(ijk) + (1.D0-alpha) * array(ijkm)
+                    ELSE
+                      map = alpha* array(ijk) + (1.D0-alpha) * array(ijk)
+                    END IF
                     ! ... Map the value reached at any given position at
                     ! ... given time
                     map2d(i,j) = map

@@ -89,7 +89,7 @@
         !
         IF (imap > 0) THEN
                CALL write_topo2d
-               CALL write_map(tn,pd,'pd')
+               CALL write_map(tn,lepst,'lepst')
         END IF
         IF (isamp   > 0)  CALL sample
         IF (imassn  > 0)  CALL massn

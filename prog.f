@@ -321,7 +321,7 @@
                 ! ... Print the total residuals of the mass conservation 
                 ! ... equation and the mass-flow rate
                 !
-                CALL print_mass_residuals(sweep)
+                !CALL print_mass_residuals(sweep)
                 !CALL write_radial_profile_2d
         END IF
         IF (isrt >= 1) CALL sample_pressure
