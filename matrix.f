@@ -1,7 +1,7 @@
 !--------------------------------------------------------------------
       MODULE phases_matrix
 !--------------------------------------------------------------------
-
+      USE particles_constants, ONLY: plim
       IMPLICIT NONE
       SAVE
 !
@@ -17,7 +17,6 @@
 !--------------------------------------------------------------------
       CONTAINS
 !--------------------------------------------------------------------
-
       SUBROUTINE allocate_matrix
       USE dimensions
       IMPLICIT NONE
@@ -307,7 +306,7 @@
       inlet = (flag(imjk)==inlet_cell .OR. flag(imjk)==vent_cell)
       IF (.NOT.(wall .OR. inlet)) THEN
         DO l=2,nphase
-          IF(DABS(au1(l,l)) < rlim) THEN
+          IF(DABS(au1(l,l)) < plim(l-1)) THEN
             DO ll=1,nphase
               au1(ll,ll)=au1(ll,ll)+au1(l,ll)
               au1(l,ll)=0.D0
@@ -351,7 +350,7 @@
         inlet = (flag(ijmk)==inlet_cell .OR. flag(ijmk)==vent_cell)
         IF (.NOT.(wall .OR. inlet)) THEN
           DO l=2,nphase
-            IF(DABS(av1(l,l)) < rlim) THEN
+            IF(DABS(av1(l,l)) < plim(l-1)) THEN
               DO ll=1,nphase
                 av1(ll,ll)=av1(ll,ll)+av1(l,ll)
                 av1(l,ll)=0.D0
@@ -395,7 +394,7 @@
       inlet = (flag(ijkm)==inlet_cell .OR. flag(ijkm)==vent_cell)
       IF (.NOT.(wall .OR. inlet)) THEN
         DO l=2,nphase
-          IF(DABS(aw1(l,l)) < rlim) THEN
+          IF(DABS(aw1(l,l)) < plim(l-1)) THEN
             DO ll=1,nphase
               aw1(ll,ll)=aw1(ll,ll)+aw1(l,ll)
               aw1(l,ll)=0.D0
@@ -466,7 +465,7 @@
       inlet = (flag(ipjk)==inlet_cell .OR. flag(ipjk)==vent_cell)
       IF (.NOT.(wall .OR. inlet)) THEN
         DO l=2,nphase
-          IF(DABS(au(l,l)) < rlim) THEN
+          IF(DABS(au(l,l)) < plim(l-1)) THEN
             DO ll=1,nphase
               au(ll,ll)=au(ll,ll)+au(l,ll)
               au(l,ll)=0.D0
@@ -510,7 +509,7 @@
         inlet = (flag(ijpk)==inlet_cell .OR. flag(ijpk)==vent_cell)
         IF (.NOT.(wall .OR. inlet)) THEN
           DO l=2,nphase
-            IF(DABS(av(l,l)) < rlim) THEN
+            IF(DABS(av(l,l)) < plim(l-1)) THEN
               DO ll=1,nphase
                 av(ll,ll)=av(ll,ll)+av(l,ll)
                 av(l,ll)=0.D0
@@ -554,7 +553,7 @@
       inlet = (flag(ijkp)==inlet_cell .OR. flag(ijkp)==vent_cell)
       IF (.NOT.(wall .OR. inlet)) THEN
         DO l=2,nphase
-          IF(DABS(aw(l,l)) < rlim) THEN
+          IF(DABS(aw(l,l)) < plim(l-1)) THEN
             DO ll=1,nphase
               aw(ll,ll)=aw(ll,ll)+aw(l,ll)
               aw(l,ll)=0.D0
@@ -1021,12 +1020,12 @@
       REAL*8 :: a(3,3), b(3)
       REAL*8 :: d, x1, x2, amul
 
-      IF( DABS(a(2,2)) < rlim ) THEN
+      IF( DABS(a(2,2)) < plim(1) ) THEN
 
         a(1,1) = a(1,1) + a(2,1)
         a(3,3) = a(3,3) + a(3,2)
 
-        IF( DABS(a(3,3)) < rlim ) THEN
+        IF( DABS(a(3,3)) < plim(2) ) THEN
 
           a(1,1) = a(1,1) + a(3,1)
           a(2,2) = a(2,2) + a(3,2)
@@ -1095,7 +1094,7 @@
     
         END IF
     
-      ELSE IF ( DABS(a(3,3)) < rlim ) THEN
+      ELSE IF ( DABS(a(3,3)) < plim(2) ) THEN
     
         a(1,1) = a(1,1) + a(3,1)
         a(2,2) = a(2,2) + a(3,2)
@@ -1223,7 +1222,7 @@
       real*8 :: a(3,3), b(3)
       real*8 :: div, amul
 
-      IF( DABS(a(2,2)) < rlim ) THEN
+      IF( DABS(a(2,2)) < plim(1) ) THEN
 
               !write(6,*) 'if1'
 
@@ -1242,7 +1241,7 @@
       END IF
 
 
-      IF( DABS(a(3,3)) < rlim ) THEN
+      IF( DABS(a(3,3)) < plim(2) ) THEN
 
               !write(6,*) 'if2'
 

@@ -13,6 +13,7 @@
       REAL*8 :: viscosity(max_nsolid)
       REAL*8 :: specific_heat(max_nsolid)
       REAL*8 :: thermal_conductivity(max_nsolid)
+      REAL*8 :: twophase_limit(max_nsolid)
       REAL*8 :: dz0, dx0, dy0
       CHARACTER(LEN=80) :: run_name
       CHARACTER(LEN=80) :: restart_mode
@@ -95,7 +96,7 @@
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
       USE dimensions
       USE domain_decomposition, ONLY: mesh_partition
-      USE dome_conditions, ONLY: xdome, ydome, dome_volume, temperature, particle_fraction, overpressure, &
+      USE dome_conditions, ONLY: xdome, ydome, zdome, dome_volume, temperature, particle_fraction, overpressure, &
           idome, gas_flux, permeability, dome_gasvisc, idw, conduit_radius
       USE enthalpy_matrix, ONLY: flim, tlim, tforce
       USE eos_gas, ONLY: update_eosg
@@ -119,7 +120,7 @@
       USE io_restart, ONLY: max_seconds
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl, kap, &
-     &     cmus, phis, cps, dk, nsolid
+     &     cmus, phis, cps, dk, nsolid, plim
       USE phases_matrix, ONLY: rlim
       USE reactions, ONLY: irex
       USE roughness_module, ONLY: zrough
@@ -162,7 +163,7 @@
         p_gas, t_gas, u_solid, v_solid, w_solid, ep_solid, t_solid, &
         vent_O2, vent_N2, vent_CO2, vent_H2, vent_H2O, vent_Air, vent_SO2
 
-      NAMELIST / dome / xdome, ydome, dome_volume, temperature, &
+      NAMELIST / dome / xdome, ydome, zdome, dome_volume, temperature, &
         particle_fraction, idome, overpressure, gas_flux, permeability, &
         dome_gasvisc, idw, conduit_radius, &
         dome_O2, dome_N2, dome_CO2, dome_H2, dome_H2O, dome_Air, dome_SO2
@@ -176,7 +177,7 @@
         ozone_layer_z, lower_mesosphere_z, upper_mesosphere_z, stratification
 
       NAMELIST / particles / nsolid, diameter, density, sphericity, &
-        viscosity, specific_heat, thermal_conductivity
+        viscosity, specific_heat, thermal_conductivity, twophase_limit
 
       NAMELIST / numeric / rungekut, beta, muscl, mass_limiter, vel_limiter, &
         inmax, maxout, omega, delg, implicit_fluxes, implicit_enthalpy, &
@@ -325,6 +326,7 @@
       idw = 0                 ! Flag for adding dome hydrostatic pressure
       xdome = 0.0             ! UTM longitude of the dome center
       ydome = 0.0             ! UTM latitude of the dome center
+      zdome = 0.0             ! Elevation of the dome center
       dome_volume = 1.D6        ! total volume of exploded mass
       conduit_radius = 15.D0   ! Radius of the conduit feeding the dome
       overpressure = 100.D5             ! overpressure of the dome
@@ -382,6 +384,7 @@
       viscosity = 0.5         !  viscosity coefficient ( Pa * sec. )
       specific_heat = 1.2D3   !  specific heat ( Joule / ( Kelvin * Kg ) )
       thermal_conductivity = 2.D0 ! thermal_conductivity ( ... ) 
+      twophase_limit = 1.D-8 ! limit for momentum matrix ( ... ) 
 
 ! ... Numeric
 
@@ -590,6 +593,7 @@
       CALL bcast_integer(idw,1,root)
       CALL bcast_real(xdome,1,root)
       CALL bcast_real(ydome,1,root)
+      CALL bcast_real(zdome,1,root)
       CALL bcast_real(dome_volume,1,root)
       CALL bcast_real(conduit_radius,1,root)
       CALL bcast_real(temperature,1,root)
@@ -651,6 +655,7 @@
       CALL bcast_real(viscosity,max_nsolid,root)
       CALL bcast_real(specific_heat,max_nsolid,root)
       CALL bcast_real(thermal_conductivity,max_nsolid,root)
+      CALL bcast_real(twophase_limit,max_nsolid,root)
 
       IF( nsolid > max_nsolid .OR. nsolid < 1 ) THEN
         CALL error( ' input ', ' nsolid out of range ', nsolid )
@@ -973,6 +978,7 @@
             CALL iotk_write_dat( iuni_nml, "idw", idw )
             CALL iotk_write_dat( iuni_nml, "xdome", xdome )
             CALL iotk_write_dat( iuni_nml, "ydome", ydome )
+            CALL iotk_write_dat( iuni_nml, "zdome", zdome )
             CALL iotk_write_dat( iuni_nml, "dome_volume", dome_volume )
             CALL iotk_write_dat( iuni_nml, "conduit_radius", conduit_radius )
             CALL iotk_write_dat( iuni_nml, "temperature", temperature )
@@ -1031,6 +1037,8 @@
             CALL iotk_write_dat( iuni_nml, "specific_heat", specific_heat )
             CALL iotk_write_dat( iuni_nml, "thermal_conductivity", &
                                             thermal_conductivity )
+            CALL iotk_write_dat( iuni_nml, "twophase_limit", &
+                                            twophase_limit )
           CALL iotk_write_end( iuni_nml, "particles" )
 
           CALL iotk_write_begin( iuni_nml, "numeric" )
@@ -1114,7 +1122,7 @@
       USE immersed_boundaries, ONLY: immb
       USE initial_conditions, ONLY: epsob, tpob, ygcob,   &
      &     ugob, vgob, wgob, upob, vpob, wpob, pob, tgob, epob
-      USE particles_constants, ONLY: rl, inrl, kap, cmus, phis, cps, dk
+      USE particles_constants, ONLY: rl, inrl, kap, cmus, phis, cps, dk, plim
       USE time_parameters, ONLY: itd
       USE vent_conditions, ONLY: vent_ygc, ivent
       USE volcano_topography, ONLY: itp
@@ -1260,6 +1268,7 @@
       cmus(1:nsolid) = viscosity(1:nsolid)
       cps(1:nsolid) = specific_heat(1:nsolid)
       kap(1:nsolid) = thermal_conductivity(1:nsolid)
+      plim(1:nsolid) = twophase_limit(1:nsolid)
 !
       inrl(:)=1.D0/rl(:)
 

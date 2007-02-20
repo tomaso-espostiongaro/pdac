@@ -83,7 +83,7 @@
 ! ... Sampling
   
   isamp = 0
-  number_of_probes = 1 
+  number_of_probes = 1
   probe_file       = 'probe.dat'
   assign_index     = .TRUE.
 

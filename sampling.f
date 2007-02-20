@@ -57,6 +57,7 @@
 ! ... Read probe file
 ! 
       IF (mpime == root) OPEN(tempunit, FILE=probe_file, STATUS='OLD')
+      IF (mpime == root) READ(tempunit,*) 
       DO nop = 1, number_of_probes
         probe(nop)%nop = nop
         IF (assign_index) THEN

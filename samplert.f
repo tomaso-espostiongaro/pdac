@@ -62,7 +62,8 @@
         IF (job_type == '3D') THEN
                 IF (mpime == root) THEN
                   READ(tempunit,*) probe(nop)%i, probe(nop)%j, probe(nop)%k
-                  WRITE(logunit,*) probe(nop)%i, probe(nop)%j, probe(nop)%k
+                  WRITE(logunit,*) probe(nop)%i, probe(nop)%j, probe(nop)%k, &
+                      x(probe(nop)%i), y(probe(nop)%j), z(probe(nop)%k)
                 END IF
                 CALL bcast_integer(probe(nop)%i,1,root)
                 CALL bcast_integer(probe(nop)%j,1,root)

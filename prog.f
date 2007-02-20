@@ -117,6 +117,8 @@
 !
       w0 = elapsed_seconds()
 !
+      IF (immb >= 1) CALL print_volumes
+      IF (isrt >= 1) CALL set_sampling
 !
 !//////////////////////////////////////////////////////////////////////
 !
@@ -145,8 +147,6 @@
         IF (sweep == 1) THEN
           CALL outp
           CALL print_mass_flow_rate
-          IF (immb >= 1) CALL print_volumes
-          IF (isrt >= 1) CALL set_sampling
         END IF
 !
 ! ... 'Check init' stops here

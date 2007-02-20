@@ -325,7 +325,7 @@
                     alpha = alpha / (z(k) - z(k-1))
                     !
                     map = alpha* array(ijk) + (1.D0-alpha) * array(ijkm)
-                    WRITE(*,*) ijk, ijkm, ijk-ijkm
+                    !WRITE(*,*) ijk, ijkm, ijk-ijkm
                     ! ... Map the value reached at any given position at
                     ! ... given time
                     map1d(i) = map
@@ -377,8 +377,8 @@
                     alpha = alpha / (z(k) - z(k-1))
                     !
                     !...errore!!!
-                    !map = alpha* array(ijk) + (1.D0-alpha) * array(ijkm)
-                    map = alpha* array(ijk) + (1.D0-alpha) * array(ijk)
+                    map = alpha* array(ijk) + (1.D0-alpha) * array(ijkm)
+                    !map = alpha* array(ijk) + (1.D0-alpha) * array(ijk)
                     ! ... Map the value reached at any given position at
                     ! ... given time
                     map2d(i,j) = map

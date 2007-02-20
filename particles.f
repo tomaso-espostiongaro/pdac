@@ -13,6 +13,7 @@
         REAL*8, DIMENSION(:),   ALLOCATABLE :: cps            ! thermal capacity
         REAL*8, DIMENSION(:),   ALLOCATABLE :: phi
         REAL*8, DIMENSION(:),   ALLOCATABLE :: kap            ! thermal conductivity
+        REAL*8, DIMENSION(:),   ALLOCATABLE :: plim           ! limit for momentum matrix
         REAL*8, DIMENSION(:,:), ALLOCATABLE :: dkf            ! p-p interaction coefficient
         REAL*8, DIMENSION(:,:), ALLOCATABLE :: philim
         REAL*8, DIMENSION(:,:), ALLOCATABLE :: epsl
@@ -25,7 +26,7 @@
 !
       ALLOCATE(dk(nsolid), dkm1(nsolid), rl(nsolid), rlm1(nsolid),      &
                phis(nsolid), phism1(nsolid), cmus(nsolid), cps(nsolid), &
-               phi(nsolid), kap(nsolid), inrl(nsolid))
+               phi(nsolid), kap(nsolid), inrl(nsolid), plim(nsolid))
       ALLOCATE(dkf(nsolid,nsolid), philim(nsolid,nsolid),               &
                epsl(nsolid,nsolid), epsu(nsolid,nsolid))
       RETURN

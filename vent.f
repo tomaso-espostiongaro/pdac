@@ -77,7 +77,7 @@
 ! ... the vent center is located where the mesh is more refined.
 ! ... Otherwise its coordinates '(xvent, yvent)' are taken from the input.
 !
-      IF (grigen >= 1) THEN
+      IF (grigen == 1) THEN
         xvent = x(iv)
         yvent = y(jv)
       ELSE 

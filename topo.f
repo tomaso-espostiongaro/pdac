@@ -549,6 +549,54 @@
       RETURN
       END SUBROUTINE flatten_dem
 !----------------------------------------------------------------------
+      SUBROUTINE flatten_dem_dome(xdome,ydome,dome_radius,quota)
+      USE grid, ONLY: zb
+      USE io_files, ONLY: testunit, logunit, tempunit
+      USE parallel, ONLY: mpime, root
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: xdome,ydome,dome_radius
+      INTEGER, INTENT(IN) :: quota
+      REAL*8 :: distance2, ztp
+      REAL*8 :: modified_xdome, modified_ydome
+      INTEGER :: i,j,k
+!
+      modified_xdome = xdome
+      modified_ydome = ydome + 0.5*dome_radius
+      DO j = 1, vdem%ny
+        DO i = 1, vdem%nx
+          distance2 = (xtop(i)-modified_xdome)**2 + (ytop(j)-modified_ydome)**2 
+          IF( distance2 < dome_radius**2) THEN
+            ztp = ztop2d(i,j)
+            ztop2d(i,j) = MIN(zb(quota),ztp)
+          END IF
+        END DO
+      END DO
+      IF (mpime==root) THEN
+        OPEN(tempunit,FILE='SHV_modified.dat',STATUS='UNKNOWN')
+       
+        WRITE(tempunit,*) vdem%nx    
+        WRITE(tempunit,*) vdem%ny    
+        WRITE(tempunit,*) vdem%xcorner
+        WRITE(tempunit,*) vdem%ycorner
+        WRITE(tempunit,*) vdem%cellsize
+        WRITE(tempunit,*) '-9999'
+        DO j = vdem%ny, 1, -1
+          DO i = 1, vdem%nx
+            WRITE(tempunit,*) ztop2d(i,j)
+          END DO
+        END DO
+        CLOSE(tempunit)
+      END IF
+!
+      ! ... Interpolate the topography on the cell centers.
+      ! ... Re-set the cell flags at the base of the crater
+      ! ... and the 'ord2d' and 'dist' arrays
+      !
+      CALL set_profile
+!
+      RETURN
+      END SUBROUTINE flatten_dem_dome
+!----------------------------------------------------------------------
 ! ... Translates the computational mesh accordingly to the
 ! ... specified UTM coordinates of the DEM
 !
