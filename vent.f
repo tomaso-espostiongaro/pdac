@@ -352,7 +352,8 @@
           ! ... partially filled by the topography in order
           ! ... to respect the mass flux
           !
-          IF (iali >= 1) CALL correct_vent_density(ijk,k,alpha)
+          IF (iali == 1) CALL density_antialias(ijk,k,alpha)
+          IF (iali == 2) CALL velocity_antialias(ijk,alpha)
 
           ! ... 'wrat' is the ratio between the maximum
           ! ... vertical velocity and the averaged velocity
@@ -450,7 +451,7 @@
       RETURN
       END SUBROUTINE read_radial_profile
 !-----------------------------------------------------------------------
-      SUBROUTINE correct_vent_density(ijk,k,alpha)
+      SUBROUTINE density_antialias(ijk,k,alpha)
 !
 ! ... Correct the density in the inlet cells partially filled by the
 ! ... topography ("antialiasing")
@@ -495,7 +496,29 @@
                rrhoatm / mg * tg(ijk) * (1.D0-alpha) / ep(ijk)
 
       RETURN
-      END SUBROUTINE correct_vent_density
+      END SUBROUTINE density_antialias
+!-----------------------------------------------------------------------
+      SUBROUTINE velocity_antialias(ijk,alpha)
+!
+! ... Correct the velocity in the inlet cells partially filled by the
+! ... topography ("antialiasing")
+!
+      USE dimensions, ONLY: nsolid
+      USE gas_solid_velocity, ONLY: wg, ws
+      IMPLICIT NONE
+
+      REAL*8, INTENT(IN) :: alpha
+      INTEGER, INTENT(IN) :: ijk
+      INTEGER :: is
+
+      wg(ijk) = w_gas * alpha
+      
+      DO is = 1,nsolid
+        ws(ijk,is) = w_solid(is) * alpha
+      END DO
+
+      RETURN
+      END SUBROUTINE velocity_antialias
 !-----------------------------------------------------------------------
       SUBROUTINE correct_velocity_profile(ijk,factor)
 !
