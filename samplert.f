@@ -139,7 +139,7 @@
         CLOSE(tempunit)
       END IF
 
- 100  FORMAT( F8.3, 20(G14.6E3,1X) )
+ 100  FORMAT( F10.5, 20(G14.6E3,1X) )
 !
       RETURN
       END SUBROUTINE sample_pressure
