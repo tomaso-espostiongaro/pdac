@@ -236,10 +236,14 @@
       END SUBROUTINE read_implicit_profile
 !-----------------------------------------------------------------------
       SUBROUTINE write_topo2d
-
+! ... Read the implicit profile and write out a DEM file
+! ... Notice that if the immersed boundaries are not used,
+! ... the DEM is defined by the vertical mesh resolution
+!
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nx, ny, nz
-      USE grid, ONLY: z
+      USE grid, ONLY: z, zb, dz
+      USE immersed_boundaries, ONLY: immb
       USE io_files, ONLY: tempunit
       USE parallel, ONLY: mpime, root
 
@@ -248,9 +252,9 @@
       REAL*8 :: quota
       INTEGER :: i, j, k, ijk
 
-      IF (job_type == '2D' .OR. mpime /= root) RETURN
+      IF (job_type == '2D') RETURN
 
-      ALLOCATE(topo2d(nx,ny))
+      IF (.NOT.ALLOCATED(topo2d)) ALLOCATE(topo2d(nx,ny))
       topo2d = -9999 
 
       DO i = 1, nx
@@ -258,9 +262,15 @@
           !
           search: DO k = 1, nz
             quota = improfile_3d(i,j,k)
-            IF (quota >= 0.D0 .AND. topo2d(i,j) == -9999) THEN
-              topo2d(i,j) = z(k) - quota
-              EXIT search
+            IF (immb > 0 .AND. quota >= 0.D0 .AND. topo2d(i,j) == -9999) THEN
+                topo2d(i,j) = z(k) - quota
+                EXIT search
+            ELSE IF (immb == 0 .AND. quota >= -0.5D0*dz(k) .AND. topo2d(i,j) == -9999) THEN
+                topo2d(i,j) = zb(k)
+                EXIT search
+            ELSE IF (immb == 0 .AND. quota >= 0.D0 .AND. topo2d(i,j) == -9999) THEN
+                topo2d(i,j) = zb(k-1)
+                EXIT search
             END IF
           END DO search
           !
@@ -269,15 +279,13 @@
 !
 ! ... Print out the new 2D DEM file
 !
-      OPEN(UNIT=tempunit,FILE='topo2d.dat')
+      OPEN(UNIT=tempunit,FILE='topo2d.ascii')
       DO j = 1, ny
           WRITE(tempunit,122) (topo2d(i,j), i=1, nx)
       END DO
       CLOSE(tempunit)
 
  122  FORMAT(10(1x,G14.6E3))
-
-      DEALLOCATE(topo2d)
 
       RETURN
       END SUBROUTINE write_topo2d
@@ -288,7 +296,7 @@
       USE dimensions, ONLY: nx, ny, nz
       USE domain_decomposition, ONLY: cell_owner, cell_g2l
       USE grid, ONLY: z, x, y
-      USE io_files, ONLY: tempunit
+      USE io_files, ONLY: tempunit, testunit
       USE parallel, ONLY: mpime, root
       USE set_indexes, ONLY: first_subscr, ijkm
       IMPLICIT NONE
@@ -296,7 +304,7 @@
       REAL*8, INTENT(IN), DIMENSION(:) :: array
       INTEGER, INTENT(IN) :: nf
       CHARACTER(LEN=2), INTENT(IN) :: labl
-      REAL*8 :: alpha, map, quota
+      REAL*8 :: alpha, map, quota, quotam
       INTEGER :: i, j, k, ijk, imesh
       CHARACTER( LEN = 4 ) :: lettera
       CHARACTER( LEN = 20 ) :: filnam
@@ -314,6 +322,7 @@
             search1: DO k = 1, nz
               quota = improfile_2d(i,k)
               IF (quota >= deltaz) THEN
+                  quotam = improfile_2d(i,k-1)
                   imesh  = i + (k-1) * nx
                   IF (cell_owner(imesh) == mpime) THEN
                     ijk  = cell_g2l(imesh, mpime)
@@ -321,10 +330,10 @@
                     ! ... identify the first neighbours
                     !
                     CALL first_subscr(ijk)
-                    alpha = deltaz - improfile_2d(i,k-1)
+                    alpha = deltaz - quotam
                     alpha = alpha / (z(k) - z(k-1))
                     !
-                    IF (improfile_2d(i,k-1) > 0.D0) THEN
+                    IF (quotam > 0.D0) THEN
                       map = alpha* array(ijk) + (1.D0-alpha) * array(ijkm)
                     ELSE
                       map = alpha* array(ijk) + (1.D0-alpha) * array(ijk)
@@ -348,7 +357,6 @@
         IF (mpime == root) THEN
           OPEN(UNIT=tempunit,FILE=filnam)
           DO i = 2, nx-1
-!              WRITE (tempunit,( 'G10.4,G14.6E3' )) x(i), map1d(i)
               WRITE (tempunit,121) x(i), map1d(i)
           END DO
           CLOSE(tempunit)
@@ -366,9 +374,15 @@
         DO i = 1, nx
         DO j = 1, ny
             !
-            search2: DO k = 1, nz
-              quota = improfile_3d(i,j,k)
+            search2: DO k = 2, nz
+              ! ... compute the quota of the cell
+              ! ... with respect to the topography
+              quota = z(k) - topo2d(i,j)
               IF (quota >= deltaz) THEN
+                  ! ... compute the quota of the last cell below the threshold
+                  ! ... with respect to the topography
+                  quotam = z(k-1) - topo2d(i,j)
+                  !
                   imesh  = i + (j-1) * nx + (k-1) * nx * ny
                   IF (cell_owner(imesh) == mpime) THEN
                     ijk  = cell_g2l(imesh, mpime)
@@ -376,10 +390,10 @@
                     ! ... identify the first neighbours
                     !
                     CALL first_subscr(ijk)
-                    alpha = deltaz - improfile_3d(i,j,k-1)
+                    alpha = deltaz - quotam
                     alpha = alpha / (z(k) - z(k-1))
                     !
-                    IF (improfile_3d(i,j,k-1) > 0.D0) THEN
+                    IF (quotam > 0.D0) THEN
                       map = alpha* array(ijk) + (1.D0-alpha) * array(ijkm)
                     ELSE
                       map = alpha* array(ijk) + (1.D0-alpha) * array(ijk)
