@@ -42,8 +42,10 @@
       USE set_indexes, ONLY: ipjk, imjk, ippjk, immjk, ijpk, ipjpk,    &
         imjpk, ijmk, ipjmk, imjmk, ijppk, ijmmk, ijkp, ipjkp, imjkp,   &
         ijpkp, ijmkp, ijkm, ipjkm, imjkm, ijpkm, ijmkm, ijkpp, ijkmm
+      USE time_parameters, ONLY: tau1, tau2
       USE vent_conditions, ONLY: update_vent_cell, random_switch, irand, &
-                                 update_inlet_cell
+                                 update_inlet_cell, grow_vent_cell, &
+                                 grow_inlet_cell
 !
       IMPLICIT NONE
 !
@@ -73,16 +75,23 @@
 !
 ! ... Update inlet cells for non-stationnary boundary conditions
 !
-        IF (irand >= 1) THEN
-          IF (flag(ijk) == inlet_cell) THEN
-                  ! ... Impose a random perturbation at inlet
-            CALL update_inlet_cell(ijk)
-          ELSE IF (flag(ijk) == vent_cell) THEN
-                  ! ... Modify randomly the vent cells laying on the 
-                  ! ... vent rim to get the prescribed (averaged) mass flow-rate
-            CALL update_vent_cell(ijk,imesh,sweep)
+          IF (irand >= 1) THEN
+            IF (flag(ijk) == inlet_cell) THEN
+                    ! ... Impose a random perturbation at inlet
+                    CALL update_inlet_cell(ijk)
+            ELSE IF (flag(ijk) == vent_cell) THEN
+                    ! ... Antialiasing
+                    CALL update_vent_cell(ijk,imesh,sweep)
+            END IF
           END IF
-        END IF
+!
+          IF (tau1 > 0.D0 .OR. tau2 > 0.D0) THEN
+            IF (flag(ijk) == inlet_cell) THEN
+                  CALL grow_inlet_cell(ijk,imesh,sweep)
+            ELSE IF (flag(ijk) == vent_cell) THEN
+                  CALL grow_vent_cell(ijk,imesh,sweep)
+            END IF
+          END IF
 !
 ! ... In the immersed boundaries, update the velocity through linear
 ! ... interpolations 

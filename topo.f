@@ -1018,7 +1018,7 @@
                           ijk = i + (k-1) * nx
                           IF (fl(ijk) == noslip_wall) cntz = k
                         END DO
-                        IF (mpime == root) WRITE(tempunit,*) i, cntz
+                        IF (mpime == root) WRITE(tempunit,101) i, cntz
                       END DO
               ELSE IF (job_type == '3D') THEN
                       DO j = 1, ny
@@ -1034,6 +1034,7 @@
               END IF
               IF (mpime == root) CLOSE(tempunit)
       END IF
+ 101  FORMAT(2I5)
 !
 ! ... Deallocate all arrays in the topography module
 !
@@ -1072,7 +1073,7 @@
 ! ... "ord" and "ord2d" are the last cell COMPLETELY below the topography
 !
       USE control_flags, ONLY: lpr, job_type
-      USE grid, ONLY: fl, zb
+      USE grid, ONLY: fl, zb, z
       USE grid, ONLY: inlet_cell, noslip_wall, fluid, bl_cell
       USE io_files, ONLY: testunit
       USE flux_limiters, ONLY: muscl

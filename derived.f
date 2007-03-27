@@ -362,7 +362,7 @@
       DO ind = 1, arraysize
         IF (epst(ind) /= 0.D0) THEN
           y = rhog(ind) / rhom(ind)
-          fact = DSQRT(y/(1.D0-epst(ind)))
+          fact = DSQRT(y*(1.D0-epst(ind)))
           fact = DSQRT(y)
           cm(ind) = DSQRT(rgas * tg(ind) / mgas(ind))
           cm(ind) = cm(ind) * fact

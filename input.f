@@ -128,7 +128,7 @@
       USE set_indexes, ONLY: subsc_setup
       USE specific_heat_module, ONLY: icpc
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
-     &                            timestart, rungekut, tau
+     &                            timestart, rungekut, tau1, tau2
       USE turbulence_model, ONLY: iturb, cmut, iss, modturbo
       USE volcano_topography, ONLY: itp, iavv, cellsize, filtersize, &
                          dem_file, nocrater, rim_quota, ismt, itrans, seatable
@@ -138,7 +138,7 @@
       INTEGER, INTENT(IN) :: iunit
 
       NAMELIST / control / run_name, job_type, restart_mode,       &
-        time, tstop, dt, lpr, imr, isrt, tpr, tdump, nfil, tau,          &
+        time, tstop, dt, lpr, imr, isrt, tpr, tdump, nfil, tau1, tau2,      &
         formatted_output, formatted_input, max_seconds
 
       NAMELIST / model / icpc, irex, gas_viscosity, part_viscosity,      &
@@ -207,7 +207,8 @@
       formatted_output = .TRUE.
       formatted_input  = .TRUE.
       max_seconds = 40000.0
-      tau = 0.D0
+      tau1 = 0.D0
+      tau2 = 0.D0
 
 ! ... Model
 
@@ -434,7 +435,8 @@
       CALL bcast_logical(formatted_output,1,root)
       CALL bcast_logical(formatted_input,1,root)
       CALL bcast_real(max_seconds,1,root)
-      CALL bcast_real(tau,1,root)
+      CALL bcast_real(tau1,1,root)
+      CALL bcast_real(tau2,1,root)
 
       SELECT CASE ( TRIM(restart_mode) )
         CASE ('check_geom')
@@ -852,7 +854,8 @@
             CALL iotk_write_dat( iuni_nml, "tdump", tdump )
             CALL iotk_write_dat( iuni_nml, "nfil", nfil )
             CALL iotk_write_dat( iuni_nml, "max_seconds", max_seconds )
-            CALL iotk_write_dat( iuni_nml, "tau", tau )
+            CALL iotk_write_dat( iuni_nml, "tau1", tau1 )
+            CALL iotk_write_dat( iuni_nml, "tau2", tau2 )
             CALL iotk_write_dat( iuni_nml, "formatted_output", formatted_output )
             CALL iotk_write_dat( iuni_nml, "formatted_input", formatted_input )
           CALL iotk_write_end( iuni_nml, "control" )
@@ -1118,7 +1121,7 @@
       USE grid, ONLY: nx_inner, ny_inner, nz_inner
       USE grid, ONLY: dx_inner, dy_inner, dz_inner
       USE grid, ONLY: nmx, npx, nmy, npy, nmz, npz
-      USE grid, ONLY: iob, zzero, grigen
+      USE grid, ONLY: iob, grigen
       USE immersed_boundaries, ONLY: immb
       USE initial_conditions, ONLY: epsob, tpob, ygcob,   &
      &     ugob, vgob, wgob, upob, vpob, wpob, pob, tgob, epob

@@ -352,7 +352,7 @@
           ! ... partially filled by the topography in order
           ! ... to respect the mass flux
           !
-          IF (iali == 1) CALL density_antialias(ijk,k,alpha)
+          IF (iali == 1) CALL density_antialias_2(ijk,k,alpha)
           IF (iali == 2) CALL velocity_antialias(ijk,alpha)
 
           ! ... 'wrat' is the ratio between the maximum
@@ -498,6 +498,42 @@
       RETURN
       END SUBROUTINE density_antialias
 !-----------------------------------------------------------------------
+      SUBROUTINE density_antialias_2(ijk,k,alpha)
+!
+! ... Correct the density in the inlet cells partially filled by the
+! ... topography ("antialiasing")
+!
+      USE eos_gas, ONLY: xgc, mole, thermal_eosg
+      USE dimensions, ONLY: nsolid
+      USE gas_constants, ONLY: gmw, gas_type
+      USE gas_solid_density, ONLY: rlk
+      USE gas_solid_temperature, ONLY: tg
+      USE particles_constants, ONLY: rl, inrl
+      USE pressure_epsilon, ONLY: ep, p
+      IMPLICIT NONE
+
+      INTEGER, INTENT(IN) :: ijk, k
+      REAL*8, INTENT(IN) :: alpha
+      REAL*8 :: ep0, rog0, rlk0, beta
+      INTEGER :: is, ig
+      
+      CALL thermal_eosg(rog0, tg(ijk), p(ijk), xgc(ijk,:))
+      ep0  = 1.D0 - SUM(ep_solid(1:nsolid))
+      rlk0 = SUM(rlk(ijk,:))
+      beta = rlk0 / (rlk0 + rog0*ep0)
+      !
+      ! ... 'alpha' is the cell surface fraction.
+      ! ... 'beta' is the total solid mass fraction
+      ! ... The solid bulk density is reduced by the factor 'alpha/beta'
+      !
+      DO is = 1,nsolid
+        rlk(ijk,is) = ep_solid(is)*rl(is) * alpha / beta
+      END DO
+      ep(ijk) = 1.D0 - alpha/beta * SUM(ep_solid(1:nsolid))
+      
+      RETURN
+      END SUBROUTINE density_antialias_2
+!-----------------------------------------------------------------------
       SUBROUTINE velocity_antialias(ijk,alpha)
 !
 ! ... Correct the velocity in the inlet cells partially filled by the
@@ -552,7 +588,7 @@
 
       INTEGER, INTENT(IN) :: ijk, imesh, sweep
       INTEGER :: is, n
-      REAL*8 :: switch, growth_factor
+      REAL*8 :: switch
       
       IF (wrat > 1.D0) RETURN
       
@@ -569,14 +605,9 @@
         switch = 1.D0
       END IF
 
-      ! ... The inlet profile grows from 0 to its final
-      ! ... value as the function of time 'ft'
-      !
-      growth_factor = ft(sweep)
-      
-      wg(ijk) = w_gas * switch * growth_factor
+      wg(ijk) = w_gas * switch
       DO is = 1,nsolid
-        ws(ijk,is) = w_solid(is) * switch * growth_factor
+        ws(ijk,is) = w_solid(is) * switch
       END DO
 
       RETURN
@@ -613,6 +644,60 @@
       RETURN
       END SUBROUTINE update_inlet_cell
 !-----------------------------------------------------------------------
+      SUBROUTINE grow_vent_cell(ijk,imesh,sweep)
+!
+      USE dimensions, ONLY: nsolid
+      USE gas_solid_velocity, ONLY: wg, ws
+      IMPLICIT NONE
+
+      INTEGER, INTENT(IN) :: ijk, imesh, sweep
+      INTEGER :: is, n
+      REAL*8 :: switch, growth_factor
+      
+      IF (wrat > 1.D0) RETURN
+      
+      ! ... The inlet profile grows from 0 to its final
+      ! ... value as the function of time 'ft1'
+      !
+      growth_factor = ft1(sweep)
+      
+      wg(ijk) = w_gas * growth_factor
+      DO is = 1,nsolid
+        ws(ijk,is) = w_solid(is) * growth_factor
+      END DO
+
+      RETURN
+      END SUBROUTINE grow_vent_cell
+!-----------------------------------------------------------------------
+      SUBROUTINE grow_inlet_cell(ijk,imesh,sweep)
+!
+      USE atmospheric_conditions, ONLY: p_ground
+      USE dimensions, ONLY: nsolid
+      USE gas_solid_velocity, ONLY: wg, ws
+      IMPLICIT NONE
+
+      INTEGER, INTENT(IN) :: ijk, imesh, sweep
+      INTEGER :: is, n
+      REAL*8 :: decay_factor, growth_factor
+      REAL*8 :: wgas_init, wpart_init(max_nsolid)
+      
+      IF (sweep == 1) THEN
+              wgas_init = wg(ijk) 
+              wpart_init(1:nsolid) = ws(ijk,1:nsolid)
+      END IF
+      
+      !
+      growth_factor = ft2(sweep)
+      decay_factor = ft3(sweep)
+      
+      wg(ijk) = wgas_init * growth_factor
+      DO is = 1,nsolid
+        ws(ijk,is) = wpart_init(is) * growth_factor
+      END DO
+
+      RETURN
+      END SUBROUTINE grow_inlet_cell
+!-----------------------------------------------------------------------
       SUBROUTINE random_switch(sweep)
 !
 ! ... Randomly switch vent cells on/off, with a probability
@@ -641,8 +726,8 @@
       RETURN
       END SUBROUTINE random_switch
 !-----------------------------------------------------------------------
-      REAL*8 FUNCTION ft(n)
-      USE time_parameters, ONLY: tau, dt
+      REAL*8 FUNCTION ft1(n)
+      USE time_parameters, ONLY: tau1, dt
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: n
       REAL*8 :: t, tr
@@ -650,20 +735,66 @@
       t = n * dt
       tr = 0.D0
 !
-! ... The function 'ft' grows smoothly from 0 to 1 in a time 'tau'
+! ... The function 'ft1' grows smoothly from 0 to 1 in a time 'tau1'
 !
-      IF (tau > 0.D0) tr = t / tau
+      IF (tau1 > 0.D0) tr = t / tau1
 
       IF (tr > 0.D0 .AND. tr <= 1.D0) THEN
-        ft = 3.D0 * (tr)**2 - 2.D0 * (tr)**3     
+        ft1 = 3.D0 * (tr)**2 - 2.D0 * (tr)**3     
       ELSE IF (tr > 10.D0) THEN
-        ft = 0.D0
+        ft1 = 0.D0
       ELSE
-        ft = 1.D0
+        ft1 = 1.D0
       END IF
 
       RETURN
-      END FUNCTION ft
+      END FUNCTION ft1
+!-----------------------------------------------------------------------
+      REAL*8 FUNCTION ft2(n)
+      USE time_parameters, ONLY: tau1, tau2, dt
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: n
+      REAL*8 :: t, tr1, tr2
+
+      t = n * dt
+      tr1 = 0.D0
+      tr2 = 0.D0
+!
+! ... The function 'ft2' grows linearly from 0 to 1 in a time 'tau1'
+!
+      IF (tau1 > 0.D0) tr1 = t / tau1
+      IF (tau2 > tau1) tr2 = (tau2 - t)/(tau2 - tau1)
+
+      IF (tr1 > 0.D0 .AND. tr2 > 0.D0) THEN
+              ft2 = MAX(MIN(tr1,tr2),0.D0)
+      ELSE
+              ft2 = 1.D0
+      END IF
+
+      RETURN
+      END FUNCTION ft2
+!-----------------------------------------------------------------------
+      REAL*8 FUNCTION ft3(n)
+      USE time_parameters, ONLY: tau2, dt
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: n
+      REAL*8 :: t, tr2
+
+      t = n * dt
+      tr2 = 0.D0
+!
+! ... The function 'ft3' decreases linearly from 1 to 0 in a time 'tau2'
+!
+      IF (tau2 > 0.D0) tr2 = t / tau2
+
+      IF (tr2 > 0.D0) THEN
+              ft3 = MAX(1.D0-tr2,0.D0)
+      ELSE
+              ft3 = 1.D0
+      END IF
+
+      RETURN
+      END FUNCTION ft3
 !-----------------------------------------------------------------------
       REAL*8 FUNCTION cell_fraction(i,j)
 !

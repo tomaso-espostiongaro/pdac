@@ -92,6 +92,7 @@
 !
 ! ... For each layer, compute the bottom and top 
 ! ... pressure and temperature
+! ... The atmospheric profile starts at sea level (z=0)
 !
       DO l = 1, num_layers
 
@@ -137,7 +138,7 @@
 ! ... cell of the computational domain 
 !
       USE dimensions, ONLY: nz
-      USE grid, ONLY: dz, z, zzero
+      USE grid, ONLY: dz, z
       USE parallel, only: mpime, root
 !
       IMPLICIT NONE
@@ -148,13 +149,13 @@
       REAL*8 :: gradt
       INTEGER :: k, l
 !
-! ... First layer
+! ... Identify the layer ('l') where the mesh starts
 !
-      IF( zzero <= layer(1)%ztop ) THEN
+      IF( z(1) <= layer(1)%ztop ) THEN
         l = 1
       ELSE
         DO l = 2, num_layers
-          IF( zzero > layer(l-1)%ztop ) EXIT
+          IF( z(1) > layer(l-1)%ztop ) EXIT
         END DO
       END IF
 !
@@ -165,14 +166,14 @@
 !
         IF (za > 0.D0) THEN
           IF (.NOT.stratification) THEN
-            zbot = zzero
+            zbot = z(1)
             pbot = p_ground
             tbot = t_ground
             gradt = 0.D0
           ELSE
             IF (za > layer(l)%ztop) l=l+1
             IF (l==1) THEN
-              zbot = zzero
+              zbot = z(1)
               pbot = p_ground
               tbot = t_ground
             ELSE IF (l>1) THEN
