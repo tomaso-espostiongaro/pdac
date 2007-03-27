@@ -4,8 +4,9 @@
       IMPLICIT NONE
 !
       TYPE orthoslice 
-        INTEGER :: axis
+        INTEGER :: axis      
         INTEGER :: plane
+        INTEGER :: surf_type
         INTEGER :: n1
         INTEGER :: n2
         INTEGER :: t1
@@ -34,7 +35,8 @@
 
       IMPLICIT NONE
 !
-      INTEGER :: n1, n2, t1, t2, axis, plane
+      INTEGER :: n1, n2, t1, t2, axis, plane, surf_type
+      REAL*8  :: center1, center2, d1, d2, dist
       INTEGER :: is, n, t, np
       INTEGER :: i, j, k, ijk, imesh
       REAL*8, ALLOCATABLE :: vel(:), epsm(:)
@@ -56,53 +58,61 @@
       ALLOCATE(sflux_n(number_of_planes,nsolid))
       slice(:)%axis = 1
       slice(:)%plane = 1
-      slice(:)%n1 = 1
+      slice(:)%surf_type = 1
+      slice(:)%n1 = 1 
       slice(:)%n2 = 1
       slice(:)%t1 = 1
       slice(:)%t2 = 1
 !
       IF (mpime == root) OPEN(tempunit, FILE=planes_file, STATUS='OLD')
       DO np = 1, number_of_planes
-                IF (job_type == '2D') THEN
+               IF (job_type == '2D') THEN
                         !
-                        IF (mpime == root) READ(tempunit,*) axis, plane
-                        IF (mpime == root) READ(tempunit,*) cn1, cn2
+                        IF (mpime == root) READ(tempunit,*) axis, plane, surf_type
+                        IF (mpime == root) READ(tempunit,*) center1, d1 
                         CALL bcast_integer(axis,1,root)
                         CALL bcast_integer(plane,1,root)
-                        CALL bcast_real(cn1,1,root)
-                        CALL bcast_real(cn2,1,root)
+                        CALL bcast_real(d1,1,root)
+                        CALL bcast_real(center1,1,root)
                         !
-                        IF (axis == 1) THEN
+                        IF (axis == 1 .AND. surf_type == 1) THEN
                           slice(np)%axis = 1
                           DO i=1,nx
                             IF (xb(i) <= plane) slice(np)%plane = i
                           END DO
                           DO k=1,nz
-                            IF (zb(k) <= cn1) slice(np)%n1 = MAX(2,k)
-                            IF (zb(k) <= cn2) slice(np)%n2 = MIN(nz-1,k)
+                           IF (zb(k) <= center1) slice(np)%n1 = MAX(2,k)
+                            IF (zb(k) <= (center1+d1)) slice(np)%n2 = MIN(nz-1,k)
                           END DO
-                        ELSE IF (axis == 2) THEN
+                        ELSE IF (axis == 2 .AND. surf_type == 1) THEN
                           slice(np)%axis = 2
-                          DO i=1,nx
-                            IF (xb(i) <= cn1) slice(np)%n1 = MAX(2,i)
-                            IF (xb(i) <= cn2) slice(np)%n2 = MIN(nx-1,i)
-                          END DO
                           DO k=1,nz
                             IF (zb(k) <= plane) slice(np)%plane= k
                           END DO
+                          DO i=1,nx
+                           IF (xb(i) <= center1) slice(np)%n1 = MAX(2,i)
+                            IF (xb(i) <= (center1+d1)) slice(np)%n2 = MIN(nx-1,i)
+                          END DO
                         ELSE
-                          CALL error('mass_flux','Invalid axis number',axis)
+                         CALL error('mass_flux','Invalid axis number/surface type', axis)
                         END IF
-                ELSE IF (job_type == '3D') THEN
+               ELSE IF (job_type == '3D') THEN
                         !
-                        IF (mpime == root) READ(tempunit,*) axis, plane
-                        IF (mpime == root) READ(tempunit,*) cn1, cn2, ct1, ct2
+                        ! ... Read input file. 
+                        !
+                        IF (mpime == root) THEN
+                          READ(tempunit,*) axis, plane, surf_type
+                          READ(tempunit,*) center1, center2, d1, d2  
+                        END IF
                         CALL bcast_integer(axis,1,root)
                         CALL bcast_integer(plane,1,root)
-                        CALL bcast_real(cn1,1,root)
-                        CALL bcast_real(cn2,1,root)
-                        CALL bcast_real(ct1,1,root)
-                        CALL bcast_real(ct2,1,root)
+                        CALL bcast_integer(surf_type,1,root)
+                        CALL bcast_real(center1,1,root)
+                        CALL bcast_real(center2,1,root)
+                        CALL bcast_real(d1,1,root)
+                        CALL bcast_real(d2,1,root)
+                        !
+                        IF (surf_type == 2) d2 = d1
                         !
                         IF (axis == 1) THEN
                           slice(np)%axis = 1
@@ -110,12 +120,12 @@
                             IF (xb(i) <= plane) slice(np)%plane = i
                           END DO
                           DO j=1,ny
-                            IF (yb(j) <= cn1) slice(np)%n1 = j
-                            IF (yb(j) <= cn2) slice(np)%n2 = j
+                           IF (yb(j) <= (center1-d1)) slice(np)%n1 = j
+                           IF (yb(j) <= (center1+d1)) slice(np)%n2 = j
                           END DO
                           DO k=1,nz
-                            IF (zb(k) <= ct1) slice(np)%t1 = k
-                            IF (zb(k) <= ct2) slice(np)%t2 = k
+                           IF (zb(k) <= (center2-d2)) slice(np)%t1 = k
+                           IF (zb(k) <= (center2+d2)) slice(np)%t2 = k
                           END DO
                         ELSE IF (axis == 2) THEN
                           slice(np)%axis = 2
@@ -123,12 +133,12 @@
                             IF (yb(j) <= plane) slice(np)%plane = j
                           END DO
                           DO k=1,nz
-                            IF (zb(k) <= cn1) slice(np)%n1 = k
-                            IF (zb(k) <= cn2) slice(np)%n2 = k
+                           IF (zb(k) <= (center1-d1)) slice(np)%n1 = k
+                           IF (zb(k) <= (center1+d1)) slice(np)%n2 = k
                           END DO
                           DO i=1,nx
-                            IF (xb(i) <= ct1) slice(np)%t1 = i
-                            IF (xb(i) <= ct2) slice(np)%t2 = i
+                           IF (xb(i) <= (center2-d2)) slice(np)%t1 = i
+                           IF (xb(i) <= (center2+d2)) slice(np)%t2 = i
                           END DO
                         ELSE IF (axis == 3) THEN
                           slice(np)%axis = 3
@@ -136,25 +146,26 @@
                             IF (zb(k) <= plane) slice(np)%plane= k
                           END DO
                           DO i=1,nx
-                            IF (xb(i) <= cn1) slice(np)%n1 = i
-                            IF (xb(i) <= cn2) slice(np)%n2 = i
+                           IF (xb(i) <= (center1-d1)) slice(np)%n1 = i
+                           IF (xb(i) <= (center1+d1)) slice(np)%n2 = i
                           END DO
                           DO j=1,ny
-                            IF (yb(j) <= ct1) slice(np)%t1 = j
-                            IF (yb(j) <= ct2) slice(np)%t2 = j
+                           IF (yb(j) <= (center2-d2)) slice(np)%t1 = j
+                           IF (yb(j) <= (center2+d2)) slice(np)%t2 = j
                           END DO
                         ELSE
                           CALL error('mass_flux','Invalid axis number',axis)
                         END IF
-                END IF
+               END IF
       END DO
       !
       IF (mpime == root) THEN
         CLOSE(tempunit)
         WRITE(logunit,*) 'Slice limits'
-        WRITE(logunit,*) (slice(np)%axis, slice(np)%plane, &
-                    slice(np)%n1, slice(np)%n2, slice(np)%t1, slice(np)%t2, &
-                    np=1,number_of_planes)
+        WRITE(logunit,*) (np, slice(np)%axis, slice(np)%plane, &
+                          slice(np)%n1, slice(np)%n2, & 
+                          slice(np)%t1, slice(np)%t2, &
+                          np=1,number_of_planes)
       END IF
 !
       CALL data_exchange(eps)
@@ -167,6 +178,7 @@
       DO np = 1, number_of_planes
         axis  = slice(np)%axis
         plane = slice(np)%plane
+        surf_type  = slice(np)%surf_type
         n1 = slice(np)%n1
         n2 = slice(np)%n2
         t1 = slice(np)%t1
@@ -185,7 +197,7 @@
                     surface = twopi * rb(plane) * dz(n)
                     DO is = 1,nsolid
                       vel(is) = us(ijk,is)
-                      epsm(is) = linterp(eps(ijk,is),eps(ipjk,is),dx(plane),dx(plane+1))
+                      epsm(is) = linterp(eps(ijk,is),eps(ipjk,is), dx(plane),dx(plane+1))
                     END DO
                   END IF
                 ELSE IF (axis == 2) THEN
@@ -196,43 +208,53 @@
                     surface = twopi * r(n) * dx(n)
                     DO is = 1,nsolid
                       vel(is) = ws(ijk,is)
-                      epsm(is) = linterp(eps(ijk,is),eps(ijkp,is),dz(plane),dz(plane+1))
+                      epsm(is) = linterp(eps(ijk,is),eps(ijkp,is), dz(plane),dz(plane+1))
                     END DO
                   END IF
                 END IF
+
               ELSE IF (job_type == '3D') THEN
                 IF (axis == 1) THEN
                   imesh = plane + (n-1) * nx + (t-1) * nx * ny
-                  IF (cell_owner(imesh) == mpime) THEN
-                    ijk = cell_g2l(imesh,mpime)
-                    CALL first_subscr(ijk) ! Identify 'ipjk'
-                    surface = dy(n) * dz(t)
-                    DO is = 1,nsolid
-                      vel(is) = us(ijk,is)
-                      epsm(is) = linterp(eps(ijk,is),eps(ipjk,is),dx(plane),dx(plane+1))
-                    END DO
+                  dist  = DSQRT((yb(n)-center1)**2+(zb(t)-center2)**2) 
+                  IF (surf_type == 1 .OR. (surf_type == 2 .AND. dist <= d1)) THEN
+                    IF (cell_owner(imesh) == mpime) THEN
+                      ijk = cell_g2l(imesh,mpime)
+                      CALL first_subscr(ijk) ! Identify 'ipjk'
+                      surface = dy(n) * dz(t)
+                      DO is = 1,nsolid
+                        vel(is) = us(ijk,is)
+                        epsm(is) = linterp(eps(ijk,is),eps(ipjk,is), dx(plane),dx(plane+1))
+                      END DO
+                    END IF
                   END IF
                 ELSE IF (axis == 2) THEN
                   imesh = t + (plane-1) * nx + (n-1) * nx * ny
-                  IF (cell_owner(imesh) == mpime) THEN
-                    ijk = cell_g2l(imesh,mpime)
-                    CALL first_subscr(ijk) ! Identify 'ijpk'
-                    surface = dz(n) * dx(t)
-                    DO is = 1,nsolid
-                      vel(is) = vs(ijk,is)
-                      epsm(is) = linterp(eps(ijk,is),eps(ijpk,is),dy(plane),dy(plane+1))
-                    END DO
+                  dist  = DSQRT((xb(n)-center1)**2+(zb(t)-center2)**2)
+                  IF (surf_type == 1 .OR. (surf_type == 2 .AND. dist <= d1)) THEN
+                    IF (cell_owner(imesh) == mpime) THEN
+                      ijk = cell_g2l(imesh,mpime)
+                      CALL first_subscr(ijk) ! Identify 'ijpk'
+                      surface = dz(n) * dx(t)
+                      DO is = 1,nsolid
+                        vel(is) = vs(ijk,is)
+                        epsm(is) = linterp(eps(ijk,is),eps(ijpk,is), dy(plane),dy(plane+1))
+                      END DO
+                    END IF
                   END IF
                 ELSE IF (axis == 3) THEN
                   imesh = n + (t-1) * nx + (plane-1) * nx * ny
-                  IF (cell_owner(imesh) == mpime) THEN
-                    ijk = cell_g2l(imesh,mpime)
-                    CALL first_subscr(ijk) ! Identify 'ijkp'
-                    surface = dx(n) * dy(t)
-                    DO is = 1,nsolid
-                      vel(is) = ws(ijk,is)
-                      epsm(is) = linterp(eps(ijk,is),eps(ijkp,is),dz(plane),dz(plane+1))
-                    END DO
+                  dist  = DSQRT((xb(n)-center1)**2+(yb(t)-center2)**2)
+                  IF (surf_type == 1 .OR. (surf_type == 2 .AND. dist <= d1)) THEN
+                    IF (cell_owner(imesh) == mpime) THEN
+                      ijk = cell_g2l(imesh,mpime)
+                      CALL first_subscr(ijk) ! Identify 'ijkp'
+                      surface = dx(n) * dy(t)
+                      DO is = 1,nsolid
+                        vel(is) = ws(ijk,is)
+                        epsm(is) = linterp(eps(ijk,is),eps(ijkp,is), dz(plane),dz(plane+1))
+                      END DO
+                    END IF
                   END IF
                 END IF
               END IF
@@ -254,14 +276,18 @@
       CALL parallel_sum_real(sflux_n,number_of_planes*nsolid)
 !
       IF (mpime == root) THEN
-        OPEN(tempunit, FILE='massflux.dat', STATUS='UNKNOWN', &
-                                          POSITION='APPEND')
+        OPEN(tempunit, FILE='massflux.dat', STATUS='UNKNOWN', POSITION='APPEND')
         WRITE(tempunit,100) &
-          time, ((sflux_p(np,is),sflux_n(np,is),is=1,nsolid),np=1,number_of_planes)
+          time, ((sflux_p(np,is),sflux_n(np,is),is=1,nsolid), np=1,number_of_planes)
         CLOSE(tempunit)
       END IF
  100  FORMAT(1500(G30.15E3))
 !
+      DEALLOCATE(vel, epsm)
+      DEALLOCATE(slice)
+      DEALLOCATE(sflux_p)
+      DEALLOCATE(sflux_n)
+
       RETURN
       END SUBROUTINE fluxn
 !-----------------------------------------------------------------------
