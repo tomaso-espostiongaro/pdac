@@ -166,14 +166,14 @@
 !
         IF (za > 0.D0) THEN
           IF (.NOT.stratification) THEN
-            zbot = z(1)
+            zbot = 0.D0
             pbot = p_ground
             tbot = t_ground
             gradt = 0.D0
           ELSE
             IF (za > layer(l)%ztop) l=l+1
             IF (l==1) THEN
-              zbot = z(1)
+              zbot = 0.D0
               pbot = p_ground
               tbot = t_ground
             ELSE IF (l>1) THEN
