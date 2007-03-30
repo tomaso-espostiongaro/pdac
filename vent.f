@@ -352,8 +352,9 @@
           ! ... partially filled by the topography in order
           ! ... to respect the mass flux
           !
-          IF (iali == 1) CALL density_antialias_2(ijk,k,alpha)
-          IF (iali == 2) CALL velocity_antialias(ijk,alpha)
+          IF (iali == 1) CALL density_antialias(ijk,k,alpha)
+          IF (iali == 2) CALL density_antialias_2(ijk,k,alpha)
+          IF (iali == 3) CALL velocity_antialias(ijk,alpha)
 
           ! ... 'wrat' is the ratio between the maximum
           ! ... vertical velocity and the averaged velocity
