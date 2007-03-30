@@ -265,10 +265,7 @@
             IF (immb > 0 .AND. quota >= 0.D0 .AND. topo2d(i,j) == -9999) THEN
                 topo2d(i,j) = z(k) - quota
                 EXIT search
-            ELSE IF (immb == 0 .AND. quota >= -0.5D0*dz(k) .AND. topo2d(i,j) == -9999) THEN
-                topo2d(i,j) = zb(k)
-                EXIT search
-            ELSE IF (immb == 0 .AND. quota >= 0.D0 .AND. topo2d(i,j) == -9999) THEN
+            ELSE IF (immb == 0 .AND. quota > -0.5D0*dz(k) .AND. topo2d(i,j) == -9999) THEN
                 topo2d(i,j) = zb(k-1)
                 EXIT search
             END IF
@@ -396,7 +393,7 @@
                     IF (quotam > 0.D0) THEN
                       map = alpha* array(ijk) + (1.D0-alpha) * array(ijkm)
                     ELSE
-                      map = alpha* array(ijk) + (1.D0-alpha) * array(ijk)
+                      map = array(ijk)
                     END IF
                     ! ... Map the value reached at any given position at
                     ! ... given time
