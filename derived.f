@@ -289,8 +289,8 @@
       
       arraysize = SIZE(ug)
       DO ind = 1, arraysize
-        !velm(ind) = rgp(ind)*ug(ind) + SUM(rlk(ind,:)*us(ind,:)) 
-        velm(ind) = SUM(rlk(ind,:)*us(ind,:)) 
+        velm(ind) = rgp(ind)*ug(ind) + SUM(rlk(ind,:)*us(ind,:)) 
+        !velm(ind) = SUM(rlk(ind,:)*us(ind,:)) 
         velm(ind) = velm(ind) / rhom(ind)
       END DO
 
