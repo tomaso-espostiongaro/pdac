@@ -35,7 +35,7 @@
       USE dimensions, ONLY: nsolid, ngas, nx, ny, nz
       USE domain_decomposition, ONLY: cell_owner, cell_g2l
       USE grid, ONLY: x, y, z
-      USE io_files, ONLY: tempunit
+      USE io_files, ONLY: tempunit, logunit
       USE parallel, ONLY: mpime, root
 !
       IMPLICIT NONE
@@ -58,10 +58,22 @@
 ! 
       IF (mpime == root) OPEN(tempunit, FILE=probe_file, STATUS='OLD')
       IF (mpime == root) READ(tempunit,*) 
+      IF (mpime == root) WRITE(logunit,*) 'Sampling probes: '
       DO nop = 1, number_of_probes
         probe(nop)%nop = nop
         IF (assign_index) THEN
-                IF (job_type == '3D') THEN
+                IF (job_type == '2D') THEN
+                        IF (mpime == root) READ(tempunit,*) probe(nop)%i,probe(nop)%k
+                        CALL bcast_integer(probe(nop)%i,1,root)
+                        CALL bcast_integer(probe(nop)%k,1,root)
+                        i = probe(nop)%i
+                        k = probe(nop)%k
+                        imesh = i + (k-1)*nx
+                        imesh_probe(nop) = imesh
+                        !
+                        probe(nop)%x = x(i)
+                        probe(nop)%z = z(k)
+                ELSE IF (job_type == '3D') THEN
                         IF (mpime == root) READ(tempunit,*) probe(nop)%i, probe(nop)%j, probe(nop)%k
                         CALL bcast_integer(probe(nop)%i,1,root)
                         CALL bcast_integer(probe(nop)%j,1,root)
@@ -75,35 +87,45 @@
                         probe(nop)%x = x(i)
                         probe(nop)%y = y(j)
                         probe(nop)%z = z(k)
-                ELSE IF (job_type == '2D') THEN
-                        IF (mpime == root) READ(tempunit,*) probe(nop)%i,probe(nop)%k
-                        CALL bcast_integer(probe(nop)%i,1,root)
-                        CALL bcast_integer(probe(nop)%k,1,root)
+                END IF
+        ELSE
+                IF (job_type == '2D') THEN
+                        IF (mpime == root) READ(tempunit,*) probe(nop)%x, probe(nop)%z
+                        CALL bcast_real(probe(nop)%x,1,root)
+                        CALL bcast_real(probe(nop)%z,1,root)
+                        DO i=1,nx
+                          IF (x(i) <= probe(nop)%x) probe(nop)%i = i
+                        END DO
+                        DO k=1,nz
+                          IF (z(k) <= probe(nop)%z) probe(nop)%k = k
+                        END DO
                         i = probe(nop)%i
                         k = probe(nop)%k
                         imesh = i + (k-1)*nx
                         imesh_probe(nop) = imesh
-                        !
-                        probe(nop)%x = x(i)
-                        probe(nop)%z = z(k)
-                END IF
-        ELSE
-                IF (job_type == '3D') THEN
+                ELSE IF (job_type == '3D') THEN
                         IF (mpime == root) READ(tempunit,*) probe(nop)%x, probe(nop)%y, probe(nop)%z
                         CALL bcast_real(probe(nop)%x,1,root)
                         CALL bcast_real(probe(nop)%y,1,root)
                         CALL bcast_real(probe(nop)%z,1,root)
-                        probe(nop)%i = 1
-                        probe(nop)%j = 1
-                        probe(nop)%k = 1
-                ELSE IF (job_type == '2D') THEN
-                        IF (mpime == root) READ(tempunit,*) probe(nop)%x, probe(nop)%z
-                        CALL bcast_real(probe(nop)%x,1,root)
-                        CALL bcast_real(probe(nop)%z,1,root)
-                        probe(nop)%i = 1
-                        probe(nop)%k = 1
+                        DO i=1,nx
+                          IF (x(i) <= probe(nop)%x) probe(nop)%i = i
+                        END DO
+                        DO j=1,ny
+                          IF (y(j) <= probe(nop)%y) probe(nop)%j = j
+                        END DO
+                        DO k=1,nz
+                          IF (z(k) <= probe(nop)%z) probe(nop)%k = k
+                        END DO
+                        i = probe(nop)%i
+                        j = probe(nop)%j
+                        k = probe(nop)%k
+                        imesh = i + (j-1)*nx + (k-1)*nx*ny
+                        imesh_probe(nop) = imesh
                 END IF
         END IF
+      IF (mpime == root) WRITE(logunit,'(4I4,6F8.2)') nop, i, j, k, x(i), y(j), z(k), &
+                             probe(nop)%x, probe(nop)%y, probe(nop)%z
       END DO
       IF (mpime == root) CLOSE(tempunit)
 !
