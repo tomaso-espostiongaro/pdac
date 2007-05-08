@@ -10,12 +10,12 @@
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p, ep
       USE time_parameters, ONLY: dt
-
+!
       IMPLICIT NONE
-
+!
       INTEGER :: n0, n1, n2
       PUBLIC
-
+!
       SAVE
 !-----------------------------------------------------------------------
       CONTAINS
@@ -396,8 +396,9 @@
       RETURN
       END SUBROUTINE wsb_inout4
 !-----------------------------------------------------------------------
-      SUBROUTINE ent_inout6(ucn, upn, uscn, uspn, d1, d2, k)
-! ... This routine computes continuous inoutflow conditions.
+      SUBROUTINE extrapolate(umn, ucn, upn, usmn, uscn, uspn, d0, d1, d2, k)
+! ... This routine computes continuous inoutflow conditions by linear
+! ... extrapolation
 ! ... This procedure is suited for low-Mach number regimes
 ! ... (incompressible flow)
 ! ... Works on East, North, Top boundaries
@@ -407,43 +408,41 @@
       USE gas_constants, ONLY: gas_type
       USE eos_gas, ONLY: mole, thermal_eosg
 
-      REAL*8, INTENT(IN) :: ucn
+      REAL*8, INTENT(IN) :: ucn, umn
       REAL*8, INTENT(INOUT) :: upn
-      REAL*8, INTENT(IN) :: uscn(:)
+      REAL*8, INTENT(IN) :: uscn(:), usmn(:)
       REAL*8, INTENT(INOUT) :: uspn(:)
-      REAL*8, INTENT(IN) :: d1, d2
+      REAL*8, INTENT(IN) :: d0, d1, d2
       INTEGER, INTENT(IN) :: k
 
-      REAL*8 :: kfl, deltau, rls, mg
+      REAL*8 :: rls, mg
+      REAL*8 :: delta, gradient, c1, c2
       REAL*8 :: zrif, prif, trif, rhorif
       INTEGER :: is, ig
       REAL*8 :: xgcn2(max_ngas)
 !
-! ... This value can be "tuned"  (0.0 <= kfl <= 1.0)
-! ... 'kfl=1' corresponds to the zero-gradient condition
-
-      kfl = 1.0D0
-
-! ... Transport normal velocity in boundary cells
+      c1 = 0.5D0*(d0+d1)
+      c2 = 0.5D0*(d1+d2)
 !
-      deltau = upn - ucn
-      upn = upn - kfl * deltau
+! ... Extrapolate normal velocity in boundary cells
+!
+      gradient = (ucn-umn)/c1
+      delta = gradient * c2
+      upn = ucn + delta
+      !
       DO is = 1, nsolid
-        deltau = uspn(is) - uscn(is)
-        uspn(is) = uspn(is) - kfl * deltau
+        gradient = (uscn(is)-usmn(is))/c1
+        delta = gradient * c2
+        uspn(is) = uscn(is) + delta
       END DO
 
-! ... Transport particles
+! ... Extrapolate particle concentrations
 !
       rls = 0.D0
       DO is=1, nsolid
-        IF (uscn(is) > 0.D0) THEN
-          rlk(n2,is) = rlk(n2,is) - dt/d2 * uscn(is) * &
-                     ( rlk(n2,is) - rlk(n1,is) )
-        ELSE IF (uscn(is) < 0.D0) THEN
-          rlk(n2,:) = 0.D0
-        ELSE
-        END IF
+        gradient = (rlk(n1,is)-rlk(n0,is))/c1
+        delta = gradient * c2
+        rlk(n2,is) = rlk(n1,is) + delta
         rls = rls + rlk(n2,is)*inrl(is)
       END DO
       IF (rls >= 1.D0) &
@@ -453,54 +452,41 @@
 !
       ep(n2) = 1.D0 - rls
 
-! ... Transport temperature 
+! ... Atmospheric conditions
 !
       zrif = z(k)
       prif = p_atm(k)
       trif = t_atm(k)
-
-      IF (ucn > 0.D0) THEN
-        tg(n2) = tg(n1)
-      ELSE IF (ucn < 0.D0) THEN
-        tg(n2) = trif
-      ELSE
-      END IF
-      !
-      DO is=1,nsolid
-        IF (uscn(is) > 0.D0) THEN
-          ts(n2,is) = ts(n1,is)
-        ELSE IF (uscn(is) < 0.D0) THEN
-          ts(n2,is) = trif
-        ELSE
-        END IF
-      END DO
-
-! ... Transport gas components
-!
-      IF (ucn > 0.D0) THEN
-        DO ig=1, ngas
-          ygc(n2,ig) = ygc(n2,ig) - dt/d2 * ucn * ( ygc(n2,ig) - ygc(n1,ig) )
-        END DO
-      ELSE IF (ucn < 0.D0) THEN
-        DO ig = 1, ngas
-          ygc(n2,ig) = atm_ygc(gas_type(ig))
-        END DO
-      ELSE
-      END IF
-      CALL mole(xgcn2(:), ygc(n2,:))
       CALL thermal_eosg(rhorif, trif, prif, xgcn2(:))
 
-! ... Transport gas bulk density
+! ... Extrapolate temperature 
 !
-      IF (ucn > 0.D0) THEN
-        rgp(n2) = rgp(n2) - dt/d2 * ucn * &
-                     ( rgp(n2) - rgp(n1) )
-      ELSE IF (ucn < 0.D0) THEN
-        rgp(n2) = rhorif
-      ELSE
-      END IF
-      rog(n2) = rgp(n2) / ep(n2)
+      gradient = (tg(n1)-tg(n0))/c1
+      delta = gradient * c2
+      tg(n2) = tg(n1) + delta
+      !
+      DO is=1,nsolid
+        gradient = (ts(n1,is)-ts(n0,is))/c1
+        delta = gradient * c2
+        ts(n2,is) = ts(n1,is) + delta
+      END DO
 
+! ... Extrapolate gas components
+!
+      DO ig=1, ngas
+        gradient = (ygc(n1,ig)-ygc(n0,ig))/c1
+        delta = gradient * c2
+        ygc(n2,ig) = ygc(n1,ig) + delta
+      END DO
+      CALL mole(xgcn2(:), ygc(n2,:))
+
+! ... Extrapolate gas bulk density
+!
+      gradient = (rgp(n1)-rgp(n0))/c1
+      delta = gradient * c2
+      rgp(n2) = rgp(n1) + delta
+      rog(n2) = rgp(n2) / ep(n2)
+!
 ! ... Compute new pressure by using equation of state
 !
       mg = 0.D0
@@ -508,126 +494,10 @@
         mg = mg + xgcn2(ig) * gmw(gas_type(ig))
       END DO
 
-      p(n2) = rog(n2) * tg(n2) * ( rgas / mg )
+      p(n2) = rog(n2) * tg(n2) * rgas / mg 
 
       RETURN
-      END SUBROUTINE ent_inout6
-!-----------------------------------------------------------------------
-      SUBROUTINE wsb_inout6(ucn, umn, uscn, usmn, d1, d2, k)
-! ... This routine computes continuous inoutflow conditions.
-! ... This procedure is suited for low-Mach number regimes
-! ... (incompressible flow)
-! ... Works on West, South, Bottom boundaries
-
-      USE atmospheric_conditions, ONLY: p_atm, t_atm, atm_ygc
-      USE gas_constants, ONLY: gmw, gammaair, gamn, rgas
-      USE gas_constants, ONLY: gas_type
-      USE eos_gas, ONLY: mole, thermal_eosg
-
-      REAL*8, INTENT(IN) :: ucn
-      REAL*8, INTENT(INOUT) :: umn
-      REAL*8, INTENT(IN) :: uscn(:)
-      REAL*8, INTENT(INOUT) :: usmn(:)
-      REAL*8, INTENT(IN) :: d1, d2
-      INTEGER, INTENT(IN) :: k
-
-      REAL*8 :: kfl, deltau, rls, mg
-      REAL*8 :: zrif, prif, trif, rhorif
-      INTEGER :: is, ig
-      REAL*8 :: xgcn2(max_ngas)
-!
-! ... This value can be "tuned" (0.0 <= kfl <= 1.0)
-! ... (analogous to CFL number)
-! ... 'kfl=1' corresponds to the zero-gradient condition
-!
-      kfl = 1.0D0
-
-! ... Transport normal velocity into boundary cells
-!
-      deltau = ucn - umn
-      umn = umn + kfl * deltau
-      DO is = 1, nsolid
-        deltau = uscn(is) - usmn(is)
-        usmn(is) = usmn(is) - kfl * deltau
-      END DO
-
-! ... Transport particles (no g-p interaction)
-!
-      rls = 0.D0
-      DO is=1, nsolid
-        IF (usmn(is) < 0.D0) THEN
-          rlk(n2,is) = rlk(n2,is) & 
-                        - dt/d2 * usmn(is) * ( rlk(n1,is) - rlk(n2,is) )
-        ELSE IF (usmn(is) > 0.D0) THEN
-          rlk(n2,is) = 0.D0
-        END IF
-        rls = rls + rlk(n2,is)*inrl(is)
-      END DO
-      IF (rls >= 1.D0) &
-          CALL error('bdry','control transport on boundary',1)
-
-! ... Compute void fraction 
-!
-      ep(n2) = 1.D0 - rls
-
-! ... Transport temperature
-!
-      zrif = z(k)
-      prif = p_atm(k)
-      trif = t_atm(k)
-
-      IF (umn < 0.D0) THEN
-        tg(n2) = tg(n1)
-      ELSE IF (umn > 0.D0) THEN
-        tg(n2) = trif
-      ELSE
-      END IF
-      !
-      DO is=1,nsolid
-        IF (usmn(is) < 0.D0) THEN
-          ts(n2,is) = ts(n1,is)
-        ELSE IF (usmn(is) > 0.D0) THEN
-          ts(n2,is) = trif
-        ELSE
-        END IF
-      END DO
-
-! ... Transport gas components
-!
-      IF (umn < 0.D0) THEN
-        DO ig=1, ngas
-          ygc(n2,ig) = ygc(n2,ig) - dt/d2 * umn * ( ygc(n1,ig) - ygc(n2,ig) )
-        END DO
-      ELSE IF (umn > 0.D0) THEN
-        DO ig = 1, ngas
-          ygc(n2,ig) = atm_ygc(gas_type(ig))
-        END DO
-      ELSE
-      END IF
-      CALL mole(xgcn2(:), ygc(n2,:))
-      CALL thermal_eosg(rhorif, trif, prif, xgcn2(:))
-
-! ... Transport gas bulk density
-!
-      IF (umn < 0.D0) THEN
-        rgp(n2) = rgp(n2) - dt/d2 * umn * (rgp(n1) - rgp(n2))
-      ELSE IF (umn > 0.D0) THEN
-        rgp(n2) = rhorif
-      ELSE
-      END IF
-      rog(n2) = rgp(n2) / ep(n2)
-
-! ... Compute new pressure by using equation of state
-!
-      mg = 0.D0
-      DO ig = 1, ngas
-        mg = mg + xgcn2(ig) * gmw(gas_type(ig))
-      END DO
-!
-      p(n2) = rog(n2) * tg(n2) * ( rgas / mg )
-!
-      RETURN
-      END SUBROUTINE wsb_inout6
+      END SUBROUTINE extrapolate
 !-----------------------------------------------------------------------
       SUBROUTINE constant_pressure
       IMPLICIT NONE

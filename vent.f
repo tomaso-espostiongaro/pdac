@@ -7,7 +7,7 @@
 !
 !-----------------------------------------------------------------------
       USE dimensions, ONLY: max_nsolid, max_ngas, nsolid, ngas
-      USE io_files, ONLY: errorunit, logunit
+      USE io_files, ONLY: errorunit, ventunit, ventfile
       IMPLICIT NONE
       PUBLIC
       !
@@ -59,7 +59,7 @@
       USE grid, ONLY: iv, jv, kv, grigen
       USE grid, ONLY: fluid, vent_cell, noslip_wall, slip_wall
       USE volcano_topography, ONLY: itp, iavv, ord2d
-      USE volcano_topography, ONLY: nocrater, flatten_dem
+      USE volcano_topography, ONLY: nocrater, flatten_dem_vent
       USE volcano_topography, ONLY: rim_quota
       USE parallel, ONLY: mpime, root
 
@@ -138,15 +138,16 @@
         ! ... of the crater to flatten the profile around the vent. 
         ! ... Reset the cell flags and the 'dist' array.
         !
-        CALL flatten_dem(xvent,yvent,base_radius,crater_radius,quota)
+        CALL flatten_dem_vent(xvent,yvent,base_radius,crater_radius,quota)
 !
       END IF
 !
 ! ... Print out the vent coordinates on the standard output
 !
       IF( lpr > 0 .AND. mpime == root ) THEN
-        WRITE(logunit,100) iv, jv, kv
-        WRITE(logunit,200) x(iv), y(jv), z(kv)
+        OPEN(UNIT=ventunit,FILE=ventfile,STATUS='UNKNOWN')
+        WRITE(ventunit,100) iv, jv, kv
+        WRITE(ventunit,200) x(iv), y(jv), z(kv)
 100     FORMAT(1X,'vent center: ',3I5)
 200     FORMAT(1X,'vent center coordinates: ',3(F12.2))
       END IF
@@ -182,8 +183,8 @@
       END IF
 !
       IF( lpr > 0 .AND. mpime == root ) THEN
-        WRITE(logunit,*) 
-        WRITE(logunit,*) 'Vent conditions imposed in cells: '
+        WRITE(ventunit,*) 
+        WRITE(ventunit,*) 'Vent conditions imposed in cells: '
       END IF
 !      
 ! ... Loop over the cells enclosing the vent
@@ -217,7 +218,7 @@
           END IF
           
           IF (lpr > 0 .AND. mpime == root) &
-            WRITE(logunit,10) nv, ijk, i, j, k, vcell(nv)%frac, fl(ijk)
+            WRITE(ventunit,10) nv, ijk, i, j, k, vcell(nv)%frac, fl(ijk)
  10       FORMAT(I3,I8,3(I4),F8.4,I4)
 
           ! ... Above the vent quota, cell flags are set to '1'
@@ -231,7 +232,7 @@
         END DO
       END DO
 
-      IF( mpime == root ) WRITE(logunit,*) 'END Set Vent'
+      IF( mpime == root ) WRITE(ventunit,*) 'END Set Vent'
 !
       RETURN
       END SUBROUTINE locate_vent

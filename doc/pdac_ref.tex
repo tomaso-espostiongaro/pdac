@@ -93,6 +93,15 @@ VARIABLE  & MEANING\\\hline
 \item {\em bluntb} computes the normal and the tangential flow actions on the blocks
 \end{itemize}
 %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% C H E C K   R E S I D U A L S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+{\large {\bf check\_residuals}} (residuals.f)\\
+\begin{itemize}
+\item {\em print\_mass\_residuals} At every time step, prints on the file {\em pdac.chm} the differences 
+between the mass in the domain and that entered from the beginning for the gas, the solid phases and the 
+gas chemical components, and the mass flow rate.
+\end{itemize}
+%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% C O N T R O L   F L A G S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 {\large {\bf control\_flags}} (control.f)\\[5mm]
@@ -172,6 +181,33 @@ VARIABLE & MEANING\\\hline
 \tt  max\_nblock = 512 & Maximum number of fixed-flow blocks\\\hline
 \tt  max\_size = 512 & Maximum cell number in each direction\\\hline
 \end{tabular}\\[5mm]
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% D O M E   C O N D I T I O N S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+{\large {\bf dome\_conditions}} (dome.f)\\[5mm]
+\begin{tabular}{|p{6cm}|p{6cm}|}\hline
+VARIABLE & MEANING\\\hline
+\tt  xdome    & position of the dome center in $r$ or $x$ direction\\\hline
+\tt  ydome    & position of the dome center in $y$ direction\\\hline
+\tt  zdome    & position of the dome center in $z$ direction\\\hline
+\tt  dome\_volume  & actual dome volume (including porosity) \\\hline
+\tt  dome\_radius  & actual dome radius (including porosity) \\\hline
+\tt  conduit\_radius  & actual conduit radius (feeding the dome) \\\hline
+\tt  temperature  & magma temperature \\\hline
+\tt  overpressure & static overpressure (if no pressurization model is specified) \\\hline
+\tt  particle\_fraction   & particle volumetric fractions within the dome\\\hline
+\tt  gas\_flux    & gas flux through the porous dome (in the Darcy's law)\\\hline
+\tt  permeability & permeability of the porous dome (in the Darcy's law) \\\hline
+\tt  dome\_gasvisc & viscosity of the pore gas\\\hline
+\tt  dome\_ygc     & mass fractions of the pore gas chemical components\\\hline
+\tt  icdome\_cell  & new variable type to store the dome cells\\\hline
+\end{tabular}\\%[5mm]
+\begin{itemize}
+\item{\em locate\_dome} identifies the dome cells over the topography; modifies the topography to host the dome;
+\item{\em set\_domec} sets the initial conditions (pressure distribution, particle concentrations, temperature, etc.)
+in the dome cells;
+\item{\em compute\_dome\_mass\_energy} computes the total mass contained in the dome and the specific expansion energy
+\end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% M O M E N T U M   T R A N S F E R %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -291,6 +327,7 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 {\large{\bf grid}} (grid.f)\\[5mm]
 \begin{tabular}{|p{6cm}|p{6cm}|}\hline
 VARIABLE & MEANING\\\hline
+\tt itc       & input flag for cylindrical or cartesian coordinates\\ \hline
 \tt x(nx), xb(nx) & physical x(r)-coordinates of the cell centers and borders \\ \hline
 \tt r(nx), rb(nx) & radial coordinates for cylindrical transport equations \\ \hline
 \tt y(ny), yb(ny) & physical y-coordinates of the cell centers and borders \\ \hline
@@ -303,14 +340,27 @@ VARIABLE & MEANING\\\hline
 \tt indx(nx) & inverse of cells $x$-dimension\\ \hline
 \tt indy(ny) & inverse of cells $y$-dimension\\ \hline
 \tt indz(nz) & inverse of cells $z$-dimension\\ \hline
+\tt blbody   & new variable type to specify block corners\\ \hline
 \tt iob       & specification of fixed-flow block corners\\ \hline
+\tt fl        & global array of cell flags \\ \hline
+\tt flag      & local  array of cell flags \\hline
 \tt west      & flag of cells on the west boundary\\ \hline
 \tt east      & flag of cells on the east boundary\\ \hline
 \tt south     & flag of cells on the south boundary\\ \hline
 \tt north     & flag of cells on the north boundary\\ \hline
 \tt bottom    & flag of cells on the bottom boundary\\ \hline
 \tt top       & flag of cells on the top boundary\\ \hline
-\tt itc       & input flag for cylindrical or cartesian coordinates\\ \hline
+\tt fluid        & flag for fluid cells (inner cells) \\ \hline
+\tt slip\_wall   & flag for free slip boundary conditions  \\ \hline
+\tt noslip\_wall & flag for no-slip boundary conditions \\ \hline
+\tt inlet\_cell  & flag for inlet cells defined by blocks \\ \hline
+\tt nrfree\_io   & flag for non-reflecting free inlet/outlet b.c. \\ \hline
+\tt vent\_cell   & flag for inlet cells defined by vent conditions \\ \hline
+\tt dome\_cell   & flag for dome cells \\ \hline
+\tt immb\_cell   & flag for immersed boundaries with internal/external interpolation \\ \hline
+\tt filled\_cell\_1     & flag for immersed\_boundaries with just one external point \\ \hline
+\tt filled\_cell\_2     & flag for immersed\_boundaries with just two external points \\ \hline
+\tt bl\_cell     & flag for boundary layer cells \\ \hline
 \tt zzero     & ground quota for atmospheric stratification \\ \hline
 \tt grigen    & input flag for automatic grid generation\\ \hline
 \tt maxbeta    & input flag for automatic grid generation\\ \hline
@@ -328,6 +378,9 @@ VARIABLE & MEANING\\\hline
 \tt alpha\_z    & relative position of the mesh refinement on the z axis \\ \hline
 \tt center\_x    & UTM x coordinate (longitude) of the mesh center \\ \hline
 \tt center\_y    & UTM y coordinate (latitude) of the mesh center \\ \hline
+\tt npx    & number of cells with maximum size to be added to 'nx' in x(r) direction \\ \hline
+\tt npy    & number of cells with maximum size to be added to 'ny' in y direction \\ \hline
+\tt npz    & number of cells with maximum size to be added to 'nz' in z direction\\ \hline
 \end{tabular}\\[5mm]
 \begin{itemize}
 \item{\em grid\_setup} computes the dimensions of the physical domain;
@@ -403,11 +456,10 @@ VARIABLE & MEANING\\\hline
 \tt topo2d\_c & 3D topography interpolated on the cell centers  \\ \hline
 \tt topo2d\_x & 3D topography interpolated on the cell east boundary  \\ \hline
 \tt topo2d\_y & 3D topography interpolated on the cell north boundary  \\ \hline
-\tt numx & array for mapping the forcing points x  \\ \hline
-\tt numy & array for mapping the forcing points y  \\ \hline
-\tt numz & array for mapping the forcing points z  \\ \hline
+\tt numx & array for mapping the forcing points x (from local mesh index to f.p.x index) \\ \hline
+\tt numy & array for mapping the forcing points y (from local mesh index to f.p.y index) \\ \hline
+\tt numz & array for mapping the forcing points z (from local mesh index to f.p.z index) \\ \hline
 \tt bd & integer weight function for the flux correction in the immersed bounds.  \\ \hline
-\tt bdr & real weight function for the flux correction in the immersed bounds. \\ \hline
 \tt vf & approximate volume of the fluid in the immersed cells \\ \hline
 \end{tabular}
 \begin{itemize}
@@ -417,6 +469,17 @@ VARIABLE & MEANING\\\hline
 \item{\em ext\_forcing3d} same procedure in 3D;
 \item{\em forcing3d} same procedure in 3D;
 \item{\em faces} compute the flux weight functions on each face of the immersed cells;
+\end{itemize}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% I N F L O W   O U T F L O W %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+{\large {\bf inflow\_outflow}} (inoutflow.f)\\
+\begin{itemize}
+\item {\em ent\_inout4} computes the free inflow/outflow conditions for East, North, and Top boundaries
+  by solving the mixture equations
+\item {\em wsb\_inout4} computes the free inflow/outflow conditions for West, South, and Bottom boundaries
+  by solving the mixture equations
+\item {\em extrapolate} computes the free inflow/outflow boundary conditions by extrapolation
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% I N D I J K   M O D U L E %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -441,7 +504,12 @@ VARIABLE & MEANING\\\hline
 \item{\em interpolate\_x} interpolate the stencil of a field defined on the cell centers onto the east faces;
 \item{\em interpolate\_y}  interpolate the stencil of a field defined on the cell centers onto the north faces;
 \item{\em interpolate\_z}  interpolate the stencil of a field defined on the cell centers onto the top faces;
+\item{\em velint}  interpolation function for the velocity in the immersed boundary
 \end{itemize}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  I O   F I L E S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+{\large{\bf io\_files}} (io\_files.f)\\
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% I 0  R E S T A R T %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -529,7 +597,18 @@ VARIABLE &  MEANING\\\hline
  module;
 \item{\em outp\_map} write out a map of hazard variables by interpolating fields at a given distance from the ground;
 \item{\em outp\_recover} read the {\em nfil} output file to restart an interrupted run;
+\item{\em outp\_remap} read the {\em nfil} output file to restart an interrupted run on a larger mesh;
 \end{itemize}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% P A R A L L E L %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+{\large{\bf parallel}} (parallel.f)\\[5mm]
+\begin{tabular}{|p{6cm}|c|p{6cm}|}\hline
+VARIABLE & REPRESENTATION & MEANING\\\hline
+\tt  nproc & N & number of processors in use\\\hline
+\tt  mpime &  & processor number (from 0 to N-1) \\\hline
+\tt  root  &  & index of the root processor (from 0 to N-1) \\\hline
+\end{tabular}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% P A R T I C L E S   C O N S T A N T S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -548,6 +627,7 @@ VARIABLE & REPRESENTATION & MEANING\\\hline
 \tt philim(ncl,ncl) &$ \frac{\Phi_s}{\Phi_s+(1-\Phi_s)\Phi_j}$& \\\hline
 \tt epsl & $\epsilon_{sj}$ & ``lower'' volume of maximum packing for a mixture\\\hline
 \tt epsu & $\epsilon_{sj}$ & ``upper'' volume of maximum packing for a mixture\\\hline
+\tt plim(ncl) &  &  lower limit to solve the interphase drag terms in the momentum matrix \\\hline
 \end{tabular}\\
 \begin{itemize}
 \item{\em particles\_constants\_set} sets the correlation coefficients for particle-particle drag.
@@ -604,6 +684,19 @@ VARIABLE & MEANING\\\hline
 \tt roucha & distance of roughness change\\\hline
 \end{tabular}\\[5mm]
 %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% R U N T I M E   S A M P L I N G %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+{\large{\bf runtime\_sampling}} (samplert.f)\\[5mm]
+\begin{tabular}{|p{6cm}|p{6cm}|}\hline
+VARIABLE & MEANING\\\hline
+\tt number\_of\_probes & number of probes for sampling \\\hline
+\tt probe\_point & new data type for storing probe coordinates and index  \\\hline
+\end{tabular}\\[5mm]
+\begin{itemize}
+\item {\em set\_sampling} Identify the sampling points and allocates variables
+\item {\em sample\_pressure} Sample the pressure at given probe locations during the run
+\end{itemize}
+%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% I N I T I A L   C O N D I T I O N S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 {\large{\bf initial\_conditions}} (setup.f)\\[5mm]
@@ -627,10 +720,14 @@ VARIABLE & MEANING\\\hline
 \end{tabular}\\
 \begin{itemize}
 \item {\em setpar} sets physical parameters, atmospheric stratification and gas species;
-\item {\em setup} sets initial conditions;
+\item {\em setc} sets some physical constants;
+\item {\em gas\_check} check the number and type of gas components;
+\item {\em control\_atmosphere} check the atmospheric parameters;
+\item {\em set\_atmosphere} compute the atmospheric stratification;
+\item {\em set\_atmc} compute the fluid properties in the atmosphere at t=0;
+\item {\em setup} sets initial conditions in the computational domain and boundary conditions;
 \item {\em cnvert} compute derived thermodynamic quantities from initial conditions;
 \item {\em specified\_flow} set input conditions in  boundary cells where the flow is sepcified (flag = 5);
-\item {\em setc} sets useful constants;
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% S E T   I N D E X E S %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -811,11 +908,16 @@ VARIABLE & MEANING \\ \hline
 \item {locate\_vent} Identify the vent cells on the topography;
 \item {set\_ventc} Set vent conditions into vent cells accordingly to the imposed flow conditions and the cell fractions;
 \item {read\_radial\_profile} Read the radial flow profile from an external file;
-\item {correct\_vent\_density} Correct the mass flow rate in the partially filled cells;
-\item {correct\_vent\_profile} Correct the vertical velocity profile at the vent;
-\item {update\_ventc} Change the vent conditions in time;
-\item {update\_inlet\_cells} Change randomly the inlet cells to balance the mass-flow-rate;
+\item {density\_antialias} Correct the mass flow rate in the partially filled cells by modifying the particle and gas density;
+\item {density\_antialias\_2} Correct the mass flow rate in the partially filled cells by modifying only the particle density;
+\item {velocity\_antialias} Correct the mass flow rate in the partially filled cells by modifying the gas and particle velocity;
+\item {correct\_velocity\_profile} Correct the vertical velocity profile at the vent;
+\item {update\_vent\_cell} Change the vent conditions in time;
+\item {update\_inlet\_cell} Change randomly the inlet cells to balance the mass-flow-rate;
+\item {grow\_vent\_cell} Impose an increasing/decreasing velocity in time;
+\item {grow\_inlet\_cell} Change randomly the inlet cells to balance the mass-flow-rate;
 \item {random\_switch} Switch on/off the inlet cells accordingly to their fluid fraction.
+\item {cell\_fraction} Compute the fraction of vent cells occupied by the inlet.
 \end{itemize}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% G A S   S O L I D   V E L O C I T Y %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

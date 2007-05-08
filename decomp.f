@@ -80,12 +80,7 @@
 ! ... Subroutine Body
 !
       ionode = ( mpime == root )
-
-      IF ( lpr > 0 .AND. ionode ) THEN
-        WRITE( logunit , * ) 
-        WRITE( logunit , * ) 'Starting Grid Decomposition ...'
-      END IF
-
+!
       IF (ALLOCATED(nctot)) DEALLOCATE(nctot)
       IF (ALLOCATED(ncell)) DEALLOCATE(ncell)
       IF (ALLOCATED(ncfl1)) DEALLOCATE(ncfl1)
@@ -170,9 +165,6 @@
           WRITE(logunit,*) '-----------------------------'
         END DO
       END IF
-
-      IF( ionode ) &
-        WRITE( logunit, * ) 'End of Mesh decomposition'
 !
       RETURN
       END SUBROUTINE partition

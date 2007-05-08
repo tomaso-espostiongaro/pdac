@@ -395,6 +395,8 @@
       END FUNCTION velint
 !----------------------------------------------------------------------
       SUBROUTINE init_delta
+! ... This routine is no longer used ...
+! ... Keep it as a reminder ... !!!!!
       IMPLICIT NONE
 !
       INTEGER :: delta_i_(0:30)

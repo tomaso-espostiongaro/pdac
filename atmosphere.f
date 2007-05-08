@@ -2,7 +2,7 @@
       MODULE atmospheric_conditions
 !------------------------------------------------------------------------
       USE dimensions, ONLY: max_ngas
-      USE io_files, ONLY: errorunit, logunit
+      USE io_files, ONLY: errorunit, atmounit, atmofile
       IMPLICIT NONE
       PUBLIC
 !
@@ -43,11 +43,12 @@
       CONTAINS
 !------------------------------------------------------------------------
       SUBROUTINE control_atmosphere
-
+!
+      USE control_flags, ONLY: lpr
       USE parallel, only: mpime, root
-
+!
       IMPLICIT NONE
-
+!
       IF (gravz == 0.0) THEN
          stratification = .FALSE.
       ELSE IF (gravz /= -9.81D0) THEN
@@ -56,10 +57,14 @@
            WRITE(errorunit,*) 'gravz = ', gravz
          END IF
       END IF
-      IF( mpime == root ) THEN
-        WRITE(logunit,*) 
-        WRITE(logunit,*) 'Temperature stratification: ', stratification
-        WRITE(logunit,*) 'Gravity: ', gravz
+      IF( lpr > 0 .AND. mpime == root ) THEN
+        OPEN(UNIT=atmounit,FILE=atmofile,STATUS='UNKNOWN')
+        WRITE(atmounit,*) 'Report of atmospheric initial conditions'
+        WRITE(atmounit,*) 
+        WRITE(atmounit,*) 'Temperature stratification: ', stratification
+        WRITE(atmounit,*) 'Gravity: ', gravz
+        WRITE(atmounit,*) 
+        IF (stratification) WRITE(atmounit,*) 'Atmospheric layers:'
       END IF
 !
       END SUBROUTINE control_atmosphere
@@ -115,13 +120,13 @@
         layer(l)%ptop = ptop
         layer(l)%ttop = ttop
 
-        IF (lpr > 1 .AND. stratification) THEN
+        IF (lpr > 0 .AND. stratification) THEN
           IF( mpime == root ) THEN
-            WRITE(logunit,*) layer(l)%name
-            WRITE(logunit,*) layer(l)%gradt
-            WRITE(logunit,*) layer(l)%ztop
-            WRITE(logunit,*) pbot, layer(l)%ptop
-            WRITE(logunit,*) tbot, layer(l)%ttop
+            WRITE(atmounit,*) layer(l)%name
+            WRITE(atmounit,*) layer(l)%gradt
+            WRITE(atmounit,*) layer(l)%ztop
+            WRITE(atmounit,*) pbot, layer(l)%ptop
+            WRITE(atmounit,*) tbot, layer(l)%ttop
           END IF
         END IF
       END DO
@@ -137,6 +142,7 @@
 ! ... This routine computes the standard atmospheric condition in each
 ! ... cell of the computational domain 
 !
+      USE control_flags, ONLY: lpr
       USE dimensions, ONLY: nz
       USE grid, ONLY: dz, z
       USE parallel, only: mpime, root
@@ -160,6 +166,11 @@
       END IF
 !
 ! ... Loop vertically over mesh layers
+!
+      IF ( lpr > 0 .AND. mpime == root ) THEN
+              WRITE(atmounit,*) 
+              WRITE(atmounit,*) 'Vertical stratification (k, z, p, t): '
+      END IF
 !
       DO k = 1, nz
         za = z(k)
@@ -204,7 +215,11 @@
 !
         t_atm(k) = ta
         p_atm(k) = pa
-
+!
+        IF ( lpr > 0 .AND. mpime == root ) THEN
+          WRITE(atmounit,'(I5,3F14.2)') k, za, pa, ta
+        END IF
+!
       END DO
 !
       RETURN

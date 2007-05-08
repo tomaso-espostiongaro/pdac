@@ -1,18 +1,12 @@
 !----------------------------------------------------------------------
-    PROGRAM restart_convert
-!----------------------------------------------------------------------
-
+      PROGRAM restart_convert
       IMPLICIT NONE
 
       CALL bin2ascii
       ! CALL ascii2bin
 
-    END PROGRAM
-
-
+      END PROGRAM
 !----------------------------------------------------------------------
-
-
       SUBROUTINE bin2ascii
 !
       IMPLICIT NONE
@@ -99,8 +93,7 @@
 !
       RETURN
       END SUBROUTINE bin2ascii
-
-
+!----------------------------------------------------------------------
       SUBROUTINE ascii2bin
 !
       IMPLICIT NONE
@@ -110,7 +103,6 @@
       INTEGER :: ig, gas_type( 100 )
       REAL*8, ALLOCATABLE :: tmp1d( : )
       REAL*8 :: time
-      
 
       WRITE(*,*) ' writing restart file '
 !
@@ -188,3 +180,4 @@
 !
       RETURN
       END SUBROUTINE ascii2bin
+!----------------------------------------------------------------------

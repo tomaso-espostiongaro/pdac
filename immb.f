@@ -11,7 +11,7 @@
       USE volcano_topography, ONLY: xtop, ytop, ztop
       USE volcano_topography, ONLY: topo2d_c, topo2d_x, topo2d_y
       USE volcano_topography, ONLY: topo_c, topo_x
-      USE io_files, ONLY: logunit, testunit
+      USE io_files, ONLY: testunit, topounit
 
       IMPLICIT NONE
 !
@@ -24,24 +24,24 @@
 ! ... Parameters identifying a forcing point: (i,j,k) are the 
 ! ... (x,y,z) discrete coordinates, (int) is the type of interpolation
 ! ... to be done:
-! ... In 2D: -3=lin sx/top, -2=linsx, -1=bilsx, 
-! ...        0=lintop, 1=bildx, 2=lindx, 3=lin dx/top 
-! ... In 3D: always linear interpolation with the nerighbour
-! ...        (from 1 to 8) that is more convenient       
+! ... In 2D: -3=lin left/top, -2=lin left, -1=bil left, 
+! ...        0=lintop, 1=bil right, 2=lin right, 3=lin right/top 
+! ... In 3D: always linear interpolation with the neighbour
+! ...        (from 1 to 8) which is more convenient       
 ! ... (nsl) are the coordinates of the noslip point
 !
       TYPE forcing_point
-        INTEGER :: i
-        INTEGER :: j
-        INTEGER :: k
-        INTEGER :: int
-        INTEGER :: delta_i
-        INTEGER :: delta_j
-        INTEGER :: delta_k
-        INTEGER :: index_q
-        INTEGER :: index_qq
-        TYPE(point) :: nsl
-        REAL*8  :: vel(max_nsolid+1)
+        INTEGER :: i         ! index of the f.p. along x(r)
+        INTEGER :: j         ! index of the f.p. along y
+        INTEGER :: k         ! index of the f.p. along z
+        INTEGER :: int       ! interpolation type
+        INTEGER :: delta_i   ! relative position, along x(r), of the fluid neighbour
+        INTEGER :: delta_j   ! relative position, along y, of the fluid neighbour
+        INTEGER :: delta_k   ! relative position, along z, of the fluid neighbour
+        INTEGER :: index_q   ! local index of the first neighbour
+        INTEGER :: index_qq  ! local index of the second neighbour
+        TYPE(point) :: nsl   ! coordinates of the point on the topography where the noslip condition is applied
+        REAL*8  :: vel(max_nsolid+1) ! velocity of each phase in the immersed point
       END TYPE forcing_point
 !
       TYPE(forcing_point), ALLOCATABLE :: fptx(:), fpty(:), fptz(:)
@@ -69,6 +69,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE set_forcing
       USE control_flags, ONLY: job_type, lpr
+      USE dimensions
       USE volcano_topography, ONLY: interpolate_profile, interpolate_dem
       USE grid, ONLY: x, xb, y, yb, z, zb
       USE grid, ONLY: inlet_cell, vent_cell
@@ -94,11 +95,6 @@
 ! ... If Immersed Boundaries are used, identify the forcing points
 ! ... and set interpolation parameters
 !
-      IF( mpime == root ) THEN
-        WRITE(logunit,*)
-        WRITE(logunit,*) 'Set forcing point for immersed boundaries'
-      END IF
-
       ! ... Allocate the logical arrays that are used to 
       ! ... identify the forcing points
       !
@@ -480,23 +476,27 @@
         IF (mpime == root) THEN
           OPEN(UNIT=tempunit,FILE='fptx.dat',STATUS='UNKNOWN')
           DO np = 1, SIZE(fptx)
-            WRITE(tempunit,33) np, fptx(np)
+            WRITE(tempunit,32) np, fptx(np)%i, fptx(np)%j, fptx(np)%k, fptx(np)%int, fptx(np)%nsl
           END DO
           CLOSE(tempunit)
           IF (job_type == '3D') THEN
             OPEN(UNIT=tempunit,FILE='fpty.dat',STATUS='UNKNOWN')
             DO np = 1, SIZE(fpty)
-              WRITE(tempunit,33) np, fpty(np)
+              WRITE(tempunit,32) np, fpty(np)%i, fpty(np)%j, fpty(np)%k, fpty(np)%int, fpty(np)%nsl
             END DO
             CLOSE(tempunit)
           END IF
           OPEN(UNIT=tempunit,FILE='fptz.dat',STATUS='UNKNOWN')
           DO np = 1, SIZE(fptz)
-            WRITE(tempunit,33) np, fptz(np)
+            WRITE(tempunit,32) np, fptz(np)%i, fptz(np)%j, fptz(np)%k, fptz(np)%int, fptz(np)%nsl
           END DO
           CLOSE(tempunit)
+          !
+          WRITE(topounit,*)
+          WRITE(topounit,*) 'Forcing points are reported in files fptx/y/z.dat'
+          !
         END IF
- 33   FORMAT(10(I6),10(F16.3))
+ 32   FORMAT(5(I6),3(F12.3))
       END IF
 !
       DEALLOCATE (forcex)
@@ -506,10 +506,6 @@
       IF (job_type=='3D') THEN
         DEALLOCATE (forcey)
         DEALLOCATE (extfy)
-      END IF
-
-      IF( mpime == root ) THEN
-        WRITE(logunit,*) 'END Set forcing'
       END IF
 !
       RETURN
@@ -735,7 +731,7 @@
           WRITE(testunit,*) 'Error in fp: ', fp
         END IF
 
-        IF ((s >= 0).AND.(s <= 1))	THEN
+        IF ((s >= 0).AND.(s <= 1)) THEN
           fpt(fp)%nsl%x = s*xtop(n-1) + (1-s)*xtop(n)
           fpt(fp)%nsl%z = s*ztop(n-1) + (1-s)*ztop(n)
         ENDIF
@@ -846,16 +842,16 @@
         dxs = xtop(n) - cx(i)
         dzs = ztop(n) - cz(ord(i+1))
 
-	s = sol2( norm(1), dxt, norm(2), dzt, dxs, dzs, err )
+        s = sol2( norm(1), dxt, norm(2), dzt, dxs, dzs, err )
         IF (err > 0 .AND. lpr >0) THEN
           WRITE(testunit,*) 'WARNING! from proc: ', mpime
           WRITE(testunit,*) 'Error in fp: ', fp
         END IF
 
- 	IF ((s >= 0).AND.(s <= 1))	THEN
-	  fpt(fp)%nsl%x = s*xtop(n-1) + (1-s)*xtop(n)
-	  fpt(fp)%nsl%z = s*ztop(n-1) + (1-s)*ztop(n)
- 	ENDIF
+        IF ((s >= 0).AND.(s <= 1)) THEN
+          fpt(fp)%nsl%x = s*xtop(n-1) + (1-s)*xtop(n)
+          fpt(fp)%nsl%z = s*ztop(n-1) + (1-s)*ztop(n)
+        ENDIF
       ENDDO
       
       END SUBROUTINE decreasing_profile
@@ -869,7 +865,7 @@
 
       fp = fp + 1
 
-      fpt(fp)%int=0	
+      fpt(fp)%int=0
 
       fpt(fp)%i  = i
       fpt(fp)%k  = ord(i)
@@ -881,8 +877,8 @@
 !----------------------------------------------------------------------
       FUNCTION sol1(a11,a12,a21,a22,b1,b2,info)
 
-      REAL*8 a11,a12,a21,a22	! coefficienti della matrice
-      REAL*8 b1,b2		! vettore dei termini noti
+      REAL*8 a11,a12,a21,a22 ! matrix coefficients
+      REAL*8 b1,b2           ! known terms
       REAL*8 sol1
       INTEGER, INTENT(OUT) :: info
 
@@ -894,8 +890,8 @@
 !----------------------------------------------------------------------
       FUNCTION sol2(a11,a12,a21,a22,b1,b2, info)
 
-      REAL*8 a11,a12,a21,a22	! coefficienti della matrice
-      REAL*8 b1,b2		! vettore dei termini noti
+      REAL*8 a11,a12,a21,a22  ! matrix coefficients
+      REAL*8 b1,b2            ! known terms
       REAL*8 sol2
       INTEGER, INTENT(OUT) :: info
  

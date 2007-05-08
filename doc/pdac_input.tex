@@ -48,13 +48,19 @@ velocity. The maximum CFL number $C_{max}\approx 0.2$ has been
 found empirically.}
 
 \item
-\PDACCONFWDEF{tau}{transient v.c.}{double real}{0.0}
-{Time needed to esablish the flow conditions at the vent (in seconds)}
-
-\item
 \PDACCONFWDEF{lpr}{level of verbosity}{1,2,3}{2}
 {increases the level of verbosity in warning and error messages 
 in {\tt pdac.log}, {\tt pdac.err}, {\tt pdac.tst} files}
+
+\item
+\PDACCONFWDEF{imr}{flag for mass residuals}{0/1}{0}
+{ When 1 selected, writes out the total gas and particle mass in the domain
+and the mass flow rate, in a specific file \FIL{pdac.chm}}
+
+\item
+\PDACCONFWDEF{isrt}{flag for runtine sampling of the pressure}{0/1}{0}
+{ When 1 selected, writes out in the file \FIL{pwav.dat} the pressure field at every time-step
+in the locations specified by a file named \FIL{probes.dat}}
 
 \item
 \PDACCONFWDEF{tpr}{time interval for OUTPUT file}{$>$ dt}{1.0}
@@ -65,16 +71,28 @@ in {\tt pdac.log}, {\tt pdac.err}, {\tt pdac.tst} files}
 {restart file is overwritten every {\tt tdump} seconds of simulated time}
 
 \item
-\PDACCONFWDEF{max\_seconds}{maximum CPU time}{any real value}{20000.0}
-{Maximum duration of a simulation (in seconds). If time exceeds this value
-a restart file is written before the simulation is stopped (useful for
-scheduling). Default time is set to 6 hours}
-
-\item
 \PDACCONFWDEF{nfil}{number of first OUTPUT file}{any positive integer up to 9999}{0}
 {Initial value for numbering the output files or for recovering.
 Output files are written with 4 digits extension ({\tt OUTPUT.XXXX}). 
 The output time can be recovered as $({\tt XXXX - nfil})* {\tt tpr}$ }
+
+\item
+\PDACCONFWDEF{tau}{transient vent conditions}{double real}{0.0}
+{Time needed to esablish the flow conditions at the vent (in seconds)}
+
+\item
+\PDACCONFWDEF{tau1}{transient vent conditions}{double real}{0.0}
+{Time needed to esablish the flow conditions at the vent (in seconds)}
+
+\item
+\PDACCONFWDEF{tau2}{transient vent conditions}{double real}{0.0}
+{Time needed to esablish the flow conditions at the vent (in seconds)}
+
+\item
+\PDACCONFWDEF{formatted\_input}{flag for INPUT format}{T/F}{T}
+{Determine the format of input files for restart (valid for both options
+{\em outp\_recover} and {\em restart}): T - formatted ascii, 
+F - binary 4-bytes }
 
 \item
 \PDACCONFWDEF{formatted\_output}{flag for OUTPUT format}{T/F}{T}
@@ -82,13 +100,10 @@ The output time can be recovered as $({\tt XXXX - nfil})* {\tt tpr}$ }
 F - binary 4-bytes }
 
 \item
-\PDACCONFWDEF{run}{flag for running/setup}{T/F}{T}
-{If .FALSE. is selected, the run stops after writing log files, the setup and the boundary conditions}
-
-\item
-\PDACCONFWDEF{imr}{flag for mass residuals}{0/1}{0}
-{ When 1 selected, writes out the total gas and particle mass in the domain
-and the mass flow rate, in a specific file \FIL{pdac.chm}}
+\PDACCONFWDEF{max\_seconds}{maximum CPU time}{any real value}{20000.0}
+{Maximum duration of a simulation (in seconds). If time exceeds this value
+a restart file is written before the simulation is stopped (useful for
+scheduling). Default time is set to 6 hours}
 \end{itemize}
 
 \subsubsection{\OBJ{model} namelist}
@@ -100,12 +115,12 @@ and submodels.
 \begin{itemize}
 
 \item
-\PDACCONFWDEF{irex}{chemical reactions}{0,1}{0}
-{The chemical reaction module has not yet been implemented}
-
-\item
 \PDACCONFWDEF{icpc}{gas specific heat}{0,1}{1}
 {1: specific heat depends on temperature}
+
+\item
+\PDACCONFWDEF{irex}{chemical reactions}{0,1}{0}
+{The chemical reaction module has not yet been implemented}
 
 \item
 \PDACCONFWDEF{gas\_viscosity}{gas diffusive transport}{{\tt T/F}}{{\tt T}}
@@ -119,11 +134,6 @@ energy exchange terms.}
 \PDACCONFWDEF{part\_viscosity}{particle diffusive transport}{{\tt T/F}}{{\tt T}}
 {Switches on/off the diffusive terms in the particle transport equations 
 (viscous terms in the momentum equation and thermal conductivity).}
-
-\item
-\PDACCONFWDEF{density\_specified}{flag for i.c.}{{\tt T/F}}{{\tt F}}
-{If .TRUE., specify gas density instead of temperature for initial conditions.
-Particle temperature is set equal to gas temperature.}
 
 \item
 \PDACCONFWDEF{iss}{turbulence model for particles}{0,1}{0}
@@ -175,6 +185,11 @@ Only gas species that are specified at the inlet or in the
 atmosphere are considered by the model. The total number of gas 
 species specified by this flag must be therefore consistent with 
 input conditions, otherwise the program stops.}
+
+\item
+\PDACCONFWDEF{density\_specified}{flag for i.c.}{{\tt T/F}}{{\tt F}}
+{If .TRUE., specify gas density instead of temperature for initial conditions.
+Particle temperature is set equal to gas temperature.}
 
 \end{itemize}
 
@@ -402,17 +417,16 @@ by the corresponding input parameter.}
 {Averages the topography to obtain an axisymmetric topography.}
 
 \item
+\PDACCONFWDEF{itrans}{Flag for vertical mesh translation} {0/1}{0}
+{Translates the mesh vertically up to the minimum topographic elevation (to save cells).}
+
+\item
 \PDACCONFWDEF{nocrater}{Flag for crater flattening}{T/F}{F}
 {Allows to flatten a region of the volcano around the vent at a given rim\_quota (see below).}
 
 \item
 \PDACCONFWDEF{rim\_quota}{Elevation a.s.l. where the topography is flattened}{any real}{1000}
 {If 'nocrater' is selected, flatten the topography at this quota.}
-
-\item
-\PDACCONFWDEF{imap}{Flag for mapping}{0/1}{0}
-{When imap = 1, the code writes out a map of hazard variables at a given height
-above the ground, at each OUTPUT time.}
 
 \item
 \PDACCONFWDEF{filtersize}{High-pass filtering size (in metres) for the topography}{any real $>$ 0.0}{50}
@@ -441,9 +455,11 @@ of a circular source within a cartesian mesh.
 {Vent conditions are automatically imposed on the topography if {\tt ibl=1}}
 
 \item
-\PDACCONFWDEF{iali}{Flag for anti-aliasing}{0/1}{0}
+\PDACCONFWDEF{iali}{Flag for anti-aliasing}{0/1/2/3}{0}
 {Activates the anti-aliasing procedure to correct the mass flux in the cells
-partially filled by the topography, on the vent boundary.}
+partially filled by the topography, on the vent boundary. 0: no antialias;
+1: density antialias (including gas); 2: density antialias (only particles); 
+3: velocity antialias}
 
 \item
 \PDACCONFWDEF{irand}{Flag for random switch}{0/1}{0}
@@ -563,11 +579,11 @@ Dome cells are automatically imposed over the topography if {\tt ibl=1}}
 
 \item
 \PDACCONFWDEF{xdome}{UTM longitude of the center of the dome}{any real}{0.0}
-{The mesh is translated so that the dome is located in the more refined region}
+{The dome can be located out from the more refined region}
 
 \item
 \PDACCONFWDEF{ydome}{UTM latitude of the center of the dome}{any real}{0.0}
-{The mesh is translated so that the dome is located in the more refined region}
+{The dome can be located out from the more refined region}
 
 \item
 \PDACCONFWDEF{dome\_volume}{Volume of the dome}{any real $>$ 0.0}{1.D6}
@@ -913,7 +929,7 @@ or 7 (in 3D) integers:\\
 \PDACCONF{block\_type}{type of b.c.}{1 to 7}
 {1 - fluid cells: all equations are solved; 2 - free-slip;
  3 - no-slip; 4 - free in/outflow; 5 - specified flow (inlet); 
- 6 - specified pressure; 7 - specified input profile (only 2D).}
+ 6 - extrapolation free in/outflow}
 
 \item
 \PDACCONF{block\_bounds}{limits of blocks}{integer}

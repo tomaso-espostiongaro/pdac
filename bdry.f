@@ -36,7 +36,7 @@
       USE immersed_boundaries, ONLY: numx, numy, numz, immb
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE inflow_outflow, ONLY: n0, n1, n2
-      USE inflow_outflow, ONLY: ent_inout4, ent_inout6, wsb_inout4, wsb_inout6
+      USE inflow_outflow, ONLY: ent_inout4, wsb_inout4, extrapolate
       USE parallel, ONLY: mpime, root
       USE set_indexes, ONLY: subscr
       USE set_indexes, ONLY: ipjk, imjk, ippjk, immjk, ijpk, ipjpk,    &
@@ -51,7 +51,7 @@
 !
       INTEGER :: ijk, i, j, k, imesh, ig, is, nph
       INTEGER :: fp, np
-      REAL*8 :: d1, d2 
+      REAL*8 :: d0, d1, d2 
       REAL*8 :: vel(max_nsolid+1)
       INTEGER :: fx, fy, fz
       INTEGER :: nfptx, nfpty, nfptz
@@ -262,13 +262,14 @@
 !
             CASE (nrfree_io)
 !
+              d0 = dx(i-1)
               d1 = dx(i)
 	      d2 = dx(i+1)
 
               ! ... Compute the normal component of the velocities 
               ! ... and scalar fields
               !
-              CALL ent_inout6( ug(n1), ug(n2), us(n1,:), us(n2,:), d1, d2, k)
+              CALL extrapolate( ug(n0), ug(n1), ug(n2), us(n0,:), us(n1,:), us(n2,:), d0, d1, d2, k)
 
               ! ... Compute tangential components of velocities
               !
@@ -348,13 +349,14 @@
 !              
             CASE (nrfree_io)
 !	    
+              d0 = dx(i+1)
               d1 = dx(i)
               d2 = dx(i-1)
 
               ! ... Compute the normal component of the velocities 
               ! ... and scalar fields
               !
-              CALL wsb_inout6( ug(n1), ug(n2), us(n1,:), us(n2,:), d1, d2, k )
+              CALL extrapolate( ug(n0), ug(n1), ug(n2), us(n0,:), us(n1,:), us(n2,:), d0, d1, d2, k)
 
               ! ... Compute tangential components of velocities
               !
@@ -441,7 +443,7 @@
                 ! ... Compute the normal component of the velocities 
                 ! ... and scalar fields
                 !
-                CALL ent_inout6( vg(n1), vg(n2), vs(n1,:), vs(n2,:), d1, d2, k)
+                CALL extrapolate( vg(n0), vg(n1), vg(n2), vs(n0,:), vs(n1,:), vs(n2,:), d0, d1, d2, k)
 
                 ! ... Compute tangential components of velocities
                 !
@@ -526,7 +528,7 @@
                 ! ... Compute the normal component of the velocities 
                 ! ... and scalar fields
                 !
-                CALL wsb_inout6( vg(n1), vg(n2), vs(n1,:), vs(n2,:), d1, d2, k )
+                CALL extrapolate( vg(n0), vg(n1), vg(n2), vs(n0,:), vs(n1,:), vs(n2,:), d0, d1, d2, k)
 
                 ! ... Compute tangential components of velocities
                 !             
@@ -616,7 +618,7 @@
               ! ... Compute the normal component of the velocities 
               ! ... and scalar fields
               !
-              CALL ent_inout6( wg(n1), wg(n2), ws(n1,:), ws(n2,:), d1, d2, k)
+              CALL extrapolate( wg(n0), wg(n1), wg(n2), ws(n0,:), ws(n1,:), ws(n2,:), d0, d1, d2, k)
                              
               ! ... Compute tangential components of velocities
               !
@@ -705,7 +707,7 @@
         END IF
       END DO mesh_loop
 !
-      IF (lpr > 1 .AND. immb >= 1) THEN
+      IF (lpr > 2 .AND. immb >= 1) THEN
         !
         nfptx = SIZE(fptx)
         ALLOCATE(tfptx(nfptx))
@@ -726,24 +728,26 @@
         !
         IF (mpime == root) THEN
           OPEN(UNIT=tempunit,FILE='fptx.dat',STATUS='UNKNOWN')
-          DO np = 1, nfptx
-            WRITE(tempunit,33) np, fptx(np), tfptx(np)
+          DO np = 1, SIZE(fptx)
+            WRITE(tempunit,32) np, fptx(np)%i, fptx(np)%j, fptx(np)%k, fptx(np)%int, fptx(np)%nsl, tfptx(np)
           END DO
           CLOSE(tempunit)
           IF (job_type == '3D') THEN
             OPEN(UNIT=tempunit,FILE='fpty.dat',STATUS='UNKNOWN')
-            DO np = 1, nfpty
-              WRITE(tempunit,33) np, fpty(np), tfpty(np)
+            DO np = 1, SIZE(fpty)
+              WRITE(tempunit,32) np, fpty(np)%i, fpty(np)%j, fpty(np)%k, fpty(np)%int, fpty(np)%nsl, tfpty(np)
             END DO
             CLOSE(tempunit)
           END IF
           OPEN(UNIT=tempunit,FILE='fptz.dat',STATUS='UNKNOWN')
-          DO np = 1, nfptz
-            WRITE(tempunit,33) np, fptz(np), tfptz(np)
+          DO np = 1, SIZE(fptz)
+            WRITE(tempunit,32) np, fptz(np)%i, fptz(np)%j, fptz(np)%k, fptz(np)%int, fptz(np)%nsl, tfptz(np)
           END DO
           CLOSE(tempunit)
+          !
         END IF
- 33     FORMAT(10(I6),10(F16.3))
+  32    FORMAT(5(I6),4(F12.3))
+        !
         DEALLOCATE(tfptx)
         IF (job_type == '3D') DEALLOCATE(tfpty)
         DEALLOCATE(tfptz)

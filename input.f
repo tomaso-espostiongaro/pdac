@@ -409,10 +409,6 @@
                         ! limit for off-diagonal contribution in matrix
       flim = 1.0D-6     ! inversion
                         ! 
-
-!
-
-      IF(mpime == root) WRITE(logunit,*) 'Reading input ...'
 !
 ! :::::::::::::::::::::::  R E A D   N A M E L I S T S ::::::::::::::::
 !
@@ -812,10 +808,6 @@
 !.....................................................................
 !
       IF (lpr > 2) CALL write_xml
-
-
-      IF(mpime == root) &
-        WRITE(logunit,*) 'END input'
 !
 !----------------------------------------------------------------------
       CONTAINS

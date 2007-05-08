@@ -160,6 +160,7 @@
         END IF            
 !
 ! ... Print the total residuals of the mass conservation equation
+! ... and the mass flow rate
 !
         IF ( imr >= 1 ) CALL print_mass_residuals(sweep)
 !

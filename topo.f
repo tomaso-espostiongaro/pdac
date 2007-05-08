@@ -1,5 +1,6 @@
 !----------------------------------------------------------------------
       MODULE volcano_topography
+      USE io_files, ONLY: topounit, topofile
 !
 ! ... Import the topography from a Digital Elevation Model (DEM)
 ! ... The topography is discretized into a step-wise geometry and 
@@ -8,7 +9,6 @@
 !----------------------------------------------------------------------
       USE dimensions, ONLY: nx, ny, nz, ntot, no
       USE parallel, ONLY: mpime, root
-      USE io_files, ONLY: logunit
 
       IMPLICIT NONE
 !
@@ -97,6 +97,12 @@
 
       IMPLICIT NONE
 !
+      IF (mpime == root) THEN
+              OPEN(UNIT=topounit,FILE=topofile,STATUS='UNKNOWN')
+              WRITE(topounit,*) 'Report of topographic conditions'
+              WRITE(topounit,*)
+      END IF
+!
 ! ... Read external topography files.
 ! ... In 3D translate horizontally the  computational mesh 
 ! ... (geographic UTM coordinates).
@@ -133,6 +139,144 @@
       RETURN
       END SUBROUTINE import_topography
 !----------------------------------------------------------------------
+      SUBROUTINE set_profile
+!
+      USE array_filters, ONLY: interp
+      USE control_flags, ONLY: job_type, lpr
+      USE grid, ONLY: x, xb, y, yb, z, zb, iv, jv, kv, dzmax
+      USE io_files, ONLY: testunit
+      USE parallel, ONLY: mpime, root
+
+      IMPLICIT NONE
+      REAL*8 :: transl_z = 0.D0
+      INTEGER :: i,j,k,ijk
+      INTEGER :: itopo
+      LOGICAL, ALLOCATABLE :: dummy(:)
+      REAL*8, ALLOCATABLE  :: topo(:)
+      REAL*8, ALLOCATABLE  :: topo2d(:,:)
+!
+      ALLOCATE (dummy(ntot))
+      dummy = .FALSE.
+!
+      ! ... Allocate and initialize 'dist' (defines implicitly the profile).
+      !
+      IF (.NOT.ALLOCATED(dist)) ALLOCATE (dist(ntot))
+      dist = 1.0D10
+!
+      IF (job_type == '2D') THEN
+        !
+        IF (.NOT.ALLOCATED(next)) ALLOCATE(next(nx))
+        IF (.NOT.ALLOCATED(ord)) ALLOCATE(ord(nx))
+        next = 0; ord = 0
+        ALLOCATE(topo(nx))
+!
+        IF (MAXVAL(xtop) < MAXVAL(x)) CALL error('topo','Computational domain exceeds topography',1)
+!
+        ! ... Interpolate the topography on the computational mesh 'x'
+        ! ... (centered horizontally)
+        !
+        CALL interp(xtop,ztop,x,topo,next)
+!
+        DO i = 1, nx
+          ! ... Topography is expressed in centimeters
+          !
+          topo(i) = topo(i) * 1.D2
+          itopo = NINT(topo(i))
+          topo(i) = itopo * 1.D-2
+        ENDDO
+!        
+        ! ... Translate vertically the mesh to minimize the
+        ! ... number of topographic cells
+        !
+        IF (itrans) transl_z = MINVAL(topo) - zb(1)
+
+        IF( mpime == root ) THEN
+          WRITE(topounit,*) 'Translating mesh vertically'
+          WRITE(topounit,*) 'Minimum topographic quota: ', MINVAL(topo)
+          WRITE(topounit,*) 'Translation: ', transl_z
+          WRITE(topounit,*) 
+        END IF
+        z  = z  + transl_z
+        zb = zb + transl_z
+!        
+        ! ... Re-set the 'ord' array and set the implicit profile
+        ! ... 'ord(i)' is the last cell laying below the topography
+        !
+        DO i = 1, nx
+          DO k = 1, nz
+            IF (zb(k) <= topo(i)) ord(i) = k  
+            ijk = i + (k-1) * nx
+            dist(ijk) = z(k) - topo(i)
+          END DO
+        END DO
+        kv = ord(iv)
+        !
+        DEALLOCATE(topo)
+        !
+      ELSE IF (job_type == '3D') THEN
+        !
+        IF (.NOT.ALLOCATED(nextx)) ALLOCATE(nextx(nx))
+        IF (.NOT.ALLOCATED(nexty)) ALLOCATE(nexty(ny))
+        IF (.NOT.ALLOCATED(ord2d)) ALLOCATE(ord2d(nx,ny))
+        nextx = 0; nexty = 0; ord2d = 0
+        ALLOCATE(topo2d(nx,ny))
+
+        IF (MAXVAL(xtop) < MAXVAL(x)) CALL error('topo','Computational domain exceeds topography x',1)
+        IF (MAXVAL(ytop) < MAXVAL(y)) CALL error('topo','Computational domain exceeds topography y',1)
+
+        CALL interp(xtop, ytop, ztop2d, x, y, topo2d, nextx, nexty)
+
+        ! ... Topography must be accurate to centimeters
+        !
+        DO j=1,ny
+          DO i=1,nx
+            topo2d(i,j) = topo2d(i,j) * 1.D2
+            itopo = NINT(topo2d(i,j))
+            topo2d(i,j) = itopo * 1.D-2
+          END DO
+        END DO
+        !
+        ! ... Translate vertically the numerical mesh to minimize the
+        ! ... number of topographic cells
+        !
+        IF (itrans) transl_z = MINVAL(topo2d) - zb(1)
+
+        IF( mpime == root ) THEN
+          WRITE(topounit,*) 'Translating mesh vertically'
+          WRITE(topounit,*) 'Minimum topographic quota: ', MINVAL(topo2d)
+          WRITE(topounit,*) 'Translation: ', transl_z
+          WRITE(topounit,*) 
+        END IF
+        z  = z  + transl_z
+        zb = zb + transl_z
+        
+        ! ... Reset the 'ord2d' array after translation 
+        ! ... and set the implicit profile
+        !
+        DO j = 1, ny
+          DO i = 1, nx
+            DO k = 1, nz
+              IF (zb(k) <= topo2d(i,j)) ord2d(i,j) = k  
+              ijk = i + (j-1) * nx + (k-1) * nx * ny
+              dist(ijk) = z(k) - topo2d(i,j)
+            END DO
+          END DO
+        END DO
+        kv = ord2d(iv,jv)
+        !
+        DEALLOCATE(topo2d)
+        !
+      END IF
+!
+! ... set cell flags on topography
+!
+      CALL set_flags
+
+      DEALLOCATE (dummy)
+
+      RETURN
+      END SUBROUTINE set_profile
+!----------------------------------------------------------------------
       SUBROUTINE read_2Dprofile
       USE parallel, ONLY: mpime, root
       USE io_files, ONLY: tempunit, testunit
@@ -147,6 +291,8 @@
 !
       topo_file = TRIM(dem_file)
       IF (mpime == root) THEN
+        WRITE(topounit,*) 'Reading DEM file: ', dem_file
+        WRITE(topounit,*) 
         OPEN(UNIT=tempunit, FILE=topo_file, STATUS='OLD')
         READ(tempunit,*) noditop
       END IF
@@ -193,7 +339,7 @@
 !
       IF (mpime == root) THEN
         topo_file = TRIM(dem_file)
-        WRITE(logunit,*) 'Reading topography file: ', topo_file
+        WRITE(topounit,*) 'Reading topography from file: ', topo_file
         OPEN(UNIT=tempunit, FILE=topo_file, STATUS='OLD')
         READ(tempunit,*) nodidemx
         READ(tempunit,*) nodidemy
@@ -240,10 +386,10 @@
       END DO
 !
       IF (mpime == root) THEN
-        WRITE(logunit,*) 'DEM resolution: ', vdem%cellsize, ' [m]'
-        WRITE(logunit,*) 'DEM limits: '
-        WRITE(logunit,'(2F12.2)') xdem(1), xdem(vdem%nx)
-        WRITE(logunit,'(2F12.2)') ydem(1), ydem(vdem%ny)
+        WRITE(topounit,*) 'DEM resolution: ', vdem%cellsize, ' [m]'
+        WRITE(topounit,*) 'DEM limits: '
+        WRITE(topounit,'(2F12.2)') xdem(1), xdem(vdem%nx)
+        WRITE(topounit,'(2F12.2)') ydem(1), ydem(vdem%ny)
       END IF
 !
 ! ... Processor 'root' reads the matrix of the elevation
@@ -337,11 +483,11 @@
       END DO
 !
       IF (mpime == root) THEN
-        WRITE(logunit,*) 'DEM is resized'
-        WRITE(logunit,*) 'New resolution: ', vdem%cellsize, ' [m]'
-        WRITE(logunit,*) 'New DEM limits: '
-        WRITE(logunit,'(2F12.2)') xtop(1), xtop(vdem%nx)
-        WRITE(logunit,'(2F12.2)') ytop(1), ytop(vdem%ny)
+        WRITE(topounit,*) 'DEM is resized'
+        WRITE(topounit,*) 'New resolution: ', vdem%cellsize, ' [m]'
+        WRITE(topounit,*) 'New DEM limits: '
+        WRITE(topounit,'(2F12.2)') xtop(1), xtop(vdem%nx)
+        WRITE(topounit,'(2F12.2)') ytop(1), ytop(vdem%ny)
       END IF
 !
       IF ( xll < xdem(1) ) &
@@ -474,7 +620,32 @@
       RETURN
       END SUBROUTINE average_dem
 !----------------------------------------------------------------------
-      SUBROUTINE flatten_dem(xvent,yvent,base_radius,crater_radius,quota)
+! ... Translates the computational mesh accordingly to the
+! ... specified UTM coordinates of the DEM
+!
+      SUBROUTINE compute_UTM_coords
+
+      USE grid, ONLY: center_x, center_y
+      USE grid, ONLY: x, y, xb, yb
+      USE grid, ONLY: iv, jv
+      IMPLICIT NONE
+      
+      REAL*8 :: transl_x, transl_y
+!
+      transl_x = center_x - x(iv)
+      transl_y = center_y - y(jv)
+!
+! ... Translate all mesh arrays horizontally
+!
+      x  = x  + transl_x
+      xb = xb + transl_x
+      y  = y  + transl_y
+      yb = yb + transl_y
+!
+      RETURN
+      END SUBROUTINE compute_UTM_coords
+!----------------------------------------------------------------------
+      SUBROUTINE flatten_dem_vent(xvent,yvent,base_radius,crater_radius,quota)
       USE grid, ONLY: zb
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: xvent,yvent,base_radius,crater_radius
@@ -547,11 +718,11 @@
       CALL set_profile
 !
       RETURN
-      END SUBROUTINE flatten_dem
+      END SUBROUTINE flatten_dem_vent
 !----------------------------------------------------------------------
       SUBROUTINE flatten_dem_dome(xdome,ydome,dome_radius,quota)
       USE grid, ONLY: zb
-      USE io_files, ONLY: testunit, logunit, tempunit
+      USE io_files, ONLY: testunit, tempunit
       USE parallel, ONLY: mpime, root
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: xdome,ydome,dome_radius
@@ -572,7 +743,7 @@
         END DO
       END DO
       IF (mpime==root) THEN
-        OPEN(tempunit,FILE='SHV_modified.dat',STATUS='UNKNOWN')
+        OPEN(tempunit,FILE='DEM_modified.dat',STATUS='UNKNOWN')
        
         WRITE(tempunit,*) vdem%nx    
         WRITE(tempunit,*) vdem%ny    
@@ -596,167 +767,6 @@
 !
       RETURN
       END SUBROUTINE flatten_dem_dome
-!----------------------------------------------------------------------
-! ... Translates the computational mesh accordingly to the
-! ... specified UTM coordinates of the DEM
-!
-      SUBROUTINE compute_UTM_coords
-
-      USE grid, ONLY: center_x, center_y
-      USE grid, ONLY: x, y, xb, yb
-      USE grid, ONLY: iv, jv
-      IMPLICIT NONE
-      
-      LOGICAL :: rotate
-      REAL*8 :: transl_x, transl_y
-!
-      transl_x = center_x - x(iv)
-      transl_y = center_y - y(jv)
-!
-! ... Translate all mesh arrays horizontally
-!
-      x  = x  + transl_x
-      xb = xb + transl_x
-      y  = y  + transl_y
-      yb = yb + transl_y
-!
-      RETURN
-      END SUBROUTINE compute_UTM_coords
-!----------------------------------------------------------------------
-      SUBROUTINE set_profile
-!
-      USE array_filters, ONLY: interp
-      USE control_flags, ONLY: job_type, lpr
-      USE grid, ONLY: x, xb, y, yb, z, zb, iv, jv, kv, dzmax
-      USE io_files, ONLY: testunit, logunit
-      USE parallel, ONLY: mpime, root
-
-      IMPLICIT NONE
-      REAL*8 :: transl_z = 0.D0
-      INTEGER :: i,j,k,ijk
-      INTEGER :: itopo
-      LOGICAL, ALLOCATABLE :: dummy(:)
-      REAL*8, ALLOCATABLE  :: topo(:)
-      REAL*8, ALLOCATABLE  :: topo2d(:,:)
-!
-      ALLOCATE (dummy(ntot))
-      dummy = .FALSE.
-!
-! ... Allocate and initialize 'dist' (defines implicitly the profile).
-!
-      IF (.NOT.ALLOCATED(dist)) ALLOCATE (dist(ntot))
-      dist = 1.0D10
-!
-      IF (job_type == '2D') THEN
-        !
-        IF (.NOT.ALLOCATED(next)) ALLOCATE(next(nx))
-        IF (.NOT.ALLOCATED(ord)) ALLOCATE(ord(nx))
-        next = 0; ord = 0
-        ALLOCATE(topo(nx))
-
-        ! ... Interpolate the topography on the cell top 
-        ! ... (centered horizontally)
-        !
-        IF (MAXVAL(xtop) < MAXVAL(x)) CALL error('topo','Computational domain exceeds topography',1)
-!
-        CALL interp(xtop,ztop,x,topo,next)
-
-        DO i = 1, nx
-          ! ... Topography is expressed in centimeters
-          !
-          topo(i) = topo(i) * 1.D2
-          itopo = NINT(topo(i))
-          topo(i) = itopo * 1.D-2
-        ENDDO
-        
-        ! ... Translate vertically the mesh to minimize the
-        ! ... number of topographic cells
-        !
-        IF (itrans) transl_z = MINVAL(topo) - zb(1)
-
-        IF( mpime == root ) THEN
-          WRITE(logunit,*) 'Translating mesh vertically'
-          WRITE(logunit,*) 'Minimum topographic quota: ', MINVAL(topo)
-          WRITE(logunit,*) 'Translation: ', transl_z
-        END IF
-        z  = z  + transl_z
-        zb = zb + transl_z
-        
-        ! ... Re-set the 'ord' array and set the implicit profile
-        !
-        DO i = 1, nx
-          DO k = 1, nz
-            IF (zb(k) <= topo(i)) ord(i) = k  
-            ijk = i + (k-1) * nx
-            dist(ijk) = z(k) - topo(i)
-          END DO
-        END DO
-        kv = ord(iv)
-        !
-        DEALLOCATE(topo)
-        !
-      ELSE IF (job_type == '3D') THEN
-        !
-        IF (.NOT.ALLOCATED(nextx)) ALLOCATE(nextx(nx))
-        IF (.NOT.ALLOCATED(nexty)) ALLOCATE(nexty(ny))
-        IF (.NOT.ALLOCATED(ord2d)) ALLOCATE(ord2d(nx,ny))
-        nextx = 0; nexty = 0; ord2d = 0
-        ALLOCATE(topo2d(nx,ny))
-
-        IF (MAXVAL(xtop) < MAXVAL(x)) CALL error('topo','Computational domain exceeds topography x',1)
-        IF (MAXVAL(ytop) < MAXVAL(y)) CALL error('topo','Computational domain exceeds topography y',1)
-
-        CALL interp(xtop, ytop, ztop2d, x, y, topo2d, nextx, nexty)
-
-        ! ... Topography must be accurate to centimeters
-        !
-        DO j=1,ny
-          DO i=1,nx
-            topo2d(i,j) = topo2d(i,j) * 1.D2
-            itopo = NINT(topo2d(i,j))
-            topo2d(i,j) = itopo * 1.D-2
-          END DO
-        END DO
-        !
-        ! ... Translate vertically the numerical mesh to minimize the
-        ! ... number of topographic cells
-        !
-        IF (itrans) transl_z = MINVAL(topo2d) - zb(1)
-
-        IF( mpime == root ) THEN
-          WRITE(logunit,*) 'Translating mesh vertically'
-          WRITE(logunit,*) 'Minimum topographic quota: ', MINVAL(topo2d)
-          WRITE(logunit,*) 'Translation: ', transl_z
-        END IF
-        z  = z  + transl_z
-        zb = zb + transl_z
-        
-        ! ... Reset the 'ord2d' array after translation 
-        ! ... and set the implicit profile
-        !
-        DO j = 1, ny
-          DO i = 1, nx
-            DO k = 1, nz
-              IF (zb(k) <= topo2d(i,j)) ord2d(i,j) = k  
-              ijk = i + (j-1) * nx + (k-1) * nx * ny
-              dist(ijk) = z(k) - topo2d(i,j)
-            END DO
-          END DO
-        END DO
-        kv = ord2d(iv,jv)
-        !
-        DEALLOCATE(topo2d)
-        !
-      END IF
-!
-! ... set cell flags on topography
-!
-      CALL set_flags
-
-      DEALLOCATE (dummy)
-
-      RETURN
-      END SUBROUTINE set_profile
 !----------------------------------------------------------------------
       SUBROUTINE interpolate_profile(cx, cz, topo, ff)
       USE array_filters, ONLY: interp
@@ -885,6 +895,88 @@
       RETURN
       END SUBROUTINE interpolate_dem
 !----------------------------------------------------------------------
+      SUBROUTINE set_flags
+!
+! ... Set cell-flag = 3 in cells laying below the topography
+! ... "ord" and "ord2d" are the last cell COMPLETELY below the topography
+!
+      USE control_flags, ONLY: lpr, job_type
+      USE grid, ONLY: fl, zb, z
+      USE grid, ONLY: inlet_cell, noslip_wall, fluid, bl_cell
+      USE io_files, ONLY: testunit
+      USE flux_limiters, ONLY: muscl
+      IMPLICIT NONE
+
+      INTEGER :: i, j, k, ijk, ii, jj
+      INTEGER :: q
+!
+! ... 2D
+! ... Define the topography through the no-slip cells
+!
+      IF( job_type == '2D') THEN
+        DO i = 1, nx
+          q = ord(i)
+          DO k = 1, nz
+            ijk = i + (k-1) * nx
+            IF (q >= k) THEN
+                    IF( fl(ijk) /= inlet_cell ) fl(ijk) = noslip_wall
+            ELSE
+                    IF( fl(ijk) == noslip_wall ) fl(ijk) = fluid
+            END IF
+          END DO
+        END DO
+!
+! ... Define a 'boundary layer' of thickness == 3 above the topography
+!
+        DO i = 1, nx
+          q = ord(i)
+          DO k = q+1, q+3
+            DO ii=-3,+3
+              ijk = (i+ii) + (k-1) * nx
+                  IF( fl(ijk) == fluid ) fl(ijk) = bl_cell
+            END DO
+          END DO
+        END DO
+!
+! ... 3D
+! ... Define the topography through the no-slip cells
+!
+      ELSE IF( job_type == '3D') THEN
+        DO j = 1, ny
+          DO i = 1, nx
+            q = ord2d(i,j)
+            DO k = 1, nz
+              ijk = i + (j-1) * nx + (k-1) * nx * ny
+              IF (k <= q) THEN
+                      IF( fl(ijk) /= inlet_cell ) fl(ijk) = noslip_wall
+              ELSE
+                      IF( fl(ijk) == noslip_wall ) fl(ijk) = fluid
+              END IF
+            END DO
+          END DO
+        END DO
+!
+! ... Define a layer of thickness == 3 above the topography
+!
+        DO j = 1, ny
+          DO i = 1, nx
+            q = ord2d(i,j)
+            DO k = q+1, q+3
+              DO jj=-3,+3
+                DO ii=-3,+3
+                  ijk = (i+ii) + (j+jj-1) * nx + (k-1) * nx * ny
+                      IF( fl(ijk) == fluid ) fl(ijk) = bl_cell
+                END DO
+              END DO
+            END DO
+          END DO
+        END DO
+!
+      END IF
+!
+      RETURN
+      END SUBROUTINE set_flags
+!----------------------------------------------------------------------
       SUBROUTINE export_topography
 !
 ! ... Store the value of the discrete topography
@@ -892,8 +984,8 @@
 ! ... are modified later with more accurate interpolations
 !
       USE control_flags, ONLY: job_type, lpr
-      USE grid, ONLY: fl, noslip_wall, zb
-      USE io_files, ONLY: tempunit, logunit
+      USE grid, ONLY: fl, noslip_wall, zb, x
+      USE io_files, ONLY: tempunit
       IMPLICIT NONE
 
       INTEGER :: i, j, k, ijk
@@ -924,12 +1016,23 @@
             topo2d_y(i,j) = topo2d_c(i,j)
           END DO
         END DO
-        OPEN(tempunit, FILE='export_topography.dat',STATUS='UNKNOWN')
-        IF (mpime == root) THEN
-                WRITE(tempunit,'(10F15.6)') topo2d_c
-        END IF
-        CLOSE(tempunit)
       END IF
+      !
+      ! ... Write a new DEM file (z(x) in 2D, z(x,y) in 3D) for
+      ! ... visualization of the topography
+      !
+      OPEN(tempunit, FILE='export_topography.dat',STATUS='UNKNOWN')
+      IF (mpime == root) THEN
+        WRITE(topounit,*) 'The new DEM is written in file "export_topography.dat"'
+        IF( job_type == '2D') THEN
+                  DO i=1,nx
+                    WRITE(tempunit,'(2F15.6)') x(i), topo_c(i)
+                  END DO
+        ELSE IF( job_type == '3D') THEN
+                  WRITE(tempunit,'(10F15.6)') topo2d_c(:,:)
+        END IF
+      END IF
+      CLOSE(tempunit)
 !
       RETURN
       END SUBROUTINE export_topography
@@ -940,7 +1043,7 @@
       USE dimensions
       USE grid, ONLY: x, xb, y, yb, z, zb
       USE grid, ONLY: iob, fl, noslip_wall, filled_cell_1, filled_cell_2
-      USE io_files, ONLY: tempunit, logunit
+      USE io_files, ONLY: tempunit
 !
       IMPLICIT NONE
       INTEGER :: n, i, j, k, ijk, cntz
@@ -976,7 +1079,8 @@
       END IF
 !
 ! ... Control that the cells below the specified_flow blocks
-! ... are noslip cells
+! ... are noslip cells (they could have been modified by the 
+! ... immersed boundary procedure)
 !
       IF( job_type == '2D') THEN
         DO n = 1, no
@@ -1004,38 +1108,6 @@
         END DO
       END IF
 !
-! ... Write out the topographic map based on noslip cells
-!
-      IF (lpr >= 2) THEN
-              IF (mpime == root) THEN
-                OPEN(tempunit,FILE='topo.log')
-                WRITE(logunit,*) 'Writing top no-slip cells on file: "topo.log"'
-              END IF
-              IF (job_type == '2D') THEN
-                      DO i = 1, nx
-                        cntz = 0
-                        DO k = 1, nz
-                          ijk = i + (k-1) * nx
-                          IF (fl(ijk) == noslip_wall) cntz = k
-                        END DO
-                        IF (mpime == root) WRITE(tempunit,101) i, cntz
-                      END DO
-              ELSE IF (job_type == '3D') THEN
-                      DO j = 1, ny
-                        DO i = 1, nx
-                          cntz = 0
-                          DO k = 1, nz
-                            ijk = i + (j-1) * nx + (k-1) * nx * ny
-                            IF (fl(ijk) == noslip_wall) cntz = k
-                          END DO
-                          IF (mpime == root) WRITE(tempunit,*) i, j, cntz
-                        END DO
-                      END DO
-              END IF
-              IF (mpime == root) CLOSE(tempunit)
-      END IF
- 101  FORMAT(2I5)
-!
 ! ... Deallocate all arrays in the topography module
 !
       IF (job_type == '2D') THEN
@@ -1050,104 +1122,8 @@
         DEALLOCATE (xtop, ytop, ztop2d)
       END IF
 !
-      IF (mpime == root) THEN
-      WRITE(logunit,*) 'Filled_cells (forced externally)'
-      DO k = 1, nz
-        DO j = 1, ny
-          DO i = 1, nx
-            ijk = i + (j-1) * nx + (k-1) * nx * ny
-            IF (fl(ijk)==filled_cell_1 .OR. fl(ijk)==filled_cell_2) THEN
-              WRITE(logunit,*) ijk, i, j, k 
-            END IF
-          END DO
-        END DO
-      END DO
-      END IF
-!
       RETURN
       END SUBROUTINE write_profile
-!----------------------------------------------------------------------
-      SUBROUTINE set_flags
-!
-! ... Set cell-flag = 3 in cells laying below the topography
-! ... "ord" and "ord2d" are the last cell COMPLETELY below the topography
-!
-      USE control_flags, ONLY: lpr, job_type
-      USE grid, ONLY: fl, zb, z
-      USE grid, ONLY: inlet_cell, noslip_wall, fluid, bl_cell
-      USE io_files, ONLY: testunit
-      USE flux_limiters, ONLY: muscl
-      IMPLICIT NONE
-
-      INTEGER :: i, j, k, ijk, ii, jj
-      INTEGER :: q
-!
-! ... 2D
-! ... Define the topography through the no-slip cells
-!
-      IF( job_type == '2D') THEN
-        DO i = 1, nx
-          q = ord(i)
-          DO k = 1, nz
-            ijk = i + (k-1) * nx
-            IF (q >= k) THEN
-                    IF( fl(ijk) /= inlet_cell ) fl(ijk) = noslip_wall
-            ELSE
-                    IF( fl(ijk) == noslip_wall ) fl(ijk) = fluid
-            END IF
-          END DO
-        END DO
-!
-! ... Define a layer of thickness == 3 above the topography
-!
-        DO i = 1, nx
-          q = ord(i)
-          DO k = q+1, q+3
-            DO ii=-3,+3
-              ijk = (i+ii) + (k-1) * nx
-                  IF( fl(ijk) == fluid ) fl(ijk) = bl_cell
-            END DO
-          END DO
-        END DO
-!
-! ... 3D
-! ... Define the topography through the no-slip cells
-!
-      ELSE IF( job_type == '3D') THEN
-        DO j = 1, ny
-          DO i = 1, nx
-            q = ord2d(i,j)
-            DO k = 1, nz
-              ijk = i + (j-1) * nx + (k-1) * nx * ny
-              IF (q >= k) THEN
-                      IF( fl(ijk) /= inlet_cell ) fl(ijk) = noslip_wall
-              ELSE
-                      IF( fl(ijk) == noslip_wall ) fl(ijk) = fluid
-              END IF
-            END DO
-          END DO
-        END DO
-!
-! ... Define a layer of thickness == 3 above the topography
-!
-        DO j = 1, ny
-          DO i = 1, nx
-            q = ord2d(i,j)
-            DO k = q+1, q+3
-              DO jj=-3,+3
-                DO ii=-3,+3
-                  ijk = (i+ii) + (j+jj-1) * nx + (k-1) * nx * ny
-                      IF( fl(ijk) == fluid ) fl(ijk) = bl_cell
-                END DO
-              END DO
-            END DO
-          END DO
-        END DO
-!
-      END IF
-!
-      RETURN
-      END SUBROUTINE set_flags
 !----------------------------------------------------------------------
       END MODULE volcano_topography
 !----------------------------------------------------------------------

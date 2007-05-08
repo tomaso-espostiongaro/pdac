@@ -28,7 +28,7 @@
       USE gas_solid_viscosity, ONLY: allocate_viscosity
       USE grid, ONLY: grid_setup, allocate_blbody, allocate_grid
       USE immersed_boundaries, ONLY: set_forcing, immb
-      USE initial_conditions, ONLY: setpar, setup, cnvert, allocate_setup, npr
+      USE initial_conditions, ONLY: setpar, setup, cnvert, allocate_setup
       USE input_module, ONLY: input, initc, number_of_block
       USE io_files
       USE io_restart, ONLY: taperd, tapewr, outp_recover, outp_remap
@@ -152,12 +152,12 @@
       IF (itp >= 1)  CALL import_topography
 
 ! ... Define volcanic vent position on the 3D topography
-! ... and change the cell flags
+! ... and change the cell flags (can modify the topography)
 !
       IF (ivent >= 1) CALL locate_vent
 
 ! ... Define volcanic dome position on the 3D topography
-! ... and change the cell flags
+! ... and change the cell flags (can modify the topography)
 !
       IF (idome >= 1) CALL locate_dome
 

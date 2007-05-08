@@ -140,8 +140,10 @@
       END SUBROUTINE print_mass_residuals
 !----------------------------------------------------------------------
       SUBROUTINE print_mass_flow_rate
+      USE control_flags, ONLY: lpr
       USE dimensions
-      USE io_files, ONLY: logunit
+      USE io_files, ONLY: logunit, ventunit, ventfile
+      USE vent_conditions, ONLY: ivent
       IMPLICIT NONE
       REAL*8 :: mfr, mgd, mxv, mrd
       REAL*8, ALLOCATABLE :: msd(:)
@@ -150,12 +152,14 @@
 !
       CALL compute_mass_flow_rate(mfr, mgd, msd, mxv, mrd)
 !
-      IF (mpime == root) THEN
-        WRITE(logunit,*) 'Mass flow rate          : ', mfr
-        WRITE(logunit,*) 'Gas Density at vent     : ', mgd
-        WRITE(logunit,*) 'Solid Density at vent   : ', msd
-        WRITE(logunit,*) 'Mixture Velocity at vent: ', mxv 
-        WRITE(logunit,*) 'Averaged vent radius    : ', mrd 
+      IF (lpr > 0 .AND. mpime == root) THEN
+        IF (mfr > 0.D0) THEN
+          WRITE(logunit,*) 'Mass flow rate          : ', mfr
+          WRITE(logunit,*) 'Gas Density at vent     : ', mgd
+          WRITE(logunit,*) 'Solid Density at vent   : ', msd
+          WRITE(logunit,*) 'Mixture Velocity at vent: ', mxv 
+          WRITE(logunit,*) 'Averaged vent radius    : ', mrd 
+        END IF
       END IF
 !
       DEALLOCATE(msd)
@@ -232,11 +236,13 @@
       CALL parallel_sum_real(mgd, 1)
       CALL parallel_sum_real(msd, nsolid)
       
-      mgd = mgd / surface
-      msd = msd / surface
-      mixd = mgd + SUM(msd)
-      mxv = mfr / mixd / surface
-      mrd = DSQRT(surface / pi)
+      IF (surface /= 0.D0) THEN
+        mgd = mgd / surface
+        msd = msd / surface
+        mixd = mgd + SUM(msd)
+        mxv = mfr / mixd / surface
+        mrd = DSQRT(surface / pi)
+      END IF
 
       RETURN
       END SUBROUTINE compute_mass_flow_rate

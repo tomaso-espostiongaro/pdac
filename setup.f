@@ -3,16 +3,14 @@
 !----------------------------------------------------------------------
       USE io_files, ONLY: logunit
       IMPLICIT NONE
-      SAVE
+!
       REAL*8, DIMENSION(:), ALLOCATABLE   :: ugob, vgob, wgob, epob, &
                                              tgob, pob
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: upob, vpob, wpob, epsob, &
                                              tpob, ygcob
-      REAL*8, DIMENSION(:), ALLOCATABLE   :: ugpr, wgpr, ppr, eppr, tgpr
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: uppr,wppr,epspr,tppr, ygcpr
       LOGICAL :: density_specified
-
-      INTEGER :: npr
+!
+      SAVE
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------

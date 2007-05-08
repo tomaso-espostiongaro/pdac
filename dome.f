@@ -6,7 +6,7 @@
 !
 !-----------------------------------------------------------------------
       USE dimensions, ONLY: max_nsolid, max_ngas, nsolid, ngas
-      USE io_files, ONLY: logunit
+      USE io_files, ONLY: domeunit, domefile
       IMPLICIT NONE
 
       ! ... flags
@@ -22,6 +22,7 @@
       REAL*8 :: conduit_radius
       !
       REAL*8 :: dome_ygc(max_ngas)
+      REAL*8 :: max_p_hydro
 
       TYPE icdome_cell
         INTEGER :: imesh
@@ -117,7 +118,8 @@
 !
 ! ... Map the dome cells
 !
-        n = 0
+        n = 0 
+        max_p_hydro = 0.D0
         DO k = 1, nz
           DO i = 1, nx
             ijk = i + (k-1) * nx
@@ -132,6 +134,7 @@
                             dcell(n)%angle = 0.D0
                     END IF
                     dcell(n)%p_hydro  = rlks * DABS(gravz) * dh(distance,dcell(n)%angle)
+                    max_p_hydro = (MAX(dcell(n)%p_hydro,max_p_hydro)) 
             END IF
           END DO
         END DO
@@ -197,6 +200,7 @@
 ! ... Map the dome cells
 !
         n = 0
+        max_p_hydro = 0.D0
         DO k = 1, nz
           DO j = 1, ny
             DO i = 1, nx
@@ -213,6 +217,7 @@
                             dcell(n)%angle = 0.D0
                       END IF
                       dcell(n)%p_hydro  = rlks * DABS(gravz) * dh(distance, dcell(n)%angle)
+                      max_p_hydro = (MAX(dcell(n)%p_hydro,max_p_hydro)) 
               END IF
             END DO
           END DO
@@ -223,12 +228,14 @@
 ! ... Print out the dome coordinates
 !
       IF( lpr > 0 .AND. mpime == root ) THEN
-        WRITE(logunit,100) iid, jjd, kkd
-        WRITE(logunit,200) xdome, ydome, zdome
-        WRITE(logunit,400) dome_radius
-100     FORMAT(1X,'dome center: ',3I5)
+        OPEN(UNIT=domeunit,FILE=domefile,STATUS='UNKNOWN')
+        WRITE(domeunit,*) 'Report of dome initial conditions'
+        WRITE(domeunit,*) 
+        WRITE(domeunit,100) iid, jjd, kkd
+        WRITE(domeunit,200) xdome, ydome, zdome
+        WRITE(domeunit,400) dome_radius
+100     FORMAT(1X,'dome center indices: ',3I5)
 200     FORMAT(1X,'dome center coordinates: ',3(F12.2))
-300     FORMAT(1X,'dome volume: ',F12.2)
 400     FORMAT(1X,'dome radius: ',F12.2)
       END IF
 !
@@ -270,12 +277,14 @@
       beta = 2.D0 * dome_gasvisc * gas_flux * erre * temperature
       beta = beta / ( p_atm(kkd)**2 * permeability * psi * dome_radius )
 !
-      IF (lpr > 1) THEN
+      IF (lpr > 0) THEN
         IF (mpime == root) THEN
-          WRITE(logunit,*) 'Woods radial pressure profile'
+                WRITE(domeunit,*) 
+                WRITE(domeunit,*) 'Maximum Hydrostatic pressure = ', max_p_hydro 
+                WRITE(domeunit,*) 'Woods radial pressure profile'
           raddo = 0.D0
           DO WHILE (raddo <= dome_radius)
-            WRITE(logunit,*) raddo, p_dome(raddo,p_atm(kkd),beta)
+          WRITE(domeunit,*) raddo, p_dome(raddo,p_atm(kkd),beta)
             raddo = raddo + 1.D0
           END DO
         END IF
@@ -425,14 +434,14 @@
 ! ... Print out the dome coordinates
 !
       IF( lpr > 0 .AND. mpime == root ) THEN
-        WRITE(logunit,*)
-        WRITE(logunit,*) 'Mass and Energy stored in the dome'
-        WRITE(logunit,100) vold 
-        WRITE(logunit,200) mgd
-        WRITE(logunit,201) mpd
-        WRITE(logunit,300) isoe
-        WRITE(logunit,400) adie
-        WRITE(logunit,*)
+              WRITE(domeunit,*)
+              WRITE(domeunit,*) 'Mass and Energy stored in the dome'
+              WRITE(domeunit,100) vold 
+              WRITE(domeunit,200) mgd
+              WRITE(domeunit,201) mpd
+              WRITE(domeunit,300) isoe
+              WRITE(domeunit,400) adie
+              WRITE(domeunit,*)
 100     FORMAT(1X,'Dome Total Volume: ',F18.4)
 200     FORMAT(1X,'Total gas   mass [Kg]: ',F18.4)
 201     FORMAT(1X,'Total solid mass [Kg]: ',F18.4)

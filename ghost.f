@@ -96,8 +96,6 @@
       ALLOCATE(snd_map( 0:(nproc-1) ) )
       
 !
-      IF (mpime == root) WRITE( logunit, * ) 'Entering Ghost ... '
-!
       rcv_map(:)%nrcv = 0
       snd_map(:)%nsnd = 0
       icnt     = 0
@@ -454,8 +452,6 @@
 ! ... fill in the array myinds using myijk
 !
       CALL set_myinds(myinds, myijk)
-
-      IF (mpime == root) WRITE(logunit,*) 'End of Ghost'
 !
       RETURN
       END SUBROUTINE ghost
