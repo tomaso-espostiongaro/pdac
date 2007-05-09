@@ -47,16 +47,18 @@
 ! ... and the roughness length
 ! ... (2D/3D-Compliant)
 !
+        USE control_flags, ONLY: job_type
         USE dimensions, ONLY: nz, no, nx, ny
         USE domain_mapping, ONLY: myijk, meshinds
         USE grid, ONLY: dz, zb, rb, dx, dy, z
         USE volcano_topography, ONLY: topo_c, topo2d_c
-        USE roughness_module, ONLY: roughness, roughness2d,  roughness_setup
-        USE control_flags, ONLY: job_type
         USE indijk_module, ONLY: ip0_jp0_kp0_
+        USE io_files, ONLY: tempunit
+        USE parallel, ONLY: mpime, root
+        USE roughness_module, ONLY: roughness, roughness2d,  roughness_setup
 !
         INTEGER :: i, j, k, i1, i2, j2, n, ijk, imesh
-        REAL*8  :: sl, zsgs, zrou, rl
+        REAL*8  :: zsgs, zrou, ls, lb, lm
         REAL*8 :: delt
 
         INTEGER, DIMENSION(:), ALLOCATABLE :: kt, it
@@ -73,47 +75,61 @@
           DO ijk = 1, ncint
             CALL meshinds(ijk,imesh,i,j,k)
             !
-            delt = DSQRT( dz(k)*dx(i) )
-            sl = cmut * delt
+            ! ... Mesh length-scale
             !
-            IF ( iturb == 2 ) THEN
+            delt = DSQRT( dz(k)*dx(i) )
+            ls = cmut * delt
+            !
+            IF ( iturb == 1 ) THEN
+                    lm = ls
+            ELSE IF ( iturb == 2 ) THEN
                     zsgs = z(k) - topo_c(i)
                     IF (zsgs > 0.D0) THEN
                             zrou = roughness(i)
-                            rl = 0.4D0 * ( zsgs + zrou )
+                            lb = 0.4D0 * ( zsgs + zrou )
                             !
-                            ! ... use the smallest between the smag length and the roughness length
+                            ! ... Either use the smallest between the smag length and the roughness length
                             !
-                            sl = DMIN1(sl,rl)
+                            !lm = DMIN1(ls,lb)
+                            !
+                            ! ... or match the Smagorinsky and the Roughness length scales
+                            !
+                            lm = DSQRT(1.D0 / (1.D0/ls**2 + 1.D0/lb**2))
                     END IF
             ENDIF
             !
             ! ... Squared turbulence length scale is used into Smagorinsky model
             !
-            smag(ijk) = sl**2
+            smag(ijk) = lm**2
           END DO
         ELSE IF( job_type == '3D' ) THEN
           DO ijk = 1, ncint
             CALL meshinds(ijk,imesh,i,j,k)
             !
             delt = ( dz(k)*dy(j)*dx(i) )**(1.0d0/3.0d0)
-            sl = cmut * delt
+            ls = cmut * delt
             !
-            IF ( iturb == 2 ) THEN
+            IF ( iturb == 1 ) THEN
+                    lm = ls
+            ELSE IF ( iturb == 2 ) THEN
                     zsgs = z(k) - topo2d_c(i,j)
                     IF (zsgs > 0.D0) THEN
                             zrou = roughness2d(i,j)
-                            rl = 0.4D0 * ( zsgs + zrou )
+                            lb = 0.4D0 * ( zsgs + zrou )
                             !
-                            ! ... use the smallest between the smag length and the roughness length
+                            ! ... Either use the smallest between the smag length and the roughness length
                             !
-                            sl = DMIN1(sl,rl)
+                            !lm = DMIN1(ls,lb)
+                            !
+                            ! ... or match the Smagorinsky and the Roughness length scales
+                            !
+                            lm = DSQRT(1.D0 / (1.D0/ls**2 + 1.D0/lb**2))
                     END IF
             ENDIF
             !
             ! ... Squared turbulence length scale is used into Smagorinsky model
             !
-            smag( ijk ) = sl**2
+            smag( ijk ) = lm**2
             !
             ! ... Correction for anisotropic grids (only for classical 
             ! ... Smagorinsky model)
@@ -201,17 +217,17 @@
                           sr11,sr12,sr22,sr13,sr23,sr33, ijk)
 !	  
             p11(ijk) = modsr(ijk) * sr11
-  	    p12(ijk) = modsr(ijk) * sr12
-	    p22(ijk) = modsr(ijk) * sr22
-	    p13(ijk) = modsr(ijk) * sr13
-	    p23(ijk) = modsr(ijk) * sr23
-	    p33(ijk) = modsr(ijk) * sr33
+            p12(ijk) = modsr(ijk) * sr12
+            p22(ijk) = modsr(ijk) * sr22
+            p13(ijk) = modsr(ijk) * sr13
+            p23(ijk) = modsr(ijk) * sr23
+            p33(ijk) = modsr(ijk) * sr33
 !
             ! ... compute filtered velocities
             !
-            CALL vel_hat(ijk, fug(ijk), fvg(ijk), fwg(ijk),      &
-	                      fu2g(ijk), fv2g(ijk), fw2g(ijk),   &
-	                      fuvg(ijk), fuwg(ijk), fvwg(ijk) )        
+            CALL vel_hat(ijk, fug(ijk), fvg(ijk), fwg(ijk),    &
+                      fu2g(ijk), fv2g(ijk), fw2g(ijk),         &
+                      fuvg(ijk), fuwg(ijk), fvwg(ijk) )        
           END IF
         END DO
 !
@@ -242,21 +258,21 @@
           CALL subscr( ijk )
 !
           IF( modturbo == 1 ) THEN
-	  
+             !
              ! ... 'Classical' Smagorisnky model:
              ! ... compute the modulus of strain tensor 
              !
-	     IF (job_type == '2D') THEN
+            IF (job_type == '2D') THEN
                CALL strain2d(ug, wg, modsr(ijk), ijk)
-	     ELSE IF (job_type == '3D') THEN
+            ELSE IF (job_type == '3D') THEN
                CALL strain3d(ug, vg, wg, modsr(ijk),   &
                              sr11,sr12,sr22,sr13,sr23,sr33, ijk)
-	     END IF
-
+            END IF
+!
           ELSE IF(modturbo == 2) THEN
 !
-             CALL strain3d(fug, fvg, fwg, fmodsr, fsr11, fsr12, fsr22, &
-	                 fsr13, fsr23, fsr33, ijk)
+             CALL strain3d(fug, fvg, fwg, fmodsr, fsr11, fsr12, fsr22,  &
+                           fsr13, fsr23, fsr33, ijk)
 !
              ! ... compute the local neighbours of 'p' and filter
              ! ... over the stencil 'sp'
@@ -302,10 +318,10 @@
              delt = ( dz(k)*dy(j)*dx(i) )**(1.0d0/3.0d0)
 
              num = l11*m11 + l22*m22 + l33*m33 + &
-	           2.D0*l12*m12 + 2.D0*l13*m13 + 2.D0*l23*m23
+                   2.D0*l12*m12 + 2.D0*l13*m13 + 2.D0*l23*m23
 
-             den = delt**2 * ( m11**2 + m22**2 + m33**2 + &
-	                        2.D0*m12**2 + 2.D0*m13**2 + 2.D0*m23**2 )
+             den = delt**2 * ( m11**2 + m22**2 + m33**2 +  &
+                               2.D0*m12**2 + 2.D0*m13**2 + 2.D0*m23**2 )
 
              IF(den == 0.0D0) THEN
                cdyn = 0.0D0
@@ -550,13 +566,13 @@
       wxm=0.5D0*(w(imjk)+w(imjkm))
       wyp=0.5D0*(w(ijpk)+w(ijpkm))
       wym=0.5D0*(w(ijmk)+w(ijmkm))
-	
+!
       sr12 = (uyp - uym) / (dyp+dym) + (vxp - vxm) / (dxp+dxm)
       sr13 = (uzp - uzm) / (dzp+dzm) + (wxp - wxm) / (dxp+dxm)
       sr23 = (vzp - vzm) / (dzp+dzm) + (wyp - wym) / (dyp+dym)
 !        
       modsr = DSQRT(2.D0 * (sr11**2 + sr22**2 + sr33**2 +             &
-	                   2.D0*sr12**2 + 2.D0*sr13**2 + 2.D0*sr23**2) )
+                            2.D0*sr12**2 + 2.D0*sr13**2 + 2.D0*sr23**2) )
 !
       RETURN
       END SUBROUTINE strain3d
