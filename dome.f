@@ -76,10 +76,13 @@
 ! ... the dome center is located where the mesh is more refined.
 ! ... Otherwise its coordinates '(xdome)' are taken from the input.
 !
-        IF (itc >= 1 .OR. iid==1) iid = 2
-        DO i = 1, nx
-          IF (x(i) <= xdome) iid = i
-        END DO
+        IF (itc >= 1 .OR. iid==1) THEN
+          iid = 2
+        ELSE IF (itc == 0) THEN
+          DO i = 1, nx
+            IF (x(i) <= xdome) iid = i
+          END DO
+        END IF
         xdome = x(iid)
 !
 ! ... Define the quota of the volcanic dome
