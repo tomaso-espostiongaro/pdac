@@ -97,7 +97,8 @@
       USE dimensions
       USE domain_decomposition, ONLY: mesh_partition
       USE dome_conditions, ONLY: xdome, ydome, zdome, dome_volume, temperature, particle_fraction, overpressure, &
-          idome, gas_flux, permeability, dome_gasvisc, idw, conduit_radius
+          idome, gas_flux, permeability, dome_gasvisc, idw, conduit_radius, &
+          rocks_volume, temperature_rocks, overpressure_rocks, particle_fraction_rocks
       USE enthalpy_matrix, ONLY: flim, tlim, tforce
       USE eos_gas, ONLY: update_eosg
       USE flux_limiters, ONLY: beta, muscl
@@ -166,6 +167,7 @@
       NAMELIST / dome / xdome, ydome, zdome, dome_volume, temperature, &
         particle_fraction, idome, overpressure, gas_flux, permeability, &
         dome_gasvisc, idw, conduit_radius, &
+        rocks_volume, temperature_rocks, overpressure_rocks, particle_fraction_rocks, &
         dome_O2, dome_N2, dome_CO2, dome_H2, dome_H2O, dome_Air, dome_SO2
 
       NAMELIST / atmosphere / wind_x, wind_y, wind_z, p_ground, t_ground, &
@@ -329,14 +331,18 @@
       xdome = 0.0             ! UTM longitude of the dome center
       ydome = 0.0             ! UTM latitude of the dome center
       zdome = 0.0             ! Elevation of the dome center
-      dome_volume = 1.D6        ! total volume of exploded mass
-      conduit_radius = 15.D0   ! Radius of the conduit feeding the dome
-      overpressure = 100.D5             ! overpressure of the dome
-      particle_fraction = 0.7D0          ! particle fractions
-      gas_flux = 400.D0        ! gas flux through the conduit
+      dome_volume = 1.D6      ! total volume of exploded mass
+      conduit_radius = 15.D0  ! Radius of the conduit feeding the dome
+      overpressure = 100.D5        ! overpressure of the dome
+      particle_fraction = 0.7D0    ! particle fractions
+      gas_flux = 400.D0            ! gas flux through the conduit
       temperature = 1100.D0        ! gas temperature
-      permeability = 1.D-12    ! permeability of the dome
-      dome_gasvisc = 1.D-5        ! viscosity of the gas
+      permeability = 1.D-12        ! permeability of the dome
+      rocks_volume = 0.D0                   ! total volume of exploded mass
+      overpressure_rocks = 0.D0             ! overpressure of the dome
+      temperature_rocks = 273.D0            ! gas temperature
+      particle_fraction_rocks = 0.0D0       ! particle fractions
+      dome_gasvisc = 1.D-5     ! viscosity of the gas
       dome_O2  = 0.D0          ! gas components mass fractions
       dome_N2  = 0.D0
       dome_CO2 = 0.D0
@@ -595,10 +601,14 @@
       CALL bcast_real(ydome,1,root)
       CALL bcast_real(zdome,1,root)
       CALL bcast_real(dome_volume,1,root)
+      CALL bcast_real(rocks_volume,1,root)
       CALL bcast_real(conduit_radius,1,root)
       CALL bcast_real(temperature,1,root)
       CALL bcast_real(overpressure,1,root)
       CALL bcast_real(particle_fraction,max_nsolid,root)
+      CALL bcast_real(temperature_rocks,1,root)
+      CALL bcast_real(overpressure_rocks,1,root)
+      CALL bcast_real(particle_fraction_rocks,max_nsolid,root)
       CALL bcast_real(gas_flux,1,root)
       CALL bcast_real(permeability,1,root)
       CALL bcast_real(dome_gasvisc,1,root)
@@ -978,10 +988,14 @@
             CALL iotk_write_dat( iuni_nml, "ydome", ydome )
             CALL iotk_write_dat( iuni_nml, "zdome", zdome )
             CALL iotk_write_dat( iuni_nml, "dome_volume", dome_volume )
+            CALL iotk_write_dat( iuni_nml, "rocks_volume", rocks_volume )
             CALL iotk_write_dat( iuni_nml, "conduit_radius", conduit_radius )
             CALL iotk_write_dat( iuni_nml, "temperature", temperature )
             CALL iotk_write_dat( iuni_nml, "overpressure", overpressure )
             CALL iotk_write_dat( iuni_nml, "particle_fraction", particle_fraction )
+            CALL iotk_write_dat( iuni_nml, "temperature_rocks", temperature )
+            CALL iotk_write_dat( iuni_nml, "overpressure_rocks", overpressure )
+            CALL iotk_write_dat( iuni_nml, "particle_fraction_rocks", particle_fraction )
             CALL iotk_write_dat( iuni_nml, "gas_flux", gas_flux )
             CALL iotk_write_dat( iuni_nml, "permeability", permeability )
             CALL iotk_write_dat( iuni_nml, "dome_gasvisc", dome_gasvisc )
