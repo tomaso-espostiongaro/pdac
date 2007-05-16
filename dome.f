@@ -26,16 +26,17 @@
       REAL*8 :: conduit_radius
       !
       REAL*8 :: dome_ygc(max_ngas)
-      REAL*8 :: max_p_hydro
 
       TYPE icdome_cell
         INTEGER :: imesh
         REAL*8  :: radius
         REAL*8  :: angle
-        REAL*8  :: p_hydro
-        INTEGER :: shell    ! 0: dome; 1: rocks
+        REAL*8  :: pressure
+        REAL*8  :: temperature
+        REAL*8  :: sfraction(max_nsolid)
       END TYPE icdome_cell
       TYPE(icdome_cell), ALLOCATABLE :: dcell(:)
+      REAL*8, ALLOCATABLE :: sdensity(:)
 
       INTEGER :: ndm, iid, jjd, kkd
       PUBLIC
@@ -86,8 +87,15 @@
       dome_volume = dome_volume / SUM(particle_fraction(1:nsolid))
       rocks_volume = rocks_volume / SUM(particle_fraction_rocks(1:nsolid))
       total_volume = dome_volume + rocks_volume
-      dome_radius = ( 1.5D0 * dome_volume / pi )**(1.0/3.0)
-      total_radius = ( 1.5D0 * total_volume / pi )**(1.0/3.0)
+! ... For spherical dome use the following radii
+!
+      !dome_radius = ( 1.5D0 * dome_volume / pi )**(1.0/3.0)
+      !total_radius = ( 1.5D0 * total_volume / pi )**(1.0/3.0)
+!
+! ... For rectangular, cylindrical dome use the following radii
+!
+      dome_radius = ( dome_volume / pi )**(1.0/3.0)
+      total_radius = ( total_volume / (pi * dome_radius * dome_radius))
 !
       IF( job_type == '2D') THEN
 !
@@ -125,8 +133,12 @@
         DO k = 1, nz
           DO i = 1, nx
             ijk = i + (k-1) * nx
-            distance2 = (x(i)-x(iid))**2 + (z(k)-z(kkd))**2
-            IF (distance2 <= total_radius**2 .AND. (fl(ijk)==fluid .OR. fl(ijk)==bl_cell)) THEN
+            ! ... Spherical dome
+            !distance2 = (x(i)-x(iid))**2 + (z(k)-z(kkd))**2
+            !IF (distance2 <= total_radius**2 .AND. (fl(ijk)==fluid .OR. fl(ijk)==bl_cell)) THEN
+            !
+            ! ... Cylindrical dome
+            IF ((x(i)-x(iid) < dome_radius .AND. z(k)-z(kkd) < total_radius) .AND. (fl(ijk)==fluid .OR. fl(ijk)==bl_cell)) THEN
                     ndm = ndm + 1
                     fl(ijk) = dome_cell
             END IF
@@ -137,13 +149,13 @@
 ! ... Allocate the array for the dome pressure profile
 !
         ALLOCATE(dcell(ndm))
-        dcell(:)%shell = 0
+        ALLOCATE(sdensity(ndm))
+        sdensity = 0.D0
 !
 ! ... Map the dome cells and compute the hydrostatic pressure
 ! ... in each cell by using the averaged solid bulk density 'rlks_mix'
 !
         n = 0 
-        max_p_hydro = 0.D0
         DO k = 1, nz
           DO i = 1, nx
             ijk = i + (k-1) * nx
@@ -152,14 +164,12 @@
                     n = n + 1
                     dcell(n)%imesh = ijk
                     dcell(n)%radius = distance
-                    IF (distance > dome_radius ) dcell(n)%shell = 1
+                    !
                     IF (distance > 0.D0 ) THEN
                             dcell(n)%angle  = ATAN2((z(k)-z(kkd)),(x(i)-x(iid)))
                     ELSE
                             dcell(n)%angle = 0.D0
                     END IF
-                    dcell(n)%p_hydro  = rlks_mix * DABS(gravz) * dh(distance,dcell(n)%angle)
-                    max_p_hydro = (MAX(dcell(n)%p_hydro,max_p_hydro)) 
             END IF
           END DO
         END DO
@@ -200,7 +210,11 @@
         END IF
 !
         IF (itp >=1 ) &
-          CALL flatten_dem_dome(xdome,ydome,total_radius,kkd)
+          ! ... Spherical dome
+          !CALL flatten_dem_dome(xdome,ydome,total_radius,kkd)
+          !
+          ! ... Cylindrical dome
+          CALL flatten_dem_dome(xdome,ydome,dome_radius,kkd)
 !
 ! ... Count the cells of the dome
 !
@@ -209,8 +223,12 @@
           DO j = 1, ny
             DO i = 1, nx
               ijk = i + (j-1) * nx + (k-1) * nx * ny
-              distance2 = (x(i)-x(iid))**2 + (y(j)-y(jjd))**2 + (z(k)-z(kkd))**2
-              IF (distance2 <= total_radius**2 .AND. (fl(ijk) == fluid .OR. fl(ijk)==bl_cell)) THEN
+              ! ... Spherical dome
+              !distance2 = (x(i)-x(iid))**2 + (y(j)-y(jjd))**2 + (z(k)-z(kkd))**2
+              !IF (distance2 <= total_radius**2 .AND. (fl(ijk) == fluid .OR. fl(ijk)==bl_cell)) THEN
+              ! ... Cylindrical dome
+              distance2 = (x(i)-x(iid))**2 + (y(j)-y(jjd))**2
+              IF ((distance2 < dome_radius .AND. z(k)-z(kkd) < total_radius) .AND. (fl(ijk)==fluid .OR. fl(ijk)==bl_cell)) THEN
                       ndm = ndm + 1
                       fl(ijk) = dome_cell
               END IF
@@ -226,7 +244,6 @@
 ! ... in each cell by using the averaged solid bulk density 'rlks_mix'
 !
         n = 0
-        max_p_hydro = 0.D0
         DO k = 1, nz
           DO j = 1, ny
             DO i = 1, nx
@@ -242,8 +259,6 @@
                       ELSE
                             dcell(n)%angle = 0.D0
                       END IF
-                      dcell(n)%p_hydro  = rlks_mix * DABS(gravz) * dh(distance, dcell(n)%angle)
-                      max_p_hydro = (MAX(dcell(n)%p_hydro,max_p_hydro)) 
               END IF
             END DO
           END DO
@@ -260,6 +275,11 @@
         WRITE(domeunit,100) iid, jjd, kkd
         WRITE(domeunit,200) xdome, ydome, zdome
         WRITE(domeunit,400) dome_radius, total_radius
+        WRITE(domeunit,*) 
+        WRITE(domeunit,*) 'Dome cells report'
+        DO n = 1, ndm
+          WRITE(domeunit,*) dcell(n)
+        END DO
 100     FORMAT(1X,'dome center indices: ',3I5)
 200     FORMAT(1X,'dome center coordinates: ',3(F12.2))
 400     FORMAT(1X,'dome radius and total radius: ',2(F12.2))
@@ -272,9 +292,9 @@
 !
 ! ... Compute the initial conditions for a semi-spherical dome
 !
-      USE atmospheric_conditions, ONLY: p_atm
+      USE atmospheric_conditions, ONLY: p_atm, gravz
       USE control_flags, ONLY: job_type, lpr
-      USE dimensions, ONLY: nsolid, ngas, nx, nz
+      USE dimensions, ONLY: nsolid, ngas, nx, ny, nz
       USE domain_mapping, ONLY: ncint, meshinds
       USE environment, ONLY: cpclock
       USE eos_gas, ONLY: ygc
@@ -284,6 +304,8 @@
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE grid, ONLY: flag, x, y, z, dome_cell, immb_cell, filled_cell_2
+      USE grid, ONLY: dz
+      USE io_files, ONLY: testunit
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
@@ -292,31 +314,43 @@
       IMPLICIT NONE
 
       REAL*8 :: ygcsum, ra, pi, psi, raddo, erre
-      REAL*8 :: beta, p_hydro
+      REAL*8 :: beta, p_hydro, p_ext
       REAL*8 :: initial_temperature, initial_overpressure
       REAL*8 :: initial_fractions(max_nsolid)
+      REAL*8 :: grad
+      REAL*8 :: r1, r2, mixing_radius
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: domeindex
       INTEGER :: ijk, imesh, i,j,k, is, ig, n, counter
+      INTEGER :: kk, nn
 !      
 ! ... Set constant for the computation of dome pressure
 !
       pi = 4.D0 * ATAN(1.D0)
       psi = 2.D0 * pi
+      mixing_radius = 0.5D0 * (total_radius - dome_radius) 
+      r1  = dome_radius - 0.5D0 * mixing_radius
+      r2  = dome_radius + 0.5D0 * mixing_radius
+!
+! ... Allocate the array of dome indices
+!
+      ALLOCATE(domeindex(ndm))
+      domeindex = 0
 !
       IF (idome == 1) THEN
+        p_ext = p_atm(kkd)
         erre = rgas / 18.D0 * 1.D3
         beta = 2.D0 * dome_gasvisc * gas_flux * erre * temperature
-        beta = beta / ( p_atm(kkd)**2 * permeability * psi * dome_radius )
+        beta = beta / ( p_ext**2 * permeability * psi * dome_radius )
       END IF
 !
       IF (lpr > 0) THEN
         IF (mpime == root) THEN
                 WRITE(domeunit,*) 
-                WRITE(domeunit,*) 'Maximum Hydrostatic pressure = ', max_p_hydro 
                 IF (idome == 1) THEN
                   WRITE(domeunit,*) 'Woods radial pressure profile'
                   raddo = 0.D0
                   DO WHILE (raddo <= dome_radius)
-                    WRITE(domeunit,*) raddo, p_dome(raddo,p_atm(kkd),beta)
+                    WRITE(domeunit,*) raddo, p_dome(raddo,p_ext,beta)
                     raddo = raddo + 1.D0
                   END DO
                 ELSE IF (idome == 2) THEN
@@ -329,7 +363,7 @@
 ! ... Set initial conditions in the dome cells
 ! ... (Immersed Boundaries are NOT considered within the dome!)
 !
-      mesh_loop: DO ijk = 1, ncint      
+      mesh_loop_1: DO ijk = 1, ncint      
         CALL first_subscr(ijk)
         IF(flag(ijk) == dome_cell .OR. &
           (flag(ijk) == immb_cell .AND. flag(ijkp)==dome_cell) .OR. &
@@ -337,58 +371,128 @@
           CALL meshinds(ijk,imesh,i,j,k)
           !
           ! ... Loop over the dome cells to find the
-          ! ... cell index (must be optimized!!!)
+          ! ... dome-cell index 
           !
           n = 0
           DO counter = 1, ndm
-            IF (dcell(counter)%imesh == imesh) n = counter
+            IF (dcell(counter)%imesh == imesh) THEN
+              n = counter
+              domeindex(ijk) = counter
+            END IF
           END DO 
 
           IF (n/=0) THEN
-            ra = dcell(n)%radius
-            p_hydro = dcell(n)%p_hydro
-            IF (ra <= dome_radius) THEN
-                    initial_temperature = temperature
-                    initial_overpressure = overpressure
-                    initial_fractions(:) = particle_fraction(:)
-            ELSE IF (ra > dome_radius .AND. ra <= total_radius) THEN
-                    initial_temperature = temperature_rocks
-                    initial_overpressure = overpressure_rocks
-                    initial_fractions(:) = particle_fraction_rocks(:)
+            ! ... Set the temperature, gas pressure and particle fractions
+            ! ... in every cell of the dome
+            !
+            ! ... Spherical dome
+            !ra = dcell(n)%radius
+            ! ... Cylindrical dome
+            ra = z(k) - zdome
+            !
+            IF (ra <= r1) THEN
+                    dcell(n)%temperature = temperature
+                    dcell(n)%pressure = overpressure
+                    dcell(n)%sfraction(1:nsolid) = particle_fraction(1:nsolid)
+            ELSE IF ( ra > r1 .AND. ra <= r2 .AND. r2/=r1) THEN
+                    grad = (temperature_rocks - temperature)/(r2-r1)
+                    dcell(n)%temperature = temperature + grad * (ra - r1)
+                    grad = (overpressure_rocks - overpressure)/(r2-r1)
+                    dcell(n)%pressure = overpressure + grad * (ra - r1)
+                    DO is=1,nsolid
+                      grad =  (particle_fraction_rocks(is) -  particle_fraction(is))/(r2-r1)
+                      dcell(n)%sfraction(is) = particle_fraction(is) + grad * (ra - r1)
+                    END DO
+            ELSE IF (ra > r2 .AND. ra <= total_radius) THEN
+                    dcell(n)%temperature = temperature_rocks
+                    dcell(n)%pressure = overpressure_rocks
+                    dcell(n)%sfraction(1:nsolid) = particle_fraction_rocks(1:nsolid)
             END IF
+          END IF
+        END IF
+      END DO mesh_loop_1
+!
+! ... All processors must know the density distribution to
+! ... compute the hydrostatic pressure
+!
+      DO n = 1, ndm
+        sdensity(n) = SUM(dcell(n)%sfraction(1:nsolid)*rl(1:nsolid))
+      END DO
+      CALL parallel_sum_real(sdensity,ndm)
+!
+      mesh_loop_2: DO ijk = 1, ncint      
+        !
+        ! ... Set up of flow variables in the dome cells
+        ! ... and compute the hydrostatic pressure (for solids) if prescribed
+        !
+        CALL first_subscr(ijk)
+        IF(flag(ijk) == dome_cell .OR. &
+          (flag(ijk) == immb_cell .AND. flag(ijkp)==dome_cell) .OR. &
+          (flag(ijk) == filled_cell_2 .AND. flag(ijkp)==dome_cell)) THEN
+          CALL meshinds(ijk,imesh,i,j,k)
+          n = domeindex(ijk)
             ! ... Set the initial conditions, as
             ! ... specified in the input file on 
             ! ... all cells enclosing the vent
+            !
+          IF (n/=0) THEN
             !
             ug(ijk) = 0.D0
             IF (job_type == '3D') vg(ijk) = 0.D0 
             wg(ijk) = 0.D0
             !
-            tg(ijk) = initial_temperature
-            ep(ijk) = 1.D0 - SUM(initial_fractions(1:nsolid))
-            IF (idome == 1) THEN
-              p(ijk)  = p_dome(ra,p_atm(kkd),beta)
-            ELSE IF (idome == 2) THEN
-              p(ijk) = p(ijk) + initial_overpressure
-            END IF
+            tg(ijk) = dcell(n)%temperature
             !
-            ! ... Add the hydrostatic pressure due to dome mass
-            !
-            IF (idw >= 1)  p(ijk)  = p(ijk) + p_hydro
-            !
-            DO ig = 1, ngas
-              ygc(ijk,ig) = dome_ygc(gas_type(ig))
-            END DO
-            !
-            DO is = 1,nsolid
+            ep(ijk) = 1.D0
+            DO is = 1, nsolid
+              ep(ijk) = ep(ijk) - dcell(n)%sfraction(is)
+              rlk(ijk,is) = dcell(n)%sfraction(is)*rl(is)
+              !
               us(ijk,is)  = 0.D0
               IF (job_type == '3D') vs(ijk,is)  = 0.D0
               ws(ijk,is) = 0.D0
               !
-              ts(ijk,is)  = initial_temperature
-              rlk(ijk,is) = initial_fractions(is)*rl(is)
+              ts(ijk,is)  = dcell(n)%temperature
             END DO
-!          
+            !
+            ! ... Set the dome pressure
+            IF (idome == 1) THEN
+              p(ijk)  = p_dome(ra,p_ext,beta)
+            ELSE IF (idome == 2) THEN
+              p(ijk) = p(ijk) + dcell(n)%pressure
+            END IF
+            !
+            ! ... Add the hydrostatic pressure due to dome mass
+            !  
+            p_hydro = 0.D0
+            IF (idw >= 1) THEN
+              search_dome: DO kk = k, nz
+                IF (job_type == '2D') THEN
+                  imesh = i + (kk-1) * nx
+                ELSE IF (job_type == '3D') THEN
+                  imesh = i + (j-1) * nx + (kk-1) * nx * ny
+                END IF
+                !
+                ! ... Loop again over the dome cells to
+                ! ... find the index
+                nn = 0
+                DO counter = 1, ndm
+                  IF (dcell(counter)%imesh == imesh) nn = counter
+                END DO 
+                !
+                IF (nn /= 0) THEN
+                  p_hydro = p_hydro - sdensity(nn)*gravz*dz(kk)
+                ELSE
+                    EXIT search_dome
+                END IF
+              END DO search_dome
+              !
+              p(ijk)  = p(ijk) + p_hydro
+            END IF
+            !
+            DO ig = 1, ngas
+              ygc(ijk,ig) = dome_ygc(gas_type(ig))
+            END DO
             ! ... check gas components closure relation
             !
             ygcsum = SUM(ygc(ijk,:))
@@ -398,11 +502,16 @@
           END IF
 !          
         END IF
-      END DO mesh_loop
+        IF (SUM(initial_fractions(1:nsolid)) > 1.D0) THEN
+          WRITE(testunit,*) 'WARNING! solid fraction exceeds 1'
+          WRITE(testunit,*) ijk, i, j, k, imesh, flag(ijk), initial_fractions(:)
+        END IF
+      END DO mesh_loop_2
       CALL compute_dome_mass_energy
 !
       DEALLOCATE(dcell)
-
+      DEALLOCATE(domeindex)
+!
       RETURN
       END SUBROUTINE set_domec
 !-----------------------------------------------------------------------
@@ -453,7 +562,7 @@
           DO counter = 1, ndm
             IF (dcell(counter)%imesh == imesh) n = counter
           END DO 
-          IF (n/=0 .AND. dcell(n)%radius <= dome_radius) THEN
+          IF (n/=0) THEN
             !
             ! ... volume of a cell
             IF (job_type == '2D') THEN
@@ -498,9 +607,9 @@
               WRITE(domeunit,300) isoe
               WRITE(domeunit,400) adie
               WRITE(domeunit,*)
-100     FORMAT(1X,'Dome Total Volume: ',F18.4)
-200     FORMAT(1X,'Total gas   mass [Kg]: ',F18.4)
-201     FORMAT(1X,'Total solid mass [Kg]: ',F18.4)
+100     FORMAT(1X,'Dome Volume: ',F18.4)
+200     FORMAT(1X,'Total (dome+rocks) gas   mass [Kg]: ',F18.4)
+201     FORMAT(1X,'Total (dome+rocks) solid mass [Kg]: ',F18.4)
 300     FORMAT(1X,'Specific Isothermal expansion energy [J/Kg]: ',F18.4)
 400     FORMAT(1X,'Specific Adiabatic  expansion energy [J/Kg]: ',F18.4)
       END IF
@@ -522,17 +631,17 @@
       RETURN
       END FUNCTION dh
 !-----------------------------------------------------------------------
-      REAL*8 FUNCTION p_dome(r2,pa,beta)
+      REAL*8 FUNCTION p_dome(er,pa,beta)
       !
       ! ... Dome pressurization model (Woods et al., 2002)
       !
       IMPLICIT NONE
-      REAL*8, INTENT(IN) :: r2, pa, beta
-      REAL*8 :: r1, fact
+      REAL*8, INTENT(IN) :: er, pa, beta
+      REAL*8 :: cr, fact
 
-      r1 = MAX(r2, conduit_radius)
-      IF (r1 <= dome_radius) THEN
-              fact = dome_radius / r1 - 1.D0
+      cr = MAX(er, conduit_radius)
+      IF (cr <= dome_radius) THEN
+              fact = dome_radius / cr - 1.D0
       ELSE
               fact = 0.D0
       END IF
