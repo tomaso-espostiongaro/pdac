@@ -64,29 +64,26 @@
 
       IMPLICIT NONE
       
-      INTEGER :: i, j, k, ijk, n
+      INTEGER :: i, j, k, ijk, n, is
       REAL*8 :: distance, distance2, pi, twopi, rp
       REAL*8 :: total_volume
-      REAL*8 :: rlks, rlks_rocks, rlks_mix
 !
       IF (rocks_volume >= 0.D0) idome = 2
 !
       pi = 4.D0 * ATAN(1.D0)
       twopi = 2.D0 * pi
 !
-! ... Compute the particle solid bulk densities in the shells
-! ... and the average solid bulk density
-!
-      rlks = SUM( particle_fraction(1:nsolid)*rl(1:nsolid) ) 
-      rlks_rocks = SUM( particle_fraction_rocks(1:nsolid)*rl(1:nsolid) ) 
-      rlks_mix = (rlks*dome_volume + rlks_rocks*rocks_volume)/(dome_volume+rocks_volume)
-!
 ! ... Compute the dome radius, given the volume.
 ! ... The dome shape is half-a-sphere. 
 !
       dome_volume = dome_volume / SUM(particle_fraction(1:nsolid))
-      rocks_volume = rocks_volume / SUM(particle_fraction_rocks(1:nsolid))
-      total_volume = dome_volume + rocks_volume
+      IF (rocks_volume > 0.D0) THEN
+        rocks_volume = rocks_volume / SUM(particle_fraction_rocks(1:nsolid))
+        total_volume = dome_volume + rocks_volume
+      ELSE
+        total_volume = dome_volume
+      END IF
+!
 ! ... For spherical dome use the following radii
 !
       !dome_radius = ( 1.5D0 * dome_volume / pi )**(1.0/3.0)
@@ -138,7 +135,8 @@
             !IF (distance2 <= total_radius**2 .AND. (fl(ijk)==fluid .OR. fl(ijk)==bl_cell)) THEN
             !
             ! ... Cylindrical dome
-            IF ((x(i)-x(iid) < dome_radius .AND. z(k)-z(kkd) < total_radius) .AND. (fl(ijk)==fluid .OR. fl(ijk)==bl_cell)) THEN
+            distance2 = x(i)-x(iid)
+            IF ((distance2 < dome_radius .AND. z(k)-z(kkd) < total_radius) .AND. (fl(ijk)==fluid .OR. fl(ijk)==bl_cell)) THEN
                     ndm = ndm + 1
                     fl(ijk) = dome_cell
             END IF
@@ -149,11 +147,18 @@
 ! ... Allocate the array for the dome pressure profile
 !
         ALLOCATE(dcell(ndm))
+        dcell(:)%imesh = 0
+        dcell(:)%radius = 0.D0
+        dcell(:)%angle = 0.D0
+        dcell(:)%pressure = 0.D0
+        dcell(:)%temperature = 0.D0
+        DO is = 1, max_nsolid
+          dcell(:)%sfraction(is) = 0.D0
+        END DO
         ALLOCATE(sdensity(ndm))
         sdensity = 0.D0
 !
-! ... Map the dome cells and compute the hydrostatic pressure
-! ... in each cell by using the averaged solid bulk density 'rlks_mix'
+! ... Map the dome cells 
 !
         n = 0 
         DO k = 1, nz
@@ -239,9 +244,18 @@
 ! ... Allocate the data-type representing dome cells
 !
         ALLOCATE(dcell(ndm))
+        dcell(:)%imesh = 0
+        dcell(:)%radius = 0.D0
+        dcell(:)%angle = 0.D0
+        dcell(:)%pressure = 0.D0
+        dcell(:)%temperature = 0.D0
+        DO is = 1, max_nsolid
+          dcell(:)%sfraction(is) = 0.D0
+        END DO
+        ALLOCATE(sdensity(ndm))
+        sdensity = 0.D0
 !
-! ... Map the dome cells and compute the hydrostatic pressure
-! ... in each cell by using the averaged solid bulk density 'rlks_mix'
+! ... Map the dome cells 
 !
         n = 0
         DO k = 1, nz
@@ -276,6 +290,7 @@
         WRITE(domeunit,200) xdome, ydome, zdome
         WRITE(domeunit,400) dome_radius, total_radius
         WRITE(domeunit,*) 
+        WRITE(domeunit,*) 'Number of dome cells: ', ndm
         WRITE(domeunit,*) 'Dome cells report'
         DO n = 1, ndm
           WRITE(domeunit,*) dcell(n)
