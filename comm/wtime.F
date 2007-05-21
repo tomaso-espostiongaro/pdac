@@ -1,5 +1,4 @@
 !------------------------------------------------------------------------------!
-
       SUBROUTINE MP_WALLTIME( walltime, mpime )
         IMPLICIT NONE
         REAL*8 :: walltime
@@ -15,3 +14,4 @@
 #endif
         RETURN
       END SUBROUTINE MP_WALLTIME
+!------------------------------------------------------------------------------!

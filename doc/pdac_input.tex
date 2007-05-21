@@ -443,11 +443,15 @@ ranges from few centimeters to some metres.}
 
 \end{itemize}
 
-\subsubsection{\OBJ{Inlet} namelist}
-This namelist is intended for 3D simulations. It is useful to impose the vent
+\subsubsection{\OBJ{inlet} namelist}
+The flow conditions at the volcanic vent can be specified
+explicitly in the \OBJ{'FIXED\_FLOWS'} card for both 2D and 3D simulations.
+Alternatively, in 3D, the \OBJ{inlet} namelist can be used to impose the vent
 conditions on a {\em circular} vent, without specifying the flow field in each 
-cell of the vent. It also includes some procedures to correct the description
-of a circular source within a cartesian mesh.
+cell of the vent. It also includes some {\em antialiasing} procedures to correct the mass flow rate
+when the circular source is discretized on the cartesian mesh. The mass flow rate
+can be adjusted also by feeding the jet from the partially filled cells with a randomly
+fluctuating flow.
 
 \begin{itemize}
 \item
@@ -472,20 +476,22 @@ occupied by the topography.}
 {Allows to set a radial inflow profile read from an external file (see below).}
 
 \item
-\PDACCONFWDEF{rad\_file}{Name of the file defining the profile}{string between sinfle quotes}{'profile.dat'}
+\PDACCONFWDEF{rad\_file}{Name of the file defining the profile}{string between single quotes}{'profile.dat'}
 {The input file is described in the i/o files section of this manual}
 
 \item
 \PDACCONFWDEF{xvent}{UTM longitude of the center of the vent}{any real}{0.0}
-{The mesh is translated so that the vent is located in the more refined region}
+{If the mesh is generated from a DEM file, the vent center is translated in the more refined region
+(i.e., in the mesh ``center\_x'')}
 
 \item
 \PDACCONFWDEF{yvent}{UTM latitude of the center of the vent}{any real}{0.0}
-{The mesh is translated so that the vent is located in the more refined region}
+{If the mesh is generated from a DEM file, the vent is translated in the more refined region
+(i.e., in the mesh ``center\_y'')}
 
 \item
 \PDACCONFWDEF{vent\_radius}{Radius of the vent}{any real $>$ 0.0}{100}
-{The radius in metres}
+{The vent radius in metres}
 
 \item
 \PDACCONFWDEF{base\_radius}{The radius of the base of the crater}{any real $>$ 0.0}{200}
@@ -493,7 +499,7 @@ occupied by the topography.}
 
 \item
 \PDACCONFWDEF{crater\_radius}{The external radius of the crater}{any real}{500}
-{This value is approximative, and it is used to flatten the crater, if prescribed.}
+{This value is approximate, and it is used to flatten the crater, if prescribed.}
 
 \item
 \PDACCONFWDEF{u\_gas}{Inlet gas velocity x}{any real}{0.0}
@@ -509,7 +515,8 @@ occupied by the topography.}
 
 \item
 \PDACCONFWDEF{wrat}{Ratio between the maximum and the averaged vertical gas veloctiy}{any real $>$ 1.0}{1.0}
-{If this value is $>$ 1.0, the velocity has a maximum on the axis and falls to zero at the vent rim. The average is constant.}
+{If this value is $>$ 1.0, the velocity has a maximum of 'wrat*w' on the axis and falls to zero at the vent rim
+following a power-law profile. Note that this options shall significantly modify the mass flow rate.}
 
 \item
 \PDACCONFWDEF{p\_gas}{Pressure at the vent}{any real}{101325.0}
@@ -565,7 +572,7 @@ This namelist contains the numerical and model parameters to define initial
 conditions for dome explosion simulations. It includes the parameters for
 the Woods et al. (2002) model for the dome pressurization.
 This namelist is intended for both 2D/3D simulations. For 2D cylindrical
-simulations, the dome center is located on the symmetry axis.
+simulations, the dome center is always located on the symmetry axis.
 
 \begin{itemize}
 \item

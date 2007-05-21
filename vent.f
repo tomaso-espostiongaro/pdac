@@ -254,6 +254,7 @@
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE grid, ONLY: flag, x, y, vent_cell
+      USE io_files, ONLY: testunit
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: ep, p
@@ -265,17 +266,27 @@
       REAL*8 :: alpha, beta, ra, dex, dey, angle, angle4
       REAL*8 :: fact_r
       REAL*8 :: distance
-
+      REAL*8 :: rseed
+!
+! ... This procedure is implemented for 3D
       IF (job_type == '2D') RETURN
 !      
+! ... Compatibility
       IF (ipro >= 1) THEN
             CALL read_radial_profile
+            iali = 0
+            irand = 0
+            wrat = 1.D0
+      END IF
+      IF (irand == 1) THEN
+              iali = 0
+              wrat = 1.D0
       END IF
 ! 
       DO ijk = 1, ncint      
         IF(flag(ijk) == vent_cell) THEN
           CALL meshinds(ijk,imesh,i,j,k)
-
+!
           ! ... Determine the fraction of the cell
           ! ... not occupied by the topography.
           !
@@ -284,7 +295,7 @@
               alpha = vcell(n)%frac
             END IF
           END DO
-          
+!          
           IF (ipro >= 1) THEN
             !
             distance = DSQRT( (x(i)-xvent)**2 + (y(j)-yvent)**2 )
@@ -349,7 +360,7 @@
             ygc(ijk,ngas) = 1.D0 - SUM( ygc(ijk,1:ngas-1) )
           END IF
 !          
-          ! ... Mixture density is corrected in those cells
+          ! ... Mixture density/velocity is corrected in those cells
           ! ... partially filled by the topography in order
           ! ... to respect the mass flux
           !
@@ -366,7 +377,7 @@
           ! ... The new profile decreases the mass flow rate by
           ! ... a factor alpha/(4*alpha-2)
           ! 
-          IF (wrat > 1.D0 .AND. ipro == 0) THEN
+          IF (wrat > 1.D0 .AND. iali /= 3) THEN
             beta = 1.D0 / (wrat - 1.D0)
             dey = y(j)-yvent
             dex = x(i)-xvent
@@ -390,9 +401,11 @@
           END IF
 
           ! ... determine the initial random seed
-! ... ERRORE!!!!!!!!!!
           !
-          seed = 0
+          !CALL MP_WALLTIME(rseed,mpime)
+          rseed = cpclock()
+          seed = INT(rseed)
+          WRITE(testunit,*) 'seed=', seed
           !IF (mpime == root) seed = INT(cpclock())
           !CALL bcast_integer(seed,1,root)
         
@@ -596,8 +609,6 @@
       INTEGER :: is, n
       REAL*8 :: switch
       
-      IF (wrat > 1.D0) RETURN
-      
       ! ... The inlet cell is on/off accordingly to the
       ! ... value 1/0 of 'switch'
       ! 
@@ -684,18 +695,16 @@
 
       INTEGER, INTENT(IN) :: ijk, imesh, sweep
       INTEGER :: is, n
-      REAL*8 :: decay_factor, growth_factor
+      REAL*8 :: growth_factor
       REAL*8 :: wgas_init, wpart_init(max_nsolid)
       
       IF (sweep == 1) THEN
               wgas_init = wg(ijk) 
               wpart_init(1:nsolid) = ws(ijk,1:nsolid)
       END IF
-      
       !
-      growth_factor = ft2(sweep)
-      decay_factor = ft3(sweep)
-      
+      growth_factor = ft1(sweep)
+      !
       wg(ijk) = wgas_init * growth_factor
       DO is = 1,nsolid
         ws(ijk,is) = wpart_init(is) * growth_factor
@@ -733,24 +742,29 @@
       END SUBROUTINE random_switch
 !-----------------------------------------------------------------------
       REAL*8 FUNCTION ft1(n)
-      USE time_parameters, ONLY: tau1, dt
+      USE time_parameters, ONLY: tau1, tau2, dt
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: n
-      REAL*8 :: t, tr
+      REAL*8 :: t, tr1, tr2
 
       t = n * dt
-      tr = 0.D0
+      tr1 = 0.D0
+      tr2 = 0.D0
 !
 ! ... The function 'ft1' grows smoothly from 0 to 1 in a time 'tau1'
+! ... and it is set to 0 after time 'tau2'
 !
-      IF (tau1 > 0.D0) tr = t / tau1
+      IF (tau1 > 0.D0) tr1 = t / tau1
+      IF (tau2 > 0.D0) tr2 = t / tau2
 
-      IF (tr > 0.D0 .AND. tr <= 1.D0) THEN
-        ft1 = 3.D0 * (tr)**2 - 2.D0 * (tr)**3     
-      ELSE IF (tr > 10.D0) THEN
-        ft1 = 0.D0
-      ELSE
-        ft1 = 1.D0
+      IF (tr1 > 0.D0 .AND. tr2 > 0.D0) THEN
+        IF (tr1 <= 1.D0) THEN
+          ft1 = 3.D0 * (tr1)**2 - 2.D0 * (tr1)**3     
+        ELSE IF (tr2 > 1.D0 ) THEN
+          ft1 = 0.D0
+        ELSE
+          ft1 = 1.D0
+        END IF
       END IF
 
       RETURN
@@ -765,42 +779,20 @@
       t = n * dt
       tr1 = 0.D0
       tr2 = 0.D0
+      ft2 = 1.D0
 !
 ! ... The function 'ft2' grows linearly from 0 to 1 in a time 'tau1'
+! ... and decreases linearly from 1 to 0 in a time 'tau2-tau1'
 !
       IF (tau1 > 0.D0) tr1 = t / tau1
       IF (tau2 > tau1) tr2 = (tau2 - t)/(tau2 - tau1)
 
       IF (tr1 > 0.D0 .AND. tr2 > 0.D0) THEN
               ft2 = MAX(MIN(tr1,tr2),0.D0)
-      ELSE
-              ft2 = 1.D0
       END IF
 
       RETURN
       END FUNCTION ft2
-!-----------------------------------------------------------------------
-      REAL*8 FUNCTION ft3(n)
-      USE time_parameters, ONLY: tau2, dt
-      IMPLICIT NONE
-      INTEGER, INTENT(IN) :: n
-      REAL*8 :: t, tr2
-
-      t = n * dt
-      tr2 = 0.D0
-!
-! ... The function 'ft3' decreases linearly from 1 to 0 in a time 'tau2'
-!
-      IF (tau2 > 0.D0) tr2 = t / tau2
-
-      IF (tr2 > 0.D0) THEN
-              ft3 = MAX(1.D0-tr2,0.D0)
-      ELSE
-              ft3 = 1.D0
-      END IF
-
-      RETURN
-      END FUNCTION ft3
 !-----------------------------------------------------------------------
       REAL*8 FUNCTION cell_fraction(i,j)
 !

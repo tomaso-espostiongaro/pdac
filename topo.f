@@ -1022,7 +1022,7 @@
       ! ... visualization of the topography
       !
       OPEN(tempunit, FILE='export_topography.dat',STATUS='UNKNOWN')
-      IF (mpime == root) THEN
+      IF (mpime == root .AND. itp==0) THEN
         WRITE(topounit,*) 'The new DEM is written in file "export_topography.dat"'
         IF( job_type == '2D') THEN
                   DO i=1,nx

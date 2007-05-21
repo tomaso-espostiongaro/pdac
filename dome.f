@@ -119,7 +119,7 @@
         ELSE
           DO k= 1, nz
             ijk = iid + (k-1) * nx 
-            IF (fl(ijk) == slip_wall .OR. fl(ijk) == noslip_wall) kkd = k
+            IF (fl(ijk) == slip_wall .OR. fl(ijk) == noslip_wall) kkd = k+1
           END DO
         END IF
         zdome = z(kkd)
@@ -202,10 +202,10 @@
         ELSE
           DO k= 1, nz
             ijk = iid + (jjd-1) * nx + (k-1) * nx * ny
-            IF (fl(ijk) == slip_wall .OR. fl(ijk) == noslip_wall) kkd = k
+            IF (fl(ijk) == slip_wall .OR. fl(ijk) == noslip_wall) kkd = k+1
           END DO
         END IF
-
+!
         IF (zdome < zb(kkd)) THEN
                 DO k = 1, nz
                   IF (zb(k) <= zdome) kkd = k

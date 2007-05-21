@@ -162,10 +162,12 @@
       IF (mpime == root) THEN
         CLOSE(tempunit)
         WRITE(logunit,*) 'Slice limits'
-        WRITE(logunit,*) (np, slice(np)%axis, slice(np)%plane, &
+        DO np = 1, number_of_planes
+        WRITE(logunit,*)  np, slice(np)%axis, slice(np)%plane, &
                           slice(np)%n1, slice(np)%n2, & 
-                          slice(np)%t1, slice(np)%t2, &
-                          np=1,number_of_planes)
+                          slice(np)%t1, slice(np)%t2
+                          
+        END DO
       END IF
 !
       CALL data_exchange(eps)

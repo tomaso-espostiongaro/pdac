@@ -60,6 +60,8 @@
       INTEGER :: indexq
 !
       vel = 0.D0
+      !
+      ! ... Compute a random factor for vent antialiasing
       IF (irand >= 1) CALL random_switch(sweep)
 !
 ! ... Loop over the mesh and check boundaries
@@ -76,11 +78,8 @@
 ! ... Update inlet cells for non-stationnary boundary conditions
 !
           IF (irand >= 1) THEN
-            IF (flag(ijk) == inlet_cell) THEN
-                    ! ... Impose a random perturbation at inlet
-                    CALL update_inlet_cell(ijk)
-            ELSE IF (flag(ijk) == vent_cell) THEN
-                    ! ... Antialiasing
+            IF (flag(ijk) == vent_cell) THEN
+                    ! ... Vent Antialiasing
                     CALL update_vent_cell(ijk,imesh,sweep)
             END IF
           END IF
