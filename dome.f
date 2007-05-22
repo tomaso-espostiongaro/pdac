@@ -68,7 +68,7 @@
       REAL*8 :: distance, distance2, pi, twopi, rp
       REAL*8 :: total_volume
 !
-      IF (rocks_volume >= 0.D0) idome = 2
+      IF (rocks_volume > 0.D0) idome = 2
 !
       pi = 4.D0 * ATAN(1.D0)
       twopi = 2.D0 * pi
@@ -81,18 +81,19 @@
         rocks_volume = rocks_volume / SUM(particle_fraction_rocks(1:nsolid))
         total_volume = dome_volume + rocks_volume
       ELSE
+        rocks_volume = 0.D0
         total_volume = dome_volume
       END IF
 !
 ! ... For spherical dome use the following radii
 !
-      !dome_radius = ( 1.5D0 * dome_volume / pi )**(1.0/3.0)
-      !total_radius = ( 1.5D0 * total_volume / pi )**(1.0/3.0)
+      dome_radius = ( 1.5D0 * dome_volume / pi )**(1.0/3.0)
+      total_radius = ( 1.5D0 * total_volume / pi )**(1.0/3.0)
 !
 ! ... For rectangular, cylindrical dome use the following radii
 !
-      dome_radius = ( dome_volume / pi )**(1.0/3.0)
-      total_radius = ( total_volume / (pi * dome_radius * dome_radius))
+      !dome_radius = ( dome_volume / pi )**(1.0/3.0)
+      !total_radius = ( total_volume / (pi * dome_radius * dome_radius))
 !
       IF( job_type == '2D') THEN
 !
@@ -119,7 +120,7 @@
         ELSE
           DO k= 1, nz
             ijk = iid + (k-1) * nx 
-            IF (fl(ijk) == slip_wall .OR. fl(ijk) == noslip_wall) kkd = k+1
+            IF (fl(ijk) == slip_wall .OR. fl(ijk) == noslip_wall) kkd = k
           END DO
         END IF
         zdome = z(kkd)
@@ -131,12 +132,12 @@
           DO i = 1, nx
             ijk = i + (k-1) * nx
             ! ... Spherical dome
-            !distance2 = (x(i)-x(iid))**2 + (z(k)-z(kkd))**2
-            !IF (distance2 <= total_radius**2 .AND. (fl(ijk)==fluid .OR. fl(ijk)==bl_cell)) THEN
+            distance2 = (x(i)-x(iid))**2 + (z(k)-z(kkd))**2
+            IF (distance2 <= total_radius**2 .AND. (fl(ijk)==fluid .OR. fl(ijk)==bl_cell)) THEN
             !
             ! ... Cylindrical dome
-            distance2 = x(i)-x(iid)
-            IF ((distance2 < dome_radius .AND. z(k)-z(kkd) < total_radius) .AND. (fl(ijk)==fluid .OR. fl(ijk)==bl_cell)) THEN
+            !distance2 = x(i)-x(iid)
+            !IF ((distance2 < dome_radius .AND. z(k)-z(kkd) < total_radius) .AND. (fl(ijk)==fluid .OR. fl(ijk)==bl_cell)) THEN
                     ndm = ndm + 1
                     fl(ijk) = dome_cell
             END IF
@@ -202,7 +203,7 @@
         ELSE
           DO k= 1, nz
             ijk = iid + (jjd-1) * nx + (k-1) * nx * ny
-            IF (fl(ijk) == slip_wall .OR. fl(ijk) == noslip_wall) kkd = k+1
+            IF (fl(ijk) == slip_wall .OR. fl(ijk) == noslip_wall) kkd = k
           END DO
         END IF
 !
@@ -216,10 +217,10 @@
 !
         IF (itp >=1 ) &
           ! ... Spherical dome
-          !CALL flatten_dem_dome(xdome,ydome,total_radius,kkd)
+          CALL flatten_dem_dome(xdome,ydome,total_radius,kkd)
           !
           ! ... Cylindrical dome
-          CALL flatten_dem_dome(xdome,ydome,dome_radius,kkd)
+          !CALL flatten_dem_dome(xdome,ydome,dome_radius,kkd)
 !
 ! ... Count the cells of the dome
 !
@@ -229,11 +230,11 @@
             DO i = 1, nx
               ijk = i + (j-1) * nx + (k-1) * nx * ny
               ! ... Spherical dome
-              !distance2 = (x(i)-x(iid))**2 + (y(j)-y(jjd))**2 + (z(k)-z(kkd))**2
-              !IF (distance2 <= total_radius**2 .AND. (fl(ijk) == fluid .OR. fl(ijk)==bl_cell)) THEN
+              distance2 = (x(i)-x(iid))**2 + (y(j)-y(jjd))**2 + (z(k)-z(kkd))**2
+              IF (distance2 <= total_radius**2 .AND. (fl(ijk) == fluid .OR. fl(ijk)==bl_cell)) THEN
               ! ... Cylindrical dome
-              distance2 = (x(i)-x(iid))**2 + (y(j)-y(jjd))**2
-              IF ((distance2 < dome_radius .AND. z(k)-z(kkd) < total_radius) .AND. (fl(ijk)==fluid .OR. fl(ijk)==bl_cell)) THEN
+              !distance2 = (x(i)-x(iid))**2 + (y(j)-y(jjd))**2
+              !IF ((distance2 < dome_radius .AND. z(k)-z(kkd) < total_radius) .AND. (fl(ijk)==fluid .OR. fl(ijk)==bl_cell)) THEN
                       ndm = ndm + 1
                       fl(ijk) = dome_cell
               END IF
@@ -348,7 +349,7 @@
 !
 ! ... Allocate the array of dome indices
 !
-      ALLOCATE(domeindex(ndm))
+      ALLOCATE(domeindex(ncint))
       domeindex = 0
 !
       IF (idome == 1) THEN
@@ -364,7 +365,9 @@
                 IF (idome == 1) THEN
                   WRITE(domeunit,*) 'Woods radial pressure profile'
                   raddo = 0.D0
-                  DO WHILE (raddo <= dome_radius)
+                  !
+                  ! rocks mixed into dome particles 
+                  DO WHILE (raddo <= total_radius)
                     WRITE(domeunit,*) raddo, p_dome(raddo,p_ext,beta)
                     raddo = raddo + 1.D0
                   END DO
@@ -401,9 +404,11 @@
             ! ... in every cell of the dome
             !
             ! ... Spherical dome
-            !ra = dcell(n)%radius
+            ra = dcell(n)%radius
             ! ... Cylindrical dome
-            ra = z(k) - zdome
+            !ra = z(k) - zdome
+            
+            ! ... Apply different properties for each shells 
             !
             IF (ra <= r1) THEN
                     dcell(n)%temperature = temperature
@@ -467,7 +472,16 @@
               IF (job_type == '3D') vs(ijk,is)  = 0.D0
               ws(ijk,is) = 0.D0
               !
-              ts(ijk,is)  = dcell(n)%temperature
+              ! homogenous temperature applied
+              !ts(ijk,is)  = dcell(n)%temperature
+              !
+              ! different temperature applied for
+              ! dome (is=1,2,3) and rocks (is=4) particles
+                IF (is < 4) THEN
+                   ts(ijk,is)  = temperature
+                ELSE IF (is == 4) THEN
+                   ts(ijk,is)  = temperature_rocks
+                END IF 
             END DO
             !
             ! ... Set the dome pressure
