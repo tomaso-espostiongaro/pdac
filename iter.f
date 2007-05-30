@@ -85,8 +85,9 @@
 ! IF (TIMING)
       INTEGER :: itim
       ! INTEGER :: st0,st1,ratc
-      REAL*8 :: st0,st1, cclock_wall
-      EXTERNAL cclock_wall
+      REAL*8 :: st0,st1
+!      REAL*8 :: cclock_wall
+!      EXTERNAL  cclock_wall
       REAL*8 ::  timiter
       REAL*8 ::  timconv(maxout)   
 !

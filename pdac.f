@@ -70,7 +70,7 @@
 
           IF(timing) then
              s0 = cpclock()
-             call MP_WALLTIME(pt0,mpime)
+             !call MP_WALLTIME(pt0,mpime)
           END IF
 !
 ! ... date and time
@@ -143,7 +143,7 @@
 
           IF (timing) then
               s1 = cpclock()
-              call MP_WALLTIME(pt1,mpime)
+              !call MP_WALLTIME(pt1,mpime)
           END IF   
 
 ! ... Import the topography from dem file and interpolate
@@ -192,7 +192,7 @@
 
           IF (timing) then
               s2 = cpclock()
-              call MP_WALLTIME(pt2,mpime)
+              !call MP_WALLTIME(pt2,mpime)
           END IF
 !
 ! ... Setting the ghost cells for parallel data exchange
@@ -202,7 +202,7 @@
 
           IF (timing) then
               s3 = cpclock()
-              call MP_WALLTIME(pt3,mpime)
+              !call MP_WALLTIME(pt3,mpime)
           END IF
 !
       IF (ibl >= 1) CALL set_blunt
@@ -230,7 +230,7 @@
 
           IF (timing) then
               s4 = cpclock()
-              call MP_WALLTIME(pt4,mpime)
+              !call MP_WALLTIME(pt4,mpime)
           END IF
 !
 ! ... Read restart file or recover initial
@@ -252,7 +252,7 @@
 !
           IF (timing) then
               s5 = cpclock()
-              call MP_WALLTIME(pt5,mpime)
+              !call MP_WALLTIME(pt5,mpime)
           END IF
 !
 ! ... Time advancement loop
@@ -261,7 +261,7 @@
 !
           IF (timing ) THEN
             s6 = cpclock()
-            call MP_WALLTIME(pt6,mpime)
+            !call MP_WALLTIME(pt6,mpime)
             timtot     = (s6 - s0)/1000.D0
             timprog    = (s6 - s5)/1000.D0
             timres     = (s5 - s4)/1000.D0
