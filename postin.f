@@ -12,6 +12,7 @@
 !-----------------------------------------------------------------------
       SUBROUTINE postin( punit )
 
+      USE dimensions, ONLY: max_size
       USE filter_outp, ONLY: downsize_x, downsize_y, downsize_z
       USE filter_outp, ONLY: variable_n, field_n
       USE sample_points, ONLY: number_of_probes, assign_index, probe_file, isamp
@@ -21,6 +22,7 @@
       USE process_outp, ONLY: act
       USE process_outp, ONLY: iflds, imnfld, imap
       USE postp_output, ONLY: first_out, last_out, incr_out
+      USE postp_output, ONLY: iminc, imaxc, jminc, jmaxc, kminc, kmaxc 
       USE postp_output, ONLY: deltaz
       USE postp_output, ONLY: print_log, print_tg, print_mn, print_cm, print_pd, print_mnn 
 
@@ -28,7 +30,8 @@
       INTEGER, INTENT(IN) :: punit
       
       NAMELIST / control / act, first_out, last_out, incr_out,  &
-               downsize_x, downsize_y, downsize_z
+               downsize_x, downsize_y, downsize_z, iminc, imaxc, jminc, &
+               jmaxc, kminc, kmaxc
 
       NAMELIST / fields / iflds, print_log, print_tg, print_mn, print_cm, print_pd, print_mnn 
 
@@ -60,6 +63,12 @@
   downsize_x = 1    
   downsize_y = 1    
   downsize_z = 1    
+  iminc = 1
+  imaxc = max_size
+  jminc = 1
+  jmaxc = max_size
+  kminc = 1
+  kmaxc = max_size
 
 ! ... Fields
   
@@ -122,6 +131,12 @@
       CALL bcast_integer(downsize_x,1,root)
       CALL bcast_integer(downsize_y,1,root)
       CALL bcast_integer(downsize_z,1,root)
+      CALL bcast_integer(iminc,1,root)
+      CALL bcast_integer(imaxc,1,root)
+      CALL bcast_integer(jminc,1,root)
+      CALL bcast_integer(jmaxc,1,root)
+      CALL bcast_integer(kminc,1,root)
+      CALL bcast_integer(kmaxc,1,root)
 !
 ! ... Fields namelist ..................................................
 !

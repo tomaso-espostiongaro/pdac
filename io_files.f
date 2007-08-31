@@ -26,7 +26,6 @@
         INTEGER :: iuni_u = 22
         INTEGER :: iuni_v = 23
         INTEGER :: iuni_w = 24
-        INTEGER :: iuni_mean = 26
 
         INTEGER :: iunxml = 25
 

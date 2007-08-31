@@ -12,6 +12,8 @@
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: topo2d
 
       INTEGER :: first_out, last_out, incr_out
+      ! ... crop
+      INTEGER :: iminc, imaxc, jminc, jmaxc, kminc, kmaxc
       LOGICAL ::  print_log, print_tg, print_mn, print_cm, print_pd, print_mnn 
       REAL*8 :: deltaz
 !
@@ -433,7 +435,7 @@
       USE control_flags, ONLY: formatted_output
       USE kinds
       USE io_files, ONLY: tempunit
-      USE io_parallel, ONLY: write_array
+      USE io_parallel, ONLY: write_crop_array
       USE parallel, ONLY: mpime, root
       USE postp_variables, ONLY: lepst, tg, mn, cm, pd, mnn
 !
@@ -456,7 +458,7 @@
           END IF
         END IF
         !
-        CALL write_array( tempunit, lepst, sgl, lform )
+        CALL write_crop_array( tempunit, lepst, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc )
         !
         IF (mpime == root) CLOSE(tempunit)
       END IF
@@ -472,7 +474,7 @@
           END IF
         END IF
         !
-        CALL write_array( tempunit, tg, sgl, lform )
+        CALL write_crop_array( tempunit, tg, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
         !
         IF (mpime == root) CLOSE(tempunit)
       END IF
@@ -488,7 +490,7 @@
           END IF
         END IF
         !
-        CALL write_array( tempunit, mn, sgl, lform )
+        CALL write_crop_array( tempunit, mn, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
         !
         IF (mpime == root) CLOSE(tempunit)
       END IF
@@ -504,7 +506,7 @@
           END IF
         END IF
         !
-        CALL write_array( tempunit, cm, sgl, lform )
+        CALL write_crop_array( tempunit, cm, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc )
         !
         IF (mpime == root) CLOSE(tempunit)
       END IF
@@ -520,7 +522,7 @@
           END IF
         END IF
         !
-        CALL write_array( tempunit, pd, sgl, lform )
+        CALL write_crop_array( tempunit, pd, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc )
         !
         IF (mpime == root) CLOSE(tempunit)
       END IF
@@ -536,7 +538,7 @@
           END IF
         END IF
         !
-        CALL write_array( tempunit, mnn, sgl, lform )
+        CALL write_crop_array( tempunit, mnn, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc )
         !
         IF (mpime == root) CLOSE(tempunit)
       END IF
@@ -552,7 +554,7 @@
       USE kinds
       USE dimensions, ONLY: nsolid
       USE io_files, ONLY: tempunit
-      USE io_parallel, ONLY: write_array
+      USE io_parallel, ONLY: write_crop_array
       USE parallel, ONLY: mpime, root
       USE postp_variables, ONLY: rhom_av, tm_av, um_av, vm_av, wm_av, time
 !
@@ -580,20 +582,20 @@
         END IF
       END IF
 !
-      CALL write_array( tempunit, rhom_av, sgl, lform )
+      CALL write_crop_array( tempunit, rhom_av, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc )
 !
       IF (job_type == '2D') THEN
-        CALL write_array( tempunit, um_av, sgl, lform )
-        CALL write_array( tempunit, wm_av, sgl, lform )
+        CALL write_crop_array( tempunit, um_av, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
+        CALL write_crop_array( tempunit, wm_av, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
       ELSE IF (job_type == '3D') THEN
-        CALL write_array( tempunit, um_av, sgl, lform )
-        CALL write_array( tempunit, vm_av, sgl, lform )
-        CALL write_array( tempunit, wm_av, sgl, lform )
+        CALL write_crop_array( tempunit, um_av, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
+        CALL write_crop_array( tempunit, vm_av, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
+        CALL write_crop_array( tempunit, wm_av, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
       ELSE
         CALL error('outp_','Unknown job type',1)
       END IF
 !
-      CALL write_array( tempunit, tm_av, sgl, lform )
+      CALL write_crop_array( tempunit, tm_av, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
 !
       IF (mpime == root) CLOSE(tempunit)
 !
@@ -646,7 +648,7 @@
       USE dimensions
       USE iotk_module
       USE grid
-      USE io_files, ONLY: iuni_scalar, iuni_u, iuni_v, iuni_w, iuni_mean
+      USE io_files, ONLY: iuni_scalar, iuni_u, iuni_v, iuni_w
       IMPLICIT NONE
  
       CHARACTER(LEN=15) :: filetype
@@ -659,7 +661,6 @@
       OPEN( UNIT=iuni_u, FILE='u.fld', STATUS='UNKNOWN')
       OPEN( UNIT=iuni_v, FILE='v.fld', STATUS='UNKNOWN')
       OPEN( UNIT=iuni_w, FILE='w.fld', STATUS='UNKNOWN')
-      OPEN( UNIT=iuni_mean, FILE='m_outp.fld', STATUS='UNKNOWN')
 
 !
 ! ... control parameters
@@ -913,56 +914,6 @@
       WRITE( iuni_w, fmt = 14 )
 
 !
-!***** M E A N   F I E L D ********************************************
-! ... Common Header
-!
-      WRITE( iuni_mean, fmt = 1 )
-      WRITE( iuni_mean, fmt = 2 ) ndim
-      IF (ndim == 3) THEN
-        WRITE( iuni_mean, fmt = 3 ) nx
-        WRITE( iuni_mean, fmt = 4 ) ny
-        WRITE( iuni_mean, fmt = 5 ) nz
-      ELSE IF (ndim == 2) THEN
-        WRITE( iuni_mean, fmt = 3 ) nx
-        WRITE( iuni_mean, fmt = 4 ) nz
-      END IF
-      WRITE( iuni_mean, fmt = 6 ) ndim
-      WRITE( iuni_mean, fmt = 7 )
-      WRITE( iuni_mean, fmt = 8 )
-!
-! ... specify variables and meshes
-!
-      veclen = 4 
-      WRITE( iuni_mean, fmt = 9 ) veclen
-      skip_m(1) = 2
-      WRITE( iuni_mean, fmt = 10 ) skip_m(1)
-      IF (ndim == 3) THEN
-        skip_m(2) = 2 + 2*nlx
-        WRITE( iuni_mean, fmt = 11 ) skip_m(2)
-        skip_m(3) = 2 + 2*nlx + 2*nly
-        WRITE( iuni_mean, fmt = 12 ) skip_m(3)
-      ELSE IF (ndim == 2) THEN
-        skip_m(3) = 2 + 2*nlx + 2*nly
-        WRITE( iuni_mean, fmt = 11 ) skip_m(3)
-      END IF
-!
-! ... Mean Mixture Density
-!
-      skip = skip_time
-      WRITE( iuni_mean, fmt = 15 ) 1, filetype, skip
-!
-! ... Mean Mixture Velocity component X Y Z
-!
-      DO is = 1, 3
-        skip = skip_time + skip_block * is
-        WRITE( iuni_mean, fmt = 15 ) is + 1, filetype, skip
-      END DO
-!
-! ... EOF
-!
-      WRITE( iuni_mean, fmt = 14 )
-
-!
 !**********************************************************************
 ! ... Common Header
 !
@@ -995,7 +946,6 @@
       CLOSE( UNIT=iuni_u )
       CLOSE( UNIT=iuni_v )
       CLOSE( UNIT=iuni_w )
-      CLOSE( UNIT=iuni_mean )
 
       RETURN
       END SUBROUTINE write_AVS_files

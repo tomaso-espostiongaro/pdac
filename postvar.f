@@ -142,9 +142,9 @@
                                 mixture_density, mixture_velocity, &
                                 velocity_module_2D, velocity_module_3D, &
                                 dynamic_pressure, mixture_temperature,  &
-                                wallis_sound_speed, mach_number,        &
-                                kieffer_sound_speed,       &
-                                gradient, normal_mach_number
+                                mixture_sound_speed_1, mixture_sound_speed_2, &
+                                mixture_sound_speed_3, &
+                                mach_number,  gradient, normal_mach_number
       USE io_files, ONLY: logunit
 !
       IMPLICIT NONE
@@ -188,8 +188,7 @@
         !pd = pd1 + pd2
         !DEALLOCATE(pd1,pd2)
         !
-        CALL wallis_sound_speed(cm,xgc,rgp,rlk,rhom,rhog,epst,tg)
-        !CALL kieffer_sound_speed(cm,xgc,rgp,rlk,rhom,rhog,epst,tg)
+        CALL mixture_sound_speed_2(cm,xgc,rgp,rlk,rhom,rhog,epst,tg)
         CALL mach_number(mn,mvm,cm)
         CALL gradient(p,gpx,gpy,gpz)
         CALL normal_mach_number(mnn,um,vm,wm,gpx,gpy,gpz,cm)

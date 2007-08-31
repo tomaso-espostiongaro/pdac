@@ -95,7 +95,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE allocate_grid
 !
-      USE dimensions, ONLY: nx, ny, nz, ntot, ntr
+      USE dimensions, ONLY: nx, ny, nz, ntot, ntr, max_size
       USE control_flags, ONLY: job_type
       USE parallel, ONLY: mpime, root
 !
@@ -137,6 +137,10 @@
         WRITE(logunit,*) 'Simulation Grid      : ', nx, ny, nz
         WRITE(logunit,*) 'Total number of cells: ', ntot
       END IF
+!
+      IF (nx > max_size) CALL error('nx exceeds max_size!', 'dimensions: max_size= ', max_size)
+      IF (ny > max_size) CALL error('ny exceeds max_size!', 'dimensions: max_size= ', max_size)
+      IF (nz > max_size) CALL error('nz exceeds max_size!', 'dimensions: max_size= ', max_size)
 !
       RETURN
       END SUBROUTINE allocate_grid

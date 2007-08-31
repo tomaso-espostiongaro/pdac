@@ -1393,7 +1393,6 @@
                                  dgorig, nloop, cvg )
 !
 !----------------------------------------------------------------------
-
         USE control_flags, ONLY: job_type, lpr
         USE dimensions
         USE pressure_epsilon, ONLY: p, ep

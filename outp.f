@@ -82,12 +82,12 @@
       SUBROUTINE shock_tube_out
 !
       USE dimensions, ONLY: nx, nz, nsolid
-      USE domain_mapping, ONLY: ncint
+      USE domain_mapping, ONLY: ncint, meshinds
       USE gas_constants, ONLY: gas_type, gammaair
       USE gas_solid_density, ONLY: rog, rlk
       USE gas_solid_velocity, ONLY: ug, wg, us, ws
       USE gas_solid_temperature, ONLY: sieg, tg, ts
-      USE grid, ONLY: flag
+      USE grid, ONLY: flag, z
       USE parallel, ONLY: nproc, mpime, root, group
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p
@@ -101,7 +101,7 @@
       CHARACTER( LEN = 15 ) :: filnam
       CHARACTER( LEN = 4 ) :: lettera
 !
-      INTEGER :: i, j, ijk, ig
+      INTEGER :: i, j, k, ijk, ig, imesh
       REAL*8 :: energy
 !
       nfil = nfil + 1
@@ -111,8 +111,9 @@
         OPEN(UNIT=tempunit,FILE=filnam)
         DO ijk = 1, ncint
           IF ( BTEST(flag(ijk),0) ) THEN
+            CALL meshinds(ijk, imesh, i, j, k)
             energy = p(ijk)/(rog(ijk)*(gammaair - 1.D0))
-            WRITE(tempunit,550) rog(ijk),wg(ijk),tg(ijk),p(ijk),energy,tg(ijk),rlk(ijk,1),ws(ijk,1),ts(ijk,1)
+            WRITE(tempunit,550) z(k), rog(ijk),wg(ijk),tg(ijk),p(ijk),energy,tg(ijk),rlk(ijk,1),ws(ijk,1),ts(ijk,1)
           END IF
         END DO
         CLOSE (tempunit)

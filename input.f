@@ -1,7 +1,7 @@
 !----------------------------------------------------------------------
       MODULE input_module
 !----------------------------------------------------------------------
-      USE dimensions, ONLY: max_nsolid, ngas, nroughx, max_size, &
+      USE dimensions, ONLY: max_nsolid, ngas, max_size, &
           max_nblock, max_ngas
       USE io_files, ONLY: logunit
 

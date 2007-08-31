@@ -129,7 +129,7 @@
         sweep = sweep + 1
 
         IF (lpr > 0) THEN
-          WRITE(testunit,fmt="(/,'* Starting iteration ',I5,' * ')" ) sweep
+          WRITE(testunit,fmt="(/,'* Starting iteration ',I8,' * ')" ) sweep
           WRITE(testunit,fmt="('  Simulated time = ',F20.14)" ) time
         END IF
 !

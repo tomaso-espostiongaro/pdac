@@ -10,9 +10,8 @@
         INTEGER :: nsolid
         INTEGER :: ngas
         INTEGER :: nphase
-        INTEGER, PARAMETER :: nroughx    = 2   
         INTEGER, PARAMETER :: max_nsolid = 10  ! maximum number of solids
-        INTEGER, PARAMETER :: max_size   = 512 ! maximum number of domain 
+        INTEGER, PARAMETER :: max_size   = 1024 ! maximum number of domain 
                                                ! subdivision for each direction
         INTEGER, PARAMETER :: max_ngas   = 7   ! max number of gas components
         INTEGER, PARAMETER :: max_nblock = 512 ! max number of blocks

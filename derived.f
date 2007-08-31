@@ -343,7 +343,7 @@
       RETURN
       END SUBROUTINE velocity_module_3D
 !----------------------------------------------------------------------
-      SUBROUTINE kieffer_sound_speed(cm,xgc,rgp,rlk,rhom,rhog,epst,tg)
+      SUBROUTINE mixture_sound_speed_1(cm,xgc,rgp,rlk,rhom,rhog,epst,tg)
       ! 
       ! ... computes the inverse of the mixture sound speed
 
@@ -352,29 +352,30 @@
       REAL*8, INTENT(IN), DIMENSION(:) :: rgp,rhom,rhog,epst,tg
       REAL*8, DIMENSION(SIZE(tg)) :: cm
       REAL*8, DIMENSION(SIZE(rgp)) :: mgas
-      REAL*8 :: fact, y, avrl
+      REAL*8 :: suminv, csg2, css2, epsg
 
       arraysize = SIZE(rgp)
 !
-! ... Mixture sound speed (Kieffer, 1981)
+! ... Mixture sound speed (Wallis, 1969 - Equations 2.50 and 6.110; 
+! ... Gidaspow, 1994 - Equation 4.80)
 !
       CALL gas_molecular_weight(mgas,xgc)
       DO ind = 1, arraysize
         IF (epst(ind) /= 0.D0) THEN
-          y = rhog(ind) / rhom(ind)
-          fact = DSQRT(y*(1.D0-epst(ind)))
-          fact = DSQRT(y)
-          cm(ind) = DSQRT(rgas * tg(ind) / mgas(ind))
-          cm(ind) = cm(ind) * fact
+          csg2 = gammaair * rgas * tg(ind) / mgas(ind)
+          css2 = 3400.D0 ! Speed of sound in rocks [m/s] 
+          epsg = 1.D0 - epst(ind)
+          suminv = epsg / (rhog(ind) * csg2) + SUM(rlk(ind,:)/rl(:)**2/css2)
+          cm(ind) = DSQRT(1.D0 / suminv / rhom(ind))
         ELSE
-          cm(ind) = DSQRT(gammaair * rgas * tg(ind) / mgas(ind) )
+          cm(ind) = SQRT(gammaair * rgas * tg(ind) / mgas(ind) )
         END IF
       END DO
 !
       RETURN
-      END SUBROUTINE kieffer_sound_speed
+      END SUBROUTINE mixture_sound_speed_1
 !----------------------------------------------------------------------
-      SUBROUTINE wallis_sound_speed(cm,xgc,rgp,rlk,rhom,rhog,epst,tg)
+      SUBROUTINE mixture_sound_speed_2(cm,xgc,rgp,rlk,rhom,rhog,epst,tg)
       ! 
       ! ... computes the inverse of the mixture sound speed
 
@@ -387,7 +388,8 @@
 
       arraysize = SIZE(rgp)
 !
-! ... Mixture sound speed (Wallis, 1969)
+! ... Mixture sound speed (Wallis, 1969 - Example 6.7)
+! ... (Gidaspow, 1994 - Eq. 7.41)
 !
       CALL gas_molecular_weight(mgas,xgc)
       DO ind = 1, arraysize
@@ -395,7 +397,8 @@
           y = rgp(ind) / rhom(ind)
           avrl = SUM(rlk(ind,:))/epst(ind)
           fact = y + (1.0 - y) * rhog(ind) / avrl
-          cm(ind) = SQRT(gammaair * rgas * tg(ind) / mgas(ind) / y )
+          !cm(ind) = SQRT(gammaair * rgas * tg(ind) / mgas(ind) / y )
+          cm(ind) = SQRT(1.D0 * rgas * tg(ind) / mgas(ind) / y )
           cm(ind) = cm(ind) * fact
         ELSE
           cm(ind) = SQRT(gammaair * rgas * tg(ind) / mgas(ind) )
@@ -403,7 +406,38 @@
       END DO
 !
       RETURN
-      END SUBROUTINE wallis_sound_speed
+      END SUBROUTINE mixture_sound_speed_2
+!----------------------------------------------------------------------
+      SUBROUTINE mixture_sound_speed_3(cm,xgc,rgp,rlk,rhom,rhog,epst,tg)
+      ! 
+      ! ... computes the inverse of the mixture sound speed
+
+      IMPLICIT NONE
+      REAL*8, INTENT(IN), DIMENSION(:,:) :: rlk, xgc
+      REAL*8, INTENT(IN), DIMENSION(:) :: rgp,rhom,rhog,epst,tg
+      REAL*8, DIMENSION(SIZE(tg)) :: cm
+      REAL*8, DIMENSION(SIZE(rgp)) :: mgas
+      REAL*8 :: fact, m, epsg, csg, gammamix, cs, rtilde
+
+      cs = 1.2D3
+      arraysize = SIZE(rgp)
+!
+! ... Mixture sound speed (Wallis, 1969 - Example 2.2; Kieffer, 1981)
+!
+      CALL gas_molecular_weight(mgas,xgc)
+      DO ind = 1, arraysize
+        IF (epst(ind) /= 0.D0) THEN
+          m = SUM(rlk(ind,:))/rgp(ind)
+          rtilde = rgas / mgas(ind)
+          gammamix = (3.5D0 * rgas + m * cs)/(2.5D0 * rgas + m * cs)
+          cm(ind) = SQRT(gammamix * rtilde / (1.D0 + m) * tg(ind))
+        ELSE
+          cm(ind) = SQRT(gammaair * rtilde * tg(ind) )
+        END IF
+      END DO
+!
+      RETURN
+      END SUBROUTINE mixture_sound_speed_3
 !----------------------------------------------------------------------
       SUBROUTINE mach_number(mn,vel, c)
       !
