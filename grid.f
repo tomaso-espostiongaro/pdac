@@ -201,6 +201,9 @@
         domain_y = SUM(dy_inner)
         domain_z = SUM(dz_inner)
         iv = nx/2+1; jv = ny/2+1; kv = nz/2+1
+        dx = dx_inner
+        dy = dy_inner
+        dz = dz_inner
         !
       CASE(1,2)
         !
@@ -506,7 +509,7 @@
 !
       IF (demin == demax) THEN
               delta = demin
-!              alpha = 0.5D0
+              alpha = 0.5D0
               center = nd/2
               domain_size = nd * demin
               RETURN

@@ -193,6 +193,7 @@
         IF( mpime == root ) THEN
           WRITE(topounit,*) 'Translating mesh vertically'
           WRITE(topounit,*) 'Minimum topographic quota: ', MINVAL(topo)
+          WRITE(topounit,*) 'Maximum topographic quota: ', MAXVAL(topo)
           WRITE(topounit,*) 'Translation: ', transl_z
           WRITE(topounit,*) 
         END IF
@@ -221,8 +222,18 @@
         nextx = 0; nexty = 0; ord2d = 0
         ALLOCATE(topo2d(nx,ny))
 
-        IF (MAXVAL(xtop) < MAXVAL(x)) CALL error('topo','Computational domain exceeds topography x',1)
-        IF (MAXVAL(ytop) < MAXVAL(y)) CALL error('topo','Computational domain exceeds topography y',1)
+        IF (MAXVAL(xtop) < MAXVAL(x)) THEN
+          IF( mpime == root ) THEN
+            WRITE(topounit,*) MAXVAL(xtop), MAXVAL(x) 
+          END IF
+          CALL error('topo','Computational domain exceeds topography x',1)
+        END IF
+        IF (MAXVAL(ytop) < MAXVAL(y)) THEN
+          IF( mpime == root ) THEN
+            WRITE(topounit,*) MAXVAL(ytop), MAXVAL(y) 
+          END IF
+          CALL error('topo','Computational domain exceeds topography y',1)
+        END IF
 
         CALL interp(xtop, ytop, ztop2d, x, y, topo2d, nextx, nexty)
 
@@ -244,6 +255,7 @@
         IF( mpime == root ) THEN
           WRITE(topounit,*) 'Translating mesh vertically'
           WRITE(topounit,*) 'Minimum topographic quota: ', MINVAL(topo2d)
+          WRITE(topounit,*) 'Maximum topographic quota: ', MAXVAL(topo2d)
           WRITE(topounit,*) 'Translation: ', transl_z
           WRITE(topounit,*) 
         END IF
