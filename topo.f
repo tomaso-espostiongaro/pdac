@@ -345,6 +345,7 @@
       INTEGER :: elevation
       INTEGER :: p
       INTEGER :: i, j
+      INTEGER :: halfx
 !
 ! ... Processor 'root' reads the standard header of the
 ! ... ASCII DEM format, then broadcasts it to all processors.
@@ -418,6 +419,12 @@
           END DO
         END DO
         CLOSE(tempunit)
+!
+! ... TEST!!!!
+!
+      halfx = vdem%nx/2
+      zdem(i,:)=zdem(i,halfx)
+!
       END IF
 !
       CALL bcast_real(zdem,nodidemx*nodidemy,root)

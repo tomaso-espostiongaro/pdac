@@ -447,7 +447,6 @@
 !
       lform = formatted_output
 !
-!
       IF (print_log) THEN
         IF (mpime == root) THEN
           filnam = 'log10epst.'//lettera(tn)
@@ -462,7 +461,6 @@
         !
         IF (mpime == root) CLOSE(tempunit)
       END IF
-!
 !
       IF (print_tg) THEN
         IF (mpime == root) THEN
@@ -479,7 +477,6 @@
         IF (mpime == root) CLOSE(tempunit)
       END IF
 !
-!
       IF (print_mn) THEN
         IF (mpime == root) THEN
           filnam = 'mach.'//lettera(tn)
@@ -495,7 +492,6 @@
         IF (mpime == root) CLOSE(tempunit)
       END IF
 !
-!  
       IF (print_cm) THEN
         IF (mpime == root) THEN
           filnam = 'cm.'//lettera(tn)
@@ -511,7 +507,6 @@
         IF (mpime == root) CLOSE(tempunit)
       END IF
 !
-!
       IF (print_pd) THEN
         IF (mpime == root) THEN
           filnam = 'pd.'//lettera(tn)
@@ -526,7 +521,6 @@
         !
         IF (mpime == root) CLOSE(tempunit)
       END IF
-!
 !
       IF (print_mnn) THEN
         IF (mpime == root) THEN

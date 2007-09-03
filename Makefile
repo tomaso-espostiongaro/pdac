@@ -5,7 +5,7 @@ dimensions.o dome.o drag.o environment.o eosg.o eosl.o ftem.o \
 flux_u.o flux_v.o flux_w.o flux_sc.o flux_m.o gas.o ghost.o grid.o \
 hcapgs.o hotc.o hvs.o htilde.o kinds.o immb.o indijk.o input.o \
 interp.o inoutflow.o io_parallel.o io_restart.o iter.o kb07ad.o \
-limiters.o letter.o matrix.o matsolv.o\
+limiters.o letter.o matrix.o\
 outp.o parallel.o particles.o press.o prog.o reactions.o rannum.o\
 residuals.o roughness.o samplert.o setup.o subscr.o temp.o tilde.o time.o \
 topo.o \

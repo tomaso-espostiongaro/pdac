@@ -207,17 +207,17 @@
           END DO
         END IF
 !
-        IF (zdome < zb(kkd)) THEN
-                DO k = 1, nz
-                  IF (zb(k) <= zdome) kkd = k
-                END DO
-        ELSE
+!        IF (zdome < zb(kkd)) THEN
+!                DO k = 1, nz
+!                  IF (zb(k) <= zdome) kkd = k
+!                END DO
+!        ELSE
                 zdome = z(kkd)
-        END IF
+!        END IF
 !
-        IF (itp >=1 ) &
+!        IF (itp >=1 ) &
           ! ... Spherical dome
-          CALL flatten_dem_dome(xdome,ydome,total_radius,kkd)
+          !CALL flatten_dem_dome(xdome,ydome,total_radius,kkd)
           !
           ! ... Cylindrical dome
           !CALL flatten_dem_dome(xdome,ydome,dome_radius,kkd)
