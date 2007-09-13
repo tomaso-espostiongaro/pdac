@@ -120,8 +120,6 @@ masspart.o : control.o decomp.o dimensions.o ghost.o grid.o immb.o  \
 matrix.o : control.o dens.o dimensions.o ghost.o grid.o indijk.o io_files.o  \
     particles.o press.o subscr.o temp.o tilde.o time.o velocity.o 
 
-matsolv.o : dimensions.o 
-
 mean_fields.o : control.o dimensions.o ghost.o grid.o io_files.o parallel.o  \
     postvar.o 
 

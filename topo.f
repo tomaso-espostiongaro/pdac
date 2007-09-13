@@ -1,6 +1,5 @@
 !----------------------------------------------------------------------
       MODULE volcano_topography
-      USE io_files, ONLY: topounit, topofile
 !
 ! ... Import the topography from a Digital Elevation Model (DEM)
 ! ... The topography is discretized into a step-wise geometry and 
@@ -8,6 +7,7 @@
 !
 !----------------------------------------------------------------------
       USE dimensions, ONLY: nx, ny, nz, ntot, no
+      USE io_files, ONLY: topounit, topofile
       USE parallel, ONLY: mpime, root
 
       IMPLICIT NONE
@@ -94,6 +94,7 @@
 ! ... Read the topography file
 !
       USE control_flags, ONLY: job_type
+      USE grid, ONLY: iv, jv
 
       IMPLICIT NONE
 !
@@ -123,7 +124,7 @@
         
         ! ... Radial averaging + Filtering
         !
-        IF (iavv >= 1) CALL average_dem
+        IF (iavv >= 1) CALL average_dem(iv, jv)
 
         CALL compute_UTM_coords
         
@@ -448,7 +449,7 @@
       REAL*8 :: newsizex, newsizey
       REAL*8 :: xll, yll, xur, yur, xul, yul
       REAL*8 :: zmin
-      REAL*8 :: maxcellsize
+      REAL*8 :: maxcellsize, mincellsize
       INTEGER, ALLOCATABLE :: ntx(:), nty(:)
       INTEGER :: i,j
 !
@@ -522,24 +523,10 @@
       !
       CALL interp(xdem, ydem, zdem, xtop, ytop, ztop2d, ntx, nty)
 !
-! ... Find the closest topographic element
-! ... to the prescribed vent center.
-!
-!      DO i = 1, noditopx
-!        IF (xtop(i) - center_x <= 0.1D0) icenter = i
-!      END DO
-!      DO j = 1, noditopy
-!        IF (ytop(j) - center_y <= 0.1D0) jcenter = j
-!      END DO
-!!      
-!      ! ... The vent center must coincide with the
-!      ! ... topographic element.
-!      !
-!      center_x = xtop(icenter)
-!      center_y = ytop(jcenter)
-!
       maxcellsize = MAX(MAXVAL(dx),MAXVAL(dy))
-      !filtersize  = MAX(filtersize,maxcellsize)
+      mincellsize = MIN(MINVAL(dx),MINVAL(dy))
+      !filtersize  = MAX(filtersize,0.5D0*maxcellsize)
+      filtersize  = MAX(filtersize,0.5D0*mincellsize)
       IF (filtersize >= cellsize) THEN
          IF (ismt == 1) THEN
                  CALL mean_filter(xtop,ytop,ztop2d,filtersize)
@@ -560,10 +547,11 @@
 ! ... This routine builds an axisymmetric volcano topography by averaging
 ! ... the digital elevation model (dem) around the specified x/y-center
 !
-      SUBROUTINE average_dem
+      SUBROUTINE average_dem(icenter, jcenter)
       USE array_filters, ONLY: mean_filter
 !
       IMPLICIT NONE
+      INTEGER, INTENT(IN) :: icenter, jcenter
       INTEGER :: i, j, distance, m, l
       INTEGER :: dms, counter
       REAL*8, ALLOCATABLE :: av_quota(:)
@@ -738,6 +726,34 @@
 !
       RETURN
       END SUBROUTINE flatten_dem_vent
+!----------------------------------------------------------------------
+      SUBROUTINE flatten_dem_vent_2D(xvent,vent_radius,quota)
+      USE grid, ONLY: zb
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: xvent,vent_radius
+      INTEGER, INTENT(IN) :: quota
+      REAL*8 :: distance2
+      INTEGER :: i,k
+!
+! ... All cells included in the vent radius (plus one)
+! ... have the same topographic quota
+!
+      DO i = 1, SIZE(xtop)
+        distance2 = (xtop(i)-xvent)**2
+        IF( distance2 < vent_radius**2 ) THEN
+          ztop(i) = zb(quota)
+          ztop(i+1) = zb(quota)
+        END IF
+      END DO
+!
+      ! ... Interpolate the topography on the cell centers.
+      ! ... Re-set the cell flags at the base of the crater
+      ! ... and the 'ord2d' and 'dist' arrays
+      !
+      CALL set_profile
+!
+      RETURN
+      END SUBROUTINE flatten_dem_vent_2D
 !----------------------------------------------------------------------
       SUBROUTINE flatten_dem_dome(xdome,ydome,dome_radius,quota)
       USE grid, ONLY: zb

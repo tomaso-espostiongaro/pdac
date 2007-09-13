@@ -300,8 +300,8 @@
       irand = 0               ! 1: circular vent specified on average
       ipro = 0                ! 1: inlet radial profile
       rad_file = 'profile.rad'! file with the radial profile
-      xvent  = 0.D0           ! coordinates of the vent
-      yvent  = 0.D0           ! coordinates of the vent
+      xvent  = -99999.D0           ! coordinates of the vent
+      yvent  = -99999.D0           ! coordinates of the vent
       vent_radius = 100.D0    ! vent radius
       base_radius = 200.D0    ! base radius
       crater_radius = 500.D0  ! maximum radius of the external crater rim

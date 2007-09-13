@@ -24,23 +24,27 @@
                 ep_solid(max_nsolid), t_solid(max_nsolid)
       REAL*8 :: vent_ygc(max_ngas)
 !      
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: rad
       REAL*8, ALLOCATABLE, DIMENSION(:) :: ug_rad, wg_rad, &
-                                           p_rad, tg_rad, rad
+                                           p_rad, tg_rad
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: ygc_rad
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: us_rad, ws_rad, &
                                              ep_rad, ts_rad
       TYPE icvent_cell
         INTEGER :: imesh
+        INTEGER :: i
+        INTEGER :: j
+        INTEGER :: k
         REAL*8  :: frac
         REAL*8  :: fact
       END TYPE icvent_cell
 
       TYPE(icvent_cell), ALLOCATABLE :: vcell(:)
 
-      INTEGER :: nvt
+      INTEGER :: nvt, iiv, jjv, kkv
       INTEGER :: seed
 !
-      PRIVATE :: icvent_cell, vcell, nvt, seed
+      PRIVATE :: icvent_cell, vcell, nvt, seed, iiv, jjv, kkv
       PRIVATE :: ug_rad, wg_rad, p_rad, tg_rad, rad, ygc_rad,  &
                  us_rad, ws_rad, ep_rad, ts_rad
       SAVE
@@ -52,11 +56,174 @@
 !
       SUBROUTINE locate_vent
 
+      USE control_flags, ONLY: job_type, lpr
+      USE grid, ONLY: x, y, z, iv, jv
+      USE parallel, ONLY: mpime, root
+
+      IMPLICIT NONE
+      INTEGER :: n
+!
+! ... If the vent coordinates are not assigned,
+! ... the mesh center coordinates are assumed
+!
+      IF (xvent == -99999.D0) xvent = x(iv)
+      IF (yvent == -99999.D0) yvent = y(jv)
+!
+      IF (job_type == '2D') THEN
+              CALL locate_vent_2D
+      ELSE IF (job_type == '3D') THEN
+              CALL locate_vent_3D
+      END IF
+!
+! ... Print out the vent coordinates on the standard output
+! ... and the vent conditions
+!
+      IF( lpr > 0 .AND. mpime == root ) THEN
+        OPEN(UNIT=ventunit,FILE=ventfile,STATUS='UNKNOWN')
+        WRITE(ventunit,100) iiv, jjv, kkv
+        WRITE(ventunit,200) x(iiv), y(jjv), z(kkv)
+        WRITE(ventunit,300) vent_radius, base_radius
+        WRITE(ventunit,*) 
+        WRITE(ventunit,*) 'Number of vent cells: ', nvt
+        WRITE(ventunit,*) 'Vent cells report: '
+        DO n = 1, nvt
+          WRITE(ventunit,400) n, vcell(n)
+        END DO
+      END IF
+!
+ 100    FORMAT(1X,'vent center: ',3I5)
+ 200    FORMAT(1X,'vent center coordinates: ',3(F12.2))
+ 300    FORMAT(1X,'vent radius and base radius: ',2(F12.2))
+ 400    FORMAT(I4,4(I5),2(F8.4))
+!
+      RETURN
+      END SUBROUTINE locate_vent
+!-----------------------------------------------------------------------
+! ... This routine locate the vent on a georeferenced mesh and set the
+! ... cell flags onto the neighbours of the inlet
+!
+      SUBROUTINE locate_vent_2D
+
+      USE atmospheric_conditions, ONLY: p_atm
+      USE control_flags, ONLY: job_type, lpr
+      USE dimensions, ONLY: nx, ny, nz
+      USE grid, ONLY: x, z, fl, xb, zb, dz, dx, itc
+      USE grid, ONLY: fluid, vent_cell, noslip_wall, slip_wall
+      USE volcano_topography, ONLY: itp, ord
+      USE volcano_topography, ONLY: flatten_dem_vent_2D
+      USE volcano_topography, ONLY: rim_quota
+      USE parallel, ONLY: mpime, root
+!
+      IMPLICIT NONE
+      
+      INTEGER :: i, j, k
+      INTEGER :: ijk, nv
+      INTEGER :: iwest, ieast, jnorth, jsouth
+      INTEGER :: quota, dk
+      REAL*8 :: soglia
+!
+! ... Vent coordinates '(xvent, yvent)' are taken from the input.
+! ... Notice that the vent center coincides with the cell left edge
+! ... (different from 3D)
+!
+      DO i = 1, nx
+        IF (x(i) <= xvent) iiv = i
+      END DO
+      IF (iiv == 1 .OR. itc == 1) iiv = 2
+      xvent = xb(iiv-1)
+!
+! ... Define the 'quota' of the volcanic vent
+! ... (considering the topography). If the topography
+! ... has been red from a file, 'kkv' has already been set
+! ... in the 'volcano_topography' module.
+!
+      IF( itp < 1 ) THEN
+        DO k= 1, nz
+          ijk = iiv + (k-1) * nx 
+          IF (fl(ijk) == slip_wall .OR. fl(ijk) == noslip_wall) kkv = k
+        END DO
+        quota = kkv
+      ELSE
+        quota = ord(iiv)
+        !
+        ! ... Modify the topography at the base or at the top
+        ! ... of the crater to flatten the profile around the vent. 
+        ! ... Reset the cell flags and the 'dist' array.
+        !
+        CALL flatten_dem_vent_2D(xvent,vent_radius,quota)
+      END IF
+!
+! ... Define the rectangle enclosing the vent.
+! ... 'nvt' is the number of vent cells
+!
+      iwest = 2
+      DO i = 2, nx
+        IF (xb(i-1) <= (xvent-vent_radius)) iwest = i
+        IF (xb(i-1) < (xvent+vent_radius)) ieast = i
+      END DO
+      nvt = (ieast-iwest+1)
+!
+! ... allocate and initialize the cells enclosing the vent
+!
+      ALLOCATE(vcell(nvt))
+      vcell(:)%frac = 1.D0
+      vcell(:)%fact = 1.D0
+!      
+! ... Loop over the cells enclosing the vent
+!
+      nv = 0
+      DO i = iwest, ieast
+        nv = nv + 1
+
+        ! ... Below the vent quota, set the cell flag as noslip walls
+        !
+        DO k = 1, quota - 1
+          ijk = i + (k-1) * nx
+          fl(ijk) = noslip_wall
+        END DO
+
+        ! ... At the vent quota, vent cell flags are set to vent_cell
+        !
+        k = quota
+        ijk = i + (k-1) * nx
+        
+        vcell(nv)%imesh = ijk
+        vcell(nv)%i = i
+        vcell(nv)%j = 0
+        vcell(nv)%k = k
+        vcell(nv)%frac = 1.D0
+        fl(ijk) = vent_cell
+        !
+        IF (nv == nvt) THEN
+                IF (itc == 1) THEN
+                        vcell(nvt)%frac = 1.D0 - (xb(ieast) - xb(iwest-1) - vent_radius)/ dx(ieast)
+                ELSE IF (itc == 0) THEN
+                        vcell(nvt)%frac = 1.D0 - (xb(ieast) - xb(iwest-1) - 2.D0*vent_radius)/ dx(ieast)
+                END IF
+        END IF
+        
+        ! ... Above the vent quota, cell flags are set to '1'
+        ! ... (fluid cells)
+        !
+        DO k = quota+1, nz-1
+          ijk = i + (k-1) * nx
+          fl(ijk) = fluid
+        END DO
+                  
+      END DO
+!
+      RETURN
+      END SUBROUTINE locate_vent_2D
+!-----------------------------------------------------------------------
+! ... This routine locate the vent on a georeferenced mesh and set the
+! ... cell flags onto the neighbours of the inlet
+!
+      SUBROUTINE locate_vent_3D
+
       USE atmospheric_conditions, ONLY: p_atm
       USE control_flags, ONLY: job_type, lpr
       USE dimensions, ONLY: nx, ny, nz
       USE grid, ONLY: x, y, z, fl, xb, yb, zb, dz
-      USE grid, ONLY: iv, jv, kv, grigen
       USE grid, ONLY: fluid, vent_cell, noslip_wall, slip_wall
       USE volcano_topography, ONLY: itp, iavv, ord2d
       USE volcano_topography, ONLY: nocrater, flatten_dem_vent
@@ -70,69 +237,54 @@
       INTEGER :: iwest, ieast, jnorth, jsouth
       INTEGER :: quota, dk
       REAL*8 :: soglia
-      
-      IF( job_type == '2D') RETURN
 !
-! ... If the mesh has been generated by the code,
-! ... the vent center is located where the mesh is more refined.
-! ... Otherwise its coordinates '(xvent, yvent)' are taken from the input.
-!
-      IF (grigen == 1) THEN
-        xvent = x(iv)
-        yvent = y(jv)
-      ELSE 
-        DO i = 1, nx
-          IF (x(i) <= xvent) iv = i
-        END DO
-        DO j = 1, ny
-          IF (y(j) <= yvent) jv = j
-        END DO
-        xvent = x(iv)
-        yvent = y(jv)
+      ! ... The crater base radius must include, at least, 
+      ! ... the rectancle containing the vent
+      !
+      IF( base_radius < 2.0D0*vent_radius ) THEN
+              base_radius = 2.0D0*vent_radius
+              IF (mpime == root) &
+                WRITE(errorunit,*) 'WARNING! control the crater base!'
       END IF
+!
+! ... The coordinates '(xvent, yvent)' are taken from the input.
+! ... Notice that the vent center coincides with the cell center 
+! ... (different from 2D)
+!
+      DO i = 1, nx
+        IF (x(i) <= xvent) iiv = i
+      END DO
+      DO j = 1, ny
+        IF (y(j) <= yvent) jjv = j
+      END DO
+      xvent = x(iiv)
+      yvent = y(jjv)
 !
 ! ... Define the 'quota' of the volcanic vent
 ! ... (considering the topography). If the topography
-! ... has been red from a file, 'kv' has already been set
+! ... has been red from a file, 'kkv' has already been set
 ! ... in the 'volcano_topography' module.
 !
       IF( itp < 1 ) THEN
 
         DO k= 1, nz
-          ijk = iv + (jv-1) * nx + (k-1) * nx * ny
-          IF (fl(ijk) == slip_wall .OR. fl(ijk) == noslip_wall) kv = k
+          ijk = iiv + (jjv-1) * nx + (k-1) * nx * ny
+          IF (fl(ijk) == slip_wall .OR. fl(ijk) == noslip_wall) kkv = k
         END DO
-        quota = kv
+        quota = kkv
 
       ELSE
 !
-        ! ... The crater base radius must include, at least, 
-        ! ... the rectancle containing the vent
+        kkv = ord2d(iiv,jjv)
         !
-        IF( base_radius < 2.0D0*vent_radius ) THEN
-                base_radius = 2.0D0*vent_radius
-                IF (mpime == root) &
-                  WRITE(errorunit,*) 'WARNING! control the crater base!'
-        END IF
-
-        ! ... Reset the vent quota
+        ! ... Reset the vent quota if the topography has to be modified
         !
-        dk = 0
-        IF (iavv > 0) THEN
-          DO j = 1, ny
-            DO i = 1, nx
-              IF ( (x(i)-xvent)**2 + (y(j)-yvent)**2 < base_radius**2 ) THEN
-                      dk = MAX(ord2d(i,j)-quota, dk)
-              END IF
-            END DO
-          END DO
-          kv = kv + dk
-        ELSE IF (nocrater) THEN
+        IF (nocrater) THEN
           DO k = 1, nz
-            IF (zb(k) <= rim_quota) kv = k
+            IF (zb(k) <= rim_quota) kkv = k
           END DO
         END IF
-        quota = kv
+        quota = kkv
 !
         ! ... Modify the topography at the base or at the top
         ! ... of the crater to flatten the profile around the vent. 
@@ -140,16 +292,6 @@
         !
         CALL flatten_dem_vent(xvent,yvent,base_radius,crater_radius,quota)
 !
-      END IF
-!
-! ... Print out the vent coordinates on the standard output
-!
-      IF( lpr > 0 .AND. mpime == root ) THEN
-        OPEN(UNIT=ventunit,FILE=ventfile,STATUS='UNKNOWN')
-        WRITE(ventunit,100) iv, jv, kv
-        WRITE(ventunit,200) x(iv), y(jv), z(kv)
-100     FORMAT(1X,'vent center: ',3I5)
-200     FORMAT(1X,'vent center coordinates: ',3(F12.2))
       END IF
 !
 ! ... Define the rectangle enclosing the vent.
@@ -181,11 +323,6 @@
       ELSE
         soglia = 0.D0
       END IF
-!
-      IF( lpr > 0 .AND. mpime == root ) THEN
-        WRITE(ventunit,*) 
-        WRITE(ventunit,*) 'Vent conditions imposed in cells: '
-      END IF
 !      
 ! ... Loop over the cells enclosing the vent
 !
@@ -209,6 +346,9 @@
           ijk = i + (j-1) * nx + (k-1) * nx * ny
           
           vcell(nv)%imesh = ijk
+          vcell(nv)%i = i
+          vcell(nv)%j = j
+          vcell(nv)%k = k
           vcell(nv)%frac = cell_fraction(i,j)
           
           IF (vcell(nv)%frac > soglia) THEN
@@ -217,10 +357,6 @@
             fl(ijk) = noslip_wall
           END IF
           
-          IF (lpr > 0 .AND. mpime == root) &
-            WRITE(ventunit,10) nv, ijk, i, j, k, vcell(nv)%frac, fl(ijk)
- 10       FORMAT(I3,I8,3(I4),F8.4,I4)
-
           ! ... Above the vent quota, cell flags are set to '1'
           ! ... (fluid cells)
           !
@@ -231,11 +367,9 @@
                     
         END DO
       END DO
-
-      IF( mpime == root ) WRITE(ventunit,*) 'END Set Vent'
 !
       RETURN
-      END SUBROUTINE locate_vent
+      END SUBROUTINE locate_vent_3D
 !-----------------------------------------------------------------------
       SUBROUTINE set_ventc
 !
@@ -268,9 +402,6 @@
       REAL*8 :: distance
       REAL*8 :: rseed
 !
-! ... This procedure is implemented for 3D
-      IF (job_type == '2D') RETURN
-!      
 ! ... Compatibility
       IF (ipro >= 1) THEN
             CALL read_radial_profile
@@ -298,11 +429,16 @@
 !          
           IF (ipro >= 1) THEN
             !
-            distance = DSQRT( (x(i)-xvent)**2 + (y(j)-yvent)**2 )
-            angle    = ATAN2( (y(j)-yvent), (x(i)-xvent) )
+            IF (job_type == '2D') THEN
+              distance = (x(i) - xvent)
+              angle = 0.D0
+            ELSE IF (job_type == '3D') THEN
+              distance = DSQRT( (x(i)-xvent)**2 + (y(j)-yvent)**2 )
+              angle    = ATAN2( (y(j)-yvent), (x(i)-xvent) )
+            END IF
             !
             CALL interp(rad, ug_rad, distance, ug(ijk))
-            vg(ijk) = ug(ijk) * SIN(angle)
+            IF (job_type == '3D') vg(ijk) = ug(ijk) * SIN(angle)
             ug(ijk) = ug(ijk) * COS(angle)
             CALL interp(rad, wg_rad, distance, wg(ijk))
             !
@@ -316,7 +452,7 @@
             ep(ijk) = 1.D0
             DO is = 1,nsolid
               CALL interp(rad, us_rad(:,is),  distance, us(ijk,is))
-              vs(ijk,is) = us(ijk,is) * SIN(angle)
+              IF (job_type == '3D') vs(ijk,is) = us(ijk,is) * SIN(angle)
               us(ijk,is) = us(ijk,is) * COS(angle)
               CALL interp(rad, ws_rad(:,is),  distance, ws(ijk,is))
               !
@@ -327,9 +463,9 @@
             END DO
             !
           ELSE
-            ! ... Set the initial conditions, as
-            ! ... specified in the input file on 
-            ! ... all cells enclosing the vent
+            ! ... Set uniform initial conditions on
+            ! ... all cells enclosing the vent,
+            ! ... as specified in the input namelist 'inlet'
             !
             ug(ijk) = u_gas 
             IF (job_type == '3D') vg(ijk) = v_gas 
