@@ -201,6 +201,9 @@
         domain_y = SUM(dy_inner)
         domain_z = SUM(dz_inner)
         iv = nx/2+1; jv = ny/2+1; kv = nz/2+1
+        !iv = NINT(alpha_x*nx); jv = NINT(alpha_y*ny); kv = NINT(alpha_z*nz)
+        !iv = MAX(iv,1); jv = MAX(jv,1); kv = MAX(kv,1)
+        !iv = MIN(iv,nx-1); jv = MIN(jv,ny-1); kv = MIN(kv,nz-1)
         dx = dx_inner
         dy = dy_inner
         dz = dz_inner

@@ -537,7 +537,7 @@
       maxcellsize = MAX(MAXVAL(dx),MAXVAL(dy))
       mincellsize = MIN(MINVAL(dx),MINVAL(dy))
       !filtersize  = MAX(filtersize,0.5D0*maxcellsize)
-      filtersize  = MAX(filtersize,0.5D0*mincellsize)
+      !filtersize  = MAX(filtersize,0.5D0*mincellsize)
       IF (filtersize >= cellsize) THEN
          IF (ismt == 1) THEN
                  CALL mean_filter(xtop,ytop,ztop2d,filtersize)
@@ -561,6 +561,7 @@
       SUBROUTINE average_dem
       USE array_filters, ONLY: mean_filter
       USE grid, ONLY: center_x, center_y
+      USE io_files, ONLY: tempunit
 !
       IMPLICIT NONE
       INTEGER :: icenter, jcenter
@@ -595,13 +596,22 @@
       !
       DO j = 1, noditopy
         DO i = 1, noditopx
-          IF (i/=icenter) tanalpha = REAL((j-jcenter),8)/(i-icenter)
-          IF (i > icenter) THEN
-            alpha = DATAN(tanalpha)
-          ELSE
-            alpha = pi + DATAN(tanalpha)
+          IF (j/=jcenter .AND. i/=icenter) THEN
+            alpha = ATAN2(REAL(j-jcenter,8),REAL(i-icenter,8))
+          ELSE IF (j == jcenter) THEN
+            IF (i>icenter) THEN
+              alpha = 0.D0
+            ELSE IF (i<icenter) THEN
+              alpha = pi
+            END IF
+          ELSE IF (i == icenter) THEN
+            IF (j>jcenter) THEN
+              alpha = 0.5D0*pi
+            ELSE IF (j<jcenter) THEN
+              alpha = -0.5D0*pi
+            END IF
           END IF
-          IF ((alpha >= 0.25D0*pi .AND. alpha < 0.5D0*pi) .OR. i==icenter) THEN
+          IF (alpha >= 20.D0/180.D0*pi .AND. alpha <= 96.D0/180.D0*pi) THEN
             distance = (i - icenter)**2 + (j - jcenter)**2
             av_quota(distance) = av_quota(distance) + ztop2d(i,j)
             nk(distance) = nk(distance) + 1
@@ -612,7 +622,7 @@
       DO m = 1, dms
         IF( nk(m) > 0 ) av_quota(m) = av_quota(m) / nk(m)
       END DO
-!
+      !
       ! ... Count the number of non-zero quotas
       !
       counter = 0
@@ -621,23 +631,33 @@
       END DO
       IF (counter == 0) RETURN
       !
-      ! ... 'rad_dist' is the sorted array of the squared distances of mesh point
+      ! ... 'rad_dist' is the array of the squared distances of mesh point
       ! ... 'rad_quotas' is the array of averaged quotas at 'rad_dist' locations
       !
       ALLOCATE( rad_dist(counter), rad_quota(counter) )
       rad_dist = 0.D0; rad_quota = 0.D0
       !
       i = 0
-      DO j = 0, dms
-        IF (av_quota(j) > 0.D0) THEN
+      DO l = 0, dms
+        IF (av_quota(l) > 0.D0) THEN
                 i = i+1
-                rad_dist(i) = REAL(j,8)
-                rad_quota(i) = av_quota(j)
+                rad_dist(i) = REAL(l,8)
+                rad_quota(i) = av_quota(l)
         END IF
       END DO
 !      
-      CALL mean_filter(rad_dist, rad_quota, 25.D0)
-
+      CALL mean_filter(rad_dist, rad_quota, filtersize**2)
+      !
+      ! ... Write out the 2D averaged profile
+      !
+      IF (mpime == root) THEN
+        OPEN(tempunit,FILE='radial_dem.dat',STATUS='UNKNOWN')
+        DO m = 1, SIZE(rad_dist)
+            WRITE(tempunit,*) cellsize*DSQRT(rad_dist(m)), rad_quota(m)
+        END DO
+        CLOSE(tempunit)
+      END IF
+!
       DO i = 1, counter
         av_quota(NINT(rad_dist(i))) = rad_quota(i)
       END DO
@@ -647,13 +667,22 @@
       !
       DO j = 1, noditopy
         DO i = 1, noditopx
-          IF (i/=icenter) tanalpha = REAL((j-jcenter),8)/(i-icenter)
-          IF (i > icenter) THEN
-            alpha = DATAN(tanalpha)
-          ELSE
-            alpha = pi + DATAN(tanalpha)
+          IF (j/=jcenter .AND. i/=icenter) THEN
+            alpha = ATAN2(REAL(j-jcenter,8),REAL(i-icenter,8))
+          ELSE IF (j == jcenter) THEN
+            IF (i>icenter) THEN
+              alpha = 0.D0
+            ELSE IF (i<icenter) THEN
+              alpha = pi
+            END IF
+          ELSE IF (i == icenter) THEN
+            IF (j>jcenter) THEN
+              alpha = 0.5D0*pi
+            ELSE IF (j<jcenter) THEN
+              alpha = -0.5D0*pi
+            END IF
           END IF
-          IF ((alpha >= 0.25D0*pi .AND. alpha < 0.5D0*pi) .OR. i==icenter) THEN
+          IF (alpha >= 20.D0/180.D0*pi .AND. alpha <= 96.D0/180.D0*pi) THEN
             distance = (i - icenter)**2 + (j - jcenter)**2
             ztop2d(i,j) = av_quota(distance)
           END IF
