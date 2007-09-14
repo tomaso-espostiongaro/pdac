@@ -116,15 +116,18 @@
 
         ! ... Read the original topography
         !
+        WRITE(*,*) iv, jv
         CALL read_dem_ascii
 
         ! ... Crop the dem and change the resolution + Filtering
         !
+        WRITE(*,*) iv, jv
         CALL resize_dem
         
         ! ... Radial averaging + Filtering
         !
-        IF (iavv >= 1) CALL average_dem(iv, jv)
+        WRITE(*,*) iv, jv
+        IF (iavv >= 1) CALL average_dem
 
         CALL compute_UTM_coords
         
@@ -340,7 +343,7 @@
       CHARACTER(LEN=80) :: topo_file
       INTEGER :: nodidemx, nodidemy
       ! ... Coordinates of the upper-left (ul) corner
-      REAL*8  :: xll, yll, xur, yur, xul, yul
+      REAL*8  :: xll, yll, xur, yur, xul, yul, xlr
       REAL*8  :: dd
       INTEGER :: noval
       INTEGER :: elevation
@@ -357,30 +360,36 @@
         OPEN(UNIT=tempunit, FILE=topo_file, STATUS='OLD')
         READ(tempunit,*) nodidemx
         READ(tempunit,*) nodidemy
-        READ(tempunit,*) xul
-        READ(tempunit,*) yul
+        READ(tempunit,*) xll
+        READ(tempunit,*) yll
         READ(tempunit,*) dd
         READ(tempunit,*) noval
       END IF
 !
       CALL bcast_integer(nodidemx,1,root)
       CALL bcast_integer(nodidemy,1,root)
-      CALL bcast_real(xul,1,root)
-      CALL bcast_real(yul,1,root)
+      CALL bcast_real(xll,1,root)
+      CALL bcast_real(yll,1,root)
       CALL bcast_real(dd,1,root)
       CALL bcast_integer(noval,1,root)
 !
       vdem%nx           = nodidemx
       vdem%ny           = nodidemy
-      vdem%xcorner      = xul
-      vdem%ycorner      = yul
+      vdem%xcorner      = xll
+      vdem%ycorner      = yll
       vdem%cellsize     = dd
       vdem%nodata_value = noval
 !
-      xur = xul + vdem%cellsize * (vdem%nx - 1)
-      yll = yul - vdem%cellsize * (vdem%ny - 1)
-      xll = xul
+      xul = xll
+      yul = yll + vdem%cellsize * (vdem%ny - 1)
       yur = yul
+      xlr = xll + vdem%cellsize * (vdem%nx - 1)
+      xur = xlr
+!
+      !xur = xul + vdem%cellsize * (vdem%nx - 1)
+      !yll = yul - vdem%cellsize * (vdem%ny - 1)
+      !xll = xul
+      !yur = yul
 !
       ALLOCATE(zdem(vdem%nx,vdem%ny))
       ALLOCATE(xdem(vdem%nx))
@@ -396,7 +405,8 @@
       ! ... upper left corner
       !
       DO j = vdem%ny, 1, -1
-        ydem(j) = vdem%ycorner - (vdem%ny - j) * vdem%cellsize
+      !DO j = 1, vdem%ny
+        ydem(j) = vdem%ycorner + (j-1) * vdem%cellsize
       END DO
 !
       IF (mpime == root) THEN
@@ -411,6 +421,7 @@
 !
       IF (mpime == root) THEN
         DO j = vdem%ny, 1, -1
+        !DO j = 1, vdem%ny
           DO i = 1, vdem%nx
             READ(tempunit,*) elevation
             zdem(i,j) = DBLE(elevation) / 100.D0
@@ -423,8 +434,8 @@
 !
 ! ... TEST!!!!
 !
-      halfx = vdem%nx/2
-      zdem(i,:)=zdem(i,halfx)
+!      halfx = vdem%nx/2
+!      zdem(i,:)=zdem(i,halfx)
 !
       END IF
 !
@@ -547,20 +558,32 @@
 ! ... This routine builds an axisymmetric volcano topography by averaging
 ! ... the digital elevation model (dem) around the specified x/y-center
 !
-      SUBROUTINE average_dem(icenter, jcenter)
+      SUBROUTINE average_dem
       USE array_filters, ONLY: mean_filter
+      USE grid, ONLY: center_x, center_y
 !
       IMPLICIT NONE
-      INTEGER, INTENT(IN) :: icenter, jcenter
+      INTEGER :: icenter, jcenter
       INTEGER :: i, j, distance, m, l
       INTEGER :: dms, counter
       REAL*8, ALLOCATABLE :: av_quota(:)
       REAL*8, ALLOCATABLE :: rad_dist(:), rad_quota(:)
       INTEGER, ALLOCATABLE :: nk(:)
       INTEGER :: noditopx, noditopy
+      REAL*8 :: alpha, tanalpha
+      REAL*8 :: pi
+!
+      pi = 4.D0 * DATAN(1.D0)
 !
       noditopx = vdem%nx
       noditopy = vdem%ny
+!
+      DO i = 1, noditopx
+        IF (xtop(i) < center_x) icenter = i
+      END DO
+      DO j = 1, noditopy
+        IF (ytop(j) < center_y) jcenter = j
+      END DO
 !
       dms = noditopx**2 + noditopy**2
       ALLOCATE( av_quota( 0:dms ) )
@@ -572,9 +595,17 @@
       !
       DO j = 1, noditopy
         DO i = 1, noditopx
-          distance = (i - icenter)**2 + (j - jcenter)**2
-          av_quota(distance) = av_quota(distance) + ztop2d(i,j)
-          nk(distance) = nk(distance) + 1
+          IF (i/=icenter) tanalpha = REAL((j-jcenter),8)/(i-icenter)
+          IF (i > icenter) THEN
+            alpha = DATAN(tanalpha)
+          ELSE
+            alpha = pi + DATAN(tanalpha)
+          END IF
+          IF ((alpha >= 0.25D0*pi .AND. alpha < 0.5D0*pi) .OR. i==icenter) THEN
+            distance = (i - icenter)**2 + (j - jcenter)**2
+            av_quota(distance) = av_quota(distance) + ztop2d(i,j)
+            nk(distance) = nk(distance) + 1
+          END IF
         END DO
       END DO
       !
@@ -588,6 +619,7 @@
       DO j = 0, dms
         IF (av_quota(j) > 0.D0) counter = counter + 1
       END DO
+      IF (counter == 0) RETURN
       !
       ! ... 'rad_dist' is the sorted array of the squared distances of mesh point
       ! ... 'rad_quotas' is the array of averaged quotas at 'rad_dist' locations
@@ -604,7 +636,7 @@
         END IF
       END DO
 !      
-      CALL mean_filter(rad_dist, rad_quota, filtersize)
+      CALL mean_filter(rad_dist, rad_quota, 25.D0)
 
       DO i = 1, counter
         av_quota(NINT(rad_dist(i))) = rad_quota(i)
@@ -615,8 +647,16 @@
       !
       DO j = 1, noditopy
         DO i = 1, noditopx
-          distance = (i - icenter)**2 + (j - jcenter)**2
-          ztop2d(i,j) = av_quota(distance)
+          IF (i/=icenter) tanalpha = REAL((j-jcenter),8)/(i-icenter)
+          IF (i > icenter) THEN
+            alpha = DATAN(tanalpha)
+          ELSE
+            alpha = pi + DATAN(tanalpha)
+          END IF
+          IF ((alpha >= 0.25D0*pi .AND. alpha < 0.5D0*pi) .OR. i==icenter) THEN
+            distance = (i - icenter)**2 + (j - jcenter)**2
+            ztop2d(i,j) = av_quota(distance)
+          END IF
         END DO
       END DO
 !
