@@ -5,7 +5,7 @@ MACROS= -D__MPI
 #MACROS= -D__SCALAR
 #----------------------------------------
 #FFLAGS= -O2 -ffree-form  -ftrace=full -fbounds-check
-FFLAGS= -O2 -ffree-form 
+FFLAGS= -ffree-form 
 CPPFLAGS= -cpp $(MACROS)
 CFLAGS= -O2 $(MACROS)
 LINKFLAGS=
@@ -13,12 +13,12 @@ LIBS=
 ARFLAGS=rv
 #----------------------------------------
 # scalar compiler
-FC=~/g95-install/bin/mpif95
+FC=~/bin/mpif90
 # parallel compiler
-MPFC=~/g95-install/bin/mpif95
+MPFC=~/bin/mpif90
 #----------------------------------------
 # ... linker
-LINKER= ~/g95-install/bin/mpif95
+LINKER= ~/bin/mpif90
 
 .SUFFIXES:
 .SUFFIXES:.F .o .f .c
