@@ -56,6 +56,7 @@
       INTEGER :: itp, iavv, ismt
       REAL*8 :: cellsize, filtersize
       REAL*8 :: rim_quota
+      REAL *8 :: min_angle, max_angle
       LOGICAL :: nocrater, itrans, seatable
       !
       ! ... file name for the topography
@@ -360,8 +361,8 @@
         OPEN(UNIT=tempunit, FILE=topo_file, STATUS='OLD')
         READ(tempunit,*) nodidemx
         READ(tempunit,*) nodidemy
-        READ(tempunit,*) xll
-        READ(tempunit,*) yll
+        READ(tempunit,*) xul   !before it was xll
+        READ(tempunit,*) yul   !before it was yll
         READ(tempunit,*) dd
         READ(tempunit,*) noval
       END IF
@@ -375,21 +376,21 @@
 !
       vdem%nx           = nodidemx
       vdem%ny           = nodidemy
-      vdem%xcorner      = xll
-      vdem%ycorner      = yll
+      vdem%xcorner      = xul  !before it was xll
+      vdem%ycorner      = yul  !before it was yll
       vdem%cellsize     = dd
       vdem%nodata_value = noval
 !
-      xul = xll
-      yul = yll + vdem%cellsize * (vdem%ny - 1)
-      yur = yul
-      xlr = xll + vdem%cellsize * (vdem%nx - 1)
-      xur = xlr
+!      xul = xll
+!      yul = yll + vdem%cellsize * (vdem%ny - 1)
+!      yur = yul
+!      xlr = xll + vdem%cellsize * (vdem%nx - 1)
+!      xur = xlr
 !
-      !xur = xul + vdem%cellsize * (vdem%nx - 1)
-      !yll = yul - vdem%cellsize * (vdem%ny - 1)
-      !xll = xul
-      !yur = yul
+      xur = xul + vdem%cellsize * (vdem%nx - 1)
+      yll = yul - vdem%cellsize * (vdem%ny - 1)
+      xll = xul
+      yur = yul
 !
       ALLOCATE(zdem(vdem%nx,vdem%ny))
       ALLOCATE(xdem(vdem%nx))
@@ -576,6 +577,11 @@
 !
       pi = 4.D0 * DATAN(1.D0)
 !
+!  Trasformo gli angoli da gradi in radianti
+!
+      min_angle = min_angle*pi/180.D0
+      max_angle = max_angle*pi/180.D0
+!
       noditopx = vdem%nx
       noditopy = vdem%ny
 !
@@ -611,7 +617,7 @@
               alpha = -0.5D0*pi
             END IF
           END IF
-          IF (alpha >= 20.D0/180.D0*pi .AND. alpha <= 96.D0/180.D0*pi) THEN
+          IF (alpha >= min_angle .AND. alpha <= max_angle) THEN
             distance = (i - icenter)**2 + (j - jcenter)**2
             av_quota(distance) = av_quota(distance) + ztop2d(i,j)
             nk(distance) = nk(distance) + 1
@@ -682,7 +688,7 @@
               alpha = -0.5D0*pi
             END IF
           END IF
-          IF (alpha >= 20.D0/180.D0*pi .AND. alpha <= 96.D0/180.D0*pi) THEN
+          IF (alpha >= min_angle .AND. alpha <= max_angle) THEN
             distance = (i - icenter)**2 + (j - jcenter)**2
             ztop2d(i,j) = av_quota(distance)
           END IF

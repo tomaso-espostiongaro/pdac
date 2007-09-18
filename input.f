@@ -131,8 +131,9 @@
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut, tau, tau1, tau2
       USE turbulence_model, ONLY: iturb, cmut, iss, modturbo
-      USE volcano_topography, ONLY: itp, iavv, cellsize, filtersize, &
-                         dem_file, nocrater, rim_quota, ismt, itrans, seatable
+      USE volcano_topography, ONLY: itp, iavv, cellsize, min_angle, max_angle,&
+                                     filtersize, dem_file, nocrater, rim_quota, &
+                                     ismt, itrans, seatable
 !
       IMPLICIT NONE
  
@@ -155,7 +156,7 @@
       NAMELIST / boundaries / west, east, south, north, bottom, top, &
         immb, ibl
 
-      NAMELIST / topography / dem_file, itp, iavv, nocrater, &
+      NAMELIST / topography / dem_file, itp, iavv, min_angle, max_angle, nocrater, &
         rim_quota, filtersize, cellsize, ismt, zrough, itrans, seatable
       
       NAMELIST / inlet / ivent, iali, irand, ipro, rad_file, wrat, &
@@ -285,6 +286,8 @@
       itp   = 0               ! itp = 1 => read topography from file
       ismt   = 1               ! 1 = median filter; 2 = gaussian filter
       iavv   = 0              ! iavv = 1 => average volcano topography
+      min_angle = 0.D0        !the minimun default angle is 0 degrees
+      max_angle = 0.D0        !the maximum default angle is 0 degrees
       nocrater = .FALSE. ! flatten the crater
       itrans = .TRUE.         ! translate vertically
       seatable = .TRUE.       ! flatten negative topography
@@ -550,6 +553,8 @@
       CALL bcast_integer(itp,1,root)
       CALL bcast_integer(ismt,1,root)
       CALL bcast_integer(iavv,1,root)
+      CALL bcast_real(min_angle,1,root)
+      CALL bcast_real(max_angle,1,root)
       CALL bcast_logical(nocrater,1,root)
       CALL bcast_logical(itrans,1,root)
       CALL bcast_logical(seatable,1,root)
