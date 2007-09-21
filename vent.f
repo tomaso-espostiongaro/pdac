@@ -713,6 +713,7 @@
 ! ... An aribtrary radial profile can be assigned, as a function
 ! ... of the averaged vertical velocity
 !
+      USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nsolid
       USE gas_solid_velocity, ONLY: ug, us, vg, vs, wg, ws
       USE pressure_epsilon, ONLY: p
@@ -723,12 +724,12 @@
       INTEGER :: is
 
       ug(ijk) = u_gas * factor
-      vg(ijk) = v_gas * factor
+      IF (job_type == '3D') vg(ijk) = v_gas * factor
       wg(ijk) = w_gas * factor
       
       DO is = 1,nsolid
         us(ijk,is) = u_solid(is) * factor
-        vs(ijk,is) = v_solid(is) * factor
+        IF (job_type == '3D') vs(ijk,is) = v_solid(is) * factor
         ws(ijk,is) = w_solid(is) * factor
       END DO
 
