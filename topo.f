@@ -471,8 +471,8 @@
       ! ... Crop the topography and compute the number of 
       ! ... DEM elements. Allocate elevation arrays.
       !
-      newsizex = domain_x + 2.D0 * dxmax
-      newsizey = domain_y + 2.D0 * dymax
+      newsizex = domain_x + 2.D0 * MAX(dxmax, cellsize)
+      newsizey = domain_y + 2.D0 * MAX(dymax, cellsize)
       noditopx = INT(newsizex / cellsize) + 1
       noditopy = INT(newsizey / cellsize) + 1
       !
