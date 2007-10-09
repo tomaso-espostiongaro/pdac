@@ -117,17 +117,14 @@
 
         ! ... Read the original topography
         !
-        WRITE(*,*) iv, jv
         CALL read_dem_ascii
 
         ! ... Crop the dem and change the resolution + Filtering
         !
-        WRITE(*,*) iv, jv
         CALL resize_dem
         
         ! ... Radial averaging + Filtering
         !
-        WRITE(*,*) iv, jv
         IF (iavv >= 1) CALL average_dem
 
         CALL compute_UTM_coords
@@ -344,7 +341,7 @@
       CHARACTER(LEN=80) :: topo_file
       INTEGER :: nodidemx, nodidemy
       ! ... Coordinates of the upper-left (ul) corner
-      REAL*8  :: xll, yll, xur, yur, xul, yul, xlr
+      REAL*8  :: xll, yll, xur, yur, xul, yul, xlr, ylr
       REAL*8  :: dd
       INTEGER :: noval
       INTEGER :: elevation
@@ -361,36 +358,41 @@
         OPEN(UNIT=tempunit, FILE=topo_file, STATUS='OLD')
         READ(tempunit,*) nodidemx
         READ(tempunit,*) nodidemy
-        READ(tempunit,*) xul   !before it was xll
-        READ(tempunit,*) yul   !before it was yll
+        READ(tempunit,*) xul
+        READ(tempunit,*) yul
         READ(tempunit,*) dd
         READ(tempunit,*) noval
       END IF
 !
       CALL bcast_integer(nodidemx,1,root)
       CALL bcast_integer(nodidemy,1,root)
-      CALL bcast_real(xll,1,root)
-      CALL bcast_real(yll,1,root)
+      CALL bcast_real(xul,1,root)
+      CALL bcast_real(yul,1,root)
       CALL bcast_real(dd,1,root)
       CALL bcast_integer(noval,1,root)
 !
       vdem%nx           = nodidemx
       vdem%ny           = nodidemy
-      vdem%xcorner      = xul  !before it was xll
-      vdem%ycorner      = yul  !before it was yll
+      vdem%xcorner      = xul
+      vdem%ycorner      = yul
       vdem%cellsize     = dd
       vdem%nodata_value = noval
 !
-!      xul = xll
+! ... If the lower-left coordinates are provided,
+! ... use the following...
+!
+!      vdem%xcorner      = xll
+!      vdem%ycorner      = yll
+!
 !      yul = yll + vdem%cellsize * (vdem%ny - 1)
-!      yur = yul
 !      xlr = xll + vdem%cellsize * (vdem%nx - 1)
 !      xur = xlr
+!
+! ... These are used to check the domain size
 !
       xur = xul + vdem%cellsize * (vdem%nx - 1)
       yll = yul - vdem%cellsize * (vdem%ny - 1)
       xll = xul
-      yur = yul
 !
       ALLOCATE(zdem(vdem%nx,vdem%ny))
       ALLOCATE(xdem(vdem%nx))
@@ -407,7 +409,7 @@
       !
       DO j = vdem%ny, 1, -1
       !DO j = 1, vdem%ny
-        ydem(j) = vdem%ycorner + (j-1) * vdem%cellsize
+        ydem(j) = vdem%ycorner - (vdem%ny - j) * vdem%cellsize
       END DO
 !
       IF (mpime == root) THEN
@@ -432,6 +434,7 @@
           END DO
         END DO
         CLOSE(tempunit)
+!
 !
 ! ... TEST!!!!
 !

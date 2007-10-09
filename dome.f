@@ -29,6 +29,9 @@
 
       TYPE icdome_cell
         INTEGER :: imesh
+        INTEGER :: i
+        INTEGER :: j
+        INTEGER :: k
         REAL*8  :: radius
         REAL*8  :: angle
         REAL*8  :: pressure
@@ -36,7 +39,6 @@
         REAL*8  :: sfraction(max_nsolid)
       END TYPE icdome_cell
       TYPE(icdome_cell), ALLOCATABLE :: dcell(:)
-      REAL*8, ALLOCATABLE :: sdensity(:)
 
       INTEGER :: ndm, iid, jjd, kkd
       PUBLIC
@@ -94,7 +96,7 @@
 !
 ! ... Print out the dome coordinates
 !
-      IF( lpr > 0 .AND. mpime == root ) THEN
+      IF( mpime == root ) THEN
         OPEN(UNIT=domeunit,FILE=domefile,STATUS='UNKNOWN')
         WRITE(domeunit,*) 'Report of dome initial conditions'
         WRITE(domeunit,*) 
@@ -105,11 +107,12 @@
         WRITE(domeunit,*) 'Number of dome cells: ', ndm
         WRITE(domeunit,*) 'Dome cells report'
         DO n = 1, ndm
-          WRITE(domeunit,*) dcell(n)
+          WRITE(domeunit,500) n, dcell(n)%imesh, dcell(n)%i, dcell(n)%j, dcell(n)%k, dcell(n)%radius, dcell(n)%angle
         END DO
 100     FORMAT(1X,'dome center indices: ',3I5)
 200     FORMAT(1X,'dome center coordinates: ',3(F12.2))
 400     FORMAT(1X,'dome radius and total radius: ',2(F12.2))
+500     FORMAT(I6, I10, 3I5, F12.2, F12.6)
       END IF
 !
       RETURN
@@ -133,6 +136,7 @@
 ! ... the dome center is located where the mesh is more refined.
 ! ... Otherwise its coordinates '(xdome)' are taken from the input.
 !
+      jjd = 1
       IF (itc >= 1 .OR. iid==1) THEN
         iid = 2
       ELSE IF (itc == 0) THEN
@@ -181,6 +185,9 @@
 !
       ALLOCATE(dcell(ndm))
       dcell(:)%imesh = 0
+      dcell(:)%i = 1
+      dcell(:)%j = 1
+      dcell(:)%k = 1
       dcell(:)%radius = 0.D0
       dcell(:)%angle = 0.D0
       dcell(:)%pressure = 0.D0
@@ -188,8 +195,6 @@
       DO is = 1, max_nsolid
         dcell(:)%sfraction(is) = 0.D0
       END DO
-      ALLOCATE(sdensity(ndm))
-      sdensity = 0.D0
 !
 ! ... Map the dome cells 
 !
@@ -201,6 +206,8 @@
                   distance = DSQRT( (x(i)-x(iid))**2 + (z(k)-z(kkd))**2 )
                   n = n + 1
                   dcell(n)%imesh = ijk
+                  dcell(n)%i = i
+                  dcell(n)%k = k
                   dcell(n)%radius = distance
                   !
                   IF (distance > 0.D0 ) THEN
@@ -259,22 +266,23 @@
       END IF
 !
 ! ... If the dome center is lower than the topographic elevation
-! ... the topography is "excavated"
+! ... the topography is "excavated". Otherwise the center is placed
+! ... on the topography
 !
       IF (zdome < zb(kkd)) THEN
               DO k = 1, nz
                 IF (zb(k) <= zdome) kkd = k
               END DO
+              !
+              IF (itp >=1 ) &
+                ! ... Spherical dome
+                CALL flatten_dem_dome(xdome,ydome,total_radius,kkd)
+                !
+                ! ... Cylindrical dome
+                !CALL flatten_dem_dome(xdome,ydome,dome_radius,kkd)
       ELSE
               zdome = z(kkd)
       END IF
-!
-      IF (itp >=1 ) &
-        ! ... Spherical dome
-        CALL flatten_dem_dome(xdome,ydome,total_radius,kkd)
-        !
-        ! ... Cylindrical dome
-        !CALL flatten_dem_dome(xdome,ydome,dome_radius,kkd)
 !
 ! ... Count the cells of the dome
 !
@@ -300,6 +308,9 @@
 !
       ALLOCATE(dcell(ndm))
       dcell(:)%imesh = 0
+      dcell(:)%i = 1
+      dcell(:)%j = 1
+      dcell(:)%k = 1
       dcell(:)%radius = 0.D0
       dcell(:)%angle = 0.D0
       dcell(:)%pressure = 0.D0
@@ -307,8 +318,6 @@
       DO is = 1, max_nsolid
         dcell(:)%sfraction(is) = 0.D0
       END DO
-      ALLOCATE(sdensity(ndm))
-      sdensity = 0.D0
 !
 ! ... Map the dome cells 
 !
@@ -322,6 +331,9 @@
                     rp = DSQRT( (x(i)-x(iid))**2 + (y(j)-y(jjd))**2 )
                     n = n + 1
                     dcell(n)%imesh = ijk
+                    dcell(n)%i = i
+                    dcell(n)%j = j
+                    dcell(n)%k = k
                     dcell(n)%radius = distance
                     IF (distance > 0.D0) THEN
                           dcell(n)%angle  = ATAN2((z(k)-z(kkd)), rp)
@@ -361,13 +373,14 @@
       USE array_filters, ONLY: interp
       IMPLICIT NONE
 
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: domeindex
+      REAL*8, ALLOCATABLE :: sdensity(:), dpressure(:)
       REAL*8 :: ygcsum, ra, pi, psi, raddo, erre
       REAL*8 :: beta, p_hydro, p_ext
       REAL*8 :: initial_temperature, initial_overpressure
       REAL*8 :: initial_fractions(max_nsolid)
       REAL*8 :: grad
       REAL*8 :: r1, r2, mixing_radius
-      INTEGER, ALLOCATABLE, DIMENSION(:) :: domeindex
       INTEGER :: ijk, imesh, i,j,k, is, ig, n, counter
       INTEGER :: kk, nn
 !      
@@ -379,6 +392,12 @@
       r1  = dome_radius - 0.5D0 * mixing_radius
       r2  = dome_radius + 0.5D0 * mixing_radius
 !
+! ... Allocate the arrays for dome cells
+!
+      ALLOCATE(sdensity(ndm),dpressure(ndm))
+      sdensity = 0.D0 
+      dpressure = 0.D0
+!
 ! ... Allocate the array of dome indices
 !
       ALLOCATE(domeindex(ncint))
@@ -389,25 +408,6 @@
         erre = rgas / 18.D0 * 1.D3
         beta = 2.D0 * dome_gasvisc * gas_flux * erre * temperature
         beta = beta / ( p_ext**2 * permeability * psi * dome_radius )
-      END IF
-!
-      IF (lpr > 0) THEN
-        IF (mpime == root) THEN
-                WRITE(domeunit,*) 
-                IF (idome == 1) THEN
-                  WRITE(domeunit,*) 'Woods radial pressure profile'
-                  raddo = 0.D0
-                  !
-                  ! rocks mixed into dome particles 
-                  DO WHILE (raddo <= total_radius)
-                    WRITE(domeunit,*) raddo, p_dome(raddo,p_ext,beta)
-                    raddo = raddo + 1.D0
-                  END DO
-                ELSE IF (idome == 2) THEN
-                  WRITE(domeunit,*) 'Constant overpressure (dome) = ', overpressure
-                  WRITE(domeunit,*) 'Constant overpressure (rocks) = ', overpressure_rocks
-                END IF
-        END IF
       END IF
 !
 ! ... Set initial conditions in the dome cells
@@ -424,12 +424,13 @@
           ! ... dome-cell index 
           !
           n = 0
-          DO counter = 1, ndm
+          search_n: DO counter = 1, ndm
             IF (dcell(counter)%imesh == imesh) THEN
-              n = counter
               domeindex(ijk) = counter
+              n = counter
+              EXIT search_n
             END IF
-          END DO 
+          END DO search_n
 
           IF (n/=0) THEN
             ! ... Set the temperature, gas pressure and particle fractions
@@ -460,6 +461,8 @@
                     dcell(n)%pressure = overpressure_rocks
                     dcell(n)%sfraction(1:nsolid) = particle_fraction_rocks(1:nsolid)
             END IF
+            sdensity(n) = SUM(dcell(n)%sfraction(1:nsolid)*rl(1:nsolid))
+            !
           END IF
         END IF
       END DO mesh_loop_1
@@ -467,9 +470,6 @@
 ! ... All processors must know the density distribution to
 ! ... compute the hydrostatic pressure
 !
-      DO n = 1, ndm
-        sdensity(n) = SUM(dcell(n)%sfraction(1:nsolid)*rl(1:nsolid))
-      END DO
       CALL parallel_sum_real(sdensity,ndm)
 !
       mesh_loop_2: DO ijk = 1, ncint      
@@ -482,6 +482,11 @@
           (flag(ijk) == immb_cell .AND. flag(ijkp)==dome_cell) .OR. &
           (flag(ijk) == filled_cell_2 .AND. flag(ijkp)==dome_cell)) THEN
           CALL meshinds(ijk,imesh,i,j,k)
+          ra = DSQRT((x(i)-x(iid))**2+(y(j)-y(jjd))**2+(z(k)-z(kkd))**2)
+          !
+          ! ... Loop over the dome cells to find the
+          ! ... dome-cell index 
+          !
           n = domeindex(ijk)
             ! ... Set the initial conditions, as
             ! ... specified in the input file on 
@@ -560,6 +565,11 @@
             IF ( ygcsum /= 1.D0 ) THEN
               ygc(ijk,ngas) = 1.D0 - SUM( ygc(ijk,1:ngas-1) )
             END IF
+!
+! ... update the local dome cell pressure 
+!
+            dcell(n)%pressure = p(ijk)
+            dpressure(n) = dcell(n)%pressure
           END IF
 !          
         END IF
@@ -568,9 +578,50 @@
           WRITE(testunit,*) ijk, i, j, k, imesh, flag(ijk), initial_fractions(:)
         END IF
       END DO mesh_loop_2
+!
+! ... Update the dome cell pressure in all processors
+!
+      CALL parallel_sum_real(dpressure, ndm)
+      DO n = 1, ndm
+        dcell(n)%pressure = dpressure(n)
+      END DO
+!
+! ... Report dome initial conditions
+!
+      IF (mpime == root) THEN
+              WRITE(domeunit,*) 
+              IF (idw == 1) &
+                WRITE(domeunit,*) 'Hydrostatic pressure is computed'
+              !
+              IF (idome == 1) THEN
+                WRITE(domeunit,*) 
+                WRITE(domeunit,*) 'Woods radial pressure profile'
+                raddo = 0.D0
+                !
+                ! rocks mixed into dome particles 
+                DO WHILE (raddo <= total_radius)
+                  WRITE(domeunit,*) raddo, p_dome(raddo,p_ext,beta)
+                  raddo = raddo + 1.D0
+                END DO
+              ELSE IF (idome == 2) THEN
+                WRITE(domeunit,*) 'Constant overpressure (dome) = ', overpressure
+                WRITE(domeunit,*) 'Constant overpressure (rocks) = ', overpressure_rocks
+              END IF
+              !
+              WRITE(domeunit,*) 
+              WRITE(domeunit,*) 'Dome radial pressure profile'
+              DO n = 1, ndm
+                IF (dcell(n)%i == iid .AND. dcell(n)%j == jjd) THEN
+                  WRITE(domeunit,*) dcell(n)%radius, dcell(n)%pressure
+                END IF
+              END DO
+      END IF
+ 100  FORMAT(F12.2, G12.4)
       CALL compute_dome_mass_energy
 !
       DEALLOCATE(dcell)
+      DEALLOCATE(sdensity)
+      DEALLOCATE(dpressure)
       DEALLOCATE(domeindex)
 !
       RETURN
@@ -659,7 +710,7 @@
 !
 ! ... Print out the dome coordinates
 !
-      IF( lpr > 0 .AND. mpime == root ) THEN
+      IF(mpime == root ) THEN
               WRITE(domeunit,*)
               WRITE(domeunit,*) 'Mass and Energy stored in the dome'
               WRITE(domeunit,100) vold 
