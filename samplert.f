@@ -42,13 +42,16 @@
       INTEGER, ALLOCATABLE :: indx(:)
 !
 ! ... Read probe file
-! 
+!
       IF (mpime == root) THEN
         OPEN(tempunit, FILE='probes.dat', STATUS='OLD')
-        READ(tempunit,*) number_of_probes
+        READ(tempunit,*,ERR=199) number_of_probes
         WRITE(logunit,*) 'sampling pressure at probes: '
       END IF
       CALL bcast_integer(number_of_probes,1,root)
+!-----------------------------------------------------------------
+ 199  CALL error('set_sampling','error in reading temp unit', tempunit)
+! 
 !
 ! ... Allocate probes.
 !

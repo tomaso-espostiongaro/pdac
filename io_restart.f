@@ -149,8 +149,11 @@
 !
         OPEN(UNIT=resunit,form='unformatted',FILE=resfile)
 
-        READ(resunit) time, nx_, ny_, nz_, nsolid_, ngas_, nfil
-        READ(resunit) gas_type
+        READ(resunit,ERR=199) time, nx_, ny_, nz_, nsolid_, ngas_, nfil
+!------------------------------------------------------------------------------
+ 199    CALL error('io_restart.f', 'error in reading resunit', resunit)
+!------------------------------------------------------------------------------
+        READ(resunit,ERR=199) gas_type
 
         WRITE(logunit,*) ' time =  ', time
         WRITE(logunit,*) ' nx   =  ', nx
@@ -361,15 +364,18 @@
         IF (lform) THEN
           OPEN(UNIT=outpunit,FILE=filnam)
           !READ(outpunit,222) time
-          READ(outpunit,*)
-          READ(outpunit,*)
-          READ(outpunit,*)
-          READ(outpunit,'(12x,g11.4)') time
+          READ(outpunit,*,ERR=199)
+          READ(outpunit,*,ERR=199)
+          READ(outpunit,*,ERR=199)
+          READ(outpunit,'(12x,g11.4)',ERR=199) time
         ELSE 
           OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam)
-          READ(outpunit) time4
+          READ(outpunit,ERR=199) time4
           time = REAL(time4,dbl)
         END IF
+!----------------------------------------------------------------------
+ 199    CALL error('io_restart.f', 'error in reading outputunit',outpunit)
+!----------------------------------------------------------------------
 
         WRITE(logunit,fmt="('  from outp: recovering file ',A20)") filnam
         WRITE(logunit,*) 'time = ', time
@@ -379,31 +385,31 @@
 !
       CALL bcast_real(time, 1, root)
 !
-      IF( lform .AND. mpime == root ) READ(outpunit,122)
+      IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
       p = 0.D0
       CALL read_array( outpunit, p, sgl, lform )  ! gas_pressure
 
       IF (job_type == '2D') THEN
 
-        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
         ug = 0.D0
         CALL read_array( outpunit, ug, sgl, lform ) ! gas_velocity_r
 
-        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
         wg = 0.D0
         CALL read_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
 
       ELSE IF (job_type == '3D') THEN
 
-        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
         ug = 0.D0
         CALL read_array( outpunit, ug, sgl, lform ) ! gas_velocity_x
 
-        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
         vg = 0.D0
         CALL read_array( outpunit, vg, sgl, lform ) ! gas_velocity_y
 
-        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
         wg = 0.D0
         CALL read_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
 
@@ -411,13 +417,13 @@
         CALL error('outp_','Unknown job type',1)
       END IF
 
-      IF( lform .AND. mpime == root ) READ(outpunit,122)
+      IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
       tg = 0.D0
       CALL read_array( outpunit, tg, sgl, lform )  ! gas_temperature
 !
       ALLOCATE( otmp( SIZE( xgc, 1 ) ) )
       DO ig=1,ngas
-          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
           otmp = 0.D0
           CALL read_array( outpunit, otmp, sgl, lform )  ! gc_molar_fraction
           xgc(:,ig) = otmp
@@ -428,38 +434,38 @@
 
       DO is = 1, nsolid
 
-        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
         otmp = 0.D0
         CALL read_array( outpunit, otmp, sgl, lform )  ! solid_bulk_density
         rlk(:,is) = otmp * rl(is)
 
         IF (job_type == '2D') THEN
 
-          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
           us(:,is) = 0.D0
           CALL read_array( outpunit, us(:,is), sgl, lform )  ! solid_velocity_r
 
-          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
           ws(:,is) = 0.D0
           CALL read_array( outpunit, ws(:,is), sgl, lform )  ! solid_velocity_z
 
         ELSE IF (job_type == '3D') THEN
 
-          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
           us(:,is) = 0.D0
           CALL read_array( outpunit, us(:,is), sgl, lform )  ! solid_velocity_x
 
-          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
           vs(:,is) = 0.D0
           CALL read_array( outpunit, vs(:,is), sgl, lform )  ! solid_velocity_y
 
-          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
           ws(:,is) = 0.D0
           CALL read_array( outpunit, ws(:,is), sgl, lform )  ! solid_velocity_z
 
         END IF
 
-        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
         ts(:,is) = 0.D0
         CALL read_array( outpunit, ts(:,is), sgl, lform )  ! solid_temperature
 
@@ -511,52 +517,57 @@
 
         IF (lform) THEN
           OPEN(UNIT=outpunit,FILE=filnam)
-          READ(outpunit,'(1x,///,1x,"@@@ TIME = ",g11.4)') time
+          READ(outpunit,'(1x,///,1x,"@@@ TIME = ",g11.4)',ERR=199) time
         ELSE 
           OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam)
-          READ(outpunit) time4
+          READ(outpunit,ERR=199) time4
           time = REAL(time4,dbl)
         END IF
 
         WRITE(logunit,fmt="('  from outp: recovering file ',A20)") filnam
-        WRITE(logunit,*) 'time = ', time
- 
+        WRITE(logunit,*)  'time = ', time
+
       END IF
+!----------------------------------------------------------------------
+ 199  CALL error('io_restart.f', 'error in reading outputunit', outpunit)
+!----------------------------------------------------------------------
 !
       CALL bcast_real(time, 1, root)
 !
       IF( lform .AND. mpime == root ) READ(outpunit,122)
       CALL read_inner_array( outpunit, p, sgl, lform )  ! gas_pressure
 
+      CALL read_inner_array( outpunit, p, sgl, lform )  ! gas_pressure
+
       IF (job_type == '2D') THEN
 
-        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
         CALL read_inner_array( outpunit, ug, sgl, lform ) ! gas_velocity_r
 
-        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
         CALL read_inner_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
 
       ELSE IF (job_type == '3D') THEN
 
-        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
         CALL read_inner_array( outpunit, ug, sgl, lform ) ! gas_velocity_x
 
-        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
         CALL read_inner_array( outpunit, vg, sgl, lform ) ! gas_velocity_y
 
-        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
         CALL read_inner_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
 
       ELSE
         CALL error('outp_','Unknown job type',1)
       END IF
 
-      IF( lform .AND. mpime == root ) READ(outpunit,122)
+      IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
       CALL read_inner_array( outpunit, tg, sgl, lform )  ! gas_temperature
 !
       ALLOCATE( otmp( SIZE( xgc, 1 ) ) )
       DO ig=1,ngas
-          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
           otmp = xgc(:,ig)
           CALL read_inner_array( outpunit, otmp, sgl, lform )  ! gc_molar_fraction
           xgc(:,ig) = otmp
@@ -567,33 +578,33 @@
 
       DO is = 1, nsolid
 
-        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
         otmp = rlk(:,is) * inrl(is)
         CALL read_inner_array( outpunit, otmp, sgl, lform )  ! solid_bulk_density
         rlk(:,is) = otmp * rl(is)
 
         IF (job_type == '2D') THEN
 
-          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
           CALL read_inner_array( outpunit, us(:,is), sgl, lform )  ! solid_velocity_r
 
-          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
           CALL read_inner_array( outpunit, ws(:,is), sgl, lform )  ! solid_velocity_z
 
         ELSE IF (job_type == '3D') THEN
 
-          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
           CALL read_inner_array( outpunit, us(:,is), sgl, lform )  ! solid_velocity_x
 
-          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
           CALL read_inner_array( outpunit, vs(:,is), sgl, lform )  ! solid_velocity_y
 
-          IF( lform .AND. mpime == root ) READ(outpunit,122)
+          IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
           CALL read_inner_array( outpunit, ws(:,is), sgl, lform )  ! solid_velocity_z
 
         END IF
 
-        IF( lform .AND. mpime == root ) READ(outpunit,122)
+        IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
         CALL read_inner_array( outpunit, ts(:,is), sgl, lform )  ! solid_temperature
 
       END DO

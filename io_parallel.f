@@ -185,6 +185,10 @@
       REAL*8, ALLOCATABLE :: io_buf(:)
       REAL(sgl), ALLOCATABLE :: io_bufs(:)
 
+!-----------------------------------------------------------------------------
+ 299  CALL error('io_parallel.f', 'error while reading inputunit', iunit)
+!------------------------------------------------------------------------------
+!
       IF( ntot < 1 ) &
         CALL error(' read_array ', ' ntot too small ', ntot )
 
@@ -196,7 +200,7 @@
          IF( ierr /= 0 ) &
             CALL error(' read_array ', ' cannot allocate io_buf ', ntot )
          IF( mpime == root ) THEN
-            READ(iunit,*) ( io_buf(ijk), ijk = 1, ntot )
+            READ(iunit,*,ERR=299) ( io_buf(ijk), ijk = 1, ntot )
          END IF
          CALL data_distribute( io_buf, array, 1, ntot )
          DEALLOCATE( io_buf )
@@ -206,7 +210,7 @@
             IF( ierr /= 0 ) &
                CALL error(' read_array ', ' cannot allocate io_buf ', ntot )
             IF( mpime == root ) THEN
-               READ(iunit) ( io_bufs(ijk), ijk = 1, ntot )
+               READ(iunit,ERR=299) ( io_bufs(ijk), ijk = 1, ntot )
             END IF
             CALL data_distribute( io_bufs, array, 1, ntot )
             DEALLOCATE( io_bufs )
@@ -215,7 +219,7 @@
             IF( ierr /= 0 ) &
                CALL error(' read_array ', ' cannot allocate io_buf ', ntot )
             IF( mpime == root ) THEN
-               READ(iunit) ( io_buf(ijk), ijk = 1, ntot )
+               READ(iunit,ERR=299) ( io_buf(ijk), ijk = 1, ntot )
             END IF
             CALL data_distribute( io_buf, array, 1, ntot )
             DEALLOCATE( io_buf )
@@ -259,14 +263,17 @@
 
       IF( prec /= sgl .AND. prec /= dbl ) &
         CALL error(' read_array ', ' unknown precision ', prec )
-
+! -----------------------------------------------------------------------------
+ 399        CALL error('io_parallel.f', 'error while reading inputunit', iunit)
+!------------------------------------------------------------------------------
+!
       IF( lform ) THEN
          ALLOCATE( io_buf( ntot ), STAT=ierr )
          ALLOCATE( io_buf_inner( ntot_inner ), STAT=ierr )
          IF( ierr /= 0 ) &
             CALL error(' read_array ', ' cannot allocate io_buf ', ntot )
          IF( mpime == root ) THEN
-            READ(iunit,*) ( io_buf_inner(ijk), ijk = 1, ntot_inner )
+            READ(iunit,*,ERR=399) ( io_buf_inner(ijk), ijk = 1, ntot_inner )
          END IF
          !
          ! Assemble global atmospheric initial conditions
@@ -289,7 +296,7 @@
            IF( ierr /= 0 ) &
               CALL error(' read_array ', ' cannot allocate io_buf ', ntot )
            IF( mpime == root ) THEN
-              READ(iunit) ( io_bufs_inner(ijk), ijk = 1, ntot_inner )
+              READ(iunit,ERR=399) ( io_bufs_inner(ijk), ijk = 1, ntot_inner )
            END IF
            !
            ! Assemble global atmospheric initial conditions
@@ -311,7 +318,7 @@
            IF( ierr /= 0 ) &
               CALL error(' read_array ', ' cannot allocate io_buf ', ntot )
            IF( mpime == root ) THEN
-              READ(iunit) ( io_buf_inner(ijk), ijk = 1, ntot_inner )
+              READ(iunit,ERR=399) ( io_buf_inner(ijk), ijk = 1, ntot_inner )
            END IF
            !
            ! Assemble global atmospheric initial conditions

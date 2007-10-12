@@ -100,9 +100,10 @@
 !
 ! ... Read Input file
 !
-      IF(mpime == root) OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN')
+      IF(mpime == root) OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN', ERR=199)
       CALL input( inputunit )
       IF(mpime == root) CLOSE(inputunit)
+ 199  CALL error('main','error opening inputunit',inputunit)      
 !
 ! ... Open Test files 
 ! ... (WARNING!: opening 'nproc' files on the same unit could cause 

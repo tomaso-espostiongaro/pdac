@@ -57,8 +57,8 @@
 ! ... Control
       
   act        = 1        ! 0: filtering, 1: frame processing, 2: time-space sampling        
-  first_out  = 0        ! index of the first frame to be postprocessed
-  last_out   = 0        ! index of the last frame to be postprocessed
+  first_out  = 601        ! index of the first frame to be postprocessed
+  last_out   = 710        ! index of the last frame to be postprocessed
   incr_out   = 1        ! increment between frame index
   downsize_x = 1    
   downsize_y = 1    
@@ -72,9 +72,9 @@
 
 ! ... Fields
   
-  iflds = 0
+  iflds = 1
   print_log = .FALSE.
-  print_tg  = .FALSE.
+  print_tg  = .TRUE.
   print_mn  = .FALSE.
   print_cm  = .FALSE.
   print_pd  = .FALSE.
@@ -86,7 +86,7 @@
 
 ! ... Map
 
-  imap = 1
+  imap = 0
   deltaz = 20
 
 ! ... Sampling

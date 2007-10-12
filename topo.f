@@ -307,9 +307,11 @@
       IF (mpime == root) THEN
         WRITE(topounit,*) 'Reading DEM file: ', dem_file
         WRITE(topounit,*) 
-        OPEN(UNIT=tempunit, FILE=topo_file, STATUS='OLD')
-        READ(tempunit,*) noditop
+        OPEN(UNIT=tempunit, FILE=topo_file, STATUS='OLD',ERR=199)
+        READ(tempunit,*,ERR=199) noditop
       END IF
+!
+ 199  CALL error('topo.f', 'error in reading temp unit', tempunit)
 !
       CALL bcast_integer(noditop,1,root)
 !
@@ -318,7 +320,7 @@
 !
       IF (mpime == root) THEN
         DO n=1, noditop
-          READ(tempunit,*) xtop(n),ztop(n)
+          READ(tempunit,*,ERR=199) xtop(n),ztop(n)
           !
           IF (seatable) ztop(n) = MAX(ztop(n),0.D0)
           !
@@ -355,14 +357,16 @@
       IF (mpime == root) THEN
         topo_file = TRIM(dem_file)
         WRITE(topounit,*) 'Reading topography from file: ', topo_file
-        OPEN(UNIT=tempunit, FILE=topo_file, STATUS='OLD')
-        READ(tempunit,*) nodidemx
-        READ(tempunit,*) nodidemy
-        READ(tempunit,*) xul
-        READ(tempunit,*) yul
-        READ(tempunit,*) dd
-        READ(tempunit,*) noval
+        OPEN(UNIT=tempunit, FILE=topo_file, STATUS='OLD',ERR=199)
+        READ(tempunit,*,ERR=199) nodidemx
+        READ(tempunit,*,ERR=199) nodidemy
+        READ(tempunit,*,ERR=199) xul
+        READ(tempunit,*,ERR=199) yul
+        READ(tempunit,*,ERR=199) dd
+        READ(tempunit,*,ERR=199) noval
       END IF
+!
+ 199  CALL error('topo.f', 'error in reading temp unit', tempunit)
 !
       CALL bcast_integer(nodidemx,1,root)
       CALL bcast_integer(nodidemy,1,root)
@@ -426,7 +430,7 @@
         DO j = vdem%ny, 1, -1
         !DO j = 1, vdem%ny
           DO i = 1, vdem%nx
-            READ(tempunit,*) elevation
+            READ(tempunit,*,ERR=199) elevation
             zdem(i,j) = DBLE(elevation) / 100.D0
             !
             IF (seatable) zdem(i,j) = MAX(zdem(i,j),0.D0)
