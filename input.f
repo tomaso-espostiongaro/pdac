@@ -424,10 +424,8 @@
 !
 ! ... Control Namelist ................................................
 !
-      IF(mpime == root) READ(iunit, control, ERR=199) 
+      IF(mpime == root) READ(iunit, control) 
 !
-! ... Control of error occurrence while reading the inputfile...........
- 199  CALL error('input.f', 'error while reading inputunit: missing one or more namelists', iunit)
 ! .....................................................................
 !
       CALL bcast_character(run_name,80,root)
@@ -481,7 +479,7 @@
 !
 ! ... Model Namelist ................................................
 !
-      IF(mpime == root) READ(iunit, model, ERR=199) 
+      IF(mpime == root) READ(iunit, model) 
 !
       CALL bcast_integer(icpc,1,root)
       CALL bcast_integer(irex,1,root)
@@ -499,6 +497,8 @@
       CALL bcast_logical(density_specified,1,root)
 !
 ! ... Mesh Namelist ...................................................
+!
+      IF(mpime == root) READ(iunit, mesh)
 !
       CALL bcast_integer(nx,1,root)
       CALL bcast_integer(ny,1,root)
@@ -538,7 +538,7 @@
 !
 ! ... Boundaries Namelist ................................................
 !
-      IF(mpime == root) READ(iunit, boundaries, ERR=199) 
+      IF(mpime == root) READ(iunit, boundaries) 
 
       CALL bcast_integer(east,1,root)
       CALL bcast_integer(west,1,root)
@@ -551,7 +551,7 @@
 !
 ! ... Topography Namelist ................................................
 !
-      IF(mpime == root) READ(iunit, topography, ERR=199) 
+      IF(mpime == root) READ(iunit, topography) 
 
       CALL bcast_character(dem_file,80,root)
       CALL bcast_integer(itp,1,root)
@@ -569,7 +569,7 @@
 !
 ! ... Inlet Namelist ................................................
 !
-      IF(mpime == root) READ(iunit, inlet, ERR=199) 
+      IF(mpime == root) READ(iunit, inlet) 
 
       CALL bcast_integer(ivent,1,root)
       CALL bcast_integer(iali,1,root)
@@ -602,7 +602,7 @@
 !
 ! ... Inlet Namelist ................................................
 !
-      IF(mpime == root) READ(iunit, dome, ERR=199) 
+      IF(mpime == root) READ(iunit, dome) 
 
       CALL bcast_integer(idome,1,root)
       CALL bcast_integer(idw,1,root)
@@ -631,7 +631,7 @@
 !
 ! ... Atmosphere Namelist ................................................
 !
-      IF(mpime == root) READ(iunit, atmosphere, ERR=199) 
+      IF(mpime == root) READ(iunit, atmosphere) 
 
       CALL bcast_real(wind_x,1,root)
       CALL bcast_real(wind_y,1,root)
@@ -665,7 +665,7 @@
 !
 ! ... Particles Namelist ..............................................
 !
-      IF(mpime == root) READ(iunit, particles, ERR=199) 
+      IF(mpime == root) READ(iunit, particles) 
 
       CALL bcast_integer(nsolid,1,root)
       CALL bcast_real(diameter,max_nsolid,root)
@@ -682,7 +682,7 @@
 !
 ! ... Numeric Namelist ................................................
 !
-      IF(mpime == root) READ(iunit, numeric, ERR=199) 
+      IF(mpime == root) READ(iunit, numeric) 
 
       CALL bcast_integer(rungekut,1,root)
       CALL bcast_real(beta,1,root)
@@ -710,7 +710,7 @@
       tend = .FALSE.
       IF(mpime == root) THEN
         mesh_search: DO
-          READ(iunit,*,END=200, ERR=199) card
+          READ(iunit,*,END=200) card
           IF( TRIM(card) == 'MESH' ) THEN
             EXIT mesh_search
           END IF
@@ -718,11 +718,11 @@
 
         IF (iuni == 0) THEN
           IF (grigen == 0) THEN
-            READ(iunit,*, ERR=199) (delta_x(i),i=1,nx)
+            READ(iunit,*) (delta_x(i),i=1,nx)
             IF( job_type == '3D' ) THEN
-              READ(iunit,*, ERR=199) (delta_y(j),j=1,ny)
+              READ(iunit,*) (delta_y(j),j=1,ny)
             END IF
-            READ(iunit,*, ERR=199) (delta_z(k),k=1,nz)
+            READ(iunit,*) (delta_z(k),k=1,nz)
           END IF
         ELSE IF (iuni == 1) THEN
           delta_x = dx0
@@ -750,41 +750,41 @@
       IF(mpime == root) THEN
 
         fixed_flows_search: DO
-          READ( iunit, *, END = 300, ERR=199) card
+          READ( iunit, *, END = 300) card
           IF( TRIM(card) == 'FIXED_FLOWS' ) THEN
             EXIT fixed_flows_search
           END IF
         END DO fixed_flows_search
 
-        READ(iunit,*, ERR=199) number_of_block
-        IF (ibl >= 1) READ(iunit,*, ERR=199) nblu(1:number_of_block)
+        READ(iunit,*) number_of_block
+        IF (ibl >= 1) READ(iunit,*) nblu(1:number_of_block)
 
         IF (job_type == '2D') THEN
 
           DO n = 1, number_of_block
-            READ(iunit,*, ERR=199) block_type(n), block_bounds(1,n),  block_bounds(2,n),  &
+            READ(iunit,*) block_type(n), block_bounds(1,n),  block_bounds(2,n),  &
                       block_bounds(5,n), block_bounds(6,n)
             IF( block_type(n) == 1 .OR. block_type(n) == 5) THEN
-              READ(iunit,*, ERR=199) fixed_vgas_x(n), fixed_vgas_z(n), fixed_pressure(n), &
+              READ(iunit,*) fixed_vgas_x(n), fixed_vgas_z(n), fixed_pressure(n), &
                         fixed_gaseps(n), fixed_gastemp(n)
-              READ(iunit,*, ERR=199) (fixed_vpart_x(k,n), fixed_vpart_z(k,n), &
+              READ(iunit,*) (fixed_vpart_x(k,n), fixed_vpart_z(k,n), &
                          fixed_parteps(k,n), fixed_parttemp(k,n), k=1, nsolid)
-              READ(iunit,*, ERR=199) ( fixed_gasconc(ig,n), ig=1, max_ngas )
+              READ(iunit,*) ( fixed_gasconc(ig,n), ig=1, max_ngas )
             ENDIF
           END DO
 
         ELSE IF (job_type == '3D') THEN
 
           DO n = 1, number_of_block
-            READ(iunit,*, ERR=199) block_type(n), block_bounds(1,n), block_bounds(2,n), &
+            READ(iunit,*) block_type(n), block_bounds(1,n), block_bounds(2,n), &
                                      block_bounds(3,n), block_bounds(4,n), &
                                      block_bounds(5,n), block_bounds(6,n)
             IF( block_type(n) == 1 .OR. block_type(n) == 5) THEN
-              READ(iunit,*, ERR=199) fixed_vgas_x(n), fixed_vgas_y(n), fixed_vgas_z(n), &
+              READ(iunit,*) fixed_vgas_x(n), fixed_vgas_y(n), fixed_vgas_z(n), &
                         fixed_pressure(n), fixed_gaseps(n), fixed_gastemp(n)
-              READ(iunit,*, ERR=199) (fixed_vpart_x(k,n),fixed_vpart_y(k,n),fixed_vpart_z(k,n), &
+              READ(iunit,*) (fixed_vpart_x(k,n),fixed_vpart_y(k,n),fixed_vpart_z(k,n), &
                           fixed_parteps(k,n), fixed_parttemp(k,n), k=1, nsolid)
-              READ(iunit,*, ERR=199) (fixed_gasconc(ig,n), ig=1, max_ngas )
+              READ(iunit,*) (fixed_gasconc(ig,n), ig=1, max_ngas )
             ENDIF
           END DO
 

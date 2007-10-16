@@ -311,8 +311,6 @@
         READ(tempunit,*,ERR=199) noditop
       END IF
 !
- 199  CALL error('topo.f', 'error in reading temp unit', tempunit)
-!
       CALL bcast_integer(noditop,1,root)
 !
       ALLOCATE(xtop(noditop))
@@ -332,6 +330,9 @@
       CALL bcast_real(ztop,noditop,root)
 !
       RETURN
+!
+ 199  CALL error('topo.f', 'error in reading temp unit', tempunit)
+!
       END SUBROUTINE read_2Dprofile
 !----------------------------------------------------------------------
       SUBROUTINE read_dem_ascii
@@ -365,8 +366,6 @@
         READ(tempunit,*,ERR=199) dd
         READ(tempunit,*,ERR=199) noval
       END IF
-!
- 199  CALL error('topo.f', 'error in reading temp unit', tempunit)
 !
       CALL bcast_integer(nodidemx,1,root)
       CALL bcast_integer(nodidemy,1,root)
@@ -446,10 +445,12 @@
 !      zdem(i,:)=zdem(i,halfx)
 !
       END IF
-!
       CALL bcast_real(zdem,nodidemx*nodidemy,root)
 !
       RETURN
+!
+ 199  CALL error('topo.f', 'error in reading temp unit', tempunit)
+!
       END SUBROUTINE read_dem_ascii
 !----------------------------------------------------------------------
 ! ... Interpolates or downsizes the DEM with a prescribed uniform 

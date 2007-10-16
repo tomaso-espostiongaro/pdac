@@ -57,6 +57,7 @@
       REAL*8 :: mptimtot, mptimprog, mptimdist, mptimsetup, &
      &          mptiminit, mptimres, mptimghost
       LOGICAL :: topen
+      INTEGER :: ios
 !
 ! ... initialize parallel environment
 
@@ -100,10 +101,9 @@
 !
 ! ... Read Input file
 !
-      IF(mpime == root) OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN', ERR=199)
+      IF(mpime == root) OPEN(UNIT=inputunit, FILE=inputfile, STATUS='UNKNOWN',ERR=199)
       CALL input( inputunit )
       IF(mpime == root) CLOSE(inputunit)
- 199  CALL error('main','error opening inputunit',inputunit)      
 !
 ! ... Open Test files 
 ! ... (WARNING!: opening 'nproc' files on the same unit could cause 
@@ -310,6 +310,7 @@
       CALL parallel_hangup
 !
       STOP
+ 199  CALL error('main','error opening inputunit',inputunit)      
 !
 !**************************************************************
       END PROGRAM pdac

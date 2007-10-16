@@ -150,9 +150,6 @@
         OPEN(UNIT=resunit,form='unformatted',FILE=resfile)
 
         READ(resunit,ERR=199) time, nx_, ny_, nz_, nsolid_, ngas_, nfil
-!------------------------------------------------------------------------------
- 199    CALL error('io_restart.f', 'error in reading resunit', resunit)
-!------------------------------------------------------------------------------
         READ(resunit,ERR=199) gas_type
 
         WRITE(logunit,*) ' time =  ', time
@@ -329,6 +326,9 @@
       END IF
 !
       RETURN
+!
+ 199    CALL error('io_restart.f', 'error in reading resunit', resunit)
+!
       END SUBROUTINE taperd
 !----------------------------------------------------------------------
       SUBROUTINE outp_recover(nf)
@@ -373,10 +373,7 @@
           READ(outpunit,ERR=199) time4
           time = REAL(time4,dbl)
         END IF
-!----------------------------------------------------------------------
- 199    CALL error('io_restart.f', 'error in reading outputunit',outpunit)
-!----------------------------------------------------------------------
-
+!
         WRITE(logunit,fmt="('  from outp: recovering file ',A20)") filnam
         WRITE(logunit,*) 'time = ', time
  
@@ -482,6 +479,9 @@
  122  FORMAT(1x,//,6x,/)
 
       RETURN
+!
+ 199    CALL error('io_restart.f', 'error in reading outputunit',outpunit)
+!
       END SUBROUTINE outp_recover
 !----------------------------------------------------------------------
       SUBROUTINE outp_remap(nf)
@@ -528,9 +528,6 @@
         WRITE(logunit,*)  'time = ', time
 
       END IF
-!----------------------------------------------------------------------
- 199  CALL error('io_restart.f', 'error in reading outputunit', outpunit)
-!----------------------------------------------------------------------
 !
       CALL bcast_real(time, 1, root)
 !
@@ -620,6 +617,9 @@
  122  FORMAT(1x,//,6x,/)
 
       RETURN
+!
+ 199  CALL error('io_restart.f', 'error in reading outputunit', outpunit)
+!
       END SUBROUTINE outp_remap
 !----------------------------------------------------------------------
       END MODULE io_restart

@@ -185,9 +185,6 @@
       REAL*8, ALLOCATABLE :: io_buf(:)
       REAL(sgl), ALLOCATABLE :: io_bufs(:)
 
-!-----------------------------------------------------------------------------
- 299  CALL error('io_parallel.f', 'error while reading inputunit', iunit)
-!------------------------------------------------------------------------------
 !
       IF( ntot < 1 ) &
         CALL error(' read_array ', ' ntot too small ', ntot )
@@ -227,6 +224,9 @@
       END IF
 
       RETURN
+!
+ 299  CALL error('io_parallel.f', 'error while reading inputunit', iunit)
+!
       END SUBROUTINE read_array
 !----------------------------------------------------------------------
       SUBROUTINE read_inner_array( iunit, array, prec, lform )
@@ -263,9 +263,6 @@
 
       IF( prec /= sgl .AND. prec /= dbl ) &
         CALL error(' read_array ', ' unknown precision ', prec )
-! -----------------------------------------------------------------------------
- 399        CALL error('io_parallel.f', 'error while reading inputunit', iunit)
-!------------------------------------------------------------------------------
 !
       IF( lform ) THEN
          ALLOCATE( io_buf( ntot ), STAT=ierr )
@@ -338,6 +335,9 @@
       END IF
 
       RETURN
+! 
+ 399        CALL error('io_parallel.f', 'error while reading inputunit', iunit)
+!
       END SUBROUTINE read_inner_array
 !----------------------------------------------------------------------
       END MODULE io_parallel

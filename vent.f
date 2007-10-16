@@ -557,8 +557,6 @@
       IMPLICIT NONE
       INTEGER :: raddim, is, n, ig
 !
- 199  CALL error('vent.f', 'error in reading temp unit', tempunit)
-!
       IF (mpime == root) THEN
               OPEN(tempunit,FILE=rad_file,STATUS='OLD',ERR=199)
               READ(tempunit,*,ERR=199) raddim
@@ -602,6 +600,9 @@
       CALL bcast_real(ep_rad,raddim*nsolid,root)
 !
       RETURN
+!
+ 199  CALL error('vent.f', 'error in reading temp unit', tempunit)
+! 
       END SUBROUTINE read_radial_profile
 !-----------------------------------------------------------------------
       SUBROUTINE density_antialias(ijk,k,alpha)

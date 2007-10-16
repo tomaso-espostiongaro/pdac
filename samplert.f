@@ -49,9 +49,6 @@
         WRITE(logunit,*) 'sampling pressure at probes: '
       END IF
       CALL bcast_integer(number_of_probes,1,root)
-!-----------------------------------------------------------------
- 199  CALL error('set_sampling','error in reading temp unit', tempunit)
-! 
 !
 ! ... Allocate probes.
 !
@@ -111,6 +108,9 @@
       END DO
 !
       RETURN
+!
+ 199  CALL error('set_sampling','error in reading temp unit', tempunit)
+! 
       END SUBROUTINE set_sampling
 !----------------------------------------------------------------------
       SUBROUTINE sample_pressure
