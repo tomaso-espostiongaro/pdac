@@ -1139,18 +1139,18 @@
       ! ... Write a new DEM file (z(x) in 2D, z(x,y) in 3D) for
       ! ... visualization of the topography
       !
-      OPEN(tempunit, FILE='export_topography.dat',STATUS='UNKNOWN')
-      IF (mpime == root .AND. itp==0) THEN
+      IF (mpime == root .AND. itp>0) THEN
+        OPEN(tempunit, FILE='export_topography.dat',STATUS='UNKNOWN')
         WRITE(topounit,*) 'The new DEM is written in file "export_topography.dat"'
         IF( job_type == '2D') THEN
                   DO i=1,nx
-                    WRITE(tempunit,'(2F15.6)') x(i), topo_c(i)
+                    WRITE(tempunit,'(2F15.6)') x(i), topo_c(i), ord(i)
                   END DO
         ELSE IF( job_type == '3D') THEN
                   WRITE(tempunit,'(10F15.6)') topo2d_c(:,:)
         END IF
+        CLOSE(tempunit)
       END IF
-      CLOSE(tempunit)
 !
       RETURN
       END SUBROUTINE export_topography

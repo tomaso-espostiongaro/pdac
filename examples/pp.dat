@@ -1,5 +1,5 @@
 &control
-  act        = 1        ! 1: mount time sequence, 2: time-space sampling, 3: mass partition, 4: flux across a surface
+  act        = 0        ! 1: mount time sequence, 2: time-space sampling, 3: mass partition, 4: flux across a surface
   first_out  = 0     
   last_out   = 10   
   incr_out   = 1
