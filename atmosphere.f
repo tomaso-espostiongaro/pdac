@@ -57,7 +57,7 @@
            WRITE(errorunit,*) 'gravz = ', gravz
          END IF
       END IF
-      IF( lpr > 0 .AND. mpime == root ) THEN
+      IF(mpime == root ) THEN
         OPEN(UNIT=atmounit,FILE=atmofile,STATUS='UNKNOWN')
         WRITE(atmounit,*) 'Report of atmospheric initial conditions'
         WRITE(atmounit,*) 
@@ -120,7 +120,7 @@
         layer(l)%ptop = ptop
         layer(l)%ttop = ttop
 
-        IF (lpr > 0 .AND. stratification) THEN
+        IF (stratification) THEN
           IF( mpime == root ) THEN
             WRITE(atmounit,*) layer(l)%name
             WRITE(atmounit,*) layer(l)%gradt
@@ -167,7 +167,7 @@
 !
 ! ... Loop vertically over mesh layers
 !
-      IF ( lpr > 0 .AND. mpime == root ) THEN
+      IF ( mpime == root ) THEN
               WRITE(atmounit,*) 
               WRITE(atmounit,*) 'Vertical stratification (k, z, p, t): '
       END IF
@@ -216,7 +216,7 @@
         t_atm(k) = ta
         p_atm(k) = pa
 !
-        IF ( lpr > 0 .AND. mpime == root ) THEN
+        IF ( mpime == root ) THEN
           WRITE(atmounit,'(I5,3F14.2)') k, za, pa, ta
         END IF
 !

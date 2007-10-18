@@ -1233,11 +1233,13 @@
         DEALLOCATE (ord)
         DEALLOCATE (dist)
         DEALLOCATE (xtop, ztop)
+        DEALLOCATE (topo_x)
       ELSE IF (job_type == '3D') THEN
         DEALLOCATE(nextx, nexty)
         DEALLOCATE(ord2d)
         DEALLOCATE (dist)
         DEALLOCATE (xtop, ytop, ztop2d)
+        DEALLOCATE (topo2d_x, topo2d_y)
       END IF
 !
       RETURN

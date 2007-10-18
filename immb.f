@@ -212,7 +212,7 @@
           IF (k>1 .AND. fl(ijk)/=inlet_cell .AND. fl(ijk)/=vent_cell .AND. &
                         fl(ijk)/=filled_cell_1) fl(ijk) = immb_cell
         END DO
-        !
+!
       ELSE IF (job_type == '3D') THEN
 
         ! ... Interpolate the topography on the y/z/x-staggered mesh
@@ -467,7 +467,7 @@
                 fl(ijk)/=filled_cell_1 .AND. fl(ijk)/=filled_cell_2) fl(ijk) = immb_cell
           END IF
         END DO
-        
+!
       END IF
 !
 ! ... Write out the forcing points

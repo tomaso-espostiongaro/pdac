@@ -397,7 +397,9 @@
           y = rgp(ind) / rhom(ind)
           avrl = SUM(rlk(ind,:))/epst(ind)
           fact = y + (1.0 - y) * rhog(ind) / avrl
+          ! ... Adiabatic gas transformation
           !cm(ind) = SQRT(gammaair * rgas * tg(ind) / mgas(ind) / y )
+          ! ... Isothermal gas transformation
           cm(ind) = SQRT(1.D0 * rgas * tg(ind) / mgas(ind) / y )
           cm(ind) = cm(ind) * fact
         ELSE
