@@ -64,7 +64,7 @@
       slice(:)%t1 = 1
       slice(:)%t2 = 1
 !
-      IF (mpime == root) OPEN(tempunit, FILE=planes_file, STATUS='OLD')
+      IF (mpime == root) OPEN(tempunit, FILE=planes_file, STATUS='OLD', ERR=199)
       DO np = 1, number_of_planes
                IF (job_type == '2D') THEN
                         !
@@ -291,7 +291,10 @@
       DEALLOCATE(sflux_n)
 
       RETURN
-      END SUBROUTINE fluxn
+!
+ 199  CALL error ('fluxn','error in reading tempunit',tempunit)
+! 
+     END SUBROUTINE fluxn
 !-----------------------------------------------------------------------
       REAL FUNCTION linterp(field1, field2, dx1, dx2)
       IMPLICIT NONE

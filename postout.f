@@ -48,10 +48,10 @@
       IF( mpime == root ) THEN
 
         IF (lform) THEN
-          OPEN(UNIT=outpunit,FILE=filnam)
+          OPEN(UNIT=outpunit,FILE=filnam, ERR=199)
           READ(outpunit,155) time
         ELSE 
-          OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam)
+          OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam, ERR=199)
           READ(outpunit) time4
           time = REAL(time4,dbl)
         END IF
@@ -159,6 +159,9 @@
  122  FORMAT(1x,//,6x,/)
 
       RETURN
+!
+ 199  CALL error ('read_output','error in reading outpunit', outpunit)
+!
       END SUBROUTINE read_output
 !----------------------------------------------------------------------
       SUBROUTINE read_implicit_profile
@@ -181,7 +184,7 @@
 ! ... Read the georeferenced mesh
 !
       IF (mpime == root) THEN
-        OPEN(tempunit,FILE='mesh.dat',STATUS='OLD')
+        OPEN(tempunit,FILE='mesh.dat',STATUS='OLD', ERR=199)
         READ(tempunit,*)
         READ(tempunit,*)
         READ(tempunit,*) (x(i), i=1,nx)
@@ -208,7 +211,7 @@
 ! ... Read the Implicit Profile
 !
       IF (mpime == root) THEN
-        OPEN(tempunit,FILE='improfile.dat',STATUS='OLD')
+        OPEN(tempunit,FILE='improfile.dat',STATUS='OLD', ERR=199)
         IF (job_type == '2D') THEN
           DO k=1,nz
               DO i=1,nx
@@ -235,6 +238,9 @@
 !
  100  FORMAT(5(F20.6))
       RETURN
+!
+ 199  CALL error ('read_implicit_profile','error in reading tempunit', tempunit)
+!
       END SUBROUTINE read_implicit_profile
 !-----------------------------------------------------------------------
       SUBROUTINE write_topo2d

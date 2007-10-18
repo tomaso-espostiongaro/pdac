@@ -56,7 +56,7 @@
 !
 ! ... Read probe file
 ! 
-      IF (mpime == root) OPEN(tempunit, FILE=probe_file, STATUS='OLD')
+      IF (mpime == root) OPEN(tempunit, FILE=probe_file, STATUS='OLD',ERR=199)
       IF (mpime == root) READ(tempunit,*) 
       IF (mpime == root) WRITE(logunit,*) 'Sampling probes: '
       DO nop = 1, number_of_probes
@@ -178,6 +178,9 @@
       DEALLOCATE(indx)
 !
       RETURN
+!
+ 199  CALL error ('sample','error in reading tempunit',tempunit)
+!
       END SUBROUTINE sample
 !----------------------------------------------------------------------
       END MODULE sample_points

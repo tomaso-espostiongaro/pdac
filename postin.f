@@ -123,7 +123,7 @@
 !
 ! ... Control namelist .................................................
 !
-      IF (mpime == root) READ(punit, control)
+      IF (mpime == root) READ(punit, control, ERR=99)
       CALL bcast_integer(act,1,root)
       CALL bcast_integer(first_out,1,root)
       CALL bcast_integer(last_out,1,root)
@@ -140,7 +140,7 @@
 !
 ! ... Fields namelist ..................................................
 !
-      IF (mpime == root) READ(punit, fields)
+      IF (mpime == root) READ(punit, fields, ERR=199)
       CALL bcast_integer(iflds,1,root)
       CALL bcast_logical(print_log,1,root)
       CALL bcast_logical(print_tg,1,root)
@@ -151,18 +151,18 @@
 !
 ! ... Maen Field namelist ...............................................
 !
-      IF (mpime == root) READ(punit, mean_outp)
+      IF (mpime == root) READ(punit, mean_outp, ERR=299)
       CALL bcast_integer(imnfld,1,root)
 !
 ! ... Map namelist ......................................................
 !
-      IF (mpime == root) READ(punit, map)
+      IF (mpime == root) READ(punit, map, ERR=399)
       CALL bcast_integer(imap,1,root)
       CALL bcast_real(deltaz,1,root)
 !
 ! ... Sampling namelist ..................................................
 !
-      IF (mpime == root) READ(punit, sampling)
+      IF (mpime == root) READ(punit, sampling, ERR=499)
       CALL bcast_integer(isamp,1,root)
       CALL bcast_integer(number_of_probes,1,root)
       CALL bcast_logical(assign_index,1,root)
@@ -170,35 +170,47 @@
 !
 ! ... Masspart namelist ................................................
 !
-      IF (mpime == root) READ(punit, masspart)
+      IF (mpime == root) READ(punit, masspart, ERR=599)
       CALL bcast_integer(imassn,1,root)
       CALL bcast_integer(number_of_boxes,1,root)
       CALL bcast_character(boxes_file,80,root)
 !
 ! ... Massflux namelist .................................................
 !
-      IF (mpime == root) READ(punit, massflux)
+      IF (mpime == root) READ(punit, massflux, ERR=699)
       CALL bcast_integer(ifluxn,1,root)
       CALL bcast_integer(number_of_planes,1,root)
       CALL bcast_character(planes_file,80,root)
 !
 ! ... Massgsedim namelist ...............................................
 !
-      IF (mpime == root) READ(punit, massgsedim)
+      IF (mpime == root) READ(punit, massgsedim, ERR=799)
       CALL bcast_integer(iground,1,root)
       CALL bcast_real(thickness,1,root)
 !
 ! ... Animation namelist ...............................................
 !
-      IF (mpime == root) READ(punit, animation)
+      IF (mpime == root) READ(punit, animation, ERR=899)
       CALL bcast_integer(variable_n,1,root)
 !
 ! ... Post-processing namelist .........................................
 !
-      IF (mpime == root) READ(punit, post_processing)
+      IF (mpime == root) READ(punit, post_processing, ERR=999)
       CALL bcast_integer(field_n,1,root)
 !
       RETURN
+!
+  99  CALL error ('postin','error in reading namelist control', punit)
+ 199  CALL error ('postin','error in reading namelist fields', punit)
+ 299  CALL error ('postin','error in reading namelist mean_outp', punit)
+ 399  CALL error ('postin','error in reading namelist map', punit)
+ 499  CALL error ('postin','error in reading namelist sampling', punit)
+ 599  CALL error ('postin','error in reading namelist masspart', punit)
+ 699  CALL error ('postin','error in reading namelist massflux', punit)
+ 799  CALL error ('postin','error in reading namelist massgsedim', punit)
+ 899  CALL error ('postin','error in reading namelist animation', punit)
+ 999  CALL error ('postin','error in reading namelist post_processing', punit)
+!
       END SUBROUTINE postin
 !----------------------------------------------------------------------
       END MODULE postp_input

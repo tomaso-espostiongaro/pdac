@@ -146,13 +146,14 @@
       USE array_filters, ONLY: interp
       USE control_flags, ONLY: job_type, lpr
       USE grid, ONLY: x, xb, y, yb, z, zb, iv, jv, kv, dzmax
-      USE io_files, ONLY: testunit
+      USE io_files, ONLY: testunit, tempunit
       USE parallel, ONLY: mpime, root
 
       IMPLICIT NONE
       REAL*8 :: transl_z = 0.D0
       INTEGER :: i,j,k,ijk
       INTEGER :: itopo
+!      INTEGER :: ios
       LOGICAL, ALLOCATABLE :: dummy(:)
       REAL*8, ALLOCATABLE  :: topo(:)
       REAL*8, ALLOCATABLE  :: topo2d(:,:)
@@ -201,7 +202,11 @@
         END IF
         z  = z  + transl_z
         zb = zb + transl_z
-!        
+!
+        IF (mpime == root) THEN
+          OPEN(UNIT=tempunit,FILE='over.log',STATUS='UNKNOWN')
+          WRITE(tempunit,*) 'Coordinates of the last cell laying below the topography'
+        END IF
         ! ... Re-set the 'ord' array and set the implicit profile
         ! ... 'ord(i)' is the last cell laying below the topography
         !
@@ -211,10 +216,14 @@
             ijk = i + (k-1) * nx
             dist(ijk) = z(k) - topo(i)
           END DO
+            IF (mpime == root) THEN
+                WRITE(tempunit,*) 'i= ', i, 'x(i)=', x(i), 'k= ', ord(i), 'zb(k)= ', zb(ord(i))
+            END IF
         END DO
         kv = ord(iv)
-        !
+!
         DEALLOCATE(topo)
+        IF (mpime == root) CLOSE(tempunit)
         !
       ELSE IF (job_type == '3D') THEN
         !
@@ -223,7 +232,7 @@
         IF (.NOT.ALLOCATED(ord2d)) ALLOCATE(ord2d(nx,ny))
         nextx = 0; nexty = 0; ord2d = 0
         ALLOCATE(topo2d(nx,ny))
-
+        
         IF (MAXVAL(xtop) < MAXVAL(x)) THEN
           IF( mpime == root ) THEN
             WRITE(topounit,*) MAXVAL(xtop), MAXVAL(x) 

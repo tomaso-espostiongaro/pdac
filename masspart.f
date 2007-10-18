@@ -72,7 +72,7 @@
       box(:)%k1 = 1
       box(:)%k2 = 1
 !
-      IF (mpime == root) OPEN(tempunit, FILE=boxes_file, STATUS='OLD')
+      IF (mpime == root) OPEN(tempunit, FILE=boxes_file, STATUS='OLD',ERR=199)
 !
       DO n = 1, number_of_boxes
                 IF (job_type == '2D') THEN
@@ -183,6 +183,10 @@
  100  FORMAT(100(G30.15E3))
 
       RETURN
+!
+ 199  CALL error ('massn','error in reading tempunit',tempunit)
+!
+
       END SUBROUTINE massn
 !-----------------------------------------------------------------------
       END MODULE mass_partition
