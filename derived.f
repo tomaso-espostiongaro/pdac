@@ -238,7 +238,7 @@
       USE particles_constants, ONLY: cps
       USE specific_heat_module, ONLY: hcapg
       !
-      ! ... computes gas-particle mixture density
+      ! ... computes gas-particle mixture temperature
 
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: rlk(:,:), ts(:,:), ygc(:,:)

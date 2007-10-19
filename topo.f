@@ -1150,7 +1150,7 @@
       !
       IF (mpime == root .AND. itp>0) THEN
         OPEN(tempunit, FILE='export_topography.dat',STATUS='UNKNOWN')
-        WRITE(topounit,*) 'The new DEM is written in file "export_topography.dat"'
+        WRITE(tempunit,*) 'The new DEM is written in file "export_topography.dat"'
         IF( job_type == '2D') THEN
                   DO i=1,nx
                     WRITE(tempunit,'(2F15.6)') x(i), topo_c(i), ord(i)
