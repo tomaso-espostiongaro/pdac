@@ -1153,7 +1153,7 @@
         WRITE(topounit,*) 'The new DEM is written in file "export_topography.dat"'
         IF( job_type == '2D') THEN
                   DO i=1,nx
-                    WRITE(tempunit,'(3F15.6)') x(i), topo_c(i), ord(i)
+                    WRITE(tempunit,'(2F15.6)') x(i), topo_c(i)
                   END DO
         ELSE IF( job_type == '3D') THEN
                   WRITE(tempunit,'(10F15.6)') topo2d_c(:,:)
@@ -1242,13 +1242,11 @@
         DEALLOCATE (ord)
         DEALLOCATE (dist)
         DEALLOCATE (xtop, ztop)
-        DEALLOCATE (topo_x)
       ELSE IF (job_type == '3D') THEN
         DEALLOCATE(nextx, nexty)
         DEALLOCATE(ord2d)
         DEALLOCATE (dist)
         DEALLOCATE (xtop, ytop, ztop2d)
-        DEALLOCATE (topo2d_x, topo2d_y)
       END IF
 !
       RETURN
