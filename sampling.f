@@ -124,8 +124,11 @@
                         imesh_probe(nop) = imesh
                 END IF
         END IF
-      IF (mpime == root) WRITE(logunit,'(4I4,6F8.2)') nop, i, j, k, x(i), y(j), z(k), &
-                             probe(nop)%x, probe(nop)%y, probe(nop)%z
+        IF (mpime == root .AND. job_type=='2D') THEN
+          WRITE(logunit,'(3I4,4F8.2)') nop, i, k, x(i), z(k), probe(nop)%x, probe(nop)%z
+        ELSE IF (mpime == root .AND. job_type=='3D') THEN
+          WRITE(logunit,'(4I4,6F8.2)') nop, i, j, k, x(i), y(j), z(k), probe(nop)%x, probe(nop)%y, probe(nop)%z
+        END IF
       END DO
       IF (mpime == root) CLOSE(tempunit)
 !

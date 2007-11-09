@@ -5,7 +5,7 @@
       USE postp_output, ONLY: write_topo2d, write_map
       USE postp_output, ONLY: write_fields, write_mean_field
       USE postp_output, ONLY: write_vertical_profiles
-      USE postp_output, ONLY: read_implicit_profile, read_output
+      USE postp_output, ONLY: read_implicit_profile, read_output, read_old_output
       USE postp_output, ONLY: first_out, last_out, incr_out
       USE kinds
       USE control_flags, ONLY: job_type, formatted_output
@@ -70,6 +70,7 @@
         ! ... Read PDAC output file
         !
         CALL read_output ( tn )
+        !CALL read_old_output ( tn )
         !
         ! ... Derived fields are computed as a function of
         ! ... primary fields and other derived fields

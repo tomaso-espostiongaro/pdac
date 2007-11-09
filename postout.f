@@ -22,6 +22,107 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
+      SUBROUTINE read_old_output( nf )
+      USE control_flags, ONLY: job_type, formatted_output
+      USE dimensions, ONLY: nsolid, ngas
+      USE gas_constants, ONLY: gas_type
+      USE kinds
+      USE io_files, ONLY: filnam, outpunit, logunit
+      USE io_parallel, ONLY: read_array
+      USE postp_variables, ONLY: time, p,ug,vg,wg,tg,xgc,us,vs,ws,ts,eps
+      USE parallel, ONLY: nproc, mpime, root, group
+      USE particles_constants, ONLY: rl, inrl
+!
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: nf
+      CHARACTER( LEN =  4 ) :: lettera
+      LOGICAL :: lform
+      INTEGER :: is
+      REAL*4 :: time4
+      REAL*8, ALLOCATABLE :: otmp(:)
+!
+      filnam='OUTPUT.'//lettera(nf)
+      lform = .TRUE.
+
+      IF( mpime == root ) THEN
+
+        OPEN(UNIT=outpunit,FILE=filnam)
+        READ(outpunit,155) time
+ 155    FORMAT(1x,///,12x,g11.4)
+
+        WRITE(logunit,fmt="('  from process: reading file ',A20)") filnam
+        WRITE(logunit,*) 'time = ', time
+ 
+      END IF
+!
+      CALL bcast_real(time, 1, root)
+!
+      IF( mpime == root ) READ(outpunit,122)
+      p = 0.D0
+      CALL read_array( outpunit, p, sgl, lform )  ! gas_pressure
+      p = p / 10.D0
+
+      ALLOCATE( otmp( SIZE( eps, 1 ) ) )
+      DO is = 1, nsolid
+
+        IF( mpime == root ) READ(outpunit,122)
+        otmp = 0.D0
+        CALL read_array( outpunit, otmp, sgl, lform )  ! solid_volume_fraction
+        eps(:,is) = otmp
+
+      END DO
+      DEALLOCATE( otmp )
+
+      IF( mpime == root ) READ(outpunit,122)
+      wg = 0.D0
+      CALL read_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
+      wg = wg / 100.D0
+
+      IF( mpime == root ) READ(outpunit,122)
+      ug = 0.D0
+      CALL read_array( outpunit, ug, sgl, lform ) ! gas_velocity_r
+      ug = ug / 100.D0
+
+      IF( mpime == root ) READ(outpunit,122)
+      tg = 0.D0
+      CALL read_array( outpunit, tg, sgl, lform )  ! gas_temperature
+!
+      ALLOCATE( otmp( SIZE( xgc, 1 ) ) )
+      otmp = 0.D0
+      IF( mpime == root ) READ(outpunit,122)
+      CALL read_array( outpunit, otmp, sgl, lform )  ! gc_molar_fraction
+      xgc(:,1) = otmp
+      xgc(:,2) = 1.D0 - otmp
+      DEALLOCATE( otmp )
+!
+      DO is = 1, nsolid
+
+        IF( mpime == root ) READ(outpunit,122)
+        ws(:,is) = 0.D0
+        CALL read_array( outpunit, ws(:,is), sgl, lform )  ! solid_velocity_z
+        ws(:,is)  = ws(:,is) / 100.D0
+
+        IF( mpime == root ) READ(outpunit,122)
+        us(:,is) = 0.D0
+        CALL read_array( outpunit, us(:,is), sgl, lform )  ! solid_velocity_r
+        us(:,is)  = us(:,is) / 100.D0
+
+        IF( mpime == root ) READ(outpunit,122)
+        ts(:,is) = 0.D0
+        CALL read_array( outpunit, ts(:,is), sgl, lform )  ! solid_temperature
+
+      END DO
+
+      IF( mpime == root ) THEN
+        CLOSE (outpunit)
+      END IF
+!
+ 122  FORMAT(1x,//,6x,/)
+
+      RETURN
+      END SUBROUTINE read_old_output
+!----------------------------------------------------------------------
       SUBROUTINE read_output( nf )
       USE control_flags, ONLY: job_type, formatted_output
       USE dimensions, ONLY: nsolid, ngas

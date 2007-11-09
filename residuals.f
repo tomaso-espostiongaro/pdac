@@ -176,7 +176,7 @@
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      USE grid, ONLY: dx, dy, dz, r, rb, flag
+      USE grid, ONLY: dx, dy, dz, r, rb, flag, itc
       USE grid, ONLY: inlet_cell, vent_cell
       USE io_files, ONLY: testunit
       USE pressure_epsilon, ONLY: p, ep
@@ -189,6 +189,8 @@
       REAL*8 :: flux, pi, twopi, mixd
       REAL*8, INTENT(OUT) :: mfr, mgd, mxv, mrd
       REAL*8, INTENT(OUT), DIMENSION(:) :: msd
+!
+      IF (job_type == '2D' .AND. itc == 0) RETURN
 !
       pi = 4.D0 * ATAN(1.D0)
       twopi = 2.D0 * pi
@@ -206,7 +208,7 @@
           !
           ! ... Compute the mass entered since the beginning
           !
-          IF (job_type == '2D') THEN
+          IF (job_type == '2D' .AND. itc==1) THEN
             sx = dz(k)*rb(i)
             sy = 0.D0
             sz = pi*dx(i)*(2.D0*rb(i) - dx(i))
