@@ -152,7 +152,7 @@
 !
       CALL compute_mass_flow_rate(mfr, mgd, msd, mxv, mrd)
 !
-      IF (lpr > 0 .AND. mpime == root) THEN
+      IF (mpime == root) THEN
         IF (mfr > 0.D0) THEN
           WRITE(logunit,*) 'Mass flow rate          : ', mfr
           WRITE(logunit,*) 'Gas Density at vent     : ', mgd

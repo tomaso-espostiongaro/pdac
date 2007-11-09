@@ -1,19 +1,14 @@
 !----------------------------------------------------------------------
     PROGRAM restart_convert
-!----------------------------------------------------------------------
 
       IMPLICIT NONE
 
-      CALL bin2ascii
-      !CALL ascii2bin
+      CALL bin2ascii_restart
+      !CALL ascii2bin_restart
 
-    END PROGRAM
-
-
+    END PROGRAM restart_convert
 !----------------------------------------------------------------------
-
-
-      SUBROUTINE bin2ascii
+      SUBROUTINE bin2ascii_restart
 !
       IMPLICIT NONE
 !
@@ -98,10 +93,9 @@
       DEALLOCATE( tmp1d )
 !
       RETURN
-      END SUBROUTINE bin2ascii
-
-
-      SUBROUTINE ascii2bin
+      END SUBROUTINE bin2ascii_restart
+!----------------------------------------------------------------------
+      SUBROUTINE ascii2bin_restart
 !
       IMPLICIT NONE
 !
@@ -187,5 +181,5 @@
       DEALLOCATE( tmp1d )
 !
       RETURN
-      END SUBROUTINE ascii2bin
+      END SUBROUTINE ascii2bin_restart
 !----------------------------------------------------------------------

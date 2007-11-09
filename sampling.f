@@ -173,6 +173,7 @@
         CLOSE(tempunit)
         CALL barrier
       END DO
+!CALL error('sampling','line:',173)
 
  100  FORMAT( F8.2, 100(G14.6E3,1X) )
 !
