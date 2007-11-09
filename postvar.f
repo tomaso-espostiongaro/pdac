@@ -145,6 +145,7 @@
                                 mixture_sound_speed_1, mixture_sound_speed_2, &
                                 mixture_sound_speed_3, &
                                 mach_number,  gradient, normal_mach_number
+      USE domain_mapping, ONLY: data_exchange
       USE io_files, ONLY: logunit
 !
       IMPLICIT NONE
@@ -190,7 +191,11 @@
         !
         CALL mixture_sound_speed_2(cm,xgc,rgp,rlk,rhom,rhog,epst,tg)
         CALL mach_number(mn,mvm,cm)
+        !
+        ! ... non-local operations require the data_exchange of ghost-cells!
+        CALL data_exchange(p)
         CALL gradient(p,gpx,gpy,gpz)
+        !
         CALL normal_mach_number(mnn,um,vm,wm,gpx,gpy,gpz,cm)
 !
       RETURN
