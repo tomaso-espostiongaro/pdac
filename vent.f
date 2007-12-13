@@ -44,7 +44,7 @@
       INTEGER :: nvt, iiv, jjv, kkv
       INTEGER :: seed
 !
-      PRIVATE :: icvent_cell, vcell, nvt, seed, iiv, jjv, kkv
+      PRIVATE :: icvent_cell, vcell, nvt, seed
       PRIVATE :: ug_rad, wg_rad, p_rad, tg_rad, rad, ygc_rad,  &
                  us_rad, ws_rad, ep_rad, ts_rad
       SAVE
@@ -78,7 +78,7 @@
 ! ... Print out the vent coordinates on the standard output
 ! ... and the vent conditions
 !
-      IF( mpime == root ) THEN
+      IF( lpr > 0 .AND. mpime == root ) THEN
         OPEN(UNIT=ventunit,FILE=ventfile,STATUS='UNKNOWN')
         WRITE(ventunit,100) iiv, jjv, kkv
         WRITE(ventunit,200) x(iiv), y(jjv), z(kkv)
@@ -542,7 +542,7 @@
           !CALL MP_WALLTIME(rseed,mpime)
           rseed = cpclock()
           seed = INT(rseed)
-          !WRITE(testunit,*) 'seed=', seed
+          WRITE(testunit,*) 'seed=', seed
           !IF (mpime == root) seed = INT(cpclock())
           !CALL bcast_integer(seed,1,root)
         
