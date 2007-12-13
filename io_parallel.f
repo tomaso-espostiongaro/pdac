@@ -161,7 +161,8 @@
 10    FORMAT(1x,10(1x,G14.6E3))
       RETURN
       END SUBROUTINE write_crop_array
-!----------------------------------------------------------------------
+!--------------------------------------------------------------------
+
       SUBROUTINE read_array( iunit, array, prec, lform )
 
       !  This subroutine reads a REAL*8 array ( array ) of

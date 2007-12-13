@@ -10,6 +10,10 @@ bdry.o : atmosphere.o control.o dens.o dimensions.o eosg.o ghost.o grid.o  \
 blunt.o : control.o decomp.o dimensions.o ghost.o grid.o io_files.o  \
     parallel.o press.o time.o 
 
+column.o : dimensions.o postout.o postvar.o vent.o 
+
+column_instr.o : dimensions.o ghost.o io_files.o kinds.o parallel.o vent.o 
+
 control.o : 
 
 decomp.o : control.o dimensions.o grid.o immb.o indijk.o io_files.o  \
@@ -120,8 +124,7 @@ masspart.o : control.o decomp.o dimensions.o ghost.o grid.o immb.o  \
 matrix.o : control.o dens.o dimensions.o ghost.o grid.o indijk.o io_files.o  \
     particles.o press.o subscr.o temp.o tilde.o time.o velocity.o 
 
-mean_fields.o : control.o dimensions.o ghost.o grid.o io_files.o parallel.o  \
-    postvar.o 
+mean_fields.o : control.o io_files.o parallel.o postvar.o 
 
 nondim.o : atmosphere.o dimensions.o gas.o ghost.o grid.o indijk.o  \
     io_files.o particles.o time.o 
@@ -150,7 +153,7 @@ postp.o : control.o decomp.o dimensions.o filter.o gas.o ghost.o grid.o  \
     input.o io_files.o parallel.o particles.o postin.o postout.o process.o  \
     setup.o time.o topo.o 
 
-postvar.o : control.o derived.o dimensions.o io_files.o 
+postvar.o : control.o derived.o dimensions.o ghost.o io_files.o 
 
 press.o : dimensions.o ghost.o 
 
@@ -177,8 +180,8 @@ roughness.o : control.o dimensions.o topo.o
 samplert.o : control.o decomp.o dimensions.o grid.o io_files.o parallel.o  \
     press.o time.o 
 
-sampling.o : control.o decomp.o dimensions.o grid.o io_files.o parallel.o  \
-    postvar.o 
+sampling.o : control.o decomp.o dimensions.o ghost.o grid.o io_files.o  \
+    parallel.o postout.o postvar.o 
 
 setup.o : atmosphere.o control.o dens.o dimensions.o dome.o eosg.o gas.o  \
     ghost.o grid.o hcapgs.o immb.o indijk.o io_files.o parallel.o particles.o  \

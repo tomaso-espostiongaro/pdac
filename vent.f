@@ -213,6 +213,7 @@
       END DO
 !
       RETURN
+!
       END SUBROUTINE locate_vent_2D
 !-----------------------------------------------------------------------
 ! ... This routine locate the vent on a georeferenced mesh and set the

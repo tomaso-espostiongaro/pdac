@@ -31,7 +31,7 @@
 ! ...     cell where to copy the data sent by other procesor
 
         TYPE (snd_map_type), ALLOCATABLE :: snd_map(:)
-! ...     This array store, for each processor, the indexes of local
+! ...     This array stores, for each processor, the indexes of local
 ! ...     cell that the present procesor has to send to the other
 
 !       ncint (ncint) number of local cells, 

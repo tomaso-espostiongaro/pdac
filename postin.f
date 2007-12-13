@@ -15,7 +15,8 @@
       USE dimensions, ONLY: max_size
       USE filter_outp, ONLY: downsize_x, downsize_y, downsize_z
       USE filter_outp, ONLY: variable_n, field_n
-      USE sample_points, ONLY: number_of_probes, assign_index, probe_file, isamp
+      USE sample_points, ONLY: number_of_probes, assign_index, probe_file, &
+           isamp, icolumn, iiv, jjv, kkv
       USE mass_orthoflux, ONLY: number_of_planes, planes_file, ifluxn
       USE mass_partition, ONLY: number_of_boxes, boxes_file, imassn
       USE mass_ground, ONLY: thickness, iground
@@ -39,7 +40,8 @@
 
       NAMELIST / map / imap, deltaz
 
-      NAMELIST / sampling / isamp, number_of_probes, assign_index, probe_file
+      NAMELIST / sampling / isamp, number_of_probes, assign_index, probe_file, &
+               icolumn, iiv, jjv, kkv
 
       NAMELIST / masspart / imassn, number_of_boxes, boxes_file
 
@@ -95,6 +97,10 @@
   number_of_probes = 1
   probe_file       = 'probe.dat'
   assign_index     = .TRUE.
+  icolumn = 0
+  iiv = 0
+  jjv = 0
+  kkv = 0
 
 ! ... Mass partition
  
@@ -167,6 +173,10 @@
       CALL bcast_integer(number_of_probes,1,root)
       CALL bcast_logical(assign_index,1,root)
       CALL bcast_character(probe_file,80,root)
+      CALL bcast_integer(icolumn,1,root)
+      CALL bcast_integer(iiv,1,root)
+      CALL bcast_integer(jjv,1,root)
+      CALL bcast_integer(kkv,1,root)
 !
 ! ... Masspart namelist ................................................
 !

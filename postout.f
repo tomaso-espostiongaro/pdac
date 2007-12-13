@@ -657,7 +657,7 @@
       USE io_files, ONLY: tempunit
       USE io_parallel, ONLY: write_crop_array
       USE parallel, ONLY: mpime, root
-      USE postp_variables, ONLY: rhom_av, tm_av, um_av, vm_av, wm_av, time
+      USE postp_variables, ONLY: rhom_gav, tm_gav, um_gav, vm_gav, wm_gav, time
 !
 !
       IMPLICIT NONE
@@ -683,28 +683,136 @@
         END IF
       END IF
 !
-      CALL write_crop_array( tempunit, rhom_av, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc )
+      CALL write_crop_array( tempunit, rhom_gav, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc )
 !
       IF (job_type == '2D') THEN
-        CALL write_crop_array( tempunit, um_av, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
-        CALL write_crop_array( tempunit, wm_av, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
+        CALL write_crop_array( tempunit, um_gav, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
+        CALL write_crop_array( tempunit, wm_gav, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
       ELSE IF (job_type == '3D') THEN
-        CALL write_crop_array( tempunit, um_av, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
-        CALL write_crop_array( tempunit, vm_av, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
-        CALL write_crop_array( tempunit, wm_av, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
+        CALL write_crop_array( tempunit, um_gav, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
+        CALL write_crop_array( tempunit, vm_gav, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
+        CALL write_crop_array( tempunit, wm_gav, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
       ELSE
         CALL error('outp_','Unknown job type',1)
       END IF
 !
-      CALL write_crop_array( tempunit, tm_av, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
+      CALL write_crop_array( tempunit, tm_gav, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
 !
       IF (mpime == root) CLOSE(tempunit)
 !
       RETURN
 
       END SUBROUTINE write_mean_field
-!-----------------------------------------------------------------------
-      SUBROUTINE write_vertical_profiles(nf)
+!----------------------------------------------------------------------
+      SUBROUTINE write_axis_average(md, md1)
+      USE control_flags, ONLY: job_type
+      USE dimensions, ONLY: ngas, nsolid, nz
+      USE grid, ONLY: z
+      USE io_files, ONLY: tempunit
+      USE parallel, ONLY: mpime, root
+      USE postp_variables, ONLY: p_av, ug_av, vg_av, wg_av, tg_av, xgc_av, &
+         eps_av, us_av, vs_av, ws_av, ts_av, rhom_av, wm_av, pd_av
+      USE postp_variables, ONLY: p_sd, ug_sd, vg_sd, wg_sd, tg_sd, xgc_sd, &
+         eps_sd, us_sd, vs_sd, ws_sd, ts_sd, rhom_sd, wm_sd, pd_sd
+      USE postp_variables, ONLY: p_axis, ug_axis, vg_axis, wg_axis, tg_axis, xgc_axis, &
+         eps_axis, us_axis, vs_axis, ws_axis, ts_axis, rhom_axis, wm_axis, pd_axis
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: md, md1
+      INTEGER :: nv, k
+!
+! ... Writing the average arrays on file
+! 
+      IF (mpime==root) THEN
+        OPEN (UNIT=tempunit, FILE='column.dat', STATUS='UNKNOWN')
+        DO k = 1, nz
+          IF (job_type == '2D') THEN
+              WRITE(tempunit,100) k, z(k), &
+                 p_av(k), p_sd(k), &
+                 ug_av(k), ug_sd(k), &
+                 wg_av(k), wg_sd(k), &
+                 tg_av(k), tg_sd(k), &
+                 (xgc_av(k,nv), xgc_sd(k,nv), nv=1, ngas), &
+                 (eps_av(k,nv), eps_sd(k,nv), &
+                  us_av(k,nv), us_sd(k,nv), &
+                  ws_av(k,nv), ws_sd(k,nv), &
+                  ts_av(k,nv), ts_sd(k,nv), nv=1, nsolid), &
+                 rhom_av(k), rhom_sd(k), &
+                 wm_av(k), wm_sd(k), &
+                 pd_av(k), pd_sd(k)
+           ELSE IF (job_type == '3D') THEN
+              WRITE(tempunit,100) k, z(k), &
+                 p_av(k), p_sd(k), &
+                 ug_av(k), ug_sd(k), &
+                 vg_av(k), vg_sd(k), &
+                 wg_av(k), wg_sd(k), &
+                 tg_av(k), tg_sd(k), &
+                 (xgc_av(k,nv), xgc_sd(k,nv), nv=1, ngas), &
+                 (eps_av(k,nv), eps_sd(k,nv), &
+                  us_av(k,nv), us_sd(k,nv), &
+                  vs_av(k,nv), vs_sd(k,nv), &
+                  ws_av(k,nv), ws_sd(k,nv), &
+                  ts_av(k,nv), ts_sd(k,nv), nv=1, nsolid), &
+                 rhom_av(k), rhom_sd(k), &
+                 wm_av(k), wm_sd(k), &
+                 pd_av(k), pd_sd(k)
+          END IF
+        END DO  
+        CLOSE(tempunit)
+      END IF
+!
+ 100  FORMAT( I5, F8.2, 100(G14.6E3,1X) )
+!
+      DEALLOCATE(p_av)
+      DEALLOCATE(ug_av)
+      DEALLOCATE(vg_av)
+      DEALLOCATE(wg_av)
+      DEALLOCATE(tg_av)
+      DEALLOCATE(xgc_av)
+      DEALLOCATE(eps_av)
+      DEALLOCATE(us_av)
+      DEALLOCATE(vs_av)
+      DEALLOCATE(ws_av)
+      DEALLOCATE(ts_av)
+      DEALLOCATE(rhom_av)
+      DEALLOCATE(wm_av)
+      DEALLOCATE(pd_av)
+!
+      DEALLOCATE(p_axis)
+      DEALLOCATE(ug_axis)
+      DEALLOCATE(vg_axis)
+      DEALLOCATE(wg_axis)
+      DEALLOCATE(tg_axis)
+      DEALLOCATE(xgc_axis)
+      DEALLOCATE(eps_axis)
+      DEALLOCATE(us_axis)
+      DEALLOCATE(vs_axis)
+      DEALLOCATE(ws_axis)
+      DEALLOCATE(ts_axis)
+      DEALLOCATE(rhom_axis)
+      DEALLOCATE(wm_axis)
+      DEALLOCATE(pd_axis)
+!
+      DEALLOCATE(p_sd)
+      DEALLOCATE(ug_sd)
+      DEALLOCATE(vg_sd)
+      DEALLOCATE(wg_sd)
+      DEALLOCATE(tg_sd)
+      DEALLOCATE(xgc_sd)
+      DEALLOCATE(eps_sd)
+      DEALLOCATE(us_sd)
+      DEALLOCATE(vs_sd)
+      DEALLOCATE(ws_sd)
+      DEALLOCATE(ts_sd)
+      DEALLOCATE(rhom_sd)
+      DEALLOCATE(wm_sd)
+!
+      RETURN
+!
+ 299  CALL error ('sample_column','error in opening tempunit', tempunit)
+!
+      END SUBROUTINE write_axis_average
+!----------------------------------------------------------------------
+      SUBROUTINE write_plume_profile(nf)
 
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nz
@@ -738,11 +846,11 @@
         END DO
         CLOSE(tempunit)
       END IF
-
+!
  122  FORMAT(7(1x,G14.6E3))
-
+!
       RETURN
-      END SUBROUTINE write_vertical_profiles
+      END SUBROUTINE write_plume_profile
 !-----------------------------------------------------------------------
       SUBROUTINE write_AVS_files
       USE control_flags, ONLY: job_type, formatted_output

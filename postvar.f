@@ -18,10 +18,34 @@
 !
 ! ... derived averaged fields
 !
-      REAL*8, ALLOCATABLE, DIMENSION(:) :: rhom_av, um_av, vm_av, wm_av
-      REAL*8, ALLOCATABLE, DIMENSION(:) :: tm_av
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: rhom_gav, um_gav, vm_gav, wm_gav
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: tm_gav
 !
-! ... vertical profiles
+! ... column arrays
+!
+      REAL, ALLOCATABLE :: p_axis(:,:),ug_axis(:,:),vg_axis(:,:),wg_axis(:,:),tg_axis(:,:)
+      REAL, ALLOCATABLE :: xgc_axis(:,:,:)
+      REAL, ALLOCATABLE :: eps_axis(:,:,:),us_axis(:,:,:),vs_axis(:,:,:),ws_axis(:,:,:), ts_axis(:,:,:)
+      REAL, ALLOCATABLE :: rhom_axis(:,:), wm_axis(:,:), pd_axis(:,:)
+! 
+! ... time-average of column arrays
+!
+      REAL, ALLOCATABLE :: xgc_av(:,:)
+      REAL, ALLOCATABLE :: ts_av(:,:)
+      REAL, ALLOCATABLE :: p_av(:),ug_av(:),vg_av(:),wg_av(:),tg_av(:)
+      REAL, ALLOCATABLE :: eps_av(:,:),us_av(:,:),vs_av(:,:),ws_av(:,:)
+      REAL, ALLOCATABLE :: rhom_av(:), wm_av(:), pd_av(:)
+!
+! ... standard deviation of column arrays
+!
+      REAL, ALLOCATABLE :: p_sd(:),ug_sd(:),vg_sd(:),wg_sd(:),tg_sd(:)
+!
+      REAL, ALLOCATABLE :: xgc_sd(:,:)
+      REAL, ALLOCATABLE :: eps_sd(:,:),us_sd(:,:),vs_sd(:,:),ws_sd(:,:)
+      REAL, ALLOCATABLE :: ts_sd(:,:)
+      REAL, ALLOCATABLE :: rhom_sd(:), wm_sd(:), pd_sd(:)
+!
+! ... plume variables
 !
       REAL*8, ALLOCATABLE, DIMENSION(:) :: rhom_z, um_z, vm_z, wm_z
       REAL*8, ALLOCATABLE, DIMENSION(:) :: tm_z, surface
@@ -29,9 +53,9 @@
       REAL*8 :: time
 !
       SAVE
-!-----------------------------------------------------------------------
-      CONTAINS
 !----------------------------------------------------------------------
+      CONTAINS
+!---------------------------------------------------------------------
       SUBROUTINE allocate_main_fields(dime)
       USE dimensions, ONLY: nsolid, ngas
 !
@@ -100,35 +124,156 @@
       RETURN
       END SUBROUTINE allocate_derived_fields
 !----------------------------------------------------------------------
-      SUBROUTINE allocate_derived_fields_av (dime)
-      USE dimensions, ONLY: nz
+      SUBROUTINE allocate_column_probes(dime,tdime)
+! ... Time-averages and Standard deviations along vent axis
+!
+      USE dimensions, ONLY: ngas, nsolid
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: dime, tdime
+!
+! ... Allocation of the average arrays.
+!
+      ALLOCATE(p_axis(dime,tdime))
+      ALLOCATE(ug_axis(dime,tdime))
+      ALLOCATE(vg_axis(dime,tdime))
+      ALLOCATE(wg_axis(dime,tdime))
+      ALLOCATE(tg_axis(dime,tdime))
+      ALLOCATE(xgc_axis(dime,ngas,tdime))
+      ALLOCATE(eps_axis(dime,nsolid,tdime))
+      ALLOCATE(us_axis(dime,nsolid,tdime))
+      ALLOCATE(vs_axis(dime,nsolid,tdime))
+      ALLOCATE(ws_axis(dime,nsolid,tdime))
+      ALLOCATE(ts_axis(dime,nsolid,tdime))
+      ALLOCATE(rhom_axis(dime,tdime))
+      ALLOCATE(wm_axis(dime,tdime))
+      ALLOCATE(pd_axis(dime,tdime)) 
+!
+! ... Allocation of the average arrays.
+!
+      ALLOCATE(p_av(dime))
+      ALLOCATE(ug_av(dime))
+      ALLOCATE(vg_av(dime))
+      ALLOCATE(wg_av(dime))
+      ALLOCATE(tg_av(dime))
+      ALLOCATE(xgc_av(dime,ngas))
+      ALLOCATE(eps_av(dime,nsolid))
+      ALLOCATE(us_av(dime,nsolid))
+      ALLOCATE(vs_av(dime,nsolid))
+      ALLOCATE(ws_av(dime,nsolid))
+      ALLOCATE(ts_av(dime,nsolid))
+      ALLOCATE(rhom_av(dime))
+      ALLOCATE(wm_av(dime))
+      ALLOCATE(pd_av(dime)) 
+! 
+! ... Allocatation of the standard deviation arrays.
+!
+      ALLOCATE(p_sd(dime))
+      ALLOCATE(ug_sd(dime))
+      ALLOCATE(vg_sd(dime))
+      ALLOCATE(wg_sd(dime))
+      ALLOCATE(tg_sd(dime))
+      ALLOCATE(xgc_sd(dime,ngas))
+      ALLOCATE(eps_sd(dime,nsolid))
+      ALLOCATE(us_sd(dime,nsolid))
+      ALLOCATE(vs_sd(dime,nsolid))
+      ALLOCATE(ws_sd(dime,nsolid))
+      ALLOCATE(ts_sd(dime,nsolid))
+      ALLOCATE(rhom_sd(dime))
+      ALLOCATE(wm_sd(dime))
+      ALLOCATE(pd_sd(dime)) 
+!
+! ... Initialization of the average arrays. 
+!
+      p_axis    = 0.D0
+      ug_axis   = 0.D0
+      vg_axis   = 0.D0
+      wg_axis   = 0.D0
+      tg_axis   = 0.D0
+      xgc_axis  = 0.D0
+      eps_axis  = 0.D0
+      us_axis   = 0.D0
+      vs_axis   = 0.D0
+      ws_axis   = 0.D0
+      ts_axis   = 0.D0
+      rhom_axis = 0.D0
+      wm_axis   = 0.D0
+      pd_axis   = 0.D0
+!
+! ... Initialization of the average arrays. 
+!
+      p_av    = 0.D0
+      ug_av   = 0.D0
+      vg_av   = 0.D0
+      wg_av   = 0.D0
+      tg_av   = 0.D0
+      xgc_av  = 0.D0
+      eps_av  = 0.D0
+      us_av   = 0.D0
+      vs_av   = 0.D0
+      ws_av   = 0.D0
+      ts_av   = 0.D0
+      rhom_av = 0.D0
+      wm_av   = 0.D0
+      pd_av   = 0.D0
+!
+! ... Initialization of the standard deviation arrays.
+!
+      p_sd    = 0.D0
+      ug_sd   = 0.D0
+      vg_sd   = 0.D0
+      wg_sd   = 0.D0
+      tg_sd   = 0.D0
+      xgc_sd  = 0.D0
+      eps_sd  = 0.D0
+      us_sd   = 0.D0
+      vs_sd   = 0.D0
+      ws_sd   = 0.D0
+      ts_sd   = 0.D0
+      rhom_sd = 0.D0
+      wm_sd   = 0.D0
+      pd_sd   = 0.D0
+!
+      RETURN
+      END SUBROUTINE allocate_column_probes
+!----------------------------------------------------------------------
+      SUBROUTINE allocate_plume_variables(dime)
+      ! ... Horizontal averages on plume section
 !
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: dime
 !
-      ALLOCATE(rhom_av(dime))  ! Mixture Density
-      ALLOCATE(tm_av(dime))  ! Mixture Density
-      ALLOCATE(um_av(dime))    ! Mixture Velocity X
-      ALLOCATE(vm_av(dime))    ! Mixture Velocity Y
-      ALLOCATE(wm_av(dime))    ! Mixture Velocity Z
-      rhom_av = 0.0D0
-      tm_av   = 300.0D0
-      um_av   = 0.0D0
-      vm_av   = 0.0D0
-      wm_av   = 0.0D0
-!
-      ALLOCATE(surface(nz)) ! jet plane surface
-      ALLOCATE(rhom_z(nz))  ! Mixture Density along z
-      ALLOCATE(tm_z(nz))    ! Mixture Density along z
-      ALLOCATE(um_z(nz))    ! Mixture Velocity X along z
-      ALLOCATE(vm_z(nz))    ! Mixture Velocity Y along z
-      ALLOCATE(wm_z(nz))    ! Mixture Velocity Z along z
+      ALLOCATE(surface(dime)) ! jet plane surface
+      ALLOCATE(rhom_z(dime))  ! Mixture Density along z
+      ALLOCATE(tm_z(dime))    ! Mixture Density along z
+      ALLOCATE(um_z(dime))    ! Mixture Velocity X along z
+      ALLOCATE(vm_z(dime))    ! Mixture Velocity Y along z
+      ALLOCATE(wm_z(dime))    ! Mixture Velocity Z along z
       surface = 0.0D0
       rhom_z = 0.0D0
       tm_z   = 300.0D0
       um_z   = 0.0D0
       vm_z   = 0.0D0
       wm_z   = 0.0D0
+!
+      RETURN
+      END SUBROUTINE allocate_plume_variables
+!----------------------------------------------------------------------
+      SUBROUTINE allocate_derived_fields_av (dime)
+      ! ... Time-averaged output fields
+!
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: dime
+!
+      ALLOCATE(rhom_gav(dime))  ! Mixture Density
+      ALLOCATE(tm_gav(dime))  ! Mixture Density
+      ALLOCATE(um_gav(dime))    ! Mixture Velocity X
+      ALLOCATE(vm_gav(dime))    ! Mixture Velocity Y
+      ALLOCATE(wm_gav(dime))    ! Mixture Velocity Z
+      rhom_gav = 0.0D0
+      tm_gav   = 300.0D0
+      um_gav   = 0.0D0
+      vm_gav   = 0.0D0
+      wm_gav   = 0.0D0
 !
       RETURN
       END SUBROUTINE allocate_derived_fields_av
