@@ -25,7 +25,7 @@
 !
       TYPE(probe_point), ALLOCATABLE :: probe(:)
       INTEGER :: isamp, icolumn
-      INTEGER :: iiv, jjv, kkv
+      INTEGER :: iiv, jjv
 ! 
       SAVE
 !----------------------------------------------------------------------

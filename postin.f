@@ -16,7 +16,7 @@
       USE filter_outp, ONLY: downsize_x, downsize_y, downsize_z
       USE filter_outp, ONLY: variable_n, field_n
       USE sample_points, ONLY: number_of_probes, assign_index, probe_file, &
-           isamp, icolumn, iiv, jjv, kkv
+           isamp, icolumn, iiv, jjv
       USE mass_orthoflux, ONLY: number_of_planes, planes_file, ifluxn
       USE mass_partition, ONLY: number_of_boxes, boxes_file, imassn
       USE mass_ground, ONLY: thickness, iground
@@ -41,7 +41,7 @@
       NAMELIST / map / imap, deltaz
 
       NAMELIST / sampling / isamp, number_of_probes, assign_index, probe_file, &
-               icolumn, iiv, jjv, kkv
+               icolumn, iiv, jjv
 
       NAMELIST / masspart / imassn, number_of_boxes, boxes_file
 
@@ -100,7 +100,6 @@
   icolumn = 0
   iiv = 0
   jjv = 0
-  kkv = 0
 
 ! ... Mass partition
  
@@ -176,7 +175,6 @@
       CALL bcast_integer(icolumn,1,root)
       CALL bcast_integer(iiv,1,root)
       CALL bcast_integer(jjv,1,root)
-      CALL bcast_integer(kkv,1,root)
 !
 ! ... Masspart namelist ................................................
 !
