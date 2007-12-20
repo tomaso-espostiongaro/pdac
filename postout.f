@@ -128,7 +128,7 @@
       USE dimensions, ONLY: nsolid, ngas
       USE gas_constants, ONLY: gas_type
       USE kinds
-      USE io_files, ONLY: filnam, outpunit, logunit
+      USE io_files, ONLY: filnam, outpunit, logunit, testunit
       USE io_parallel, ONLY: read_array
       USE postp_variables, ONLY: time, p,ug,vg,wg,tg,xgc,us,vs,ws,ts,eps
       USE parallel, ONLY: nproc, mpime, root, group
@@ -154,6 +154,7 @@
         ELSE 
           OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam, ERR=199)
           READ(outpunit) time4
+          WRITE(logunit,*) 'Reading time: ', time4
           time = REAL(time4,dbl)
         END IF
  155    FORMAT(1x,///,12x,g11.4)
@@ -831,7 +832,7 @@
       pi = 4.D0 * ATAN(1.D0)
       invpi = 1.D0 / pi
 
-      IF (job_type == '2D') RETURN
+!      IF (job_type == '2D') RETURN
       
       filnam='zprofile.'//lettera(nf)
 !
@@ -842,6 +843,8 @@
         DO k = 1, nz
           IF (job_type == '3D') THEN
             WRITE(tempunit,122) z(k),rhom_z(k),um_z(k),vm_z(k),wm_z(k),tm_z(k), DSQRT(surface(k)*invpi)
+          ELSE 
+            WRITE(tempunit,122) z(k),rhom_z(k),um_z(k),wm_z(k),tm_z(k), DSQRT(surface(k)*invpi)
           END IF
         END DO
         CLOSE(tempunit)

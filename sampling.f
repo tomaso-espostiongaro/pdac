@@ -24,7 +24,7 @@
        END TYPE probe_point
 !
       TYPE(probe_point), ALLOCATABLE :: probe(:)
-      INTEGER :: isamp, icolumn
+      INTEGER :: isamp
       INTEGER :: iiv, jjv
 ! 
       SAVE
@@ -53,9 +53,9 @@
 ! ... Allocate probes.
 !
       ! ... If the axial points are sampled, add the number of column probes
-      IF (icolumn > 0) THEN
+      IF (isamp > 1) THEN
         nprbs = number_of_probes + nz
-      ELSE IF (icolumn == 0) THEN
+      ELSE 
         nprbs = number_of_probes
       END IF
 !
@@ -93,6 +93,10 @@
           OPEN(tempunit, FILE=probe_file, STATUS='OLD',ERR=199)
           READ(tempunit,*) 
           WRITE(logunit,*) 'Sampling probes: '
+!
+          WRITE(logunit,*) 'number_of_probes= ', number_of_probes 
+          WRITE(logunit,*) 'nprbs= ', nprbs
+!
         END IF
         DO nop = nprbs - number_of_probes + 1, nprbs
           probe(nop)%nop = nop
@@ -159,8 +163,8 @@
                         imesh_probe(nop) = imesh
                 END IF
           END IF
-          IF (mpime == root) WRITE(logunit,'(4I4,6F14.4)') nop, i, j, k, x(i), y(j), z(k), &
-                               probe(nop)%x, probe(nop)%y, probe(nop)%z
+!          IF (mpime == root) WRITE(logunit,'(4I4,6F14.4)') nop, i, j, k, x(i), y(j), z(k), &
+!                               probe(nop)%x, probe(nop)%y, probe(nop)%z
         END DO
         IF (mpime == root) CLOSE(tempunit)
       END IF
@@ -425,16 +429,21 @@
       SUBROUTINE compute_plume_profile
       USE control_flags, ONLY: job_type
       USE dimensions
-      USE grid, ONLY: dx, dy, dz
+      USE grid, ONLY: dx, dy, dz, rb, itc
       USE domain_mapping, ONLY: ncint, meshinds
       IMPLICIT NONE
 !
-      REAL*8 :: ds, invrhom, invsurf
+      REAL*8 :: ds, invrhom, invsurf, pi
       INTEGER :: ijk, imesh, i, j, k
 !
-! ... Missing 2D implementation
-      IF (job_type /= '3D') RETURN
+      pi = 4.D0*ATAN(1.D0)
 !
+      surface = 0.D0
+      rhom_z  = 0.D0
+      um_z    = 0.D0
+      vm_z    = 0.D0
+      wm_z    = 0.D0
+      tm_z    = 0.D0
       invrhom = 0.D0
       invsurf = 0.D0
       ds = 0.D0
@@ -442,14 +451,24 @@
       DO ijk = 1, ncint
         IF ( epst(ijk) >= 1.D-8) THEN
           CALL meshinds(ijk,imesh,i,j,k)
-          ds = dx(i)*dy(j)
-          rhom_z(k) = rhom_z(k) + rhom(ijk) * ds
-          um_z(k) = um_z(k) + rhom(ijk) * um(ijk) * ds
-          vm_z(k) = vm_z(k) + rhom(ijk) * vm(ijk) * ds
-          wm_z(k) = wm_z(k) + rhom(ijk) * wm(ijk) * ds
-          ! ... Averaged temperature assumes constant mixture Cp
-          tm_z(k) = tm_z(k) + tm(ijk) * ds
-          surface(k) = surface(k) + ds
+          IF (job_type == '2D' .AND. itc == 1) THEN
+            ds = pi*dx(i)*(2.D0*rb(i)-dx(i))
+            rhom_z(k) = rhom_z(k) + rhom(ijk) * ds
+            um_z(k) = um_z(k) + rhom(ijk) * um(ijk) * ds
+            wm_z(k) = wm_z(k) + rhom(ijk) * wm(ijk) * ds
+            ! ... Averaged temperature assumes constant mixture Cp
+            tm_z(k) = tm_z(k) + tm(ijk) * ds
+            surface(k) = surface(k) + ds
+          ELSE IF (job_type == '3D') THEN
+            ds = dx(i)*dy(j)
+            rhom_z(k) = rhom_z(k) + rhom(ijk) * ds
+            um_z(k) = um_z(k) + rhom(ijk) * um(ijk) * ds
+            vm_z(k) = vm_z(k) + rhom(ijk) * vm(ijk) * ds
+            wm_z(k) = wm_z(k) + rhom(ijk) * wm(ijk) * ds
+            ! ... Averaged temperature assumes constant mixture Cp
+            tm_z(k) = tm_z(k) + tm(ijk) * ds
+            surface(k) = surface(k) + ds
+          END IF
         END IF
       END DO
 !
@@ -469,7 +488,7 @@
         rhom_z(k) = rhom_z(k) * invsurf
         IF (rhom_z(k)/=0.D0) invrhom = 1.D0 / rhom_z(k)
         um_z(k) = um_z(k) * invrhom *  invsurf
-        vm_z(k) = vm_z(k) * invrhom *  invsurf
+        IF (job_type == '3D') vm_z(k) = vm_z(k) * invrhom *  invsurf
         wm_z(k) = wm_z(k) * invrhom *  invsurf
         tm_z(k) = tm_z(k) * invsurf
       END DO

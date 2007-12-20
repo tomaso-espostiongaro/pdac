@@ -23,27 +23,27 @@
 !
 ! ... column arrays
 !
-      REAL, ALLOCATABLE :: p_axis(:,:),ug_axis(:,:),vg_axis(:,:),wg_axis(:,:),tg_axis(:,:)
-      REAL, ALLOCATABLE :: xgc_axis(:,:,:)
-      REAL, ALLOCATABLE :: eps_axis(:,:,:),us_axis(:,:,:),vs_axis(:,:,:),ws_axis(:,:,:), ts_axis(:,:,:)
-      REAL, ALLOCATABLE :: rhom_axis(:,:), wm_axis(:,:), pd_axis(:,:)
+      REAL*8, ALLOCATABLE :: p_axis(:,:),ug_axis(:,:),vg_axis(:,:),wg_axis(:,:),tg_axis(:,:)
+      REAL*8, ALLOCATABLE :: xgc_axis(:,:,:)
+      REAL*8, ALLOCATABLE :: eps_axis(:,:,:),us_axis(:,:,:),vs_axis(:,:,:),ws_axis(:,:,:), ts_axis(:,:,:)
+      REAL*8, ALLOCATABLE :: rhom_axis(:,:), wm_axis(:,:), pd_axis(:,:)
 ! 
 ! ... time-average of column arrays
 !
-      REAL, ALLOCATABLE :: xgc_av(:,:)
-      REAL, ALLOCATABLE :: ts_av(:,:)
-      REAL, ALLOCATABLE :: p_av(:),ug_av(:),vg_av(:),wg_av(:),tg_av(:)
-      REAL, ALLOCATABLE :: eps_av(:,:),us_av(:,:),vs_av(:,:),ws_av(:,:)
-      REAL, ALLOCATABLE :: rhom_av(:), wm_av(:), pd_av(:)
+      REAL*8, ALLOCATABLE :: xgc_av(:,:)
+      REAL*8, ALLOCATABLE :: ts_av(:,:)
+      REAL*8, ALLOCATABLE :: p_av(:),ug_av(:),vg_av(:),wg_av(:),tg_av(:)
+      REAL*8, ALLOCATABLE :: eps_av(:,:),us_av(:,:),vs_av(:,:),ws_av(:,:)
+      REAL*8, ALLOCATABLE :: rhom_av(:), wm_av(:), pd_av(:)
 !
 ! ... standard deviation of column arrays
 !
-      REAL, ALLOCATABLE :: p_sd(:),ug_sd(:),vg_sd(:),wg_sd(:),tg_sd(:)
+      REAL*8, ALLOCATABLE :: p_sd(:),ug_sd(:),vg_sd(:),wg_sd(:),tg_sd(:)
 !
-      REAL, ALLOCATABLE :: xgc_sd(:,:)
-      REAL, ALLOCATABLE :: eps_sd(:,:),us_sd(:,:),vs_sd(:,:),ws_sd(:,:)
-      REAL, ALLOCATABLE :: ts_sd(:,:)
-      REAL, ALLOCATABLE :: rhom_sd(:), wm_sd(:), pd_sd(:)
+      REAL*8, ALLOCATABLE :: xgc_sd(:,:)
+      REAL*8, ALLOCATABLE :: eps_sd(:,:),us_sd(:,:),vs_sd(:,:),ws_sd(:,:)
+      REAL*8, ALLOCATABLE :: ts_sd(:,:)
+      REAL*8, ALLOCATABLE :: rhom_sd(:), wm_sd(:), pd_sd(:)
 !
 ! ... plume variables
 !
@@ -78,27 +78,30 @@
 !
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: dime
+      INTEGER :: stat(20)
 
-      ALLOCATE(epst(dime))  ! Total particle fraction
-      ALLOCATE(vf(dime))    ! Void fraction
-      ALLOCATE(lepst(dime)) ! Log10 of the total part. frac.
-      ALLOCATE(rhog(dime))  ! Gas Density
-      ALLOCATE(rgp(dime))   ! Gas Density
-      ALLOCATE(rhom(dime))  ! Mixture Density
-      ALLOCATE(tm(dime))  ! Mixture Temperature
-      ALLOCATE(um(dime))  ! Mixture Velocity X
-      ALLOCATE(vm(dime))  ! Mixture Velocity Y
-      ALLOCATE(wm(dime))  ! Mixture Velocity Z
-      ALLOCATE(mvm(dime)) ! Mixture Velocity Modulus
-      ALLOCATE(cm(dime)) ! Mixture Sound Speed
-      ALLOCATE(mn(dime)) ! Mixture Mach Number
-      ALLOCATE(mnn(dime)) ! Mixture Normal Mach Number
-      ALLOCATE(gpx(dime)) ! Mixture Normal Mach Number
-      ALLOCATE(gpy(dime)) ! Mixture Normal Mach Number
-      ALLOCATE(gpz(dime)) ! Mixture Normal Mach Number
-      ALLOCATE(pd(dime))  ! Dynamic Pressure
-      ALLOCATE(rlk(dime,nsolid))  ! Solid Bulk density
-      ALLOCATE(ygc(dime,ngas))  ! Gas mass fractions
+      ALLOCATE(epst(dime),STAT=stat(1))  ! Total particle fraction
+      ALLOCATE(vf(dime),STAT=stat(2))    ! Void fraction
+      ALLOCATE(lepst(dime),STAT=stat(3)) ! Log10 of the total part. frac.
+      ALLOCATE(rhog(dime),STAT=stat(4))  ! Gas Density
+      ALLOCATE(rgp(dime),STAT=stat(5))   ! Gas Density
+      ALLOCATE(rhom(dime),STAT=stat(6))  ! Mixture Density
+      ALLOCATE(tm(dime),STAT=stat(7))  ! Mixture Temperature
+      ALLOCATE(um(dime),STAT=stat(8))  ! Mixture Velocity X
+      ALLOCATE(vm(dime),STAT=stat(9))  ! Mixture Velocity Y
+      ALLOCATE(wm(dime),STAT=stat(10))  ! Mixture Velocity Z
+      ALLOCATE(mvm(dime),STAT=stat(11)) ! Mixture Velocity Modulus
+      ALLOCATE(cm(dime),STAT=stat(12)) ! Mixture Sound Speed
+      ALLOCATE(mn(dime),STAT=stat(13)) ! Mixture Mach Number
+      ALLOCATE(mnn(dime),STAT=stat(14)) ! Mixture Normal Mach Number
+      ALLOCATE(gpx(dime),STAT=stat(15)) ! Mixture Normal Mach Number
+      ALLOCATE(gpy(dime),STAT=stat(16)) ! Mixture Normal Mach Number
+      ALLOCATE(gpz(dime),STAT=stat(17)) ! Mixture Normal Mach Number
+      ALLOCATE(pd(dime),STAT=stat(18))  ! Dynamic Pressure
+      ALLOCATE(rlk(dime,nsolid),STAT=stat(19))  ! Solid Bulk density
+      ALLOCATE(ygc(dime,ngas),STAT=stat(20))  ! Gas mass fractions
+!
+      IF (ANY(stat /= 0)) CALL error('postvar','problem allocating vars',1)
 !
       epst  = 0.D0
       vf    = 1.D0
@@ -106,7 +109,7 @@
       rhog  = 0.D0
       rgp   = 0.D0
       rhom  = 0.D0
-      tm    = 300.D0
+      tm    = 0.D0
       um    = 0.D0
       vm    = 0.D0
       wm    = 0.D0
@@ -250,7 +253,7 @@
       ALLOCATE(wm_z(dime))    ! Mixture Velocity Z along z
       surface = 0.0D0
       rhom_z = 0.0D0
-      tm_z   = 300.0D0
+      tm_z   = 0.0D0
       um_z   = 0.0D0
       vm_z   = 0.0D0
       wm_z   = 0.0D0
@@ -270,7 +273,7 @@
       ALLOCATE(vm_gav(dime))    ! Mixture Velocity Y
       ALLOCATE(wm_gav(dime))    ! Mixture Velocity Z
       rhom_gav = 0.0D0
-      tm_gav   = 300.0D0
+      tm_gav   = 0.0D0
       um_gav   = 0.0D0
       vm_gav   = 0.0D0
       wm_gav   = 0.0D0

@@ -207,8 +207,8 @@
       tpr = 1.0D0       ! write to output file every tpr seconds of simulated time
       tdump = 20.0D0    ! write restart every tdump seconds of simulated time
       nfil = 0          ! output file index
-      formatted_output = .TRUE.
-      formatted_input  = .TRUE.
+      formatted_output = .FALSE.
+      formatted_input  = .FALSE.
       max_seconds = 40000.0
       tau = 0.D0
       tau1 = 0.D0
@@ -701,7 +701,7 @@
       CALL bcast_logical(update_eosg,1,root)
       CALL bcast_real(rlim,1,root)
       CALL bcast_real(flim,1,root)
-
+!
 !
 ! :::::::::::::::::::::::  R E A D   C A R D S ::::::::::::::::::::::::
 !

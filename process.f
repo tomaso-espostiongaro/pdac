@@ -28,7 +28,7 @@
       USE domain_mapping, ONLY: ncdom, ncint
       USE grid, ONLY: z
       USE sample_points, ONLY: isamp, sample
-      USE sample_points, ONLY: icolumn, column_axis_average, allocate_column_probes, column_axis_std
+      USE sample_points, ONLY: column_axis_average, allocate_column_probes, column_axis_std
       USE sample_points, ONLY: compute_plume_profile, allocate_plume_variables
       USE mass_partition, ONLY: imassn, massn
       USE mass_orthoflux, ONLY: ifluxn, fluxn
@@ -66,8 +66,8 @@
       CALL allocate_main_fields(ncdom)
       CALL allocate_derived_fields(ncdom)
       IF (imnfld > 0) CALL allocate_derived_fields_av(ncdom) 
-      IF (icolumn > 0) CALL allocate_column_probes(nz,cnt)
-      IF (icolumn > 1) CALL allocate_plume_variables(nz)
+      IF (isamp > 1) CALL allocate_column_probes(nz,cnt)
+      IF (isamp > 2) CALL allocate_plume_variables(nz)
 !
       itn = 0
       DO tn = first_out, last_out, incr_out
@@ -84,6 +84,8 @@
         ! ... Derived fields are computed as a function of
         ! ... primary fields and other derived fields
         !
+        IF (mpime == root) &
+          WRITE(logunit,fmt="('  Computing derived fields' )")
         CALL compute_derived_fields
         !
         ! ... Write out fields of interest
@@ -102,8 +104,8 @@
                CALL write_map(tn,pd,'pd')
         END IF
         IF (isamp > 0)    CALL sample
-        IF (icolumn > 0)  CALL column_axis_average(itn)
-        IF (icolumn > 1)  THEN
+        IF (isamp > 1)  CALL column_axis_average(itn)
+        IF (isamp > 2)  THEN
           CALL compute_plume_profile
           CALL write_plume_profile(tn)
         END IF
@@ -116,7 +118,7 @@
 ! ... Compute the standard deviations and
 ! ... print the time-averaged column probes
 !
-      IF (icolumn > 0) THEN
+      IF (isamp > 1) THEN
         CALL column_axis_std(first_out, last_out, incr_out, cnt, md, md1)
         CALL write_axis_average(md,md1)
       END IF

@@ -480,7 +480,7 @@
 
       RETURN
 !
- 199    CALL error('io_restart.f', 'error in reading outputunit',outpunit)
+ 199    CALL error('io_restart.f', 'error reading outputunit',outpunit)
 !
       END SUBROUTINE outp_recover
 !----------------------------------------------------------------------

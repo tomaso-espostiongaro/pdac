@@ -13,39 +13,44 @@
       INTEGER :: nsolid, ngas
       INTEGER :: nx, ny, nz
       INTEGER :: first_out, last_out, incr_out
+      INTEGER :: stat1, stat2
       CHARACTER(LEN=2) :: job_type
       CHARACTER( LEN =  4 ) :: lettera
       CHARACTER(LEN=80) :: filename_in, filename_out
       REAL, ALLOCATABLE :: tmp1d( : ), tmp1dOut( : )
       REAL :: time, timeOut
 !
-      nx = 215
-      ny = 185
-      nz = 160
+      nx = 190
+      ny = 170
+      nz = 180
       nsolid = 2
       ngas = 2
       job_type = '3D'
-      first_out = 1
-      last_out = 2
+      first_out = 10
+      last_out = 10
       incr_out = 1
 !
-      ALLOCATE( tmp1d( nx*ny*nz ), tmp1dOut(nx*ny*nz) )
+      ALLOCATE( tmp1d( nx*ny*nz ), STAT=stat1 )
+      ALLOCATE( tmp1dOut(nx*ny*nz) , STAT=stat2)
+      WRITE(*,*) 'Allocate status: ', stat1, stat2
       !
       DO nf = first_out, last_out, incr_out
       filename_in='output.'//lettera(nf)
-      filename_out='output_big_endian.'//lettera(nf)
+      filename_out='output_little_endian.'//lettera(nf)
       OPEN( UNIT=10, FORM='UNFORMATTED', STATUS='OLD', FILE=filename_in)
       OPEN( UNIT=11, FORM='UNFORMATTED', STATUS='UNKNOWN', FILE=filename_out)
 !
       WRITE(*,*) ' Converting output file: ', filename_in
 
       READ( UNIT=10 ) time
+      WRITE(*,*) ' time =  ', time
       CALL native_4byte_real( time, timeOut )
       WRITE(11) timeOut
 
-      WRITE(*,*) ' time =  ', time
+      WRITE(*,*) ' timeOut =  ', timeOut
       !
-      READ(10) tmp1d  ! P
+      READ(10) tmp1d(:)  ! P
+STOP
       WRITE(*,*) ' converting p... '
 !
       DO n = 1, SIZE(tmp1d)

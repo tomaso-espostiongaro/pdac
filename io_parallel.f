@@ -223,10 +223,11 @@
             DEALLOCATE( io_buf )
          END IF
       END IF
-
+!
+ 299  WRITE(errorunit,*) 'Error reading input file'
+!
       RETURN
 !
- 299  CALL error('io_parallel.f', 'error while reading inputunit', iunit)
 !
       END SUBROUTINE read_array
 !----------------------------------------------------------------------
