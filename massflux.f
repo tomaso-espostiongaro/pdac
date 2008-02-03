@@ -35,8 +35,8 @@
 
       IMPLICIT NONE
 !
-      INTEGER :: n1, n2, t1, t2, axis, plane, surf_type
-      REAL*8  :: center1, center2, d1, d2, dist
+      INTEGER :: n1, n2, t1, t2, axis, surf_type, plane
+      REAL*8  :: center1, center2, d1, d2, dist, quota
       INTEGER :: is, n, t, np
       INTEGER :: i, j, k, ijk, imesh
       REAL*8, ALLOCATABLE :: vel(:), epsm(:)
@@ -64,21 +64,23 @@
       slice(:)%t1 = 1
       slice(:)%t2 = 1
 !
-      IF (mpime == root) OPEN(tempunit, FILE=planes_file, STATUS='OLD', ERR=199)
+      IF (mpime == root) OPEN(tempunit, FILE=planes_file, STATUS='OLD')
       DO np = 1, number_of_planes
                IF (job_type == '2D') THEN
                         !
-                        IF (mpime == root) READ(tempunit,*) axis, plane, surf_type
-                        IF (mpime == root) READ(tempunit,*) center1, d1 
+                        IF (mpime == root) THEN
+                          READ(tempunit,*) axis, quota, surf_type
+                          READ(tempunit,*) center1, d1 
+                        END IF
                         CALL bcast_integer(axis,1,root)
-                        CALL bcast_integer(plane,1,root)
+                        CALL bcast_real(quota,1,root)
                         CALL bcast_real(d1,1,root)
                         CALL bcast_real(center1,1,root)
                         !
                         IF (axis == 1 .AND. surf_type == 1) THEN
                           slice(np)%axis = 1
                           DO i=1,nx
-                            IF (xb(i) <= plane) slice(np)%plane = i
+                            IF (xb(i) <= quota) slice(np)%plane = i
                           END DO
                           DO k=1,nz
                            IF (zb(k) <= center1) slice(np)%n1 = MAX(2,k)
@@ -87,7 +89,7 @@
                         ELSE IF (axis == 2 .AND. surf_type == 1) THEN
                           slice(np)%axis = 2
                           DO k=1,nz
-                            IF (zb(k) <= plane) slice(np)%plane= k
+                            IF (zb(k) <= quota) slice(np)%plane= k
                           END DO
                           DO i=1,nx
                            IF (xb(i) <= center1) slice(np)%n1 = MAX(2,i)
@@ -101,11 +103,11 @@
                         ! ... Read input file. 
                         !
                         IF (mpime == root) THEN
-                          READ(tempunit,*) axis, plane, surf_type
+                          READ(tempunit,*) axis, quota, surf_type
                           READ(tempunit,*) center1, center2, d1, d2  
                         END IF
                         CALL bcast_integer(axis,1,root)
-                        CALL bcast_integer(plane,1,root)
+                        CALL bcast_real(quota,1,root)
                         CALL bcast_integer(surf_type,1,root)
                         CALL bcast_real(center1,1,root)
                         CALL bcast_real(center2,1,root)
@@ -117,7 +119,7 @@
                         IF (axis == 1) THEN
                           slice(np)%axis = 1
                           DO i=1,nx
-                            IF (xb(i) <= plane) slice(np)%plane = i
+                            IF (xb(i) <= quota) slice(np)%plane = i
                           END DO
                           DO j=1,ny
                            IF (yb(j) <= (center1-d1)) slice(np)%n1 = j
@@ -130,7 +132,7 @@
                         ELSE IF (axis == 2) THEN
                           slice(np)%axis = 2
                           DO j=1,ny
-                            IF (yb(j) <= plane) slice(np)%plane = j
+                            IF (yb(j) <= quota) slice(np)%plane = j
                           END DO
                           DO k=1,nz
                            IF (zb(k) <= (center1-d1)) slice(np)%n1 = k
@@ -143,7 +145,7 @@
                         ELSE IF (axis == 3) THEN
                           slice(np)%axis = 3
                           DO k=1,nz
-                            IF (zb(k) <= plane) slice(np)%plane= k
+                            IF (zb(k) <= quota) slice(np)%plane= k
                           END DO
                           DO i=1,nx
                            IF (xb(i) <= (center1-d1)) slice(np)%n1 = i
@@ -163,9 +165,9 @@
         CLOSE(tempunit)
         WRITE(logunit,*) 'Slice limits'
         DO np = 1, number_of_planes
-        WRITE(logunit,*)  np, slice(np)%axis, slice(np)%plane, &
-                          slice(np)%n1, slice(np)%n2, & 
-                          slice(np)%t1, slice(np)%t2
+          WRITE(logunit,*)  np, slice(np)%axis, slice(np)%plane, &
+                            slice(np)%n1, slice(np)%n2, & 
+                            slice(np)%t1, slice(np)%t2
                           
         END DO
       END IF
@@ -292,8 +294,6 @@
 
       RETURN
 !
- 199  CALL error ('fluxn','error in reading tempunit',tempunit)
-! 
      END SUBROUTINE fluxn
 !-----------------------------------------------------------------------
       REAL FUNCTION linterp(field1, field2, dx1, dx2)

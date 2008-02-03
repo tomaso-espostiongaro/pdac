@@ -198,7 +198,7 @@
          IF( ierr /= 0 ) &
             CALL error(' read_array ', ' cannot allocate io_buf ', ntot )
          IF( mpime == root ) THEN
-            READ(iunit,*,ERR=299) ( io_buf(ijk), ijk = 1, ntot )
+            READ(iunit,*) ( io_buf(ijk), ijk = 1, ntot )
          END IF
          CALL data_distribute( io_buf, array, 1, ntot )
          DEALLOCATE( io_buf )
@@ -208,7 +208,7 @@
             IF( ierr /= 0 ) &
                CALL error(' read_array ', ' cannot allocate io_buf ', ntot )
             IF( mpime == root ) THEN
-               READ(iunit,ERR=299) ( io_bufs(ijk), ijk = 1, ntot )
+               READ(iunit) ( io_bufs(ijk), ijk = 1, ntot )
             END IF
             CALL data_distribute( io_bufs, array, 1, ntot )
             DEALLOCATE( io_bufs )
@@ -217,14 +217,12 @@
             IF( ierr /= 0 ) &
                CALL error(' read_array ', ' cannot allocate io_buf ', ntot )
             IF( mpime == root ) THEN
-               READ(iunit,ERR=299) ( io_buf(ijk), ijk = 1, ntot )
+               READ(iunit) ( io_buf(ijk), ijk = 1, ntot )
             END IF
             CALL data_distribute( io_buf, array, 1, ntot )
             DEALLOCATE( io_buf )
          END IF
       END IF
-!
- 299  WRITE(errorunit,*) 'Error reading input file'
 !
       RETURN
 !
@@ -272,7 +270,7 @@
          IF( ierr /= 0 ) &
             CALL error(' read_array ', ' cannot allocate io_buf ', ntot )
          IF( mpime == root ) THEN
-            READ(iunit,*,ERR=399) ( io_buf_inner(ijk), ijk = 1, ntot_inner )
+            READ(iunit,*) ( io_buf_inner(ijk), ijk = 1, ntot_inner )
          END IF
          !
          ! Assemble global atmospheric initial conditions
@@ -295,7 +293,7 @@
            IF( ierr /= 0 ) &
               CALL error(' read_array ', ' cannot allocate io_buf ', ntot )
            IF( mpime == root ) THEN
-              READ(iunit,ERR=399) ( io_bufs_inner(ijk), ijk = 1, ntot_inner )
+              READ(iunit) ( io_bufs_inner(ijk), ijk = 1, ntot_inner )
            END IF
            !
            ! Assemble global atmospheric initial conditions
@@ -317,7 +315,7 @@
            IF( ierr /= 0 ) &
               CALL error(' read_array ', ' cannot allocate io_buf ', ntot )
            IF( mpime == root ) THEN
-              READ(iunit,ERR=399) ( io_buf_inner(ijk), ijk = 1, ntot_inner )
+              READ(iunit) ( io_buf_inner(ijk), ijk = 1, ntot_inner )
            END IF
            !
            ! Assemble global atmospheric initial conditions
@@ -338,8 +336,6 @@
 
       RETURN
 ! 
- 399        CALL error('io_parallel.f', 'error while reading inputunit', iunit)
-!
       END SUBROUTINE read_inner_array
 !----------------------------------------------------------------------
       END MODULE io_parallel

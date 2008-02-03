@@ -14,8 +14,8 @@
       INTEGER :: first_out, last_out, incr_out
       ! ... crop
       INTEGER :: iminc, imaxc, jminc, jmaxc, kminc, kmaxc
-      LOGICAL ::  print_log, print_tg, print_mn, print_cm, print_pd, print_mnn 
-      REAL*8 :: deltaz
+      LOGICAL :: print_log, print_tg, print_mn, print_cm, print_pd, print_mnn 
+      REAL*8  :: deltaz1, deltaz2
 !
       PUBLIC
       SAVE
@@ -398,6 +398,18 @@
       END SUBROUTINE write_topo2d
 !-----------------------------------------------------------------------
       SUBROUTINE write_map(nf,array,labl)
+      IMPLICIT NONE
+      REAL*8, INTENT(IN), DIMENSION(:) :: array
+      INTEGER, INTENT(IN) :: nf
+      CHARACTER(LEN=2), INTENT(IN) :: labl
+      
+      CALL write_map_delta(nf,array,labl,deltaz1)
+      CALL write_map_delta(nf,array,labl,deltaz2)
+
+      RETURN
+      END SUBROUTINE write_map
+!-----------------------------------------------------------------------
+      SUBROUTINE write_map_delta(nf,array,labl,deltaz)
 
       USE control_flags, ONLY: job_type
       USE dimensions, ONLY: nx, ny, nz
@@ -408,10 +420,11 @@
       USE set_indexes, ONLY: first_subscr, ijkm
       IMPLICIT NONE
 
+      REAL*8, INTENT(IN) :: deltaz
       REAL*8, INTENT(IN), DIMENSION(:) :: array
       INTEGER, INTENT(IN) :: nf
       CHARACTER(LEN=2), INTENT(IN) :: labl
-      REAL*8 :: alpha, map, quota, quotam
+      REAL*8 :: alpha, map, quota, quotam 
       INTEGER :: i, j, k, ijk, imesh
       CHARACTER( LEN = 4 ) :: lettera
       CHARACTER( LEN = 20 ) :: filnam
@@ -421,7 +434,7 @@
         ALLOCATE(map1d(nx))
         map1d = 0.D0
       
-        filnam='map_'//labl//'.'//lettera(nf)
+        filnam='map_'//labl//'_'//lettera(INT(deltaz))//'m'//'.'//lettera(nf)
 !
         alpha = 0.0D0
         DO i = 1, nx
@@ -475,7 +488,7 @@
         ALLOCATE(map2d(nx,ny))
         map2d = 0.D0
       
-        filnam='map_'//labl//'.'//lettera(nf)
+        filnam='map_'//labl//'_'//lettera(INT(deltaz))//'m'//'.'//lettera(nf)
 !
         alpha = 0.0D0
         DO i = 1, nx
@@ -537,7 +550,7 @@
  122  FORMAT(10(1x,G14.6E3))
 !
       RETURN
-      END SUBROUTINE write_map
+      END SUBROUTINE write_map_delta
 !----------------------------------------------------------------------
       SUBROUTINE write_fields(tn)
       USE control_flags, ONLY: formatted_output
@@ -1209,10 +1222,10 @@
       nfields = nphase*2 + ngas
 !
       IF (formatted_output) THEN 
-        ! ... number of lines to skip for each block
+        ! ... number of lines for each block
         lbl = nz * (INT(nx*ny / 10) + MIN(1,MOD(nx*ny,10))) + 4
       ELSE
-        ! ... number of bytes (chars) to skip for each block
+        ! ... number of bytes (chars) for each block
         lbl = ntot * 4 + 8
       END IF 
 
@@ -1312,7 +1325,7 @@
             !
             ! Gas pressure
             !
-            skip = skip_time + 4  ! skip the time field and the record marker
+            skip = skip_time  ! skip the time field and the record marker
             attr = ' '
             CALL iotk_write_attr( attr, "name", "P" )
             CALL iotk_write_begin( iunxml, "scalar", attr )

@@ -24,7 +24,7 @@
       USE process_outp, ONLY: iflds, imnfld, imap
       USE postp_output, ONLY: first_out, last_out, incr_out
       USE postp_output, ONLY: iminc, imaxc, jminc, jmaxc, kminc, kmaxc 
-      USE postp_output, ONLY: deltaz
+      USE postp_output, ONLY: deltaz1, deltaz2
       USE postp_output, ONLY: print_log, print_tg, print_mn, print_cm, print_pd, print_mnn 
 
       IMPLICIT NONE
@@ -38,7 +38,7 @@
 
       NAMELIST / mean_outp / imnfld
 
-      NAMELIST / map / imap, deltaz
+      NAMELIST / map / imap, deltaz1, deltaz2
 
       NAMELIST / sampling / isamp, number_of_probes, assign_index, probe_file, &
                iiv, jjv
@@ -89,7 +89,8 @@
 ! ... Map
 
   imap = 0
-  deltaz = 20
+  deltaz1 = 10
+  deltaz2 = 30
 
 ! ... Sampling
   
@@ -162,7 +163,8 @@
 !
       IF (mpime == root) READ(punit, map, ERR=399)
       CALL bcast_integer(imap,1,root)
-      CALL bcast_real(deltaz,1,root)
+      CALL bcast_real(deltaz1,1,root)
+      CALL bcast_real(deltaz2,1,root)
 !
 ! ... Sampling namelist ..................................................
 !
