@@ -1,18 +1,12 @@
 &control
   act        = 0        ! 1: mount time sequence, 2: time-space sampling, 3: mass partition, 4: flux across a surface
-  first_out  = 0     
-  last_out   = 10   
+  first_out  = 0
+  last_out   = 0   
   incr_out   = 1
 /
 
 &fields
   iflds = 0
-  print_log = .TRUE.
-  print_tg  = .TRUE.
-  print_mn  = .TRUE.
-  print_cm  = .TRUE. 
-  print_pd  = .TRUE.
-  print_mnn = .TRUE.
 /
 
 &mean_outp
@@ -21,31 +15,22 @@
 
 &map
   imap = 0
-  deltaz = 10.D0
 /
 
 &sampling
   isamp = 0
-  number_of_probes = 5 
-  assign_index     = .TRUE.
-  probe_file = 'probe.dat'
 /
 
 &masspart
   imassn = 0
-  number_of_boxes = 3,
-  boxes_file = 'boxes.dat'
 /
 
 &massflux
   ifluxn = 0
-  number_of_planes = 1,
-  planes_file = 'planes.dat'
 /
 
 &massgsedim
   iground = 0,
-  thickness = 200.D0
 /
 
 &animation
