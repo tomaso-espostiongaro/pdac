@@ -11,7 +11,7 @@
 !
 ! ... derived fields
 !
-      REAL*8, ALLOCATABLE, DIMENSION(:) :: epst, vf, lepst, rhog, rgp
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: epst, vf, lepst, rhog, rgp, mg
       REAL*8, ALLOCATABLE, DIMENSION(:) :: rhom, um, vm, wm, pd, mvm 
       REAL*8, ALLOCATABLE, DIMENSION(:) :: tm, cm, mn, mnn, gpx, gpy, gpz
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: rlk, ygc
@@ -100,6 +100,7 @@
       ALLOCATE(pd(dime),STAT=stat(18))  ! Dynamic Pressure
       ALLOCATE(rlk(dime,nsolid),STAT=stat(19))  ! Solid Bulk density
       ALLOCATE(ygc(dime,ngas),STAT=stat(20))  ! Gas mass fractions
+      ALLOCATE(mg(dime),STAT=stat(21)) ! Gas mass
 !
       IF (ANY(stat /= 0)) CALL error('postvar','problem allocating vars',1)
 !
@@ -123,6 +124,7 @@
       pd    = 0.D0
       rlk   = 0.D0
       ygc   = 0.D0
+      mg    = 0.D0
 !
       RETURN
       END SUBROUTINE allocate_derived_fields
@@ -308,7 +310,7 @@
         CALL total_particle_fraction(epst,eps)
         CALL void_fraction(vf,epst)
         CALL log10_epstot(lepst,epst)
-        CALL gas_density(rhog,p,tg,xgc)
+        CALL gas_density(rhog,p,tg,xgc,mg)
         CALL gas_mass_fractions(ygc,xgc)
         CALL gas_bulk_density(rgp,vf,rhog)
         CALL solid_bulk_density(rlk,eps)

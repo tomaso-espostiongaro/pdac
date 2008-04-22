@@ -12,7 +12,7 @@
                gas_bulk_density, solid_bulk_density, &
                mixture_density, mixture_velocity, &
                velocity_module_2D, velocity_module_3D, &
-               dynamic_pressure
+               dynamic_pressure 
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
@@ -145,7 +145,7 @@
       RETURN
       END SUBROUTINE gas_molecular_weight
 !----------------------------------------------------------------------
-      SUBROUTINE gas_density(rhog,p,tg,xgc)
+      SUBROUTINE gas_density(rhog,p,tg,xgc,mgas)
       !
       ! ... computes gas thermodynamic density
 
