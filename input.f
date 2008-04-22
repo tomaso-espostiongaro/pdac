@@ -129,7 +129,7 @@
       USE set_indexes, ONLY: subsc_setup
       USE specific_heat_module, ONLY: icpc
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
-     &                            timestart, rungekut, tau, tau1, tau2
+     &                            timestart, rungekut, tau, tau1, tau2, ift
       USE turbulence_model, ONLY: iturb, cmut, iss, modturbo
       USE volcano_topography, ONLY: itp, iavv, cellsize, min_angle, max_angle,&
                                      filtersize, dem_file, nocrater, rim_quota, &
@@ -140,7 +140,7 @@
       INTEGER, INTENT(IN) :: iunit
 
       NAMELIST / control / run_name, job_type, restart_mode,       &
-        time, tstop, dt, lpr, imr, isrt, tpr, tdump, nfil, tau, tau1, tau2,      &
+        time, tstop, dt, lpr, imr, isrt, tpr, tdump, nfil, tau, tau1, tau2, ift,      &
         formatted_output, formatted_input, max_seconds
 
       NAMELIST / model / icpc, irex, gas_viscosity, part_viscosity,      &
@@ -213,6 +213,7 @@
       tau = 0.D0
       tau1 = 0.D0
       tau2 = 0.D0
+      ift  = 1
 
 ! ... Model
 
@@ -446,6 +447,7 @@
       CALL bcast_real(tau,1,root)
       CALL bcast_real(tau1,1,root)
       CALL bcast_real(tau2,1,root)
+      CALL bcast_integer(ift,1,root)
 !
 ! .....................................................................
 !
@@ -870,6 +872,7 @@
             CALL iotk_write_dat( iuni_nml, "tau", tau )
             CALL iotk_write_dat( iuni_nml, "tau1", tau1 )
             CALL iotk_write_dat( iuni_nml, "tau2", tau2 )
+            CALL iotk_write_dat( iuni_nml, "ift", ift )
             CALL iotk_write_dat( iuni_nml, "formatted_output", formatted_output )
             CALL iotk_write_dat( iuni_nml, "formatted_input", formatted_input )
           CALL iotk_write_end( iuni_nml, "control" )

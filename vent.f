@@ -806,6 +806,7 @@
 !
       USE dimensions, ONLY: nsolid
       USE gas_solid_velocity, ONLY: wg, ws
+      USE time_parameters, ONLY: ift
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: ijk, imesh, sweep
@@ -815,10 +816,23 @@
       IF (wrat > 1.D0) RETURN
       
       ! ... The inlet profile grows from 0 to its final
-      ! ... value as the function of time 'ft1'
+      ! ... value as the function of time
       !
-      growth_factor = ft1(sweep)
-      
+      SELECT CASE (ift)
+        CASE (1)
+          growth_factor = ft1(sweep)
+        CASE (2)
+          growth_factor = ft2(sweep)
+        CASE (3)
+          growth_factor = ft3(sweep)
+        CASE (4)
+          growth_factor = ft4(sweep)
+        CASE (5)
+          growth_factor = ft5(sweep)
+        CASE DEFAULT
+          growth_factor = 1.D0
+      END SELECT
+!
       wg(ijk) = w_gas * growth_factor
       DO is = 1,nsolid
         ws(ijk,is) = w_solid(is) * growth_factor
@@ -832,6 +846,7 @@
       USE atmospheric_conditions, ONLY: p_ground
       USE dimensions, ONLY: nsolid
       USE gas_solid_velocity, ONLY: wg, ws
+      USE time_parameters, ONLY: ift
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: ijk, imesh, sweep
@@ -844,7 +859,23 @@
               wpart_init(1:nsolid) = ws(ijk,1:nsolid)
       END IF
       !
-      growth_factor = ft1(sweep)
+      ! ... The inlet profile grows from 0 to its final
+      ! ... value as the function of time
+      !
+      SELECT CASE (ift)
+        CASE (1)
+          growth_factor = ft1(sweep)
+        CASE (2)
+          growth_factor = ft2(sweep)
+        CASE (3)
+          growth_factor = ft3(sweep)
+        CASE (4)
+          growth_factor = ft4(sweep)
+        CASE (5)
+          growth_factor = ft5(sweep)
+        CASE DEFAULT
+          growth_factor = 1.D0
+      END SELECT
       !
       wg(ijk) = wgas_init * growth_factor
       DO is = 1,nsolid
@@ -891,21 +922,16 @@
       t = n * dt
       tr1 = 0.D0
       tr2 = 0.D0
+      ft1 = 1.D0
 !
-! ... The function 'ft1' grows smoothly from 0 to 1 in a time 'tau1'
-! ... and it is set to 0 after time 'tau2'
+! ... The function 'ft1' grows linearly from 0 to 1 in a time 'tau1'
+! ... and decreases linearly from 1 to 0 in a time 'tau2-tau1'
 !
       IF (tau1 > 0.D0) tr1 = t / tau1
-      IF (tau2 > 0.D0) tr2 = t / tau2
+      IF (tau2 > tau1) tr2 = (tau2 - t)/(tau2 - tau1)
 
       IF (tr1 > 0.D0 .AND. tr2 > 0.D0) THEN
-        IF (tr1 <= 1.D0) THEN
-          ft1 = 3.D0 * (tr1)**2 - 2.D0 * (tr1)**3     
-        ELSE IF (tr2 > 1.D0 ) THEN
-          ft1 = 0.D0
-        ELSE
-          ft1 = 1.D0
-        END IF
+              ft1 = MAX(MIN(tr1,tr2),0.D0)
       END IF
 
       RETURN
@@ -914,26 +940,91 @@
       REAL*8 FUNCTION ft2(n)
       USE time_parameters, ONLY: tau1, tau2, dt
       IMPLICIT NONE
+      INTEGER, INTENT(IN) :: n        ! Dichiara l'argomento in ingresso
+      REAL*8 :: t
+! ... actual time
+      t = n * dt
+!    
+      ft2 = DEXP(-(t-tau1)**2/(2*tau2**2))
+!
+      RETURN
+      END FUNCTION ft2
+!----------------------------------------------------------------------
+      REAL*8 FUNCTION ft3(n)
+      USE time_parameters, ONLY: tau1, tau2, dt
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: n        ! Dichiara l'argomento in ingresso
+      REAL*8 :: t
+! ... actual time
+      t = n * dt
+    
+! ... The function 'ft3' grows linearly from 0 to 1 in a time 'tau1'
+! ... and decreases to 0 after time 'tau2'
+!
+      IF (t > 0.D0) THEN
+        IF (t <= tau1) THEN
+          ft3 = t / tau1   
+        ELSE IF (t > tau1 .AND. t < 2*tau1 ) THEN
+          ft3= -t/tau1 + 2.D0
+        ELSE
+          ft3 = 0.D0
+        END IF
+      END IF
+
+      RETURN
+      END FUNCTION ft3
+!-----------------------------------------------------------------------
+      REAL*8 FUNCTION ft4(n)
+      USE time_parameters, ONLY: tau1, tau2, dt
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: n        ! Dichiara l'argomento in ingresso
+      REAL*8 :: t
+      REAL*8 :: pi
+!
+      pi = 4.D0 * DATAN(1.D0)
+!
+! ... actual time
+      t = n * dt
+!    
+! ... The function 'ft4' oscillates periodically from 0 to 1 with period 'tau1'
+!
+      IF (t > 0.D0 .AND. t <= tau2) THEN
+        ft4 = (DSIN(t/tau1*pi))**2
+      ELSE IF (t > tau2) THEN
+        ft4 = 0.D0
+      END IF
+
+      RETURN
+      END FUNCTION ft4
+!-----------------------------------------------------------------------
+      REAL*8 FUNCTION ft5(n)
+      USE time_parameters, ONLY: tau1, tau2, dt
+      IMPLICIT NONE
       INTEGER, INTENT(IN) :: n
       REAL*8 :: t, tr1, tr2
 
       t = n * dt
       tr1 = 0.D0
       tr2 = 0.D0
-      ft2 = 1.D0
 !
-! ... The function 'ft2' grows linearly from 0 to 1 in a time 'tau1'
-! ... and decreases linearly from 1 to 0 in a time 'tau2-tau1'
+! ... The function 'ft5' grows smoothly from 0 to 1 in a time 'tau1'
+! ... and it is set to 0 after time 'tau2'
 !
       IF (tau1 > 0.D0) tr1 = t / tau1
-      IF (tau2 > tau1) tr2 = (tau2 - t)/(tau2 - tau1)
+      IF (tau2 > 0.D0) tr2 = t / tau2
 
       IF (tr1 > 0.D0 .AND. tr2 > 0.D0) THEN
-              ft2 = MAX(MIN(tr1,tr2),0.D0)
+        IF (tr1 <= 1.D0) THEN
+          ft5 = 3.D0 * (tr1)**2 - 2.D0 * (tr1)**3     
+        ELSE IF (tr2 > 1.D0 ) THEN
+          ft5 = 0.D0
+        ELSE
+          ft5 = 1.D0
+        END IF
       END IF
 
       RETURN
-      END FUNCTION ft2
+      END FUNCTION ft5
 !-----------------------------------------------------------------------
       REAL*8 FUNCTION cell_fraction(i,j)
 !
