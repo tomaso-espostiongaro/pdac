@@ -37,7 +37,7 @@
       USE postp_variables, ONLY: allocate_main_fields, allocate_derived_fields, tg
       USE postp_variables, ONLY: compute_derived_fields, allocate_derived_fields_av
       USE postp_variables, ONLY: pd, tg, ts, lepst, rhom, um, vm, wm, mvm, tm
-      USE postp_variables, ONLY: rlk, rgp, vf, rhog, p, tg, xgc, mg
+      USE postp_variables, ONLY: rlk, rgp, vf, rhog, p, tg, xgc, mg, mn
       USE gas_constants, ONLY: rgas
       USE postp_variables, ONLY: rhom_gav, um_gav, vm_gav, wm_gav, tm_gav
 !
@@ -103,8 +103,8 @@
         IF (imap > 0) THEN
                CALL write_topo2d
                CALL write_map(tn,lepst,'le')
-!               CALL write_map(tn,tg,'tg')
-!               CALL write_map(tn,pd,'pd')
+               CALL write_map(tn,tg,'tg')
+               CALL write_map(tn,pd,'pd')
         END IF
         IF (isamp > 0)  CALL sample
         IF (isamp > 1)  CALL column_axis_average(itn)

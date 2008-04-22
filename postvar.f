@@ -78,7 +78,7 @@
 !
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: dime
-      INTEGER :: stat(20)
+      INTEGER :: stat(21)
 
       ALLOCATE(epst(dime),STAT=stat(1))  ! Total particle fraction
       ALLOCATE(vf(dime),STAT=stat(2))    ! Void fraction

@@ -163,8 +163,6 @@
                         imesh_probe(nop) = imesh
                 END IF
           END IF
-!          IF (mpime == root) WRITE(logunit,'(4I4,6F14.4)') nop, i, j, k, x(i), y(j), z(k), &
-!                               probe(nop)%x, probe(nop)%y, probe(nop)%z
         END DO
         IF (mpime == root) CLOSE(tempunit)
       END IF
@@ -210,7 +208,6 @@
         CLOSE(tempunit)
         CALL barrier
       END DO
-!CALL error('sampling','line:',173)
 
  100  FORMAT( F8.2, 100(G14.6E3,1X) )
 !
