@@ -431,17 +431,27 @@
       REAL*8 :: dist, radius
       INTEGER :: ijk,i,j,k,imesh
       INTEGER :: ig, is, dfg
-
-!      dist = 0.D0
-!      radius = 41.0D0
-
+      INTEGER :: ic, jc, kc
+!
+! ... These parameters are used to set the initial conditions
+! ... within a specified radius
+! ... uncomment to set radius
+!        dist = 0.D0
+!        radius = 4.0D-1
+!        ic = iob(n)%xlo
+!        jc = iob(n)%ylo
+!        kc = iob(n)%zlo
+!
         DO ijk = 1, ncint
           CALL meshinds(ijk,imesh,i,j,k)
-
           IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi  ) THEN
             IF ( ( j >= iob(n)%ylo .AND. j <= iob(n)%yhi )    &
                                     .OR. job_type == '2D') THEN
               IF ( i >= iob(n)%xlo .AND. i <= iob(n)%xhi  ) THEN
+                !
+! ... uncomment to set radius (alternative to the triple IF above)
+!              dist = DSQRT((x(i)-x(ic))**2+(y(j)-y(jc))**2+(z(k)-z(kc))**2)
+!              IF (dist <= radius) THEN
                 ug(ijk) = ugob(n)
                 IF (job_type == '3D') vg(ijk) = vgob(n)
                 wg(ijk) = wgob(n)
@@ -463,7 +473,9 @@
                 ygcsum = SUM(ygc(ijk,:))
                 IF ( ygcsum /= 1.D0 ) THEN
                   ygc(ijk,ngas) = 1.D0 - SUM( ygc(ijk,1:ngas-1) )
-                END IF
+              END IF
+                !
+!               END IF  ! uncomment to set radius
               END IF
             END IF
           END IF
@@ -582,7 +594,7 @@
 
         DO ig = 1, ngas
           IF( mpime == root ) THEN
-            WRITE(logunit,*) ' Gas ', ig, ' is type ', gas_type(ig)
+!            WRITE(logunit,*) ' Gas ', ig, ' is type ', gas_type(ig)
             IF (gas_type(ig)==0) CALL error('gas_check','control gas species',1)
           END IF
         END DO
