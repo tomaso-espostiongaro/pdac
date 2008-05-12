@@ -1,10 +1,7 @@
 \section{Simulation Parameters}
 \label{section:input_par}
 
-\subsection{\PDAC\ input namelists}
-\label{section:namelists}
-
-\subsubsection{\OBJ{control} namelist}
+\subsection{\OBJ{control} namelist}
 The \OBJ{control} namelist contains the parameters that control the program
 flow, such as the start mode, the initial and final time, the output printing.
 
@@ -104,9 +101,14 @@ F - binary 4-bytes }
 {Maximum duration of a simulation (in seconds). If time exceeds this value
 a restart file is written before the simulation is stopped (useful for
 scheduling). Default time is set to 6 hours}
+
+\item
+\PDACCONFWDEF{ift}{flag for time-dependent input}{0-5}{1}
+{Function type used to change the mass flow rate at the inlet (if \OBJ{tau1} 
+or \OBJ{tau2} $> 0.0$)}
 \end{itemize}
 
-\subsubsection{\OBJ{model} namelist}
+\subsection{\OBJ{model} namelist}
 The \OBJ{model} namelist is intended for all switches that can be selected
 by the user to modify the model equations, either by neglecting some terms
 in the transport equations or by using different constitutive equations
@@ -193,7 +195,7 @@ Particle temperature is set equal to gas temperature.}
 
 \end{itemize}
 
-\subsubsection{\OBJ{mesh} namelist}
+\subsection{\OBJ{mesh} namelist}
 Here all parameters concerning the spatial discretization of the computational
 domain must be selected. In \PDAC\ you are constrained to discretization 
 on a rectilinear (non-)uniform mesh. Cylindrical coordinates can be
@@ -347,7 +349,7 @@ described below 80 Km.}
 
 \end{itemize}
 
-\subsubsection{\OBJ{Boundaries} namelist}
+\subsection{\OBJ{boundaries} namelist}
 The \OBJ{Boundaries} namelist contains the flags that specify the
 conditions to be imposed on the domain boundaries. The domain boundaries
 are identified by their compass position, i.e. west-east in x-direction,
@@ -394,8 +396,17 @@ on a rectangular block defined in the FIXED\_FLOWS card.}
 
 \end{itemize}
 
-\subsubsection{\OBJ{topography} namelist}
-The present version of \PDAC can include (in 2D and 3D) an external file specifying a generic volcano topography. In 2D the topography can be given on a non-uniform mesh, whereas in 3D it is assumed that a standard ASCII DEM file is read.
+\subsection{\OBJ{topography} namelist}
+The topography can be acquired by reading, from an external file,
+ an elevation matrix defined on a discrete array of points. 
+The elevation values are then interpolated
+linearly on the computational mesh centers. 
+The file containing the elevation matrix must be ASCII formatted and is 
+composed by a header and the dataset. Its format is defined in the
+Section \ref{section:files}
+A few manipulations are possibile, to modify the original topography
+in order to set inlet conditions on a vent or to define dome initial
+conditions.
 
 \begin{itemize}
 \item
@@ -404,29 +415,53 @@ The present version of \PDAC can include (in 2D and 3D) an external file specify
 
 \item
 \PDACCONFWDEF{itp}{Flag for importing DEM file}{0/1}{0}
-{If itp = 1, read the topography from a file.}
+{When \OBJ{itp} = 1, read the topography from a file.}
 
 \item
 \PDACCONFWDEF{ismt}{Flag for smoothing DEM}{1/2/3}{1}
 {Smoothing of the DEM is performed accordingly to a median filter (1), a 
-Gaussian filter (2) or a Barnes filter (3). The filtersize is defined
-by the corresponding input parameter.}
+Gaussian filter (2) or a Barnes filter (3). The filter size is defined
+by the corresponding input parameter. Smoothing is useful when
+non-uniform meshes are used, in order to have a uniform DEM accuracy
+in the whole domain: in such cases, a filter size larger than half the 
+maximum cell size is recommended.}
 
 \item
 \PDACCONFWDEF{iavv}{Flag for averaging the topography}{0/1}{0}
-{Averages the topography to obtain an axisymmetric topography.}
+{Averages the topography to obtain an axisymmetric topography with
+averaged slope.}
+
+\item
+\PDACCONFWDEF{min\_angle}{minimum angle for averaging}{0-180}{0}
+{Minimum angle, in degrees, to start axisymmetric averaging (see \OBJ{iavv}
+flag.}
+
+\item
+\PDACCONFWDEF{max\_angle}{maximum angle for averaging}{0-180}{0}
+{Maximum angle, in degrees, to start axisymmetric averaging (see \OBJ{iavv}
+flag.}
 
 \item
 \PDACCONFWDEF{itrans}{Flag for vertical mesh translation} {0/1}{0}
-{Translates the mesh vertically up to the minimum topographic elevation (to save cells).}
+{Translates the computational mesh vertically up to the minimum topographic elevation. In this way, the number of computational cells occupied by the 
+topography is minimized.}
 
 \item
-\PDACCONFWDEF{nocrater}{Flag for crater flattening}{T/F}{F}
-{Allows to flatten a region of the volcano around the vent at a given rim\_quota (see below).}
+\PDACCONFWDEF{seatable}{Flag for removing the bathimetry} {T/F}{T}
+{When .TRUE., it sets to sea level (0) all negative elevations (e.g.,
+reporting the bathimetry).}
+
+\item
+\PDACCONFWDEF{nocrater}{Flag for crater filling}{T/F}{F}
+{When .TRUE., it flattens a region of the volcano around the vent at a given 
+rim\_quota, to locate a plane vent (see below). Note that topography is always
+flattened around the vent center, at the quota defined by the DEM file. If
+the \OBJ{nocrater} option is selected, the quota can be set by the user
+(e.g., to impose the inlet at the {\em exit} of the actual crater).}
 
 \item
 \PDACCONFWDEF{rim\_quota}{Elevation a.s.l. where the topography is flattened}{any real}{1000}
-{If 'nocrater' is selected, flatten the topography at this quota.}
+{If \OBJ{nocrater} is .TRUE., the topography is flattened at this quota.}
 
 \item
 \PDACCONFWDEF{filtersize}{High-pass filtering size (in metres) for the topography}{any real $>$ 0.0}{50}
@@ -434,29 +469,35 @@ by the corresponding input parameter.}
 
 \item
 \PDACCONFWDEF{cellsize}{Resample the topography on a given mesh}{any real $>$ 0.0}{10}
-{This value is usually set equal to the dxmin, dymin values}
+{This value is usually set equal to the \OBJ{dxmin} or \OBJ{dymin} values}
 
 \item
 \PDACCONFWDEF{zrough}{roughness length}{real}{1.0}
 {Default Roughness length. Typical values for ground
 ranges from few centimeters to some metres.}
-
 \end{itemize}
 
-\subsubsection{\OBJ{inlet} namelist}
+\subsection{\OBJ{inlet} namelist}
 The flow conditions at the volcanic vent can be specified
-explicitly in the \OBJ{'FIXED\_FLOWS'} card for both 2D and 3D simulations.
-Alternatively, in 3D, the \OBJ{inlet} namelist can be used to impose the vent
+explicitly (i.e., cell-by-cell) in the \OBJ{'FIXED\_FLOWS'} 
+card for both 2D and 3D simulations.
+Alternatively, the \OBJ{inlet} namelist can be used to impose the vent
 conditions on a {\em circular} vent, without specifying the flow field in each 
-cell of the vent. It also includes some {\em antialiasing} procedures to correct the mass flow rate
-when the circular source is discretized on the cartesian mesh. The mass flow rate
-can be adjusted also by feeding the jet from the partially filled cells with a randomly
-fluctuating flow.
+cell of the vent. 
+By default, inlet conditions are homogeneous and steady-state in all cells
+enclosed within the \OBJ{vent\_radius}. Nevertheless, some of the
+following parameters can control the spatial variation of the inlet 
+flow parameters. Temporal variations of the flow parameters can be
+controlled by the \OBJ{tau}, \OBJ{tau1}, \OBJ{tau2} parameters in the
+\OBJ{control} namelist. 
 
 \begin{itemize}
 \item
 \PDACCONFWDEF{ivent}{Flag for inlet conditions on a circular vent}{0/1}{0}
-{Vent conditions are automatically imposed on the topography if {\tt ibl=1}}
+{Vent conditions are automatically imposed at the topography elevation
+if \OBJ{itp}=1. Since the topography may be irregular around the vent
+center, it is flattened within a distance defined by the parameter
+\OBJ{base\_radius} defined below.}
 
 \item
 \PDACCONFWDEF{iali}{Flag for anti-aliasing}{0/1/2/3}{0}
@@ -469,49 +510,56 @@ partially filled by the topography, on the vent boundary. 0: no antialias;
 \PDACCONFWDEF{irand}{Flag for random switch}{0/1}{0}
 {Activates the random-switch procedure. The inlet cells are switched on
 (i.e. the flux is feeded) with a probability proportional to the area not 
-occupied by the topography.}
+occupied by the topography. This procedure is used as an alternative to
+the antialias procedure (flat \OBJ{iali} above).}
 
 \item
 \PDACCONFWDEF{ipro}{Flag for flow radial profile}{0/1}{0}
-{Allows to set a radial inflow profile read from an external file (see below).}
+{If equal to 1, it sets a radial inflow profile read from an external 
+file.}
 
 \item
 \PDACCONFWDEF{rad\_file}{Name of the file defining the profile}{string between single quotes}{'profile.dat'}
-{The input file is described in the i/o files section of this manual}
+{The input file is described in Section \ref{section:files} of this manual}
 
 \item
 \PDACCONFWDEF{xvent}{UTM longitude of the center of the vent}{any real}{0.0}
-{If the mesh is generated from a DEM file, the vent center is translated in the more refined region
-(i.e., in the mesh ``center\_x'')}
+{The vent must be located where the mesh is uniform.}
 
 \item
 \PDACCONFWDEF{yvent}{UTM latitude of the center of the vent}{any real}{0.0}
-{If the mesh is generated from a DEM file, the vent is translated in the more refined region
-(i.e., in the mesh ``center\_y'')}
+{The vent must be located where the mesh is uniform.}
 
 \item
 \PDACCONFWDEF{vent\_radius}{Radius of the vent}{any real $>$ 0.0}{100}
-{The vent radius in metres}
+{The vent radius in metres. Notice that the square enclosing the vent
+\OBJ{base\_radius} must lay on a uniform mesh region.}
 
 \item
 \PDACCONFWDEF{base\_radius}{The radius of the base of the crater}{any real $>$ 0.0}{200}
-{This value must be equal, at least, to the double of the vent radius.}
+{This value must be equal, at least, to the double of the vent radius. This
+reduces the boundary effects on the jet flow.}
 
 \item
 \PDACCONFWDEF{crater\_radius}{The external radius of the crater}{any real}{500}
-{This value is approximate, and it is used to flatten the crater, if prescribed.}
+{This value is approximate, and it is used to flatten the crater, if prescribed. It is important only when the topography presents more than one local maximum.}
 
 \item
 \PDACCONFWDEF{u\_gas}{Inlet gas velocity x}{any real}{0.0}
-{}
+{If \OBJ{ipro} is set to 1, this value is overwritten. This value
+is also modified by the flag \OBJ{wrat}.}
 
 \item
 \PDACCONFWDEF{v\_gas}{Inlet gas velocity y}{any real}{0.0}
-{}
+{If \OBJ{ipro} is set to 1, this value is overwritten. This value
+is also modified by the flag \OBJ{wrat}.}
 
 \item
 \PDACCONFWDEF{w\_gas}{Inlet (averaged) gas velocity z}{any real}{0.0}
-{}
+{If \OBJ{ipro} is set to 1, this value is overwritten. This value
+is also modified by the flag \OBJ{wrat}. On the vent perimeter,
+it is modified when \OBJ{iali}=3 or \OBJ{irand}=1 (see descriptions)
+to adjust the mass flow rate.}
 
 \item
 \PDACCONFWDEF{wrat}{Ratio between the maximum and the averaged vertical gas veloctiy}{any real $>$ 1.0}{1.0}
@@ -520,107 +568,153 @@ following a power-law profile. Note that this options shall significantly modify
 
 \item
 \PDACCONFWDEF{p\_gas}{Pressure at the vent}{any real}{101325.0}
-{}
+{If \OBJ{ipro} is set to 1, this value is overwritten. 
+This value is modified on the vent perimeter when \OBJ{iali}=1,
+to adjust the local density and mass flow rate.}
 
 \item
-\PDACCONFWDEF{t\_gas}{Temperature at the vent}{any real $>$ 0.0}{288.15}{}
+\PDACCONFWDEF{t\_gas}{Temperature at the vent}{any real $>$ 0.0}{288.15}{If \OBJ{ipro} is set to 1, this value is overwritten. }
 
 \item
 \PDACCONFWDEF{u\_solid}{Inlet particle velocity x}{any real}{0.0}
-{The values for different particle classes must be separated by commas.}
+{The values for different particle classes must be separated by commas.
+If \OBJ{ipro} is set to 1, this value is overwritten. This value
+is also modified by the flag \OBJ{wrat}.}
 
 \item
 \PDACCONFWDEF{v\_solid}{Inlet particle velocity y}{any real}{0.0}
-{The values for different particle classes must be separated by commas.}
+{The values for different particle classes must be separated by commas.
+If \OBJ{ipro} is set to 1, this value is overwritten. This value
+is also modified by the flag \OBJ{wrat}.}
 
 \item
 \PDACCONFWDEF{w\_solid}{Inlet particle velocity z}{any real}{0.0}
-{The values for different particle classes must be separated by commas.}
+{The values for different particle classes must be separated by commas.
+If \OBJ{ipro} is set to 1, this value is overwritten. This value
+is also modified by the flag \OBJ{wrat}. On the vent perimeter,
+it is modified when \OBJ{iali}=3 or \OBJ{irand}=1 (see descriptions)
+to adjust the mass flow rate.}
 
 \item
 \PDACCONFWDEF{ep\_solid}{Averaged particle fraction}{any real $>$ 0.0}{0.0}
-{The values for different particle classes must be separated by commas.}
+{The values for different particle classes must be separated by commas.
+If \OBJ{ipro} is set to 1, this value is overwritten.
+This value is modified on the vent perimeter when \OBJ{iali}=1/2,
+to adjust the local density and mass flow rate.  }
 
 \item
 \PDACCONFWDEF{t\_solid}{Particle temperature}{any real $>$ 0.0}{288.15}
-{The values for different particle classes must be separated by commas.}
+{The values for different particle classes must be separated by commas.
+If \OBJ{ipro} is set to 1, this value is overwritten.}
 
 \item
-\PDACCONFWDEF{vent\_O2}{Averaged concentration of O2 at the vent}{any real [0.0:1.0]}{}{}
+\PDACCONFWDEF{vent\_O2}{Averaged concentration of O2 at the vent}{any real [0.0:1.0]}{0.0}{If \OBJ{ipro} is set to 1, this value is overwritten.}
 
 \item
-\PDACCONFWDEF{vent\_N2}{Averaged concentration of N2 at the vent}{any real [0.0:1.0]}{0.0}{}
+\PDACCONFWDEF{vent\_N2}{Averaged concentration of N2 at the vent}{any real [0.0:1.0]}{0.0}{If \OBJ{ipro} is set to 1, this value is overwritten.}
 
 \item
-\PDACCONFWDEF{vent\_CO2}{Averaged concentration of CO2 at the vent}{any real [0.0:1.0]}{0.0}{}
+\PDACCONFWDEF{vent\_CO2}{Averaged concentration of CO2 at the vent}{any real [0.0:1.0]}{0.0}{If \OBJ{ipro} is set to 1, this value is overwritten.}
 
 \item
-\PDACCONFWDEF{vent\_H2}{Averaged concentration of H2 at the vent}{any real [0.0:1.0]}{0.0}{}
+\PDACCONFWDEF{vent\_H2}{Averaged concentration of H2 at the vent}{any real [0.0:1.0]}{0.0}{If \OBJ{ipro} is set to 1, this value is overwritten.}
 
 \item
-\PDACCONFWDEF{vent\_H2O}{Averaged concentration of H2O at the vent}{any real [0.0:1.0]}{1.0}{}
+\PDACCONFWDEF{vent\_H2O}{Averaged concentration of H2O at the vent}{any real [0.0:1.0]}{1.0}{If \OBJ{ipro} is set to 1, this value is overwritten.}
 
 \item
-\PDACCONFWDEF{vent\_Air}{Averaged concentration of Air at the vent}{any real [0.0:1.0]}{0.0}{}
+\PDACCONFWDEF{vent\_Air}{Averaged concentration of Air at the vent}{any real [0.0:1.0]}{0.0}{If \OBJ{ipro} is set to 1, this value is overwritten.}
 
 \item
-\PDACCONFWDEF{vent\_SO2}{Averaged concentration of SO2 at the vent}{any real [0.0:1.0]}{0.0}{}
+\PDACCONFWDEF{vent\_SO2}{Averaged concentration of SO2 at the vent}{any real [0.0:1.0]}{0.0}{If \OBJ{ipro} is set to 1, this value is overwritten.}
 \end{itemize}
 
-\subsubsection{\OBJ{Dome} namelist}
+\subsection{\OBJ{dome} namelist}
 This namelist contains the numerical and model parameters to define initial
 conditions for dome explosion simulations. It includes the parameters for
 the Woods et al. (2002) model for the dome pressurization.
 This namelist is intended for both 2D/3D simulations. For 2D cylindrical
 simulations, the dome center is always located on the symmetry axis.
+The dome can be assumed as a core of juvenile material surrounded by lithic material. The dome volume always represent the juvenile material.
 
 \begin{itemize}
 \item
 \PDACCONFWDEF{idome}{Flag for inlet conditions on a spherical dome}{0/1/2}{0}
 {0: no dome; 1: gas overpressure set through porous dome model; 2: constant overpressure.
-Dome cells are automatically imposed over the topography if {\tt ibl=1}}
+Dome cells are automatically imposed over the topography if \OBJ{ibl=1}.
+Since the topography may be irregular around the vent
+center, it is flattened within a distance defined by the
+dome radius (computed by the code given the dome volume).}
 
 \item
 \PDACCONFWDEF{idw}{Flag for hydrostatic pressure}{0/1}{0}
-{1: add hydrostatic pressure of the dome edifice to the gas overpressure}
+{When it is set to 1, it adds the hydrostatic load due to the dome edifice 
+to the gas overpressure. The hydrostatic pressure is computed by computing
+the mass of gas and particles along a vertical column, for every cells
+in the dome base.}
 
 \item
 \PDACCONFWDEF{xdome}{UTM longitude of the center of the dome}{any real}{0.0}
-{The dome can be located out from the more refined region}
+{The dome can be located out from the uniform mesh region}
 
 \item
 \PDACCONFWDEF{ydome}{UTM latitude of the center of the dome}{any real}{0.0}
-{The dome can be located out from the more refined region}
+{The dome can be located out from the uniform mesh region}
+
+\item
+\PDACCONFWDEF{zdome}{Elevation of the center of the dome}{any real}{0.0}
+{If \OBJ{zdome} is lower than the actual topography elevation, the 
+topography is excavated (i.e., the topography is flattened at this quota,
+within a radius which is twice the dome radius. 
+Otherwise, the dome is located on the first cell above the topography.}
 
 \item
 \PDACCONFWDEF{dome\_volume}{Volume of the dome}{any real $>$ 0.0}{1.D6}
 {Note: the dome volume includes the gas fraction (it does NOT correspond to the
-Dense Rock Equivalent volume). The total mass in the dome resulting from the
-automatic procedure depends on the mesh discretization and on the topography.}
+Dense Rock Equivalent - DRE - volume). The total mass in the dome resulting 
+from the automatic procedure depends on the mesh discretization and on 
+the topography.}
 
 \item
 \PDACCONFWDEF{conduit\_radius}{minimal radius of the dome}{any real $>$ 0.0}{15.D0}
-{The dome pressure is constant within the conduit\_radius}
+{The dome pressure is constant within this distance from the dome center.}
 
 \item
-\PDACCONFWDEF{overpressure}{Constant overpressure can be imposed within the dome}{any real $>$ 0.0}{100.D5}
-{This value is used if {\tt idome = 2}}
+\PDACCONFWDEF{overpressure}{Constant overpressure imposed within the dome}{any real $>$ 0.0}{100.D5}
+{This value is used when \OBJ{idome} = 2}
 
 \item
 \PDACCONFWDEF{particle\_fraction}{particle volumetric fractions}{array of real [0.0:1.0]}{0.7}
-{The size of the array equals {\tt nsolid}. The sum of the particle volumetric fractions
-must not exceed 1.0}
+{The size of the array equals {\tt nsolid}. 
+The sum of the particle volumetric fractions must not exceed 1.0}
 
 \item
 \PDACCONFWDEF{gas\_flux}{Gas flux from the conduit}{any real $>$ 0.0}{400.0}
-{}
+{This value is used to compute the porous dome pressure distribution when
+\OBJ{idome} is set to 1.}
 
 \item
 \PDACCONFWDEF{temperature}{Dome temperature in Kelvin}{any real $>$ 0.0}{1100.D0}
-{}
+{Dome temperature is uniform.}
 
 \item
-\PDACCONFWDEF{permeability}{Dome permeability}{any real $>$ 0.0}{1.D-12}{}
+\PDACCONFWDEF{permeability}{Dome permeability}{any real $>$ 0.0}{1.D-12}
+{This value is used to compute the porous dome pressure distribution when
+\OBJ{idome} is set to 1.}
+
+\item
+\PDACCONFWDEF{rocks\_volume}{Volume of the dome external shell}{any real $>$ 0.0}{0.0}{Volume of the shell of lithic material surrounding the dome core.}
+
+\item
+\PDACCONFWDEF{overpressure\_rocks}{Overpressure within the external shell}{any real $>$ 0.0}{0.0}{}
+
+\item
+\PDACCONFWDEF{temperature\_rocks}{Temperature within the external shell}{any real $>$ 0.0}{0.0}{}
+
+\item
+\PDACCONFWDEF{particle\_fraction\_rocks}{particle volumetric fractions in the external shell}{array of real [0.0:1.0]}{0.0}
+{The size of the array equals {\tt nsolid}. The sum of the particle volumetric fractions
+must not exceed 1.0}
 
 \item
 \PDACCONFWDEF{dome\_gasvisc}{Gas viscosity}{any real $>$ 0.0}{1.D-5}{}
@@ -647,7 +741,7 @@ must not exceed 1.0}
 \PDACCONFWDEF{dome\_SO2}{SO2 mass fraction}{any real [0.0:1.0]}{0.0}{}
 \end{itemize}
 
-\subsubsection{\OBJ{Atmosphere} namelist}
+\subsection{\OBJ{atmosphere} namelist}
 This namelist contains the parameters to build a stratified atmosphere from
 the ground pressure and temperature. For seven atmospheric layers (troposphere,
 tropopause, lower\_stratosphere, upper\_stratosphere, ozone\_layer, lower\_mesosphere and upper\_mesosphere) the distance of the top level from the ground and the temperature gradient must be given. Gas concentrations are constant. A constant wind velocity can also be specified.
@@ -745,7 +839,7 @@ automatically corrected.}
 \PDACCONFWDEF{upper\_mesosphere\_grad}{Temperature gradient in the upper mesosphere}{}{-2.0D-3}{}
 \end{itemize}
 
-\subsubsection{\OBJ{particles} namelist}
+\subsection{\OBJ{particles} namelist}
 In this namelist the number of solid phases and the physical properties of the
 particles forming each phase are specified. Note that the order in which 
 particle classes are specified must be the order of the solid-phases array 
@@ -783,9 +877,13 @@ in the ``dimensions'' module.}
 \PDACCONFWDEF{thermal\_conductivity}{solid thermal conductivity for Fourier law}{real}{2.D0}
 {Depends on materials}
 
+\item
+\PDACCONFWDEF{twophase\_limit}{limit of matrix solution for particles}{real}{1.D-8}
+{Depends on materials}
+
 \end{itemize}
 
-\subsubsection{\OBJ{numeric} namelist}
+\subsection{\OBJ{numeric} namelist}
 By modifying these parameters, you can modify the way \PDAC\ solves the 
 model equations. We recommend non-expert users to avoid modifying the
 default values.
@@ -878,10 +976,7 @@ in any case is significant.}
 version of PDAC but gives wrong solutions in test case (e.g. 1D and 2D shock waves)}
 \end{itemize}
 
-\subsection{\PDAC\ input cards}
-\label{section:cards}
-
-\subsubsection{\OBJ{'MESH'} card}
+\subsection{\OBJ{'MESH'} card}
 
 The \OBJ{'MESH'} card contains the two (in 2D) or three (in 3D) arrays of cell 
 sizes specified for a non-uniform rectilinear mesh. 
@@ -906,7 +1001,7 @@ lines.  When uniform mesh is selected by {\tt iuni=1} parameter in the
 {\tt mesh} namelist, the card can be empty (but the card 
 name must always be present in the input file).
 
-\subsubsection{\OBJ{'FIXED\_FLOWS'} card}
+\subsection{\OBJ{'FIXED\_FLOWS'} card}
 
 The \OBJ{'FIXED\_FLOWS'} card is designed to specify boundary conditions (b.cs.).
 Its name is due to the possibility to assign within this card any region with

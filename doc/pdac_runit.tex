@@ -7,9 +7,10 @@ Before running \PDAC\ the following elements are needed:
 \begin{itemize}
 \item The \PDAC\ executable \FIL{pdac.x}
 \item The \PDAC\ parameter file \FIL{pdac.dat}.
-\item A dem (Data Elevation Map) file, if required by \FIL{pdac.dat}.
-\item A file specifying the vent profile, if required by \FIL{pdac.dat}.
 \end{itemize}
+
+Other files (such as the topography DEM or the restart file) can be needed,
+depending on the input parameters (see Sect. \ref{section:input_par}).
 
 Here it is assumed that you either succeded in compiling the source
 code or that you got a precompiled executable suited for your architecture.
@@ -63,16 +64,6 @@ To run \PDAC\ then follow the steps:
 \end{verbatim}
 
 \end{itemize}
-
-Nonetheless you are the only user of your workstation,
-we suggest you to breakup the simulation in shorter partial
-simulations (few days maximum each) and use the
-restart capability of \PDAC\ (see Sect. \ref{section:pdac_res}). 
-In this way you reduce the probability of data/work loss due to 
-unforseenable events (system crash, blackout, ecc...).
-When restarting a simulation, remember to set the 
-restart mode to ``restart'' and to save the \FIL{pdac.res} file,
-in case that something goes wrong in the new simulation step.
 
 For multiprocessor workstations, if you have a working MPI
 library, you can compile \PDAC\ in parallel mode to use

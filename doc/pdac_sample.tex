@@ -5,30 +5,83 @@ as templates. The files are included in the \DIR{examples} directory.
 To run an example, copy the corresponding input file into the 
 \FIL{pdac.dat} file.
 \prettypar
-\subsection{2D axisymmetric Plinian column}
-Input file: \FIL{Plinian\_2D.dat}
+%
+\subsection{2D simulation of pyroclastic flows at Vesuvius}
+Input file: \FIL{L\_w2\_t950\_B.dat}\\
+Reference: Simulation L\_w2\_t950\_B in Todesco et al. (2002)\\
+Main features:
 \begin{itemize}
-\item one particle phase (50 $\mu m$ diameter, $1500 Kg/m^3$ density)
-\item no topographic profile specified
-\item Smagorinsky turbulence model with $C_S=0.33$
-\item high-order (Ultraquick scheme) discretization of convective fluxes
-\item non-uniform mesh with minimum cell size of 30m and maximum cell size
-      of 200 m in both radial direction. Uniform vertical discretization of
-      30m.
-\item vent conditions specified in cells (2,1) and (3,1): gas and particle
-      vertical velocity $w = 110 m/s$, Pressure balanced ($1atm$), $0.1\%$
-      particle fraction, equal gas and particle temperature ($T=900 K$).
-      Water vapour is injected at the vent.
-\item initial atmospheric conditions modified with respect to the standard 
-      atmosphere
+\item Duration: 800s
+\item Includes the roughness model of ground turbulence
+\item 2D axisymmetric simulation
+\item two particle phases of 30 and 500 $\mu$m
+\item first order discretization of convective fluxes
+\item the mesh and the domain are defined in the \OBJ{'MESH'} card: the
+      mesh size varies from 7.5 m to 100 m in radial direction and from 10 to
+      1000 m along the vertical
+\item inlet conditions are described imposed in one block (from i=2 to i=7)
+      in the {\tt FIXED FLOW} card. The corrisponding vent radius is 57.5 m.
+\item volcano topography is introduced by specifying ``blocking cells''
 \end{itemize}
-
+%
+\newpage
+\subsection{3D simulation of a volcanic column}
+Input file: \FIL{Vesuvio\_SIM3.dat}\\
+Reference: Simulation SIM3 in Esposti Ongaro et al. (2008)\\
+Main features:
+\begin{itemize}
+\item Simulation time: 800s
+\item Domain of $13\times11\times8$ km$^3$.
+      Non-uniform mesh with minimum cell size of 20 m and maximum cell size
+      of 100 m in both horizontal direction. Non-uniform vertical 
+      discretization from 20 to 100 m.
+\item topographic profile is specified by the DEM file Vesuvio\_10m.dat
+      (also included in the directory). The immersed boundary technique is used.
+      The topography is flattened to impose inlet conditions at
+      the exit of the crater, after flow decompression.
+\item the inlet is located on the mesh center. The density is modified on 
+      the vent perimeter to adjust the mass flow rate to the prescribed
+      value of $5\times10^7$ kg/s. The velocity is modified from the
+      'top-hat' profile, with a coefficient 1.1. 
+      Pressure is balanced to atmospheric value at the same quota.
+      Velocity and density correspond to the values reached after decompression.
+\item standard initial atmospheric conditions 
+\item two particle phases of 30 and 500 $\mu$m.
+\item second-order (with minmod limiter) discretization of convective fluxes
+\end{itemize}
+%
+\newpage
+\subsection{3D simulation of the Boxing-Day blast at Montserrat}
+Input file: \FIL{Plinian\_2D.dat}\\
+Reference: Simulation B-3D in Esposti Ongaro et al. (2007b)\\
+Main features:
+\begin{itemize}
+\item Simulation time: 90s
+\item Domain of $9\times9\times6$ km$^3$.
+      Non-uniform mesh with minimum cell size of 20 m and maximum cell size
+      of 100 m in both horizontal direction. Non-uniform vertical 
+      discretization from 20 to 200 m.
+\item topographic profile is specified by the DEM file SHV\_DEM\_20m\_wide.dat
+      (also included in the directory). The immersed boundary technique is used.
+\item the dome of volume $12\times 10^6$ m$^3$ is located on the mesh center, 
+      above the topography 
+      (the topography is not modified by the dome). Pressure distribution
+      is set by assuming a gas flow through the porous dome with permeability
+      $k=10^{-12}$. Total particle fraction is 0.9 (i.e., porosity is 0.1)
+\item standard initial atmospheric conditions 
+\item three particle phases of 5000, 500 and 50 $\mu$m.
+\item second-order (with minmod limiter) discretization of convective fluxes
+\end{itemize}
+%
 \newpage
 \subsection{Classical Sod problem}
-The Sod problem is the numerical analogous to the laboratory shock-tube 
+Input file: \FIL{shock\_tube\_1.dat}\\
+Reference: Esposti Ongaro et al. (2007a)
+Main features:
+\begin{itemize}
+\item The Sod problem is the numerical analogous to the laboratory shock-tube 
 experiment, and it is used to check numerical discretization schemes on 
 the standard 1D Riemann problem.
-\begin{itemize}
 \item Pseudo-one-dimensional (transverse direction has one computational cell and two boundary cells)
 \item Cartesian regular mesh
 \item One inviscid gas species
@@ -38,33 +91,3 @@ the standard 1D Riemann problem.
 \item Density is specified as initial condition instead of temperature
 \end{itemize}
 
-\newpage
-\subsection{Simulation of pyroclastic flow at Vesuvius}
-Input file: \FIL{L\_w2\_t950\_B.dat}
-\begin{itemize}
-\item 2D axisymmetric simulation
-\item standard multiphase model
-\item volcano topography is introduced by specifying ``blocking cells''.
-These are described by topographic blocks in the {\tt FIXED FLOW} card.
-\item roughness at ground is specified
-\end{itemize}
-%
-\newpage
-\subsection{Simulation of pyroclastic flow at Vesuvius (new!)}
-Input file: \FIL{L\_w2\_t950\_B\_new.dat}
-\begin{itemize}
-\item The same input conditions as above 
-\item automatic grid generation
-\item new specification of the topography and
-      immersed boundaries technique switched on
-\item Input file topoB.dat contains the Northern profile of Mt.Vesuvius 
-\end{itemize}
-
-%
-\newpage
-\subsection{3D simulation of a volcanic column}
-\begin{itemize}
-\item Simulation A6 in Neri and Macedonio, {J. Geophys. Res.} 1996
-\item fully 3D simulation on a non-uniform cartesian mesh
-\item no topography specified
-\end{itemize}
