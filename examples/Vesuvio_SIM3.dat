@@ -1,0 +1,121 @@
+&control
+ run_name = 'Ves3D_A2'
+ job_type = '3D',
+ restart_mode = 'from_scratch',
+ time =  0.0D0,
+ tstop = 800.0D0,
+ dt    = 0.01D0,
+ tpr   = 2.0D0,
+ tdump = 10.0D0,
+ formatted_output = .FALSE.,
+ formatted_input = .FALSE.,
+ lpr = 2,
+ max_seconds = 340000.D0
+/
+
+&model
+ ngas = 2,
+/
+
+&mesh
+  nx = 190,
+  ny = 170,
+  nz = 160,
+  npx = 25,
+  nmy = 15,
+  itc = 0,
+  iuni = 0,
+  grigen = 1,
+  center_x =  451660.D0,
+  center_y = 4519280.D0,
+  domain_x = 13.D3,
+  domain_y = 11.D3,
+  domain_z = 8.D3,
+  alpha_x = 0.60D0,
+  alpha_y = 0.54D0,
+  alpha_z = 0.0D0,
+  dxmin = 20.D0,
+  dxmax = 100.D0,
+  dymin = 20.D0,
+  dymax = 100.D0,
+  dzmin = 20.D0,
+  dzmax = 100.D0,
+  n0x = 50,
+  n0y = 50,
+  n0z = 70,
+  maxbeta = 1.1D0,
+  mesh_partition = 3
+/
+
+&boundaries
+  immb = 1,
+  east   = 4,
+  west   = 4,
+  north  = 4,
+  south  = 4,
+  top    = 4,
+  bottom = 3
+/
+
+&topography
+  itp = 1,
+  dem_file = 'Vesuvio_10m.dat',
+  nocrater = .TRUE.,
+  rim_quota = 1130.D0,
+  cellsize = 20.D0,
+  filtersize = 50.D0
+/
+
+&inlet
+  ivent = 1,
+  xvent =  451660.D0,
+  yvent = 4519280.D0,
+  iali = 2,
+  irand = 0,
+  vent_radius = 125.D0,
+  crater_radius = 1000.D0,
+  wrat = 1.1D0,
+  u_gas = 0.D0,
+  v_gas = 0.D0,
+  w_gas = 175.0D0,
+  p_gas = 88500.D0,
+  t_gas  = 1210.D0,
+  u_solid = 0.D0, 0.D0,
+  v_solid = 0.D0, 0.D0,
+  w_solid = 175.D0, 175.D0,
+  ep_solid = 0.0011D0, 0.0031D0,
+  t_solid  = 1210.D0,1210.D0,
+  vent_H2O = 0.75D0,
+  vent_Air = 0.25D0
+/
+
+&dome
+/
+
+&atmosphere
+/
+
+&particles
+  nsolid = 2, 
+  diameter = 30., 500.,
+  density = 2800., 1000.,
+  sphericity = 1.0, 1.0,
+  viscosity = 0.5,  1.0,
+  specific_heat = 1.2D3, 1.2D3, 
+  thermal_conductivity = 2.0D0, 2.0D0
+/
+
+&numeric
+  rungekut = 1,
+  muscl = 1,
+  maxout = 500,
+  omega = 1.2D0,
+  update_eosg = .FALSE.,
+  optimization = 3
+/
+
+'MESH'
+
+'FIXED_FLOWS'
+0
+
