@@ -209,6 +209,9 @@
 !
             CASE (slip_wall) 
 !
+              ug(n1)   = 0.D0
+              us(n1,:) = 0.D0
+!
 	      IF (job_type == '3D') THEN
                 vg(n2)   = vg(n1)
                 vs(n2,:) = vs(n1,:)
@@ -296,6 +299,9 @@
             SELECT CASE ( flag( n2 ) )
 !
             CASE (slip_wall)
+!
+              ug(n2)   = 0.D0
+              us(n2,:) = 0.D0
 !
 	      IF (job_type == '3D') THEN
                 vg(n2)   = vg(n1)
@@ -386,6 +392,9 @@
 !  
               CASE (slip_wall)
 !  
+                vg(n1)   = 0.D0
+                vs(n1,:) = 0.D0
+!  
                 ug(n2)   = ug(n1)
                 us(n2,:) = us(n1,:)
                 wg(n2)   = wg(n1)
@@ -471,6 +480,9 @@
               SELECT CASE (  flag( n2 ) )
 !
               CASE (slip_wall)
+!
+                vg(n2)   = 0.D0
+                vs(n2,:) = 0.D0
 !
                 ug(n2)   = ug(n1)
                 us(n2,:) = us(n1,:)
