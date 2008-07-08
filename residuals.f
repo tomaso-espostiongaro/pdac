@@ -154,11 +154,11 @@
 !
       IF (mpime == root) THEN
         IF (mfr > 0.D0) THEN
-          WRITE(logunit,*) 'Mass flow rate          : ', mfr
-          WRITE(logunit,*) 'Gas Density at vent     : ', mgd
-          WRITE(logunit,*) 'Solid Density at vent   : ', msd
-          WRITE(logunit,*) 'Mixture Velocity at vent: ', mxv 
-          WRITE(logunit,*) 'Averaged vent radius    : ', mrd 
+          WRITE(ventunit,*) 'Mass flow rate          : ', mfr
+          WRITE(ventunit,*) 'Gas Density at vent     : ', mgd
+          WRITE(ventunit,*) 'Solid Density at vent   : ', msd
+          WRITE(ventunit,*) 'Mixture Velocity at vent: ', mxv 
+          WRITE(ventunit,*) 'Averaged vent radius    : ', mrd 
         END IF
       END IF
 !
