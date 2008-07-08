@@ -509,13 +509,14 @@
           ! ... vertical velocity and the averaged velocity
           ! ... If 'wrat' is greater than 1, the inlet profile
           ! ... decreases to 0 towards the vent rim as a power law,
-          ! ... and the linear average of the velocity equals the 
-          ! ... input velocity...   ... WARNING!!!! ...
-          ! ... The new profile decreases the mass flow rate by
-          ! ... a factor alpha/(4*alpha-2)
+          ! ... and the surface average of the velocity equals the 
+          ! ... input velocity...
           ! 
           IF (wrat > 1.D0 .AND. iali /= 3) THEN
-            beta = 1.D0 / (wrat - 1.D0)
+            ! ... linear average 
+            !beta = 1.D0 / (wrat - 1.D0)
+            ! ... surface average 
+            beta = 2.D0 / (wrat - 1.D0)
             dey = y(j)-yvent
             dex = x(i)-xvent
             ra = DSQRT(dex**2 + dey**2)
@@ -559,8 +560,8 @@
       INTEGER :: raddim, is, n, ig
 !
       IF (mpime == root) THEN
-              OPEN(tempunit,FILE=rad_file,STATUS='OLD',ERR=199)
-              READ(tempunit,*,ERR=199) raddim
+              OPEN(tempunit,FILE=rad_file,STATUS='OLD')
+              READ(tempunit,*) raddim
       END IF
 !
       CALL bcast_integer(raddim,1,root)
@@ -572,19 +573,19 @@
           ws_rad(raddim,nsolid), ts_rad(raddim,nsolid), ep_rad(raddim,nsolid))
 !
       IF (mpime == root) THEN
-              READ(tempunit,*,ERR=199) (rad(n), n=1, raddim)
-              READ(tempunit,*,ERR=199) (ug_rad(n), n=1, raddim)
-              READ(tempunit,*,ERR=199) (wg_rad(n), n=1, raddim)
-              READ(tempunit,*,ERR=199) (tg_rad(n), n=1, raddim)
-              READ(tempunit,*,ERR=199) (p_rad(n), n=1, raddim)
+              READ(tempunit,*) (rad(n), n=1, raddim)
+              READ(tempunit,*) (ug_rad(n), n=1, raddim)
+              READ(tempunit,*) (wg_rad(n), n=1, raddim)
+              READ(tempunit,*) (tg_rad(n), n=1, raddim)
+              READ(tempunit,*) (p_rad(n), n=1, raddim)
               DO ig = 1, ngas
-                READ(tempunit,*,ERR=199) (ygc_rad(n,ig), n=1, raddim)
+                READ(tempunit,*) (ygc_rad(n,ig), n=1, raddim)
               END DO
               DO is = 1, nsolid
-                READ(tempunit,*,ERR=199) (us_rad(n,is), n=1, raddim)
-                READ(tempunit,*,ERR=199) (ws_rad(n,is), n=1, raddim)
-                READ(tempunit,*,ERR=199) (ts_rad(n,is), n=1, raddim)
-                READ(tempunit,*,ERR=199) (ep_rad(n,is), n=1, raddim)
+                READ(tempunit,*) (us_rad(n,is), n=1, raddim)
+                READ(tempunit,*) (ws_rad(n,is), n=1, raddim)
+                READ(tempunit,*) (ts_rad(n,is), n=1, raddim)
+                READ(tempunit,*) (ep_rad(n,is), n=1, raddim)
               END DO
               CLOSE(tempunit)
       END IF
@@ -602,8 +603,6 @@
 !
       RETURN
 !
- 199  CALL error('vent.f', 'error in reading temp unit', tempunit)
-! 
       END SUBROUTINE read_radial_profile
 !-----------------------------------------------------------------------
       SUBROUTINE density_antialias(ijk,k,alpha)
