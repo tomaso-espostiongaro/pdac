@@ -89,6 +89,7 @@
       INTEGER :: layer, k2, k1, j2, j1, i2, i1, nkt
       INTEGER :: me, whose
       REAL*8  :: ratio
+      LOGICAL :: lk, lj, li
 !
       IF(ALLOCATED(rcv_map)) DEALLOCATE(rcv_map)
       IF(ALLOCATED(snd_map)) DEALLOCATE(snd_map)
@@ -158,11 +159,21 @@
           k1 = proc_map(mpime)%blkbsw(3)
           k2 = proc_map(mpime)%blktne(3)
           DO k = k1, k2
+            lk = .false.
+            IF( ( k > k1 + 1 ) .AND. ( k < k2 - 1 ) ) lk = .true.
             DO j = j1, j2
+              lj = .false.
+              IF( ( j > j1 + 1 ) .AND. ( j < j2 - 1 ) ) lj = .true.
               DO i = i1, i2
+                li = .false.
+                IF( ( i > i1 + 1 ) .AND. ( i < i2 - 1 ) ) li = .true.
                 ijk = i + (j-1)*nx + (k-1)*nx*ny
                 IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) .OR. BTEST(fl(ijk),10)) THEN
-                  ncext = ncext + cell_neighbours(ijk, mpime, nset)
+                  IF( li .AND. lj .AND. lk ) THEN
+                    ncext = ncext + cell_neighbours(ijk, mpime, nset, is_my_cell = .true. )
+                  ELSE
+                    ncext = ncext + cell_neighbours(ijk, mpime, nset)
+                  END IF
                 END IF
               END DO
             END DO
@@ -254,11 +265,21 @@
           k1 = proc_map(mpime)%blkbsw(3)
           k2 = proc_map(mpime)%blktne(3)
           DO k = k1, k2
+            lk = .false.
+            IF( ( k > k1 + 1 ) .AND. ( k < k2 - 1 ) ) lk = .true.
             DO j = j1, j2
+              lj = .false.
+              IF( ( j > j1 + 1 ) .AND. ( j < j2 - 1 ) ) lj = .true.
               DO i = i1, i2
+                li = .false.
+                IF( ( i > i1 + 1 ) .AND. ( i < i2 - 1 ) ) li = .true.
                 ijk = i + (j-1)*nx + (k-1)*nx*ny
                 IF ( BTEST(fl(ijk),0) .OR. BTEST(fl(ijk),9) .OR. BTEST(fl(ijk),10)) THEN
-                  icnt = icnt + cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
+                  IF( li .AND. lj .AND. lk ) THEN
+                     icnt = icnt + cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk, is_my_cell = .true. )
+                  ELSE
+                     icnt = icnt + cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
+                  END IF
                 END IF
               END DO
             END DO
@@ -456,7 +477,7 @@
       RETURN
       END SUBROUTINE ghost
 !----------------------------------------------------------------------
-      INTEGER FUNCTION cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk)
+      INTEGER FUNCTION cell_neighbours(ijk, mpime, nset, rcv_cell_set, myijk, is_my_cell )
 !
 ! ... loop over neighbour cells checking the owner. Fill in the 
 ! ... myijk array that identifies the ghost cells
@@ -470,11 +491,12 @@
         INTEGER, INTENT(INOUT) :: nset(0:)
         TYPE (imatrix), OPTIONAL :: rcv_cell_set(0:)
         INTEGER, OPTIONAL :: myijk(:,:)
+        LOGICAL, OPTIONAL :: is_my_cell
 !
         INTEGER ::  ii, jj, kk
         INTEGER :: icnt, ipe, i, j, k, ijke, ijkel, ijkl
         INTEGER :: im, jm, km
-        LOGICAL :: fill
+        LOGICAL :: fill, is_my_cell_
 
 ! ...   Subroutine Body
 
@@ -490,6 +512,9 @@
           ncint = SIZE( myijk, 2 )
           ijkl  = cell_g2l( ijk, mpime )
         END IF
+
+        is_my_cell_ = .false.
+        IF( PRESENT( is_my_cell ) ) is_my_cell_ = is_my_cell
 
         IF( job_type == '2D' ) THEN
 
@@ -539,7 +564,47 @@
           j = MOD( ijk - 1, nx*ny ) / nx + 1
           k = ( ijk - 1 ) / ( nx*ny ) + 1
 
+          
 ! ...     loop over the neighbouring cells
+
+          IF( is_my_cell_ ) THEN
+
+          DO km = -2, 2
+            DO jm = -2, 2
+              DO im = -2, 2
+                IF( ( ABS( im ) + ABS( jm ) + ABS( km ) ) <= 2 ) THEN
+                  IF( (im /= 0) .OR. (jm /= 0) .OR. (km /= 0) ) THEN
+                    ii = im
+                    jj = jm
+                    kk = km
+                    IF( ( i == 2    ) .AND. ( ii == -2 ) ) ii = -1
+                    IF( ( i == nx-1 ) .AND. ( ii == +2 ) ) ii = +1
+                    IF( ( j == 2    ) .AND. ( jj == -2 ) ) jj = -1
+                    IF( ( j == ny-1 ) .AND. ( jj == +2 ) ) jj = +1
+                    IF( ( k == 2    ) .AND. ( kk == -2 ) ) kk = -1
+                    IF( ( k == nz-1 ) .AND. ( kk == +2 ) ) kk = +1
+                    ijke = ijk + ii + jj * nx + kk * nx*ny
+                    ipe  =  mpime
+                    IF( fill ) THEN
+! ...                 the cell ijke is local, set the mapping with cell ijkl
+                      ijkel = cell_g2l(ijke, mpime)
+                      myijk( indijk( im, jm, km ), ijkl ) = ijkel
+                    END IF
+                  ELSE IF( fill ) THEN
+! ...               store the global cell index ij, of the the local cell ijkl
+                    myijk( ip0_jp0_kp0_, ijkl) = ijk
+                  END IF
+                END IF
+              END DO
+            END DO
+          END DO
+
+
+
+          ELSE
+
+
+
           DO km = -2, 2
             DO jm = -2, 2
               DO im = -2, 2
@@ -580,6 +645,10 @@
               END DO
             END DO
           END DO
+
+
+          END IF
+
 
         ELSE 
 
