@@ -14,23 +14,23 @@ turbo.o types.o velocity.o vent.o visc.o ygas.o iotk_module.o io_files.o
 PPFOBJS = derived.o filter.o mean_fields.o masspart.o massflux.o massgsedim.o \
 process.o postin.o postout.o postp.o postvar.o sampling.o 
 
-all: comm.a pdac.x postp.x
+all: COMM pdac.x postp.x
 
-pdac.x: $(FOBJS) pdac.o comm/comm.a
-	$(LINKER) -o pdac.x $(MPFFLAGS) $(LINKFLAGS) $(FOBJS) pdac.o comm/comm.a $(LIBS)
+pdac.x: $(FOBJS) pdac.o COMM 
+	$(LINKER) -o pdac.x $(MPFFLAGS) $(LINKFLAGS) $(FOBJS) pdac.o comm/*.o $(LIBS)
 
-postp.x: $(FOBJS) $(PPFOBJS) comm/comm.a
-	$(LINKER) -o postp.x $(MPFFLAGS) $(LINKFLAGS) $(FOBJS) $(PPFOBJS) comm/comm.a $(LIBS)
+postp.x: $(FOBJS) $(PPFOBJS) COMM
+	$(LINKER) -o postp.x $(MPFFLAGS) $(LINKFLAGS) $(FOBJS) $(PPFOBJS) comm/*.o $(LIBS)
 
-tstcomm.x: testcommlib.o comm/comm.a
-	$(LINKER) -o tstcomm.x $(MPFFLAGS) $(LINKFLAGS) testcommlib.o comm/comm.a $(LIBS)
+tstcomm.x: testcommlib.o COMM
+	$(LINKER) -o tstcomm.x $(MPFFLAGS) $(LINKFLAGS) testcommlib.o comm/*.o $(LIBS)
 
 clean:
 	rm -f *.o *.mod *.a core core.* *.stb
 	(cd comm; make clean)
 
-comm/comm.a comm.a:
-	(cd comm; make comm.a)
+COMM:
+	(cd comm; make )
 
 util :
 	(cd utility; cc -O2 -o moduledep.x moduledep.c)
