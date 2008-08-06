@@ -57,6 +57,7 @@
       SUBROUTINE locate_vent
 
       USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE grid, ONLY: x, y, z, iv, jv
       USE parallel, ONLY: mpime, root
 
@@ -69,9 +70,9 @@
       IF (xvent == -99999.D0) xvent = x(iv)
       IF (yvent == -99999.D0) yvent = y(jv)
 !
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D ) THEN
               CALL locate_vent_2D
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
               CALL locate_vent_3D
       END IF
 !
@@ -106,6 +107,7 @@
 
       USE atmospheric_conditions, ONLY: p_atm
       USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nx, ny, nz
       USE grid, ONLY: x, z, fl, xb, zb, dz, dx, itc
       USE grid, ONLY: fluid, vent_cell, noslip_wall, slip_wall
@@ -223,6 +225,7 @@
 
       USE atmospheric_conditions, ONLY: p_atm
       USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nx, ny, nz
       USE grid, ONLY: x, y, z, fl, xb, yb, zb, dz
       USE grid, ONLY: fluid, vent_cell, noslip_wall, slip_wall
@@ -379,6 +382,7 @@
 ! ... of the averaged vertical velocity
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nsolid, ngas
       USE domain_mapping, ONLY: ncint, meshinds
       USE environment, ONLY: cpclock
@@ -430,16 +434,16 @@
 !          
           IF (ipro >= 1) THEN
             !
-            IF (job_type == '2D') THEN
+            IF (job_type == JOB_TYPE_2D ) THEN
               distance = (x(i) - xvent)
               angle = 0.D0
-            ELSE IF (job_type == '3D') THEN
+            ELSE IF (job_type == JOB_TYPE_3D) THEN
               distance = DSQRT( (x(i)-xvent)**2 + (y(j)-yvent)**2 )
               angle    = ATAN2( (y(j)-yvent), (x(i)-xvent) )
             END IF
             !
             CALL interp(rad, ug_rad, distance, ug(ijk))
-            IF (job_type == '3D') vg(ijk) = ug(ijk) * SIN(angle)
+            IF (job_type == JOB_TYPE_3D) vg(ijk) = ug(ijk) * SIN(angle)
             ug(ijk) = ug(ijk) * COS(angle)
             CALL interp(rad, wg_rad, distance, wg(ijk))
             !
@@ -453,7 +457,7 @@
             ep(ijk) = 1.D0
             DO is = 1,nsolid
               CALL interp(rad, us_rad(:,is),  distance, us(ijk,is))
-              IF (job_type == '3D') vs(ijk,is) = us(ijk,is) * SIN(angle)
+              IF (job_type == JOB_TYPE_3D) vs(ijk,is) = us(ijk,is) * SIN(angle)
               us(ijk,is) = us(ijk,is) * COS(angle)
               CALL interp(rad, ws_rad(:,is),  distance, ws(ijk,is))
               !
@@ -469,7 +473,7 @@
             ! ... as specified in the input namelist 'inlet'
             !
             ug(ijk) = u_gas 
-            IF (job_type == '3D') vg(ijk) = v_gas 
+            IF (job_type == JOB_TYPE_3D) vg(ijk) = v_gas 
             wg(ijk) = w_gas
             !
             tg(ijk) = t_gas
@@ -482,7 +486,7 @@
             !
             DO is = 1,nsolid
               us(ijk,is)  = u_solid(is) 
-              IF (job_type == '3D') vs(ijk,is)  = v_solid(is) 
+              IF (job_type == JOB_TYPE_3D) vs(ijk,is)  = v_solid(is) 
               ws(ijk,is) = w_solid(is)
               !
               ts(ijk,is)  = t_solid(is)
@@ -717,6 +721,7 @@
 ! ... of the averaged vertical velocity
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nsolid
       USE gas_solid_velocity, ONLY: ug, us, vg, vs, wg, ws
       USE pressure_epsilon, ONLY: p
@@ -727,12 +732,12 @@
       INTEGER :: is
 
       ug(ijk) = u_gas * factor
-      IF (job_type == '3D') vg(ijk) = v_gas * factor
+      IF (job_type == JOB_TYPE_3D) vg(ijk) = v_gas * factor
       wg(ijk) = w_gas * factor
       
       DO is = 1,nsolid
         us(ijk,is) = u_solid(is) * factor
-        IF (job_type == '3D') vs(ijk,is) = v_solid(is) * factor
+        IF (job_type == JOB_TYPE_3D) vs(ijk,is) = v_solid(is) * factor
         ws(ijk,is) = w_solid(is) * factor
       END DO
 
@@ -773,6 +778,7 @@
       SUBROUTINE update_inlet_cell(ijk)
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nsolid
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       IMPLICIT NONE
@@ -787,13 +793,13 @@
       ! ... of 1%
       !
       ug(ijk) = ug(ijk) * (1.D0 + 0.01D0 * (ran0(seed) - 0.5D0) )
-      IF (job_type == '3D')  &
+      IF (job_type == JOB_TYPE_3D)  &
         vg(ijk) = vg(ijk) * (1.D0 + 0.01D0 * (ran0(seed) - 0.5D0) )
       wg(ijk) = wg(ijk) * (1.D0 + 0.01D0 * (ran0(seed) -0.5D0) )
       
       DO is = 1,nsolid
         us(ijk,is) = us(ijk,is) * (1.D0 + 0.01D0 * (ran0(seed) -0.5D0) )
-        IF (job_type == '3D') &
+        IF (job_type == JOB_TYPE_3D) &
           vs(ijk,is) = vs(ijk,is) * (1.D0 + 0.01D0 * (ran0(seed) -0.5D0) )
         ws(ijk,is) = ws(ijk,is) * (1.D0 + 0.01D0 * (ran0(seed) -0.5D0) )
       END DO
@@ -890,6 +896,7 @@
 ! ... equal to the cell fraction
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: sweep
@@ -898,7 +905,7 @@
       EXTERNAL :: ran0
       INTEGER :: n
 
-      IF (job_type == '2D') RETURN
+      IF (job_type == JOB_TYPE_2D ) RETURN
 
       DO n = 1, nvt
         rnv = ran0(seed)

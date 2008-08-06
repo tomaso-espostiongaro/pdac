@@ -27,6 +27,7 @@
       SUBROUTINE ygas
 !
       USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE domain_mapping, ONLY: ncint, ncdom, meshinds
       USE eos_gas, ONLY: ygc, xgc, mole
@@ -67,7 +68,7 @@
       ALLOCATE(yfe(ncdom,ngas), yft(ncdom,ngas))
       yfe = 0.D0; yft = 0.D0
 
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         ALLOCATE(yfn(ncdom,ngas))
         yfn = 0.D0
       END IF
@@ -103,7 +104,7 @@
            yfx = b_e * yfe(ijk,ig) - b_w * yfw
 	   yfz = b_t * yft(ijk,ig) - b_b * yfb
 
-           IF (job_type == '3D') THEN
+           IF (job_type == JOB_TYPE_3D) THEN
   	     yfs = yfn(ijmk,ig)
   	     yfy = b_n * yfn(ijk,ig) - b_s * yfs
            END IF
@@ -148,7 +149,7 @@
 !
       DEALLOCATE(rgpgc)
       DEALLOCATE(yfe, yft)
-      IF (job_type == '3D') DEALLOCATE(yfn)
+      IF (job_type == JOB_TYPE_3D) DEALLOCATE(yfn)
 !
       RETURN
       END SUBROUTINE ygas
@@ -156,6 +157,7 @@
       SUBROUTINE compute_all_fluxes
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE convective_fluxes_sc, ONLY: fsc, muscl_fsc
       USE dimensions, ONLY: ngas
       USE domain_mapping, ONLY: ncint, data_exchange
@@ -183,7 +185,7 @@
 
          DO ig=1,ngas
            
-           IF (job_type == '2D') THEN
+           IF (job_type == JOB_TYPE_2D ) THEN
 !
 ! ... Compute fluxes by using First Order Upwinds
 !
@@ -208,7 +210,7 @@
 
              END IF
 
-           ELSE IF (job_type == '3D') THEN
+           ELSE IF (job_type == JOB_TYPE_3D) THEN
 !
 ! ... Compute fluxes by using First Order Upwinds
 !
@@ -242,7 +244,7 @@
       
       CALL data_exchange(yfe)
       CALL data_exchange(yft)
-      IF (job_type == '3D') CALL data_exchange(yfn)
+      IF (job_type == JOB_TYPE_3D) CALL data_exchange(yfn)
 
       END SUBROUTINE compute_all_fluxes
 !----------------------------------------------------------------------

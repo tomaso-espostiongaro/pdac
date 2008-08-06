@@ -30,6 +30,7 @@
       USE time_parameters, ONLY: time
       USE turbulence_model, ONLY: modturbo
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE io_files, ONLY: filnam, outpunit
 !
       IMPLICIT NONE
@@ -61,10 +62,10 @@
       CALL write_array( outpunit, tg, sgl, lform )   ! gas_temperature
       CALL write_array( outpunit, rog, sgl, lform )  ! gas_density
 !
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D) THEN
         CALL write_array( outpunit, ug, sgl, lform ) ! gas_velocity_r
         CALL write_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
         CALL write_array( outpunit, ug, sgl, lform ) ! gas_velocity_x
         CALL write_array( outpunit, vg, sgl, lform ) ! gas_velocity_y
         CALL write_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
@@ -93,6 +94,7 @@
       USE pressure_epsilon, ONLY: p
       USE time_parameters, ONLY: time
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE domain_mapping, ONLY: data_collect, data_distribute
       USE io_files, ONLY: tempunit
 !
@@ -142,6 +144,7 @@
       USE time_parameters, ONLY: time
       USE turbulence_model, ONLY: modturbo
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE volcano_topography, ONLY: rim_quota
       USE io_files, ONLY: tempunit
       IMPLICIT NONE
@@ -205,6 +208,7 @@
       USE time_parameters, ONLY: time
       USE turbulence_model, ONLY: modturbo
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE io_files, ONLY: filnam, outpunit
 !
       IMPLICIT NONE
@@ -236,7 +240,7 @@
       IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"P   ",/)')
       CALL write_array( outpunit, p, sgl, lform )  ! gas_pressure
 
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D) THEN
 
         IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"UG  ",/)')
         CALL write_array( outpunit, ug, sgl, lform ) ! gas_velocity_r
@@ -244,7 +248,7 @@
         IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"WG  ",/)')
         CALL write_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
 
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
 
         IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"UG  ",/)')
         CALL write_array( outpunit, ug, sgl, lform ) ! gas_velocity_x
@@ -278,7 +282,7 @@
         IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"EPS",I1,/)') is
         CALL write_array( outpunit, otmp, sgl, lform )  ! solid_bulk_density
 
-        IF (job_type == '2D') THEN
+        IF (job_type == JOB_TYPE_2D) THEN
 
           IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x," US",I1,/)') is
           CALL write_array( outpunit, us(:,is), sgl, lform )  ! solid_velocity_r
@@ -286,7 +290,7 @@
           IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x," WS",I1,/)') is
           CALL write_array( outpunit, ws(:,is), sgl, lform )  ! solid_velocity_z
 
-        ELSE IF (job_type == '3D') THEN
+        ELSE IF (job_type == JOB_TYPE_3D) THEN
 
           IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x," US",I1,/)') is
           CALL write_array( outpunit, us(:,is), sgl, lform )  ! solid_velocity_x
@@ -326,16 +330,17 @@
       USE pressure_epsilon, ONLY: p
       USE time_parameters, ONLY: time
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
 
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: iunit, ijk, imesh, i, j, k
       INTEGER :: ig, is
 
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         WRITE(iunit,100) time, p(ijk), ug(ijk), vg(ijk), wg(ijk), tg(ijk),  &
         (xgc(ijk,ig), ig=1, ngas), (rlk(ijk,is)*inrl(is), us(ijk,is), &
         vs(ijk,is), ws(ijk,is), ts(ijk,is), is=1, nsolid)
-      ELSE IF (job_type == '2D') THEN
+      ELSE IF (job_type == JOB_TYPE_2D) THEN
         WRITE(iunit,100) time, p(ijk), ug(ijk), wg(ijk), tg(ijk),  &
         (xgc(ijk,ig), ig=1, ngas), (rlk(ijk,is)*inrl(is), us(ijk,is), &
         ws(ijk,is), ts(ijk,is), is=1, nsolid)

@@ -24,6 +24,7 @@
 ! ... interphase coupling, and solves for the enthalpies
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE domain_mapping, ONLY: ncint, meshinds
       USE eos_gas, ONLY: cg, ygc, caloric_eosg, thermal_eosg
@@ -110,7 +111,7 @@
           wgc = 0.5D0 * (b_t * wg(ijk) + b_b * wg(ijkm))
           !wgc = 0.5D0 * (wg(ijk) + wg(ijkm))
 
-          IF (job_type == '3D') THEN
+          IF (job_type == JOB_TYPE_3D) THEN
             indyc = 1.D0 / (dy(j)+(dy(j+1)+dy(j-1))*0.5D0)
 
             vgc = 0.5D0 * (b_n * vg(ijk) + b_s * vg(ijmk))
@@ -137,9 +138,9 @@
             dugs = ( (ug(ijk)-us(ijk,is)) + (ug(imjk)-us(imjk,is)) ) * 0.5D0
             dwgs = ( (wg(ijk)-ws(ijk,is)) + (wg(ijkm)-ws(ijkm,is)) ) * 0.5D0
 
-            IF (job_type == '2D') THEN
+            IF (job_type == JOB_TYPE_2D) THEN
               dvgs = 0.D0
-            ELSE IF (job_type == '3D') THEN
+            ELSE IF (job_type == JOB_TYPE_3D) THEN
               dvgs = ( (vg(ijk)-vs(ijk,is)) + (vg(ijmk)-vs(ijmk,is)) ) * 0.5D0
             END IF
 
@@ -246,6 +247,7 @@
 
       USE atmospheric_conditions, ONLY: t_atm
       USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nsolid, ngas
       USE eos_gas, ONLY: ygc, cg
       USE gas_constants, ONLY: gas_type, gmw, rgas, tzero, hzerog, hzeros
@@ -301,6 +303,7 @@
       SUBROUTINE temperature_filter(ijk)
 
       USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nsolid, ngas
       USE eos_gas, ONLY: ygc, cg
       USE gas_constants, ONLY: gas_type, gmw, rgas, tzero, hzerog, hzeros
@@ -317,7 +320,7 @@
       REAL*8 :: av_ts
       REAL*8 :: hc
 
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         !
         ! ... Gas Temperature and Enthalpy
           av_tg = tg(imjk) + tg(ijmk) + tg(ijkm) + tg(ipjk) + tg(ijpk) + tg(ijkp)
@@ -351,7 +354,7 @@
             END IF
         END DO
         !
-      ELSE IF (job_type == '2D') THEN
+      ELSE IF (job_type == JOB_TYPE_2D) THEN
         !
         ! ... Gas Temperature and Enthalpy
           av_tg = tg(imjk) + tg(ijkm) + tg(ipjk) + tg(ijkp)

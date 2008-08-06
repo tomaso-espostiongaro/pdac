@@ -11,12 +11,13 @@
 !----------------------------------------------
       SUBROUTINE roughness_setup
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions 
       USE volcano_topography, ONLY: itp, topo_c
       IMPLICIT NONE
       INTEGER :: i
 !
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D) THEN
               ALLOCATE(roughness(nx))
               DO i=1,nx
               roughness(i) = zrough
@@ -24,7 +25,7 @@
 !                      IF (topo_c(i) == 0.D0) roughness(i) = 0.05D0
 !                END IF
               END DO
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
               ALLOCATE(roughness2d(nx,ny))
               roughness2d = zrough
       ELSE

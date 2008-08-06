@@ -71,11 +71,12 @@
       CONTAINS
 !-----------------------------------------------------------------------
       SUBROUTINE subsc_setup( job_type )
-      IMPLICIT NONE
-        CHARACTER(LEN=80) :: job_type
-        IF( job_type == '2D' ) THEN
+        USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
+        IMPLICIT NONE
+        INTEGER, INTENT(IN) :: job_type
+        IF( job_type == JOB_TYPE_2D  ) THEN
           job_type_flag = 2
-        ELSE IF( job_type == '3D' ) THEN
+        ELSE IF( job_type == JOB_TYPE_3D ) THEN
           job_type_flag = 3
         ELSE
           CALL error(' subsc_setup ', ' job_type not defined ', 1 )

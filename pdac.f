@@ -10,7 +10,7 @@
 ! 3d version implemented by: T. Esposti Ongaro, C. Cavazzoni
 !******************************************************************************
 !
-      PROGRAM pdac
+   PROGRAM pdac
 
       USE blunt_body, ONLY: set_blunt, ibl
       USE control_flags, ONLY: prog, lpr, nfil
@@ -51,7 +51,7 @@
       INTEGER :: mydate(10)
 !
       INTEGER :: ig, n
-      REAL*8 :: s0, s1, s2, s3, s4, s5, s6, t0
+      REAL*8 :: s0, s1, s2, s3, s4, s5, s6, t0, tt
       REAL*8 :: pt0, pt1, pt2, pt3, pt4, pt5, pt6
       REAL*8 :: timtot, timprog, timdist, timsetup, timinit, timres, timghost
       REAL*8 :: mptimtot, mptimprog, mptimdist, mptimsetup, &
@@ -152,28 +152,64 @@
 !
       IF (itp >= 1)  CALL import_topography
 
+          IF (timing) then
+              s2 = cpclock()
+              IF( mpime == root ) WRITE(logunit,*) 'time for import_topography = ', s2-s1
+              tt = s2
+          END IF
+
 ! ... Define volcanic vent position on the 3D topography
 ! ... and change the cell flags (can modify the topography)
 !
       IF (ivent >= 1) CALL locate_vent
+
+          IF (timing) then
+              s2 = cpclock()
+              IF( mpime == root ) WRITE(logunit,*) 'time for locate_vent = ', s2-tt
+              tt = s2
+          END IF
 
 ! ... Define volcanic dome position on the 3D topography
 ! ... and change the cell flags (can modify the topography)
 !
       IF (idome >= 1) CALL locate_dome
 
+          IF (timing) then
+              s2 = cpclock()
+              IF( mpime == root ) WRITE(logunit,*) 'time for locate_dome = ', s2-tt
+              tt = s2
+          END IF
+
 ! ... Initialize the array of elevations on the computational mesh
 ! 
       CALL export_topography
+
+          IF (timing) then
+              s2 = cpclock()
+              IF( mpime == root ) WRITE(logunit,*) 'time for export_topography = ', s2-tt
+              tt = s2
+          END IF
 
 ! ... Set immersed boundary parameters (if prescribed)
 ! ... and change the cell flags
 !
       IF (immb == 1) CALL set_forcing
 
+          IF (timing) then
+              s2 = cpclock()
+              IF( mpime == root ) WRITE(logunit,*) 'time for set_forcing = ', s2-tt
+              tt = s2
+          END IF
+
 ! ... Write the implicit topographic profile
 !
       IF (itp >= 1) CALL write_profile
+
+          IF (timing) then
+              s2 = cpclock()
+              IF( mpime == root ) WRITE(logunit,*) 'time for write_profile = ', s2-tt
+              tt = s2
+          END IF
 !
       IF (itd == -1) THEN
         CALL parallel_hangup
@@ -194,6 +230,7 @@
           IF (timing) then
               s2 = cpclock()
               !call MP_WALLTIME(pt2,mpime)
+              IF( mpime == root ) WRITE(logunit,*) 'time for partition = ', s2-tt
           END IF
 !
 ! ... Setting the ghost cells for parallel data exchange
@@ -204,6 +241,7 @@
           IF (timing) then
               s3 = cpclock()
               !call MP_WALLTIME(pt3,mpime)
+              IF( mpime == root ) WRITE(logunit,*) 'time for ghost = ', s3-s2
           END IF
 !
       IF (ibl >= 1) CALL set_blunt
@@ -313,5 +351,5 @@
  199  CALL error('main','error opening inputunit',inputunit)      
 !
 !**************************************************************
-      END PROGRAM pdac
+   END PROGRAM pdac
 !**************************************************************

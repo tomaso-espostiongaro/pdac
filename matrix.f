@@ -41,6 +41,7 @@
 ! ... linear system of coupled equations on all cell faces
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE domain_mapping, ONLY: myijk, meshinds
       USE gas_solid_density, ONLY: rgp, rlk
@@ -100,7 +101,7 @@
       aw1(1,1)=(dzk*appw(ijkb,1)+dzkm1*appw(ijk,1))*indzm
       aw1(1,1)=aw1(1,1)+(dzk*rgp(ijkb)+dzkm1*rgpijk)*indzm
 !
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
 
         bv1(1) = rvg(ijmk)+ dt * indym *2.D0* ep_s * (p(ijks)-pijk)
         
@@ -135,7 +136,7 @@
             aw1(ll,l)=(dzk*appw(ijkb,ls)+dzkm1*appw(ijk,ls))*indzm
             aw1(l,ll)=aw1(ll,l)
   
-            IF (job_type == '3D') THEN
+            IF (job_type == JOB_TYPE_3D) THEN
               av1(ll,l)=(dyj*appv(ijks,ls)+dyjm1*appv(ijk,ls))*indym
               av1(l,ll)=av1(ll,l)
             END IF
@@ -146,7 +147,7 @@
           au1(l,l)=au1(l,l)+(dxi*rlk(ijkw,l-1)+dxim1*rlklm1)*indxm
           aw1(l,l)=aw1(l,l)+(dzk*rlk(ijkb,l-1)+dzkm1*rlklm1)*indzm
 
-          IF (job_type == '3D') THEN
+          IF (job_type == JOB_TYPE_3D) THEN
             bv1(l) = rvs(ijmk,l-1) + dt * indym *2.D0* eps_s * (p(ijks)-pijk)
             av1(l,l)=av1(l,l)+(dyj*rlk(ijks,l-1)+dyjm1*rlklm1)*indym
           END IF
@@ -165,6 +166,7 @@
 ! ... only on East, North, and Top faces of the cell
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE domain_mapping, ONLY: myijk, meshinds
       USE gas_solid_density, ONLY: rgp, rlk
@@ -224,7 +226,7 @@
       aw(1,1)=(dzk*appw(ijkt,1)+dzkp1*appw(ijk,1))*indzp
       aw(1,1)=aw(1,1)+(dzk*rgp(ijkt)+dzkp1*rgp(ijk))*indzp
 
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         ep_n = (dyj*ep(ijkn) + dyjp1*ep(ijk)) * indyp
         bv(1)  = rvg(ijk)+ dt * indyp *2.D0* ep_n * (pijk-p(ijkn))
 !
@@ -260,7 +262,7 @@
           aw(l,ll)=(dzk*appw(ijkt,ls)+dzkp1*appw(ijk,ls))*indzp
           aw(ll,l)=aw(l,ll)
 
-          IF (job_type == '3D') THEN
+          IF (job_type == JOB_TYPE_3D) THEN
             av(l,ll)=(dyj*appv(ijkn,ls)+dyjp1*appv(ijk,ls))*indyp
             av(ll,l)=av(l,ll)
           END IF
@@ -271,7 +273,7 @@
         au(l,l)=au(l,l)+(dxi*rlk(ijke,l-1)+dxip1*rlk(ijk,l-1))*indxp
         aw(l,l)=aw(l,l)+(dzk*rlk(ijkt,l-1)+dzkp1*rlk(ijk,l-1))*indzp
 
-        IF (job_type == '3D') THEN
+        IF (job_type == JOB_TYPE_3D) THEN
           bv(l)  = rvs(ijk,l-1) + dt * indyp *2.D0* eps_n * (pijk-p(ijkn))
           av(l,l)=av(l,l)+(dyj*rlk(ijkn,l-1)+dyjp1*rlk(ijk,l-1))*indyp
         END IF
@@ -286,6 +288,7 @@
 ! ... Gauss-Jordan direct inversion method
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nphase
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: flag, inlet_cell, vent_cell, noslip_wall, slip_wall
@@ -344,7 +347,7 @@
         !
       END IF
 !
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         wall  = (flag(ijmk)==slip_wall .OR. flag(ijmk)==noslip_wall) &
                 .OR.(flag(ijmk)==filled_cell_1 .OR. flag(ijmk)==filled_cell_2)
         inlet = (flag(ijmk)==inlet_cell .OR. flag(ijmk)==vent_cell)
@@ -442,6 +445,7 @@
 ! ... cell faces by using Gauss-Jordan direct inversion method
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nphase
       USE domain_mapping, ONLY:  meshinds
       USE grid, ONLY: flag, inlet_cell, vent_cell, noslip_wall, slip_wall
@@ -503,7 +507,7 @@
         !
       END IF
 !
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         wall  = (flag(ijpk)==slip_wall .OR. flag(ijpk)==noslip_wall) &
                .OR. (flag(ijpk)==filled_cell_1 .OR. flag(ijpk)==filled_cell_2)
         inlet = (flag(ijpk)==inlet_cell .OR. flag(ijpk)==vent_cell)

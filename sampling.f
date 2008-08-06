@@ -34,6 +34,7 @@
       SUBROUTINE sample 
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nsolid, ngas, nx, ny, nz
       USE domain_decomposition, ONLY: cell_owner, cell_g2l
       USE grid, ONLY: x, y, z
@@ -73,10 +74,10 @@
         probe(nop)%k = k
         probe(nop)%x = x(i)
         probe(nop)%z = z(k)
-        IF (job_type == '2D') THEN
+        IF (job_type == JOB_TYPE_2D) THEN
           imesh = i + (k-1)*nx
           imesh_probe(nop) = imesh
-        ELSE IF (job_type == '3D') THEN
+        ELSE IF (job_type == JOB_TYPE_3D) THEN
           j = jjv
           probe(nop)%j = j
           probe(nop)%y = y(j)
@@ -101,7 +102,7 @@
         DO nop = nprbs - number_of_probes + 1, nprbs
           probe(nop)%nop = nop
           IF (assign_index) THEN
-                IF (job_type == '2D') THEN
+                IF (job_type == JOB_TYPE_2D) THEN
                         IF (mpime == root) READ(tempunit,*) probe(nop)%i,probe(nop)%k
                         CALL bcast_integer(probe(nop)%i,1,root)
                         CALL bcast_integer(probe(nop)%k,1,root)
@@ -112,7 +113,7 @@
                         !
                         probe(nop)%x = x(i)
                         probe(nop)%z = z(k)
-                ELSE IF (job_type == '3D') THEN
+                ELSE IF (job_type == JOB_TYPE_3D) THEN
                         IF (mpime == root) READ(tempunit,*) probe(nop)%i, probe(nop)%j, probe(nop)%k
                         CALL bcast_integer(probe(nop)%i,1,root)
                         CALL bcast_integer(probe(nop)%j,1,root)
@@ -128,7 +129,7 @@
                         probe(nop)%z = z(k)
                 END IF
           ELSE
-                IF (job_type == '2D') THEN
+                IF (job_type == JOB_TYPE_2D) THEN
                         IF (mpime == root) READ(tempunit,*) probe(nop)%x, probe(nop)%z
                         CALL bcast_real(probe(nop)%x,1,root)
                         CALL bcast_real(probe(nop)%z,1,root)
@@ -142,7 +143,7 @@
                         k = probe(nop)%k
                         imesh = i + (k-1)*nx
                         imesh_probe(nop) = imesh
-                ELSE IF (job_type == '3D') THEN
+                ELSE IF (job_type == JOB_TYPE_3D) THEN
                         IF (mpime == root) READ(tempunit,*) probe(nop)%x, probe(nop)%y, probe(nop)%z
                         CALL bcast_real(probe(nop)%x,1,root)
                         CALL bcast_real(probe(nop)%y,1,root)
@@ -179,16 +180,16 @@
         i = probe(n)%i
         j = probe(n)%j
         k = probe(n)%k
-        IF (job_type == '3D') THEN
+        IF (job_type == JOB_TYPE_3D) THEN
           probenam ='S'//lettera(n)//'_'//lettera(i)//'_'//&
                          lettera(j)//'_'//lettera(k)
-        ELSE IF (job_type == '2D') THEN
+        ELSE IF (job_type == JOB_TYPE_2D) THEN
           probenam ='S'//lettera(n)//'_'//lettera(i)//'_'//lettera(k)
         END IF
         OPEN(UNIT=tempunit, FILE=probenam, POSITION='APPEND')
         IF (cell_owner(imesh_probe(nop)) == mpime) THEN
           ijk = cell_g2l(imesh_probe(nop),mpime)
-          IF (job_type == '3D') THEN
+          IF (job_type == JOB_TYPE_3D) THEN
              WRITE(tempunit,100) time, p(ijk), &
              ug(ijk), vg(ijk), wg(ijk), tg(ijk), &
              (xgc(ijk,nv),nv=1, ngas), &
@@ -196,7 +197,7 @@
               vs(ijk,nv), ws(ijk,nv), &
               ts(ijk,nv), nv=1, nsolid), &
               rhom(ijk), mvm(ijk), pd(ijk)
-          ELSE IF (job_type == '2D') THEN
+          ELSE IF (job_type == JOB_TYPE_2D) THEN
              WRITE(tempunit,100) time, p(ijk), &
              ug(ijk), wg(ijk), tg(ijk), &
              (xgc(ijk,nv),nv=1, ngas), &
@@ -223,6 +224,7 @@
 !---------------------------------------------------------------------
       SUBROUTINE column_axis_average(itn)
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nsolid, ngas, nx, ny, nz
       USE domain_decomposition, ONLY: cell_owner, cell_g2l
       USE grid, ONLY: x, y, z
@@ -242,11 +244,11 @@
 ! ... Set global array indexes
 !
       DO k = 1, nz
-        IF (job_type == '2D') THEN
+        IF (job_type == JOB_TYPE_2D) THEN
           i = iiv 
           imesh = i + (k-1)*nx
           imesh_column_probe(k) = imesh
-        ELSE IF (job_type == '3D') THEN
+        ELSE IF (job_type == JOB_TYPE_3D) THEN
           i = iiv
           j = jjv
           imesh = i + (j-1)*nx + (k-1)*nx*ny
@@ -296,7 +298,7 @@
           !
           pd_axis(k,itn) = pd(ijk) 
           pd_av(k)  = pd_av(k)    + pd(ijk) 
-          IF (job_type == '3D') THEN
+          IF (job_type == JOB_TYPE_3D) THEN
             vg_axis(k,itn) = vg(ijk)
             vg_av(k) = vg_av(k)+vg(ijk)
             DO nv = 1, nsolid
@@ -314,6 +316,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE column_axis_std(first_out, last_out, incr_out, cnt, md, md1)
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nsolid, ngas, nz
 !
       IMPLICIT NONE
@@ -394,7 +397,7 @@
           rhom_sd(k) = rhom_sd(k) + (rhom_axis(k,itn)-rhom_av(k))**2
           wm_sd(k)  = wm_sd(k)  + (wm_axis(k,itn)-wm_sd(k))**2
           pd_sd(k)  = pd_sd(k)    + (pd_axis(k,itn)-pd_av(k))**2
-          IF (job_type == '3D') THEN
+          IF (job_type == JOB_TYPE_3D) THEN
             vg_sd(k) = vg_sd(k)+(vg_axis(k,itn)-vg_av(k))**2
             DO nv = 1, nsolid
               vs_sd(k,nv) = vs_sd(k,nv)+(vs_axis(k,nv,itn)-vs_av(k,nv))**2
@@ -425,6 +428,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE compute_plume_profile
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE grid, ONLY: dx, dy, dz, rb, itc
       USE domain_mapping, ONLY: ncint, meshinds
@@ -448,7 +452,7 @@
       DO ijk = 1, ncint
         IF ( epst(ijk) >= 1.D-8) THEN
           CALL meshinds(ijk,imesh,i,j,k)
-          IF (job_type == '2D' .AND. itc == 1) THEN
+          IF (job_type == JOB_TYPE_2D .AND. itc == 1) THEN
             ds = pi*dx(i)*(2.D0*rb(i)-dx(i))
             rhom_z(k) = rhom_z(k) + rhom(ijk) * ds
             um_z(k) = um_z(k) + rhom(ijk) * um(ijk) * ds
@@ -456,7 +460,7 @@
             ! ... Averaged temperature assumes constant mixture Cp
             tm_z(k) = tm_z(k) + tm(ijk) * ds
             surface(k) = surface(k) + ds
-          ELSE IF (job_type == '3D') THEN
+          ELSE IF (job_type == JOB_TYPE_3D) THEN
             ds = dx(i)*dy(j)
             rhom_z(k) = rhom_z(k) + rhom(ijk) * ds
             um_z(k) = um_z(k) + rhom(ijk) * um(ijk) * ds
@@ -485,7 +489,7 @@
         rhom_z(k) = rhom_z(k) * invsurf
         IF (rhom_z(k)/=0.D0) invrhom = 1.D0 / rhom_z(k)
         um_z(k) = um_z(k) * invrhom *  invsurf
-        IF (job_type == '3D') vm_z(k) = vm_z(k) * invrhom *  invsurf
+        IF (job_type == JOB_TYPE_3D) vm_z(k) = vm_z(k) * invrhom *  invsurf
         wm_z(k) = wm_z(k) * invrhom *  invsurf
         tm_z(k) = tm_z(k) * invsurf
       END DO

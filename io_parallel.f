@@ -67,6 +67,7 @@
       SUBROUTINE write_crop_array( iunit, array, prec, lform, &
         iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
 !
       INTEGER, INTENT(IN) :: iunit, prec
       INTEGER, INTENT(INOUT) :: iminc, imaxc, jminc, jmaxc, kminc, kmaxc
@@ -109,11 +110,11 @@
          nzc = kmaxc - kminc + 1
          !
          ntotc = nxc * nyc * nzc
-         IF (job_type == '2D') THEN
+         IF (job_type == JOB_TYPE_2D) THEN
                  ntrc = nxc
                  jminc = 1
                  jmaxc = 1
-         ELSE IF (job_type == '3D') THEN
+         ELSE IF (job_type == JOB_TYPE_3D) THEN
                  ntrc = nxc * nyc
          END IF
          ALLOCATE( io_buf_crop(ntotc) )
@@ -125,9 +126,9 @@
                IF (i>=iminc.AND.i<=imaxc) THEN
                  IF (j>=jminc.AND.j<=jmaxc) THEN
                    IF (k>=kminc.AND.k<=kmaxc) THEN
-                           IF (job_type == '2D') THEN
+                           IF (job_type == JOB_TYPE_2D) THEN
                              ijk = i + (k-1) * nx
-                           ELSE IF (job_type == '3D') THEN
+                           ELSE IF (job_type == JOB_TYPE_3D) THEN
                              ijk = i + ( (j-1) + (k-1)*ny ) * nx
                            END IF
                            ijkc = ijkc + 1

@@ -54,6 +54,7 @@
       SUBROUTINE locate_dome
 
       USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE parallel, ONLY: mpime, root
 
       IMPLICIT NONE
@@ -88,9 +89,9 @@
       !dome_radius = ( dome_volume / pi )**(1.0/3.0)
       !total_radius = ( total_volume / (pi * dome_radius * dome_radius))
 !
-      IF( job_type == '2D') THEN
+      IF( job_type == JOB_TYPE_2D) THEN
               CALL locate_dome_2D
-      ELSE IF( job_type == '3D') THEN
+      ELSE IF( job_type == JOB_TYPE_3D) THEN
               CALL locate_dome_3D
       END IF
 !
@@ -353,6 +354,7 @@
 !
       USE atmospheric_conditions, ONLY: p_atm, gravz
       USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nsolid, ngas, nx, ny, nz
       USE domain_mapping, ONLY: ncint, meshinds
       USE environment, ONLY: cpclock
@@ -497,7 +499,7 @@
           IF (n/=0) THEN
             !
             ug(ijk) = 0.D0
-            IF (job_type == '3D') vg(ijk) = 0.D0 
+            IF (job_type == JOB_TYPE_3D) vg(ijk) = 0.D0 
             wg(ijk) = 0.D0
             !
             tg(ijk) = dcell(n)%temperature
@@ -508,7 +510,7 @@
               rlk(ijk,is) = dcell(n)%sfraction(is)*rl(is)
               !
               us(ijk,is)  = 0.D0
-              IF (job_type == '3D') vs(ijk,is)  = 0.D0
+              IF (job_type == JOB_TYPE_3D) vs(ijk,is)  = 0.D0
               ws(ijk,is) = 0.D0
               !
               ! homogenous temperature applied in each shell
@@ -535,9 +537,9 @@
             p_hydro = 0.D0
             IF (idw >= 1) THEN
               search_dome: DO kk = k, nz
-                IF (job_type == '2D') THEN
+                IF (job_type == JOB_TYPE_2D) THEN
                   imesh = i + (kk-1) * nx
-                ELSE IF (job_type == '3D') THEN
+                ELSE IF (job_type == JOB_TYPE_3D) THEN
                   imesh = i + (j-1) * nx + (kk-1) * nx * ny
                 END IF
                 !
@@ -632,6 +634,7 @@
       SUBROUTINE compute_dome_mass_energy
       USE atmospheric_conditions, ONLY: p_atm
       USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nx, ny, nz
       USE domain_mapping, ONLY: ncint, meshinds
       USE gas_constants, ONLY: rgas
@@ -679,9 +682,9 @@
           IF (n/=0) THEN
             !
             ! ... volume of a cell
-            IF (job_type == '2D') THEN
+            IF (job_type == JOB_TYPE_2D) THEN
               dvol = twopi * r(i) * (xb(i)-xb(i-1))*(zb(k)-zb(k-1))
-            ELSE IF (job_type == '3D') THEN
+            ELSE IF (job_type == JOB_TYPE_3D) THEN
               dvol = (xb(i)-xb(i-1))*(yb(j)-yb(j-1))*(zb(k)-zb(k-1))
             END IF
             !

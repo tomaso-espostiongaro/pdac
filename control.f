@@ -3,7 +3,10 @@
 !-----------------------------------------------------------------------
         IMPLICIT NONE
         SAVE
-        CHARACTER(LEN=80) :: job_type
+        INTEGER :: job_type
+        INTEGER, PARAMETER :: JOB_TYPE_3D = 3
+        INTEGER, PARAMETER :: JOB_TYPE_2D = 2
+        INTEGER, PARAMETER :: JOB_TYPE_1D = 1
         INTEGER :: nfil
         INTEGER :: lpr
         INTEGER :: imr

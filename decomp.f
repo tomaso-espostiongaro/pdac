@@ -1,5 +1,5 @@
 !----------------------------------------------------------------------
-      MODULE domain_decomposition
+  MODULE domain_decomposition
 !
 ! ... This module contains all the procedures used for the domain
 ! ... decomposition
@@ -65,6 +65,7 @@
 ! ... (2D/3D-Compliant)
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       IMPLICIT NONE
       SAVE
@@ -120,11 +121,11 @@
 
       IF ( proc_map(0)%type == LAYER_MAP ) THEN
         CALL layers( ncfl1, nctot, nproc, mpime, root )
-      ELSE IF ( proc_map(0)%type == BLOCK2D_MAP .AND. job_type == '2D') THEN
+      ELSE IF ( proc_map(0)%type == BLOCK2D_MAP .AND. job_type == JOB_TYPE_2D) THEN
         CALL blocks( ncfl1, nctot, nproc, mpime, root )
-      ELSE IF ( proc_map(0)%type == BLOCK2D_MAP .AND. job_type == '3D') THEN
+      ELSE IF ( proc_map(0)%type == BLOCK2D_MAP .AND. job_type == JOB_TYPE_3D) THEN
         CALL columns( ncfl1, nctot, nproc, mpime, root )
-      ELSE IF ( proc_map(0)%type == BLOCK3D_MAP .AND. job_type == '3D') THEN
+      ELSE IF ( proc_map(0)%type == BLOCK3D_MAP .AND. job_type == JOB_TYPE_3D) THEN
         CALL blocks3d( ncfl1, nctot, nproc, mpime, root )
       ELSE
         CALL error(' partition ',' partition type not yet implemented ',proc_map(0)%type)
@@ -181,6 +182,7 @@
 !
       USE dimensions
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE io_files, ONLY: testunit
 !
       IMPLICIT NONE
@@ -213,7 +215,7 @@
        ncfl1(ipe) = localdim(countfl, nproc, ipe)
       END DO
 !
-      IF( job_type == '2D' ) THEN
+      IF( job_type == JOB_TYPE_2D ) THEN
 
         lay_map(0      ,1) = 1        !  the first cell to the first proc
         lay_map(nproc-1,2) = nx*nz    !  the last cell to the last proc
@@ -250,7 +252,7 @@
           END DO 
         END DO
 
-      ELSE IF( job_type == '3D' ) THEN
+      ELSE IF( job_type == JOB_TYPE_3D ) THEN
 
         lay_map(0,1)       = 1         ! the first cell to the first proc
         lay_map(nproc-1,2) = nx*ny*nz  ! the last cell to the last proc
@@ -1258,17 +1260,18 @@
         USE dimensions
         USE parallel, ONLY: nproc
         USE control_flags, ONLY: job_type
+        USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
 
         INTEGER, INTENT(IN) :: ijk
         INTEGER :: ipe, layer, cell_layer
         INTEGER :: i, j, k
 
-        IF( job_type == '2D' ) THEN
+        IF( job_type == JOB_TYPE_2D ) THEN
 
           k = ( ijk - 1 ) / nx + 1
           i = MOD( ( ijk - 1 ), nx) + 1
 
-        ELSE IF( job_type == '3D' ) THEN
+        ELSE IF( job_type == JOB_TYPE_3D ) THEN
 
           k = ( ijk - 1 ) / ( nx*ny ) + 1
           j = MOD( ijk - 1, nx*ny ) / nx + 1
@@ -1285,21 +1288,21 @@
             IF( ijk >= proc_map(ipe)%lay(1) .AND.  &
                 ijk <= proc_map(ipe)%lay(2) )       cell_owner = ipe
           ELSE IF ( proc_map(ipe)%type == BLOCK2D_MAP ) THEN
-            IF( job_type == '2D' ) THEN
+            IF( job_type == JOB_TYPE_2D ) THEN
               IF (k >= proc_map(ipe)%corner1(2) .AND.  &
                   k <= proc_map(ipe)%corner2(2) .AND.  &
                   i >= proc_map(ipe)%corner1(1) .AND.  &
                   i <= proc_map(ipe)%corner2(1) )   cell_owner = ipe
-            ELSE IF ( job_type == '3D' ) THEN
+            ELSE IF ( job_type == JOB_TYPE_3D ) THEN
               IF (j >= proc_map(ipe)%corner1(2) .AND.  &
                   j <= proc_map(ipe)%corner2(2) .AND.  &
                   i >= proc_map(ipe)%corner1(1) .AND.  &
                   i <= proc_map(ipe)%corner2(1) )   cell_owner = ipe
             ELSE
-              CALL error(' cell_owner',' unknown job_type '//job_type, 1 )
+              CALL error(' cell_owner',' unknown job_type ', job_type )
             END IF
           ELSE IF ( proc_map(ipe)%type == BLOCK3D_MAP ) THEN
-            IF( job_type == '3D' ) THEN
+            IF( job_type == JOB_TYPE_3D ) THEN
               IF( i >= proc_map(ipe)%blkbsw(1) .AND. &
                   i <= proc_map(ipe)%blktne(1) .AND. &
                   j >= proc_map(ipe)%blkbsw(2) .AND. &
@@ -1307,7 +1310,7 @@
                   k >= proc_map(ipe)%blkbsw(3) .AND. &
                   k <= proc_map(ipe)%blktne(3) )  cell_owner = ipe
             ELSE
-              CALL error(' cell_owner',' unknown job_type '//job_type, 1 )
+              CALL error(' cell_owner',' unknown job_type ', job_type )
             END IF
           ELSE
             CALL error(' cell_owner',' partition type not yet implemented ', &
@@ -1322,6 +1325,7 @@
 
         USE dimensions
         USE control_flags, ONLY: job_type
+        USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
         USE parallel, ONLY: nproc
 
         INTEGER, INTENT(IN) :: ijkl, mpime
@@ -1333,7 +1337,7 @@
 
         ELSE IF ( proc_map(mpime)%type == BLOCK2D_MAP ) THEN
 
-          IF( job_type == '2D' ) THEN
+          IF( job_type == JOB_TYPE_2D ) THEN
 
             k1 = proc_map(mpime)%corner1(2)
             i1 = proc_map(mpime)%corner1(1)
@@ -1342,7 +1346,7 @@
             k = ( ijkl - 1 ) / (i2-i1+1) + k1
             cell_l2g = i + (k-1) * nx
 
-          ELSE IF( job_type == '3D' ) THEN
+          ELSE IF( job_type == JOB_TYPE_3D ) THEN
 
             j1 = proc_map(mpime)%corner1(2)
             i1 = proc_map(mpime)%corner1(1)
@@ -1366,7 +1370,7 @@
 
         ELSE IF ( proc_map(mpime)%type == BLOCK3D_MAP ) THEN
 
-          IF( job_type == '3D' ) THEN
+          IF( job_type == JOB_TYPE_3D ) THEN
 
             k1 = proc_map(mpime)%blkbsw(3)
             j1 = proc_map(mpime)%blkbsw(2)
@@ -1406,6 +1410,7 @@
         USE dimensions
         USE parallel, ONLY: nproc
         USE control_flags, ONLY: job_type
+        USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
 
         INTEGER, INTENT(IN) :: ijk, mpime
         INTEGER :: i, j, k, i1, i2, j1, j2, k1, k2, nxl, nyl, nzl
@@ -1416,7 +1421,7 @@
 
         ELSE IF ( proc_map(mpime)%type == BLOCK2D_MAP ) THEN
 
-          IF( job_type == '2D' ) THEN
+          IF( job_type == JOB_TYPE_2D ) THEN
 
             k = ( ijk - 1 ) / nx + 1
             i = MOD( ( ijk - 1 ), nx) + 1
@@ -1426,7 +1431,7 @@
             i2 = proc_map(mpime)%corner2(1)
             cell_g2l = (i-i1+1) + (k-k1)*(i2-i1+1)
 
-          ELSE IF( job_type == '3D' ) THEN
+          ELSE IF( job_type == JOB_TYPE_3D ) THEN
 
             i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
             j = MOD( ijk - 1, nx*ny ) / nx + 1
@@ -1451,7 +1456,7 @@
 
         ELSE IF ( proc_map(mpime)%type == BLOCK3D_MAP ) THEN
 
-          IF( job_type == '3D' ) THEN
+          IF( job_type == JOB_TYPE_3D ) THEN
 
             i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
             j = MOD( ijk - 1, nx*ny ) / nx + 1
@@ -1485,5 +1490,5 @@
         RETURN
       END FUNCTION cell_g2l
 !----------------------------------------------------------------------
-      END MODULE domain_decomposition
+  END MODULE domain_decomposition
 !----------------------------------------------------------------------

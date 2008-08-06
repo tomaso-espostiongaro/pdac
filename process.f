@@ -2,6 +2,7 @@
       MODULE process_outp
 !----------------------------------------------------------------------
       USE control_flags, ONLY: job_type, formatted_output
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: ntot, nz
       USE io_files, ONLY: logunit, tempunit, testunit
       USE kinds
@@ -131,7 +132,7 @@
       IF (imnfld > 0) THEN
         rhom_gav = rhom_gav * md
         um_gav = um_gav * md
-        IF (job_type == '3D') vm_gav = vm_gav * md
+        IF (job_type == JOB_TYPE_3D) vm_gav = vm_gav * md
         wm_gav = wm_gav * md
         tm_gav = tm_gav * md
         CALL write_mean_field(last_out)

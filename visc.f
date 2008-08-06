@@ -152,6 +152,7 @@
 ! ... in gas momentum transport equations
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE domain_mapping, ONLY: data_exchange
       USE pressure_epsilon, ONLY: ep
@@ -169,9 +170,9 @@
 !
 ! ... Newtonian stress tensor
 !
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D ) THEN
         CALL stress2D(gvisx, gvisz, mugt, mug, ep, ug, wg)
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
         CALL stress3D(gvisx, gvisy, gvisz, mugt, mug, ep, ug, vg, wg)
       END IF 
 !
@@ -183,6 +184,7 @@
 ! ... in particle momentum transport equations
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE domain_mapping, ONLY: ncint, ncdom, data_exchange
       USE domain_mapping, ONLY: myijk, meshinds
@@ -217,11 +219,11 @@
       ALLOCATE( rlkinrl( SIZE( rlk, 1 ) ) )
       DO is = 1, nsolid
         rlkinrl = rlk(:,is)*inrl(is)
-        IF (job_type == '2D' ) THEN
+        IF (job_type == JOB_TYPE_2D  ) THEN
           CALL stress2D(pvisx(:,is), pvisz(:,is),                 &
   	                must(:,is), mus(:,is), rlkinrl, &
   		        us(:,is), ws(:,is))
-        ELSE IF (job_type == '3D' ) THEN
+        ELSE IF (job_type == JOB_TYPE_3D ) THEN
           CALL stress3D(pvisx(:,is), pvisy(:,is), pvisz(:,is),    &
        	                must(:,is), mus(:,is), rlkinrl, &
   		        us(:,is), vs(:,is), ws(:,is))
@@ -267,7 +269,7 @@
               pvisz(ijk,is) = pvisz(ijk,is) -  & 
                             gepz*indzp*2.D0*(rlk(ijkt,is)-rlk(ijk,is))*inrl(is)
             
-              IF (job_type == '3D') THEN
+              IF (job_type == JOB_TYPE_3D) THEN
 !
 ! ... Coulombic y-gradient
 !

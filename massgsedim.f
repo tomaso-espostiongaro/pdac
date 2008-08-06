@@ -14,6 +14,7 @@
       SUBROUTINE massgs(tn)
 ! 
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE domain_decomposition, ONLY: cell_owner, cell_g2l
       USE domain_mapping, ONLY: ncdom
@@ -38,7 +39,7 @@
       REAL*8, ALLOCATABLE :: vf(:)
       REAL*8, ALLOCATABLE :: tmap(:)
 
-      IF (job_type == '2D') RETURN
+      IF (job_type == JOB_TYPE_2D) RETURN
 
       ALLOCATE(tmap(nsolid))
       ALLOCATE(m_map(nx,ny))

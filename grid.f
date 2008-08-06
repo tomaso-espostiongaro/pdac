@@ -97,6 +97,7 @@
 !
       USE dimensions, ONLY: nx, ny, nz, ntot, ntr, max_size
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE parallel, ONLY: mpime, root
 !
       IMPLICIT NONE
@@ -112,14 +113,14 @@
       nz = nz_inner + npz + nmz
       remap_grid = (npx+nmx+npy+nmy+npz+nmz /= 0)
 !
-      IF( job_type == '2D' ) THEN
+      IF( job_type == JOB_TYPE_2D ) THEN
         ntot = nx*nz
         ntr  = nx
-      ELSE IF( job_type == '3D' ) THEN
+      ELSE IF( job_type == JOB_TYPE_3D ) THEN
         ntot = nx*ny*nz
         ntr  = nx*ny
       ELSE
-        CALL error( ' allocate_grid ', ' wrong job_type '//job_type, 1)
+        CALL error( ' allocate_grid ', ' wrong job_type ', job_type)
       END IF
 
       ALLOCATE( dx(nx), dy(ny), dz(nz) ) 
@@ -175,6 +176,7 @@
       SUBROUTINE grid_setup
 !
       USE control_flags, ONLY: job_type, lpr, prog
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nx, ny, nz
       USE io_files, ONLY: tempunit, testunit
       USE parallel, ONLY: mpime, root
@@ -213,9 +215,9 @@
         ! ... generate the non-uniform mesh
         !
         CALL generate_grid(dx_inner,nx_inner,domain_x,alpha_x,dxmin,dxmax,n0x,iv) 
-        IF (job_type == '2D') THEN
+        IF (job_type == JOB_TYPE_2D) THEN
           dy = 0.D0
-        ELSE IF (job_type == '3D') THEN
+        ELSE IF (job_type == JOB_TYPE_3D) THEN
           CALL generate_grid(dy_inner,ny_inner,domain_y,alpha_y,dymin,dymax,n0y,jv) 
         END IF
         CALL generate_grid(dz_inner,nz_inner,domain_z,alpha_z,dzmin,dzmax,n0z,kv) 
@@ -281,23 +283,23 @@
       indx = 1.D0 / dx
       indz = 1.D0 / dz
 
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         indy = 1.D0 / dy
-      ELSE IF (job_type == '2D') THEN
+      ELSE IF (job_type == JOB_TYPE_2D) THEN
         indy = 0.D0
       END IF
 !
 ! ... Set "r" and "rb" absolute coordinate
 ! ... (only for 2D cylindrical coordinates)
 !
-      IF((itc == 0) .OR. (job_type == '3D')) THEN
+      IF((itc == 0) .OR. (job_type == JOB_TYPE_3D)) THEN
 
         r(:) = 1.D0
         rb(:) = 1.D0
         inr(:) = 1.D0
         inrb(:) = 1.D0
 
-      ELSE IF ((itc == 1) .AND. (job_type == '2D')) THEN
+      ELSE IF ((itc == 1) .AND. (job_type == JOB_TYPE_2D)) THEN
 
         r(:)  = x(:)
         rb(:) = xb(:)
@@ -347,6 +349,7 @@
       SUBROUTINE flic
       USE dimensions, ONLY: nx, ny, nz, no
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE io_files, ONLY: logunit, testunit
       USE parallel, ONLY: mpime, root
 !
@@ -358,7 +361,7 @@
 !
       fl = fluid
 !
-      IF( job_type == '2D' ) THEN
+      IF( job_type == JOB_TYPE_2D ) THEN
         !
         ! ... Specify cell flags on mesh boundaries
         !
@@ -392,7 +395,7 @@
             END DO
           END DO
         END DO
-      ELSE IF( job_type == '3D' ) THEN
+      ELSE IF( job_type == JOB_TYPE_3D ) THEN
         !
         ! ... Specify cell flags on mesh boundaries
         !

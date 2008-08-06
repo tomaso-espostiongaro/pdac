@@ -69,6 +69,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE set_forcing
       USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE volcano_topography, ONLY: interpolate_profile, interpolate_dem
       USE grid, ONLY: x, xb, y, yb, z, zb
@@ -105,7 +106,7 @@
       ALLOCATE(extfy(ntot)); extfy = .FALSE.
       ALLOCATE(extfz(ntot)); extfz = .FALSE.
 
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D) THEN
 
         ! ... interpolate the topography on z/x-staggered mesh
         !
@@ -213,7 +214,7 @@
                         fl(ijk)/=filled_cell_1) fl(ijk) = immb_cell
         END DO
 !
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
 
         ! ... Interpolate the topography on the y/z/x-staggered mesh
         ! ... to count the forcing points
@@ -479,7 +480,7 @@
             WRITE(tempunit,32) np, fptx(np)%i, fptx(np)%j, fptx(np)%k, fptx(np)%int, fptx(np)%nsl
           END DO
           CLOSE(tempunit)
-          IF (job_type == '3D') THEN
+          IF (job_type == JOB_TYPE_3D) THEN
             OPEN(UNIT=tempunit,FILE='fpty.dat',STATUS='UNKNOWN')
             DO np = 1, SIZE(fpty)
               WRITE(tempunit,32) np, fpty(np)%i, fpty(np)%j, fpty(np)%k, fpty(np)%int, fpty(np)%nsl
@@ -503,7 +504,7 @@
       DEALLOCATE (forcez)
       DEALLOCATE (extfx)
       DEALLOCATE (extfz)
-      IF (job_type=='3D') THEN
+      IF (job_type==JOB_TYPE_3D) THEN
         DEALLOCATE (forcey)
         DEALLOCATE (extfy)
       END IF
@@ -628,6 +629,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE increasing_profile(i,fp,fpt)
       USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
 
       IMPLICIT NONE
 
@@ -1257,6 +1259,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
  
       IMPLICIT NONE
  

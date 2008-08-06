@@ -286,6 +286,7 @@
       SUBROUTINE compute_derived_fields
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE derived_fields, ONLY: total_particle_fraction, void_fraction, &
                                 log10_epstot, gas_density, gas_mass_fractions, &
                                 gas_bulk_density, solid_bulk_density, &
@@ -318,12 +319,12 @@
         CALL mixture_temperature(tm,ts,tg,rlk,rgp,ygc)
         !
         CALL mixture_velocity(um,ug,us,rlk,rgp,rhom)
-        IF (job_type == '3D') CALL mixture_velocity(vm,vg,vs,rlk,rgp,rhom)
+        IF (job_type == JOB_TYPE_3D) CALL mixture_velocity(vm,vg,vs,rlk,rgp,rhom)
         CALL mixture_velocity(wm,wg,ws,rlk,rgp,rhom)
-        IF (job_type == '3D') THEN
+        IF (job_type == JOB_TYPE_3D) THEN
           CALL velocity_module_2D(mvm,um,vm)
           !CALL velocity_module_3D(mvm,um,vm,wm)
-        ELSE IF (job_type == '2D') THEN
+        ELSE IF (job_type == JOB_TYPE_2D) THEN
           CALL velocity_module_2D(mvm,um,wm)
         END IF
         CALL dynamic_pressure(pd,rhom,mvm)

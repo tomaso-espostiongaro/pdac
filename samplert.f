@@ -31,6 +31,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE set_sampling
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE domain_decomposition, ONLY: cell_owner, cell_g2l
       USE grid, ONLY: x, y, z
@@ -59,7 +60,7 @@
 !
       DO nop = 1, number_of_probes
         probe(nop)%nop = nop
-        IF (job_type == '3D') THEN
+        IF (job_type == JOB_TYPE_3D) THEN
                 IF (mpime == root) THEN
                   READ(tempunit,*) probe(nop)%i, probe(nop)%j, probe(nop)%k
                   WRITE(logunit,*) probe(nop)%i, probe(nop)%j, probe(nop)%k, &
@@ -77,7 +78,7 @@
                 probe(nop)%x = x(i)
                 probe(nop)%y = y(j)
                 probe(nop)%z = z(k)
-        ELSE IF (job_type == '2D') THEN
+        ELSE IF (job_type == JOB_TYPE_2D) THEN
                 IF (mpime == root) THEN
                   READ(tempunit,*) probe(nop)%i,probe(nop)%k
                   WRITE(logunit,*) probe(nop)%i, probe(nop)%k
@@ -116,6 +117,7 @@
       SUBROUTINE sample_pressure
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nsolid, ngas, nx, ny, nz
       USE grid, ONLY: x, y, z
       USE io_files, ONLY: tempunit, testunit

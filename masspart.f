@@ -24,6 +24,7 @@
       SUBROUTINE massn 
 ! 
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE domain_decomposition, ONLY: cell_owner, cell_g2l
       USE domain_mapping, ONLY: ncdom
@@ -75,7 +76,7 @@
       IF (mpime == root) OPEN(tempunit, FILE=boxes_file, STATUS='OLD',ERR=199)
 !
       DO n = 1, number_of_boxes
-                IF (job_type == '2D') THEN
+                IF (job_type == JOB_TYPE_2D) THEN
                         IF (mpime == root) READ(tempunit,*) x1, x2, z1, z2
                         CALL bcast_real(x1,1,root)
                         CALL bcast_real(x2,1,root)
@@ -91,7 +92,7 @@
                         END DO
                         box(n)%j1 = 1
                         box(n)%j2 = 1
-                ELSE IF (job_type == '3D') THEN
+                ELSE IF (job_type == JOB_TYPE_3D) THEN
                         IF (mpime == root) READ(tempunit,*) x1, x2, y1, y2, z1, z2
                         CALL bcast_real(x1,1,root)
                         CALL bcast_real(x2,1,root)
@@ -136,7 +137,7 @@
           DO j = j1, j2
             DO i = i1, i2
               volume = 0.D0
-              IF (job_type == '2D') THEN
+              IF (job_type == JOB_TYPE_2D) THEN
                 imesh = i + (k-1)*nx
                 IF (cell_owner(imesh) == mpime) THEN
                   ijk = cell_g2l(imesh,mpime)
@@ -147,7 +148,7 @@
                     volume = dx(i) * dz(k)
                   END IF
                 END IF
-              ELSE IF (job_type == '3D') THEN
+              ELSE IF (job_type == JOB_TYPE_3D) THEN
                 imesh = i + (j-1)*nx + (k-1)*nx*ny
                 IF (cell_owner(imesh) == mpime) THEN
                   ijk = cell_g2l(imesh,mpime)
@@ -155,7 +156,7 @@
                 END IF
               END IF
               IF (i/=1 .AND. i/=nx .AND. k/=1 .AND. k/=nz) THEN
-                IF ((j/=1 .AND. j/=ny) .OR. (job_type == '2D')) THEN
+                IF ((j/=1 .AND. j/=ny) .OR. (job_type == JOB_TYPE_2D)) THEN
                         DO is = 1, nsolid
                           smass(n,is)  = smass(n,is) + eps(ijk,is) * rl(is) * volume
                         END DO

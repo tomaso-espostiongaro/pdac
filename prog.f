@@ -7,6 +7,7 @@
       USE check_residuals, ONLY: print_mass_flow_rate
       USE check_residuals, ONLY: print_mass_residuals
       USE control_flags, ONLY: job_type, lpr, imr
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE control_flags, ONLY: implicit_enthalpy, implicit_fluxes
       USE dimensions
       USE domain_mapping, ONLY: ncint, myijk, ncdom

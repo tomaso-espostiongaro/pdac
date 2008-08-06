@@ -23,6 +23,7 @@
       SUBROUTINE fluxn
 ! 
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE domain_decomposition, ONLY: cell_owner, cell_g2l
       USE domain_mapping, ONLY: data_exchange
@@ -66,7 +67,7 @@
 !
       IF (mpime == root) OPEN(tempunit, FILE=planes_file, STATUS='OLD')
       DO np = 1, number_of_planes
-               IF (job_type == '2D') THEN
+               IF (job_type == JOB_TYPE_2D) THEN
                         !
                         IF (mpime == root) THEN
                           READ(tempunit,*) axis, quota, surf_type
@@ -98,7 +99,7 @@
                         ELSE
                          CALL error('mass_flux','Invalid axis number/surface type', axis)
                         END IF
-               ELSE IF (job_type == '3D') THEN
+               ELSE IF (job_type == JOB_TYPE_3D) THEN
                         !
                         ! ... Read input file. 
                         !
@@ -192,7 +193,7 @@
           DO n = n1, n2
               epsm = 0.D0
               vel  = 0.D0
-              IF (job_type == '2D') THEN
+              IF (job_type == JOB_TYPE_2D) THEN
                 IF (axis == 1) THEN
                   imesh = plane + (n-1) * nx
                   IF (cell_owner(imesh) == mpime) THEN
@@ -217,7 +218,7 @@
                   END IF
                 END IF
 
-              ELSE IF (job_type == '3D') THEN
+              ELSE IF (job_type == JOB_TYPE_3D) THEN
                 IF (axis == 1) THEN
                   imesh = plane + (n-1) * nx + (t-1) * nx * ny
                   dist  = DSQRT((yb(n)-center1)**2+(zb(t)-center2)**2) 

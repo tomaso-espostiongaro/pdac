@@ -13,6 +13,7 @@
       SUBROUTINE allocate_velocity
       USE dimensions
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE domain_mapping, ONLY: ncdom
       IMPLICIT NONE
 !
@@ -22,7 +23,7 @@
       wg = 0.0d0
       us = 0.0d0
       ws = 0.0d0
-      IF( job_type == '3D' ) THEN
+      IF( job_type == JOB_TYPE_3D ) THEN
         ALLOCATE( vg(ncdom) )
         ALLOCATE( vs(ncdom,nsolid) )
         vg = 0.0d0

@@ -25,6 +25,7 @@
 ! ... This routine computes (x,y,z) boundary conditions 
 !
       USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE io_files, ONLY: tempunit, testunit
       USE domain_mapping, ONLY: ncint, myijk, meshinds
       USE grid, ONLY: flag, x, y, z, xb, yb, zb
@@ -101,7 +102,7 @@
           ! ... Check if 'ijk' is a forcing point
           !
           fx = numx(ijk)
-          IF (job_type == '3D') fy = numy(ijk)
+          IF (job_type == JOB_TYPE_3D) fy = numy(ijk)
           fz = numz(ijk)
           forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
           IF (.NOT.forced) CALL error('boundary','control forcing points',1)
@@ -109,7 +110,7 @@
           ! ... Compute the pseudo-velocities
           ! ... that are used in the "immersed boundary" technique ...
           !
-          IF (job_type == '2D') THEN
+          IF (job_type == JOB_TYPE_2D) THEN
 
             IF( fx/=0 ) THEN
               vel(:) = velint(fptx(fx), ug, us, ijk, xb, y, z)  
@@ -144,7 +145,7 @@
               END DO
             END IF
 
-          ELSE IF (job_type == '3D') THEN
+          ELSE IF (job_type == JOB_TYPE_3D) THEN
 
             IF( fx/=0 ) THEN
               vel(:) = velint3d(fptx(fx), ug, us, ijk, xb, y, z, indexq)  
@@ -212,7 +213,7 @@
               ug(n1)   = 0.D0
               us(n1,:) = 0.D0
 !
-	      IF (job_type == '3D') THEN
+	      IF (job_type == JOB_TYPE_3D) THEN
                 vg(n2)   = vg(n1)
                 vs(n2,:) = vs(n1,:)
               END IF
@@ -232,8 +233,8 @@
                 END DO
               END IF
 
-              IF (.NOT.BTEST(flag(ipjpk),0) .AND. job_type == '3D') THEN
-              !IF (flag(ipjpk) /= fluid .AND. job_type == '3D') THEN
+              IF (.NOT.BTEST(flag(ipjpk),0) .AND. job_type == JOB_TYPE_3D) THEN
+              !IF (flag(ipjpk) /= fluid .AND. job_type == JOB_TYPE_3D) THEN
                 vg(n2)   = -vg(n1)
                 DO is = 1, nsolid
                   IF (rlk(ijk,is) > 0.D0) vs(n2,:) = -vs(n1,:)
@@ -257,7 +258,7 @@
                 wg(n2) = wg(n1)
         	ws(n2,:)=ws(n1,:)
               END IF
-	      IF (job_type == '3D' .AND. (flag(ipjpk) == free_io)) THEN
+	      IF (job_type == JOB_TYPE_3D .AND. (flag(ipjpk) == free_io)) THEN
                 vg(n2) = vg(n1)
         	vs(n2,:)=vs(n1,:)
 	      END IF
@@ -279,7 +280,7 @@
                 wg(n2) = wg(n1)
         	ws(n2,:)=ws(n1,:)
               END IF
-	      IF (job_type == '3D' .AND. (flag(ipjpk) == nrfree_io)) THEN
+	      IF (job_type == JOB_TYPE_3D .AND. (flag(ipjpk) == nrfree_io)) THEN
                 vg(n2) = vg(n1)
         	vs(n2,:)=vs(n1,:)
 	      END IF
@@ -303,7 +304,7 @@
               ug(n2)   = 0.D0
               us(n2,:) = 0.D0
 !
-	      IF (job_type == '3D') THEN
+	      IF (job_type == JOB_TYPE_3D) THEN
                 vg(n2)   = vg(n1)
                 vs(n2,:) = vs(n1,:)
 	      END IF
@@ -323,8 +324,8 @@
                 END DO
 	      END IF
 
-              IF ( .NOT.BTEST(flag(imjkp),0) .AND. job_type == '3D') THEN
-              !IF ( flag(imjkp) /= fluid .AND. job_type == '3D') THEN
+              IF ( .NOT.BTEST(flag(imjkp),0) .AND. job_type == JOB_TYPE_3D) THEN
+              !IF ( flag(imjkp) /= fluid .AND. job_type == JOB_TYPE_3D) THEN
                 vg(n2)   = -vg(n1)
                 DO is = 1, nsolid
                   IF (rlk(ijk,is) > 0.D0) vs(n2,is) = -vs(n1,is)
@@ -347,7 +348,7 @@
                 wg(n2)   = wg(n1)
         	ws(n2,:) = ws(n1,:)
               END IF
-	      IF (job_type == '3D' .AND. (flag(imjpk) == free_io)) THEN
+	      IF (job_type == JOB_TYPE_3D .AND. (flag(imjpk) == free_io)) THEN
                 vg(n2)   = vg(n1)
         	vs(n2,:) = vs(n1,:)
 	      END IF
@@ -369,7 +370,7 @@
                 wg(n2)   = wg(n1)
         	ws(n2,:) = ws(n1,:)
               END IF
-	      IF (job_type == '3D' .AND. (flag(imjpk) == nrfree_io)) THEN
+	      IF (job_type == JOB_TYPE_3D .AND. (flag(imjpk) == nrfree_io)) THEN
                 vg(n2)   = vg(n1)
         	vs(n2,:) = vs(n1,:)
 	      END IF
@@ -380,7 +381,7 @@
 
             END SELECT
 
-            IF (job_type == '3D') THEN
+            IF (job_type == JOB_TYPE_3D) THEN
 !
 ! ***** North boundary conditions ***** !
 !
@@ -573,7 +574,7 @@
 !
               ug(n2)   = ug(n1)
               us(n2,:) = us(n1,:)
-	      IF (job_type == '3D') THEN
+	      IF (job_type == JOB_TYPE_3D) THEN
                 vg(n2)   = vg(n1)
                 vs(n2,:) = vs(n1,:)
 	      END IF
@@ -591,8 +592,8 @@
                 END DO
               END IF
 
-	      IF (.NOT.BTEST(flag(ijpkp),0) .AND. job_type == '3D') THEN
-	      !IF (flag(ijpkp) /= fluid .AND. job_type == '3D') THEN
+	      IF (.NOT.BTEST(flag(ijpkp),0) .AND. job_type == JOB_TYPE_3D) THEN
+	      !IF (flag(ijpkp) /= fluid .AND. job_type == JOB_TYPE_3D) THEN
                 vg(n2)   = -vg(n1)
                 DO is = 1, nsolid
                   IF (rlk(ijk,is) > 0.D0) vs(n2,is) = -vs(n1,is)
@@ -616,7 +617,7 @@
                  ug(n2)   = ug(n1)
                  us(n2,:) = us(n1,:)
               END IF
-              IF(flag(ijpkp) == free_io .AND. job_type == '3D') THEN
+              IF(flag(ijpkp) == free_io .AND. job_type == JOB_TYPE_3D) THEN
                  vg(n2)   = vg(n1)
                  vs(n2,:) = vs(n1,:)
               END IF
@@ -637,7 +638,7 @@
                  ug(n2)   = ug(n1)
                  us(n2,:) = us(n1,:)
               END IF
-              IF(flag(ijpkp) == nrfree_io .AND. job_type == '3D') THEN
+              IF(flag(ijpkp) == nrfree_io .AND. job_type == JOB_TYPE_3D) THEN
                  vg(n2)   = vg(n1)
                  vs(n2,:) = vs(n1,:)
               END IF
@@ -673,7 +674,7 @@
                 us(n2,:) = us(n1,:)
               END IF
 
-              IF (flag(ijpkm) == slip_wall .AND. job_type == '3D') THEN
+              IF (flag(ijpkm) == slip_wall .AND. job_type == JOB_TYPE_3D) THEN
                 vg( n2 ) = vg( n1 )
                 vs(n2,:) = vs(n1,:)
               END IF
@@ -690,7 +691,7 @@
                 END DO
               END IF
 
-              IF(flag(ijpkm) == noslip_wall .AND. job_type == '3D') THEN
+              IF(flag(ijpkm) == noslip_wall .AND. job_type == JOB_TYPE_3D) THEN
                 vg(n2)   = -vg(n1)
                 DO is = 1, nsolid
                   IF (rlk(ijk,is) > 0.D0) vs(n2,is) = -vs(n1,is)
@@ -725,7 +726,7 @@
         tfptx(:) = fptx(:)%vel(1)
         CALL parallel_sum_real(tfptx(:),nfptx)
         !
-        IF (job_type == '3D') THEN
+        IF (job_type == JOB_TYPE_3D) THEN
           nfpty = SIZE(fpty)
           ALLOCATE(tfpty(nfpty))
           tfpty(:) = fpty(:)%vel(1)
@@ -743,7 +744,7 @@
             WRITE(tempunit,32) np, fptx(np)%i, fptx(np)%j, fptx(np)%k, fptx(np)%int, fptx(np)%nsl, tfptx(np)
           END DO
           CLOSE(tempunit)
-          IF (job_type == '3D') THEN
+          IF (job_type == JOB_TYPE_3D) THEN
             OPEN(UNIT=tempunit,FILE='fpty.dat',STATUS='UNKNOWN')
             DO np = 1, SIZE(fpty)
               WRITE(tempunit,32) np, fpty(np)%i, fpty(np)%j, fpty(np)%k, fpty(np)%int, fpty(np)%nsl, tfpty(np)
@@ -760,7 +761,7 @@
   32    FORMAT(5(I6),4(F12.3))
         !
         DEALLOCATE(tfptx)
-        IF (job_type == '3D') DEALLOCATE(tfpty)
+        IF (job_type == JOB_TYPE_3D) DEALLOCATE(tfpty)
         DEALLOCATE(tfptz)
       END IF
 !

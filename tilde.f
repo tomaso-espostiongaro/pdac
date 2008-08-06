@@ -36,13 +36,14 @@
       USE dimensions
       USE domain_mapping, ONLY: ncint
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       IMPLICIT NONE
 !
       ALLOCATE( rugn(ncint), rwgn(ncint))
       ALLOCATE( rusn(ncint,nsolid), rwsn(ncint,nsolid))
       rugn = 0.D0; rwgn = 0.D0
       rusn = 0.D0; rwsn = 0.D0
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         ALLOCATE( rvgn(ncint) )
         ALLOCATE( rvsn(ncint,nsolid) )
         rvgn = 0.D0
@@ -57,6 +58,7 @@
       USE dimensions, ONLY: nsolid
       USE domain_mapping, ONLY: ncint, ncdom
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE tilde_energy, ONLY: rhg, rhs
       IMPLICIT NONE
 !
@@ -65,7 +67,7 @@
       ALLOCATE(rug(ncdom), rwg(ncdom))
       rug = 0.0D0
       rwg = 0.0D0
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         ALLOCATE(rvg(ncdom))
         rvg = 0.0D0
       END IF
@@ -77,7 +79,7 @@
       ALLOCATE(rus(ncdom,nsolid), rws(ncdom,nsolid))
       rus = 0.0D0
       rws = 0.0D0
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         ALLOCATE(rvs(ncdom,nsolid))
         rvs = 0.0D0
       END IF
@@ -91,7 +93,7 @@
 
       appu = 0.0D0
       appw = 0.0D0
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         ALLOCATE(appv(ncdom, ((nsolid+1)**2+(nsolid+1))/2) )
         appv = 0.0D0
       END IF
@@ -102,6 +104,7 @@
       SUBROUTINE deallocate_fluxes
 
         USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
         USE tilde_energy, ONLY: rhg, rhs
 
         IMPLICIT NONE
@@ -109,7 +112,7 @@
         DEALLOCATE(rug, rwg)
         DEALLOCATE(rus, rws)
         DEALLOCATE(appu, appw)
-        IF (job_type == '3D') THEN
+        IF (job_type == JOB_TYPE_3D) THEN
           DEALLOCATE(rvg)
           DEALLOCATE(rvs)
           DEALLOCATE(appv)
@@ -127,6 +130,7 @@
 ! ... (2D-3D-Compliant)
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE domain_mapping, ONLY: ncint, myijk, ncdom
       USE domain_mapping, ONLY: meshinds, data_exchange
@@ -154,11 +158,11 @@
 !
       CALL data_exchange(ug)
       CALL data_exchange(wg)
-      IF (job_type == '3D') CALL data_exchange(vg)
+      IF (job_type == JOB_TYPE_3D) CALL data_exchange(vg)
 
       CALL data_exchange(us)
       CALL data_exchange(ws)
-      IF (job_type == '3D') CALL data_exchange(vs)
+      IF (job_type == JOB_TYPE_3D) CALL data_exchange(vs)
 
       CALL data_exchange(p)
       CALL data_exchange(ep)
@@ -183,7 +187,7 @@
           CALL meshinds(ijk,imesh,i,j,k)
           CALL first_subscr(ijk)
 !
-          IF (job_type == '2D') THEN
+          IF (job_type == JOB_TYPE_2D ) THEN
 
             dxp = dx(i) + dx(i+1)
             dzp = dz(k) + dz(k+1)
@@ -202,7 +206,7 @@
                rwsn(ijk,is)  = rlk_t * ws(ijk,is)
             END DO
  
-          ELSE IF (job_type == '3D') THEN
+          ELSE IF (job_type == JOB_TYPE_3D) THEN
 
             dxp = dx(i) + dx(i+1)
             dyp = dy(j) + dy(j+1)
@@ -265,6 +269,7 @@
       USE domain_mapping, ONLY: meshinds
       USE domain_mapping, ONLY: ncint, myijk, ncdom, data_exchange
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: dx, dy, dz, flag
@@ -308,7 +313,7 @@
       gvisx = 0.D0; gvisz = 0.D0
       pvisx = 0.D0; pvisz = 0.D0
 
-      IF ( job_type == '3D' ) THEN
+      IF ( job_type == JOB_TYPE_3D ) THEN
         ALLOCATE( gvisy(ncint) )
         ALLOCATE( pvisy(ncint,nsolid) )
         gvisy = 0.D0
@@ -332,7 +337,7 @@
       wgfe = 0.0D0; wgft = 0.0D0
       wgfw = 0.0D0; wgfb = 0.0D0
 
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         ALLOCATE( ugfn(ncdom) )
         ALLOCATE( vgfe(ncdom), vgfn(ncdom), vgft(ncdom) )
         ALLOCATE( wgfn(ncdom) )
@@ -354,7 +359,7 @@
       wsfe = 0.0D0; wsft = 0.0D0
       wsfw = 0.0D0; wsfb = 0.0D0
 
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         ALLOCATE( usfn(ncdom,nsolid) )
         ALLOCATE( vsfe(ncdom,nsolid), vsfn(ncdom,nsolid), vsft(ncdom,nsolid) )
         ALLOCATE( wsfn(ncdom,nsolid) )
@@ -408,13 +413,13 @@
           wgfx = wgfe(ijk) - wgfw
           wgfz = wgft(ijk) - wgfb
 !
-          IF (job_type == '2D') THEN
+          IF (job_type == JOB_TYPE_2D ) THEN
             ugfy = 0.D0
             vgfx = 0.D0
             vgfy = 0.D0
             vgfz = 0.D0
             wgfy = 0.D0
-          ELSE IF (job_type == '3D') THEN
+          ELSE IF (job_type == JOB_TYPE_3D) THEN
             ugfs = ugfn(ijmk)
             vgfw = vgfe(imjk)
             vgfs = vgfn(ijmk)
@@ -444,7 +449,7 @@
           rug_tmp = rug_tmp - indz(k) * ugfz   
           rug (ijk) = rugn(ijk) + dt * rug_tmp
 !
-          IF (job_type == '3D') THEN
+          IF (job_type == JOB_TYPE_3D) THEN
             rvg_tmp = gvisy(ijk)                     
             rvg_tmp = rvg_tmp - indx(i) * vgfx               
             rvg_tmp = rvg_tmp - indyp * 2.D0 * vgfy   
@@ -475,13 +480,13 @@
             wsfx = wsfe(ijk,is) - wsfw
             wsfz = wsft(ijk,is) - wsfb
 
-            IF (job_type == '2D') THEN
+            IF (job_type == JOB_TYPE_2D ) THEN
               usfy = 0.D0
               vsfx = 0.D0
               vsfy = 0.D0
               vsfz = 0.D0
               wsfy = 0.D0
-            ELSE IF (job_type == '3D') THEN
+            ELSE IF (job_type == JOB_TYPE_3D) THEN
               usfs = usfn(ijmk,is)
               vsfw = vsfe(imjk,is)
               vsfs = vsfn(ijmk,is)
@@ -505,7 +510,7 @@
             rus_tmp = rus_tmp - indz(k) * usfz 
             rus(ijk,is) = rusn(ijk,is) + dt * rus_tmp
 !
-            IF (job_type == '3D') THEN
+            IF (job_type == JOB_TYPE_3D) THEN
               rvs_tmp = pvisy(ijk,is)              
               rvs_tmp = rvs_tmp - indx(i) * vsfx       
               rvs_tmp = rvs_tmp - indyp * 2.D0 * vsfy              
@@ -525,9 +530,9 @@
 !
             dugs(is) = ( (ug(ijk)-us(ijk,is)) + (ug(imjk)-us(imjk,is)) )*0.5D0
             dwgs(is) = ( (wg(ijk)-ws(ijk,is)) + (wg(ijkm)-ws(ijkm,is)) )*0.5D0
-            IF (job_type == '2D') THEN
+            IF (job_type == JOB_TYPE_2D ) THEN
               dvgs(is) = 0.D0
-            ELSE IF (job_type == '3D') THEN
+            ELSE IF (job_type == JOB_TYPE_3D) THEN
               dvgs(is) = ( (vg(ijk)-vs(ijk,is)) + (vg(ijmk)-vs(ijmk,is)) )*0.5D0
             END IF
 
@@ -539,10 +544,10 @@
 !
 ! ... Compute the particle-particle coefficients and the interphase matrix
 !
-          IF (job_type == '2D') THEN
+          IF (job_type == JOB_TYPE_2D ) THEN
             CALL inter(appu(ijk,:), nul(:), appw(ijk,:), kpgv(:),    &
      &                 us, us, ws, rlk, ijk)
-          ELSE IF (job_type == '3D') THEN
+          ELSE IF (job_type == JOB_TYPE_3D) THEN
             CALL inter(appu(ijk,:), appv(ijk,:), appw(ijk,:), kpgv(:),    &
      &                 us, vs, ws, rlk, ijk)
           END IF
@@ -581,7 +586,7 @@
               END DO
             END IF
             
-            IF (job_type == '3D') THEN
+            IF (job_type == JOB_TYPE_3D) THEN
 
               fy = numy(ijk)
 
@@ -668,7 +673,7 @@
       CALL data_exchange(rus)
       CALL data_exchange(rws)
 !
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
 
         DEALLOCATE( ugfn )
         DEALLOCATE( vgfe, vgfn, vgft)
@@ -698,6 +703,7 @@
       USE convective_fluxes_v, ONLY: flv, muscl_flv
       USE convective_fluxes_w, ONLY: flw, muscl_flw
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE flux_limiters, ONLY: muscl
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
@@ -727,7 +733,7 @@
           CALL subscr(ijk)
           CALL meshinds(ijk,imesh,i,j,k)
           !
-          IF (job_type == '2D') THEN
+          IF (job_type == JOB_TYPE_2D ) THEN
 !
 ! ... (GAS) ...
 !
@@ -789,7 +795,7 @@
 
             END DO
             
-          ELSE IF (job_type == '3D') THEN
+          ELSE IF (job_type == JOB_TYPE_3D) THEN
 !
 ! ... (GAS) ...
 !
@@ -909,7 +915,7 @@
       CALL data_exchange(wsfe)
       CALL data_exchange(wsft)
 
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         CALL data_exchange(ugfn)
         CALL data_exchange(vgfe)
         CALL data_exchange(vgfn)

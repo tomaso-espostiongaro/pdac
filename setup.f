@@ -57,6 +57,7 @@
 ! ... (2D/3D_Compliant and fully parallel)
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE domain_mapping, ONLY: ncint, meshinds, myijk
       USE dome_conditions, ONLY: idome, set_domec
@@ -126,6 +127,7 @@
 ! ... Initialize the flow field variables in the ghost cells
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE domain_mapping, ONLY: ncint, meshinds, myijk
       USE domain_mapping, ONLY: data_exchange
@@ -150,7 +152,7 @@
       CALL data_exchange(wg)      
       CALL data_exchange(us)      
       CALL data_exchange(ws)      
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         CALL data_exchange(vg)      
         CALL data_exchange(vs)      
       END IF
@@ -165,6 +167,7 @@
       USE atmospheric_conditions, ONLY: p_atm, t_atm, atm_ygc
       USE atmospheric_conditions, ONLY: wind_x, wind_y, wind_z, void_fraction
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE domain_mapping, ONLY: ncint, meshinds, myijk
       USE eos_gas, ONLY: ygc, xgc, mole
@@ -214,7 +217,7 @@
 
             ug(ijk) = wind_x
             us(ijk,:) = ug(ijk)
-            IF ( job_type == '3D') THEN
+            IF ( job_type == JOB_TYPE_3D) THEN
               vg(ijk) = wind_y
               vs(ijk,:) = vg(ijk)
             END IF
@@ -235,6 +238,7 @@
       SUBROUTINE cnvert
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE domain_mapping, ONLY: ncint, ncdom
       USE eos_gas, ONLY: mas, xgc, ygc
@@ -412,6 +416,7 @@
       SUBROUTINE specified_flow(n)
 
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE domain_mapping, ONLY: ncint, meshinds, myijk
       USE eos_gas, ONLY: ygc
@@ -446,14 +451,14 @@
           CALL meshinds(ijk,imesh,i,j,k)
           IF ( k >= iob(n)%zlo .AND. k <= iob(n)%zhi  ) THEN
             IF ( ( j >= iob(n)%ylo .AND. j <= iob(n)%yhi )    &
-                                    .OR. job_type == '2D') THEN
+                                    .OR. job_type == JOB_TYPE_2D ) THEN
               IF ( i >= iob(n)%xlo .AND. i <= iob(n)%xhi  ) THEN
                 !
 ! ... uncomment to set radius (alternative to the triple IF above)
 !              dist = DSQRT((x(i)-x(ic))**2+(y(j)-y(jc))**2+(z(k)-z(kc))**2)
 !              IF (dist <= radius) THEN
                 ug(ijk) = ugob(n)
-                IF (job_type == '3D') vg(ijk) = vgob(n)
+                IF (job_type == JOB_TYPE_3D) vg(ijk) = vgob(n)
                 wg(ijk) = wgob(n)
                 tg(ijk) = tgob(n)
                 p(ijk)  = pob(n)
@@ -464,7 +469,7 @@
                 DO is = 1,nsolid
                   ts(ijk,is)  = tpob(is,n)
                   us(ijk,is)  = upob(is,n)
-                  IF (job_type == '3D') vs(ijk,is)  = vpob(is,n)
+                  IF (job_type == JOB_TYPE_3D) vs(ijk,is)  = vpob(is,n)
                   ws(ijk,is)  = wpob(is,n)
                   rlk(ijk,is) = epsob(is,n)*rl(is)
                 END DO
@@ -607,6 +612,7 @@
       SUBROUTINE reset_velocities(ijk)
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE domain_mapping, ONLY: ncint, meshinds
       USE gas_solid_density, ONLY: rlk
       USE gas_solid_velocity, ONLY: ug, wg, vg
@@ -626,7 +632,7 @@
 !            us(ijk,2) = 0.D0
 !            WRITE(*,*) 'Reset u, cell: ',ijk
 !          END IF
-!          IF ( job_type == '3D') THEN
+!          IF ( job_type == JOB_TYPE_3D) THEN
 !            IF (DABS(vs(ijk,2))>300.D0) THEN
 !              vs(ijk,2) = 0.D0
 !              WRITE(*,*) 'Reset v, cell: ',ijk
@@ -648,7 +654,7 @@
             IF ( flag(ijk) == slip_wall .OR. flag(ijk) == noslip_wall ) THEN
               ug(ijk) = 0.D0
               us(ijk,:) = 0.D0
-              IF ( job_type == '3D') THEN
+              IF ( job_type == JOB_TYPE_3D) THEN
                 vg(ijk) = 0.D0
                 vs(ijk,:) = 0.D0
               END IF
@@ -662,7 +668,7 @@
               us(ijk,:) = 0.D0
             END IF
             !
-            IF ( job_type == '3D') THEN
+            IF ( job_type == JOB_TYPE_3D) THEN
               IF ( flag(ijpk) == slip_wall .OR. flag(ijpk) == noslip_wall ) THEN
                 vg(ijk) = 0.D0
                 vs(ijk,:) = 0.D0

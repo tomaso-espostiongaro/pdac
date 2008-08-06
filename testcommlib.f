@@ -9,7 +9,7 @@ program test_comm_lib
   CALL comm_getsiz( nsiz )
   WRITE(*,*) 'NSIZ = ', nsiz
 
-  dim1 = INT( DBLE( nsiz ) * 1.3d0 )
+  dim1 = INT( DBLE( nsiz ) * 2.3d0 )
   dim2 = INT( DBLE( nsiz ) * 0.3d0 )
   dim3 = nsiz
 

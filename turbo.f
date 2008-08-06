@@ -48,6 +48,7 @@
 ! ... (2D/3D-Compliant)
 !
         USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
         USE dimensions, ONLY: nz, no, nx, ny
         USE domain_mapping, ONLY: myijk, meshinds
         USE grid, ONLY: dz, zb, rb, dx, dy, z
@@ -71,7 +72,7 @@
 ! ... Compute the turbulent mixing length by using the roughness
 ! ... model and the Smagorinsky model
 !
-        IF( job_type == '2D' ) THEN
+        IF( job_type == JOB_TYPE_2D  ) THEN
           DO ijk = 1, ncint
             CALL meshinds(ijk,imesh,i,j,k)
             !
@@ -102,7 +103,7 @@
             !
             smag(ijk) = lm**2
           END DO
-        ELSE IF( job_type == '3D' ) THEN
+        ELSE IF( job_type == JOB_TYPE_3D ) THEN
           DO ijk = 1, ncint
             CALL meshinds(ijk,imesh,i,j,k)
             !
@@ -149,6 +150,7 @@
 ! ... (2D-3D-Compliant, dynamic model only computed in 3D)
 
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nx, ny, nz
       USE domain_mapping, ONLY: meshinds
       USE grid, ONLY: dx, dy, dz, flag
@@ -176,13 +178,13 @@
 !
       ALLOCATE( modsr(ncdom) );     modsr = 0.0D0
 
-      IF (modturbo == 2 .AND. job_type == '2D') THEN
+      IF (modturbo == 2 .AND. job_type == JOB_TYPE_2D ) THEN
 
         IF( mpime == root ) WRITE(errorunit,*) 'WARNING!: Dynamic Smagorinsky &
                                       & model cannot be applied to 2D'
         modturbo = 1
 
-      ELSE IF (modturbo == 2 .AND. job_type == '3D' ) THEN
+      ELSE IF (modturbo == 2 .AND. job_type == JOB_TYPE_3D ) THEN
 
         ! ... Allocate and initialize the filtered velocities for the
         ! ... dynamic computation of the Smagorinsky length scale 
@@ -262,9 +264,9 @@
              ! ... 'Classical' Smagorisnky model:
              ! ... compute the modulus of strain tensor 
              !
-            IF (job_type == '2D') THEN
+            IF (job_type == JOB_TYPE_2D ) THEN
                CALL strain2d(ug, wg, modsr(ijk), ijk)
-            ELSE IF (job_type == '3D') THEN
+            ELSE IF (job_type == JOB_TYPE_3D) THEN
                CALL strain3d(ug, vg, wg, modsr(ijk),   &
                              sr11,sr12,sr22,sr13,sr23,sr33, ijk)
             END IF
@@ -482,6 +484,7 @@
       USE particles_constants, ONLY: rl, inrl, dk, cmus
       USE set_indexes
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       IMPLICIT NONE
 !
       INTEGER :: ijk, is
@@ -493,9 +496,9 @@
          CALL subscr(ijk)
 !
          DO is = 1, nsolid
-           IF (job_type == '2D') THEN
+           IF (job_type == JOB_TYPE_2D ) THEN
              CALL strain2d(us(:,is), ws(:,is), modsr, ijk)
-           ELSE IF (job_type == '3D') THEN
+           ELSE IF (job_type == JOB_TYPE_3D) THEN
              CALL strain3d(us(:,is), vs(:,is), ws(:,is),                &
                            modsr,sr11,sr12,sr22,sr13,sr23,sr33, ijk)
            END IF

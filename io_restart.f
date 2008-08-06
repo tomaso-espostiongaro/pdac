@@ -2,6 +2,7 @@
       MODULE io_restart
 !----------------------------------------------------------------------
       USE control_flags, ONLY: job_type, nfil, formatted_input
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE domain_mapping, ONLY: data_collect, data_distribute, ncint
       USE eos_gas, ONLY: xgc, ygc
@@ -53,12 +54,12 @@
 
       CALL write_array( resunit, p, dbl, lform )
       
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D) THEN
 
         CALL write_array( resunit, ug, dbl, lform )
         CALL write_array( resunit, wg, dbl, lform )
 
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
 
         CALL write_array( resunit, ug, dbl, lform )
         CALL write_array( resunit, vg, dbl, lform )
@@ -76,14 +77,14 @@
         CALL write_array( resunit, rlk(:,is), dbl, lform )
       END DO
 
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D) THEN
 
         DO is = 1, nsolid
           CALL write_array( resunit, us(:,is), dbl, lform )
           CALL write_array( resunit, ws(:,is), dbl, lform )
         END DO
 
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
 
         DO is = 1, nsolid
           CALL write_array( resunit, us(:,is), dbl, lform )
@@ -195,14 +196,14 @@
       !
       !  read gas velocity
 
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D) THEN
 
         ug = 0.0d0
         wg = 0.0d0
         CALL read_array( resunit, ug, dbl, lform )
         CALL read_array( resunit, wg, dbl, lform )
 
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
 
         ug = 0.0d0
         vg = 0.0d0
@@ -240,7 +241,7 @@
       !
       !  read particles velocity
 
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D) THEN
 
         us = 0.0d0
         ws = 0.0d0
@@ -249,7 +250,7 @@
           CALL read_array( resunit, ws(:,is), dbl, lform )
         END DO
 
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
 
         us = 0.0d0
         vs = 0.0d0
@@ -345,6 +346,7 @@
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE io_files, ONLY: filnam, outpunit
 !
       IMPLICIT NONE
@@ -386,7 +388,7 @@
       p = 0.D0
       CALL read_array( outpunit, p, sgl, lform )  ! gas_pressure
 
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D) THEN
 
         IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
         ug = 0.D0
@@ -396,7 +398,7 @@
         wg = 0.D0
         CALL read_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
 
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
 
         IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
         ug = 0.D0
@@ -436,7 +438,7 @@
         CALL read_array( outpunit, otmp, sgl, lform )  ! solid_bulk_density
         rlk(:,is) = otmp * rl(is)
 
-        IF (job_type == '2D') THEN
+        IF (job_type == JOB_TYPE_2D) THEN
 
           IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
           us(:,is) = 0.D0
@@ -446,7 +448,7 @@
           ws(:,is) = 0.D0
           CALL read_array( outpunit, ws(:,is), sgl, lform )  ! solid_velocity_z
 
-        ELSE IF (job_type == '3D') THEN
+        ELSE IF (job_type == JOB_TYPE_3D) THEN
 
           IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
           us(:,is) = 0.D0
@@ -499,6 +501,7 @@
       USE pressure_epsilon, ONLY: p
       USE time_parameters, ONLY: time
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE io_files, ONLY: filnam, outpunit
 !
       IMPLICIT NONE
@@ -536,7 +539,7 @@
 
       CALL read_inner_array( outpunit, p, sgl, lform )  ! gas_pressure
 
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D) THEN
 
         IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
         CALL read_inner_array( outpunit, ug, sgl, lform ) ! gas_velocity_r
@@ -544,7 +547,7 @@
         IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
         CALL read_inner_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
 
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
 
         IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
         CALL read_inner_array( outpunit, ug, sgl, lform ) ! gas_velocity_x
@@ -580,7 +583,7 @@
         CALL read_inner_array( outpunit, otmp, sgl, lform )  ! solid_bulk_density
         rlk(:,is) = otmp * rl(is)
 
-        IF (job_type == '2D') THEN
+        IF (job_type == JOB_TYPE_2D) THEN
 
           IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
           CALL read_inner_array( outpunit, us(:,is), sgl, lform )  ! solid_velocity_r
@@ -588,7 +591,7 @@
           IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
           CALL read_inner_array( outpunit, ws(:,is), sgl, lform )  ! solid_velocity_z
 
-        ELSE IF (job_type == '3D') THEN
+        ELSE IF (job_type == JOB_TYPE_3D) THEN
 
           IF( lform .AND. mpime == root ) READ(outpunit,122,ERR=199)
           CALL read_inner_array( outpunit, us(:,is), sgl, lform )  ! solid_velocity_x

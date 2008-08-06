@@ -41,6 +41,7 @@
 ! ... (2D-3D-Compliant)
 !
       USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
       USE dimensions
       USE domain_mapping, ONLY: ncint, ncdom, data_exchange
@@ -118,7 +119,7 @@
       rgft = 0.0D0
       rsfe = 0.0D0
       rsft = 0.0D0
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         ALLOCATE( rgfn( ncdom ))
         ALLOCATE( rsfn( ncdom, nsolid ))
         rgfn = 0.0D0
@@ -147,14 +148,14 @@
       CALL data_exchange(us)
       CALL data_exchange(wg)
       CALL data_exchange(ws)
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         CALL data_exchange(vg)
         CALL data_exchange(vs)
       END IF
 !
 ! ... In 3D use optimized routines with two particle classes
 !
-      IF( ((nsolid /= 2) .OR. (job_type == '2D')) .AND. (optimization >= 3) ) &
+      IF( ((nsolid /= 2) .OR. (job_type == JOB_TYPE_2D)) .AND. (optimization >= 3) ) &
         optimization = 2
 
       IF( optimization == 3 ) THEN
@@ -211,10 +212,10 @@
            ! ... either first or second-order momentum fluxes
            !
            CALL data_exchange(ug)
-           IF (job_type == '3D') CALL data_exchange(vg)
+           IF (job_type == JOB_TYPE_3D) CALL data_exchange(vg)
            CALL data_exchange(wg)
            CALL data_exchange(us)
-           IF (job_type == '3D') CALL data_exchange(vs)
+           IF (job_type == JOB_TYPE_3D) CALL data_exchange(vs)
            CALL data_exchange(ws)
 
            CALL tilde
@@ -462,7 +463,7 @@
       DEALLOCATE(rsfe)
       DEALLOCATE(rsft)
 
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         DEALLOCATE( rgfn )
         DEALLOCATE( rsfn )
       END IF
@@ -492,6 +493,7 @@
       USE set_indexes, ONLY: imjk, ijmk, ijkm, ipjk, ijpk, ijkp
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
 
       IMPLICIT NONE
 
@@ -599,12 +601,13 @@
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE control_flags, ONLY: job_type, implicit_fluxes, &
                                implicit_enthalpy
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
 !
       IMPLICIT NONE
 
       INTEGER :: ijk, info
 
-        IF (job_type == '2D') THEN
+        IF (job_type == JOB_TYPE_2D) THEN
 !
 ! ... Compute Fluxes by using First Order Upwind method
 !
@@ -628,7 +631,7 @@
           END IF
 
 
-        ELSE IF (job_type == '3D') THEN
+        ELSE IF (job_type == JOB_TYPE_3D) THEN
 !
 ! ... Compute Fluxes by using First Order Upwind method
 !
@@ -667,6 +670,7 @@
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE time_parameters, ONLY: dt
 
       IMPLICIT NONE
@@ -677,9 +681,9 @@
       resx = ( b_e * rgfe(ijk) - b_w * rgfe(imjk) ) * indx(i) * inr(i)
       resz = ( b_t * rgft(ijk) - b_b * rgft(ijkm) ) * indz(k)
 !
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D) THEN
         resy = 0.D0
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
         resy = (b_n * rgfn(ijk) - b_s * rgfn(ijmk)) * indy(j)
       END IF
 !
@@ -706,6 +710,7 @@
       USE set_indexes, ONLY: first_nb, first_rnb, third_nb, third_rnb
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
 !
       IMPLICIT NONE
 
@@ -714,7 +719,7 @@
 !
         DO is = 1, nsolid
 
-          IF (job_type == '2D') THEN
+          IF (job_type == JOB_TYPE_2D) THEN
 !
 ! ... Compute Fluxes by using First Order Upwind method
 !
@@ -739,7 +744,7 @@
               
             END IF
 
-          ELSE IF (job_type == '3D') THEN
+          ELSE IF (job_type == JOB_TYPE_3D) THEN
 !
 ! ... Compute Fluxes by using First Order Upwind method
 !
@@ -778,6 +783,7 @@
 ! ... to compute particle volumetric fractions and the void fraction.
 !
       USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE gas_solid_density, ONLY: rlk, rlkn
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
@@ -800,9 +806,9 @@
         rlkx = (b_e * rsfe(ijk,is) - b_w * rsfe(imjk,is)) * indx(i) * inr(i)
         rlkz = (b_t * rsft(ijk,is) - b_b * rsft(ijkm,is)) * indz(k)
 
-        IF (job_type == '2D') THEN
+        IF (job_type == JOB_TYPE_2D) THEN
           rlky = 0.D0
-        ELSE IF (job_type == '3D') THEN
+        ELSE IF (job_type == JOB_TYPE_3D) THEN
           rlky = (b_n * rsfn(ijk,is) - b_s * rsfn(ijmk,is)) * indy(j)
         END IF
 
@@ -963,6 +969,7 @@
       USE convective_mass_fluxes, ONLY: upc_e, upc_n, upc_t
       USE convective_mass_fluxes, ONLY: upc_w, upc_s, upc_b
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE eos_gas, ONLY: csound
       USE gas_solid_density, ONLY: rog, rgp
       USE grid, ONLY: dx, dy, dz, flag, rb
@@ -1037,7 +1044,7 @@
               iep_b = 0.D0
           END SELECT
 !
-          IF (job_type == '3D') THEN
+          IF (job_type == JOB_TYPE_3D) THEN
 
             dyp=dy(j)+dy(j+1)
             dym=dy(j)+dy(j-1)
@@ -1066,9 +1073,9 @@
 
           iepx = (  rb(i) * iep_e + rb(i-1) * iep_w ) * indx(i) * inr(i) 
           iepz = (  iep_t + iep_b ) * indz(k)
-          IF (job_type == '2D') THEN
+          IF (job_type == JOB_TYPE_2D) THEN
             iepy = 0.D0
-          ELSE IF (job_type == '3D') THEN
+          ELSE IF (job_type == JOB_TYPE_3D) THEN
             iepy = (  iep_n + iep_s ) * indy(j)
           END IF
 !
@@ -1105,6 +1112,7 @@
 ! ... the stencil is updated at each inner loop.
 !
         USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
         USE dimensions
         USE pressure_epsilon, ONLY: p, ep
         USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
@@ -1117,6 +1125,7 @@
         USE set_indexes, ONLY: ijke, ijkn, ijkt, ijkw, ijks, ijkb
         USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
         USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
         USE time_parameters, ONLY: dt, time
         USE flux_limiters, ONLY: muscl
         USE convective_mass_fluxes, ONLY: fmas, masf
@@ -1160,7 +1169,7 @@
         rgft_ = rgft( ijk )
         rgfb_ = rgft( ijkm )
         !
-        IF(job_type == '3D') THEN
+        IF(job_type == JOB_TYPE_3D) THEN
           rsfn_(1:nsolid) = rsfn( ijk, 1:nsolid )
           rsfs_(1:nsolid) = rsfn( ijmk, 1:nsolid )
           rgfn_ = rgfn( ijk )
@@ -1174,26 +1183,26 @@
         CALL first_nb(rgp_,rgp,ijk)
         CALL first_rnb(ug_,ug,ijk)
         CALL first_rnb(wg_,wg,ijk)
-        IF (job_type == '3D') CALL first_rnb(vg_,vg,ijk)
+        IF (job_type == JOB_TYPE_3D) CALL first_rnb(vg_,vg,ijk)
         !
         IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
           CALL third_nb(rgp_,rgp,ijk)
           CALL third_rnb(ug_,ug,ijk)
           CALL third_rnb(wg_,wg,ijk)
-          IF (job_type == '3D') CALL third_rnb(vg_,vg,ijk)
+          IF (job_type == JOB_TYPE_3D) CALL third_rnb(vg_,vg,ijk)
         END IF
 
         DO is = 1, nsolid
           CALL first_nb(rlk_(is),rlk(:,is),ijk)
           CALL first_rnb(us_(is),us(:,is),ijk)
           CALL first_rnb(ws_(is),ws(:,is),ijk)
-          IF (job_type == '3D') CALL first_rnb(vs_(is),vs(:,is),ijk)
+          IF (job_type == JOB_TYPE_3D) CALL first_rnb(vs_(is),vs(:,is),ijk)
 
           IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
             CALL third_nb(rlk_(is),rlk(:,is),ijk)
             CALL third_rnb(us_(is),us(:,is),ijk)
             CALL third_rnb(ws_(is),ws(:,is),ijk)
-            IF (job_type == '3D') CALL third_rnb(vs_(is),vs(:,is),ijk)
+            IF (job_type == JOB_TYPE_3D) CALL third_rnb(vs_(is),vs(:,is),ijk)
           END IF
         END DO
 !
@@ -1234,7 +1243,7 @@
           ug_%w = ug( imjk )
           wg_%c = wg( ijk )
           wg_%b = wg( ijkm )
-          IF (job_type == '3D') THEN
+          IF (job_type == JOB_TYPE_3D) THEN
             vg_%c = vg( ijk )
             vg_%s = vg( ijmk )
           END IF
@@ -1243,7 +1252,7 @@
             us_(is)%w = us( imjk, is )
             ws_(is)%c = ws( ijk, is )
             ws_(is)%b = ws( ijkm, is )
-            IF (job_type == '3D') THEN
+            IF (job_type == JOB_TYPE_3D) THEN
               vs_(is)%c = vs( ijk, is )
               vs_(is)%s = vs( ijmk, is )
             END IF
@@ -1256,7 +1265,7 @@
           rls = 0.D0
           DO is = 1, nsolid
 
-            IF (job_type == '2D') THEN
+            IF (job_type == JOB_TYPE_2D) THEN
 
               CALL masf(rsfe_(is), rsft_(is), rsfw_(is), rsfb_(is), &
                         rlk_(is), us_(is), ws_(is), ijk)
@@ -1266,7 +1275,7 @@
                           rlk_(is), us_(is), ws_(is), ijk)
               END IF
 
-            ELSE IF (job_type == '3D') THEN
+            ELSE IF (job_type == JOB_TYPE_3D) THEN
 
               CALL masf(rsfe_(is), rsfn_(is), rsft_(is), &
                         rsfw_(is), rsfs_(is), rsfb_(is), &
@@ -1282,7 +1291,7 @@
 
             rlkx = ( b_e * rsfe_(is) - b_w * rsfw_(is) ) * indx(i) * inr(i)
             rlkz = ( b_t * rsft_(is) - b_b * rsfb_(is) ) * indz(k)
-            IF (job_type == '3D') THEN
+            IF (job_type == JOB_TYPE_3D) THEN
               rlky = ( b_n * rsfn_(is) - b_s * rsfs_(is) ) * indy(j)
             ELSE
               rlky = 0.D0
@@ -1316,7 +1325,7 @@
           ! ... update residual of the Mass Balance equation of the gas phase
           ! ... using guessed velocities and pressure.
           !
-          IF (job_type == '2D') THEN
+          IF (job_type == JOB_TYPE_2D) THEN
 
             CALL masf( rgfe_, rgft_, rgfw_, rgfb_, rgp_, ug_, wg_, ijk )
 
@@ -1324,7 +1333,7 @@
               CALL fmas( rgfe_, rgft_, rgfw_, rgfb_, rgp_, ug_, wg_, ijk )
             END IF
 
-          ELSE IF (job_type == '3D') THEN
+          ELSE IF (job_type == JOB_TYPE_3D) THEN
 
             CALL masf( rgfe_, rgfn_, rgft_, rgfw_, rgfs_, rgfb_, rgp_, ug_, vg_, wg_, ijk)
 
@@ -1336,7 +1345,7 @@
 
           resx = ( b_e * rgfe_ - b_w * rgfw_ ) * indx(i) * inr(i)
           resz = ( b_t * rgft_ - b_b * rgfb_ ) * indz(k)
-          IF (job_type == '3D') THEN
+          IF (job_type == JOB_TYPE_3D) THEN
             resy = ( b_n * rgfn_ - b_s * rgfs_ ) * indy(j)
           ELSE
             resy = 0.D0
@@ -1376,7 +1385,7 @@
         rgft( ijk ) = rgft_
         rgft( ijkm ) = rgfb_
         
-        IF(job_type == '3D') THEN
+        IF(job_type == JOB_TYPE_3D) THEN
           rsfn( ijk, 1:nsolid ) = rsfn_(1:nsolid)
           rsfn( ijmk, 1:nsolid ) = rsfs_(1:nsolid)
           rgfn( ijk ) = rgfn_
@@ -1394,6 +1403,7 @@
 !
 !----------------------------------------------------------------------
         USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
         USE dimensions
         USE pressure_epsilon, ONLY: p, ep
         USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
@@ -1690,6 +1700,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE correct_particles(ijk, imesh, i, j, k)
       USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nsolid, ngas
       USE gas_constants, ONLY: tzero, hzeros
       USE gas_solid_density, ONLY: rlk
@@ -1708,13 +1719,13 @@
           !... Drop particles out
           rlk(ijk,is) = 0.D0
           us(ijk,is)  = 0.D0
-          IF (job_type == '3D') vs(ijk,is)  = 0.D0
+          IF (job_type == JOB_TYPE_3D) vs(ijk,is)  = 0.D0
           ws(ijk,is) = 0.D0
           sies(ijk,is) = 0.D0
         ELSE
           ! ... Assume istantaneous momentum equilibrium
           us(ijk,is)  = ug(ijk)
-          IF (job_type == '3D') vs(ijk,is)  = vg(ijk)
+          IF (job_type == JOB_TYPE_3D) vs(ijk,is)  = vg(ijk)
           ws(ijk,is) = wg(ijk)
           ts(ijk,is) = tg(ijk)
           CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))

@@ -95,6 +95,7 @@
 ! ... Read the topography file
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE grid, ONLY: iv, jv
 
       IMPLICIT NONE
@@ -109,11 +110,11 @@
 ! ... In 3D translate horizontally the  computational mesh 
 ! ... (geographic UTM coordinates).
 !
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D ) THEN
 
         CALL read_2Dprofile
 
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
 
         ! ... Read the original topography
         !
@@ -145,6 +146,7 @@
 !
       USE array_filters, ONLY: interp
       USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE grid, ONLY: x, xb, y, yb, z, zb, iv, jv, kv, dzmax
       USE io_files, ONLY: testunit, tempunit
       USE parallel, ONLY: mpime, root
@@ -166,7 +168,7 @@
       IF (.NOT.ALLOCATED(dist)) ALLOCATE (dist(ntot))
       dist = 1.0D10
 !
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D ) THEN
         !
         IF (.NOT.ALLOCATED(next)) ALLOCATE(next(nx))
         IF (.NOT.ALLOCATED(ord)) ALLOCATE(ord(nx))
@@ -225,7 +227,7 @@
         DEALLOCATE(topo)
         IF (mpime == root) CLOSE(tempunit)
         !
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
         !
         IF (.NOT.ALLOCATED(nextx)) ALLOCATE(nextx(nx))
         IF (.NOT.ALLOCATED(nexty)) ALLOCATE(nexty(ny))
@@ -1028,6 +1030,7 @@
 ! ... "ord" and "ord2d" are the last cell COMPLETELY below the topography
 !
       USE control_flags, ONLY: lpr, job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE grid, ONLY: fl, zb, z
       USE grid, ONLY: inlet_cell, noslip_wall, fluid, bl_cell
       USE io_files, ONLY: testunit
@@ -1040,7 +1043,7 @@
 ! ... 2D
 ! ... Define the topography through the no-slip cells
 !
-      IF( job_type == '2D') THEN
+      IF( job_type == JOB_TYPE_2D ) THEN
         DO i = 1, nx
           q = ord(i)
           DO k = 1, nz
@@ -1068,7 +1071,7 @@
 ! ... 3D
 ! ... Define the topography through the no-slip cells
 !
-      ELSE IF( job_type == '3D') THEN
+      ELSE IF( job_type == JOB_TYPE_3D) THEN
         DO j = 1, ny
           DO i = 1, nx
             q = ord2d(i,j)
@@ -1111,13 +1114,14 @@
 ! ... are modified later with more accurate interpolations
 !
       USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE grid, ONLY: fl, noslip_wall, zb, x
       USE io_files, ONLY: tempunit
       IMPLICIT NONE
 
       INTEGER :: i, j, k, ijk
 !
-      IF( job_type == '2D') THEN
+      IF( job_type == JOB_TYPE_2D ) THEN
         ALLOCATE(topo_c(nx))
         ALLOCATE(topo_x(nx))
         DO i = 1, nx
@@ -1127,7 +1131,7 @@
           END DO
           topo_x(i) = topo_c(i)
         END DO
-      ELSE IF( job_type == '3D') THEN
+      ELSE IF( job_type == JOB_TYPE_3D) THEN
         ALLOCATE(topo2d_c(nx,ny))
         ALLOCATE(topo2d_x(nx,ny))
         ALLOCATE(topo2d_y(nx,ny))
@@ -1151,11 +1155,11 @@
       IF (mpime == root .AND. itp>0) THEN
         OPEN(tempunit, FILE='export_topography.dat',STATUS='UNKNOWN')
         WRITE(topounit,*) 'The new DEM is written in file "export_topography.dat"'
-        IF( job_type == '2D') THEN
+        IF( job_type == JOB_TYPE_2D ) THEN
                   DO i=1,nx
                     WRITE(tempunit,'(2F15.6)') x(i), topo_c(i)
                   END DO
-        ELSE IF( job_type == '3D') THEN
+        ELSE IF( job_type == JOB_TYPE_3D) THEN
                   WRITE(tempunit,'(10F15.6)') topo2d_c(:,:)
         END IF
         CLOSE(tempunit)
@@ -1167,6 +1171,7 @@
       SUBROUTINE write_profile
 
       USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE grid, ONLY: x, xb, y, yb, z, zb
       USE grid, ONLY: iob, fl, noslip_wall, filled_cell_1, filled_cell_2
@@ -1201,7 +1206,7 @@
 !
       IF (mpime == root) THEN
         OPEN(UNIT=tempunit,FILE='improfile.dat',STATUS='UNKNOWN')
-        WRITE(tempunit,fmt='(F9.2)') dist
+        WRITE(tempunit,fmt='(F9.2)') dist  !!!!!!!!!!!!  TEMPORARY CARLO
         CLOSE(tempunit)
       END IF
 !
@@ -1209,7 +1214,7 @@
 ! ... are noslip cells (they could have been modified by the 
 ! ... immersed boundary procedure)
 !
-      IF( job_type == '2D') THEN
+      IF( job_type == JOB_TYPE_2D ) THEN
         DO n = 1, no
           IF (iob(n)%typ == 5) THEN
             DO i = iob(n)%xlo, iob(n)%xhi
@@ -1220,7 +1225,7 @@
             END DO
           END IF
         END DO
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
         DO n = 1, no
           IF (iob(n)%typ == 5) THEN
             DO i = iob(n)%xlo, iob(n)%xhi
@@ -1237,12 +1242,12 @@
 !
 ! ... Deallocate all arrays in the topography module
 !
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D ) THEN
         DEALLOCATE (next)
         DEALLOCATE (ord)
         DEALLOCATE (dist)
         DEALLOCATE (xtop, ztop)
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
         DEALLOCATE(nextx, nexty)
         DEALLOCATE(ord2d)
         DEALLOCATE (dist)

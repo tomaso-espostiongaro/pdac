@@ -1,5 +1,5 @@
 !----------------------------------------------------------------------
-      MODULE domain_mapping
+   MODULE domain_mapping
 !----------------------------------------------------------------------
         USE domain_decomposition, ONLY: nctot, proc_map
         USE domain_decomposition, ONLY: cell_g2l, cell_l2g, cell_owner
@@ -73,6 +73,7 @@
       USE dimensions
       USE basic_types, ONLY: imatrix
       USE control_flags, ONLY: job_type, prog
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE parallel, ONLY: nproc, mpime, root
 !
       IMPLICIT NONE
@@ -118,7 +119,7 @@
           END IF
         END DO
       ELSE IF ( proc_map(mpime)%type == BLOCK2D_MAP ) THEN
-        IF( job_type == '2D' ) THEN
+        IF( job_type == JOB_TYPE_2D ) THEN
           i1 = proc_map(mpime)%corner1(1)
           i2 = proc_map(mpime)%corner2(1)
           k1 = proc_map(mpime)%corner1(2)
@@ -132,7 +133,7 @@
             END DO
           END DO
         ! ... "columns" domain-decomposition ... !
-        ELSE IF( job_type == '3D' ) THEN
+        ELSE IF( job_type == JOB_TYPE_3D ) THEN
           i1 = proc_map(mpime)%corner1(1)
           i2 = proc_map(mpime)%corner2(1)
           j1 = proc_map(mpime)%corner1(2)
@@ -148,10 +149,10 @@
             END DO
           END DO
         ELSE 
-          CALL error( ' ghost ', ' wrong job_type '//job_type, 1)
+          CALL error( ' ghost ', ' wrong job_type ', job_type)
         END IF
       ELSE IF ( proc_map(mpime)%type == BLOCK3D_MAP ) THEN
-        IF( job_type == '3D' ) THEN
+        IF( job_type == JOB_TYPE_3D ) THEN
           i1 = proc_map(mpime)%blkbsw(1)
           i2 = proc_map(mpime)%blktne(1)
           j1 = proc_map(mpime)%blkbsw(2)
@@ -179,7 +180,7 @@
             END DO
           END DO
         ELSE 
-          CALL error( ' ghost ', ' wrong job_type '//job_type, 1)
+          CALL error( ' ghost ', ' wrong job_type ', job_type)
         END IF
       ELSE
         CALL error(' ghost ', ' partition type not yet implemented ', proc_map(mpime)%type )
@@ -225,7 +226,7 @@
           END IF
         END DO
       ELSE IF ( proc_map(mpime)%type == BLOCK2D_MAP ) THEN
-        IF( job_type == '2D' ) THEN
+        IF( job_type == JOB_TYPE_2D ) THEN
           i1 = proc_map(mpime)%corner1(1)
           i2 = proc_map(mpime)%corner2(1)
           k1 = proc_map(mpime)%corner1(2)
@@ -238,7 +239,7 @@
               END IF
             END DO
           END DO
-        ELSE IF( job_type == '3D' ) THEN
+        ELSE IF( job_type == JOB_TYPE_3D ) THEN
           i1 = proc_map(mpime)%corner1(1)
           i2 = proc_map(mpime)%corner2(1)
           j1 = proc_map(mpime)%corner1(2)
@@ -254,10 +255,10 @@
             END DO
           END DO
         ELSE
-          CALL error( ' ghost ', ' wrong job_type '//job_type, 1)
+          CALL error( ' ghost ', ' wrong job_type ', job_type)
         END IF
       ELSE IF ( proc_map(mpime)%type == BLOCK3D_MAP ) THEN
-        IF( job_type == '3D' ) THEN
+        IF( job_type == JOB_TYPE_3D ) THEN
           i1 = proc_map(mpime)%blkbsw(1)
           i2 = proc_map(mpime)%blktne(1)
           j1 = proc_map(mpime)%blkbsw(2)
@@ -285,7 +286,7 @@
             END DO
           END DO
         ELSE
-          CALL error( ' ghost ', ' wrong job_type '//job_type, 1)
+          CALL error( ' ghost ', ' wrong job_type ', job_type)
         END IF
       ELSE
         CALL error(' ghost ', ' partition type not yet implemented ', &
@@ -485,6 +486,7 @@
         USE dimensions
         USE basic_types, ONLY: imatrix
         USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
 !
         INTEGER, INTENT(IN) :: ijk
         INTEGER, INTENT(IN) :: mpime
@@ -516,7 +518,7 @@
         is_my_cell_ = .false.
         IF( PRESENT( is_my_cell ) ) is_my_cell_ = is_my_cell
 
-        IF( job_type == '2D' ) THEN
+        IF( job_type == JOB_TYPE_2D ) THEN
 
           k = ( ijk - 1 ) / nx + 1
           i = MOD( ( ijk - 1 ), nx) + 1
@@ -558,93 +560,88 @@
             END DO
           END DO
 
-        ELSE IF( job_type == '3D' ) THEN
+        ELSE IF( job_type == JOB_TYPE_3D ) THEN
 
           i = MOD( MOD( ijk - 1, nx*ny ), nx ) + 1
           j = MOD( ijk - 1, nx*ny ) / nx + 1
           k = ( ijk - 1 ) / ( nx*ny ) + 1
 
+          IF( fill ) THEN
+! ...        store the global cell index ij, of the the local cell ijkl
+             myijk( ip0_jp0_kp0_, ijkl) = ijk
+          END IF
           
 ! ...     loop over the neighbouring cells
 
           IF( is_my_cell_ ) THEN
 
-          DO km = -2, 2
-            DO jm = -2, 2
-              DO im = -2, 2
-                IF( ( ABS( im ) + ABS( jm ) + ABS( km ) ) <= 2 ) THEN
-                  IF( (im /= 0) .OR. (jm /= 0) .OR. (km /= 0) ) THEN
-                    ii = im
-                    jj = jm
-                    kk = km
-                    IF( ( i == 2    ) .AND. ( ii == -2 ) ) ii = -1
-                    IF( ( i == nx-1 ) .AND. ( ii == +2 ) ) ii = +1
-                    IF( ( j == 2    ) .AND. ( jj == -2 ) ) jj = -1
-                    IF( ( j == ny-1 ) .AND. ( jj == +2 ) ) jj = +1
-                    IF( ( k == 2    ) .AND. ( kk == -2 ) ) kk = -1
-                    IF( ( k == nz-1 ) .AND. ( kk == +2 ) ) kk = +1
-                    ijke = ijk + ii + jj * nx + kk * nx*ny
-                    ipe  =  mpime
-                    IF( fill ) THEN
-! ...                 the cell ijke is local, set the mapping with cell ijkl
-                      ijkel = cell_g2l(ijke, mpime)
-                      myijk( indijk( im, jm, km ), ijkl ) = ijkel
-                    END IF
-                  ELSE IF( fill ) THEN
-! ...               store the global cell index ij, of the the local cell ijkl
-                    myijk( ip0_jp0_kp0_, ijkl) = ijk
-                  END IF
-                END IF
-              END DO
-            END DO
-          END DO
-
+             IF( fill ) THEN
+               DO km = -2, 2
+                 kk = km
+                 IF( ( k == 2    ) .AND. ( kk == -2 ) ) kk = -1
+                 IF( ( k == nz-1 ) .AND. ( kk == +2 ) ) kk = +1
+                 DO jm = -2, 2
+                   jj = jm
+                   IF( ( j == 2    ) .AND. ( jj == -2 ) ) jj = -1
+                   IF( ( j == ny-1 ) .AND. ( jj == +2 ) ) jj = +1
+                   DO im = -2, 2
+                     IF( ( ABS( im ) + ABS( jm ) + ABS( km ) ) <= 2 ) THEN
+                       IF( (im /= 0) .OR. (jm /= 0) .OR. (km /= 0) ) THEN
+                         ii = im
+                         IF( ( i == 2    ) .AND. ( ii == -2 ) ) ii = -1
+                         IF( ( i == nx-1 ) .AND. ( ii == +2 ) ) ii = +1
+                         ijke = ijk + ii + jj * nx + kk * nx*ny
+   ! ...                 the cell ijke is local, set the mapping with cell ijkl
+                         ijkel = cell_g2l(ijke, mpime)
+                         myijk( indijk( im, jm, km ), ijkl ) = ijkel
+                       END IF
+                     END IF
+                   END DO
+                 END DO
+               END DO
+             END IF
 
 
           ELSE
 
 
-
-          DO km = -2, 2
-            DO jm = -2, 2
-              DO im = -2, 2
-                IF( ( ABS( im ) + ABS( jm ) + ABS( km ) ) <= 2 ) THEN
-                  IF( (im /= 0) .OR. (jm /= 0) .OR. (km /= 0) ) THEN
-                    ii = im
-                    jj = jm
-                    kk = km
-                    IF( ( i == 2    ) .AND. ( ii == -2 ) ) ii = -1
-                    IF( ( i == nx-1 ) .AND. ( ii == +2 ) ) ii = +1
-                    IF( ( j == 2    ) .AND. ( jj == -2 ) ) jj = -1
-                    IF( ( j == ny-1 ) .AND. ( jj == +2 ) ) jj = +1
-                    IF( ( k == 2    ) .AND. ( kk == -2 ) ) kk = -1
-                    IF( ( k == nz-1 ) .AND. ( kk == +2 ) ) kk = +1
-                    ijke = ijk + ii + jj * nx + kk * nx*ny
-                    ipe  =  cell_owner(ijke)
-                    IF( ipe /= mpime ) THEN
-! ...                 the cell ijke is not local, count and register its position
-                      nset(ipe) = nset(ipe) + 1
-                      icnt = icnt + 1
-                      IF( fill ) THEN
-                        rcv_cell_set(ipe)%i(1,nset(ipe)) = ijke
-                        rcv_cell_set(ipe)%i(2,nset(ipe)) = ijkl
-                        rcv_cell_set(ipe)%i(3,nset(ipe)) = im
-                        rcv_cell_set(ipe)%i(4,nset(ipe)) = jm
-                        rcv_cell_set(ipe)%i(5,nset(ipe)) = km
-                      END IF
-                    ELSE IF( fill ) THEN
-! ...                 the cell ijke is local, set the mapping with cell ijkl
-                      ijkel = cell_g2l(ijke, mpime)
-                      myijk( indijk( im, jm, km ), ijkl ) = ijkel
-                    END IF
-                  ELSE IF( fill ) THEN
-! ...               store the global cell index ij, of the the local cell ijkl
-                    myijk( ip0_jp0_kp0_, ijkl) = ijk
-                  END IF
-                END IF
-              END DO
-            END DO
-          END DO
+             DO km = -2, 2
+               kk = km
+               IF( ( k == 2    ) .AND. ( kk == -2 ) ) kk = -1
+               IF( ( k == nz-1 ) .AND. ( kk == +2 ) ) kk = +1
+               DO jm = -2, 2
+                 jj = jm
+                 IF( ( j == 2    ) .AND. ( jj == -2 ) ) jj = -1
+                 IF( ( j == ny-1 ) .AND. ( jj == +2 ) ) jj = +1
+                 DO im = -2, 2
+                   IF( ( ABS( im ) + ABS( jm ) + ABS( km ) ) <= 2 ) THEN
+                     IF( (im /= 0) .OR. (jm /= 0) .OR. (km /= 0) ) THEN
+                       ii = im
+                       IF( ( i == 2    ) .AND. ( ii == -2 ) ) ii = -1
+                       IF( ( i == nx-1 ) .AND. ( ii == +2 ) ) ii = +1
+                       ijke = ijk + ii + jj * nx + kk * nx*ny
+                       ipe  =  cell_owner(ijke)
+                       IF( ipe /= mpime ) THEN
+   ! ...                 the cell ijke is not local, count and register its position
+                         nset(ipe) = nset(ipe) + 1
+                         icnt = icnt + 1
+                         IF( fill ) THEN
+                           rcv_cell_set(ipe)%i(1,nset(ipe)) = ijke
+                           rcv_cell_set(ipe)%i(2,nset(ipe)) = ijkl
+                           rcv_cell_set(ipe)%i(3,nset(ipe)) = im
+                           rcv_cell_set(ipe)%i(4,nset(ipe)) = jm
+                           rcv_cell_set(ipe)%i(5,nset(ipe)) = km
+                         END IF
+                       ELSE IF( fill ) THEN
+   ! ...                 the cell ijke is local, set the mapping with cell ijkl
+                         ijkel = cell_g2l(ijke, mpime)
+                         myijk( indijk( im, jm, km ), ijkl ) = ijkel
+                       END IF
+                     END IF
+                   END IF
+                 END DO
+               END DO
+             END DO
 
 
           END IF
@@ -808,6 +805,7 @@
 
         USE dimensions
         USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: localindex
         INTEGER, INTENT(OUT) :: globalindex, i, j, k
@@ -818,7 +816,7 @@
 
         globalindex = myijk( ip0_jp0_kp0_, localindex)
 
-        IF (job_type == '3D') THEN
+        IF (job_type == JOB_TYPE_3D) THEN
 
 !          nxy = nx * ny
 !          im1 = imesh - 1
@@ -835,14 +833,14 @@
           j = MOD( globalindex - 1, nx*ny) / nx + 1
           i = MOD( MOD( globalindex - 1, nx*ny ), nx ) + 1
 
-        ELSE IF (job_type == '2D') THEN
+        ELSE IF (job_type == JOB_TYPE_2D) THEN
 
           k = ( globalindex - 1 ) / nx + 1
           i = MOD( ( globalindex - 1 ), nx) + 1
 
         ELSE 
 
-          CALL error(' meshinds ', ' unknow job_type '//job_type, 1 )
+          CALL error(' meshinds ', ' unknow job_type ', job_type )
 
         END IF
 !
@@ -853,6 +851,7 @@
 !
         USE dimensions
         USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
 !
         IMPLICIT NONE
         INTEGER :: myinds(:,:)
@@ -871,7 +870,7 @@
         DO ijk = 1, ncint 
           CALL meshinds(ijk,imesh,i,j,k)
 
-          IF( job_type == '2D' ) THEN
+          IF( job_type == JOB_TYPE_2D ) THEN
 
             IF( (i >= 2) .AND. (i <= (nx-1)) .AND.   &
                 (k >= 2) .AND. (k <= (nz-1))      ) THEN
@@ -996,7 +995,7 @@
 
             END IF
 
-          ELSE IF( job_type == '3D' ) THEN
+          ELSE IF( job_type == JOB_TYPE_3D ) THEN
 
             IF( (i >= 2) .AND. (i <= (nx-1)) .AND.   &
                 (j >= 2) .AND. (j <= (ny-1)) .AND.   &
@@ -1615,6 +1614,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE local_forcing
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nx, ny, nz
       USE grid, ONLY: fc2
       USE immersed_boundaries, ONLY: numx, fptx, numy, fpty, numz, fptz
@@ -1632,7 +1632,7 @@
         ALLOCATE( numx(ncdom) ); numx = 0
         nfpx = SIZE(fptx)
 
-        IF (job_type == '3D') THEN
+        IF (job_type == JOB_TYPE_3D) THEN
           ALLOCATE( numy(ncdom) ); numy = 0
           nfpy = SIZE(fpty)
         ELSE
@@ -1650,9 +1650,9 @@
           delta_j = fptx(n)%delta_j
           delta_k = fptx(n)%delta_k
 set_numx: IF (i/=0 .AND. k/=0) THEN
-            IF (job_type == '2D') THEN
+            IF (job_type == JOB_TYPE_2D) THEN
               ijk = i + (k-1) * nx
-            ELSE IF (job_type == '3D') THEN
+            ELSE IF (job_type == JOB_TYPE_3D) THEN
               IF (j == 0) CALL error('decomp','control numx',1)
               ijk = i + (j-1) * nx + (k-1) * nx * ny
               ijk_q = (i+delta_i) + (j+delta_j-1) * nx + (k+delta_k-1) * nx * ny
@@ -1667,6 +1667,7 @@ set_numx: IF (i/=0 .AND. k/=0) THEN
               ! ... Second neighbours 'ijk_qq' are not required along
               ! ... diagonals
               fptx(n)%index_q  = cell_g2l(ijk_q,mpime)
+!IF( fptx(n)%index_q < 0 ) write(errorunit,*) 'Eccolo x= ',fptx(n)%index_q, n, ijkl, ijk, mpime, ijk_q
               IF (MOD(fptx(n)%int,2)/=0 .OR. fptx(n)%int==0) & 
                 fptx(n)%index_qq = cell_g2l(ijk_qq,mpime)
 
@@ -1685,7 +1686,7 @@ set_numx: IF (i/=0 .AND. k/=0) THEN
         !
         DO n = 1, nfpy
         
-          IF (job_type == '3D') THEN
+          IF (job_type == JOB_TYPE_3D) THEN
             i = fpty(n)%i
             j = fpty(n)%j
             k = fpty(n)%k
@@ -1693,9 +1694,9 @@ set_numx: IF (i/=0 .AND. k/=0) THEN
             delta_j = fpty(n)%delta_j
             delta_k = fpty(n)%delta_k
 set_numy:   IF (i/=0 .AND. k/=0) THEN
-              IF (job_type == '2D') THEN
+              IF (job_type == JOB_TYPE_2D) THEN
                 ijk = i + (k-1) * nx
-              ELSE IF (job_type == '3D') THEN
+              ELSE IF (job_type == JOB_TYPE_3D) THEN
                 IF (j == 0) CALL error('decomp','control numy',1)
                 ijk = i + (j-1) * nx + (k-1) * nx * ny
                 ijk_q = (i+delta_i) + (j+delta_j-1) * nx + (k+delta_k-1) * nx * ny
@@ -1710,6 +1711,7 @@ set_numy:   IF (i/=0 .AND. k/=0) THEN
                 ! ... Second neighbours 'ijk_qq' are not required along
                 ! ... diagonals
                 fpty(n)%index_q  = cell_g2l(ijk_q,mpime)
+!IF( fpty(n)%index_q < 0 ) write(errorunit,*) 'Eccolo y= ',fpty(n)%index_q, n, ijkl, ijk, mpime, ijk_q
                 IF (MOD(fpty(n)%int,2)/=0 .OR. fpty(n)%int==0) & 
                   fpty(n)%index_qq = cell_g2l(ijk_qq,mpime)
 
@@ -1736,9 +1738,9 @@ set_numy:   IF (i/=0 .AND. k/=0) THEN
           delta_j = fptz(n)%delta_j
           delta_k = fptz(n)%delta_k
 set_numz: IF (i/=0 .AND. k/=0) THEN
-            IF (job_type == '2D') THEN
+            IF (job_type == JOB_TYPE_2D) THEN
               ijk = i + (k-1) * nx
-            ELSE IF (job_type == '3D') THEN
+            ELSE IF (job_type == JOB_TYPE_3D) THEN
               IF (j == 0) CALL error('decomp','control numz',n)
               ijk = i + (j-1) * nx + (k-1) * nx * ny
               ijk_q = (i+delta_i) + (j+delta_j-1) * nx + (k+delta_k-1) * nx * ny
@@ -1753,6 +1755,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               ! ... Second neighbours 'ijk_qq' are not required along
               ! ... diagonals
               fptz(n)%index_q  = cell_g2l(ijk_q,mpime)
+!IF( fptz(n)%index_q < 0 ) write(errorunit,*) 'Eccolo z= ',fptz(n)%index_q, n, ijkl, ijk, mpime, ijk_q
               IF (MOD(fptz(n)%int,2)/=0 .OR. fptz(n)%int==0) & 
                 fptz(n)%index_qq = cell_g2l(ijk_qq,mpime)
 
@@ -1770,7 +1773,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
         END DO
 
         CALL data_exchange(numx)
-        IF (job_type == '3D') CALL data_exchange(numy)
+        IF (job_type == JOB_TYPE_3D) CALL data_exchange(numy)
         CALL data_exchange(numz)
 
         CALL fill_cells
@@ -1786,6 +1789,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
 ! ... cell face is inside the topography.
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE grid, ONLY: z, zb, flag, dz
       USE immersed_boundaries, ONLY: bd, vf
       USE io_files, ONLY: tempunit
@@ -1804,9 +1808,9 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
       ALLOCATE(bd(ncint))
       ALLOCATE(vf(ncint))
 
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D) THEN
         full = 15
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
         full = 63
       END IF
 
@@ -1831,7 +1835,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
           IF( BTEST(flag(ijk),0) ) THEN
             CALL meshinds(ijk,imesh,i,j,k)
   
-            IF (job_type == '2D') THEN
+            IF (job_type == JOB_TYPE_2D) THEN
               counter = 0
               ! 
               ! East
@@ -1877,7 +1881,7 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
                   END IF
                END IF
               !
-            ELSE IF (job_type == '3D') THEN
+            ELSE IF (job_type == JOB_TYPE_3D) THEN
               counter = 0
               ! 
               ! East
@@ -1959,9 +1963,9 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               !
             END IF
 
-            IF (job_type == '2D') THEN
+            IF (job_type == JOB_TYPE_2D) THEN
               vf(ijk) = 0.25D0 * vf(ijk)
-            ELSE IF( job_type == '3D') THEN
+            ELSE IF( job_type == JOB_TYPE_3D) THEN
               vf(ijk) = vf(ijk) / 6.D0
             END IF
 
@@ -1996,5 +2000,5 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
       RETURN
       END SUBROUTINE fill_cells
 !----------------------------------------------------------------------
-      END MODULE domain_mapping
+   END MODULE domain_mapping
 !----------------------------------------------------------------------

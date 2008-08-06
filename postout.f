@@ -24,6 +24,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE read_old_output( nf )
       USE control_flags, ONLY: job_type, formatted_output
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nsolid, ngas
       USE gas_constants, ONLY: gas_type
       USE kinds
@@ -125,6 +126,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE read_output( nf )
       USE control_flags, ONLY: job_type, formatted_output
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nsolid, ngas
       USE gas_constants, ONLY: gas_type
       USE kinds
@@ -170,7 +172,7 @@
       p = 0.D0
       CALL read_array( outpunit, p, sgl, lform )  ! gas_pressure
 
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D) THEN
 
         IF( lform .AND. mpime == root ) READ(outpunit,122)
         ug = 0.D0
@@ -180,7 +182,7 @@
         wg = 0.D0
         CALL read_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
 
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
 
         IF( lform .AND. mpime == root ) READ(outpunit,122)
         ug = 0.D0
@@ -220,7 +222,7 @@
         CALL read_array( outpunit, otmp, sgl, lform )  ! solid_volume_fraction
         eps(:,is) = otmp
 
-        IF (job_type == '2D') THEN
+        IF (job_type == JOB_TYPE_2D) THEN
 
           IF( lform .AND. mpime == root ) READ(outpunit,122)
           us(:,is) = 0.D0
@@ -230,7 +232,7 @@
           ws(:,is) = 0.D0
           CALL read_array( outpunit, ws(:,is), sgl, lform )  ! solid_velocity_z
 
-        ELSE IF (job_type == '3D') THEN
+        ELSE IF (job_type == JOB_TYPE_3D) THEN
 
           IF( lform .AND. mpime == root ) READ(outpunit,122)
           us(:,is) = 0.D0
@@ -268,6 +270,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE read_implicit_profile
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE grid, ONLY: x, y, z, xb, yb, zb
       USE io_files, ONLY: tempunit
       USE parallel, ONLY: mpime, root
@@ -277,9 +280,9 @@
       !  volcano topography is imported from a DEM file
 
       INTEGER :: i,j,k
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D) THEN
         ALLOCATE(improfile_2d(nx,nz))
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
         ALLOCATE(improfile_3d(nx,ny,nz))
       END IF
 !
@@ -314,13 +317,13 @@
 !
       IF (mpime == root) THEN
         OPEN(tempunit,FILE='improfile.dat',STATUS='OLD', ERR=199)
-        IF (job_type == '2D') THEN
+        IF (job_type == JOB_TYPE_2D) THEN
           DO k=1,nz
               DO i=1,nx
                 READ(tempunit,*) improfile_2d(i,k)
               END DO
           END DO
-        ELSE IF (job_type == '3D') THEN
+        ELSE IF (job_type == JOB_TYPE_3D) THEN
           DO k=1,nz
             DO j=1,ny
               DO i=1,nx
@@ -332,9 +335,9 @@
         CLOSE(tempunit)
       END IF
 !
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D) THEN
         CALL bcast_real(improfile_2d,ntot,root)
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
         CALL bcast_real(improfile_3d,ntot,root)
       END IF
 !
@@ -351,6 +354,7 @@
 ! ... the DEM is defined by the vertical mesh resolution
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nx, ny, nz
       USE grid, ONLY: z, zb, dz
       USE immersed_boundaries, ONLY: immb
@@ -362,7 +366,7 @@
       REAL*8 :: quota
       INTEGER :: i, j, k, ijk
 
-      IF (job_type == '2D') RETURN
+      IF (job_type == JOB_TYPE_2D) RETURN
 
       IF (.NOT.ALLOCATED(topo2d)) ALLOCATE(topo2d(nx,ny))
       topo2d = -9999 
@@ -412,6 +416,7 @@
       SUBROUTINE write_map_delta(nf,array,labl,deltaz)
 
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nx, ny, nz
       USE domain_decomposition, ONLY: cell_owner, cell_g2l
       USE grid, ONLY: z, x, y
@@ -429,7 +434,7 @@
       CHARACTER( LEN = 4 ) :: lettera
       CHARACTER( LEN = 20 ) :: filnam
 
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D) THEN
 !
         ALLOCATE(map1d(nx))
         map1d = 0.D0
@@ -483,7 +488,7 @@
         END IF
         DEALLOCATE(map1d)
 !
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
 
         ALLOCATE(map2d(nx,ny))
         map2d = 0.D0
@@ -666,6 +671,7 @@
 ! ... Write the mean field of all process fields
 !
       USE control_flags, ONLY: formatted_output,  job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE kinds
       USE dimensions, ONLY: nsolid
       USE io_files, ONLY: tempunit
@@ -699,10 +705,10 @@
 !
       CALL write_crop_array( tempunit, rhom_gav, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc )
 !
-      IF (job_type == '2D') THEN
+      IF (job_type == JOB_TYPE_2D) THEN
         CALL write_crop_array( tempunit, um_gav, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
         CALL write_crop_array( tempunit, wm_gav, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
-      ELSE IF (job_type == '3D') THEN
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
         CALL write_crop_array( tempunit, um_gav, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
         CALL write_crop_array( tempunit, vm_gav, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
         CALL write_crop_array( tempunit, wm_gav, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
@@ -720,6 +726,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE write_axis_average(md, md1)
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: ngas, nsolid, nz
       USE grid, ONLY: z
       USE io_files, ONLY: tempunit
@@ -739,7 +746,7 @@
       IF (mpime==root) THEN
         OPEN (UNIT=tempunit, FILE='column.dat', STATUS='UNKNOWN')
         DO k = 1, nz
-          IF (job_type == '2D') THEN
+          IF (job_type == JOB_TYPE_2D) THEN
               WRITE(tempunit,100) k, z(k), &
                  p_av(k), p_sd(k), &
                  ug_av(k), ug_sd(k), &
@@ -753,7 +760,7 @@
                  rhom_av(k), rhom_sd(k), &
                  wm_av(k), wm_sd(k), &
                  pd_av(k), pd_sd(k)
-           ELSE IF (job_type == '3D') THEN
+           ELSE IF (job_type == JOB_TYPE_3D) THEN
               WRITE(tempunit,100) k, z(k), &
                  p_av(k), p_sd(k), &
                  ug_av(k), ug_sd(k), &
@@ -829,6 +836,7 @@
       SUBROUTINE write_plume_profile(nf)
 
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nz
       USE grid, ONLY: z
       USE io_files, ONLY: tempunit
@@ -845,7 +853,7 @@
       pi = 4.D0 * ATAN(1.D0)
       invpi = 1.D0 / pi
 
-!      IF (job_type == '2D') RETURN
+!      IF (job_type == JOB_TYPE_2D) RETURN
       
       filnam='zprofile.'//lettera(nf)
 !
@@ -854,7 +862,7 @@
       IF (mpime == root) THEN
         OPEN(UNIT=tempunit,FILE=filnam)
         DO k = 1, nz
-          IF (job_type == '3D') THEN
+          IF (job_type == JOB_TYPE_3D) THEN
             WRITE(tempunit,122) z(k),rhom_z(k),um_z(k),vm_z(k),wm_z(k),tm_z(k), DSQRT(surface(k)*invpi)
           ELSE 
             WRITE(tempunit,122) z(k),rhom_z(k),um_z(k),wm_z(k),tm_z(k), DSQRT(surface(k)*invpi)
@@ -870,6 +878,7 @@
 !-----------------------------------------------------------------------
       SUBROUTINE write_AVS_files
       USE control_flags, ONLY: job_type, formatted_output
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE iotk_module
       USE grid
@@ -890,9 +899,9 @@
 !
 ! ... control parameters
 !
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         ndim = 3
-      ELSE IF(job_type == '2D') THEN
+      ELSE IF(job_type == JOB_TYPE_2D) THEN
         ndim = 2
       ELSE
         WRITE(*,*) 'Unknown job_type'
@@ -1178,6 +1187,7 @@
       SUBROUTINE write_XML_files
       !
       USE control_flags, ONLY: job_type, formatted_output
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE iotk_module
       USE grid
@@ -1202,9 +1212,9 @@
 !
 ! ... control parameters
 !
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         ndim = 3
-      ELSE IF(job_type == '2D') THEN
+      ELSE IF(job_type == JOB_TYPE_2D) THEN
         ndim = 2
       ELSE
         WRITE(*,*) 'Unknown job_type'

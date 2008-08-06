@@ -505,6 +505,7 @@
       USE dimensions, ONLY: nsolid, max_nsolid
       USE set_indexes
       USE immersed_boundaries, ONLY: forcing_point
+      USE parallel, ONLY: mpime
       IMPLICIT NONE
 
       REAL*8, DIMENSION(max_nsolid+1) :: velint3d
@@ -553,6 +554,8 @@
       zA = SQRT( (cx(i+delta_i)-nsx)**2 + (cy(j+delta_j)-nsy)**2 + &
                  (cz(k+delta_k)-nsz)**2 )
       hzA = h/zA
+
+! if( index_q < 1 ) write(*,*) 'mpime,q=',mpime,index_q,i,j,k
 
       IF (interp >= 20) THEN
          velint3d(1) = hzA*velg(index_q)         

@@ -15,6 +15,7 @@
       SUBROUTINE print_mass_residuals(nswp)
 
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: ngas, nsolid
       USE domain_mapping, ONLY: meshinds
       USE eos_gas, ONLY: ygc
@@ -63,9 +64,9 @@
           !
           IF (immb == 1) CALL faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
   
-          IF (job_type == '2D') THEN
+          IF (job_type == JOB_TYPE_2D) THEN
             volume = r(i) * dx(i) * dz(k) / ivf
-          ELSE IF (job_type == '3D') THEN
+          ELSE IF (job_type == JOB_TYPE_3D) THEN
             volume = dx(i) * dy(j) * dz(k) / ivf
           END IF
   
@@ -86,31 +87,31 @@
           ! ... Compute the mass entered since the beginning and subtract from 
           ! ... the total mass
           !
-          IF (job_type == '2D') THEN
+          IF (job_type == JOB_TYPE_2D) THEN
             sx = dz(k)*rb(i)
             sy = 0.D0
             sz = dx(i)*r(i)
-          ELSE IF (job_type == '3D') THEN
+          ELSE IF (job_type == JOB_TYPE_3D) THEN
             sx = dz(k)*dy(j)
             sy = dx(i)*dz(k)
             sz = dy(j)*dx(i)
           END IF
           
           flux = ug(ijk)*sx + wg(ijk) * sz
-          IF (job_type == '3D') flux = flux + vg(ijk) * sy
+          IF (job_type == JOB_TYPE_3D) flux = flux + vg(ijk) * sy
           flux = rgp(ijk) * flux
           res_g = res_g - flux * nswp * dt
 
           DO is = 1, nsolid
             flux = us(ijk,is)*sx + ws(ijk,is) * sz
-            IF (job_type == '3D') flux = flux + vs(ijk,is) * sy
+            IF (job_type == JOB_TYPE_3D) flux = flux + vs(ijk,is) * sy
             flux = rlk(ijk,is) * flux
             res_s(is) = res_s(is) - flux * nswp * dt
           END DO
           
           DO ig = 1, ngas
             flux = ug(ijk)*sx + wg(ijk) * sz
-            IF (job_type == '3D') flux = flux + vg(ijk) * sy
+            IF (job_type == JOB_TYPE_3D) flux = flux + vg(ijk) * sy
             flux = rgp(ijk) * ygc(ijk,ig) * flux
             res_gc(ig) = res_gc(ig) - flux * nswp * dt
           END DO
@@ -170,6 +171,7 @@
       SUBROUTINE compute_mass_flow_rate(mfr, mgd, msd, mxv, mrd)
 
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: ngas, nsolid
       USE domain_mapping, ONLY: meshinds
       USE eos_gas, ONLY: ygc, xgc
@@ -190,7 +192,7 @@
       REAL*8, INTENT(OUT) :: mfr, mgd, mxv, mrd
       REAL*8, INTENT(OUT), DIMENSION(:) :: msd
 !
-      IF (job_type == '2D' .AND. itc == 0) RETURN
+      IF (job_type == JOB_TYPE_2D .AND. itc == 0) RETURN
 !
       pi = 4.D0 * ATAN(1.D0)
       twopi = 2.D0 * pi
@@ -208,11 +210,11 @@
           !
           ! ... Compute the mass entered since the beginning
           !
-          IF (job_type == '2D' .AND. itc==1) THEN
+          IF (job_type == JOB_TYPE_2D .AND. itc==1) THEN
             sx = dz(k)*rb(i)
             sy = 0.D0
             sz = pi*dx(i)*(2.D0*rb(i) - dx(i))
-          ELSE IF (job_type == '3D') THEN
+          ELSE IF (job_type == JOB_TYPE_3D) THEN
             sx = dz(k)*dy(j)
             sy = dx(i)*dz(k)
             sz = dy(j)*dx(i)

@@ -19,6 +19,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE gradient(array,grx,gry,grz)
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE domain_mapping, ONLY: meshinds, ncint
       USE set_indexes, ONLY: first_subscr
       USE set_indexes, ONLY: imjk,ipjk,ijmk,ijpk,ijkm,ijkp
@@ -47,7 +48,7 @@
           grx(ijk) = (array(ijk)-array(imjk))/delta
         END IF
         !
-        IF (job_type == '3D') THEN
+        IF (job_type == JOB_TYPE_3D) THEN
           IF (j/=1 .AND. j/=ny) THEN
             delta = dy(j)+0.5D0*(dy(j-1)+dy(j+1))
             gry(ijk) = (array(ijpk)-array(ijmk))/delta

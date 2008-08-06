@@ -27,6 +27,7 @@
 ! ... (2D/3D-Compliant)
 !
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE domain_mapping, ONLY: ncint, ncdom, meshinds
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
@@ -70,7 +71,7 @@
       esfe = 0.0D0;  hsfe = 0.0D0
       esft = 0.0D0;  hsft = 0.0D0
 !
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         ALLOCATE(egfn(ncdom))
         ALLOCATE(esfn(ncdom,nsolid))
 !
@@ -107,7 +108,7 @@
           egfx = b_e * egfe(ijk) - b_w * egfe(imjk)
           egfz = b_t * egft(ijk) - b_b * egft(ijkm)
 !
-          IF (job_type == '3D') THEN
+          IF (job_type == JOB_TYPE_3D) THEN
             egfy = b_n * egfn(ijk) - b_s * egfn(ijmk)
           END IF
 
@@ -136,7 +137,7 @@
              esfz = b_t * esft(ijk, is) - b_b * esft(ijkm, is)
            END IF
 
-           IF (job_type == '3D') THEN
+           IF (job_type == JOB_TYPE_3D) THEN
              IF (rlk(ijmk,is) * inrl(is) <= 1.D-9) THEN
                esfy = b_n * esfn(ijk, is)
              ELSE
@@ -165,7 +166,7 @@
       DEALLOCATE(hgfe, hgft)
       DEALLOCATE(hsfe, hsft)
 !
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         DEALLOCATE(egfn)
         DEALLOCATE(esfn)
         DEALLOCATE(hgfn)
@@ -178,6 +179,7 @@
       SUBROUTINE compute_all_fluxes
 
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE convective_fluxes_sc, ONLY: fsc, muscl_fsc
       USE diffusive_fluxes, ONLY: hotc
       USE dimensions, ONLY: nsolid
@@ -226,7 +228,7 @@
 !
 ! ... Here compute convective and diffusive fluxes (gas)
 !
-          IF (job_type == '2D') THEN
+          IF (job_type == JOB_TYPE_2D) THEN
 !
 ! ... First Order convective fluxes
 !
@@ -263,7 +265,7 @@
                         eps, temp, kappa, ijk)
             END IF
 
-          ELSE IF (job_type == '3D') THEN
+          ELSE IF (job_type == JOB_TYPE_3D) THEN
 
 ! ... First Order convective fluxes
 !
@@ -310,7 +312,7 @@
             IF ( .NOT.BTEST(flag(imjk),0) ) egfe(imjk) = egfe(imjk) - hgfe(imjk)
             IF ( .NOT.BTEST(flag(ijkm),0) ) egft(ijkm) = egft(ijkm) - hgft(ijkm)
 
-            IF (job_type == '3D') THEN
+            IF (job_type == JOB_TYPE_3D) THEN
               egfn(ijk) = egfn(ijk) - hgfn(ijk)
               IF ( .NOT.BTEST(flag(ijmk),0) ) egfn(ijmk) = egfn(ijmk) - hgfn(ijmk)
             END IF
@@ -320,7 +322,7 @@
 !
           DO is=1, nsolid
 !
-            IF (job_type == '2D') THEN
+            IF (job_type == JOB_TYPE_2D) THEN
 
 ! ... First Order convective fluxes
 !
@@ -357,7 +359,7 @@
                           eps, temp, kappa, ijk)
               END IF
 
-            ELSE IF (job_type == '3D') THEN
+            ELSE IF (job_type == JOB_TYPE_3D) THEN
 
 ! ... First Order convective fluxes
 !
@@ -404,7 +406,7 @@
               IF ( .NOT.BTEST(flag(imjk),0) ) esfe(imjk,is) = esfe(imjk,is) - hsfe(imjk,is)
               IF ( .NOT.BTEST(flag(ijkm),0) ) esft(ijkm,is) = esft(ijkm,is) - hsft(ijkm,is)
 
-              IF (job_type == '3D') THEN
+              IF (job_type == JOB_TYPE_3D) THEN
                 esfn(ijk, is) = esfn(ijk, is) - hsfn(ijk, is)
                 IF ( .NOT.BTEST(flag(ijmk),0) ) esfn(ijmk,is)=esfn(ijmk,is)-hsfn(ijmk,is)
               END IF
@@ -420,7 +422,7 @@
       CALL data_exchange(esfe)
       CALL data_exchange(esft)
 
-      IF (job_type == '3D') THEN
+      IF (job_type == JOB_TYPE_3D) THEN
         CALL data_exchange(egfn)
         CALL data_exchange(esfn)
       END IF

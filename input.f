@@ -92,8 +92,10 @@
       USE atmospheric_conditions, ONLY: wind_x, wind_y, wind_z, &
           p_ground, t_ground, void_fraction, max_packing
       USE blunt_body, ONLY: ibl, nblu
-      USE control_flags, ONLY: job_type, lpr, imr, nfil, formatted_output, formatted_input
+      USE control_flags, ONLY: lpr, imr, nfil, formatted_output, formatted_input
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
+      USE control_flags, ONLY: JOB_TYPE_1D, JOB_TYPE_2D, JOB_TYPE_3D
+      USE control_flags, ONLY: job_type_ => job_type
       USE dimensions
       USE domain_decomposition, ONLY: mesh_partition
       USE dome_conditions, ONLY: xdome, ydome, zdome, dome_volume, temperature, particle_fraction, overpressure, &
@@ -138,6 +140,7 @@
       IMPLICIT NONE
  
       INTEGER, INTENT(IN) :: iunit
+      CHARACTER(LEN=20) :: job_type
 
       NAMELIST / control / run_name, job_type, restart_mode,       &
         time, tstop, dt, lpr, imr, isrt, tpr, tdump, nfil, tau, tau1, tau2, ift,      &
@@ -470,14 +473,14 @@
 
       SELECT CASE ( TRIM(job_type) )
         CASE ('2D', '2d' )
-          job_type = '2D'
+          job_type_ = JOB_TYPE_2D
         CASE ('3D', '3d' )
-          job_type = '3D'
+          job_type_ = JOB_TYPE_3D
         CASE DEFAULT
           CALL error(' input ',' unknown job_type '//TRIM(job_type), 1 )
       END SELECT
 
-      CALL subsc_setup( job_type )
+      CALL subsc_setup( job_type_ )
 !
 ! ... Model Namelist ................................................
 !
@@ -721,7 +724,7 @@
         IF (iuni == 0) THEN
           IF (grigen == 0) THEN
             READ(iunit,*) (delta_x(i),i=1,nx)
-            IF( job_type == '3D' ) THEN
+            IF( job_type_ == JOB_TYPE_3D ) THEN
               READ(iunit,*) (delta_y(j),j=1,ny)
             END IF
             READ(iunit,*) (delta_z(k),k=1,nz)
@@ -761,7 +764,7 @@
         READ(iunit,*) number_of_block
         IF (ibl >= 1) READ(iunit,*) nblu(1:number_of_block)
 
-        IF (job_type == '2D') THEN
+        IF ( job_type_ == JOB_TYPE_2D ) THEN
 
           DO n = 1, number_of_block
             READ(iunit,*) block_type(n), block_bounds(1,n),  block_bounds(2,n),  &
@@ -775,7 +778,7 @@
             ENDIF
           END DO
 
-        ELSE IF (job_type == '3D') THEN
+        ELSE IF ( job_type_ == JOB_TYPE_3D ) THEN
 
           DO n = 1, number_of_block
             READ(iunit,*) block_type(n), block_bounds(1,n), block_bounds(2,n), &
@@ -1135,6 +1138,7 @@
 
       USE atmospheric_conditions, ONLY: atm_ygc, layer
       USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE dome_conditions, ONLY: dome_ygc, idome
       USE flux_limiters, ONLY: lv, lm
@@ -1172,9 +1176,9 @@
 !
       IF( grigen == 0 ) THEN
         dx_inner(1:nx_inner) = delta_x(1:nx_inner)
-        IF( job_type == '3D' ) THEN
+        IF( job_type == JOB_TYPE_3D ) THEN
           dy_inner(1:ny_inner) = delta_y(1:ny_inner)
-        ELSE IF( job_type == '2D' ) THEN
+        ELSE IF( job_type == JOB_TYPE_2D ) THEN
           dy_inner(:) = 0.D0
         END IF
         dz_inner(1:nz_inner) = delta_z(1:nz_inner)
@@ -1189,7 +1193,7 @@
         iob(1:no)%typ = block_type(1:no)
         iob(1:no)%xlo = block_bounds(1,1:no) + nmx
         iob(1:no)%xhi = block_bounds(2,1:no) + nmx
-        IF ( job_type == '3D' ) THEN
+        IF ( job_type == JOB_TYPE_3D ) THEN
           iob(1:no)%ylo = block_bounds(3,1:no) + nmy
           iob(1:no)%yhi = block_bounds(4,1:no) + nmy
         END IF
@@ -1199,7 +1203,7 @@
         ! ... specified flow
         !
         ugob(1:no)  = fixed_vgas_x(1:no)
-        IF( job_type == '3D' ) THEN
+        IF( job_type == JOB_TYPE_3D ) THEN
         vgob(1:no)  = fixed_vgas_y(1:no)
           END IF
         wgob(1:no)  = fixed_vgas_z(1:no)
@@ -1207,7 +1211,7 @@
         epob(1:no)  = fixed_gaseps(1:no)
         tgob(1:no)  = fixed_gastemp(1:no)
         upob(1:nsolid,1:no) = fixed_vpart_x(1:nsolid,1:no)
-        IF( job_type == '3D' ) THEN
+        IF( job_type == JOB_TYPE_3D ) THEN
           vpob(1:nsolid,1:no) = fixed_vpart_y(1:nsolid,1:no)
         END IF
         wpob(1:nsolid,1:no) = fixed_vpart_z(1:nsolid,1:no)
