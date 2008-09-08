@@ -81,7 +81,7 @@ input.o : atmosphere.o blunt.o control.o decomp.o dimensions.o dome.o eosg.o  \
     roughness.o samplert.o setup.o subscr.o time.o topo.o turbo.o vent.o  \
     visc.o 
 
-interp.o : dimensions.o grid.o immb.o subscr.o 
+interp.o : dimensions.o grid.o immb.o parallel.o subscr.o 
 
 io_files.o : 
 
@@ -153,7 +153,7 @@ postvar.o : control.o derived.o dimensions.o ghost.o io_files.o
 
 press.o : dimensions.o ghost.o 
 
-process.o : control.o dimensions.o ghost.o grid.o io_files.o kinds.o  \
+process.o : control.o dimensions.o gas.o ghost.o grid.o io_files.o kinds.o  \
     massflux.o massgsedim.o masspart.o mean_fields.o parallel.o postout.o  \
     postvar.o sampling.o 
 
@@ -184,7 +184,7 @@ setup.o : atmosphere.o control.o dens.o dimensions.o dome.o eosg.o gas.o  \
     press.o reactions.o subscr.o temp.o time.o turbo.o velocity.o vent.o  \
     visc.o 
 
-subscr.o : dimensions.o ghost.o immb.o indijk.o 
+subscr.o : control.o dimensions.o ghost.o immb.o indijk.o 
 
 system.o : 
 
