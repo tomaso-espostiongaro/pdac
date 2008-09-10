@@ -219,17 +219,16 @@
             sy = dx(i)*dz(k)
             sz = dy(j)*dx(i)
           END IF
-          surface = surface + sz
           
           flux = rgp(ijk) * wg(ijk) * sz
-          mfr = mfr + flux
           mgd = mgd + rgp(ijk) * sz
 
           DO is = 1, nsolid
-            flux = rlk(ijk,is) * ws(ijk,is) * sz
-            mfr = mfr + flux
+            flux = flux + rlk(ijk,is) * ws(ijk,is) * sz
             msd(is) = msd(is) + rlk(ijk,is) * sz
           END DO
+          mfr = mfr + flux
+          IF (flux > 0.D0) surface = surface + sz
 
         END IF
 
