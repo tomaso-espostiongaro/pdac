@@ -40,7 +40,6 @@
       USE particles_constants, ONLY: inrl
       USE pressure_epsilon, ONLY: ep
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
-      USE set_indexes, ONLY: ijke, ijkw, ijkn, ijks, ijkt, ijkb
       USE time_parameters, ONLY: dt
       IMPLICIT NONE
 !

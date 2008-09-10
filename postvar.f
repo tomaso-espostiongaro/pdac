@@ -270,7 +270,7 @@
       INTEGER, INTENT(IN) :: dime
 !
       ALLOCATE(rhom_gav(dime))  ! Mixture Density
-      ALLOCATE(tm_gav(dime))  ! Mixture Density
+      ALLOCATE(tm_gav(dime))    ! Mixture Temperature
       ALLOCATE(um_gav(dime))    ! Mixture Velocity X
       ALLOCATE(vm_gav(dime))    ! Mixture Velocity Y
       ALLOCATE(wm_gav(dime))    ! Mixture Velocity Z

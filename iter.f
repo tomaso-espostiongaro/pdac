@@ -16,6 +16,7 @@
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: amats
 
       REAL*8  :: omega, dg, delg
+!      REAL*8  :: iep_e, iep_w, iep_n, iep_s, iep_t, iep_b
       INTEGER :: inmax, maxout, nit
       INTEGER :: optimization
       INTEGER :: ierr
@@ -62,8 +63,7 @@
       USE phases_matrix, ONLY: solve_velocities, solve_all_velocities
       USE phases_matrix, ONLY: matspre_3phase
       USE pressure_epsilon, ONLY: p, ep
-      USE set_indexes, ONLY: imjk, ijmk, ijkm, ijkn, &
-                             ijke, ijkw, ijkt, ijkb
+      USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE set_indexes, ONLY: first_subscr, third_subscr
       USE tilde_energy, ONLY: htilde
       USE tilde_momentum, ONLY: tilde, appu, appv, appw
@@ -1122,7 +1122,6 @@
         USE phases_matrix, ONLY: assemble_all_matrix, solve_all_velocities
         USE set_indexes, ONLY: third_nb, third_rnb, first_rnb, first_nb
         USE set_indexes, ONLY: imjk, ijmk, ijkm
-        USE set_indexes, ONLY: ijke, ijkn, ijkt, ijkw, ijks, ijkb
         USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
         USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
@@ -1413,7 +1412,6 @@
         USE phases_matrix, ONLY: matsvels_3phase
         USE set_indexes, ONLY: third_nb, third_rnb, first_rnb, first_nb
         USE set_indexes, ONLY: imjk, ijmk, ijkm
-        USE set_indexes, ONLY: ijke, ijkn, ijkt, ijkw, ijks, ijkb
         USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
         USE control_flags, ONLY: job_type
         USE time_parameters, ONLY: dt
