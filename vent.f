@@ -245,8 +245,8 @@
       ! ... The crater base radius must include, at least, 
       ! ... the rectancle containing the vent
       !
-      IF( base_radius < 2.0D0*vent_radius ) THEN
-              base_radius = 2.0D0*vent_radius
+      IF( base_radius < 1.6D0*vent_radius ) THEN
+              base_radius = 1.6D0*vent_radius
               IF (mpime == root) &
                 WRITE(errorunit,*) 'WARNING! control the crater base!'
       END IF
