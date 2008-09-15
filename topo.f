@@ -57,7 +57,7 @@
       REAL*8 :: cellsize, filtersize
       REAL*8 :: rim_quota
       REAL *8 :: min_angle, max_angle
-      LOGICAL :: nocrater, itrans, seatable
+      LOGICAL :: nocrater, itrans, seatable, write_improfile
       !
       ! ... file name for the topography
       CHARACTER(LEN=80) :: dem_file
@@ -1204,9 +1204,10 @@
 !
 ! ... Write out the implicit profile
 !
-      IF (mpime == root) THEN
-        OPEN(UNIT=tempunit,FILE='improfile.dat',STATUS='UNKNOWN')
-        WRITE(tempunit,fmt='(F9.2)') dist  !!!!!!!!!!!!  TEMPORARY CARLO
+      IF (mpime == root .AND. write_improfile) THEN
+        OPEN(UNIT=tempunit,FILE='improfile.dat',FORM='UNFORMATTED')
+!        WRITE(tempunit,fmt='(F9.2)') dist
+        WRITE(tempunit) dist
         CLOSE(tempunit)
       END IF
 !

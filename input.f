@@ -135,7 +135,7 @@
       USE turbulence_model, ONLY: iturb, cmut, iss, modturbo
       USE volcano_topography, ONLY: itp, iavv, cellsize, min_angle, max_angle,&
                                      filtersize, dem_file, nocrater, rim_quota, &
-                                     ismt, itrans, seatable
+                                     ismt, itrans, seatable, write_improfile
 !
       IMPLICIT NONE
  
@@ -160,7 +160,8 @@
         immb, ibl
 
       NAMELIST / topography / dem_file, itp, iavv, min_angle, max_angle, nocrater, &
-        rim_quota, filtersize, cellsize, ismt, zrough, itrans, seatable
+        rim_quota, filtersize, cellsize, ismt, zrough, itrans, seatable, &
+        write_improfile
       
       NAMELIST / inlet / ivent, iali, irand, ipro, rad_file, wrat, &
         crater_radius, &
@@ -299,6 +300,7 @@
       filtersize  = 100        ! low-pass filter size
       cellsize  = 10          ! resolution of the resized dem
       zrough = 1.D0           ! average roughness length
+      write_improfile = .TRUE.  ! flag for write improfile.dat
 
 ! ... Inlet
 
@@ -567,6 +569,7 @@
       CALL bcast_logical(nocrater,1,root)
       CALL bcast_logical(itrans,1,root)
       CALL bcast_logical(seatable,1,root)
+      CALL bcast_logical(write_improfile,1,root)
       CALL bcast_real(rim_quota,1,root)
       CALL bcast_real(filtersize,1,root)
       CALL bcast_real(cellsize,1,root)
@@ -957,6 +960,7 @@
             CALL iotk_write_dat( iuni_nml, "nocrater", nocrater )
             CALL iotk_write_dat( iuni_nml, "itrans", itrans )
             CALL iotk_write_dat( iuni_nml, "seatable", seatable )
+            CALL iotk_write_dat( iuni_nml, "write_improfile", write_improfile )
             CALL iotk_write_dat( iuni_nml, "rim_quota", rim_quota )
             CALL iotk_write_dat( iuni_nml, "filtersize", filtersize )
             CALL iotk_write_dat( iuni_nml, "cellsize", cellsize )
