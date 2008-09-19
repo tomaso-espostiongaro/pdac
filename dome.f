@@ -378,8 +378,6 @@
       REAL*8, ALLOCATABLE :: sdensity(:), dpressure(:)
       REAL*8 :: ygcsum, ra, pi, psi, raddo, erre
       REAL*8 :: beta, p_hydro, p_ext
-      REAL*8 :: initial_temperature, initial_overpressure
-      REAL*8 :: initial_fractions(max_nsolid)
       REAL*8 :: grad
       REAL*8 :: r1, r2, mixing_radius
       INTEGER :: ijk, imesh, i,j,k, is, ig, n, counter
@@ -576,10 +574,6 @@
             dpressure(n) = dcell(n)%pressure
           END IF
 !          
-        END IF
-        IF (SUM(initial_fractions(1:nsolid)) > 1.D0) THEN
-          WRITE(testunit,*) 'WARNING! solid fraction exceeds 1'
-          WRITE(testunit,*) ijk, i, j, k, imesh, flag(ijk), initial_fractions(:)
         END IF
       END DO mesh_loop_2
 !
