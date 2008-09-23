@@ -781,7 +781,7 @@
                 flag(ijpk)==filled_cell_1 .OR. flag(ijpk)==filled_cell_2 .OR. &
                  flag(ijpk)==inlet_cell .OR. flag(ijpk)==vent_cell)
         flkp = .NOT.( flag(ijkp)==slip_wall .OR. flag(ijkp)==noslip_wall .OR. &
-                flag(ijkp)==filled_cell_1 .OR. flag(ijkp)==filled_cell_1 .OR. &
+                flag(ijkp)==filled_cell_1 .OR. flag(ijkp)==filled_cell_2 .OR. &
                  flag(ijkp)==inlet_cell .OR. flag(ijkp)==vent_cell)
 
         pw   = p(ijkw)
