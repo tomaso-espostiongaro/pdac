@@ -1200,6 +1200,9 @@
         IF ( job_type == JOB_TYPE_3D ) THEN
           iob(1:no)%ylo = block_bounds(3,1:no) + nmy
           iob(1:no)%yhi = block_bounds(4,1:no) + nmy
+        ELSE IF ( job_type == JOB_TYPE_2D ) THEN
+          iob(1:no)%ylo = 0
+          iob(1:no)%yhi = 0
         END IF
         iob(1:no)%zlo = block_bounds(5,1:no) + nmz
         iob(1:no)%zhi = block_bounds(6,1:no) + nmz

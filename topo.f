@@ -1115,8 +1115,8 @@
 !
       USE control_flags, ONLY: job_type, lpr
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
-      USE grid, ONLY: fl, noslip_wall, zb, x
-      USE io_files, ONLY: tempunit
+      USE grid, ONLY: fl, noslip_wall, zb, x, inlet_cell
+      USE io_files, ONLY: tempunit, testunit
       IMPLICIT NONE
 
       INTEGER :: i, j, k, ijk
