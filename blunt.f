@@ -113,7 +113,6 @@
             surfp(m,l)%n(3) = 0
           END DO
         END DO
-        IF (mpime == root) WRITE(*,*) 'west', l
 
         ! ... Top wall (roof)
         !
@@ -139,7 +138,6 @@
             surfp(m,l)%n(3) = +1
           END DO
         END DO
-        IF (mpime == root) WRITE(*,*) 'top', l
  
         ! ... East wall
         !
@@ -165,7 +163,6 @@
             surfp(m,l)%n(3) = 0
           END DO
         END DO
-        IF (mpime == root) WRITE(*,*) 'east', l
         
         ! ... Bottom
         !
@@ -191,7 +188,6 @@
             surfp(m,l)%n(3) = -1
           END DO
         END DO
-        IF (mpime == root) WRITE(*,*) 'bottom', l
         
         IF (job_type == JOB_TYPE_3D) THEN
           ! ... South
@@ -213,7 +209,6 @@
               surfp(m,l)%n(3) = 0
             END DO
           END DO
-        IF (mpime == root) WRITE(*,*) 'south', l
 
           ! ... North
           !
@@ -234,7 +229,6 @@
               surfp(m,l)%n(3) = 0
             END DO
           END DO
-          IF (mpime == root) WRITE(*,*) 'north', l, perim
         END IF
 !
       END IF
