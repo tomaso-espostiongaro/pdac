@@ -103,8 +103,8 @@
         !
         IF (imap > 0) THEN
                CALL write_topo2d
-               CALL write_map(tn,lepst,'le')
-               CALL write_map(tn,tg,'tg')
+               !CALL write_map(tn,mvm,'vm')
+               !CALL write_map(tn,rhom,'rm')
                CALL write_map(tn,pd,'pd')
         END IF
         IF (isamp > 0)  CALL sample

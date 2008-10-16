@@ -408,7 +408,7 @@
       CHARACTER(LEN=2), INTENT(IN) :: labl
       
       CALL write_map_delta(nf,array,labl,deltaz1)
-      CALL write_map_delta(nf,array,labl,deltaz2)
+!      CALL write_map_delta(nf,array,labl,deltaz2)
 
       RETURN
       END SUBROUTINE write_map
@@ -419,7 +419,7 @@
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nx, ny, nz
       USE domain_decomposition, ONLY: cell_owner, cell_g2l
-      USE grid, ONLY: z, x, y
+      USE grid, ONLY: z, x, y, flag
       USE io_files, ONLY: tempunit, testunit
       USE parallel, ONLY: mpime, root
       USE set_indexes, ONLY: first_subscr, ijkm
@@ -429,10 +429,11 @@
       REAL*8, INTENT(IN), DIMENSION(:) :: array
       INTEGER, INTENT(IN) :: nf
       CHARACTER(LEN=2), INTENT(IN) :: labl
-      REAL*8 :: alpha, map, quota, quotam 
+      REAL*8 :: alpha, map, quota, quotam, value
       INTEGER :: i, j, k, ijk, imesh
       CHARACTER( LEN = 4 ) :: lettera
       CHARACTER( LEN = 20 ) :: filnam
+      LOGICAL :: nointerp
 
       IF (job_type == JOB_TYPE_2D) THEN
 !
@@ -442,9 +443,9 @@
         filnam='map_'//labl//'_'//lettera(INT(deltaz))//'m'//'.'//lettera(nf)
 !
         alpha = 0.0D0
-        DO i = 1, nx
+        DO i = 2, nx-1
             !
-            search1: DO k = 1, nz
+            search1: DO k = 2, nz
               quota = improfile_2d(i,k)
               IF (quota >= deltaz) THEN
                   quotam = improfile_2d(i,k-1)
@@ -476,6 +477,8 @@
 ! ... Assemble the map array
 !
         CALL parallel_sum_real(map1d, nx)
+        map1d(1) = map1d(2)
+        map1d(nx) = map1d(nx-1)
 !
 ! ... Print out the map and the new 2D DEM file
 !
@@ -496,19 +499,19 @@
         filnam='map_'//labl//'_'//lettera(INT(deltaz))//'m'//'.'//lettera(nf)
 !
         alpha = 0.0D0
-        DO i = 1, nx
-        DO j = 1, ny
+        DO i = 2, nx-1
+        DO j = 2, ny-1
             !
             search2: DO k = 2, nz
               ! ... compute the quota of the cell
               ! ... with respect to the topography
               quota = z(k) - topo2d(i,j)
+              imesh  = i + (j-1) * nx + (k-1) * nx * ny
               IF (quota >= deltaz) THEN
                   ! ... compute the quota of the last cell below the threshold
                   ! ... with respect to the topography
                   quotam = z(k-1) - topo2d(i,j)
                   !
-                  imesh  = i + (j-1) * nx + (k-1) * nx * ny
                   IF (cell_owner(imesh) == mpime) THEN
                     ijk  = cell_g2l(imesh, mpime)
                     !
@@ -518,14 +521,18 @@
                     alpha = deltaz - quotam
                     alpha = alpha / (z(k) - z(k-1))
                     !
+                    value = array(ijkm)
+                    !IF (ISNAN(value)) nointerp = .TRUE.
                     IF (quotam > 0.D0) THEN
                       map = alpha* array(ijk) + (1.D0-alpha) * array(ijkm)
                     ELSE
                       map = array(ijk)
                     END IF
+                    !IF (nointerp) map = array(ijk)
                     ! ... Map the value reached at any given position at
                     ! ... given time
                     map2d(i,j) = map
+                    IF (ISNAN(map)) CALL error('postout','problem writing map',imesh)
                   END IF
                   EXIT search2
               END IF
@@ -537,6 +544,10 @@
 ! ... Assemble the map array
 !
         CALL parallel_sum_real(map2d, nx*ny)
+        map2d(1,:) = map2d(2,:)
+        map2d(nx,:) = map2d(nx-1,:)
+        map2d(:,1) = map2d(:,2)
+        map2d(:,ny) = map2d(:,ny-1)
 !
 ! ... Print out the map and the new 2D DEM file
 !
