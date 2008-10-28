@@ -1115,11 +1115,11 @@
 !
       USE control_flags, ONLY: job_type, lpr
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
-      USE grid, ONLY: fl, noslip_wall, zb, x, inlet_cell
+      USE grid, ONLY: fl, noslip_wall, zb, x, bl_cell, fluid, inlet_cell
       USE io_files, ONLY: tempunit, testunit
       IMPLICIT NONE
 
-      INTEGER :: i, j, k, ijk
+      INTEGER :: i, j, k, ijk, q
 !
       IF( job_type == JOB_TYPE_2D ) THEN
         ALLOCATE(topo_c(nx))
@@ -1127,7 +1127,12 @@
         DO i = 1, nx
           DO k = 1, nz
             ijk = i + (k-1) * nx
-            IF( fl(ijk) == noslip_wall) topo_c(i) = zb(k)
+            IF( fl(ijk) == noslip_wall) THEN
+              topo_c(i) = zb(k)
+              q = k
+            ELSE IF (fl(ijk) == fluid) THEN
+              IF (k <= q + 3) fl(ijk) = bl_cell
+            END IF
           END DO
           topo_x(i) = topo_c(i)
         END DO
@@ -1140,7 +1145,10 @@
             DO k = 1, nz
               ijk = i + (j-1) * nx + (k-1) * nx * ny
               IF( fl(ijk) == noslip_wall) THEN
-                      topo2d_c(i,j) = zb(k)
+                topo2d_c(i,j) = zb(k)
+                q = k
+              ELSE IF (fl(ijk) == fluid) THEN
+                IF (k <= q + 3) fl(ijk) = bl_cell
               END IF
             END DO
             topo2d_x(i,j) = topo2d_c(i,j)
