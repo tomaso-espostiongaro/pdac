@@ -406,7 +406,7 @@
       CHARACTER(LEN=2), INTENT(IN) :: labl
       
       CALL write_map_delta(nf,array,labl,deltaz1)
-!      CALL write_map_delta(nf,array,labl,deltaz2)
+      CALL write_map_delta(nf,array,labl,deltaz2)
 
       RETURN
       END SUBROUTINE write_map
@@ -532,7 +532,7 @@
                     ! ... Map the value reached at any given position at
                     ! ... given time
                     map2d(i,j) = map
-                    IF (ISNAN(map)) CALL error('postout','problem writing map',imesh)
+                    !IF (ISNAN(map)) CALL error('postout','problem writing map',imesh)
                   END IF
                   EXIT search2
               END IF
