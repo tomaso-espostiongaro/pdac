@@ -330,7 +330,7 @@
               !END DO
             !END DO
           !END DO
-          READ(tempunit) (((improfile_3d(i,j,k),k=1,nz),j=1,ny),i=1,nx)
+          READ(tempunit) (((improfile_3d(i,j,k),i=1,nx),j=1,ny),k=1,nz)
         END IF
         CLOSE(tempunit)
       END IF
@@ -369,10 +369,10 @@
       IF (.NOT.ALLOCATED(topo2d)) ALLOCATE(topo2d(nx,ny))
       topo2d = -9999 
 
-      DO i = 1, nx
-        DO j = 1, ny
+      DO i = 2, nx-1, 1
+        DO j = 2, ny-1, 1
           !
-          search: DO k = 1, nz
+          search: DO k = 2, nz
             quota = improfile_3d(i,j,k)
             IF (immb > 0 .AND. quota >= 0.D0 .AND. topo2d(i,j) == -9999) THEN
                 topo2d(i,j) = z(k) - quota
@@ -385,14 +385,21 @@
           !
         END DO
       END DO
+      topo2d(1,:) = topo2d(2,:)
+      topo2d(nx,:) = topo2d(nx-1,:)
+      topo2d(:,1) = topo2d(:,2)
+      topo2d(:,ny) = topo2d(:,ny-1)
+
 !
 ! ... Print out the new 2D DEM file
 !
-      OPEN(UNIT=tempunit,FILE='topo2d.ascii')
-      DO j = 1, ny
-          WRITE(tempunit,122) (topo2d(i,j), i=1, nx)
-      END DO
-      CLOSE(tempunit)
+      IF (mpime == root) THEN
+        OPEN(UNIT=tempunit,FILE='topo2d.ascii')
+        DO j = 1, ny
+            WRITE(tempunit,122) (topo2d(i,j), i=1, nx)
+        END DO
+        CLOSE(tempunit)
+      END IF
 
  122  FORMAT(10(1x,G14.6E3))
 
@@ -522,6 +529,7 @@
                     alpha = alpha / (z(k) - z(k-1))
                     !
                     value = array(ijkm)
+                    ! NON-STANDARD FORTRAN CALL 'ISNAN' (check Not-A-Number values)
                     !IF (ISNAN(value)) nointerp = .TRUE.
                     IF (quotam > 0.D0) THEN
                       map = alpha* array(ijk) + (1.D0-alpha) * array(ijkm)
