@@ -151,10 +151,10 @@
       IF( mpime == root ) THEN
 
         IF (lform) THEN
-          OPEN(UNIT=outpunit,FILE=filnam, ERR=199)
+          OPEN(UNIT=outpunit,FILE=filnam)
           READ(outpunit,155) time
         ELSE 
-          OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam, ERR=199)
+          OPEN(UNIT=outpunit,FORM='UNFORMATTED',FILE=filnam)
           READ(outpunit) time4
           WRITE(logunit,*) 'Reading time: ', time4
           time = REAL(time4,dbl)
@@ -264,8 +264,6 @@
 
       RETURN
 !
- 199  CALL error ('read_output','error in reading outpunit', outpunit)
-!
       END SUBROUTINE read_output
 !----------------------------------------------------------------------
       SUBROUTINE read_implicit_profile
@@ -289,7 +287,7 @@
 ! ... Read the georeferenced mesh
 !
       IF (mpime == root) THEN
-        OPEN(tempunit,FILE='mesh.dat',STATUS='OLD', ERR=199)
+        OPEN(tempunit,FILE='mesh.dat',STATUS='OLD')
         READ(tempunit,*)
         READ(tempunit,*)
         READ(tempunit,*) (x(i), i=1,nx)
@@ -316,21 +314,23 @@
 ! ... Read the Implicit Profile
 !
       IF (mpime == root) THEN
-        OPEN(tempunit,FILE='improfile.dat',STATUS='OLD', ERR=199)
+        OPEN(tempunit,FILE='improfile.dat',STATUS='OLD', FORM='UNFORMATTED')
         IF (job_type == JOB_TYPE_2D) THEN
-          DO k=1,nz
-              DO i=1,nx
-                READ(tempunit,*) improfile_2d(i,k)
-              END DO
-          END DO
+          !DO k=1,nz
+              !DO i=1,nx
+                !READ(tempunit,*) improfile_2d(i,k)
+              !END DO
+          !END DO
+          READ(tempunit) ((improfile_2d(i,k), k=1,nz), i=1,nx)
         ELSE IF (job_type == JOB_TYPE_3D) THEN
-          DO k=1,nz
-            DO j=1,ny
-              DO i=1,nx
-                READ(tempunit,*) improfile_3d(i,j,k)
-              END DO
-            END DO
-          END DO
+          !DO k=1,nz
+            !DO j=1,ny
+              !DO i=1,nx
+                !READ(tempunit,*) improfile_3d(i,j,k)
+              !END DO
+            !END DO
+          !END DO
+          READ(tempunit) (((improfile_3d(i,j,k),k=1,nz),j=1,ny),i=1,nx)
         END IF
         CLOSE(tempunit)
       END IF
@@ -343,8 +343,6 @@
 !
  100  FORMAT(5(F20.6))
       RETURN
-!
- 199  CALL error ('read_implicit_profile','error in reading tempunit', tempunit)
 !
       END SUBROUTINE read_implicit_profile
 !-----------------------------------------------------------------------
@@ -442,6 +440,8 @@
       
         filnam='map_'//labl//'_'//lettera(INT(deltaz))//'m'//'.'//lettera(nf)
 !
+! ... NON HA SENSO CHE QUESTA PROCEDURA DI RICERCA VADA RIPETUTA PER
+! ... OGNI MAPPA!
         alpha = 0.0D0
         DO i = 2, nx-1
             !
@@ -1211,7 +1211,7 @@
  
       CHARACTER(LEN=15) :: filetype
       INTEGER :: skip_m(3)
-      INTEGER :: skip, skip_time, skip_phase, skip_block
+      INTEGER :: skip, skip_time, skip_block, byte_record
       INTEGER :: lbl, ig, is, it
       INTEGER :: nfields, ndim, veclen, nlx, nly, nlz
       CHARACTER(LEN=80) :: attr
@@ -1258,12 +1258,10 @@
 
       IF (formatted_output) THEN
         skip_time = 4 + 4
-        skip_phase = (lbl * (ndim+2))
         skip_block = lbl
         skip_what = "linestoskip"
       ELSE
-        skip_time = 12
-        skip_phase = (lbl * (ndim+2))
+        skip_time = 16
         skip_block = lbl
         skip_what = "charstoskip"
       END IF
