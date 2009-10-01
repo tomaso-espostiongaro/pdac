@@ -27,6 +27,7 @@
 !
       USE compute_mean_fields, ONLY: compute_time_averages
       USE domain_mapping, ONLY: ncdom, ncint
+      USE gas_constants, ONLY: rgas
       USE grid, ONLY: z
       USE sample_points, ONLY: isamp, sample
       USE sample_points, ONLY: column_axis_average, allocate_column_probes, column_axis_std
@@ -36,11 +37,12 @@
       USE mass_ground, ONLY: iground, massgs
       USE parallel, ONLY: mpime, root
       USE postp_variables, ONLY: allocate_main_fields, allocate_derived_fields, tg
+      USE postp_variables, ONLY: allocate_section_arrays
       USE postp_variables, ONLY: compute_derived_fields, allocate_derived_fields_av
       USE postp_variables, ONLY: pd, tg, ts, lepst, rhom, um, vm, wm, mvm, tm
-      USE postp_variables, ONLY: rlk, rgp, vf, rhog, p, tg, xgc, mg, mn
-      USE gas_constants, ONLY: rgas
+      USE postp_variables, ONLY: rlk, rgp, vf, rhog, p, tg, xgc, mg, mn, cm
       USE postp_variables, ONLY: rhom_gav, um_gav, vm_gav, wm_gav, tm_gav
+      USE section_outputs, ONLY: section, isect, read_sections
 !
       IMPLICIT NONE
       INTEGER :: tn, cnt, itn
@@ -71,6 +73,8 @@
       IF (imnfld > 0) CALL allocate_derived_fields_av(ncdom) 
       IF (isamp > 1) CALL allocate_column_probes(nz,cnt)
       IF (isamp > 2) CALL allocate_plume_variables(nz)
+      IF (isect > 0) CALL allocate_section_arrays
+      IF (isect > 0) CALL read_sections
 !
       itn = 0
       DO tn = first_out, last_out, incr_out
@@ -103,9 +107,11 @@
         !
         IF (imap > 0) THEN
                CALL write_topo2d
-               !CALL write_map(tn,mvm,'vm')
-               !CALL write_map(tn,rhom,'rm')
+               CALL write_map(tn,mvm,'vm')
+               CALL write_map(tn,rhom,'rm')
                CALL write_map(tn,pd,'pd')
+               CALL write_map(tn,cm,'cm')
+               CALL write_map(tn,mn,'mn')
         END IF
         IF (isamp > 0)  CALL sample
         IF (isamp > 1)  CALL column_axis_average(itn)
@@ -113,6 +119,7 @@
           CALL compute_plume_profile
           CALL write_plume_profile(tn)
         END IF
+        IF (isect > 0) CALL section(tn)
         IF (imassn  > 0)  CALL massn
         IF (ifluxn  > 0)  CALL fluxn
         IF (iground > 0)  CALL massgs(tn)

@@ -51,6 +51,8 @@ ftem.o : atmosphere.o control.o dens.o dimensions.o eosg.o eosl.o gas.o  \
     ghost.o grid.o hcapgs.o htilde.o hvs.o immb.o io_files.o particles.o  \
     press.o reactions.o subscr.o temp.o time.o velocity.o visc.o 
 
+funct.o : 
+
 gas.o : dimensions.o 
 
 ghost.o : control.o decomp.o dimensions.o grid.o immb.o indijk.o io_files.o  \
@@ -122,6 +124,8 @@ matrix.o : control.o dens.o dimensions.o ghost.o grid.o indijk.o io_files.o  \
 
 mean_fields.o : control.o io_files.o parallel.o postvar.o 
 
+mygaussj.o : 
+
 nondim.o : atmosphere.o dimensions.o gas.o ghost.o grid.o indijk.o  \
     io_files.o particles.o time.o 
 
@@ -139,7 +143,7 @@ pdac.o : blunt.o control.o decomp.o dens.o dimensions.o dome.o environment.o  \
     tilde.o time.o topo.o turbo.o velocity.o vent.o visc.o ygas.o 
 
 postin.o : dimensions.o filter.o massflux.o massgsedim.o masspart.o  \
-    parallel.o postout.o process.o sampling.o 
+    parallel.o postout.o process.o sampling.o sections.o 
 
 postout.o : control.o decomp.o dimensions.o gas.o grid.o immb.o input.o  \
     io_files.o io_parallel.o iotk_module.o kinds.o parallel.o particles.o  \
@@ -155,7 +159,7 @@ press.o : dimensions.o ghost.o
 
 process.o : control.o dimensions.o gas.o ghost.o grid.o io_files.o kinds.o  \
     massflux.o massgsedim.o masspart.o mean_fields.o parallel.o postout.o  \
-    postvar.o sampling.o 
+    postvar.o sampling.o sections.o 
 
 prog.o : bdry.o blunt.o control.o dens.o dimensions.o environment.o eosg.o  \
     ftem.o ghost.o htilde.o immb.o indijk.o io_files.o io_restart.o iter.o  \
@@ -169,8 +173,6 @@ reactions.o : dimensions.o ghost.o grid.o indijk.o time.o
 residuals.o : control.o dens.o dimensions.o eosg.o ghost.o grid.o immb.o  \
     io_files.o parallel.o press.o temp.o time.o velocity.o vent.o 
 
-restart_convert.o : 
-
 roughness.o : control.o dimensions.o topo.o 
 
 samplert.o : control.o decomp.o dimensions.o grid.o io_files.o parallel.o  \
@@ -178,6 +180,9 @@ samplert.o : control.o decomp.o dimensions.o grid.o io_files.o parallel.o  \
 
 sampling.o : control.o decomp.o dimensions.o ghost.o grid.o io_files.o  \
     parallel.o postout.o postvar.o 
+
+sections.o : control.o decomp.o dimensions.o grid.o io_files.o parallel.o  \
+    postout.o postvar.o 
 
 setup.o : atmosphere.o control.o dens.o dimensions.o dome.o eosg.o gas.o  \
     ghost.o grid.o hcapgs.o immb.o indijk.o io_files.o parallel.o particles.o  \

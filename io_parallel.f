@@ -163,7 +163,6 @@
       RETURN
       END SUBROUTINE write_crop_array
 !--------------------------------------------------------------------
-
       SUBROUTINE read_array( iunit, array, prec, lform )
 
       !  This subroutine reads a REAL*8 array ( array ) of

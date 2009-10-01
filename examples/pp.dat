@@ -21,6 +21,10 @@
   isamp = 0
 /
 
+&sections
+  isect = 0
+/
+
 &masspart
   imassn = 0
 /

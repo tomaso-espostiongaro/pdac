@@ -20,6 +20,7 @@
         INTEGER :: domeunit  = 16
         INTEGER :: atmounit  = 17
         INTEGER :: topounit  = 18
+        INTEGER :: dataunit  = 19
         INTEGER :: iuni_nml  = 36
         INTEGER :: iuni_scalar = 21
         INTEGER :: iuni_u = 22
@@ -40,6 +41,7 @@
         CHARACTER(LEN=8)  :: domefile  = 'dome.log'
         CHARACTER(LEN=8)  :: atmofile  = 'atmo.log'
         CHARACTER(LEN=8)  :: topofile  = 'topo.log'
+        CHARACTER(LEN=8)  :: datafile  = 'data.log'
         CHARACTER(LEN=10) :: xmlfile   = 'output.xml'
         CHARACTER(LEN=11) :: testnb
         CHARACTER(LEN=11) :: filnam

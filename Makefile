@@ -12,7 +12,7 @@ topo.o \
 turbo.o types.o velocity.o vent.o visc.o ygas.o iotk_module.o io_files.o
 
 PPFOBJS = derived.o filter.o mean_fields.o masspart.o massflux.o massgsedim.o \
-process.o postin.o postout.o postp.o postvar.o sampling.o 
+process.o postin.o postout.o postp.o postvar.o sampling.o sections.o
 
 all: COMM pdac.x postp.x
 

@@ -15,8 +15,6 @@
       USE dimensions, ONLY: max_size
       USE filter_outp, ONLY: downsize_x, downsize_y, downsize_z
       USE filter_outp, ONLY: variable_n, field_n
-      USE sample_points, ONLY: number_of_probes, assign_index, probe_file, &
-           isamp, iiv, jjv
       USE mass_orthoflux, ONLY: number_of_planes, planes_file, ifluxn
       USE mass_partition, ONLY: number_of_boxes, boxes_file, imassn
       USE mass_ground, ONLY: thickness, iground
@@ -26,6 +24,9 @@
       USE postp_output, ONLY: iminc, imaxc, jminc, jmaxc, kminc, kmaxc 
       USE postp_output, ONLY: deltaz1, deltaz2
       USE postp_output, ONLY: print_log, print_tg, print_mn, print_cm, print_pd, print_mnn 
+      USE sample_points, ONLY: number_of_probes, assign_index, probe_file, &
+           isamp, iiv, jjv
+      USE section_outputs, ONLY: isect, sect_file, number_of_sections
 
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: punit
@@ -42,6 +43,8 @@
 
       NAMELIST / sampling / isamp, number_of_probes, assign_index, probe_file, &
                iiv, jjv
+
+      NAMELIST / sections / isect, number_of_sections, sect_file
 
       NAMELIST / masspart / imassn, number_of_boxes, boxes_file
 
@@ -96,10 +99,15 @@
   
   isamp = 0
   number_of_probes = 1
-  probe_file       = 'probe.dat'
+  probe_file       = 'probes.dat'
   assign_index     = .TRUE.
   iiv = 0
   jjv = 0
+
+! ... Sections
+  isect = 0
+  number_of_sections = 1
+  sect_file = 'sections.dat'
 
 ! ... Mass partition
  
@@ -176,6 +184,13 @@
       CALL bcast_integer(iiv,1,root)
       CALL bcast_integer(jjv,1,root)
 !
+! ... Sampling namelist ..................................................
+!
+      IF (mpime == root) READ(punit, sections, ERR=549)
+      CALL bcast_integer(isect,1,root)
+      CALL bcast_integer(number_of_sections,1,root)
+      CALL bcast_character(sect_file,80,root)
+!
 ! ... Masspart namelist ................................................
 !
       IF (mpime == root) READ(punit, masspart, ERR=599)
@@ -213,6 +228,7 @@
  299  CALL error ('postin','error in reading namelist mean_outp', punit)
  399  CALL error ('postin','error in reading namelist map', punit)
  499  CALL error ('postin','error in reading namelist sampling', punit)
+ 549  CALL error ('postin','error in reading namelist sections', punit)
  599  CALL error ('postin','error in reading namelist masspart', punit)
  699  CALL error ('postin','error in reading namelist massflux', punit)
  799  CALL error ('postin','error in reading namelist massgsedim', punit)

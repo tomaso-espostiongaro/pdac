@@ -82,6 +82,7 @@
 !
       IF(mpime == root) THEN
         OPEN(UNIT=logunit,FILE=logfile,STATUS='UNKNOWN')
+        OPEN(UNIT=dataunit,FILE=datafile,STATUS='UNKNOWN')
         OPEN(UNIT=errorunit, FILE=errorfile, STATUS='UNKNOWN')
         OPEN(UNIT=checkunit, FILE=checkfile, POSITION='APPEND',STATUS='UNKNOWN')
       END IF

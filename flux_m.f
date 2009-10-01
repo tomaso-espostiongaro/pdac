@@ -180,11 +180,11 @@
       cs = u%w
       !cn = cs * dt * 2.D0 * indxm
       IF (cs >= 0.D0) THEN
-	IF (gradc /= 0.D0) erre = gradw / gradc
-	incr = 0.5D0 * dx(i-1)
+        IF (gradc /= 0.D0) erre = gradw / gradc
+        incr = 0.5D0 * dx(i-1)
       ELSE IF (cs < 0.D0) THEN
-	IF (gradc /= 0.D0) erre = grade / gradc
-	incr = - 0.5D0 * dx(i)
+        IF (gradc /= 0.D0) erre = grade / gradc
+        incr = - 0.5D0 * dx(i)
       ENDIF
 !
       IF (i/=2 .AND. flag(imjk)==fluid) CALL limiters(lm,lim,erre)

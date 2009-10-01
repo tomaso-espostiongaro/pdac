@@ -21,6 +21,13 @@
       REAL*8, ALLOCATABLE, DIMENSION(:) :: rhom_gav, um_gav, vm_gav, wm_gav
       REAL*8, ALLOCATABLE, DIMENSION(:) :: tm_gav
 !
+! ... section arrays
+!
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: p_section, ug_section, vg_section, wg_section, tg_section
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: rhom_section, mvm_section, pd_section
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: xgc_section
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: eps_section, us_section, vs_section, ws_section, ts_section
+!
 ! ... column arrays
 !
       REAL*8, ALLOCATABLE :: p_axis(:,:),ug_axis(:,:),vg_axis(:,:),wg_axis(:,:),tg_axis(:,:)
@@ -52,6 +59,7 @@
 !
       REAL*8 :: time
 !
+      PUBLIC
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
@@ -128,6 +136,49 @@
 !
       RETURN
       END SUBROUTINE allocate_derived_fields
+!----------------------------------------------------------------------
+      SUBROUTINE allocate_section_arrays
+! ... Time-averages and Standard deviations along vent axis
+!
+      USE dimensions, ONLY: ngas, nsolid, max_size
+      IMPLICIT NONE
+!
+! ... Allocation of the section arrays.
+!
+      ALLOCATE(p_section(max_size))
+      ALLOCATE(ug_section(max_size))
+      ALLOCATE(vg_section(max_size))
+      ALLOCATE(wg_section(max_size))
+      ALLOCATE(tg_section(max_size))
+      ALLOCATE(xgc_section(max_size,ngas))
+      ALLOCATE(eps_section(max_size,nsolid))
+      ALLOCATE(us_section(max_size,nsolid))
+      ALLOCATE(vs_section(max_size,nsolid))
+      ALLOCATE(ws_section(max_size,nsolid))
+      ALLOCATE(ts_section(max_size,nsolid))
+      ALLOCATE(rhom_section(max_size))
+      ALLOCATE(mvm_section(max_size))
+      ALLOCATE(pd_section(max_size))
+!
+! ... Initialization of section arrays
+!
+      p_section    = 0.D0
+      ug_section   = 0.D0
+      vg_section   = 0.D0
+      wg_section   = 0.D0
+      tg_section   = 0.D0
+      xgc_section  = 0.D0
+      eps_section  = 0.D0
+      us_section   = 0.D0
+      vs_section   = 0.D0
+      ws_section   = 0.D0
+      ts_section   = 0.D0
+      rhom_section   = 0.D0
+      mvm_section   = 0.D0
+      pd_section   = 0.D0
+!
+      RETURN
+      END SUBROUTINE allocate_section_arrays
 !----------------------------------------------------------------------
       SUBROUTINE allocate_column_probes(dime,tdime)
 ! ... Time-averages and Standard deviations along vent axis

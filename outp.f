@@ -93,7 +93,6 @@
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p
       USE time_parameters, ONLY: time
-      USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE domain_mapping, ONLY: data_collect, data_distribute
       USE io_files, ONLY: tempunit
@@ -143,7 +142,6 @@
       USE pressure_epsilon, ONLY: p
       USE time_parameters, ONLY: time
       USE turbulence_model, ONLY: modturbo
-      USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE volcano_topography, ONLY: rim_quota
       USE io_files, ONLY: tempunit
