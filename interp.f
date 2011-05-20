@@ -45,6 +45,7 @@
       staggered_field%w = (dx(i)   * field%w + dx(i-1) * field%c ) * indxm
       staggered_field%s = (dx(i+1) * field%s + dx(i)   * field%es) * indxp
       staggered_field%b = (dx(i+1) * field%b + dx(i)   * field%eb) * indxp
+     
 !
       RETURN
       END SUBROUTINE interpolate_x

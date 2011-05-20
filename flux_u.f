@@ -304,7 +304,7 @@
       TYPE(stencil), INTENT(IN) :: dens, u, w
       INTEGER, INTENT(IN) :: i, k
 
-      REAL*8 :: dxp, indxp
+      REAL*8 :: dxp, indxp, dens0
       REAL*8 :: dzp, indzp, dzm, indzm, dzpp, indzpp
       REAL*8 :: gradc, grade, gradw, gradb, gradt
 
@@ -327,9 +327,10 @@
 !
 ! ... on East volume boundary
 !
-      gradc = (indx(i+1) * (dens%e * u%e   - dens%c * u%c))
-      gradw = (indx(i)   * (dens%c * u%c   - dens%w * u%w))
-      grade = (indx(ip2) * (dens%ee * u%ee - dens%e * u%e))
+      dens0 = 0.5D0 *(dens%c+dens%e)
+      gradc = (indx(i+1) * dens0 * (u%e   -  u%c))
+      gradw = (indx(i)   * dens%c * (u%c   - u%w))
+      grade = (indx(ip2) * dens%e * (u%ee  -  u%e))
 !
       lim = 0.D0
       erre = 0.D0
@@ -351,10 +352,11 @@
       fe = fe + upwnd * cs * r(i+1)
 !
 ! ... on Top volume boundary
-!
-      gradc = (dens%t * u%t   - dens%c * u%c) * 2.D0 * indzp
-      gradb = (dens%c * u%c   - dens%b * u%b) * 2.D0 * indzm
-      gradt = (dens%tt * u%tt - dens%t * u%t) * 2.D0 * indzpp
+! 
+      dens0 = indzp * (dz(k)* dens%t + dz(k+1)*dens%c)
+      gradc = dens0 * (u%t   -  u%c) * 2.D0 * indzp
+      gradb = dens%c * (u%c   - u%b) * 2.D0 * indzm
+      gradt = dens%t * (u%tt -  u%t) * 2.D0 * indzpp
 !
       lim = 0.D0
       erre = 0.D0

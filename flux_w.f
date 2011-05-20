@@ -291,7 +291,7 @@
       INTEGER, INTENT(IN) :: i, k
 
       REAL*8 :: dxm, dxp, dxpp, indxpp, indxp, indxm
-      REAL*8 :: dzp, indzp
+      REAL*8 :: dzp, indzp, dens0
       REAL*8 :: gradc, grade, gradw, gradt, gradb
 
       INTEGER :: ip2, kp2
@@ -313,9 +313,11 @@
 !
 ! ... on East volume boundary
 !
-      gradc = 2.D0 * indxp  * (dens%e * w%e   - dens%c * w%c)
-      gradw = 2.D0 * indxm  * (dens%c * w%c   - dens%w * w%w)
-      grade = 2.D0 * indxpp * (dens%ee * w%ee - dens%e * w%e)
+      dens0 = indxp * (dx(i+1)*dens%c + dx(i)*dens%e)
+
+      gradc = 2.D0 * indxp  * dens0 * (w%e   -  w%c)
+      gradw = 2.D0 * indxm  * dens%c * (w%c   - w%w)
+      grade = 2.D0 * indxpp * dens%e * (w%ee -  w%e)
 !
       lim = 0.D0
       erre = 0.D0
@@ -338,9 +340,11 @@
 !
 ! ... on Top volume boundary
 !
-      gradc = (dens%t * w%t   - dens%c * w%c) * indz(k+1)
-      gradb = (dens%c * w%c   - dens%b * w%b) * indz(k)
-      gradt = (dens%tt * w%tt - dens%t * w%t) * indz(kp2)
+
+      dens0 = 0.5D0 * (dens%t + dens%c)
+      gradc = dens0 * (w%t   -  w%c) * indz(k+1)
+      gradb = dens%c *(w%c   -  w%b) * indz(k)
+      gradt = dens%t * (w%tt -  w%t) * indz(kp2)
 !
       lim = 0.D0
       erre = 0.D0
