@@ -2,9 +2,60 @@
       MODULE momentum_transfer
 !----------------------------------------------------------------------
       IMPLICIT NONE
+      INTEGER :: drag_model
       SAVE
+      PRIVATE :: kdragl, kdragg, f, ppdrag
 !----------------------------------------------------------------------
       CONTAINS
+!----------------------------------------------------------------------
+      SUBROUTINE sdrag(drag,du,dv,dw,ep,rgp,rlk,mug,is)
+!----------------------------------------------------------------------
+! ... This routine computes the gas-particles drag coefficient using Syamlal and O'Brien
+! ... continuous correlation
+!
+      USE particles_constants, ONLY: rl, inrl, phis, dk
+      IMPLICIT NONE
+!
+      REAL*8, INTENT(IN) ::  du, dv, dw
+      REAL*8, INTENT(IN) :: ep,rgp,mug
+      REAL*8, INTENT(IN) :: rlk
+      INTEGER, INTENT(IN) :: is
+      REAL*8 :: drag, vrel, drag_coeff
+      REAL*8 :: reynum, eps
+      REAL*8 :: a, b, vr
+!
+      vrel = DSQRT(du**2 + dv**2 + dw**2)
+      eps = rlk * inrl(is)
+      reynum = rgp * dk(is) * phis(is) * vrel/mug
+!
+! ... Ratio of the terminal settling velocity of a multiparticle system to that
+! ... of an isolated single particle
+!
+      a = ep**4.14
+      IF (ep <= 0.85) THEN
+        b = 0.8*ep**1.28
+      ELSE
+        b = ep**2.65
+      END IF
+!
+      vr = 0.5D0 * (a - 0.06*reynum + &
+           DSQRT(0.0036*reynum**2 + 0.12*reynum*(2*b-a) + a**2))
+!
+! ... Drag coefficient (Dalla Valle, 1948)
+!
+      drag_coeff = (0.63D0 + 4.8D0/DSQRT(reynum))**2
+!
+! ... This is needed for convergence at low reynum
+      drag_coeff = MIN(drag_coeff, 1.D4) 
+!
+! ... Fluid-particle drag (single particle)
+!
+      drag = 0.75D0 * drag_coeff * eps / (dk(is)*phis(is)) * rgp * vrel 
+!
+      drag = drag / vr
+!
+      RETURN
+      END SUBROUTINE sdrag
 !----------------------------------------------------------------------
       SUBROUTINE kdrags(drag,du,dv,dw,ep,rgp,rlk,mug,is)
 !----------------------------------------------------------------------
@@ -28,7 +79,96 @@
 !
       RETURN
       END SUBROUTINE
+!----------------------------------------------------------------------
+      SUBROUTINE kdragg(drag,vrel, ep, rgp, rlk, mug, is)
 !
+! ... Wen and Yu (1966) expression for dilute regime (ep > 0.8)
+!
+      USE particles_constants, ONLY: rl, inrl, phis, dk, phi
+      IMPLICIT NONE
+!
+      REAL*8, INTENT(OUT) :: drag
+      REAL*8, INTENT(IN) :: vrel, ep, rgp, rlk, mug
+      INTEGER, INTENT(IN) :: is
+      REAL*8 :: reynum, drag_coeff, eps
+!
+      eps = rlk * inrl(is)
+      reynum = rgp * dk(is) * phis(is) * vrel/mug
+!
+! ... Drag coefficient
+!
+      IF(reynum <= 1000.D0) THEN
+        ! ... modified Stokes law
+        drag_coeff = (24.D0/reynum) * (1.D0 + 0.15*reynum**0.687)
+      ELSE
+        drag_coeff = 0.43828814
+      END IF
+      drag_coeff = MIN(drag_coeff, 1.D4) 
+!
+! ... Fluid-particle drag (single particle)
+!
+      drag = 0.75D0 * drag_coeff * eps / (dk(is)*phis(is)) * rgp * vrel 
+!
+! ... correction for mixtures
+!
+      drag = drag * f(ep)
+!      drag = drag * fs(eps,phi(is))
+!
+      RETURN
+      END SUBROUTINE
+!----------------------------------------------------------------------
+      SUBROUTINE kdragl(drag, vrel, ep, rgp, rlk, mug, is)
+!
+! ... The famous Ergun [1952] equation for dense regimes
+!
+      USE particles_constants, ONLY: rl, inrl, phis, dk
+      IMPLICIT NONE
+!
+      REAL*8, INTENT(OUT) :: drag
+      REAL*8, INTENT(IN) :: vrel, ep, rgp, rlk, mug
+      INTEGER, INTENT(IN) :: is
+      REAL*8 :: denom
+!
+! ... Gidaspow [1994] pag. 36
+!
+      denom = 1.0D0 / (dk(is) * phis(is) * ep)
+!
+      drag = 150.D0 * ep * rlk * inrl(is) * mug  * denom +   &
+             1.75D0 * rgp * vrel
+!
+      drag = drag  * rlk * inrl(is) * denom
+      CONTINUE
+!
+      RETURN
+      END SUBROUTINE
+!----------------------------------------------------------------------
+      REAL*8 FUNCTION f(void_fraction)
+!
+! ... Ratio of fall velocity of a single particle with respect to a cloud
+! ... Modification of the Richardson and Zaki (1954) equation
+! ... [Gidaspow, 1994; Chapt.2]
+!
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: void_fraction
+      !
+      f = void_fraction**(-2.65)
+      !
+      RETURN
+      END FUNCTION f
+!----------------------------------------------------------------------
+      REAL*8 FUNCTION fs(solid_fraction,phimax)
+!
+! ... Ratio of fall velocity of a single particle with respect to a cloud
+! ... Modification of the Richardson and Zaki (1954) equation
+! ... [Michaels and Bolger, 1962]
+!
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: solid_fraction, phimax
+      !
+      fs = (1.D0 - solid_fraction/phimax)**(-4.65)
+      !
+      RETURN
+      END FUNCTION fs
 !----------------------------------------------------------------------
       SUBROUTINE inter(appu,appv,appw,kpgv,us,vs,ws,rlk,ijk)
 !----------------------------------------------------------------------
@@ -101,59 +241,6 @@
         appv(ks)=-sumy
         appw(ks)=-sumz
       END DO
-!
-      RETURN
-      END SUBROUTINE
-!----------------------------------------------------------------------
-      SUBROUTINE kdragg(drag,vrel, ep, rgp, rlk, mug, is)
-!
-! ... Wen and Yu expression for dilute regime (ep > 0.8)
-!
-      USE particles_constants, ONLY: rl, inrl, phis, dk
-      IMPLICIT NONE
-!
-      REAL*8, INTENT(OUT) :: drag
-      REAL*8, INTENT(IN) :: vrel, ep, rgp, rlk, mug
-      INTEGER, INTENT(IN) :: is
-      REAL*8 :: reynum, drvrel, drag_coeff
-!
-      reynum = rgp * dk(is) * phis(is) * vrel/mug
-!
-      IF(reynum <= 1000.D0) THEN
-        ! ... modified Stokes law
-        drag_coeff = (24.D0/reynum) * (1.D0 + 0.15D0*reynum**0.687D0)
-      ELSE
-        drag_coeff = 0.44D0
-      END IF
-!
-      drag = MIN(drag_coeff, 1.D4) 
-      drag = drag * rgp * rlk * inrl(is) * ep**(-2.7)
-      drag = 0.75D0 * drag * vrel / (dk(is)*phis(is)) 
-!
-! ... Impose the limit with no particles
-!
-!      IF (rlk < 1.D-10) drag = 0.D0
-!
-      RETURN
-      END SUBROUTINE
-!----------------------------------------------------------------------
-      SUBROUTINE kdragl(drag, vrel, ep, rgp, rlk, mug, is)
-!
-! ... The famous Ergun [1952] equation for dense regimes
-!
-      USE particles_constants, ONLY: rl, inrl, phis, dk
-      IMPLICIT NONE
-!
-      REAL*8, INTENT(OUT) :: drag
-      REAL*8, INTENT(IN) :: vrel, ep, rgp, rlk, mug
-      INTEGER, INTENT(IN) :: is
-      REAL*8 :: denom
-!
-      denom = 1.0D0 / (dk(is) * phis(is) * ep)
-      drag = 150.D0 * ep * rlk * inrl(is) * mug  * denom +   &
-             1.75D0 * rgp * vrel
-      drag = drag  * rlk * inrl(is) * denom
-      CONTINUE
 !
       RETURN
       END SUBROUTINE
