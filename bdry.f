@@ -246,7 +246,7 @@
                 vs(n2,:) = -vs(n1,:)
               END IF
 !
-            CASE (zero_grad) ! Zero gradient of all quantities
+            CASE (free_io, zero_grad) ! Zero gradient of all quantities
 !
               d0 = dx(i-1)
               d1 = dx(i)
@@ -315,7 +315,7 @@
                 vs(n2,:) = -vs(n1,:)
             END IF
 !
-            CASE (zero_grad)
+            CASE (free_io, zero_grad)
 !	    
               d0 = dx(i+1)
               d1 = dx(i)
@@ -383,7 +383,7 @@
                   ws(n2,:) = -ws(n1,:)
                 END IF
 !  
-              CASE (zero_grad)
+              CASE (free_io, zero_grad)
 !  
                 d0 = dy(j-1)
                 d1 = dy(j)
@@ -455,7 +455,7 @@
                   ws(n2,:) = -ws(n1,:)
                 END IF
 !
-              CASE (zero_grad)
+              CASE (free_io, zero_grad)
 !  	    
                 d0 = dy(j+1)
                 d1 = dy(j)
@@ -533,7 +533,7 @@
                 vs(n2,is) = -vs(n1,is)
               END IF
 !
-            CASE (zero_grad)
+            CASE (free_io, zero_grad)
 !
               d0 = dz(k-1)
               d1 = dz(k)
@@ -606,7 +606,7 @@
                 vs(n2,:) = -vs(n1,:)
               END IF
 !
-              CASE (zero_grad)
+              CASE (free_io, zero_grad)
 !  	    
                 d0 = dz(k+1)
                 d1 = dz(k)
