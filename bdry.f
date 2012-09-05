@@ -15,6 +15,7 @@
       USE time_parameters, ONLY: dt, time, sweep
 !
       IMPLICIT NONE
+      INTEGER :: ord
 
       SAVE
 !-----------------------------------------------------------------------
@@ -31,13 +32,14 @@
       USE grid, ONLY: flag, x, y, z, xb, yb, zb
       USE grid, ONLY: slip_wall, noslip_wall
       USE grid, ONLY: immb_cell, filled_cell_1, filled_cell_2
-      USE grid, ONLY: free_io, nrfree_io
+      USE grid, ONLY: free_io, zero_grad
       USE grid, ONLY: inlet_cell, vent_cell, dome_cell, fluid, bl_cell
       USE immersed_boundaries, ONLY: fptx, fpty, fptz, forcing_point
       USE immersed_boundaries, ONLY: numx, numy, numz, immb
+      USE interpolate_fields, ONLY: velint, velint3d, extrapolate, hn
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE inflow_outflow, ONLY: n0, n1, n2
-      USE inflow_outflow, ONLY: ent_inout4, wsb_inout4, extrapolate
+      USE inflow_outflow, ONLY: zero_gradient
       USE parallel, ONLY: mpime, root
       USE set_indexes, ONLY: subscr
       USE set_indexes, ONLY: ipjk, imjk, ippjk, immjk, ijpk, ipjpk,    &
@@ -53,6 +55,7 @@
       INTEGER :: ijk, i, j, k, imesh, ig, is, nph
       INTEGER :: fp, np
       REAL*8 :: d0, d1, d2 
+      REAL*8 :: wg2, wg1
       REAL*8 :: vel(max_nsolid+1)
       INTEGER :: fx, fy, fz
       INTEGER :: nfptx, nfpty, nfptz
@@ -105,7 +108,8 @@
           IF (job_type == JOB_TYPE_3D) fy = numy(ijk)
           fz = numz(ijk)
           forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
-          IF (.NOT.forced) CALL error('boundary','control forcing points',1)
+          IF (.NOT.forced) &
+            & CALL error('boundary','control forcing points',1)
           
           ! ... Compute the pseudo-velocities
           ! ... that are used in the "immersed boundary" technique ...
@@ -120,7 +124,7 @@
               !
               ! ... Set the homogeneous Neumann conditions in non-resolved forcing points
               ! ... (zero-gradient)
-              IF( fptx(fx)%int >= 20 ) CALL hneumann(ijk,ipjk)
+              IF( fptx(fx)%int >= 20 ) CALL hn(ijk,ipjk)
               !
               ! ... Initialize x-velocity in the forced points
               ug(ijk) = vel(1)
@@ -136,7 +140,7 @@
               END DO
               !
               ! ... Set the homogeneous Neumann conditions in non-resolved forcing points
-              IF( fptz(fz)%int >= 20 ) CALL hneumann(ijk,ijkp)
+              IF( fptz(fz)%int >= 20 ) CALL hn(ijk,ijkp)
               !
               ! ... Initialize z-velocity in the forced points
               wg(ijk) = vel(1)
@@ -154,7 +158,7 @@
               END DO
               !
               ! ... Set the homogeneous Neumann conditions in non-resolved forcing points
-              IF( fptx(fx)%int >= 20 ) CALL hneumann(ijk,ipjk)
+              IF( fptx(fx)%int >= 20 ) CALL hn(ijk,ipjk)
               !
               ! ... Initialize x-velocity in the forced points
               ug(ijk) = vel(1)
@@ -170,7 +174,7 @@
               END DO
 
               ! ... Set the homogeneous Neumann conditions in non-resolved forcing points
-              IF( fpty(fy)%int >= 20 ) CALL hneumann(ijk,ijpk)
+              IF( fpty(fy)%int >= 20 ) CALL hn(ijk,ijpk)
               !
               ! ... Initialize y-velocity in the forced points
               vg(ijk) = vel(1)
@@ -186,7 +190,7 @@
               END DO
 
               ! ... Set the homogeneous Neumann conditions in non-resolved forcing points
-              IF( fptz(fz)%int >= 20 ) CALL hneumann(ijk,ijkp)
+              IF( fptz(fz)%int >= 20 ) CALL hn(ijk,ijkp)
               !
               ! ... Initialize z-velocity in the forced points
               wg(ijk) = vel(1)
@@ -199,12 +203,13 @@
 ! ... In fluid cells update the neighbours on boundaries
 !
        ELSE IF( flag(ijk)==fluid .OR. flag(ijk)==dome_cell .OR. flag(ijk)==bl_cell) THEN
+
 !
 ! ***** East boundary conditions ***** !
 !
             n2   = ipjk
-	    n1   = ijk
-	    n0   = imjk
+            n1   = ijk
+            n0   = imjk
 
             SELECT CASE ( flag( n2 ) ) 
 !
@@ -212,8 +217,10 @@
 !
               ug(n1)   = 0.D0
               us(n1,:) = 0.D0
+              ug(n2)   = 0.D0
+              us(n2,:) = 0.D0
 !
-	      IF (job_type == JOB_TYPE_3D) THEN
+            IF (job_type == JOB_TYPE_3D) THEN
                 vg(n2)   = vg(n1)
                 vs(n2,:) = vs(n1,:)
               END IF
@@ -222,69 +229,49 @@
 !
             CASE (noslip_wall)
 !
+              ug(n1)   = 0.D0
+              us(n1,:) = 0.D0
               ug(n2)   = 0.D0
               us(n2,:) = 0.D0
               
               IF(.NOT.BTEST(flag(ipjkp),0)) THEN
               !IF(flag(ipjkp)/=fluid) THEN
                 wg(n2)   = -wg(n1)
-                DO is = 1, nsolid
-                  IF (rlk(ijk,is) > 0.D0) ws(n2,is) = -ws(n1,is)
-                END DO
+                ws(n2,:) = -ws(n1,:)
               END IF
 
               IF (.NOT.BTEST(flag(ipjpk),0) .AND. job_type == JOB_TYPE_3D) THEN
               !IF (flag(ipjpk) /= fluid .AND. job_type == JOB_TYPE_3D) THEN
                 vg(n2)   = -vg(n1)
-                DO is = 1, nsolid
-                  IF (rlk(ijk,is) > 0.D0) vs(n2,:) = -vs(n1,:)
-                END DO
+                vs(n2,:) = -vs(n1,:)
               END IF
 !
-            CASE (free_io)
-!
-              d1 = dx(i)
-	      d2 = dx(i+1)
-
-              ! ... Compute the normal component of the velocities 
-              ! ... and scalar fields 
-              !
-              CALL ent_inout4( ug(n0), ug(n1), ug(n2),              &
-                      us(n0,:), us(n1,:), us(n2,:), d1, d2, gravx, k )
-
-              ! ... Compute tangential components of velocities
-              !
-              IF(flag(ipjkp) == free_io) THEN
-                wg(n2) = wg(n1)
-        	ws(n2,:)=ws(n1,:)
-              END IF
-	      IF (job_type == JOB_TYPE_3D .AND. (flag(ipjpk) == free_io)) THEN
-                vg(n2) = vg(n1)
-        	vs(n2,:)=vs(n1,:)
-	      END IF
-!
-            CASE (nrfree_io)
+            CASE (zero_grad) ! Zero gradient of all quantities
 !
               d0 = dx(i-1)
               d1 = dx(i)
-	      d2 = dx(i+1)
+              d2 = dx(i+1)
 
-              ! ... Compute the normal component of the velocities 
-              ! ... and scalar fields
-              !
-              CALL extrapolate( ug(n0), ug(n1), ug(n2), us(n0,:), us(n1,:), us(n2,:), d0, d1, d2, k)
-
-              ! ... Compute tangential components of velocities
-              !
-              IF(flag(ipjkp) == nrfree_io) THEN
-                wg(n2) = wg(n1)
-        	ws(n2,:)=ws(n1,:)
+              ! ... Zero gradient normal velocities
+              ug(n1) = ug(n0)
+              us(n1,:) = us(n0,:)
+              ug(n2)   = ug(n1)
+              us(n2,:) = us(n1,:)
+!
+              ! ... Tangential velocities
+              IF (job_type == JOB_TYPE_3D) THEN
+                vg(n2)   = vg(n1)
+                vs(n2,:) = vs(n1,:)
               END IF
-	      IF (job_type == JOB_TYPE_3D .AND. (flag(ipjpk) == nrfree_io)) THEN
-                vg(n2) = vg(n1)
-        	vs(n2,:)=vs(n1,:)
-	      END IF
-!              
+              wg(n2)   = wg(n1)
+              ws(n2,:) = ws(n1,:)
+              !
+              ! ... outlet rlk, rgp, rog, sieg, sies, tg, ts, ep
+              CALL zero_gradient(us(n1,:),n2,n1)
+              !
+              ! ... Zero pressure gradient
+              p(n2)=p(n1)
+
             CASE DEFAULT
 !
               CONTINUE
@@ -294,8 +281,8 @@
 ! ***** West boundary conditions ***** !
 !
             n2 = imjk
-	    n1 = ijk
-	    n0 = ipjk
+            n1 = ijk
+            n0 = ipjk
 
             SELECT CASE ( flag( n2 ) )
 !
@@ -304,10 +291,10 @@
               ug(n2)   = 0.D0
               us(n2,:) = 0.D0
 !
-	      IF (job_type == JOB_TYPE_3D) THEN
+              IF (job_type == JOB_TYPE_3D) THEN
                 vg(n2)   = vg(n1)
                 vs(n2,:) = vs(n1,:)
-	      END IF
+              END IF
               wg(n2)   = wg(n1)
               ws(n2,:) = ws(n1,:)
 !
@@ -319,61 +306,35 @@
               IF (.NOT.BTEST(flag(imjkp),0) ) THEN
               !IF ( flag(imjkp) /= fluid ) THEN
                 wg(n2)   = -wg(n1)
-                DO is = 1, nsolid
-                  IF (rlk(ijk,is) > 0.D0) ws(n2,is) = -ws(n1,is)
-                END DO
+                ws(n2,:) = -ws(n1,:)
 	      END IF
 
               IF ( .NOT.BTEST(flag(imjkp),0) .AND. job_type == JOB_TYPE_3D) THEN
               !IF ( flag(imjkp) /= fluid .AND. job_type == JOB_TYPE_3D) THEN
                 vg(n2)   = -vg(n1)
-                DO is = 1, nsolid
-                  IF (rlk(ijk,is) > 0.D0) vs(n2,is) = -vs(n1,is)
-                END DO
-	      END IF
+                vs(n2,:) = -vs(n1,:)
+            END IF
 !
-            CASE (free_io)
-!	    
-              d1 = dx(i)
-              d2 = dx(i-1)
-
-              ! ... Compute the normal component of the velocities 
-              ! ... and scalar fields
-              !
-              CALL wsb_inout4( ug(n1), ug(n2), us(n1,:), us(n2,:), d1, d2, k )
-
-              ! ... Compute tangential components of velocities
-              !
-              IF(flag(imjkp) == free_io) THEN
-                wg(n2)   = wg(n1)
-        	ws(n2,:) = ws(n1,:)
-              END IF
-	      IF (job_type == JOB_TYPE_3D .AND. (flag(imjpk) == free_io)) THEN
-                vg(n2)   = vg(n1)
-        	vs(n2,:) = vs(n1,:)
-	      END IF
-!              
-            CASE (nrfree_io)
+            CASE (zero_grad)
 !	    
               d0 = dx(i+1)
               d1 = dx(i)
               d2 = dx(i-1)
-
-              ! ... Compute the normal component of the velocities 
-              ! ... and scalar fields
               !
-              CALL extrapolate( ug(n0), ug(n1), ug(n2), us(n0,:), us(n1,:), us(n2,:), d0, d1, d2, k)
-
-              ! ... Compute tangential components of velocities
+              ! ... Normal velocities
+              ug(n2) = ug(n1)
+              us(n2,:) = us(n1,:)
               !
-              IF(flag(imjkp) == nrfree_io) THEN
-                wg(n2)   = wg(n1)
-        	ws(n2,:) = ws(n1,:)
-              END IF
-	      IF (job_type == JOB_TYPE_3D .AND. (flag(imjpk) == nrfree_io)) THEN
+              ! ... Tangential velocities
+              IF (job_type == JOB_TYPE_3D) THEN
                 vg(n2)   = vg(n1)
-        	vs(n2,:) = vs(n1,:)
-	      END IF
+                vs(n2,:) = vs(n1,:)
+              END IF
+              wg(n2)   = wg(n1)
+              ws(n2,:) = ws(n1,:)
+              !
+              CALL zero_gradient(us(n2,:),n2,n1)
+              p(n2)=p(n1)
 !              
             CASE DEFAULT
 !
@@ -395,6 +356,8 @@
 !  
                 vg(n1)   = 0.D0
                 vs(n1,:) = 0.D0
+                vg(n2)   = 0.D0
+                vs(n2,:) = 0.D0
 !  
                 ug(n2)   = ug(n1)
                 us(n2,:) = us(n1,:)
@@ -403,67 +366,44 @@
 !  
               CASE (noslip_wall)
 !  
+                vg(n1)   = 0.D0
+                vs(n1,:) = 0.D0
                 vg(n2)   = 0.D0
                 vs(n2,:) = 0.D0
                 
                 IF(.NOT.BTEST(flag(ipjpk),0)) THEN
                 !IF(flag(ipjpk) /= fluid) THEN
                   ug(n2)   = -ug(n1)
-                  DO is = 1, nsolid
-                    IF (rlk(ijk,is) > 0.D0) us(n2,is) = -us(n1,is)
-                  END DO
+                  us(n2,:) = -us(n1,:)
                 END IF
 
                 IF(.NOT.BTEST(flag(ijpkp),0)) THEN
                 !IF(flag(ijpkp) /= fluid) THEN
                   wg(n2)   = -wg(n1)
-                  DO is = 1, nsolid
-                    IF (rlk(ijk,is) > 0.D0) ws(n2,is) = -ws(n1,is)
-                  END DO
+                  ws(n2,:) = -ws(n1,:)
                 END IF
 !  
-              CASE (free_io)
+              CASE (zero_grad)
 !  
+                d0 = dy(j-1)
                 d1 = dy(j)
-  	        d2 = dy(j+1)
-          
-                ! ... Compute the normal component of the velocities 
-                ! ... and scalar fields
-                !
-                CALL ent_inout4( vg(n0), vg(n1), vg(n2),              &
-                             vs(n0,:), vs( n1,:), vs(n2,:), d1, d2, gravy, k )
+                d2 = dy(j+1)
 
-                ! ... Compute tangential components of velocities
-                !
-                IF(flag(ijpkp) == free_io) THEN
-                  wg(n2)   = wg(n1)
-        	  ws(n2,:) = ws(n1,:)
-                END IF
-	        IF(flag(ipjpk) == free_io) THEN
-                  ug(n2)   = ug(n1)
-          	  us(n2,:) = us(n1,:)
-	        END IF
+                ! ... Normal velocities
+                vg(n1)   = vg(n0)
+                vs(n1,:) = vs(n0,:)
+                vg(n2)   = vg(n1)
+                vs(n2,:) = vs(n1,:)
 !
-              CASE (nrfree_io)
-!  
-                d1 = dy(j)
-  	        d2 = dy(j+1)
-          
-                ! ... Compute the normal component of the velocities 
-                ! ... and scalar fields
-                !
-                CALL extrapolate( vg(n0), vg(n1), vg(n2), vs(n0,:), vs(n1,:), vs(n2,:), d0, d1, d2, k)
+                ! ... Tangential velocities
+                ug(n2)   = ug(n1)
+                us(n2,:) = us(n1,:)
+                wg(n2)   = wg(n1)
+                ws(n2,:) = ws(n1,:)
 
-                ! ... Compute tangential components of velocities
-                !
-                IF(flag(ijpkp) == nrfree_io) THEN
-                  wg(n2)   = wg(n1)
-        	  ws(n2,:) = ws(n1,:)
-                END IF
-	        IF(flag(ipjpk) == nrfree_io) THEN
-                  ug(n2)   = ug(n1)
-          	  us(n2,:) = us(n1,:)
-	        END IF
+                ! ... Outlet scalars
+                CALL zero_gradient(vs(n1,:),n2,n1)
+                p(n2)=p(n1)
 !
               CASE DEFAULT
 !
@@ -482,9 +422,13 @@
 !
               CASE (slip_wall)
 !
+                ! ... Normal velocities
+                !
                 vg(n2)   = 0.D0
                 vs(n2,:) = 0.D0
 !
+                ! ... Tangential velocities
+                !
                 ug(n2)   = ug(n1)
                 us(n2,:) = us(n1,:)
                 wg(n2)   = wg(n1)
@@ -492,66 +436,45 @@
 !  
               CASE (noslip_wall)
 !
+                ! ... Normal velocities
+                !
                 vg(n2)   = 0.D0
                 vs(n2,:) = 0.D0
 
+                ! ... Tangential velocities
+                !
                 IF(.NOT.BTEST(flag(ipjmk),0)) THEN
                 !IF(flag(ipjmk) /= fluid) THEN
                   ug( n2 ) = -ug( n1 )
-                  DO is = 1, nsolid
-                    IF (rlk(ijk,is) > 0.D0) us(n2,is) = -us(n1,is)
-                  END DO
-                  
+                  us(n2,:) = -us(n1,:)
                 END IF
+                !
                 IF(.NOT.BTEST(flag(ijmkp),0)) THEN
                 !IF(flag(ijmkp) /= fluid) THEN
                   wg( n2 ) = -wg( n1 )
-                  DO is = 1, nsolid
-                    IF (rlk(ijk,is) > 0.D0) ws(n2,is) = -ws(n1,is)
-                  END DO
+                  ws(n2,:) = -ws(n1,:)
                 END IF
 !
-              CASE (free_io)
+              CASE (zero_grad)
 !  	    
+                d0 = dy(j+1)
                 d1 = dy(j)
                 d2 = dy(j-1)
-
-                ! ... Compute the normal component of the velocities 
-                ! ... and scalar fields
+  
                 !
-                CALL wsb_inout4( vg(n1), vg(n2), vs(n1,:), vs(n2,:), d1, d2, k )
-
-                ! ... Compute tangential components of velocities
-                !             
-                IF(flag(ijmkp) == free_io) THEN
-                  wg(n2)   = wg(n1)
-        	  ws(n2,:) = ws(n1,:)
-                END IF
-	        IF(flag(ipjmk) == free_io) THEN
-                  ug(n2)   = ug(n1)
-        	  us(n2,:) = us(n1,:)
-	        END IF
-!
-              CASE (nrfree_io)
-!  	    
-                d1 = dy(j)
-                d2 = dy(j-1)
-
-                ! ... Compute the normal component of the velocities 
-                ! ... and scalar fields
+                ! ... Normal velocities
+                vg(n2) = vg(n1)
+                vs(n2,:) = vs(n1,:)
+                ! ... Tangential velocities
                 !
-                CALL extrapolate( vg(n0), vg(n1), vg(n2), vs(n0,:), vs(n1,:), vs(n2,:), d0, d1, d2, k)
-
-                ! ... Compute tangential components of velocities
-                !             
-                IF(flag(ijmkp) == nrfree_io) THEN
-                  wg(n2)   = wg(n1)
-        	  ws(n2,:) = ws(n1,:)
-                END IF
-	        IF(flag(ipjmk) == nrfree_io) THEN
-                  ug(n2)   = ug(n1)
-        	  us(n2,:) = us(n1,:)
-	        END IF
+                ug(n2)   = ug(n1)
+                us(n2,:) = us(n1,:)
+                wg(n2)   = wg(n1)
+                ws(n2,:) = ws(n1,:)
+                !
+                ! ... Outlet scalars
+                CALL zero_gradient(vs(n2,:),n2,n1)
+                p(n2)=p(n1)
 !
               CASE DEFAULT
 !
@@ -572,93 +495,73 @@
 !
             CASE (slip_wall)
 !
+              ! ... Normal velocities
+              !
+              wg(n1) = 0.D0
+              ws(n1,:) = 0.D0
+              wg(n1) = 0.D0
+              ws(n1,:) = 0.D0
+
+              ! ... Tangential velocities
+              !
               ug(n2)   = ug(n1)
               us(n2,:) = us(n1,:)
-	      IF (job_type == JOB_TYPE_3D) THEN
+              IF (job_type == JOB_TYPE_3D) THEN
                 vg(n2)   = vg(n1)
                 vs(n2,:) = vs(n1,:)
-	      END IF
+              END IF
 !
             CASE (noslip_wall)
 !  
-              wg(n2)   = 0.D0
-              ws(n2,:) = 0.D0
+              ! ... Normal velocity
+              wg(n1) = 0.D0
+              ws(n1,:) = 0.D0
+              wg(n1) = 0.D0
+              ws(n1,:) = 0.D0
 
+              ! ... Tangential velocities
+              !
               IF (.NOT.BTEST(flag(ipjkp),0)) THEN
               !IF (flag(ipjkp) /= fluid) THEN
                 ug(n2)   = -ug(n1)
-                DO is = 1, nsolid
-                  IF (rlk(ijk,is) > 0.D0) us(n2,is) = -us(n1,is)
-                END DO
+                us(n2,is) = -us(n1,is)
               END IF
 
-	      IF (.NOT.BTEST(flag(ijpkp),0) .AND. job_type == JOB_TYPE_3D) THEN
-	      !IF (flag(ijpkp) /= fluid .AND. job_type == JOB_TYPE_3D) THEN
+              IF (.NOT.BTEST(flag(ijpkp),0) .AND. job_type == JOB_TYPE_3D) THEN
+              !IF (flag(ijpkp) /= fluid .AND. job_type == JOB_TYPE_3D) THEN
                 vg(n2)   = -vg(n1)
-                DO is = 1, nsolid
-                  IF (rlk(ijk,is) > 0.D0) vs(n2,is) = -vs(n1,is)
-                END DO
-	      END IF
-!
-            CASE (free_io)
-!
-              d1 = dz(k)
-	      d2 = dz(k+1)
-
-              ! ... Compute the normal component of the velocities 
-              ! ... and scalar fields
-              !
-              CALL ent_inout4( wg(n0), wg(n1), wg(n2),              &
-                             ws(n0,:), ws(n1,:), ws(n2,:), d1, d2, gravz, k )
-
-              ! ... Compute tangential components of velocities
-              !
-              IF(flag(ipjkp) == free_io) THEN
-                 ug(n2)   = ug(n1)
-                 us(n2,:) = us(n1,:)
-              END IF
-              IF(flag(ijpkp) == free_io .AND. job_type == JOB_TYPE_3D) THEN
-                 vg(n2)   = vg(n1)
-                 vs(n2,:) = vs(n1,:)
+                vs(n2,is) = -vs(n1,is)
               END IF
 !
-            CASE (nrfree_io)
+            CASE (zero_grad)
 !
+              d0 = dz(k-1)
               d1 = dz(k)
               d2 = dz(k+1)
 
-              ! ... Compute the normal component of the velocities 
-              ! ... and scalar fields
+              ! ... Normal velocities
+              wg(n1)    = wg(n0)
+              ws(n1,:)  = ws(n0,:)
+              wg(n2)   = wg(n1)
+              ws(n2,:) = ws(n1,:)
               !
-              CALL extrapolate( wg(n0), wg(n1), wg(n2), ws(n0,:), ws(n1,:), ws(n2,:), d0, d1, d2, k)
+              ! ... Tangential velocities
+              ug(n2)   = ug(n1)
+              us(n2,:) = us(n1,:)
+              IF (job_type == JOB_TYPE_3D) THEN
+                vg(n2)   = vg(n1)
+                vs(n2,:) = vs(n1,:)
+              END IF
+              !
+              ! ... Outlet scalars
+              CALL zero_gradient(ws(n1,:),n2,n1)
+              p(n2)=p(n1)
                              
-              ! ... Compute tangential components of velocities
-              !
-              IF(flag(ipjkp) == nrfree_io) THEN
-                 ug(n2)   = ug(n1)
-                 us(n2,:) = us(n1,:)
-              END IF
-              IF(flag(ijpkp) == nrfree_io .AND. job_type == JOB_TYPE_3D) THEN
-                 vg(n2)   = vg(n1)
-                 vs(n2,:) = vs(n1,:)
-              END IF
-!
             CASE DEFAULT
 !
               CONTINUE
 
             END SELECT
-
-            ! ... set upper corners velocities
-            !
-            IF ( k == (nz-1) ) THEN
-              IF( ( i == (nx-1) ) .AND. ( j == (ny-1) ) ) THEN
-                ! ug(ipjp) = ug(ipj)
-              ELSE IF( ( i == 2 ) .AND. ( j == (ny-1) ) ) THEN
-              ELSE IF( ( i == (nx-1) ) .AND. ( j == 2 ) ) THEN
-                ! ug(imjp) = ug(imj)
-              ENDIF
-            END IF
 !
 ! ***** Bottom boundary conditions ***** !
 !
@@ -669,6 +572,13 @@
 !
             CASE (slip_wall)
 !
+              ! ... Normal velocities
+              !
+              wg( n2 ) = 0.D0
+              ws(n2,:) = 0.D0
+
+              ! ... Tangential velocities
+              !
               IF(flag(ipjkm) == slip_wall) THEN 
                 ug( n2 ) = ug( n1 )
                 us(n2,:) = us(n1,:)
@@ -681,43 +591,52 @@
 !
             CASE (noslip_wall)
 !
+              ! ... Normal velocities
+              !
               wg(n2)   = 0.D0
               ws(n2,:) = 0.D0
-                
+!                
               IF(flag(ipjkm) == noslip_wall) THEN 
                 ug(n2)   = -ug(n1)
-                DO is = 1, nsolid
-                  IF (rlk(ijk,is) > 0.D0) us(n2,is) = -us(n1,is)
-                END DO
+                us(n2,:) = -us(n1,:)
               END IF
 
               IF(flag(ijpkm) == noslip_wall .AND. job_type == JOB_TYPE_3D) THEN
                 vg(n2)   = -vg(n1)
-                DO is = 1, nsolid
-                  IF (rlk(ijk,is) > 0.D0) vs(n2,is) = -vs(n1,is)
-                END DO
+                vs(n2,:) = -vs(n1,:)
               END IF
+!
+              CASE (zero_grad)
+!  	    
+                d0 = dz(k+1)
+                d1 = dz(k)
+                d2 = dz(k-1)
+  
+                !
+                ! ... Normal velocities
+                wg(n2) = wg(n1)
+                ws(n2,:) = ws(n1,:)
+                ! ... Tangential velocities
+                !
+                ug(n2)   = ug(n1)
+                us(n2,:) = us(n1,:)
+                vg(n2)   = vg(n1)
+                vs(n2,:) = vs(n1,:)
+                !
+                ! ... Outlet scalars
+                CALL zero_gradient(ws(n2,:),n2,n1)
+                p(n2)=p(n1)
 !
             CASE DEFAULT
 !
               CONTINUE
 
             END SELECT
-
-            ! ... Set lower corners velocities
-            !
-!            IF (k == 2) THEN
-!              IF( ( i == (nx-1) ) .AND. ( j == (ny-1) ) ) THEN
-!                ! ug(ipjm) = ug(ipj)
-!              ELSE IF( ( i == 2 ) .AND. ( j == (ny-1) ) ) THEN
-!              ELSE IF( ( i == (nx-1) ) .AND. ( j == 2 ) ) THEN
-!              ELSE IF( ( i == 2 ) .AND. ( j == 2 ) ) THEN
-!                ! ug(imjm) = ug(imj)
-!              ENDIF
-!            END IF
-
+!
         END IF
       END DO mesh_loop
+!
+! ... Write immersed boundaries data
 !
       IF (lpr > 2 .AND. immb >= 1) THEN
         !
@@ -767,95 +686,6 @@
 !
       RETURN
       END SUBROUTINE boundary
-!----------------------------------------------------------------------
-      SUBROUTINE hneumann(m,n)
-      USE grid, ONLY: flag, filled_cell_1, filled_cell_2, fc2
-      USE pressure_epsilon, ONLY: p, ep
-      USE eos_gas, ONLY: ygc
-      USE gas_solid_density, ONLY: rlk, rgp
-      USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
-      USE io_files, ONLY: testunit
-      IMPLICIT NONE
-      INTEGER, INTENT(IN) :: m,n
-      LOGICAL :: fc2_
-!
-! ... m is the local cell index; 
-! ... n is the index of the first neighbour used for the external forcing
-!
-      IF (flag(m) == filled_cell_1) THEN
-        p(m) = p(n)
-        ep(m) = ep(n)
-        rlk(m,:) = rlk(n,:)
-        rgp(m) = rgp(n)
-        tg(m) = tg(n)
-        ts(m,:) = ts(n,:)
-        sieg(m) = sieg(n)
-        sies(m,:) = sies(n,:)
-        ygc(m,:) = ygc(n,:)
-      ELSE IF (flag(n) == filled_cell_1) THEN
-        p(n) = p(m)
-        ep(n) = ep(m)
-        rlk(n,:) = rlk(m,:)
-        rgp(n) = rgp(m)
-        tg(n) = tg(m)
-        ts(n,:) = ts(m,:)
-        sieg(n) = sieg(m)
-        sies(n,:) = sies(m,:)
-        ygc(n,:) = ygc(m,:)
-      END IF
-!      
-      IF (flag(m) == filled_cell_2) THEN
-        fc2_ = fc2(m)
-        IF (.NOT.fc2_) THEN
-          p(m) = 0.5D0 * p(n)
-          ep(m) = 0.5D0 * ep(n)
-          rlk(m,:) = 0.5D0 * rlk(n,:)
-          rgp(m) = 0.5D0 * rgp(n)
-          tg(m) = 0.5D0 * tg(n)
-          ts(m,:) = 0.5D0 * ts(n,:)
-          sieg(m) = 0.5D0 * sieg(n)
-          sies(m,:) = 0.5D0 * sies(n,:)
-          ygc(m,:) = 0.5D0 * ygc(n,:)
-        ELSE
-          p(m) = p(m) + 0.5D0 * p(n)
-          ep(m) = ep(m) + 0.5D0 * ep(n)
-          rlk(m,:) = rlk(m,:) + 0.5D0 * rlk(n,:)
-          rgp(m) = rgp(m) + 0.5D0 * rgp(n)
-          tg(m) = tg(m) + 0.5D0 * tg(n)
-          ts(m,:) = ts(m,:) + 0.5D0 * ts(n,:)
-          sieg(m) = sieg(m) + 0.5D0 * sieg(n)
-          sies(m,:) = sies(m,:) + 0.5D0 * sies(n,:)
-          ygc(m,:) = ygc(m,:) + 0.5D0 * ygc(n,:)
-        END IF
-        fc2(m) = .NOT.fc2_
-      ELSE IF (flag(n) == filled_cell_2) THEN
-        fc2_ = fc2(n)
-        IF (.NOT.fc2_) THEN
-          p(n) = 0.5D0 * p(m)
-          ep(n) = 0.5D0 * ep(m)
-          rlk(n,:) = 0.5D0 * rlk(m,:)
-          rgp(n) = 0.5D0 * rgp(m)
-          tg(n) = 0.5D0 * tg(m)
-          ts(n,:) = 0.5D0 * ts(m,:)
-          sieg(n) = 0.5D0 * sieg(m)
-          sies(n,:) = 0.5D0 * sies(m,:)
-          ygc(n,:) = 0.5D0 * ygc(m,:)
-        ELSE
-          p(n) = p(n) + 0.5D0 * p(m)
-          ep(n) = ep(n) + 0.5D0 * ep(m)
-          rlk(n,:) = rlk(n,:) + 0.5D0 * rlk(m,:)
-          rgp(n) = rgp(n) + 0.5D0 * rgp(m)
-          tg(n) = tg(n) + 0.5D0 * tg(m)
-          ts(n,:) = ts(n,:) + 0.5D0 * ts(m,:)
-          sieg(n) = sieg(n) + 0.5D0 * sieg(m)
-          sies(n,:) = sies(n,:) + 0.5D0 * sies(m,:)
-          ygc(n,:) = ygc(n,:) + 0.5D0 * ygc(m,:)
-        END IF
-        fc2(n) = .NOT.fc2_
-      END IF 
-!
-      RETURN
-      END SUBROUTINE hneumann
-!----------------------------------------------------------------------
+!-----------------------------------------------------------------------
       END MODULE boundary_conditions
 !-----------------------------------------------------------------------

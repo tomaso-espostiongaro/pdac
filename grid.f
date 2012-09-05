@@ -43,9 +43,10 @@
       INTEGER, PARAMETER :: fluid          = 1            ! OLD flag = 1 NEW flag = 2**0
       INTEGER, PARAMETER :: slip_wall      = 2            ! OLD flag = 2 NEW flag = 2**1
       INTEGER, PARAMETER :: noslip_wall    = 4            ! OLD flag = 3 NEW flag = 2**2
+      INTEGER, PARAMETER :: bl_cell        = 5            !              NEW flag = 2**2 + fluid
       INTEGER, PARAMETER :: free_io        = 8            ! OLD flag = 4 NEW flag = 2**3
       INTEGER, PARAMETER :: inlet_cell     = 16           ! OLD flag = 5 NEW flag = 2**4
-      INTEGER, PARAMETER :: nrfree_io      = 32           ! OLD flag = 6 NEW flag = 2**5
+      INTEGER, PARAMETER :: zero_grad      = 32           ! OLD flag = 6 NEW flag = 2**5
       INTEGER, PARAMETER :: vent_cell      = 64           ! OLD flag = 7 NEW flag = 2**6
       INTEGER, PARAMETER :: dome_cell      = 129          ! OLD flag = 8 NEW flag = 2**7 + fluid
       ! ... immersed boundaries
@@ -53,7 +54,6 @@
       ! ... non-computed immersed boundaries
       INTEGER, PARAMETER :: filled_cell_1    = 512        !              NEW flag = 2**9
       INTEGER, PARAMETER :: filled_cell_2    = 1024       !              NEW flag = 2**10
-      INTEGER, PARAMETER :: bl_cell          = 2049       !              NEW flag = 2**11 + fluid
 !
 ! ... origin of atmospheric stratification
       REAL*8 :: zzero
@@ -102,9 +102,6 @@
 !
       IMPLICIT NONE
 !
-! ... Set the appropriate total number of cells
-! ... and the coordinate system
-
       nx_inner = nx
       ny_inner = ny
       nz_inner = nz
@@ -139,12 +136,52 @@
         WRITE(logunit,*) 'Total number of cells: ', ntot
       END IF
 !
-      IF (nx > max_size) CALL error('nx exceeds max_size!', 'dimensions: max_size= ', max_size)
-      IF (ny > max_size) CALL error('ny exceeds max_size!', 'dimensions: max_size= ', max_size)
-      IF (nz > max_size) CALL error('nz exceeds max_size!', 'dimensions: max_size= ', max_size)
+      IF (nx > max_size) &
+        CALL error('nx exceeds max_size!', 'dimensions: max_size= ', max_size)
+      IF (ny > max_size) &
+        CALL error('ny exceeds max_size!', 'dimensions: max_size= ', max_size)
+      IF (nz > max_size) &
+        CALL error('nz exceeds max_size!', 'dimensions: max_size= ', max_size)
 !
       RETURN
       END SUBROUTINE allocate_grid
+!----------------------------------------------------------------------
+      SUBROUTINE allocate_blbody
+      USE dimensions
+      IMPLICIT NONE
+      
+      IF (no > 0) ALLOCATE(iob(no))
+      
+      RETURN
+      END SUBROUTINE allocate_blbody
+!----------------------------------------------------------------------
+      SUBROUTINE add_cells
+      USE dimensions
+      IMPLICIT NONE
+!
+      IF (nmx /= 0) dx(1:nmx) = dxmax
+      dx(nmx+1:nmx+nx_inner) = dx_inner(1:nx_inner)
+      IF (npx /= 0) dx(nx-npx+1:nx) = dxmax
+      alpha_x = (alpha_x*domain_x + nmx*dxmax)/(domain_x + (nmx+npx)*dxmax)
+      domain_x = domain_x + (nmx+npx)*dxmax
+      iv = iv + nmx ! this is the grid center
+      !
+      IF (nmy /= 0) dy(1:nmy) = dymax
+      dy(nmy+1:nmy+ny_inner) = dy_inner(1:ny_inner)
+      IF (npy /= 0) dy(ny-npy+1:ny) = dymax
+      alpha_y = (alpha_y*domain_y + nmy*dymax)/(domain_y + (nmy+npy)*dymax)
+      domain_y = domain_y + (nmy+npy)*dymax
+      jv = jv + nmy ! this is the grid center
+      !
+      IF (nmz /= 0) dz(1:nmz) = dzmax
+      dz(nmz+1:nmz+nz_inner) = dz_inner(1:nz_inner)
+      IF (npz /= 0) dz(nz-npz+1:nz) = dzmax
+      alpha_z = (alpha_z*domain_z + nmz*dzmax)/(domain_z + (nmz+npz)*dzmax)
+      domain_z = domain_z + (nmz+npz)*dzmax
+      kv = kv + nmz ! this is the grid center
+!
+      RETURN
+      END SUBROUTINE add_cells
 !----------------------------------------------------------------------
       SUBROUTINE grid_remap(map)
       USE dimensions, ONLY: nx, ny
@@ -163,15 +200,6 @@
 !
       RETURN
       END SUBROUTINE grid_remap
-!----------------------------------------------------------------------
-      SUBROUTINE allocate_blbody
-      USE dimensions
-      IMPLICIT NONE
-      
-      IF (no > 0) ALLOCATE(iob(no))
-      
-      RETURN
-      END SUBROUTINE allocate_blbody
 !----------------------------------------------------------
       SUBROUTINE grid_setup
 !
@@ -203,12 +231,10 @@
         domain_y = SUM(dy_inner)
         domain_z = SUM(dz_inner)
         iv = nx/2+1; jv = ny/2+1; kv = nz/2+1
-        !iv = NINT(alpha_x*nx); jv = NINT(alpha_y*ny); kv = NINT(alpha_z*nz)
-        !iv = MAX(iv,1); jv = MAX(jv,1); kv = MAX(kv,1)
-        !iv = MIN(iv,nx-1); jv = MIN(jv,ny-1); kv = MIN(kv,nz-1)
-        dx = dx_inner
-        dy = dy_inner
-        dz = dz_inner
+        !
+        !dx = dx_inner
+        !dy = dy_inner
+        !dz = dz_inner
         !
       CASE(1,2)
         !
@@ -229,27 +255,7 @@
       ! ... Set the grid
       ! ... and add new cells if prescribed
       !
-      IF (nmx /= 0) dx(1:nmx) = dxmax
-      dx(nmx+1:nmx+nx_inner) = dx_inner(1:nx_inner)
-      IF (npx /= 0) dx(nx-npx+1:nx) = dxmax
-      alpha_x = (alpha_x*domain_x + nmx*dxmax)/(domain_x + (nmx+npx)*dxmax)
-      domain_x = domain_x + (nmx+npx)*dxmax
-      iv = iv + nmx
-      !
-      IF (nmy /= 0) dy(1:nmy) = dymax
-      dy(nmy+1:nmy+ny_inner) = dy_inner(1:ny_inner)
-      IF (npy /= 0) dy(ny-npy+1:ny) = dymax
-      alpha_y = (alpha_y*domain_y + nmy*dymax)/(domain_y + (nmy+npy)*dymax)
-      domain_y = domain_y + (nmy+npy)*dymax
-      jv = jv + nmy
-      !
-      IF (nmz /= 0) dz(1:nmz) = dzmax
-      dz(nmz+1:nmz+nz_inner) = dz_inner(1:nz_inner)
-      IF (npz /= 0) dz(nz-npz+1:nz) = dzmax
-      alpha_z = (alpha_z*domain_z + nmz*dzmax)/(domain_z + (nmz+npz)*dzmax)
-      domain_z = domain_z + (nmz+npz)*dzmax
-      kv = kv + nmz
-!
+      CALL add_cells
       IF (remap_grid) THEN
         ALLOCATE(new_ijk(nx_inner*ny_inner*nz_inner))
         CALL grid_remap(new_ijk)

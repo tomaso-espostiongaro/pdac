@@ -594,5 +594,105 @@
       RETURN
       END FUNCTION velint3d
 !----------------------------------------------------------------------
+      REAL*8 FUNCTION extrapolate(f2,f1,d12,dx,order)
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: f1, f2, d12, dx
+      INTEGER, INTENT(IN) :: order
+      REAL*8 :: gradient
+!
+      gradient = (f2-f1)/d12 * order
+      extrapolate = f2 + gradient * dx
+!   
+      END FUNCTION extrapolate
+!----------------------------------------------------------------------
+      SUBROUTINE hn(m,n)
+      USE grid, ONLY: flag, filled_cell_1, filled_cell_2, fc2
+      USE pressure_epsilon, ONLY: p, ep
+      USE eos_gas, ONLY: ygc
+      USE gas_solid_density, ONLY: rlk, rgp
+      USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
+      USE io_files, ONLY: testunit
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: m,n
+      LOGICAL :: fc2_
+!
+! ... m is the local cell index; 
+! ... n is the index of the first neighbour used for the external forcing
+!
+      IF (flag(m) == filled_cell_1) THEN
+        p(m) = p(n)
+        ep(m) = ep(n)
+        rlk(m,:) = rlk(n,:)
+        rgp(m) = rgp(n)
+        tg(m) = tg(n)
+        ts(m,:) = ts(n,:)
+        sieg(m) = sieg(n)
+        sies(m,:) = sies(n,:)
+        ygc(m,:) = ygc(n,:)
+      ELSE IF (flag(n) == filled_cell_1) THEN
+        p(n) = p(m)
+        ep(n) = ep(m)
+        rlk(n,:) = rlk(m,:)
+        rgp(n) = rgp(m)
+        tg(n) = tg(m)
+        ts(n,:) = ts(m,:)
+        sieg(n) = sieg(m)
+        sies(n,:) = sies(m,:)
+        ygc(n,:) = ygc(m,:)
+      END IF
+!      
+      IF (flag(m) == filled_cell_2) THEN
+        fc2_ = fc2(m)
+        IF (.NOT.fc2_) THEN
+          p(m) = 0.5D0 * p(n)
+          ep(m) = 0.5D0 * ep(n)
+          rlk(m,:) = 0.5D0 * rlk(n,:)
+          rgp(m) = 0.5D0 * rgp(n)
+          tg(m) = 0.5D0 * tg(n)
+          ts(m,:) = 0.5D0 * ts(n,:)
+          sieg(m) = 0.5D0 * sieg(n)
+          sies(m,:) = 0.5D0 * sies(n,:)
+          ygc(m,:) = 0.5D0 * ygc(n,:)
+        ELSE
+          p(m) = p(m) + 0.5D0 * p(n)
+          ep(m) = ep(m) + 0.5D0 * ep(n)
+          rlk(m,:) = rlk(m,:) + 0.5D0 * rlk(n,:)
+          rgp(m) = rgp(m) + 0.5D0 * rgp(n)
+          tg(m) = tg(m) + 0.5D0 * tg(n)
+          ts(m,:) = ts(m,:) + 0.5D0 * ts(n,:)
+          sieg(m) = sieg(m) + 0.5D0 * sieg(n)
+          sies(m,:) = sies(m,:) + 0.5D0 * sies(n,:)
+          ygc(m,:) = ygc(m,:) + 0.5D0 * ygc(n,:)
+        END IF
+        fc2(m) = .NOT.fc2_
+      ELSE IF (flag(n) == filled_cell_2) THEN
+        fc2_ = fc2(n)
+        IF (.NOT.fc2_) THEN
+          p(n) = 0.5D0 * p(m)
+          ep(n) = 0.5D0 * ep(m)
+          rlk(n,:) = 0.5D0 * rlk(m,:)
+          rgp(n) = 0.5D0 * rgp(m)
+          tg(n) = 0.5D0 * tg(m)
+          ts(n,:) = 0.5D0 * ts(m,:)
+          sieg(n) = 0.5D0 * sieg(m)
+          sies(n,:) = 0.5D0 * sies(m,:)
+          ygc(n,:) = 0.5D0 * ygc(m,:)
+        ELSE
+          p(n) = p(n) + 0.5D0 * p(m)
+          ep(n) = ep(n) + 0.5D0 * ep(m)
+          rlk(n,:) = rlk(n,:) + 0.5D0 * rlk(m,:)
+          rgp(n) = rgp(n) + 0.5D0 * rgp(m)
+          tg(n) = tg(n) + 0.5D0 * tg(m)
+          ts(n,:) = ts(n,:) + 0.5D0 * ts(m,:)
+          sieg(n) = sieg(n) + 0.5D0 * sieg(m)
+          sies(n,:) = sies(n,:) + 0.5D0 * sies(m,:)
+          ygc(n,:) = ygc(n,:) + 0.5D0 * ygc(m,:)
+        END IF
+        fc2(n) = .NOT.fc2_
+      END IF 
+!
+      RETURN
+      END SUBROUTINE hn
+!----------------------------------------------------------------------
       END MODULE interpolate_fields
 !----------------------------------------------------------------------

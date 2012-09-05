@@ -318,7 +318,8 @@
         CALL read_array( resunit, ts(:,is), dbl, lform )
       END DO
       IF( ANY( ts < 0 ) ) THEN
-         IF( mpime == root ) WRITE(errorunit,*) 'WARNING reading restart, ts < 0'
+         IF( mpime == root ) &
+           WRITE(errorunit,*) 'WARNING reading restart, ts < 0'
       END IF
 
       IF( mpime == root ) THEN
@@ -328,7 +329,7 @@
 !
       RETURN
 !
- 199    CALL error('io_restart.f', 'error in reading resunit', resunit)
+ 199  CALL error('io_restart.f', 'error in reading resunit', resunit)
 !
       END SUBROUTINE taperd
 !----------------------------------------------------------------------

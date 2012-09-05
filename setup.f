@@ -176,7 +176,7 @@
       USE gas_solid_temperature, ONLY: tg, ts
       USE gas_solid_velocity, ONLY: ug, wg, vg
       USE gas_solid_velocity, ONLY: us, vs, ws
-      USE grid, ONLY: z, flag, fluid, free_io, nrfree_io
+      USE grid, ONLY: z, flag, fluid, free_io, zero_grad
       USE particles_constants, ONLY: rl
       USE pressure_epsilon, ONLY: ep, p
       IMPLICIT NONE
@@ -213,7 +213,7 @@
           !
           SELECT CASE ( flag(ijk) )
 
-          CASE (fluid, free_io, nrfree_io)
+          CASE (fluid, free_io, zero_grad)
 
             ug(ijk) = wind_x
             us(ijk,:) = ug(ijk)
@@ -347,10 +347,6 @@
             CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
           END DO
 !
-! ... Just check that boundary velocity are zero.
-!
-          IF (ijk <= ncint) CALL reset_velocities(ijk)
-!
         END DO
       ELSE IF (itd > 2) THEN 
 !
@@ -398,10 +394,6 @@
             CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
             sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
           END DO
-!
-! ... Just check that boundary velocity are zero.
-!
-          IF (ijk <= ncint) CALL reset_velocities(ijk)
 !
         END DO
       END IF
@@ -600,7 +592,8 @@
         DO ig = 1, ngas
           IF( mpime == root ) THEN
 !            WRITE(logunit,*) ' Gas ', ig, ' is type ', gas_type(ig)
-            IF (gas_type(ig)==0) CALL error('gas_check','control gas species',1)
+            IF (gas_type(ig)==0) &
+              CALL error('gas_check','control gas species',1)
           END IF
         END DO
 
@@ -608,81 +601,6 @@
 
       RETURN
       END SUBROUTINE gas_check
-!----------------------------------------------------------------------
-      SUBROUTINE reset_velocities(ijk)
-!
-      USE control_flags, ONLY: job_type
-      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
-      USE domain_mapping, ONLY: ncint, meshinds
-      USE gas_solid_density, ONLY: rlk
-      USE gas_solid_velocity, ONLY: ug, wg, vg
-      USE gas_solid_velocity, ONLY: us, vs, ws
-      USE grid, ONLY: flag, slip_wall, noslip_wall, immb_cell
-      USE grid, ONLY: filled_cell_1, filled_cell_2
-      USE immersed_boundaries, ONLY: immb
-      USE set_indexes, ONLY: ipjk, ijpk, ijkp, imjk, ijmk, ijkm
-      USE set_indexes, ONLY: first_subscr
-!
-      IMPLICIT NONE
-      INTEGER, INTENT(IN) :: ijk
-!
-! ... Sometimes useful to reset velocities on restart
-!
-!          IF (DABS(us(ijk,2))>300.D0) THEN
-!            us(ijk,2) = 0.D0
-!            WRITE(*,*) 'Reset u, cell: ',ijk
-!          END IF
-!          IF ( job_type == JOB_TYPE_3D) THEN
-!            IF (DABS(vs(ijk,2))>300.D0) THEN
-!              vs(ijk,2) = 0.D0
-!              WRITE(*,*) 'Reset v, cell: ',ijk
-!            END IF
-!          END IF
-!          IF (DABS(ws(ijk,2))>300.D0) THEN
-!            ws(ijk,2) = 0.D0
-!            WRITE(*,*) 'Reset w, cell: ',ijk
-!          END IF
-!          
-          !
-          ! ... Set boundary velocity profiles
-          ! ... Set the velocity = 0 on all faces
-          ! ... of blocked cells
-          !
-          !
-          IF (immb == 0) THEN
-            CALL first_subscr(ijk)
-            IF ( flag(ijk) == slip_wall .OR. flag(ijk) == noslip_wall ) THEN
-              ug(ijk) = 0.D0
-              us(ijk,:) = 0.D0
-              IF ( job_type == JOB_TYPE_3D) THEN
-                vg(ijk) = 0.D0
-                vs(ijk,:) = 0.D0
-              END IF
-              wg(ijk) = 0.D0
-              ws(ijk,:) = 0.D0
-              rlk(ijk,:) = 0.D0
-            END IF
-            !
-            IF ( flag(ipjk) == slip_wall .OR. flag(ipjk) == noslip_wall ) THEN
-              ug(ijk) = 0.D0
-              us(ijk,:) = 0.D0
-            END IF
-            !
-            IF ( job_type == JOB_TYPE_3D) THEN
-              IF ( flag(ijpk) == slip_wall .OR. flag(ijpk) == noslip_wall ) THEN
-                vg(ijk) = 0.D0
-                vs(ijk,:) = 0.D0
-              END IF
-            END IF
-            !
-            IF ( flag(ijkp) == slip_wall .OR. flag(ijkp) == noslip_wall ) THEN
-              wg(ijk) = 0.D0
-                ws(ijk,:) = 0.D0
-            END IF
-          END IF
-          !
-      RETURN
-      END SUBROUTINE reset_velocities
 !----------------------------------------------------------------------
       END MODULE initial_conditions
 !----------------------------------------------------------------------

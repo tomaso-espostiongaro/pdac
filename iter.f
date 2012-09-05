@@ -973,7 +973,7 @@
       USE eos_gas, ONLY: csound
       USE gas_solid_density, ONLY: rog, rgp
       USE grid, ONLY: dx, dy, dz, flag, rb
-      USE grid, ONLY: fluid, dome_cell, immb_cell, free_io, nrfree_io, bl_cell
+      USE grid, ONLY: fluid, dome_cell, immb_cell, free_io, zero_grad, bl_cell
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: ipjk, imjk, ijpk, ijmk, ijkp, ijkm
@@ -1013,7 +1013,7 @@
           nflb=flag(ijkm)
 
           SELECT CASE (nfle)
-            CASE(bl_cell,fluid,dome_cell,immb_cell,free_io,nrfree_io)
+            CASE(bl_cell,fluid,dome_cell,immb_cell,free_io,zero_grad)
               iep_e = ( dx(i+1)*ep(ijk)+dx(i)*ep(ijke) )*indxp*indxp*2.D0
               !iep_e = iep_e * upc_e
             CASE DEFAULT
@@ -1021,7 +1021,7 @@
           END SELECT
 
           SELECT CASE (nflw)
-            CASE(bl_cell,fluid,dome_cell,immb_cell,free_io,nrfree_io)
+            CASE(bl_cell,fluid,dome_cell,immb_cell,free_io,zero_grad)
               iep_w = ( dx(i-1)*ep(ijk)+dx(i)*ep(ijkw) )*indxm*indxm*2.D0 
               !iep_w = iep_w * upc_w
             CASE DEFAULT
@@ -1029,7 +1029,7 @@
           END SELECT
 !
           SELECT CASE (nflt)
-            CASE(bl_cell,fluid,dome_cell,immb_cell,free_io,nrfree_io)
+            CASE(bl_cell,fluid,dome_cell,immb_cell,free_io,zero_grad)
               iep_t = ( dz(k+1)*ep(ijk)+dz(k)*ep(ijkt) )*indzp*indzp*2.D0 
               !iep_t = iep_t * upc_t 
             CASE DEFAULT
@@ -1037,7 +1037,7 @@
           END SELECT
 
           SELECT CASE (nflb)
-            CASE (bl_cell,fluid,dome_cell,immb_cell,free_io,nrfree_io)
+            CASE (bl_cell,fluid,dome_cell,immb_cell,free_io,zero_grad)
               iep_b = ( dz(k-1)*ep(ijk)+dz(k)*ep(ijkb) )*indzm*indzm*2.D0
               !iep_b = iep_b * upc_b
             CASE DEFAULT
@@ -1054,7 +1054,7 @@
             nfls=flag(ijmk)
 
             SELECT CASE (nfln)
-              CASE (bl_cell,fluid,dome_cell,immb_cell,free_io,nrfree_io)
+              CASE (bl_cell,fluid,dome_cell,immb_cell,free_io,zero_grad)
                 iep_n = ( dy(j+1)*ep(ijk)+dy(j)*ep(ijkn) )*indyp*indyp*2.D0 
                 !iep_n = iep_n * upc_n 
               CASE DEFAULT
@@ -1062,7 +1062,7 @@
             END SELECT
 
             SELECT CASE (nfls)
-              CASE (bl_cell,fluid,dome_cell,immb_cell,free_io,nrfree_io)
+              CASE (bl_cell,fluid,dome_cell,immb_cell,free_io,zero_grad)
                 iep_s = ( dy(j-1)*ep(ijk)+dy(j)*ep(ijks) )*indym*indym*2.D0
                 !iep_s = iep_s * upc_s
               CASE DEFAULT
@@ -1309,7 +1309,6 @@
               WRITE(testunit,*) ' i, j, k, rls ', i, j, k, rls
               WRITE(testunit,*) ' rls, volfrac ', rls, 1.D0/ivf
             ENDIF
-            !IF (flag(ijkm) == noslip_wall) flag(ijk) = noslip_wall
             ierr = ierr + 1
           ENDIF
 

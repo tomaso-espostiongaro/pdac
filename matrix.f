@@ -158,7 +158,7 @@
 !
       RETURN
       END SUBROUTINE assemble_all_matrix
-!----------------------------------------------------------------------
+!--------------------------------------------------------------------
       SUBROUTINE assemble_matrix(ijk)
 !
 ! ... Computes matrix elements to solve momentum-balance 
@@ -291,8 +291,7 @@
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nphase
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      USE grid, ONLY: flag, inlet_cell, vent_cell, noslip_wall, slip_wall
-      USE grid, ONLY: filled_cell_1, filled_cell_2
+      USE grid, ONLY: flag
       USE set_indexes, ONLY: imjk, ijmk, ijkm, ipjk, ijpk, ijkp
       IMPLICIT NONE
 !
@@ -300,14 +299,13 @@
 !
       INTEGER :: ll, lp1, l, lj, li
       REAL*8 :: div, amul
-      LOGICAL :: inlet, wall
+      LOGICAL :: compute
 !
 ! ... Use Gauss-Jordan method for matrix inversion
+! ... Velocities adjacent to a boundary cell are NOT computed
 !
-      wall  = (flag(imjk)==slip_wall .OR. flag(imjk)==noslip_wall) &
-              .OR. (flag(imjk)==filled_cell_1 .OR. flag(imjk)==filled_cell_2)
-      inlet = (flag(imjk)==inlet_cell .OR. flag(imjk)==vent_cell)
-      IF (.NOT.(wall .OR. inlet)) THEN
+      compute = BTEST(flag(imjk),0)
+      IF (compute) THEN
         DO l=2,nphase
           IF(DABS(au1(l,l)) < plim(l-1)) THEN
             DO ll=1,nphase
@@ -348,10 +346,8 @@
       END IF
 !
       IF (job_type == JOB_TYPE_3D) THEN
-        wall  = (flag(ijmk)==slip_wall .OR. flag(ijmk)==noslip_wall) &
-                .OR.(flag(ijmk)==filled_cell_1 .OR. flag(ijmk)==filled_cell_2)
-        inlet = (flag(ijmk)==inlet_cell .OR. flag(ijmk)==vent_cell)
-        IF (.NOT.(wall .OR. inlet)) THEN
+        compute = BTEST(flag(ijmk),0)
+        IF (compute) THEN
           DO l=2,nphase
             IF(DABS(av1(l,l)) < plim(l-1)) THEN
               DO ll=1,nphase
@@ -392,10 +388,8 @@
         END IF
       END IF
 !
-      wall  = (flag(ijkm)==slip_wall .OR. flag(ijkm)==noslip_wall) &
-              .OR. (flag(ijkm)==filled_cell_1 .OR. flag(ijkm)==filled_cell_2)
-      inlet = (flag(ijkm)==inlet_cell .OR. flag(ijkm)==vent_cell)
-      IF (.NOT.(wall .OR. inlet)) THEN
+      compute = BTEST(flag(ijkm),0)
+      IF (compute) THEN
         DO l=2,nphase
           IF(DABS(aw1(l,l)) < plim(l-1)) THEN
             DO ll=1,nphase
@@ -448,8 +442,7 @@
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nphase
       USE domain_mapping, ONLY:  meshinds
-      USE grid, ONLY: flag, inlet_cell, vent_cell, noslip_wall, slip_wall
-      USE grid, ONLY: filled_cell_1, filled_cell_2
+      USE grid, ONLY: flag
       USE set_indexes, ONLY: ipjk, ijpk, ijkp
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       IMPLICIT NONE
@@ -460,14 +453,13 @@
       INTEGER :: ll, lp1, l, lj, li
       INTEGER :: fle, fln, flt
       REAL*8 :: div, amul
-      LOGICAL :: inlet, wall
+      LOGICAL :: compute
 !
 ! ... Use Gauss-Jordan method for matrix inversion
+! ... Velocities adjacent to a boundary cell are NOT computed
 !
-      wall  = (flag(ipjk)==slip_wall .OR. flag(ipjk)==noslip_wall) &
-              .OR. (flag(ipjk)==filled_cell_1 .OR. flag(ipjk)==filled_cell_2)
-      inlet = (flag(ipjk)==inlet_cell .OR. flag(ipjk)==vent_cell)
-      IF (.NOT.(wall .OR. inlet)) THEN
+      compute = BTEST(flag(ipjk),0)
+      IF (compute) THEN
         DO l=2,nphase
           IF(DABS(au(l,l)) < plim(l-1)) THEN
             DO ll=1,nphase
@@ -508,10 +500,8 @@
       END IF
 !
       IF (job_type == JOB_TYPE_3D) THEN
-        wall  = (flag(ijpk)==slip_wall .OR. flag(ijpk)==noslip_wall) &
-               .OR. (flag(ijpk)==filled_cell_1 .OR. flag(ijpk)==filled_cell_2)
-        inlet = (flag(ijpk)==inlet_cell .OR. flag(ijpk)==vent_cell)
-        IF (.NOT.(wall .OR. inlet)) THEN
+        compute = BTEST(flag(ijpk),0)
+        IF (compute) THEN
           DO l=2,nphase
             IF(DABS(av(l,l)) < plim(l-1)) THEN
               DO ll=1,nphase
@@ -552,10 +542,8 @@
         END IF
       END IF
 !
-      wall  = (flag(ijkp)==slip_wall .OR. flag(ijkp)==noslip_wall) &
-              .OR. (flag(ijkp)==filled_cell_1 .OR. flag(ijkp)==filled_cell_2)
-      inlet = (flag(ijkp)==inlet_cell .OR. flag(ijkp)==vent_cell)
-      IF (.NOT.(wall .OR. inlet)) THEN
+      compute = BTEST(flag(ijkp),0)
+      IF (compute) THEN
         DO l=2,nphase
           IF(DABS(aw(l,l)) < plim(l-1)) THEN
             DO ll=1,nphase
@@ -702,8 +690,7 @@
       USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
       USE time_parameters, ONLY: dt
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-      USE grid, ONLY: flag, slip_wall, noslip_wall, inlet_cell, vent_cell
-      USE grid, ONLY: filled_cell_1, filled_cell_2
+      USE grid, ONLY: flag
 
 
       IMPLICIT NONE
@@ -765,24 +752,12 @@
         dzdp =dz(k)   * indzp
         dzpdp=dz(k+1) * indzp
 
-        flim = .NOT.( flag(imjk)==slip_wall .OR. flag(imjk)==noslip_wall .OR. &
-                flag(imjk)==filled_cell_1 .OR. flag(imjk)==filled_cell_2 .OR. &
-                 flag(imjk)==inlet_cell .OR. flag(imjk)==vent_cell)
-        fljm = .NOT.( flag(ijmk)==slip_wall .OR. flag(ijmk)==noslip_wall .OR. &
-                flag(ijmk)==filled_cell_1 .OR. flag(ijmk)==filled_cell_2 .OR. &
-                 flag(ijmk)==inlet_cell .OR. flag(ijmk)==vent_cell)
-        flkm = .NOT.( flag(ijkm)==slip_wall .OR. flag(ijkm)==noslip_wall .OR. &
-                flag(ijkm)==filled_cell_1 .OR. flag(ijkm)==filled_cell_2 .OR. &
-                 flag(ijkm)==inlet_cell .OR. flag(ijkm)==vent_cell)
-        flip = .NOT.( flag(ipjk)==slip_wall .OR. flag(ipjk)==noslip_wall .OR. &
-                flag(ipjk)==filled_cell_1 .OR. flag(ipjk)==filled_cell_2 .OR. &
-                 flag(ipjk)==inlet_cell .OR. flag(ipjk)==vent_cell)
-        fljp = .NOT.( flag(ijpk)==slip_wall .OR. flag(ijpk)==noslip_wall .OR. &
-                flag(ijpk)==filled_cell_1 .OR. flag(ijpk)==filled_cell_2 .OR. &
-                 flag(ijpk)==inlet_cell .OR. flag(ijpk)==vent_cell)
-        flkp = .NOT.( flag(ijkp)==slip_wall .OR. flag(ijkp)==noslip_wall .OR. &
-                flag(ijkp)==filled_cell_1 .OR. flag(ijkp)==filled_cell_2 .OR. &
-                 flag(ijkp)==inlet_cell .OR. flag(ijkp)==vent_cell)
+        flim = BTEST( flag(imjk), 0 )
+        fljm = BTEST( flag(ijmk), 0 )
+        flkm = BTEST( flag(ijkm), 0 )
+        flip = BTEST( flag(ipjk), 0 )
+        fljp = BTEST( flag(ijpk), 0 )
+        flkp = BTEST( flag(ijkp), 0 )
 
         pw   = p(ijkw)
         pe   = p(ijke)
