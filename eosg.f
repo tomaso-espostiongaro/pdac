@@ -98,20 +98,18 @@
       RETURN
       END SUBROUTINE mas
 !----------------------------------------------------------------------
-      SUBROUTINE csound(sqc, rog, p)
+      REAL*8 FUNCTION scsound(gamm, rog, p)
 !
 ! ... Compute squared gas sound speed
 !
-      USE gas_constants, ONLY: gammaair
       IMPLICIT NONE
 !
-      REAL*8, INTENT(OUT) :: sqc
-      REAL*8, INTENT(IN) :: rog, p
+      REAL*8, INTENT(IN) :: gamm, rog, p
 !
-      sqc = gammaair * p / rog
+      scsound = gamm * p / rog
 !
       RETURN
-      END SUBROUTINE csound
+      END FUNCTION scsound
 !----------------------------------------------------------------------
       SUBROUTINE thermal_eosg(rog, tg, p, xg)
 !

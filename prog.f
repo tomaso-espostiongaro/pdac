@@ -6,7 +6,7 @@
       USE boundary_conditions, ONLY: boundary
       USE check_residuals, ONLY: print_mass_flow_rate
       USE check_residuals, ONLY: print_mass_residuals
-      USE control_flags, ONLY: job_type, lpr, imr
+      USE control_flags, ONLY: job_type, lpr, imr, nfil
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE control_flags, ONLY: implicit_enthalpy, implicit_fluxes
       USE dimensions
@@ -22,6 +22,7 @@
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE io_restart, ONLY: tapewr, max_seconds
       USE iterative_solver, ONLY: iter, nit
+      USE mass_sink, ONLY: print_mass_loss, isink
       USE output_dump, ONLY: outp, shock_tube_out, print_volumes
       USE output_dump, ONLY: write_radial_profile_2d
       USE parallel, ONLY: mpime, root
@@ -159,11 +160,6 @@
           !call cpu_time(t2)
           !call MP_WALLTIME(p2,myrank)
         END IF            
-!
-! ... Print the total residuals of the mass conservation equation
-! ... and the mass flow rate
-!
-        IF ( imr >= 1 ) CALL print_mass_residuals(sweep)
 !
 ! ... If needed, update gas density (check algorithm)
 ! ... Notice that the update of the gas density could
@@ -316,17 +312,18 @@
 ! ... Write OUTPUT file
 ! 
         IF(MOD(sweep,nprint) == 0) THEN
-                !
+                IF ( isink > 0 ) CALL print_mass_loss(nfil)
                 CALL outp
-                !CALL shock_tube_out
-                !
-                ! ... Print the total residuals of the mass conservation 
-                ! ... equation and the mass-flow rate
-                !
-                !CALL print_mass_residuals(sweep)
-                !CALL write_radial_profile_2d
         END IF
+!
+! ... sample pressure field
+!
         IF (isrt >= 1) CALL sample_pressure
+!
+! ... Print the total residuals of the mass conservation equation
+! ... and the mass flow rate
+!
+        IF ( imr >= 1 ) CALL print_mass_residuals(sweep)
 !
         IF( timing ) then
           s11 = cpclock()
@@ -347,7 +344,10 @@
                           &  program stopping')" )
         END IF
 
-        IF((MOD(sweep,ndump) == 0) .OR. stop_now) CALL tapewr
+        IF((MOD(sweep,ndump) == 0) .OR. stop_now) THEN
+                CALL tapewr
+                IF ( isink > 0 ) CALL print_mass_loss
+        END IF
 !
         IF( timing ) then
             s12 = cpclock()

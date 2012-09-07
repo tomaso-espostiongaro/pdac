@@ -284,6 +284,7 @@
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE immersed_boundaries, ONLY: fptx, fpty, fptz, numx, numy, numz
       USE immersed_boundaries, ONLY: immb
+      USE mass_sink, ONLY: sink
       USE particles_constants, ONLY: inrl
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm, ijkt, ijke, ijkn
       USE turbulence_model, ONLY: mugt
@@ -297,6 +298,7 @@
       REAL*8 :: ugfx, ugfy, ugfz, vgfx, vgfy, vgfz, wgfx, wgfy, wgfz
       REAL*8 :: usfw, usfs, usfb, vsfw, vsfs, vsfb, wsfw, wsfs, wsfb
       REAL*8 :: usfx, usfy, usfz, vsfx, vsfy, vsfz, wsfx, wsfy, wsfz
+      REAL*8 :: rgpe, rgpn, rgpt, rlke, rlkn, rlkt
       REAL*8 :: rug_tmp, rvg_tmp, rwg_tmp
       REAL*8 :: rus_tmp, rvs_tmp, rws_tmp
       REAL*8 :: force, presn, dragn
@@ -442,27 +444,34 @@
           indyp = 1.D0 / dyp
           indzp = 1.D0 / dzp
 !         
+          rgpe = (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke)) * indxp
+          rgpn = (dy(j+1)*rgp(ijk)+dy(j)*rgp(ijkn)) * indyp
+          rgpt = (dz(k+1)*rgp(ijk)+dz(k)*rgp(ijkt)) * indzp
+!
           rug_tmp = gvisx(ijk)                     
+          rug_tmp = rug_tmp + rgpe * gravx  
           rug_tmp = rug_tmp - indxp * 2.D0 * ugfx * inrb(i)        
-          rug_tmp = rug_tmp + (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke))*indxp * gravx  
           rug_tmp = rug_tmp - indy(j) * ugfy                  
           rug_tmp = rug_tmp - indz(k) * ugfz   
           rug (ijk) = rugn(ijk) + dt * rug_tmp
-!
+          !
           IF (job_type == JOB_TYPE_3D) THEN
             rvg_tmp = gvisy(ijk)                     
+            rvg_tmp = rvg_tmp + rgpn * gravy  
             rvg_tmp = rvg_tmp - indx(i) * vgfx               
             rvg_tmp = rvg_tmp - indyp * 2.D0 * vgfy   
             rvg_tmp = rvg_tmp - indz(k) * vgfz    
             rvg(ijk) = rvgn(ijk) + dt * rvg_tmp
+            !
           END IF
 !
           rwg_tmp = gvisz(ijk)                     
-          rwg_tmp = rwg_tmp + (dz(k+1)*rgp(ijk)+dz(k)*rgp(ijkt))*indzp * gravz  
+          rwg_tmp = rwg_tmp + rgpt * gravz  
           rwg_tmp = rwg_tmp - indx(i) * wgfx * inr(i)                           
           rwg_tmp = rwg_tmp - indy(j) * wgfy                                    
           rwg_tmp = rwg_tmp - indzp * 2.D0 * wgfz
           rwg(ijk) = rwgn(ijk) + dt * rwg_tmp
+          !
 !
 ! ... same procedure carried out for each particulate phases
 !
@@ -502,29 +511,43 @@
 !
 ! ... compute explicit (tilde) terms in the momentum equation (particles)
 ! 
+            rlke = (dx(i+1)*rlk(ijk,is)+dx(i)*rlk(ijke,is)) * indxp
+            rlkn = (dy(j+1)*rlk(ijk,is)+dy(j)*rlk(ijkn,is)) * indyp
+            rlkt = (dz(k+1)*rlk(ijk,is)+dz(k)*rlk(ijkt,is)) * indzp
+!
             rus_tmp = pvisx(ijk,is)               
+            rus_tmp = rus_tmp + rlke * gravx 
             rus_tmp = rus_tmp - indxp * 2.D0 * usfx * inrb(i)   
-            rus_tmp = rus_tmp + indxp * gravx * &
-                      (dx(i+1)*rlk(ijk,is)+dx(i)*rlk(ijke,is))
             rus_tmp = rus_tmp - indy(j) * usfy  
             rus_tmp = rus_tmp - indz(k) * usfz 
-            rus(ijk,is) = rusn(ijk,is) + dt * rus_tmp
-!
+            !
+            ! ... add sink term (at bottom boundaries)
+            rus(ijk,is) = rusn(ijk,is) + &
+                          dt * (rus_tmp + sink(ijk,is)*us(ijk,is))
+            !
             IF (job_type == JOB_TYPE_3D) THEN
               rvs_tmp = pvisy(ijk,is)              
+              rvs_tmp = rvs_tmp + rlkn * gravy 
               rvs_tmp = rvs_tmp - indx(i) * vsfx       
               rvs_tmp = rvs_tmp - indyp * 2.D0 * vsfy              
               rvs_tmp = rvs_tmp - indz(k) * vsfz    
-              rvs(ijk,is) = rvsn(ijk,is) + dt * rvs_tmp
+              !
+              ! ... add sink term (at bottom boundaries)
+              rvs(ijk,is) = rvsn(ijk,is) + &
+                            dt * (rvs_tmp + sink(ijk,is)*vs(ijk,is))
+              !
             END IF
 !
             rws_tmp = pvisz(ijk,is)              
-            rws_tmp = rws_tmp + indzp * gravz * &
-                      ( rlk(ijk,is) * dz(k+1) + rlk(ijkt,is) * dz(k) )
+            rws_tmp = rws_tmp + rlkt * gravz
             rws_tmp = rws_tmp - indx(i) * wsfx * inr(i)                 
             rws_tmp = rws_tmp - indy(j) * wsfy                      
             rws_tmp = rws_tmp - indzp * 2.D0 * wsfz  
-            rws(ijk,is) = rwsn(ijk,is) + dt * rws_tmp
+            !
+            ! ... add sink term (at bottom boundaries)
+            rws(ijk,is) = rwsn(ijk,is) + &
+                          dt * (rws_tmp + sink(ijk,is)*ws(ijk,is))
+            !
 !
 ! ... Compute the gas-particle drag coefficients in the cell center
 !
@@ -535,10 +558,9 @@
             ELSE IF (job_type == JOB_TYPE_3D) THEN
               dvgs(is) = ( (vg(ijk)-vs(ijk,is)) + (vg(ijmk)-vs(ijmk,is)) )*0.5D0
             END IF
-
+!
             CALL kdrags(kpgv(is), dugs(is), dvgs(is), dwgs(is), ep(ijk),     &
                     rgp(ijk), rlk(ijk,is), mug(ijk), is)                  
-!
           END DO
 !
 !

@@ -40,6 +40,7 @@
       USE particles_constants, ONLY: inrl
       USE pressure_epsilon, ONLY: ep
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
+      USE mass_sink, ONLY: sink
       USE time_parameters, ONLY: dt
       IMPLICIT NONE
 !
@@ -152,8 +153,8 @@
             ! ... filled by the topography
             flx = flx * ivf
 !
-            rhs(ijk,is) = - flx
-
+            rhs(ijk,is) = - flx + sink(ijk,is)*dt*ivf*sies(ijk,is)
+            !
           END DO
 !
         END IF

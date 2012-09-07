@@ -14,6 +14,7 @@
 ! ... Flag for constant specific heats
 !
       INTEGER :: icpc
+      REAL*8 :: tref
 !
       SAVE
 !----------------------------------------------------------------------
@@ -34,7 +35,6 @@
 ! ... This routine computes the Temperature-dependent specific heat
 ! ... at constant pressure per kilograms of each gas phase 
 !
-      USE atmospheric_conditions, ONLY: t_ground
       USE dimensions
       USE gas_constants, ONLY: gmw, c_joule
       IMPLICIT NONE
@@ -46,7 +46,7 @@
       cpc = 0.D0
 
       IF (icpc == 0) THEN
-              t1 = t_ground
+              t1 = tref
       ELSE IF (icpc >= 1) THEN
               t1 = tg
       END IF

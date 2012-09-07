@@ -8,7 +8,6 @@
       USE gas_solid_temperature, ONLY: sieg, tg, sies, ts
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: dx, dy, dz, z
-      USE interpolate_fields, ONLY: velint, velint3d
       USE eos_gas, ONLY: ygc
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p, ep
@@ -16,7 +15,6 @@
 !
       IMPLICIT NONE
       INTEGER :: ord
-
       SAVE
 !-----------------------------------------------------------------------
       CONTAINS
@@ -27,7 +25,7 @@
 !
       USE control_flags, ONLY: job_type, lpr
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
-      USE io_files, ONLY: tempunit, testunit
+      USE io_files, ONLY: tempunit, testunit, logunit
       USE domain_mapping, ONLY: ncint, myijk, meshinds
       USE grid, ONLY: flag, x, y, z, xb, yb, zb
       USE grid, ONLY: slip_wall, noslip_wall
@@ -35,11 +33,12 @@
       USE grid, ONLY: free_io, zero_grad
       USE grid, ONLY: inlet_cell, vent_cell, dome_cell, fluid, bl_cell
       USE immersed_boundaries, ONLY: fptx, fpty, fptz, forcing_point
-      USE immersed_boundaries, ONLY: numx, numy, numz, immb
-      USE interpolate_fields, ONLY: velint, velint3d, extrapolate, hn
+      USE immersed_boundaries, ONLY: numx, numy, numz, immb, faces
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE inflow_outflow, ONLY: n0, n1, n2
       USE inflow_outflow, ONLY: zero_gradient
+      USE interpolate_fields, ONLY: velint, velint3d, extrapolate, hn
+      USE mass_sink, ONLY: sink_update, sink, isink
       USE parallel, ONLY: mpime, root
       USE set_indexes, ONLY: subscr
       USE set_indexes, ONLY: ipjk, imjk, ippjk, immjk, ijpk, ipjpk,    &
@@ -67,6 +66,10 @@
       !
       ! ... Compute a random factor for vent antialiasing
       IF (irand >= 1) CALL random_switch(sweep)
+!
+! ... Initialize sink array
+!
+      IF (isink > 0) sink = 0.D0
 !
 ! ... Loop over the mesh and check boundaries
 !
@@ -109,8 +112,8 @@
           fz = numz(ijk)
           forced = (fx/=0 .OR. fy/=0 .OR. fz/=0)
           IF (.NOT.forced) &
-            & CALL error('boundary','control forcing points',1)
-          
+            CALL error('boundary','control forcing points',1)
+          ! 
           ! ... Compute the pseudo-velocities
           ! ... that are used in the "immersed boundary" technique ...
           !
@@ -247,7 +250,6 @@
               END IF
 !
             CASE (free_io, zero_grad) ! Zero gradient of all quantities
-!
               d0 = dx(i-1)
               d1 = dx(i)
               d2 = dx(i+1)
@@ -259,7 +261,7 @@
               us(n2,:) = us(n1,:)
 !
               ! ... Tangential velocities
-              IF (job_type == JOB_TYPE_3D) THEN
+	      IF (job_type == JOB_TYPE_3D) THEN
                 vg(n2)   = vg(n1)
                 vs(n2,:) = vs(n1,:)
               END IF
@@ -268,7 +270,6 @@
               !
               ! ... outlet rlk, rgp, rog, sieg, sies, tg, ts, ep
               CALL zero_gradient(us(n1,:),n2,n1)
-              !
               ! ... Zero pressure gradient
               p(n2)=p(n1)
 
@@ -533,7 +534,37 @@
                 vs(n2,is) = -vs(n1,is)
               END IF
 !
-            CASE (free_io, zero_grad)
+            CASE (free_io)  ! Bernoulli equation on the vertically staggered cell
+!
+              d0 = dz(k-1)
+              d1 = dz(k)
+              d2 = dz(k+1)
+
+              ! ... Extrapolate the normal component of the velocities
+              !
+              wg(ijk)    = extrapolate(wg(ijkm), wg(ijkmm), d0, d1, ord)
+              DO is = 1, nsolid
+                ws(ijk,is)  = extrapolate(ws(ijkm,is), ws(ijkmm,is), d0, d1, ord)
+              END DO
+              wg(ijkp)   = wg(ijk)
+              ws(ijkp,:) = ws(ijk,:)
+!
+              wg2 = wg(ijk)
+              wg1 = 0.5D0 * (wg(ijk) + wg(ijkm))
+
+              ! ... Outlet scalars
+              CALL zero_gradient(ws(n1,:),n2,n1)
+              p(n2)=p(n1)+ 0.5D0 * rog(n1)*((wg1**2 - wg2**2) - gravz * (d1+d2))
+
+              ! ... Tangential velocities
+              ug(n2)   = ug(n1)
+              us(n2,:) = us(n1,:)
+              IF (job_type == JOB_TYPE_3D) THEN
+                vg(n2)   = vg(n1)
+                vs(n2,:) = vs(n1,:)
+              END IF
+
+            CASE (zero_grad)
 !
               d0 = dz(k-1)
               d1 = dz(k)
@@ -544,7 +575,7 @@
               ws(n1,:)  = ws(n0,:)
               wg(n2)   = wg(n1)
               ws(n2,:) = ws(n1,:)
-              !
+
               ! ... Tangential velocities
               ug(n2)   = ug(n1)
               us(n2,:) = us(n1,:)
@@ -589,6 +620,15 @@
                 vs(n2,:) = vs(n1,:)
               END IF
 !
+! ... Update sink term
+!
+              IF (isink > 0) THEN
+                DO is = 1, nsolid
+                   CALL sink_update(n1,is)
+                END DO
+              END IF
+! ...
+!
             CASE (noslip_wall)
 !
               ! ... Normal velocities
@@ -604,6 +644,23 @@
               IF(flag(ijpkm) == noslip_wall .AND. job_type == JOB_TYPE_3D) THEN
                 vg(n2)   = -vg(n1)
                 vs(n2,:) = -vs(n1,:)
+              END IF
+!
+! ... Update sink term
+!
+              IF (isink > 0) THEN
+                DO is = 1, nsolid
+                   CALL sink_update(n1,is)
+                END DO
+              END IF
+!
+! ... The sink array must be updated also if the bottom cell is filled1 and filled2
+!
+            CASE (filled_cell_1, filled_cell_2)
+              IF (isink > 0) THEN
+                DO is = 1, nsolid
+                   CALL sink_update(n1,is)
+                END DO
               END IF
 !
               CASE (free_io, zero_grad)

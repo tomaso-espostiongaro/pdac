@@ -21,6 +21,7 @@
         INTEGER :: atmounit  = 17
         INTEGER :: topounit  = 18
         INTEGER :: dataunit  = 19
+        INTEGER :: masslunit  = 20
         INTEGER :: iuni_nml  = 36
         INTEGER :: iuni_scalar = 21
         INTEGER :: iuni_u = 22

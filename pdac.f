@@ -29,9 +29,10 @@
       USE grid, ONLY: grid_setup, allocate_blbody, allocate_grid
       USE immersed_boundaries, ONLY: set_forcing, immb
       USE initial_conditions, ONLY: setpar, setup, cnvert, allocate_setup
-      USE input_module, ONLY: input, initc, number_of_block
+      USE input_module, ONLY: input, initc
       USE io_files
       USE io_restart, ONLY: taperd, tapewr, outp_recover, outp_remap
+      USE mass_sink, ONLY: allocate_sink, isink, read_mass_loss
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
      &    mpime, root, nproc
       USE particles_constants, ONLY: allocate_part_constants
@@ -119,11 +120,6 @@
         END IF
       END IF
 !
-! ... set dimensions ...
-!
-      no = number_of_block
-      nphase = nsolid + 1
-!
 ! ... allocate global arrays 
 !
       CALL allocate_grid
@@ -142,7 +138,7 @@
 ! ... Setup cell-sizes and cell flags
 !
       CALL grid_setup
-
+!
           IF (timing) then
               s1 = cpclock()
               !call MP_WALLTIME(pt1,mpime)
@@ -262,6 +258,7 @@
       CALL allocate_viscosity
       CALL allocate_hcapgs
       CALL allocate_turbo
+      CALL allocate_sink
 !
 ! ... Set parameters and initial conditions
 !
@@ -277,8 +274,10 @@
 ! ... conditions from an output file
 !
       IF(itd == 2) THEN 
+        IF (isink > 0) CALL read_mass_loss
         CALL taperd
       ELSE IF (itd == 3) THEN
+        IF (isink > 0) CALL read_mass_loss(nfil)
         CALL outp_recover(nfil)
       ELSE IF (itd == 4) THEN
         CALL outp_remap(nfil)

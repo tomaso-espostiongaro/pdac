@@ -594,6 +594,44 @@
       RETURN
       END FUNCTION velint3d
 !----------------------------------------------------------------------
+      FUNCTION wsink(m1, is)
+      USE atmospheric_conditions, ONLY: gravz
+      USE control_flags, ONLY: job_type, JOB_TYPE_2D, JOB_TYPE_3D
+      USE domain_mapping, ONLY: meshinds
+      USE gas_solid_velocity, ONLY: ws, wg
+      USE grid, ONLY: dz
+      USE particles_constants, ONLY: rl, dk
+      USE gas_solid_density, ONLY: rog
+      USE time_parameters, ONLY: nprint, sweep
+!
+      REAL*8 :: wsink
+      INTEGER, INTENT(IN) :: m1, is
+      INTEGER :: i, j, k, imesh, ij
+      REAL*8 :: cdin
+!
+      CALL meshinds(m1, imesh, i, j, k)
+! ... Linear extrapolation between ws(m0) (ijkp) and ws(m1) (ijk).
+!      wsink = (ws(m0,is)-ws(m1,is))*(-dz(k))/dz(k+1)+ws(m1,is)
+!
+! ... Linear Interpolation between ws(m1) and 0.
+!      wsink = dz(k-1)/(dz(k)+dz(k-1))*ws(m1,is)
+!
+! ... The sink velocity is set equal to the RELATIVE vertical velocity of the cell above.
+!       wsink = ws(m1,is) - wg(m1)
+!
+! ... No interpolation/extrapolation
+! ... and no resuspension
+!
+      wsink = MIN(0.D0, ws(m1,is))
+!
+! ... Constant settling velocity for single particle at high Reynolds number
+!
+!      cdin = 1.D0 / 0.44
+!      wsink = - DSQRT(4.D0/3.D0 * cdin * 9.81 * dk(is) * rl(is) / rog(m1))
+!
+      RETURN
+      END FUNCTION wsink
+!----------------------------------------------------------------------
       REAL*8 FUNCTION extrapolate(f2,f1,d12,dx,order)
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: f1, f2, d12, dx

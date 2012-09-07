@@ -26,7 +26,8 @@
 
       TYPE(stencil) :: u, v, w, dens         
 
-      PRIVATE :: u, v, w, dens, b_e, b_w, b_t, b_b, b_n, b_s, ivf
+      PRIVATE :: b_e, b_w, b_t, b_b, b_n, b_s, ivf
+      PRIVATE :: u, v, w, dens
       PRIVATE :: ierr
 
       SAVE
@@ -54,8 +55,9 @@
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
       USE grid, ONLY: flag, fluid
-      USE immersed_boundaries, ONLY: immb, faces
+      USE immersed_boundaries, ONLY: faces, immb
       USE indijk_module
+      USE mass_sink, ONLY: sink
       USE output_dump, ONLY: cell_report
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl
@@ -80,7 +82,6 @@
       REAL*8 :: dgorig
       REAL*8 :: rls
       REAL*8 :: rlkx, rlky, rlkz, rlk_tmp
-      REAL*8 :: omega0
       REAL*8 :: d3, p3
 
 ! IF (TIMING)
@@ -103,7 +104,7 @@
 !
 ! ... Initialize the cell fractions for immersed boundaries
 !
-      b_e = 1; b_w = 1; b_t = 1; b_b = 1; b_n = 1; b_s = 1; ivf = 1.D0
+       b_e = 1; b_w = 1; b_t = 1; b_b = 1; b_n = 1; b_s = 1; ivf = 1.D0
 !
       ALLOCATE(conv(ncint), abeta(ncint))
       conv = 0.0D0
@@ -133,14 +134,14 @@
 ! ... estimate for the pressure field is given by
 ! ... the pressure at previous time-step.
 !
-      DO ijk = 1, ncint
+      predictor: DO ijk = 1, ncint
         compute = BTEST(flag(ijk),0)
         IF ( compute ) THEN
           CALL first_subscr( ijk )
           CALL assemble_matrix( ijk )
           CALL solve_velocities( ijk)
         END IF
-      END DO
+      END DO predictor
 ! 
 ! ... Exchange the updated velocities
 !
@@ -194,10 +195,9 @@
 ! ... to propagate the updated velocities and pressure
 ! ... on each cell to its neighbours.
 !
-      omega0 = omega
-!
       timconv = 0.0d0
 !
+      ! ... Outer loop
       sor_loop: DO nit = 1, maxout
          mustit = 1
          ierr = 0
@@ -235,7 +235,7 @@
          n1 = 0
          n2 = 0
          
-         mesh_loop: DO ijk = 1, ncint
+         corrector: DO ijk = 1, ncint
            !
            converge(ijk) = .FALSE.
 
@@ -245,12 +245,12 @@
 
              CALL meshinds(ijk,imesh,i,j,k)
              CALL first_subscr(ijk)
+             IF (muscl > 0) CALL third_subscr(ijk)
 
              ! ... Compute the volumes partially filled by the
              ! ... topography
              !
              IF (immb == 1) CALL faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
-             IF (muscl > 0) CALL third_subscr(ijk)
 
              ! ... Compute locally the residual 'dg' of the
              ! ... mass balance equation of the gas phase and store it
@@ -310,7 +310,7 @@
              converge(ijk) = .TRUE.
            
            END IF
-         END DO mesh_loop
+         END DO corrector
 
          IF( timing ) THEN
              st1 = cpclock()
@@ -333,8 +333,9 @@
            ELSE
              avloop = REAL(nloop)
            END IF
-           WRITE(testunit, fmt="( I10, 2X, F5.2, 2X, I10, 2X, F10.3, I10)" ) &
-                            n2, avloop, n1, timconv(nit), COUNT(converge)
+           WRITE(testunit, &
+                   fmt="( I10, 2X, F5.2, 2X, I10, 2X, F10.3, I10)" ) &
+                   n2, avloop, n1, timconv(nit), COUNT(converge)
            CALL myflush( testunit )
          END IF
 !*******************************************************************
@@ -388,31 +389,16 @@
  277        FORMAT('number of iterations: nit = ', I4)
           END IF
 !*******************************************************************
-          omega = omega0
           EXIT sor_loop
+        ELSE
+          ! ... If convergence is not reached in some cell
+          ! ... start a new external sweep.
+          CONTINUE
         ENDIF
 !
-! ... If convergence is not reached in some cell
-! ... start a new external sweep.
-!
-       IF( MOD( nit, 200 ) == 0 .OR. (nit==maxout-1) ) THEN
-         omega = 0.5D0 * (omega + 1.D0)
-         IF (lpr > 0) THEN
-           WRITE(testunit, fmt="('  reducing relaxation parameter omega')")
-           WRITE(testunit, fmt="('  new value = ',F12.4)") omega
-         END IF
-!         DO ijk = 1, ncint
-!           IF ( .NOT. converge( ijk ) ) THEN
-!             CALL correct_particles(ijk, imesh, i, j, k)
-!           END IF
-!        END DO
-       END IF
-!
-! ... Check the closure relation for solid phases on all processors
-! ... (ierr=1 in all cells where the solid fraction exceeds 1)
-!
+        ! ... Check the closure relation for solid phases on all processors
+        ! ... (ierr=1 in all cells where the solid fraction exceeds 1)
         CALL parallel_sum_integer(ierr, 1)
-        !IF (ierr > 1) CALL data_exchange(flag)
         !IF (ierr > 1) CALL error('iter','solid fraction exceeded 1',ierr)
 !
       END DO sor_loop
@@ -453,8 +439,6 @@
         ! ... CRASH! ...
         !
         !CALL error( ' iter ', 'max number of iters exceeded ', 1)
-        omega = omega0
-        !
       END IF
 !*******************************************************************
 !
@@ -488,8 +472,6 @@
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
       USE gas_solid_temperature, ONLY: tg
       USE eos_gas, ONLY: thermal_eosg, xgc
-      USE phases_matrix, ONLY: assemble_all_matrix
-      USE phases_matrix, ONLY: solve_all_velocities
       USE set_indexes, ONLY: imjk, ijmk, ijkm, ipjk, ijpk, ijkp
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE control_flags, ONLY: job_type
@@ -536,9 +518,7 @@
         ! ... Update gas and particles velocities using the 
         ! ... corrected pressure at current location. 
         ! ... Pressure at neighbour cells could still be wrong.
-
-        CALL assemble_all_matrix(ijk)
-        CALL solve_all_velocities(ijk)
+        CALL correct_velocities(ijk)
 !
         ! ... update particle and gas densities and the 
         ! ... gas mass residual 'dg'
@@ -567,7 +547,7 @@
           IF( nit == 1 .AND. loop == 1 ) dgorig = dg
           d3 = dg
           ! ... steepen the Newton's slope (accelerate)
-          IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
+          ! IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
 
         ELSE IF ( DABS(dg) <= conv_ ) THEN
 
@@ -582,6 +562,20 @@
 
       RETURN
       END SUBROUTINE inner_loop
+!----------------------------------------------------------------------
+      SUBROUTINE correct_velocities( ijk )
+!
+!----------------------------------------------------------------------
+! ... correct_velocities by using the updated pressure field
+!
+      USE phases_matrix, ONLY: assemble_all_matrix, solve_all_velocities
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: ijk
+!
+      CALL assemble_all_matrix(ijk)
+      CALL solve_all_velocities(ijk)
+!
+      END SUBROUTINE correct_velocities
 !----------------------------------------------------------------------
 !
       SUBROUTINE calc_gas_mass_flux( ijk )
@@ -677,7 +671,7 @@
       REAL*8 :: resx, resy, resz
       REAL*8, INTENT(OUT) :: res
       INTEGER, INTENT(IN) :: i, j, k, ijk
-!      
+!
       resx = ( b_e * rgfe(ijk) - b_w * rgfe(imjk) ) * indx(i) * inr(i)
       resz = ( b_t * rgft(ijk) - b_b * rgft(ijkm) ) * indz(k)
 !
@@ -788,11 +782,12 @@
       USE gas_solid_density, ONLY: rlk, rlkn
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: flag, noslip_wall
+      USE mass_sink, ONLY: sink
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE time_parameters, ONLY: dt, time
       USE particles_constants, ONLY: inrl
-
+!
       IMPLICIT NONE
       REAL*8 :: rlkx, rlky, rlkz, rls, rlk_tmp
       INTEGER, INTENT(IN) :: i, j, k, ijk
@@ -813,6 +808,8 @@
         END IF
 
         rlk_tmp = rlkn( ijk, is ) - dt * ivf * ( rlkx + rlky + rlkz )
+        !
+        rlk_tmp = rlk_tmp + dt * ivf * sink(ijk,is)
               !
               !- dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
 
@@ -970,7 +967,8 @@
       USE convective_mass_fluxes, ONLY: upc_w, upc_s, upc_b
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
-      USE eos_gas, ONLY: csound
+      USE eos_gas, ONLY: scsound
+      USE gas_constants, ONLY: gammaair
       USE gas_solid_density, ONLY: rog, rgp
       USE grid, ONLY: dx, dy, dz, flag, rb
       USE grid, ONLY: fluid, dome_cell, immb_cell, free_io, zero_grad, bl_cell
@@ -986,7 +984,7 @@
       REAL*8 :: iepx, iepy, iepz
       REAL*8 :: dxm, dxp, dym, dyp, dzm, dzp
       REAL*8 :: indxm, indxp, indym, indyp, indzm, indzp
-      REAL*8 :: rbeta, rags
+      REAL*8 :: rbeta
       REAL*8 :: sqc
        
       INTEGER :: nfle, nflw, nfln, nfls, nflt, nflb
@@ -1081,13 +1079,12 @@
 !
 ! ... Inverse of the squared sound velocity (perfect gas)
 !
-          CALL csound(sqc,rog(ijk),p(ijk))
-          
-          rags = 1.D0 / sqc
+          sqc = scsound(gammaair,rog(ijk),p(ijk))
 !
 ! ... rbeta = dD_g/dP
 !
-          rbeta = ep(ijk) * rags 
+          rbeta = ep(ijk) / sqc
+!
           rbeta = rbeta + dt**2 * (iepx+iepy+iepz)
 !
           abt = 1.D0 / rbeta
@@ -1112,19 +1109,18 @@
 ! ... the stencil is updated at each inner loop.
 !
         USE control_flags, ONLY: job_type, lpr
-      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
+        USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
         USE dimensions
         USE pressure_epsilon, ONLY: p, ep
         USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
         USE gas_solid_temperature, ONLY: tg
         USE grid, ONLY: flag, noslip_wall, fluid
         USE eos_gas, ONLY: thermal_eosg, xgc
+        USE mass_sink, ONLY: sink
         USE phases_matrix, ONLY: assemble_all_matrix, solve_all_velocities
         USE set_indexes, ONLY: third_nb, third_rnb, first_rnb, first_nb
         USE set_indexes, ONLY: imjk, ijmk, ijkm
         USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
-        USE control_flags, ONLY: job_type
-      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
         USE time_parameters, ONLY: dt, time
         USE flux_limiters, ONLY: muscl
         USE convective_mass_fluxes, ONLY: fmas, masf
@@ -1296,7 +1292,8 @@
               rlky = 0.D0
             END IF
 
-            rlk_tmp = rlkn( ijk, is ) - dt * ivf *  ( rlkx + rlky + rlkz )
+            rlk_tmp = rlkn( ijk, is ) - dt * ivf *  ( rlkx + rlky + rlkz ) &
+                      + dt * ivf * sink(ijk,is)
             rlk( ijk, is) = MAX( 0.0d0, rlk_tmp )
 
             rls = rls + rlk( ijk, is ) * inrl(is)
@@ -1357,7 +1354,7 @@
             IF( nit == 1 .AND. loop == 1 ) dgorig = dg
             d3 = dg
             ! ... steepen the Newton's slope (accelerate)
-            IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
+            !IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
 
           ELSE IF ( DABS( dg ) <= conv_ ) THEN
 
@@ -1401,13 +1398,14 @@
 !
 !----------------------------------------------------------------------
         USE control_flags, ONLY: job_type, lpr
-      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
+        USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
         USE dimensions
         USE pressure_epsilon, ONLY: p, ep
         USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
         USE gas_solid_temperature, ONLY: tg
         USE grid, ONLY: flag, noslip_wall, fluid
         USE eos_gas, ONLY: thermal_eosg, xgc
+        USE mass_sink, ONLY: sink
         USE phases_matrix, ONLY: matsvels_3phase
         USE set_indexes, ONLY: third_nb, third_rnb, first_rnb, first_nb
         USE set_indexes, ONLY: imjk, ijmk, ijkm
@@ -1561,7 +1559,8 @@
           rlkx = ( b_e * rsfe1_ - b_w * rsfw1_ ) * indx(i) * inr(i)
           rlky = ( b_n * rsfn1_ - b_s * rsfs1_ ) * indy(j)
           rlkz = ( b_t * rsft1_ - b_b * rsfb1_ ) * indz(k)
-          rlk( ijk, 1) = rlkn( ijk, 1 ) - dt * ivf *  ( rlkx + rlky + rlkz )
+          rlk( ijk, 1) = rlkn( ijk, 1 ) - dt * ivf *  ( rlkx + rlky + rlkz ) &
+                         + dt * ivf * sink(ijk,1)
           rlk( ijk, 1) = MAX( 0.0d0, rlk(ijk,1) )
           rls = rlk( ijk, 1 ) * inrl(1)
 
@@ -1576,7 +1575,8 @@
           rlkx = ( b_e * rsfe2_ - b_w * rsfw2_ ) * indx(i) * inr(i)
           rlky = ( b_n * rsfn2_ - b_s * rsfs2_ ) * indy(j)
           rlkz = ( b_t * rsft2_ - b_b * rsfb2_ ) * indz(k)
-          rlk( ijk, 2) = rlkn( ijk, 2 ) - dt * ivf * ( rlkx + rlky + rlkz )
+          rlk( ijk, 2) = rlkn( ijk, 2 ) - dt * ivf * ( rlkx + rlky + rlkz ) &
+                         + dt * ivf * sink(ijk,2)
           rlk( ijk, 2) = MAX( 0.0d0, rlk(ijk,2) )
           rls = rls + rlk( ijk, 2 ) * inrl(2)
 
@@ -1620,7 +1620,7 @@
             IF( nit == 1 .AND. loop == 1 ) dgorig = dg
             d3 = dg
             ! ... steepen the Newton's slope (accelerate)
-            IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
+            !IF( kros < 2 .AND. loop == inmax ) abeta_ = 0.5D0 * inmax * abeta_
 
           ELSE IF ( DABS( dg ) <= conv_ ) THEN
 
