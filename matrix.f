@@ -50,7 +50,7 @@
       USE grid, ONLY: dx, dy, dz
       USE indijk_module
       USE particles_constants, ONLY: rl, inrl
-      USE pressure_epsilon, ONLY: p, ep
+      USE pressure_epsilon, ONLY: p, ep, pmodel, pmodel
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE set_indexes, ONLY: ijkw, ijks, ijkb
       USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
@@ -90,9 +90,16 @@
       indzm=1.D0/dzm
       indym=1.D0/dym
 !
-      ep_w = (dxi*ep(ijkw) + dxim1*epijk) * indxm
-      ep_s = (dyj*ep(ijks) + dyjm1*epijk) * indym
-      ep_b = (dzk*ep(ijkb) + dzkm1*epijk) * indzm
+      IF ( pmodel == 1 ) THEN
+         ep_w = (dxi*ep(ijkw) + dxim1*epijk) * indxm
+         ep_s = (dyj*ep(ijks) + dyjm1*epijk) * indym
+         ep_b = (dzk*ep(ijkb) + dzkm1*epijk) * indzm
+      ELSE IF ( pmodel == 2 ) THEN
+         ep_w = 1.D0
+         ep_s = 1.D0
+         ep_b = 1.D0
+      END IF
+!
       bu1(1) = rug(imjk)+ dt * indxm *2.D0* ep_w * (p(ijkw)-pijk)
       bw1(1) = rwg(ijkm)+ dt * indzm *2.D0* ep_b * (p(ijkb)-pijk)
 !
@@ -116,9 +123,16 @@
 !
           rlklm1 = rlk(ijk,l-1)
 
-          eps_w = (dxi*rlk(ijkw,l-1) + dxim1*rlklm1) * indxm * inrl(l-1)
-          eps_s = (dyj*rlk(ijks,l-1) + dyjm1*rlklm1) * indym * inrl(l-1)
-          eps_b = (dzk*rlk(ijkb,l-1) + dzkm1*rlklm1) * indzm * inrl(l-1)
+          IF ( pmodel == 1 ) THEN
+            eps_w = (dxi*rlk(ijkw,l-1) + dxim1*rlklm1) * indxm * inrl(l-1)
+            eps_s = (dyj*rlk(ijks,l-1) + dyjm1*rlklm1) * indym * inrl(l-1)
+            eps_b = (dzk*rlk(ijkb,l-1) + dzkm1*rlklm1) * indzm * inrl(l-1)
+          ELSE IF ( pmodel == 2 ) THEN
+            eps_w = 0.D0
+            eps_s = 0.D0
+            eps_b = 0.D0
+          END IF
+!
           bu1(l) = rus(imjk,l-1) + dt * indxm *2.D0* eps_w * (p(ijkw)-pijk)
           bw1(l) = rws(ijkm,l-1) + dt * indzm *2.D0* eps_b * (p(ijkb)-pijk)
 !
@@ -177,7 +191,7 @@
       USE indijk_module
       USE io_files, ONLY: testunit
       USE particles_constants, ONLY: rl, inrl
-      USE pressure_epsilon, ONLY: p, ep
+      USE pressure_epsilon, ONLY: p, ep, pmodel
       USE set_indexes, ONLY: ijke, ijkn, ijkt
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
@@ -215,24 +229,27 @@
       indyp=1.D0/dyp
       indzp=1.D0/dzp
 !
-      ep_e = (dxi*ep(ijke) + dxip1*ep(ijk)) * indxp
-      ep_t = (dzk*ep(ijkt) + dzkp1*ep(ijk)) * indzp
-
+      IF ( pmodel == 1 ) THEN
+         ep_e = (dxi*ep(ijke) + dxip1*ep(ijk)) * indxp
+         ep_n = (dyj*ep(ijkn) + dyjp1*ep(ijk)) * indyp
+         ep_t = (dzk*ep(ijkt) + dzkp1*ep(ijk)) * indzp
+       ELSE IF ( pmodel == 2 ) THEN
+         ep_e = 1.D0
+         ep_n = 1.D0
+         ep_t = 1.D0
+       END IF
+!
       bu(1)  = rug(ijk)+ dt * indxp *2.D0* ep_e * (pijk-p(ijke))
       bw(1)  = rwg(ijk)+ dt * indzp *2.D0* ep_t * (pijk-p(ijkt))
-!
       au(1,1)=(dxi*appu(ijke,1)+dxip1*appu(ijk,1))*indxp
       au(1,1)=au(1,1)+(dxi*rgp(ijke)+dxip1*rgp(ijk))*indxp
       aw(1,1)=(dzk*appw(ijkt,1)+dzkp1*appw(ijk,1))*indzp
       aw(1,1)=aw(1,1)+(dzk*rgp(ijkt)+dzkp1*rgp(ijk))*indzp
 
       IF (job_type == JOB_TYPE_3D) THEN
-        ep_n = (dyj*ep(ijkn) + dyjp1*ep(ijk)) * indyp
         bv(1)  = rvg(ijk)+ dt * indyp *2.D0* ep_n * (pijk-p(ijkn))
-!
         av(1,1)=(dyj*appv(ijkn,1)+dyjp1*appv(ijk,1))*indyp
         av(1,1)=av(1,1)+(dyj*rgp(ijkn)+dyjp1*rgp(ijk))*indyp
-        !
       END IF
       
       DO l=2,nphase
@@ -242,7 +259,16 @@
         eps_e = (dxi*rlk(ijke,l-1) + dxip1*rlk(ijk,l-1)) * indxp * inrl(l-1)
         eps_n = (dyj*rlk(ijkn,l-1) + dyjp1*rlk(ijk,l-1)) * indyp * inrl(l-1)
         eps_t = (dzk*rlk(ijkt,l-1) + dzkp1*rlk(ijk,l-1)) * indzp * inrl(l-1)
-
+        IF ( pmodel == 1 ) THEN
+           eps_e = (dxi*rlk(ijke,l-1) + dxip1*rlk(ijk,l-1)) * indxp * inrl(l-1)
+           eps_n = (dyj*rlk(ijkn,l-1) + dyjp1*rlk(ijk,l-1)) * indyp * inrl(l-1)
+           eps_t = (dzk*rlk(ijkt,l-1) + dzkp1*rlk(ijk,l-1)) * indzp * inrl(l-1)
+        ELSE IF ( pmodel == 2 ) THEN
+           eps_e = 0.D0
+           eps_n = 0.D0
+           eps_t = 0.D0
+        END IF
+!
         bu(l)  = rus(ijk,l-1) + dt * indxp *2.D0* eps_e * (pijk-p(ijke))
         bw(l)  = rws(ijk,l-1) + dt * indzp *2.D0* eps_t * (pijk-p(ijkt))
 !
@@ -683,7 +709,7 @@
       USE gas_solid_density, ONLY: rgp, rlk
       USE grid, ONLY: dx, dy, dz
       USE particles_constants, ONLY: rl, inrl
-      USE pressure_epsilon, ONLY: p, ep
+      USE pressure_epsilon, ONLY: p, ep, pmodel
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE set_indexes, ONLY: ipjk, ijpk, ijkp
       USE set_indexes, ONLY: ijke, ijkn, ijkt, ijkw, ijks, ijkb

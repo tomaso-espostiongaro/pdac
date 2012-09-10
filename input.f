@@ -126,6 +126,7 @@
       USE particles_constants, ONLY: rl, inrl, kap, &
      &     cmus, phis, cps, dk, nsolid, plim
       USE phases_matrix, ONLY: rlim
+      USE pressure_epsilon, ONLY: pmodel
       USE reactions, ONLY: irex
       USE roughness_module, ONLY: zrough
       USE runtime_sampling, ONLY: isrt
@@ -149,7 +150,7 @@
         formatted_output, formatted_input, max_seconds
 
       NAMELIST / model / icpc, tref, irex, gas_viscosity, part_viscosity,      &
-        iss, repulsive_model, iturb, modturbo, cmut,                     &
+        iss, repulsive_model, iturb, modturbo, cmut, pmodel,             &
         gravx, gravy, gravz, ngas, density_specified, isink, rprox
 
       NAMELIST / mesh / nx, ny, nz, itc, iuni, dx0, dy0, dz0, zzero, &
@@ -233,6 +234,7 @@
       repulsive_model = 1 ! ( 0 no Coulombic repulsive model )
       iturb = 1         ! turbulence  ( 0 no turbo, 1 turbo, 2 turbo + rough )
       modturbo = 1      ! turbulence  ( 1 smag, 2 dynamic )
+      pmodel   = 2      ! pressure model (1: Model A; 2: Model B)
       cmut = 0.1D0      ! Smagorinsky constant
       gravx = 0.0D0     ! gravity along x
       gravy = 0.0D0     ! gravity along y
@@ -502,6 +504,7 @@
       CALL bcast_integer(repulsive_model,1,root)
       CALL bcast_integer(iturb,1,root)
       CALL bcast_integer(modturbo,1,root)
+      CALL bcast_integer(pmodel,1,root)
       CALL bcast_real(cmut,1,root)
       CALL bcast_real(gravx,1,root)
       CALL bcast_real(gravy,1,root)

@@ -6,6 +6,7 @@
 !
       REAL*8, DIMENSION(:), ALLOCATABLE :: ep ! (void fraction)
       REAL*8, DIMENSION(:), ALLOCATABLE :: p, pn ! (pressure)
+      INTEGER :: pmodel
 !
 !----------------------------------------------------------------------
       CONTAINS

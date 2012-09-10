@@ -91,7 +91,11 @@
 !
 ! ... Sink term as a convective flux
       dist2 = (x(i)-center_x)**2 + (y(j)-center_y)**2
-      IF (dist2 > rprox2) sink(ijk,is) = rsft_up * wst * indz(k)
+      IF (dist2 > rprox2) THEN
+        !
+        sink(ijk,is) = rsft_up * wst * indz(k)
+        !
+      END IF
 ! ......................................................................
 !
 ! ... The total mass lost from the bottom is updated
