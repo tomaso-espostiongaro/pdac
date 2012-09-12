@@ -469,7 +469,12 @@
 ! ... by using array numx/y/z. Scatter the array
 ! ... of forcing points among processors.
 !
-      IF (immb == 1 .AND. prog == 'PDAC') CALL local_forcing
+      CALL face_init
+      IF (immb == 1 .AND. prog == 'PDAC') THEN
+        CALL local_forcing
+        CALL fill_cells
+        CALL face_fractions
+      END IF
 !
 ! ... fill in the array myinds using myijk
 !
@@ -1667,7 +1672,6 @@ set_numx: IF (i/=0 .AND. k/=0) THEN
               ! ... Second neighbours 'ijk_qq' are not required along
               ! ... diagonals
               fptx(n)%index_q  = cell_g2l(ijk_q,mpime)
-!IF( fptx(n)%index_q < 0 ) write(errorunit,*) 'Eccolo x= ',fptx(n)%index_q, n, ijkl, ijk, mpime, ijk_q
               IF (MOD(fptx(n)%int,2)/=0 .OR. fptx(n)%int==0) & 
                 fptx(n)%index_qq = cell_g2l(ijk_qq,mpime)
 
@@ -1711,7 +1715,6 @@ set_numy:   IF (i/=0 .AND. k/=0) THEN
                 ! ... Second neighbours 'ijk_qq' are not required along
                 ! ... diagonals
                 fpty(n)%index_q  = cell_g2l(ijk_q,mpime)
-!IF( fpty(n)%index_q < 0 ) write(errorunit,*) 'Eccolo y= ',fpty(n)%index_q, n, ijkl, ijk, mpime, ijk_q
                 IF (MOD(fpty(n)%int,2)/=0 .OR. fpty(n)%int==0) & 
                   fpty(n)%index_qq = cell_g2l(ijk_qq,mpime)
 
@@ -1755,7 +1758,6 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               ! ... Second neighbours 'ijk_qq' are not required along
               ! ... diagonals
               fptz(n)%index_q  = cell_g2l(ijk_q,mpime)
-!IF( fptz(n)%index_q < 0 ) write(errorunit,*) 'Eccolo z= ',fptz(n)%index_q, n, ijkl, ijk, mpime, ijk_q
               IF (MOD(fptz(n)%int,2)/=0 .OR. fptz(n)%int==0) & 
                 fptz(n)%index_qq = cell_g2l(ijk_qq,mpime)
 
@@ -1775,8 +1777,6 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
         CALL data_exchange(numx)
         IF (job_type == JOB_TYPE_3D) CALL data_exchange(numy)
         CALL data_exchange(numz)
-
-        CALL fill_cells
 
       RETURN
       END SUBROUTINE local_forcing
@@ -1839,7 +1839,6 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               counter = 0
               ! 
               ! East
-!              IF (z(k) > topo_x(i) .AND. flag(ipjk) /= filled_cell_1) THEN
                IF (z(k) > topo_x(i)) THEN
                   IF (flag(ipjk) == filled_cell_1) THEN
                      vf(ijk) = vf(ijk) + 2.D0
@@ -1851,7 +1850,6 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
                END IF
               !
               ! West
-!              IF (z(k) > topo_x(i-1) .AND. flag(imjk) /= filled_cell_1) THEN
                IF (z(k) > topo_x(i-1)) THEN
                   IF (flag(imjk) == filled_cell_1) THEN
                      vf(ijk) = vf(ijk) + 2.D0
@@ -1870,7 +1868,6 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
                END IF
               !
               ! Bottom
-!              IF (zb(k-1) >= topo_c(i) .AND. flag(ijkm) /= filled_cell_1) THEN
                IF (zb(k-1) >= topo_c(i)) THEN
                   IF (flag(ijkm) == filled_cell_1) THEN
                      vf(ijk) = vf(ijk) + 2.D0   
@@ -1885,7 +1882,6 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               counter = 0
               ! 
               ! East
-!              IF (z(k) > topo2d_x(i,j) .AND. flag(ipjk) /= filled_cell_1) THEN
               IF (z(k) > topo2d_x(i,j)) THEN
                  IF (flag(ipjk) == filled_cell_1) THEN
                     vf(ijk) = vf(ijk) + 2.D0
@@ -1899,7 +1895,6 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               END IF
               !
               ! West
-!              IF (z(k) > topo2d_x(i-1,j) .AND. flag(imjk) /= filled_cell_1) THEN
               IF (z(k) > topo2d_x(i-1,j)) THEN
                  IF (flag(imjk) == filled_cell_1) THEN
                     vf(ijk) = vf(ijk) + 2.D0  
@@ -1920,7 +1915,6 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
               END IF
               !
               ! Bottom
-!              IF (zb(k-1) >= topo2d_c(i,j) .AND. flag(ijkm) /= filled_cell_1) THEN
               IF (zb(k-1) >= topo2d_c(i,j)) THEN
                 IF (flag(ijkm) == filled_cell_1) THEN
                    vf(ijk) = vf(ijk) + 2.D0                   
@@ -1934,7 +1928,6 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
              END IF
               !
               ! North
-!              IF (z(k) > topo2d_y(i,j) .AND. flag(ijpk) /= filled_cell_1) THEN
               IF (z(k) > topo2d_y(i,j)) THEN
                 IF (flag(ijpk) == filled_cell_1) THEN
                    vf(ijk) = vf(ijk) + 2.D0
@@ -1948,7 +1941,6 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
              END IF
               !
               ! South
-!              IF (z(k) > topo2d_y(i,j-1) .AND. flag(ijmk) /= filled_cell_1) THEN
               IF (z(k) > topo2d_y(i,j-1)) THEN
                  IF (flag(ijmk) == filled_cell_1) THEN
                    vf(ijk) = vf(ijk) + 2.D0
@@ -1964,9 +1956,9 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
             END IF
 
             IF (job_type == JOB_TYPE_2D) THEN
-              vf(ijk) = 0.25D0 * vf(ijk)
+              vf(ijk) = vf(ijk) / 4
             ELSE IF( job_type == JOB_TYPE_3D) THEN
-              vf(ijk) = vf(ijk) / 6.D0
+              vf(ijk) = vf(ijk) / 6
             END IF
 
             ! ... cells that are completely immersed
@@ -1999,6 +1991,89 @@ set_numz: IF (i/=0 .AND. k/=0) THEN
       
       RETURN
       END SUBROUTINE fill_cells
+!----------------------------------------------------------------------
+      SUBROUTINE face_fractions
+      USE grid, ONLY: flag
+      USE immersed_boundaries, ONLY: numx, numy, numz, bd
+      USE immersed_boundaries, ONLY: b_e_, b_w_, b_n_, b_s_, b_t_, b_b_, ivf_, vf
+      INTEGER :: ijk, num
+!
+      DO ijk=1, ncint
+      IF( BTEST(flag(ijk),0) ) THEN
+  
+          IF (numx(ijk)/=0 .AND. numz(ijk) /=0) THEN
+            b_e_(ijk) = 0
+            b_w_(ijk) = 0
+            b_t_(ijk) = 0
+            b_b_(ijk) = 0
+            RETURN
+          END IF
+    
+          b_e_(ijk) = 0
+          num = 1
+          IF( IAND(bd(ijk),num) /= 0 )  b_e_(ijk) = 1
+    
+          b_w_(ijk) = 0
+          num = 2
+          IF( IAND(bd(ijk),num) /= 0 )  b_w_(ijk) = 1
+    
+          b_t_(ijk) = 0
+          num = 4
+          IF( IAND(bd(ijk),num) /= 0 )  b_t_(ijk) = 1
+    
+          b_b_(ijk) = 0
+          num = 8
+          IF( IAND(bd(ijk),num) /= 0 )  b_b_(ijk) = 1
+    
+          b_n_(ijk) = 0
+          num = 16
+          IF( IAND(bd(ijk),num) /= 0 ) b_n_(ijk) = 1
+    
+          b_s_(ijk) = 0
+          num = 32
+          IF( IAND(bd(ijk),num) /= 0 ) b_s_(ijk) = 1
+    
+          IF (vf(ijk) > 0.D0) THEN
+            ivf_(ijk) = 1.D0 / vf(ijk)
+          ELSE
+            ivf_(ijk) = 0.D0
+          END IF
+!
+        END IF
+      END DO
+!
+      CALL data_exchange(b_e_)
+      CALL data_exchange(b_n_)
+      CALL data_exchange(b_t_)
+      CALL data_exchange(b_w_)
+      CALL data_exchange(b_s_)
+      CALL data_exchange(b_b_)
+!
+      RETURN
+      END SUBROUTINE face_fractions
+!----------------------------------------------------------------------
+      SUBROUTINE face_init
+      USE immersed_boundaries, ONLY: b_e_, b_w_, b_n_, b_s_, b_t_, b_b_, ivf_
+      IMPLICIT NONE
+!
+      ALLOCATE(b_e_(ncdom))
+      ALLOCATE(b_w_(ncdom))
+      ALLOCATE(b_n_(ncdom))
+      ALLOCATE(b_s_(ncdom))
+      ALLOCATE(b_t_(ncdom))
+      ALLOCATE(b_b_(ncdom))
+      ALLOCATE(ivf_(ncdom))
+!
+      b_e_(:) = 1
+      b_w_(:) = 1
+      b_n_(:) = 1
+      b_s_(:) = 1
+      b_t_(:) = 1
+      b_b_(:) = 1
+      ivf_(:) = 1.D0
+!
+      RETURN
+      END SUBROUTINE face_init
 !----------------------------------------------------------------------
    END MODULE domain_mapping
 !----------------------------------------------------------------------

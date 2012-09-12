@@ -54,6 +54,8 @@
 ! ... number of cell faces laying outside the topography
       INTEGER*2, ALLOCATABLE :: bd(:)
       REAL*8, ALLOCATABLE :: vf(:)
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: b_e_, b_w_, b_n_, b_s_, b_t_, b_b_
+      REAL*8, ALLOCATABLE :: ivf_(:)
 
       INTEGER :: immb           
       INTEGER :: fp0
@@ -62,6 +64,7 @@
       PUBLIC :: immb, set_forcing
       PUBLIC :: fptx, fpty, fptz, numx, numy, numz, forcing_point, point
       PUBLIC :: bd, vf, faces
+      PUBLIC :: b_e_, b_w_, b_n_, b_s_, b_t_, b_b_, ivf_
 !
       SAVE
 !----------------------------------------------------------------------
@@ -1258,54 +1261,19 @@
       END SUBROUTINE ext_forcing3d
 !----------------------------------------------------------------------
       SUBROUTINE faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
-      USE control_flags, ONLY: job_type
-      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
- 
       IMPLICIT NONE
- 
-      INTEGER, INTENT(IN) :: ijk
       INTEGER, INTENT(OUT) :: b_e, b_w, b_t, b_b, b_n, b_s
+      INTEGER, INTENT(IN) :: ijk
       REAL*8, INTENT(OUT) :: ivf
-      INTEGER*2 :: num
- 
-      IF (numx(ijk)/=0 .AND. numz(ijk) /=0) THEN
-        b_e = 0
-        b_w = 0
-        b_t = 0
-        b_b = 0
-        RETURN
-      END IF 
-
-      b_e = 0
-      num = 1
-      IF( IAND(bd(ijk),num) /= 0 )  b_e = 1 
- 
-      b_w = 0
-      num = 2
-      IF( IAND(bd(ijk),num) /= 0 )  b_w = 1
- 
-      b_t = 0
-      num = 4
-      IF( IAND(bd(ijk),num) /= 0 )  b_t = 1
- 
-      b_b = 0
-      num = 8
-      IF( IAND(bd(ijk),num) /= 0 )  b_b = 1
-      
-      b_n = 0
-      num = 16
-      IF( IAND(bd(ijk),num) /= 0 ) b_n = 1
- 
-      b_s = 0
-      num = 32
-      IF( IAND(bd(ijk),num) /= 0 ) b_s = 1
- 
-      IF (vf(ijk) > 0.D0) THEN
-        ivf = 1.D0 / vf(ijk)
-      ELSE
-        ivf = 0.D0
-      END IF
- 
+!
+      b_e = b_e_(ijk)
+      b_w = b_w_(ijk)
+      b_n = b_n_(ijk)
+      b_s = b_s_(ijk)
+      b_t = b_t_(ijk)
+      b_b = b_b_(ijk)
+      ivf = ivf_(ijk)
+!
       RETURN
       END SUBROUTINE faces
 !----------------------------------------------------------------------

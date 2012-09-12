@@ -36,7 +36,7 @@
       USE gas_solid_viscosity, ONLY: mug, kapg
       USE grid, ONLY: flag
       USE grid, ONLY: dx, dy, dz
-      USE immersed_boundaries, ONLY: faces, immb
+      USE immersed_boundaries, ONLY: faces
       USE io_files, ONLY: testunit
       USE heat_transfer, ONLY: hvs
       USE particles_constants, ONLY: cps
@@ -66,10 +66,6 @@
       fy = 0
       fz = 0
 !
-! ... Initialize the cell fractions for immersed boundaries
-!
-      b_e = 1; b_w = 1; b_t = 1; b_b = 1; b_n = 1; b_s = 1; ivf = 1.D0
-!
 ! ... Allocate and initialize the enthalpy matrix elements
 !
       ALLOCATE(at(nphase, nphase))
@@ -94,8 +90,8 @@
         IF ( BTEST(flag(ijk),0) ) THEN
           CALL meshinds(ijk,imesh,i,j,k)
           CALL subscr(ijk)
+          CALL faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
 !
-          IF (immb == 1) CALL faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
           IF (irex == 2) CALL hrex(ijk,hrexg,hrexs)
 !
 ! ... The pressure terms can be treated implicitly

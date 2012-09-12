@@ -50,6 +50,34 @@
         REAL*8 :: bb
       END TYPE stencil
 !
+      TYPE masks
+        INTEGER :: c
+        INTEGER :: e
+        INTEGER :: w
+        INTEGER :: n
+        INTEGER :: s
+        INTEGER :: b
+        INTEGER :: t
+        INTEGER :: ee
+        INTEGER :: ww
+        INTEGER :: en
+        INTEGER :: wn
+        INTEGER :: es
+        INTEGER :: ws
+        INTEGER :: nn
+        INTEGER :: ss
+        INTEGER :: et
+        INTEGER :: wt
+        INTEGER :: nt
+        INTEGER :: st
+        INTEGER :: eb
+        INTEGER :: wb
+        INTEGER :: nb
+        INTEGER :: sb
+        INTEGER :: tt
+        INTEGER :: bb
+      END TYPE masks
+!
 ! ... Overloading of the arithmetic binary operators
 ! ... between stencils
 !
@@ -60,10 +88,13 @@
         MODULE PROCEDURE difstencil
       END INTERFACE
       INTERFACE OPERATOR(*)
-        MODULE PROCEDURE prodstencil, dotstencil
+        MODULE PROCEDURE prodstencil, dotstencil, maskstencil
       END INTERFACE
       INTERFACE OPERATOR(/)
         MODULE PROCEDURE fracstencil
+      END INTERFACE
+      INTERFACE rnb
+          MODULE PROCEDURE rnb_r, rnb_i
       END INTERFACE
 !
       SAVE
@@ -247,7 +278,6 @@
 
     END SUBROUTINE third_subscr
 !-----------------------------------------------------------------------
-
       FUNCTION cte(c)
 ! ... build a stencil with constant values c at each location
 !
@@ -282,6 +312,41 @@
         cte%bb = c
       
       END FUNCTION cte
+!-----------------------------------------------------------------------
+      FUNCTION maskval(c)
+! ... build a stencil with constant values c at each location
+!
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: c
+      TYPE(masks) :: maskval
+
+        maskval%c  = c
+        maskval%e  = c
+        maskval%w  = c
+        maskval%ee = c
+        maskval%ww = c
+        maskval%n  = c
+        maskval%en = c
+        maskval%wn = c
+        maskval%s  = c
+        maskval%es = c
+        maskval%ws = c
+        maskval%nn = c
+        maskval%ss = c
+        maskval%t  = c
+        maskval%et = c
+        maskval%wt = c
+        maskval%nt = c
+        maskval%st = c
+        maskval%b  = c
+        maskval%eb = c
+        maskval%wb = c
+        maskval%nb = c
+        maskval%sb = c
+        maskval%tt = c
+        maskval%bb = c
+      
+      END FUNCTION maskval
 !-----------------------------------------------------------------------
       FUNCTION sumstencil(st1, st2)
 ! ... sum two stencils
@@ -387,6 +452,42 @@
         prodstencil%bb = st1%bb * st2%bb
       
       END FUNCTION prodstencil
+!-----------------------------------------------------------------------
+      FUNCTION maskstencil(st1, st2)
+! ... multiply a stencil and a mask, location by location
+!
+      IMPLICIT NONE
+        TYPE(stencil), INTENT(in) :: st1
+        TYPE(masks), INTENT(in) :: st2
+        TYPE(stencil) :: maskstencil
+
+        maskstencil%c  = st1%c  * st2%c
+        maskstencil%e  = st1%e  * st2%e
+        maskstencil%w  = st1%w  * st2%w
+        maskstencil%ee = st1%ee * st2%ee
+        maskstencil%ww = st1%ww * st2%ww
+        maskstencil%n  = st1%n  * st2%n
+        maskstencil%en = st1%en * st2%en
+        maskstencil%wn = st1%wn * st2%wn
+        maskstencil%s  = st1%s  * st2%s
+        maskstencil%es = st1%es * st2%es
+        maskstencil%ws = st1%ws * st2%ws
+        maskstencil%nn = st1%nn * st2%nn
+        maskstencil%ss = st1%ss * st2%ss
+        maskstencil%t  = st1%t  * st2%t
+        maskstencil%et = st1%et * st2%et
+        maskstencil%wt = st1%wt * st2%wt
+        maskstencil%nt = st1%nt * st2%nt
+        maskstencil%st = st1%st * st2%st
+        maskstencil%b  = st1%b  * st2%b
+        maskstencil%eb = st1%eb * st2%eb
+        maskstencil%wb = st1%wb * st2%wb
+        maskstencil%nb = st1%nb * st2%nb
+        maskstencil%sb = st1%sb * st2%sb
+        maskstencil%tt = st1%tt * st2%tt
+        maskstencil%bb = st1%bb * st2%bb
+      
+      END FUNCTION maskstencil
 !-----------------------------------------------------------------------
       FUNCTION dotstencil(a, st2)
 ! ... multiply each stencil location by a constant value a
@@ -758,7 +859,7 @@
       RETURN
       END SUBROUTINE nb
 !-----------------------------------------------------------------------
-      SUBROUTINE rnb(stncl,array,ijk)
+      SUBROUTINE rnb_r(stncl,array,ijk)
 ! ... This routine compute the complete stencil around a grid point
 ! ... without considering the boundary conditions
 !
@@ -803,58 +904,54 @@
       END IF
 
       RETURN
-      END SUBROUTINE rnb
+      END SUBROUTINE rnb_r
 !-----------------------------------------------------------------------
-      SUBROUTINE check_stencil(ijk,stx,sty,stz)
-      USE immersed_boundaries, ONLY: numx, numy, numz
-      IMPLICIT NONE
-      TYPE(stencil), INTENT(INOUT) :: stx, sty, stz
+      SUBROUTINE rnb_i(stncl,array,ijk)
+! ... This routine compute the complete stencil around a grid point
+! ... without considering the boundary conditions
+!
+      USE dimensions
+      IMPLICIT NONE 
+!
+      TYPE(masks) :: stncl
+      INTEGER, INTENT(IN) :: array(:)
       INTEGER, INTENT(IN) :: ijk
 !
-       IF (numx( ijk )>0) stx%c = 0.D0
-       IF (numx( ipjk )>0) stx%e = 0.D0
-       IF (numx( imjk )>0) stx%w = 0.D0
-       IF (numx( ijpk )>0) stx%n = 0.D0
-       IF (numx( imjpk )>0) stx%wn = 0.D0
-       IF (numx( ijmk )>0) stx%s = 0.D0
-       IF (numx( ipjmk )>0) stx%es = 0.D0
-       IF (numx( ijkp )>0) stx%t = 0.D0
-       IF (numx( imjkp )>0) stx%wt = 0.D0
-       IF (numx( ijmkp )>0) stx%st = 0.D0
-       IF (numx( ijkm )>0) stx%b = 0.D0
-       IF (numx( ipjkm )>0) stx%eb = 0.D0
-       IF (numx( ijpkm )>0) stx%nb = 0.D0
-!     
-       IF (numy( ijk )>0) sty%c = 0.D0
-       IF (numy( ipjk )>0) sty%e = 0.D0
-       IF (numy( imjk )>0) sty%w = 0.D0
-       IF (numy( ijpk )>0) sty%n = 0.D0
-       IF (numy( imjpk )>0) sty%wn = 0.D0
-       IF (numy( ijmk )>0) sty%s = 0.D0
-       IF (numy( ipjmk )>0) sty%es = 0.D0
-       IF (numy( ijkp )>0) sty%t = 0.D0
-       IF (numy( imjkp )>0) sty%wt = 0.D0
-       IF (numy( ijmkp )>0) sty%st = 0.D0
-       IF (numy( ijkm )>0) sty%b = 0.D0
-       IF (numy( ipjkm )>0) sty%eb = 0.D0
-       IF (numy( ijpkm )>0) sty%nb = 0.D0
-!
-       IF (numz( ijk )>0) stz%c = 0.D0
-       IF (numz( ipjk )>0) stz%e = 0.D0
-       IF (numz( imjk )>0) stz%w = 0.D0
-       IF (numz( ijpk )>0) stz%n = 0.D0
-       IF (numz( imjpk )>0) stz%wn = 0.D0
-       IF (numz( ijmk )>0) stz%s = 0.D0
-       IF (numz( ipjmk )>0) stz%es = 0.D0
-       IF (numz( ijkp )>0) stz%t = 0.D0
-       IF (numz( imjkp )>0) stz%wt = 0.D0
-       IF (numz( ijmkp )>0) stz%st = 0.D0
-       IF (numz( ijkm )>0) stz%b = 0.D0
-       IF (numz( ipjkm )>0) stz%eb = 0.D0
-       IF (numz( ijpkm )>0) stz%nb = 0.D0
-!
+      IF( job_type_flag == 2 ) THEN
+
+        stncl%c  = array(ijk)
+        stncl%e  = array(ipjk)
+        stncl%ee = array( ippjk )
+        stncl%t  = array(ijkp)
+        stncl%w  = array(imjk)
+        stncl%b  = array(ijkm)
+        stncl%wt  = array(imjkp)
+        stncl%eb  = array(ipjkm)
+        stncl%tt  = array( ijkpp )
+
+      ELSE IF( job_type_flag == 3 ) THEN
+
+        stncl%c = array( ijk )
+        stncl%e = array( ipjk )
+        stncl%w = array( imjk )
+        stncl%ee = array( ippjk )
+        stncl%n = array( ijpk )
+        stncl%wn = array( imjpk )
+        stncl%nn = array( ijppk )
+        stncl%s = array( ijmk )
+        stncl%es = array( ipjmk )
+        stncl%t = array( ijkp )
+        stncl%wt = array( imjkp )
+        stncl%st = array( ijmkp )
+        stncl%b = array( ijkm )
+        stncl%eb = array( ipjkm )
+        stncl%nb = array( ijpkm )
+        stncl%tt = array( ijkpp )
+
+      END IF
+
       RETURN
-      END SUBROUTINE check_stencil
+      END SUBROUTINE rnb_i
 !-----------------------------------------------------------------------
       END MODULE set_indexes
 !-----------------------------------------------------------------------

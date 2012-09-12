@@ -559,8 +559,9 @@
               dvgs(is) = ( (vg(ijk)-vs(ijk,is)) + (vg(ijmk)-vs(ijmk,is)) )*0.5D0
             END IF
 !
-            CALL kdrags(kpgv(is), dugs(is), dvgs(is), dwgs(is), ep(ijk),     &
+              CALL kdrags(kpgv(is), dugs(is), dvgs(is), dwgs(is), ep(ijk),     &
                     rgp(ijk), rlk(ijk,is), mug(ijk), is)                  
+!
           END DO
 !
 !
@@ -730,18 +731,20 @@
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: flag, fluid, bl_cell, immb_cell
-      USE immersed_boundaries, ONLY: immb
+      USE immersed_boundaries, ONLY: immb, b_e_, b_n_, b_t_
       USE interpolate_fields, ONLY: interpolate_x, interpolate_y, interpolate_z
       USE pressure_epsilon, ONLY: ep, p
-      USE set_indexes, ONLY: subscr, stencil
+      USE set_indexes, ONLY: subscr, stencil, maskval, maskstencil, masks
       USE set_indexes, ONLY: imjk, ijmk, ijkm
-      USE set_indexes, ONLY: nb, rnb, check_stencil
+      USE set_indexes, ONLY: ipjk, imjk, ijkp, imjkp, ijkm, ipjkm
+      USE set_indexes, ONLY: nb, rnb
 !
       IMPLICIT NONE
 !
       INTEGER :: ijk
       INTEGER :: i, j, k, is, imesh
       TYPE(stencil) :: u, v, w, dens
+      TYPE(masks) :: mask_x, mask_y, mask_z
       TYPE(stencil) :: dens_stagx, dens_stagy, dens_stagz
       LOGICAL :: compute
 !
@@ -754,8 +757,21 @@
         IF( compute ) THEN
           CALL subscr(ijk)
           CALL meshinds(ijk,imesh,i,j,k)
-          !
+!
           IF (job_type == JOB_TYPE_2D ) THEN
+            !
+            ! ... Stencil Mask for Immersed Boundaries
+            !
+            IF (immb >= 1) THEN
+              mask_x = maskval(1)
+              mask_z = maskval(1)
+              IF (flag(ijk)==bl_cell .OR. flag(ijk)==immb_cell) THEN
+                !
+                ! ... Stencil masks
+                CALL rnb(mask_x,b_e_,ijk)
+                CALL rnb(mask_z,b_t_,ijk)
+              END IF
+            END IF
 !
 ! ... (GAS) ...
 !
@@ -765,6 +781,15 @@
             CALL rnb(u,ug,ijk)
             CALL rnb(w,wg,ijk)
             CALL nb(dens,rgp,ijk)
+!
+            ! ... Mask non-physical velocities from Immersed Boundaries
+            !
+            IF (immb >= 1) THEN
+              IF (flag(ijk)==bl_cell .OR. flag(ijk)==immb_cell) THEN
+                u = maskstencil(u,mask_x)
+                w = maskstencil(w,mask_z)
+              END IF
+            END IF
 !
             ! ... Interpolate density on the staggered grid
             CALL interpolate_x(dens, dens_stagx, i)
@@ -796,6 +821,15 @@
               CALL rnb(w,ws(:,is),ijk)
               CALL nb(dens,rlk(:,is),ijk)
 
+              ! ... Mask non-physical velocities from Immersed Boundaries
+              !
+              IF (immb >= 1) THEN
+                IF (flag(ijk)==bl_cell .OR. flag(ijk)==immb_cell) THEN
+                  u = maskstencil(u,mask_x)
+                  w = maskstencil(w,mask_z)
+                END IF
+              END IF
+
               ! ... Interpolate density on the staggered grid
               CALL interpolate_x(dens, dens_stagx, i)
               CALL interpolate_z(dens, dens_stagz, k)
@@ -814,10 +848,24 @@
                 IF ( k /= nz-1 ) CALL muscl_flw(wsfe(ijk,is), wsft(ijk,is),  &
                                           dens_stagz, u, w, i, k)
               END IF
-
             END DO
             
           ELSE IF (job_type == JOB_TYPE_3D) THEN
+            !
+            ! ... Stencil Mask for Immersed Boundaries
+            !
+            IF (immb >= 1) THEN
+              mask_x = maskval(1)
+              mask_y = maskval(1)
+              mask_z = maskval(1)
+              IF (flag(ijk)==bl_cell .OR. flag(ijk)==immb_cell) THEN
+                !
+                ! ... Stencil masks
+                CALL rnb(mask_x,b_e_,ijk)
+                CALL rnb(mask_y,b_n_,ijk)
+                CALL rnb(mask_z,b_t_,ijk)
+              END IF
+            END IF
 !
 ! ... (GAS) ...
 !
@@ -829,11 +877,13 @@
             CALL rnb(w,wg,ijk) 
             CALL nb ( dens, rgp, ijk )
 
-            ! ... Check fluxes from Immersed Boundaries
+            ! ... Mask non-physical velocities from Immersed Boundaries
             !
             IF (immb >= 1) THEN
               IF (flag(ijk)==bl_cell .OR. flag(ijk)==immb_cell) THEN
-                CALL check_stencil(ijk,u,v,w)
+                u = maskstencil(u,mask_x)
+                v = maskstencil(v,mask_y)
+                w = maskstencil(w,mask_z)
               END IF
             END IF
 
@@ -880,14 +930,16 @@
               CALL rnb(w,ws(:,is),ijk)
               CALL nb ( dens, rlk(:,is), ijk ) 
 
-              ! ... Check fluxes from Immersed Boundaries
+              ! ... Mask non-physical velocities from Immersed Boundaries
               !
               IF (immb >= 1) THEN
                 IF (flag(ijk)==bl_cell .OR. flag(ijk)==immb_cell) THEN
-                  CALL check_stencil(ijk,u,v,w)
+                  u = maskstencil(u,mask_x)
+                  v = maskstencil(v,mask_y)
+                  w = maskstencil(w,mask_z)
                 END IF
               END IF
-
+!
               ! ... Interpolate density on the staggered grid
               CALL interpolate_x(dens, dens_stagx, i)
               CALL interpolate_y(dens, dens_stagy, j)
@@ -922,7 +974,6 @@
             END DO
 
           END IF         
-
         END IF         
 
       END DO 

@@ -56,10 +56,6 @@
       REAL*8 :: ivf
       LOGICAL :: compute
 !
-! ... Initialize the cell fractions for immersed boundaries
-!
-      b_e = 1; b_w = 1; b_t = 1; b_b = 1; b_n = 1; b_s = 1; ivf = 1.D0
-!
       ALLOCATE(egfe(ncdom), egft(ncdom))
       ALLOCATE(esfe(ncdom,nsolid), esft(ncdom,nsolid))
 !
@@ -100,7 +96,7 @@
 
           ! ... Compute the volumes partially filled by the
           ! ... topography
-          IF (immb == 1) CALL faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
+          CALL faces(ijk, b_e, b_w, b_t, b_b, b_n, b_s, ivf)
 
           CALL meshinds(ijk,imesh,i,j,k)
           CALL subscr(ijk)
