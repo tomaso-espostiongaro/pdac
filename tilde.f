@@ -274,7 +274,7 @@
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: dx, dy, dz, flag
       USE grid, ONLY: indx, indy, indz, inr, inrb
-      USE momentum_transfer, ONLY: kdrags, inter
+      USE momentum_transfer, ONLY: kdrags, inter, sdrag, drag_model
       USE pressure_epsilon, ONLY: ep, p
       USE time_parameters, ONLY: dt, time
       USE gas_solid_viscosity, ONLY: viscg, viscs
@@ -559,9 +559,13 @@
               dvgs(is) = ( (vg(ijk)-vs(ijk,is)) + (vg(ijmk)-vs(ijmk,is)) )*0.5D0
             END IF
 !
+            IF (drag_model == 1) THEN
               CALL kdrags(kpgv(is), dugs(is), dvgs(is), dwgs(is), ep(ijk),     &
                     rgp(ijk), rlk(ijk,is), mug(ijk), is)                  
-!
+            ELSE IF (drag_model == 2) THEN
+              CALL sdrag(kpgv(is), dugs(is), dvgs(is), dwgs(is), ep(ijk),     &
+                    rgp(ijk), rlk(ijk,is), mug(ijk), is)                  
+            END IF
           END DO
 !
 !
