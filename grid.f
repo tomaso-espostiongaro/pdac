@@ -451,7 +451,7 @@
                 ijk = i + ( (j-1) + (k-1)*ny ) * nx
 
                 fl(ijk) = 2**(iob(n)%typ-1)
-              
+                IF (iob(n)%typ == 8) fl(ijk) = 129
               END DO
             END DO
           END DO

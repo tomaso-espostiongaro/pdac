@@ -33,6 +33,7 @@
 !
       USE control_flags, ONLY: job_type, JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nx, ny, nz, max_size, ngas, nsolid
+      USE grid
       USE io_files, ONLY: tempunit, logunit
       USE parallel, ONLY: mpime, root
 !
@@ -66,6 +67,7 @@
           CALL bcast_integer(sect(nos)%k,1,root)
         ELSE IF (job_type == JOB_TYPE_3D) THEN
           IF (mpime == root) READ(tempunit,*) sect(nos)%n, sect(nos)%i, sect(nos)%j, sect(nos)%k
+          IF (mpime == root) WRITE(*,*) sect(nos)%n, x(sect(nos)%i), y(sect(nos)%j), z(sect(nos)%k)
           CALL bcast_integer(sect(nos)%n,1,root)
           CALL bcast_integer(sect(nos)%i,1,root)
           CALL bcast_integer(sect(nos)%j,1,root)

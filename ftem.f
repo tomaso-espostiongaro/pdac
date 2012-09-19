@@ -11,8 +11,6 @@
 
       REAL*8 :: flim
       REAL*8, PRIVATE :: hv
-      REAL*8 :: tlim
-      LOGICAL :: tforce
 !
       SAVE
 !----------------------------------------------------------------------
@@ -170,11 +168,6 @@
             CALL caloric_eosl(ts(ijk,is),cps(is),ck(is,ijk),sies(ijk,is),ijk,info) 
           END DO
           num = num + info
-
-          ! ... Constrain the temperature variation
-          !
-          IF (info >= 1) CALL temperature_limiter(ijk,k,tlim)
-          
         END IF
       END DO
 !
@@ -182,7 +175,7 @@
 ! ... for all procs.
 !
       CALL parallel_sum_integer( num, 1 )
-      IF ( num > 1 .AND. .NOT.tforce) &
+      IF ( num > 1 ) &
         CALL error('ftem','Error in caloric equation of state', num)
 !
       DEALLOCATE(at)
@@ -238,155 +231,6 @@
 !
       RETURN
       END SUBROUTINE invdm
-!----------------------------------------------------------------------
-      SUBROUTINE temperature_limiter(ijk,k,tmax)
-
-      USE atmospheric_conditions, ONLY: t_atm
-      USE control_flags, ONLY: job_type, lpr
-      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
-      USE dimensions, ONLY: nsolid, ngas
-      USE eos_gas, ONLY: ygc, cg
-      USE gas_constants, ONLY: gas_type, gmw, rgas, tzero, hzerog, hzeros
-      USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
-      USE io_files, ONLY: testunit
-      USE set_indexes, ONLY: imjk, ijmk, ijkm, ipjk, ijpk, ijkp
-      USE specific_heat_module, ONLY: ck, cp, hcapg, hcaps
-      USE particles_constants, ONLY: inrl, cps
-
-      IMPLICIT NONE
-      INTEGER, INTENT(IN) :: ijk,k
-      REAL*8, INTENT(IN) :: tmax
-      INTEGER :: ig, is
-      REAL*8 :: hc
-
-      IF (tg(ijk) > tmax) THEN
-        IF (lpr > 0) &
-          WRITE(testunit,*) 'Limiting Tg ',tg(ijk),' in cell: ', ijk
-        tg(ijk) = tmax
-        CALL hcapg(cp(:,ijk), tg(ijk))
-        hc = 0.D0
-        DO ig = 1, ngas
-          hc = hc + cp(gas_type(ig),ijk) * ygc(ijk,ig)
-        END DO
-        cg(ijk) = hc
-        sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
-      ELSE IF (tg(ijk) < 0.D0) THEN
-        IF (lpr > 0) &
-          WRITE(testunit,*) 'Limiting Tg ',tg(ijk),' in cell: ', ijk
-        tg(ijk) = t_atm(k)
-        CALL hcapg(cp(:,ijk), tg(ijk))
-        hc = 0.D0
-        DO ig = 1, ngas
-          hc = hc + cp(gas_type(ig),ijk) * ygc(ijk,ig)
-        END DO
-        cg(ijk) = hc
-        sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
-      END IF
-      !
-      DO is = 1, nsolid
-        IF (ts(ijk,is) > tmax .OR. ts(ijk,is) <= 0.D0) THEN
-          IF (lpr > 0) &
-            WRITE(testunit,*) 'Limiting Ts ', is, ts(ijk,is),' in cell: ', ijk
-          ts(ijk,is) = tg(ijk)
-          CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
-          sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
-        END IF
-      END DO
-      !
-      RETURN
-      END SUBROUTINE temperature_limiter
-!----------------------------------------------------------------------
-      SUBROUTINE temperature_filter(ijk)
-
-      USE control_flags, ONLY: job_type, lpr
-      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
-      USE dimensions, ONLY: nsolid, ngas
-      USE eos_gas, ONLY: ygc, cg
-      USE gas_constants, ONLY: gas_type, gmw, rgas, tzero, hzerog, hzeros
-      USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
-      USE io_files, ONLY: testunit
-      USE set_indexes, ONLY: imjk, ijmk, ijkm, ipjk, ijpk, ijkp
-      USE specific_heat_module, ONLY: ck, cp, hcapg, hcaps
-      USE particles_constants, ONLY: inrl, cps
-
-      IMPLICIT NONE
-      INTEGER, INTENT(IN) :: ijk
-      INTEGER :: ig, is
-      REAL*8 :: av_tg
-      REAL*8 :: av_ts
-      REAL*8 :: hc
-
-      IF (job_type == JOB_TYPE_3D) THEN
-        !
-        ! ... Gas Temperature and Enthalpy
-          av_tg = tg(imjk) + tg(ijmk) + tg(ijkm) + tg(ipjk) + tg(ijpk) + tg(ijkp)
-          av_tg = av_tg / 6.D0
-          tg(ijk) = av_tg
-          !
-          CALL hcapg(cp(:,ijk), tg(ijk))
-          hc = 0.D0
-          DO ig = 1, ngas
-            hc = hc + cp(gas_type(ig),ijk) * ygc(ijk,ig)
-          END DO
-          cg(ijk) = hc
-          sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
-          IF (lpr >=1) THEN
-            WRITE(testunit,*) 'Filtering gas temperature in cell: ', ijk
-            WRITE(testunit,*) 'Tg = ', tg(ijk)
-          END IF
-        !
-        ! ... Solid Temperature and Enthalpy
-        DO is = 1, nsolid
-            av_ts = ts(imjk,is) + ts(ijmk,is) + ts(ijkm,is) + &
-                    ts(ipjk,is) + ts(ijpk,is) + ts(ijkp,is)
-            av_ts = av_ts / 6.D0
-            ts(ijk,is) = av_ts
-            !
-            CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
-            sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
-            IF (lpr >=1) THEN
-              WRITE(testunit,*) 'Filtering particle ',is,' temperature in cell: ', ijk
-              WRITE(testunit,*) 'Ts = ', ts(ijk,is)
-            END IF
-        END DO
-        !
-      ELSE IF (job_type == JOB_TYPE_2D) THEN
-        !
-        ! ... Gas Temperature and Enthalpy
-          av_tg = tg(imjk) + tg(ijkm) + tg(ipjk) + tg(ijkp)
-          av_tg = 0.25D0 * av_tg
-          tg(ijk) = av_tg
-          !
-          CALL hcapg(cp(:,ijk), tg(ijk))
-          hc = 0.D0
-          DO ig = 1, ngas
-            hc = hc + cp(gas_type(ig),ijk) * ygc(ijk,ig)
-          END DO
-          cg(ijk) = hc
-          sieg(ijk) = (tg(ijk)-tzero) * cg(ijk) + hzerog
-          IF (lpr >=1) THEN
-            WRITE(testunit,*) 'Filtering gas temperature in cell: ', ijk
-            WRITE(testunit,*) 'Tg = ', tg(ijk)
-          END IF
-        !
-        ! ... Solid Temperature and Enthalpy
-        DO is = 1, nsolid
-            av_ts = ts(imjk,is) + ts(ijkm,is) + ts(ipjk,is) + ts(ijkp,is)
-            av_ts = 0.25D0 * av_ts 
-            ts(ijk,is) = av_ts
-            !
-            CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
-            sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
-            IF (lpr >=1) THEN
-              WRITE(testunit,*) 'Filtering particle ', is, ' temperature in cell: ', ijk
-              WRITE(testunit,*) 'Ts = ', ts(ijk,is)
-            END IF
-        END DO
-        !
-      END IF
-
-      RETURN
-      END SUBROUTINE temperature_filter
 !----------------------------------------------------------------------
       END MODULE enthalpy_matrix
 !----------------------------------------------------------------------

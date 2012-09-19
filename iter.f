@@ -421,11 +421,11 @@
           WRITE(testunit,700) nit, (time+dt)
           WRITE(testunit,*) 'convergence on proc ',mpime,' : ', ALL(converge)
           IF(.NOT.ALL(converge)) &
-            WRITE(testunit,*) 'cells not converged (imesh,i,j,k): '
+            WRITE(testunit,*) 'cells not converged (imesh,i,j,k,flag): '
           DO ijk = 1, ncint
             IF ( .NOT. converge( ijk ) ) THEN
               CALL meshinds( ijk , imesh, i , j , k )
-              WRITE(testunit,*) imesh, i , j , k
+              WRITE(testunit,*) imesh, i , j , k, flag(ijk)
               CALL cell_report(testunit, ijk, imesh, i, j, k)
             END IF
           END DO
@@ -1690,44 +1690,6 @@
 
       RETURN
       END SUBROUTINE test_fluxes
-!----------------------------------------------------------------------
-      SUBROUTINE correct_particles(ijk, imesh, i, j, k)
-      USE control_flags, ONLY: job_type, lpr
-      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
-      USE dimensions, ONLY: nsolid, ngas
-      USE gas_constants, ONLY: tzero, hzeros
-      USE gas_solid_density, ONLY: rlk
-      USE gas_solid_temperature, ONLY: sies, ts, tg
-      USE gas_solid_velocity, ONLY: ug, vg, wg
-      USE gas_solid_velocity, ONLY: us, vs, ws
-      USE particles_constants, ONLY: rl, inrl, cps
-      USE specific_heat_module, ONLY: ck, hcaps
-!
-      IMPLICIT NONE
-      INTEGER, INTENT(IN) :: ijk, imesh, i, j, k
-      INTEGER :: ig, is
-!
-      DO is = 1, nsolid
-        IF (rlk(ijk,is)*inrl(is) <= 1.D-10) THEN
-          !... Drop particles out
-          rlk(ijk,is) = 0.D0
-          us(ijk,is)  = 0.D0
-          IF (job_type == JOB_TYPE_3D) vs(ijk,is)  = 0.D0
-          ws(ijk,is) = 0.D0
-          sies(ijk,is) = 0.D0
-        ELSE
-          ! ... Assume istantaneous momentum equilibrium
-          us(ijk,is)  = ug(ijk)
-          IF (job_type == JOB_TYPE_3D) vs(ijk,is)  = vg(ijk)
-          ws(ijk,is) = wg(ijk)
-          ts(ijk,is) = tg(ijk)
-          CALL hcaps(ck(is,ijk), cps(is), ts(ijk,is))
-          sies(ijk,is) = ( ts(ijk,is) - tzero ) * ck(is,ijk) + hzeros
-        END IF
-      END DO
-!
-      RETURN
-      END SUBROUTINE correct_particles
 !----------------------------------------------------------------------
       END MODULE iterative_solver
 !----------------------------------------------------------------------

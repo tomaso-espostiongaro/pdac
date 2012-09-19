@@ -582,7 +582,7 @@
       USE io_files, ONLY: tempunit
       USE io_parallel, ONLY: write_crop_array
       USE parallel, ONLY: mpime, root
-      USE postp_variables, ONLY: lepst, tg, mn, cm, pd, mnn
+      USE postp_variables, ONLY: epst, lepst, tg, mn, cm, pd, mnn
 !
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: tn
@@ -594,7 +594,7 @@
 !
       IF (print_log) THEN
         IF (mpime == root) THEN
-          filnam = 'log10epst.'//lettera(tn)
+          filnam = 'lepst.'//lettera(tn)
           IF (lform) THEN
             OPEN(tempunit,FILE=filnam)
           ELSE

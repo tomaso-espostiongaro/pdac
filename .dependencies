@@ -24,7 +24,7 @@ dimensions.o :
 
 dome.o : arrfil.o atmosphere.o control.o dens.o dimensions.o environment.o  \
     eosg.o gas.o ghost.o grid.o io_files.o parallel.o particles.o press.o  \
-    subscr.o temp.o topo.o velocity.o 
+    subscr.o temp.o time.o topo.o velocity.o 
 
 drag.o : dimensions.o particles.o subscr.o time.o 
 
@@ -47,9 +47,11 @@ flux_v.o : dimensions.o grid.o io_files.o limiters.o subscr.o time.o
 
 flux_w.o : dimensions.o grid.o limiters.o subscr.o time.o 
 
-ftem.o : atmosphere.o control.o dens.o dimensions.o eosg.o eosl.o gas.o  \
-    ghost.o grid.o hcapgs.o htilde.o hvs.o immb.o io_files.o particles.o  \
-    press.o reactions.o subscr.o temp.o time.o velocity.o visc.o 
+ftem.o : control.o dens.o dimensions.o eosg.o eosl.o ghost.o grid.o hcapgs.o  \
+    htilde.o hvs.o immb.o io_files.o particles.o press.o reactions.o subscr.o  \
+    temp.o time.o velocity.o visc.o 
+
+funct.o : 
 
 gas.o : dimensions.o 
 
@@ -58,7 +60,7 @@ ghost.o : control.o decomp.o dimensions.o grid.o immb.o indijk.o io_files.o  \
 
 grid.o : control.o dimensions.o io_files.o parallel.o 
 
-hcapgs.o : atmosphere.o dimensions.o gas.o ghost.o 
+hcapgs.o : dimensions.o gas.o ghost.o 
 
 hotc.o : dimensions.o ghost.o grid.o indijk.o subscr.o 
 
@@ -76,9 +78,10 @@ inoutflow.o : dens.o dimensions.o eosg.o grid.o particles.o press.o temp.o  \
     time.o 
 
 input.o : atmosphere.o bdry.o blunt.o control.o decomp.o dimensions.o dome.o  \
-    eosg.o ftem.o grid.o hcapgs.o immb.o io_files.o io_restart.o iter.o  \
-    limiters.o matrix.o parallel.o particles.o reactions.o roughness.o  \
-    samplert.o setup.o sink.o subscr.o time.o topo.o turbo.o vent.o visc.o 
+    drag.o eosg.o ftem.o grid.o hcapgs.o immb.o io_files.o io_restart.o iter.o  \
+    limiters.o matrix.o parallel.o particles.o press.o reactions.o  \
+    roughness.o samplert.o setup.o sink.o subscr.o time.o topo.o turbo.o  \
+    vent.o visc.o 
 
 interp.o : atmosphere.o control.o dens.o dimensions.o eosg.o ghost.o grid.o  \
     immb.o io_files.o parallel.o particles.o press.o subscr.o temp.o time.o  \
@@ -96,9 +99,9 @@ io_restart.o : atmosphere.o control.o dens.o dimensions.o eosg.o gas.o  \
 iotk_module.o : 
 
 iter.o : control.o dens.o dimensions.o environment.o eosg.o flux_m.o ftem.o  \
-    gas.o ghost.o grid.o hcapgs.o htilde.o immb.o indijk.o io_files.o  \
-    limiters.o matrix.o outp.o parallel.o particles.o press.o sink.o subscr.o  \
-    temp.o tilde.o time.o velocity.o 
+    gas.o ghost.o grid.o htilde.o immb.o indijk.o io_files.o limiters.o  \
+    matrix.o outp.o parallel.o particles.o press.o sink.o subscr.o temp.o  \
+    tilde.o time.o velocity.o 
 
 kb07ad.o : 
 
@@ -122,6 +125,8 @@ matrix.o : control.o dens.o dimensions.o ghost.o grid.o indijk.o io_files.o  \
     particles.o press.o subscr.o temp.o tilde.o time.o velocity.o 
 
 mean_fields.o : control.o io_files.o parallel.o postvar.o 
+
+mygaussj.o : 
 
 nondim.o : atmosphere.o dimensions.o gas.o ghost.o grid.o indijk.o  \
     io_files.o particles.o time.o 
@@ -188,7 +193,7 @@ setup.o : atmosphere.o control.o dens.o dimensions.o dome.o eosg.o gas.o  \
 sink.o : control.o dens.o dimensions.o ghost.o grid.o interp.o io_files.o  \
     kinds.o parallel.o particles.o press.o subscr.o time.o velocity.o 
 
-subscr.o : control.o dimensions.o ghost.o immb.o indijk.o 
+subscr.o : control.o dimensions.o ghost.o indijk.o 
 
 system.o : 
 

@@ -33,7 +33,7 @@
       USE tilde_energy, ONLY: htilde
       USE tilde_momentum, ONLY: allocate_fluxes, deallocate_fluxes
       USE tilde_momentum, ONLY: tilde, fieldn
-      USE time_parameters, ONLY: time, tpr, tdump, tstop, dt, itd
+      USE time_parameters, ONLY: time, tpr, tdump, tstop, dt, itd, tau1
       USE time_parameters, ONLY: rungekut, sweep, ndump, nprint
       USE turbulence_model, ONLY: iturb, iss
       USE turbulence_model, ONLY: sgsg, sgss

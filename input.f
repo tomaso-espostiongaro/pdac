@@ -99,10 +99,14 @@
       USE control_flags, ONLY: job_type_ => job_type
       USE dimensions
       USE domain_decomposition, ONLY: mesh_partition
-      USE dome_conditions, ONLY: xdome, ydome, zdome, dome_volume, temperature, particle_fraction, overpressure, &
-          idome, gas_flux, permeability, dome_gasvisc, idw, conduit_radius, &
-          rocks_volume, temperature_rocks, overpressure_rocks, particle_fraction_rocks
-      USE enthalpy_matrix, ONLY: flim, tlim, tforce
+      USE dome_conditions, ONLY: xdome, ydome, zdome, volume_correction
+      USE dome_conditions, ONLY: mass_1, mass_2, mass_3
+      USE dome_conditions, ONLY: particle_fraction_1, particle_fraction_2, particle_fraction_3
+      USE dome_conditions, ONLY: temperature_1, temperature_2, temperature_3
+      USE dome_conditions, ONLY: overpressure_1, overpressure_2, overpressure_3
+      USE dome_conditions, ONLY: idome, gas_flux, permeability, dome_gasvisc, idw, domegeom
+      USE dome_conditions, ONLY: conduit_radius, dome_radius
+      USE enthalpy_matrix, ONLY: flim
       USE eos_gas, ONLY: update_eosg
       USE flux_limiters, ONLY: beta, muscl
       USE gas_solid_viscosity, ONLY: gas_viscosity, part_viscosity
@@ -145,7 +149,7 @@
  
       INTEGER, INTENT(IN) :: iunit
       CHARACTER(LEN=20) :: job_type
-
+!
       NAMELIST / control / run_name, job_type, restart_mode,       &
         time, tstop, dt, lpr, imr, isrt, tpr, tdump, nfil, tau, tau1, tau2, ift,      &
         formatted_output, formatted_input, max_seconds
@@ -173,10 +177,12 @@
         p_gas, t_gas, u_solid, v_solid, w_solid, ep_solid, t_solid, &
         vent_O2, vent_N2, vent_CO2, vent_H2, vent_H2O, vent_Air, vent_SO2
 
-      NAMELIST / dome / xdome, ydome, zdome, dome_volume, temperature, &
-        particle_fraction, idome, overpressure, gas_flux, permeability, &
-        dome_gasvisc, idw, conduit_radius, &
-        rocks_volume, temperature_rocks, overpressure_rocks, particle_fraction_rocks, &
+      NAMELIST / dome / idome, idw, xdome, ydome, zdome, volume_correction, &
+        domegeom, temperature_1, temperature_2, temperature_3, &
+        particle_fraction_1, particle_fraction_2, particle_fraction_3, &
+        overpressure_1, overpressure_2, overpressure_3, &
+        mass_1, mass_2, mass_3, &
+        gas_flux, permeability, dome_gasvisc, conduit_radius, dome_radius, &
         dome_O2, dome_N2, dome_CO2, dome_H2, dome_H2O, dome_Air, dome_SO2
 
       NAMELIST / atmosphere / wind_x, wind_y, wind_z, p_ground, t_ground, &
@@ -192,7 +198,7 @@
 
       NAMELIST / numeric / rungekut, beta, muscl, mass_limiter, vel_limiter, &
         inmax, maxout, omega, delg, implicit_fluxes, implicit_enthalpy, &
-        update_eosg, optimization, lim_type, tlim, tforce, rlim, flim
+        update_eosg, optimization, lim_type, rlim, flim
 
       INTEGER :: i, j, k, n, m, ig, ierr, lim_type
       CHARACTER(LEN=80) :: card
@@ -200,7 +206,6 @@
 !
 !:::::::::::::::::::::::::::::  Sets default values  ::::::::::::::::::::::::::
 !
-
 ! ... Control
 
       run_name = 'pdac_run_2d'
@@ -347,20 +352,27 @@
 
       idome = 0               ! Flag for automatic dome conditions
       idw = 0                 ! Flag for adding dome hydrostatic pressure
+      domegeom = 1            ! 1: Spherical dome; 2: Cylindrical dome
       xdome = 0.0             ! UTM longitude of the dome center
       ydome = 0.0             ! UTM latitude of the dome center
       zdome = 0.0             ! Elevation of the dome center
-      dome_volume = 1.D6      ! total volume of exploded mass
+      volume_correction = 0.5 ! fraction of the volume of a sphere
       conduit_radius = 15.D0  ! Radius of the conduit feeding the dome
-      overpressure = 0.D0        ! overpressure of the dome
-      particle_fraction = 0.0D0    ! particle fractions
+      dome_radius = 500.D0    ! Radius of the base of the dome
       gas_flux = 400.D0            ! gas flux through the conduit
-      temperature = 273.D0        ! gas temperature
       permeability = 1.D-12        ! permeability of the dome
-      rocks_volume = 0.D0                   ! total volume of exploded mass
-      overpressure_rocks = 0.D0             ! overpressure of the dome
-      temperature_rocks = 273.D0            ! gas temperature
-      particle_fraction_rocks = 0.0D0       ! particle fractions
+      mass_1 = 1.D9
+      mass_2 = 0.D0
+      mass_3 = 0.D0
+      overpressure_1 = 1.D5
+      overpressure_2 = 1.D5
+      overpressure_3 = 1.D5
+      temperature_1 = 273.15D0
+      temperature_2 = 273.15D0
+      temperature_3 = 273.15D0
+      particle_fraction_1 = 0.01D0       ! particle fractions
+      particle_fraction_2 = 0.0D0       ! particle fractions
+      particle_fraction_3 = 0.0D0       ! particle fractions
       dome_gasvisc = 1.D-5     ! viscosity of the gas
       dome_O2  = 0.D0          ! gas components mass fractions
       dome_N2  = 0.D0
@@ -425,8 +437,6 @@
       delg = 1.D-8      !  residual limit relative to gas bulk density
       omega = 1.1       !  relaxation parameter  ( 0.5 under - 2.0 over)
       optimization = 1  !  optimization degree on iterative solver
-      tforce  = .FALSE. !  force temperature
-      tlim  = 1000.D0   !  maximum temperature
       implicit_fluxes   = .FALSE. ! fluxes are computed implicitly
       implicit_enthalpy = .FALSE. ! enthalpy solved implicitly
       update_eosg       = .FALSE.  ! cpdate density after temperature
@@ -471,8 +481,12 @@
           itd = -1
         CASE ('check_init')
           itd = 0
+          time = 0.D0
+          nfil = 0
         CASE ('from_scratch', 'default')
           itd = 1 
+          time = 0.D0
+          nfil = 0
         CASE ('restart')
           itd = 2
         CASE ('outp_recover')
@@ -629,19 +643,26 @@
       IF(mpime == root) READ(iunit, dome) 
 
       CALL bcast_integer(idome,1,root)
+      CALL bcast_integer(domegeom,1,root)
       CALL bcast_integer(idw,1,root)
       CALL bcast_real(xdome,1,root)
       CALL bcast_real(ydome,1,root)
       CALL bcast_real(zdome,1,root)
-      CALL bcast_real(dome_volume,1,root)
-      CALL bcast_real(rocks_volume,1,root)
+      CALL bcast_real(volume_correction,1,root)
       CALL bcast_real(conduit_radius,1,root)
-      CALL bcast_real(temperature,1,root)
-      CALL bcast_real(overpressure,1,root)
-      CALL bcast_real(particle_fraction,max_nsolid,root)
-      CALL bcast_real(temperature_rocks,1,root)
-      CALL bcast_real(overpressure_rocks,1,root)
-      CALL bcast_real(particle_fraction_rocks,max_nsolid,root)
+      CALL bcast_real(dome_radius,1,root)
+      CALL bcast_real(mass_1,1,root)
+      CALL bcast_real(overpressure_1,1,root)
+      CALL bcast_real(particle_fraction_1,max_nsolid,root)
+      CALL bcast_real(temperature_1,1,root)
+      CALL bcast_real(mass_2,1,root)
+      CALL bcast_real(overpressure_2,1,root)
+      CALL bcast_real(particle_fraction_2,max_nsolid,root)
+      CALL bcast_real(temperature_2,1,root)
+      CALL bcast_real(mass_3,1,root)
+      CALL bcast_real(overpressure_3,1,root)
+      CALL bcast_real(particle_fraction_3,max_nsolid,root)
+      CALL bcast_real(temperature_3,1,root)
       CALL bcast_real(gas_flux,1,root)
       CALL bcast_real(permeability,1,root)
       CALL bcast_real(dome_gasvisc,1,root)
@@ -718,8 +739,6 @@
       CALL bcast_integer(maxout,1,root)
       CALL bcast_integer(optimization,1,root)
       CALL bcast_real(omega,1,root)
-      CALL bcast_real(tlim,1,root)
-      CALL bcast_logical(tforce,1,root)
       CALL bcast_logical(implicit_fluxes,1,root)
       CALL bcast_logical(implicit_enthalpy,1,root)
       CALL bcast_logical(update_eosg,1,root)
@@ -788,7 +807,7 @@
           DO n = 1, number_of_block
             READ(iunit,*) block_type(n), block_bounds(1,n),  block_bounds(2,n),  &
                       block_bounds(5,n), block_bounds(6,n)
-            IF( block_type(n) == 1 .OR. block_type(n) == 5) THEN
+            IF( block_type(n) == 1 .OR. block_type(n) == 5 .OR. block_type(n) == 8) THEN
               READ(iunit,*) fixed_vgas_x(n), fixed_vgas_z(n), fixed_pressure(n), &
                         fixed_gaseps(n), fixed_gastemp(n)
               READ(iunit,*) (fixed_vpart_x(k,n), fixed_vpart_z(k,n), &
@@ -803,7 +822,7 @@
             READ(iunit,*) block_type(n), block_bounds(1,n), block_bounds(2,n), &
                                      block_bounds(3,n), block_bounds(4,n), &
                                      block_bounds(5,n), block_bounds(6,n)
-            IF( block_type(n) == 1 .OR. block_type(n) == 5) THEN
+            IF( block_type(n) == 1 .OR. block_type(n) == 5 .OR. block_type(n) == 8) THEN
               READ(iunit,*) fixed_vgas_x(n), fixed_vgas_y(n), fixed_vgas_z(n), &
                         fixed_pressure(n), fixed_gaseps(n), fixed_gastemp(n)
               READ(iunit,*) (fixed_vpart_x(k,n),fixed_vpart_y(k,n),fixed_vpart_z(k,n), &
@@ -851,12 +870,10 @@
 !
       CALL check_input
 !
-      RETURN
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
       SUBROUTINE check_input
-!
       USE atmospheric_conditions, ONLY: atm_ygc, layer
       USE dimensions
       USE dome_conditions, ONLY: dome_ygc, idome

@@ -113,6 +113,7 @@
         END DO 
 !
       CASE DEFAULT
+        IF (idome >= 1) CALL set_domec
 ! 
 ! ... Initial conditions will be set from RESTART file
 ! ... or OUTPUT file

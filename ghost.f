@@ -57,7 +57,7 @@
         END INTERFACE
 !
         PRIVATE
-        PUBLIC :: ghost, meshinds
+        PUBLIC :: ghost, meshinds, set_myinds
         PUBLIC :: myijk, myinds, ncint, ncdom
         PUBLIC :: data_exchange, data_collect, data_distribute
 !

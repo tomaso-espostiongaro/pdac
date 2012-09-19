@@ -42,6 +42,7 @@
       USE postp_variables, ONLY: pd, tg, ts, lepst, rhom, um, vm, wm, mvm, tm
       USE postp_variables, ONLY: rlk, rgp, vf, rhog, p, tg, xgc, mg, mn, cm
       USE postp_variables, ONLY: rhom_gav, um_gav, vm_gav, wm_gav, tm_gav
+      USE postp_variables, ONLY: um, vm, wm, tg, eps
       USE section_outputs, ONLY: section, isect, read_sections
 !
       IMPLICIT NONE
@@ -107,11 +108,7 @@
         !
         IF (imap > 0) THEN
                CALL write_topo2d
-               CALL write_map(tn,mvm,'vm')
-               CALL write_map(tn,rhom,'rm')
-               CALL write_map(tn,pd,'pd')
-               CALL write_map(tn,cm,'cm')
-               CALL write_map(tn,mn,'mn')
+               CALL write_map(tn,lepst,'le')
         END IF
         IF (isamp > 0)  CALL sample
         IF (isamp > 1)  CALL column_axis_average(itn)
