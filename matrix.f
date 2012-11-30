@@ -40,6 +40,7 @@
 ! ... Computes matrix elements to solve momentum-balance 
 ! ... linear system of coupled equations on all cell faces
 !
+      USE atmospheric_conditions, ONLY: gravz, gravx, gravy
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
@@ -55,7 +56,7 @@
       USE set_indexes, ONLY: ijkw, ijks, ijkb
       USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
       USE tilde_momentum, ONLY: appu, appv, appw
-      USE time_parameters, ONLY: dt, time
+      USE time_parameters, ONLY: dt, time, alpha, alphagrav
 
       IMPLICIT NONE
 !
@@ -68,23 +69,23 @@
       REAL*8 :: ep_w, ep_s, ep_b
       REAL*8 :: eps_w, eps_s, eps_b
       REAL*8 :: dxi, dxim1, dyj, dyjm1, dzk, dzkm1
-      REAL*8 :: pijk
-      REAL*8 :: epijk, rgpijk, rlklm1
+      REAL*8 :: pijk 
+      REAL*8 :: epijk, rgpijk, rlklm1 
 !
       CALL meshinds(ijk,imesh,i,j,k)
 !
-      dxi=dx(i)
-      dxm=dx(i)+dx(i-1)
-      dxim1=dx(i-1)
-      dyj=dy(j)
-      dym=dy(j)+dy(j-1)
-      dyjm1=dy(j-1)
-      dzk=dz(k)
-      dzm=dz(k)+dz(k-1)
-      dzkm1=dz(k-1)
-      pijk = p(ijk)
+      dxi   = dx(i)
+      dxm   = dx(i)+dx(i-1)
+      dxim1 = dx(i-1)
+      dyj   = dy(j)
+      dym   = dy(j)+dy(j-1)
+      dyjm1 = dy(j-1)
+      dzk   = dz(k)
+      dzm   = dz(k)+dz(k-1)
+      dzkm1 = dz(k-1)
+      pijk  = p(ijk)
       epijk = ep(ijk)
-      rgpijk = rgp(ijk)
+      rgpijk= rgp(ijk)
 !
       indxm=1.D0/dxm
       indzm=1.D0/dzm
@@ -100,41 +101,52 @@
          ep_b = 1.D0
       END IF
 !
-      bu1(1) = rug(imjk)+ dt * indxm *2.D0* ep_w * (p(ijkw)-pijk)
-      bw1(1) = rwg(ijkm)+ dt * indzm *2.D0* ep_b * (p(ijkb)-pijk)
+      bu1(1) = rug(imjk) + alpha * dt * indxm *2.D0* ep_w * (p(ijkw)-pijk)
+      bw1(1) = rwg(ijkm) + alpha * dt * indzm *2.D0* ep_b * (p(ijkb)-pijk)
 !
-      au1(1,1)=(dxi*appu(ijkw,1)+dxim1*appu(ijk,1))*indxm
+      bu1(1) = bu1(1) + dt*alphagrav*indxm*gravx*(dxi*rgp(ijkw) + dxim1*rgp(ijk))
+      bw1(1) = bw1(1) + dt*alphagrav*indzm*gravz*(dzk*rgp(ijkb) + dzkm1*rgp(ijk))
+!
+      au1(1,1)=alpha*(dxi*appu(ijkw,1)+dxim1*appu(ijk,1))*indxm
       au1(1,1)=au1(1,1)+(dxi*rgp(ijkw)+dxim1*rgpijk)*indxm
-      aw1(1,1)=(dzk*appw(ijkb,1)+dzkm1*appw(ijk,1))*indzm
+      aw1(1,1)=alpha*(dzk*appw(ijkb,1)+dzkm1*appw(ijk,1))*indzm
       aw1(1,1)=aw1(1,1)+(dzk*rgp(ijkb)+dzkm1*rgpijk)*indzm
 !
       IF (job_type == JOB_TYPE_3D) THEN
 
-        bv1(1) = rvg(ijmk)+ dt * indym *2.D0* ep_s * (p(ijks)-pijk)
-        
-        av1(1,1)=(dyj*appv(ijks,1)+dyjm1*appv(ijk,1))*indym
+        bv1(1) = rvg(ijmk) + alpha * dt * indym *2.D0* ep_s * (p(ijks)-pijk)
+        bv1(1) = bv1(1) + dt*alphagrav*indym*gravy*(dyj*rgp(ijks) + dyjm1*rgp(ijk))
+        av1(1,1)=alpha*(dyj*appv(ijks,1)+dyjm1*appv(ijk,1))*indym
         av1(1,1)=av1(1,1) + (dyj*rgp(ijks)+dyjm1*rgpijk)*indym
 
       END IF
-
-        DO l = 2, nphase
+!
+      DO l = 2, nphase
 !
 ! ... Explicit terms in the linear system
 !
-          rlklm1 = rlk(ijk,l-1)
+        rlklm1  = rlk(ijk,l-1)
 
-          IF ( pmodel == 1 ) THEN
-            eps_w = (dxi*rlk(ijkw,l-1) + dxim1*rlklm1) * indxm * inrl(l-1)
-            eps_s = (dyj*rlk(ijks,l-1) + dyjm1*rlklm1) * indym * inrl(l-1)
-            eps_b = (dzk*rlk(ijkb,l-1) + dzkm1*rlklm1) * indzm * inrl(l-1)
-          ELSE IF ( pmodel == 2 ) THEN
-            eps_w = 0.D0
-            eps_s = 0.D0
-            eps_b = 0.D0
-          END IF
+        IF ( pmodel == 1 ) THEN
+          eps_w = (dxi*rlk(ijkw,l-1) + dxim1*rlklm1) * indxm * inrl(l-1)
+          eps_s = (dyj*rlk(ijks,l-1) + dyjm1*rlklm1) * indym * inrl(l-1)
+          eps_b = (dzk*rlk(ijkb,l-1) + dzkm1*rlklm1) * indzm * inrl(l-1)
+        ELSE IF ( pmodel == 2 ) THEN
+          eps_w = 0.D0
+          eps_s = 0.D0
+          eps_b = 0.D0
+        END IF
 !
-          bu1(l) = rus(imjk,l-1) + dt * indxm *2.D0* eps_w * (p(ijkw)-pijk)
-          bw1(l) = rws(ijkm,l-1) + dt * indzm *2.D0* eps_b * (p(ijkb)-pijk)
+        bu1(l) = rus(imjk,l-1) + alpha * dt * indxm *2.D0* eps_w * (p(ijkw)-pijk)
+        bw1(l) = rws(ijkm,l-1) + alpha * dt * indzm *2.D0* eps_b * (p(ijkb)-pijk)
+
+        bu1(l) = bu1(l) + dt*alphagrav*indxm*gravx*(dxi*rlk(ijkw,l-1) + dxim1*rlk(ijk,l-1))
+        bw1(l) = bw1(l) + dt*alphagrav*indzm*gravz*(dzk*rlk(ijkb,l-1) + dzkm1*rlk(ijk,l-1))
+!
+        IF (job_type == JOB_TYPE_3D) THEN
+          bv1(l) = rvs(ijmk,l-1) + alpha * dt * indym *2.D0* eps_s * (p(ijks)-pijk)
+          bv1(l) = bv1(l) + dt*alphagrav*indym*gravy*(dyj*rlk(ijks,l-1)+dyjm1*rlk(ijk,l-1))
+        END IF
 !
 ! ... Implicit terms in the linear system
 !
@@ -143,30 +155,28 @@
         ls1 = l * (l-1) / 2
 !
 ! ... Off-diagonal elements
-          DO ll = 1, l
-            ls = ls1 + ll
-            au1(ll,l)=(dxi*appu(ijkw,ls)+dxim1*appu(ijk,ls))*indxm
-            au1(l,ll)=au1(ll,l)
-            aw1(ll,l)=(dzk*appw(ijkb,ls)+dzkm1*appw(ijk,ls))*indzm
-            aw1(l,ll)=aw1(ll,l)
-  
-            IF (job_type == JOB_TYPE_3D) THEN
-              av1(ll,l)=(dyj*appv(ijks,ls)+dyjm1*appv(ijk,ls))*indym
-              av1(l,ll)=av1(ll,l)
-            END IF
-          END DO
+
+        DO ll = 1, l
+          ls = ls1 + ll
+          au1(ll,l)=alpha*(dxi*appu(ijkw,ls)+dxim1*appu(ijk,ls))*indxm
+          au1(l,ll)=au1(ll,l)
+          aw1(ll,l)=alpha*(dzk*appw(ijkb,ls)+dzkm1*appw(ijk,ls))*indzm
+          aw1(l,ll)=aw1(ll,l)
+
+          IF (job_type == JOB_TYPE_3D) THEN
+            av1(ll,l)=alpha*(dyj*appv(ijks,ls)+dyjm1*appv(ijk,ls))*indym
+            av1(l,ll)=av1(ll,l)
+          END IF
+        END DO
 !
 ! ... Diagonal elements
 
-          au1(l,l)=au1(l,l)+(dxi*rlk(ijkw,l-1)+dxim1*rlklm1)*indxm
-          aw1(l,l)=aw1(l,l)+(dzk*rlk(ijkb,l-1)+dzkm1*rlklm1)*indzm
+        au1(l,l)=au1(l,l)+(dxi*rlk(ijkw,l-1)+dxim1*rlklm1)*indxm
+        aw1(l,l)=aw1(l,l)+(dzk*rlk(ijkb,l-1)+dzkm1*rlklm1)*indzm
 
-          IF (job_type == JOB_TYPE_3D) THEN
-            bv1(l) = rvs(ijmk,l-1) + dt * indym *2.D0* eps_s * (p(ijks)-pijk)
-            av1(l,l)=av1(l,l)+(dyj*rlk(ijks,l-1)+dyjm1*rlklm1)*indym
-          END IF
+        IF (job_type == JOB_TYPE_3D) av1(l,l)=av1(l,l)+(dyj*rlk(ijks,l-1)+dyjm1*rlklm1)*indym
 
-        END DO
+      END DO
 !
       CALL assemble_matrix(ijk)
 !
@@ -179,6 +189,7 @@
 ! ... linear system of coupled equations 
 ! ... only on East, North, and Top faces of the cell
 !
+      USE atmospheric_conditions, ONLY: gravz, gravx, gravy
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
@@ -196,7 +207,7 @@
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE tilde_momentum, ONLY: rug, rvg, rwg, rus, rvs, rws
       USE tilde_momentum, ONLY: appu, appv, appw
-      USE time_parameters, ONLY: dt, time
+      USE time_parameters, ONLY: dt, time, alpha, alphagrav
 
       IMPLICIT NONE
 !
@@ -209,17 +220,18 @@
       REAL*8 :: eps_e, eps_n, eps_t
       REAL*8 :: dxi, dxim1, dyj, dyjm1, dzk, dzkm1
       REAL*8 :: dxip1, dyjp1, dzkp1
-      REAL*8 :: pijk
+      REAL*8 :: pijk, epijk
 !
       CALL meshinds(ijk,imesh,i,j,k)
 
-      dxi=dx(i)
-      dxip1=dx(i+1)
-      dyj=dy(j)
-      dyjp1=dy(j+1)
-      dzk=dz(k)
-      dzkp1=dz(k+1)
-      pijk = p(ijk)
+      dxi   = dx(i)
+      dxip1 = dx(i+1)
+      dyj   = dy(j)
+      dyjp1 = dy(j+1)
+      dzk   = dz(k)
+      dzkp1 = dz(k+1)
+      pijk  = p(ijk)
+      epijk = ep(ijk)
 !
       dxp=dxi+dxip1
       dyp=dyj+dyjp1
@@ -239,16 +251,19 @@
          ep_t = 1.D0
        END IF
 !
-      bu(1)  = rug(ijk)+ dt * indxp *2.D0* ep_e * (pijk-p(ijke))
-      bw(1)  = rwg(ijk)+ dt * indzp *2.D0* ep_t * (pijk-p(ijkt))
-      au(1,1)=(dxi*appu(ijke,1)+dxip1*appu(ijk,1))*indxp
+      bu(1) = rug(ijk) + alpha * dt * indxp *2.D0* ep_e * (pijk-p(ijke))
+      bw(1) = rwg(ijk) + alpha * dt * indzp *2.D0* ep_t * (pijk-p(ijkt))
+      bu(1) = bu(1) + dt*alphagrav*indxp*gravx*(dxi*rgp(ijke) + dxip1*rgp(ijk))
+      bw(1) = bw(1) + dt*alphagrav*indzp*gravz*(dzk*rgp(ijkt) + dzkp1*rgp(ijk))
+      au(1,1)=alpha*(dxi*appu(ijke,1)+dxip1*appu(ijk,1))*indxp
       au(1,1)=au(1,1)+(dxi*rgp(ijke)+dxip1*rgp(ijk))*indxp
-      aw(1,1)=(dzk*appw(ijkt,1)+dzkp1*appw(ijk,1))*indzp
+      aw(1,1)=alpha*(dzk*appw(ijkt,1)+dzkp1*appw(ijk,1))*indzp
       aw(1,1)=aw(1,1)+(dzk*rgp(ijkt)+dzkp1*rgp(ijk))*indzp
-
+!
       IF (job_type == JOB_TYPE_3D) THEN
-        bv(1)  = rvg(ijk)+ dt * indyp *2.D0* ep_n * (pijk-p(ijkn))
-        av(1,1)=(dyj*appv(ijkn,1)+dyjp1*appv(ijk,1))*indyp
+        bv(1)  = rvg(ijk) + alpha * dt * indyp *2.D0* ep_n * (pijk-p(ijkn))
+        bv(1) = bv(1) + dt*alphagrav*indyp*gravy*(dyj*rgp(ijkn) + dyjp1*rgp(ijk))
+        av(1,1)=alpha*(dyj*appv(ijkn,1)+dyjp1*appv(ijk,1))*indyp
         av(1,1)=av(1,1)+(dyj*rgp(ijkn)+dyjp1*rgp(ijk))*indyp
       END IF
       
@@ -268,9 +283,16 @@
            eps_n = 0.D0
            eps_t = 0.D0
         END IF
+        bu(l) = rus(ijk,l-1) + alpha * dt * indxp *2.D0* eps_e * (pijk-p(ijke))
+        bw(l) = rws(ijk,l-1) + alpha * dt * indzp *2.D0* eps_t * (pijk-p(ijkt))
+
+        bu(l) = bu(l) + dt*alphagrav*indxp*gravx*(dxi*rlk(ijke,l-1) + dxip1*rlk(ijk,l-1))
+        bw(l) = bw(l) + dt*alphagrav*indzp*gravz*(dzk*rlk(ijkt,l-1) + dzkp1*rlk(ijk,l-1))
 !
-        bu(l)  = rus(ijk,l-1) + dt * indxp *2.D0* eps_e * (pijk-p(ijke))
-        bw(l)  = rws(ijk,l-1) + dt * indzp *2.D0* eps_t * (pijk-p(ijkt))
+        IF (job_type == JOB_TYPE_3D) THEN
+          bv(l) = rvs(ijk,l-1) + alpha * dt * indyp *2.D0* eps_n * (pijk-p(ijkn))
+          bv(l) = bv(l) + dt*alphagrav*indyp*gravy*(dyj*rlk(ijkn,l-1) + dyjp1*rlk(ijk,l-1))
+        END IF
 !
 ! ... Implicit terms in the linear system
 !
@@ -280,16 +302,15 @@
 !
 ! ... Off-Diagonal elements
 
-
         DO ll=1,l
           ls=ls1+ll
-          au(l,ll)=(dxi*appu(ijke,ls)+dxip1*appu(ijk,ls))*indxp
+          au(l,ll)=alpha*(dxi*appu(ijke,ls)+dxip1*appu(ijk,ls))*indxp
           au(ll,l)=au(l,ll)
-          aw(l,ll)=(dzk*appw(ijkt,ls)+dzkp1*appw(ijk,ls))*indzp
+          aw(l,ll)=alpha*(dzk*appw(ijkt,ls)+dzkp1*appw(ijk,ls))*indzp
           aw(ll,l)=aw(l,ll)
 
           IF (job_type == JOB_TYPE_3D) THEN
-            av(l,ll)=(dyj*appv(ijkn,ls)+dyjp1*appv(ijk,ls))*indyp
+            av(l,ll)=alpha*(dyj*appv(ijkn,ls)+dyjp1*appv(ijk,ls))*indyp
             av(ll,l)=av(l,ll)
           END IF
 
@@ -299,10 +320,7 @@
         au(l,l)=au(l,l)+(dxi*rlk(ijke,l-1)+dxip1*rlk(ijk,l-1))*indxp
         aw(l,l)=aw(l,l)+(dzk*rlk(ijkt,l-1)+dzkp1*rlk(ijk,l-1))*indzp
 
-        IF (job_type == JOB_TYPE_3D) THEN
-          bv(l)  = rvs(ijk,l-1) + dt * indyp *2.D0* eps_n * (pijk-p(ijkn))
-          av(l,l)=av(l,l)+(dyj*rlk(ijkn,l-1)+dyjp1*rlk(ijk,l-1))*indyp
-        END IF
+        IF (job_type == JOB_TYPE_3D) av(l,l)=av(l,l)+(dyj*rlk(ijkn,l-1)+dyjp1*rlk(ijk,l-1))*indyp
 
       END DO
 !
@@ -457,8 +475,8 @@
 !
       CALL solve_velocities(ijk)
 !
-      RETURN
-      END SUBROUTINE solve_all_velocities
+       RETURN
+       END SUBROUTINE solve_all_velocities
 !----------------------------------------------------------------------
       SUBROUTINE solve_velocities(ijk)
 ! ... solve the momentum matrix only on East, North, and Top 

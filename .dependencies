@@ -41,22 +41,20 @@ flux_m.o : dimensions.o ghost.o grid.o indijk.o limiters.o subscr.o time.o
 
 flux_sc.o : dimensions.o ghost.o grid.o indijk.o limiters.o subscr.o time.o 
 
-flux_u.o : dimensions.o ghost.o grid.o limiters.o subscr.o time.o 
+flux_u.o : dimensions.o ghost.o grid.o indijk.o limiters.o subscr.o time.o 
 
 flux_v.o : dimensions.o grid.o io_files.o limiters.o subscr.o time.o 
 
-flux_w.o : dimensions.o grid.o limiters.o subscr.o time.o 
+flux_w.o : dimensions.o ghost.o grid.o indijk.o limiters.o subscr.o time.o 
 
 ftem.o : control.o dens.o dimensions.o eosg.o eosl.o ghost.o grid.o hcapgs.o  \
     htilde.o hvs.o immb.o io_files.o particles.o press.o reactions.o subscr.o  \
     temp.o time.o velocity.o visc.o 
 
-funct.o : 
-
 gas.o : dimensions.o 
 
 ghost.o : control.o decomp.o dimensions.o grid.o immb.o indijk.o io_files.o  \
-    kinds.o parallel.o topo.o types.o 
+    kinds.o limiters.o parallel.o topo.o types.o 
 
 grid.o : control.o dimensions.o io_files.o parallel.o 
 
@@ -121,12 +119,11 @@ massgsedim.o : control.o decomp.o dimensions.o ghost.o grid.o immb.o  \
 masspart.o : control.o decomp.o dimensions.o ghost.o grid.o immb.o  \
     io_files.o io_parallel.o kinds.o parallel.o particles.o postvar.o 
 
-matrix.o : control.o dens.o dimensions.o ghost.o grid.o indijk.o io_files.o  \
-    particles.o press.o subscr.o temp.o tilde.o time.o velocity.o 
+matrix.o : atmosphere.o control.o dens.o dimensions.o ghost.o grid.o  \
+    indijk.o io_files.o particles.o press.o subscr.o temp.o tilde.o time.o  \
+    velocity.o 
 
 mean_fields.o : control.o io_files.o parallel.o postvar.o 
-
-mygaussj.o : 
 
 nondim.o : atmosphere.o dimensions.o gas.o ghost.o grid.o indijk.o  \
     io_files.o particles.o time.o 
@@ -193,7 +190,7 @@ setup.o : atmosphere.o control.o dens.o dimensions.o dome.o eosg.o gas.o  \
 sink.o : control.o dens.o dimensions.o ghost.o grid.o interp.o io_files.o  \
     kinds.o parallel.o particles.o press.o subscr.o time.o velocity.o 
 
-subscr.o : control.o dimensions.o ghost.o indijk.o 
+subscr.o : control.o dimensions.o ghost.o indijk.o io_files.o 
 
 system.o : 
 

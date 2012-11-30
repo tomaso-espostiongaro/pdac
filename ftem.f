@@ -44,7 +44,8 @@
       USE set_indexes, ONLY: ijke, ijkn, ijkt, ijkw, ijks, ijkb
       USE specific_heat_module, ONLY: ck, cp
       USE tilde_energy, ONLY: rhg, rhs
-      USE time_parameters, ONLY: time, dt
+      USE time_parameters, ONLY: time, dt, alpha
+
       IMPLICIT NONE
 !
       REAL*8 :: hrexs, hrexg
@@ -140,13 +141,18 @@
 
             CALL hvs(hv, rlk(ijk,is), rog(ijk), ep(ijk), &
                    dugs, dvgs, dwgs, mug(ijk), kapg(ijk), cg(ijk), is)
-
-            at(1,1)     = at(1,1)     + dt * hv / cg(ijk)
-            at(1,is1)   =             - dt * hv / ck(is,ijk)
-            at(is1,1)   =             - dt * hv / cg(ijk)
-            at(is1,is1) = rlk(ijk,is) + dt * hv / ck(is,ijk)
 !
-            bt(is1) = rlkn(ijk,is) * siesn(ijk,is) + rhs(ijk, is)
+            at(1,1)     = at(1,1)     + alpha * dt * hv / cg(ijk)
+            at(1,is1)   =             - alpha * dt * hv / ck(is,ijk)
+            at(is1,1)   =             - alpha * dt * hv / cg(ijk)
+            at(is1,is1) = rlk(ijk,is) + alpha * dt * hv / ck(is,ijk)
+!
+            bt(1) = bt(1) + (1.D0-alpha) * dt * hv * ts(ijk,is) & 
+                        & - (1.D0-alpha) * dt * hv * tg(ijk) 
+            bt(is1) = rlkn(ijk,is) * siesn(ijk,is) + rhs(ijk, is) &
+                        & + (1.D0-alpha) * dt * hv * tg(ijk) & 
+                        & - (1.D0-alpha) * dt * hv * ts(ijk,is) 
+
           END DO
 !            
 ! ... Solve the interphase enthalpy matrix by using Gauss inversion

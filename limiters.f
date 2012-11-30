@@ -3,7 +3,7 @@
 !----------------------------------------------------------------------
       IMPLICIT NONE
 !
-      INTEGER, PUBLIC :: muscl
+      INTEGER, PUBLIC :: muscl, ctu
       REAL*8, PUBLIC  :: beta
       INTEGER, PUBLIC :: lv, lm
 !

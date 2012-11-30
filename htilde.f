@@ -40,8 +40,10 @@
       USE particles_constants, ONLY: inrl
       USE pressure_epsilon, ONLY: ep
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
+      USE set_indexes, ONLY: ctu1_subscr, ctu2_subscr
       USE mass_sink, ONLY: sink
       USE time_parameters, ONLY: dt
+      USE flux_limiters, ONLY: ctu
       IMPLICIT NONE
 !
       REAL*8 :: egfx, egfy, egfz
@@ -100,6 +102,8 @@
 
           CALL meshinds(ijk,imesh,i,j,k)
           CALL subscr(ijk)
+          IF (ctu > 0) CALL ctu1_subscr(ijk)
+          IF (ctu > 1) CALL ctu2_subscr(ijk)
 ! 
           egfx = b_e * egfe(ijk) - b_w * egfe(imjk)
           egfz = b_t * egft(ijk) - b_b * egft(ijkm)
@@ -176,12 +180,12 @@
 
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
-      USE convective_fluxes_sc, ONLY: fsc, muscl_fsc
+      USE convective_fluxes_sc, ONLY: fsc, muscl_fsc, ctu1_fsc, ctu2_fsc
       USE diffusive_fluxes, ONLY: hotc
       USE dimensions, ONLY: nsolid
       USE domain_mapping, ONLY: ncint, ncdom
       USE domain_mapping, ONLY: data_exchange
-      USE flux_limiters, ONLY: muscl
+      USE flux_limiters, ONLY: muscl, ctu
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_temperature, ONLY: sieg, sies, tg, ts
@@ -191,10 +195,10 @@
       USE grid, ONLY: flag, fluid
       USE particles_constants, ONLY: inrl, kap
       USE pressure_epsilon, ONLY: ep
-      !USE set_indexes, ONLY: nb, rnb, stencil, cte
-      !USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE set_indexes, ONLY: stencil, cte, subscr
+      USE set_indexes, ONLY: ctu1_subscr, ctu2_subscr
       USE set_indexes, ONLY: first_nb, first_rnb, third_nb, third_rnb
+      USE set_indexes, ONLY: ctu1_nb, ctu1_rnb, ctu2_nb, ctu2_rnb
       USE set_indexes, ONLY: imjk, ijmk, ijkm, OPERATOR( * )
       USE turbulence_model, ONLY: kapgt, iturb
 
@@ -221,6 +225,8 @@
         compute  = BTEST(flag(ijk),0)
         IF( compute ) THEN
           CALL subscr(ijk)
+          IF (ctu > 0) CALL ctu1_subscr(ijk)
+          IF (ctu > 1) CALL ctu2_subscr(ijk)
 !
 ! ... Here compute convective and diffusive fluxes (gas)
 !
@@ -245,6 +251,29 @@
               CALL third_nb(dens,rgp,ijk)
               CALL muscl_fsc(egfe(ijk), egft(ijk),    & 
                              enth, dens, u, w, ijk)
+            END IF
+
+            IF (ctu > 0) THEN
+!
+! ... First order Corner Transport Upwind correction (step 2)
+!
+              CALL ctu1_nb(enth,sieg,ijk)
+              CALL ctu1_nb(dens,rgp,ijk)
+              CALL ctu1_rnb(u,ug,ijk)
+              CALL ctu1_rnb(w,wg,ijk)
+              CALL ctu1_fsc(egfe(ijk), egft(ijk),    &
+                      dens, enth, u, w, ijk)
+!
+! ... Second order Corner Transport Upwind correction (step 3)
+!
+              IF (ctu > 1 .AND. muscl == 0 .AND. flag(ijk)==fluid) THEN
+                CALL ctu2_nb(enth,sieg,ijk)
+                CALL ctu2_nb(dens,rgp,ijk)
+                CALL ctu2_rnb(u,ug,ijk)
+                CALL ctu2_rnb(w,wg,ijk)
+                CALL ctu2_fsc(egfe(ijk), egft(ijk),    &
+                        dens, enth, u, w, ijk)
+              END IF
             END IF
 !
 ! ... Diffusive fluxes
@@ -340,6 +369,30 @@
                 CALL muscl_fsc(esfe(ijk, is), esft(ijk, is),  &
                                enth, dens, u, w, ijk)
               END IF
+
+              IF (ctu > 0) THEN
+!
+! ... First order Corner Transport Upwind correction (step 2)
+!
+                CALL ctu1_nb(enth,sies(:,is),ijk)
+                CALL ctu1_nb(dens,rlk(:,is),ijk)
+                CALL ctu1_rnb(u, us(:,is),ijk)
+                CALL ctu1_rnb(w, ws(:,is),ijk)
+                CALL ctu1_fsc(esfe(ijk, is), esft(ijk, is),  &
+                        dens, enth, u, w, ijk)
+!
+! ... Second order Corner Transport Upwind correction (step 3)
+!
+                IF (ctu > 1 .AND. muscl == 0 .AND. flag(ijk) ==fluid) THEN
+                  CALL ctu2_nb(enth,sies(:,is),ijk)
+                  CALL ctu2_nb(dens,rlk(:,is),ijk)
+                  CALL ctu2_rnb(u, us(:,is),ijk)
+                  CALL ctu2_rnb(w, ws(:,is),ijk)
+                  CALL ctu2_fsc(esfe(ijk, is), esft(ijk, is),  &
+                          dens, enth, u, w, ijk)
+                END IF
+              END IF
+!
 !
 ! ... Diffusive fluxes
 !
@@ -378,6 +431,7 @@
                 CALL muscl_fsc(esfe(ijk, is), esfn(ijk, is), esft(ijk, is),  &
                                enth, dens, u, v, w, ijk)
               END IF
+!
 !
 ! ... Diffusive fluxes
 !

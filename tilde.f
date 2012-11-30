@@ -34,7 +34,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE allocate_momentum
       USE dimensions
-      USE domain_mapping, ONLY: ncint
+      USE domain_mapping, ONLY: ncint, ncdom
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       IMPLICIT NONE
@@ -71,7 +71,7 @@
         ALLOCATE(rvg(ncdom))
         rvg = 0.0D0
       END IF
-      ALLOCATE(rhg(ncint))
+      ALLOCATE(rhg(ncdom))
       rhg = 0.D0
 !
 ! ... Allocate and initialize "tilde" terms (particles).
@@ -83,7 +83,7 @@
         ALLOCATE(rvs(ncdom,nsolid))
         rvs = 0.0D0
       END IF
-      ALLOCATE(rhs(ncint,nsolid))
+      ALLOCATE(rhs(ncdom,nsolid))
       rhs = 0.D0
 !
 ! ... Allocate and initialize interphase terms.
@@ -136,7 +136,7 @@
       USE domain_mapping, ONLY: meshinds, data_exchange
       USE eos_gas, ONLY: xgc, ygc
       USE gas_components, ONLY: rgpgcn
-      USE gas_solid_density, ONLY: rgp, rgpn, rlk, rlkn
+      USE gas_solid_density, ONLY: rgp, rgpn, rlk, rlkn, rog
       USE gas_solid_temperature, ONLY: sieg, siegn, sies, siesn, tg, ts
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_viscosity, ONLY: viscon, mug, kapg
@@ -144,8 +144,10 @@
       USE grid, ONLY: dz, dy, dx, flag
       USE grid, ONLY: indx, indy, indz
       USE indijk_module, ONLY: ip0_jp0_kp0_
-      USE pressure_epsilon, ONLY: p, pn, ep
+      USE pressure_epsilon, ONLY: p, ep, pn, epn
       USE set_indexes, ONLY: first_subscr, ijke, ijkn, ijkt
+      USE set_indexes, ONLY: ctu1_subscr, ctu2_subscr
+      USE flux_limiters, ONLY: ctu
 !
       IMPLICIT NONE
 !
@@ -186,6 +188,8 @@
 
           CALL meshinds(ijk,imesh,i,j,k)
           CALL first_subscr(ijk)
+          IF (ctu > 0) CALL ctu1_subscr(ijk)
+          IF (ctu > 1) CALL ctu2_subscr(ijk)
 !
           IF (job_type == JOB_TYPE_2D ) THEN
 
@@ -236,6 +240,7 @@
 ! ... Store fields at time n*dt
 !
           pn(ijk)    = p(ijk)
+          epn(ijk)   = ep(ijk)
           rgpn(ijk)  = rgp(ijk)
           siegn(ijk) = sieg(ijk)
 !
@@ -259,6 +264,11 @@
 
       END DO
 !
+      CALL data_exchange(pn)
+      CALL data_exchange(epn)
+      CALL data_exchange(rgpn)
+      CALL data_exchange(rlkn)
+
       RETURN
       END SUBROUTINE fieldn
 !----------------------------------------------------------------------
@@ -270,13 +280,13 @@
       USE domain_mapping, ONLY: ncint, myijk, ncdom, data_exchange
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
-      USE gas_solid_density, ONLY: rgp, rlk
+      USE gas_solid_density, ONLY: rgp, rlk, rgpn, rlkn
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: dx, dy, dz, flag
       USE grid, ONLY: indx, indy, indz, inr, inrb
       USE momentum_transfer, ONLY: kdrags, inter, sdrag, drag_model
       USE pressure_epsilon, ONLY: ep, p
-      USE time_parameters, ONLY: dt, time
+      USE time_parameters, ONLY: dt, time, alpha, alphagrav
       USE gas_solid_viscosity, ONLY: viscg, viscs
       USE gas_solid_viscosity, ONLY: gas_viscosity, part_viscosity
       USE gas_solid_viscosity, ONLY: mug
@@ -286,21 +296,27 @@
       USE immersed_boundaries, ONLY: immb
       USE mass_sink, ONLY: sink
       USE particles_constants, ONLY: inrl
+      USE pressure_epsilon, ONLY: p, ep
+      USE pressure_epsilon, ONLY: pn, epn, pmodel
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm, ijkt, ijke, ijkn
+      USE set_indexes, ONLY: ctu1_subscr, ctu2_subscr
       USE turbulence_model, ONLY: mugt
+      USE flux_limiters, ONLY: ctu
 !
       IMPLICIT NONE
 !
       INTEGER :: i, j, k, is, imesh
-      INTEGER :: ijk
+      INTEGER :: ijk, ll, l, ls, ls1
       REAL*8 :: dxp, dyp, dzp, indxp, indyp, indzp
+      REAL*8 :: dxi, dxip1, dyj, dyjp1, dzk, dzkp1
       REAL*8 :: ugfw, ugfs, ugfb, vgfw, vgfs, vgfb, wgfw, wgfs, wgfb
       REAL*8 :: ugfx, ugfy, ugfz, vgfx, vgfy, vgfz, wgfx, wgfy, wgfz
       REAL*8 :: usfw, usfs, usfb, vsfw, vsfs, vsfb, wsfw, wsfs, wsfb
       REAL*8 :: usfx, usfy, usfz, vsfx, vsfy, vsfz, wsfx, wsfy, wsfz
-      REAL*8 :: rgpe, rgpn, rgpt, rlke, rlkn, rlkt
+      REAL*8 :: rgp_e, rgp_n, rgp_t, rlk_e, rlk_n, rlk_t
       REAL*8 :: rug_tmp, rvg_tmp, rwg_tmp
       REAL*8 :: rus_tmp, rvs_tmp, rws_tmp
+      REAL*8 :: epn_e, epn_n, epn_t, epsn_e, epsn_n, epsn_t
       REAL*8 :: force, presn, dragn
       REAL*8 :: pseudou, pseudov, pseudow, ep_e, ep_n, ep_t
       INTEGER :: fx, fy, fz
@@ -404,6 +420,8 @@
         IF( compute ) THEN
           CALL meshinds(ijk,imesh,i,j,k)
           CALL subscr(ijk)
+          IF (ctu > 0) CALL ctu1_subscr(ijk)
+          IF (ctu > 1) CALL ctu2_subscr(ijk)
 !
           ugfw = ugfe(imjk)
           ugfb = ugft(ijkm)
@@ -437,39 +455,58 @@
 !
 ! ... compute explicit (tilde) terms in the momentum equation (gas)
 ! 
-          dxp = dx(i) + dx(i+1)
-          dyp = dy(j) + dy(j+1)
-          dzp = dz(k) + dz(k+1)
+          dxi   = dx(i)
+          dxip1 = dx(i+1)
+          dyj   = dy(j)
+          dyjp1 = dy(j+1)
+          dzk   = dz(k)
+          dzkp1 = dz(k+1)
+          dxp   = dx(i) + dx(i+1)
+          dyp   = dy(j) + dy(j+1)
+          dzp   = dz(k) + dz(k+1)
           indxp = 1.D0 / dxp
           indyp = 1.D0 / dyp
           indzp = 1.D0 / dzp
+
+          IF ( pmodel == 1 ) THEN
+            epn_e = (dxi*epn(ijke) + dxip1*epn(ijk)) * indxp
+            epn_n = (dyj*epn(ijkn) + dyjp1*epn(ijk)) * indyp
+            epn_t = (dzk*epn(ijkt) + dzkp1*epn(ijk)) * indzp
+          ELSE IF ( pmodel == 2) THEN
+            epn_e = 1.D0
+            epn_n = 1.D0
+            epn_t = 1.D0
+          END IF
 !         
-          rgpe = (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke)) * indxp
-          rgpn = (dy(j+1)*rgp(ijk)+dy(j)*rgp(ijkn)) * indyp
-          rgpt = (dz(k+1)*rgp(ijk)+dz(k)*rgp(ijkt)) * indzp
+          rgp_e = (dx(i+1)*rgp(ijk)+dx(i)*rgp(ijke)) * indxp
+          rgp_n = (dy(j+1)*rgp(ijk)+dy(j)*rgp(ijkn)) * indyp
+          rgp_t = (dz(k+1)*rgp(ijk)+dz(k)*rgp(ijkt)) * indzp
 !
           rug_tmp = gvisx(ijk)                     
-          rug_tmp = rug_tmp + rgpe * gravx  
-          rug_tmp = rug_tmp - indxp * 2.D0 * ugfx * inrb(i)        
+          rug_tmp = rug_tmp - indxp * 2.D0 * ugfx * inrb(i) 
+          rug_tmp = rug_tmp + (1.D0-alphagrav)*(dx(i+1)*rgpn(ijk)+dx(i)*rgpn(ijke))*indxp * gravx  
           rug_tmp = rug_tmp - indy(j) * ugfy                  
-          rug_tmp = rug_tmp - indz(k) * ugfz   
+          rug_tmp = rug_tmp - indz(k) * ugfz  
+          rug_tmp = rug_tmp + (1.D0-alpha) * indxp *2.D0* epn_e * (pn(ijk)-pn(ijke)) 
           rug (ijk) = rugn(ijk) + dt * rug_tmp
           !
           IF (job_type == JOB_TYPE_3D) THEN
             rvg_tmp = gvisy(ijk)                     
-            rvg_tmp = rvg_tmp + rgpn * gravy  
+            rvg_tmp = rvg_tmp + (1.D0-alphagrav)*(dy(j+1)*rgpn(ijk)+dy(j)*rgpn(ijkn))*indyp*gravy  
             rvg_tmp = rvg_tmp - indx(i) * vgfx               
             rvg_tmp = rvg_tmp - indyp * 2.D0 * vgfy   
             rvg_tmp = rvg_tmp - indz(k) * vgfz    
+            rvg_tmp = rvg_tmp + (1.D0-alpha) * indyp *2.D0* epn_n * (pn(ijk)-pn(ijkn)) 
             rvg(ijk) = rvgn(ijk) + dt * rvg_tmp
             !
           END IF
 !
           rwg_tmp = gvisz(ijk)                     
-          rwg_tmp = rwg_tmp + rgpt * gravz  
-          rwg_tmp = rwg_tmp - indx(i) * wgfx * inr(i)                           
-          rwg_tmp = rwg_tmp - indy(j) * wgfy                                    
+          rwg_tmp = rwg_tmp + (1.D0-alphagrav)*(dz(k+1)*rgpn(ijk)+dz(k)*rgpn(ijkt))*indzp * gravz  
+          rwg_tmp = rwg_tmp - indx(i) * wgfx * inr(i)
+          rwg_tmp = rwg_tmp - indy(j) * wgfy
           rwg_tmp = rwg_tmp - indzp * 2.D0 * wgfz
+          rwg_tmp = rwg_tmp + (1.D0-alpha) * indzp *2.D0* epn_t * (pn(ijk)-pn(ijkt)) 
           rwg(ijk) = rwgn(ijk) + dt * rwg_tmp
           !
 !
@@ -508,45 +545,61 @@
               vsfz = vsft(ijk,is) - vsfb
               wsfy = wsfn(ijk,is) - wsfs
             END IF
+
+            IF ( pmodel == 1) THEN
+              epsn_e = (dxi*rlkn(ijke,is) + dxip1*rlkn(ijk,is)) * indxp * inrl(is)
+              epsn_n = (dyj*rlkn(ijkn,is) + dyjp1*rlkn(ijk,is)) * indyp * inrl(is)
+              epsn_t = (dzk*rlkn(ijkt,is) + dzkp1*rlkn(ijk,is)) * indzp * inrl(is)
+            ELSE IF ( pmodel == 2 ) THEN
+              epsn_e = 0.D0
+              epsn_n = 0.D0
+              epsn_t = 0.D0
+            END IF
 !
 ! ... compute explicit (tilde) terms in the momentum equation (particles)
 ! 
-            rlke = (dx(i+1)*rlk(ijk,is)+dx(i)*rlk(ijke,is)) * indxp
-            rlkn = (dy(j+1)*rlk(ijk,is)+dy(j)*rlk(ijkn,is)) * indyp
-            rlkt = (dz(k+1)*rlk(ijk,is)+dz(k)*rlk(ijkt,is)) * indzp
+            rlk_e = (dx(i+1)*rlk(ijk,is)+dx(i)*rlk(ijke,is)) * indxp
+            rlk_n = (dy(j+1)*rlk(ijk,is)+dy(j)*rlk(ijkn,is)) * indyp
+            rlk_t = (dz(k+1)*rlk(ijk,is)+dz(k)*rlk(ijkt,is)) * indzp
 !
             rus_tmp = pvisx(ijk,is)               
-            rus_tmp = rus_tmp + rlke * gravx 
-            rus_tmp = rus_tmp - indxp * 2.D0 * usfx * inrb(i)   
+            rus_tmp = rus_tmp - indxp * 2.D0 * usfx * inrb(i)
+            rus_tmp = rus_tmp + (1.D0-alphagrav) * indxp * gravx * &
+                      (dx(i+1)*rlkn(ijk,is)+dx(i)*rlkn(ijke,is))
             rus_tmp = rus_tmp - indy(j) * usfy  
             rus_tmp = rus_tmp - indz(k) * usfz 
+            rus_tmp = rus_tmp + (1.D0-alpha) * indxp *2.D0* epsn_e * (pn(ijk)-pn(ijke)) 
+            rus(ijk,is) = rusn(ijk,is) + dt * rus_tmp
             !
             ! ... add sink term (at bottom boundaries)
-            rus(ijk,is) = rusn(ijk,is) + &
-                          dt * (rus_tmp + sink(ijk,is)*us(ijk,is))
-            !
+            rus(ijk,is) = rus(ijk,is) + dt * sink(ijk,is)*us(ijk,is)
+!
             IF (job_type == JOB_TYPE_3D) THEN
               rvs_tmp = pvisy(ijk,is)              
-              rvs_tmp = rvs_tmp + rlkn * gravy 
+              rvs_tmp = rvs_tmp + (1.D0-alphagrav) * indyp * gravy * &
+                        (dy(j+1)*rlkn(ijk,is)+dy(j)*rlkn(ijkn,is))
               rvs_tmp = rvs_tmp - indx(i) * vsfx       
               rvs_tmp = rvs_tmp - indyp * 2.D0 * vsfy              
               rvs_tmp = rvs_tmp - indz(k) * vsfz    
+              rvs_tmp = rvs_tmp + (1.D0-alpha) * indyp *2.D0* epsn_n * (pn(ijk)-pn(ijkn)) 
+              rvs(ijk,is) = rvsn(ijk,is) + dt * rvs_tmp
               !
               ! ... add sink term (at bottom boundaries)
-              rvs(ijk,is) = rvsn(ijk,is) + &
-                            dt * (rvs_tmp + sink(ijk,is)*vs(ijk,is))
+              rvs(ijk,is) = rvs(ijk,is) + dt * sink(ijk,is) * vs(ijk,is)
               !
             END IF
 !
-            rws_tmp = pvisz(ijk,is)              
-            rws_tmp = rws_tmp + rlkt * gravz
+            rws_tmp = pvisz(ijk,is) 
+            rws_tmp = rws_tmp + (1.D0-alphagrav) * indzp * gravz * &
+                      ( rlkn(ijk,is) * dz(k+1) + rlkn(ijkt,is) * dz(k) )
             rws_tmp = rws_tmp - indx(i) * wsfx * inr(i)                 
             rws_tmp = rws_tmp - indy(j) * wsfy                      
-            rws_tmp = rws_tmp - indzp * 2.D0 * wsfz  
+            rws_tmp = rws_tmp - indzp * 2.D0 * wsfz
+            rws_tmp = rws_tmp + (1.D0-alpha) * indzp *2.D0* epsn_t * (pn(ijk)-pn(ijkt)) 
+            rws(ijk,is) = rwsn(ijk,is) + dt * rws_tmp
             !
             ! ... add sink term (at bottom boundaries)
-            rws(ijk,is) = rwsn(ijk,is) + &
-                          dt * (rws_tmp + sink(ijk,is)*ws(ijk,is))
+            rws(ijk,is) = rws(ijk,is) + dt * sink(ijk,is) * ws(ijk,is)
             !
 !
 ! ... Compute the gas-particle drag coefficients in the cell center
@@ -578,6 +631,77 @@
             CALL inter(appu(ijk,:), appv(ijk,:), appw(ijk,:), kpgv(:),    &
      &                 us, vs, ws, rlk, ijk)
           END IF
+
+          rug(ijk) = rug(ijk) - (1.D0-alpha)*(dxi*appu(ijke,1)+dxip1*appu(ijk,1)) &
+                                         *indxp*ug(ijk)
+          IF (job_type == JOB_TYPE_3D) THEN
+            rvg(ijk) = rvg(ijk) - (1.D0-alpha)*(dyj*appv(ijkn,1)+dyjp1*appv(ijk,1)) &
+                                           *indyp*vg(ijk)
+          END IF
+          rwg(ijk) = rwg(ijk) - (1.D0-alpha)*(dzk*appw(ijkt,1)+dzkp1*appw(ijk,1)) &
+                                         *indzp*wg(ijk)
+
+      DO l=2,nphase
+
+        ls1=l*(l-1)/2
+
+        DO ll=1,l
+
+          ls=ls1+ll
+
+          IF (ll == 1) THEN
+
+            rug(ijk) = rug(ijk) - (1.D0-alpha)*(dxi*appu(ijke,ls)+dxip1*appu(ijk,ls)) &
+                                           *indxp*us(ijk,l-1)
+            IF (job_type == JOB_TYPE_3D) THEN
+              rvg(ijk) = rvg(ijk) - (1.D0-alpha)*(dyj*appv(ijkn,ls)+dyjp1*appv(ijk,ls)) & 
+                                             *indyp*vs(ijk,l-1)
+            END IF
+            rwg(ijk) = rwg(ijk) - (1.D0-alpha)*(dzk*appw(ijkt,ls)+dzkp1*appw(ijk,ls)) &
+                                           *indzp*ws(ijk,l-1)
+
+            rus(ijk,l-1) = rus(ijk,l-1) - (1.D0-alpha)*(dxi*appu(ijke,ls)+dxip1*appu(ijk,ls)) &
+                                                   *indxp*ug(ijk)
+            IF (job_type == JOB_TYPE_3D) THEN
+              rvs(ijk,l-1) = rvs(ijk,l-1) - (1.D0-alpha)*(dyj*appv(ijkn,ls)+dyjp1*appv(ijk,ls)) &
+                                                     *indyp*vg(ijk)
+            END IF
+            rws(ijk,l-1) = rws(ijk,l-1) - (1.D0-alpha)*(dzk*appw(ijkt,ls)+dzkp1*appw(ijk,ls)) &
+                                                   *indzp*wg(ijk)
+
+          ELSE IF (ll == l) THEN
+
+            rus(ijk,l-1) = rus(ijk,l-1) - (1.D0-alpha)*(dxi*appu(ijke,ls)+dxip1*appu(ijk,ls)) &
+                                                   *indxp*us(ijk,l-1)
+            IF (job_type == JOB_TYPE_3D) THEN
+              rvs(ijk,l-1) = rvs(ijk,l-1) - (1.D0-alpha)*(dyj*appv(ijkn,ls)+dyjp1*appv(ijk,ls)) &
+                                                     *indyp*vs(ijk,l-1)
+            END IF
+            rws(ijk,l-1) = rws(ijk,l-1) - (1.D0-alpha)*(dzk*appw(ijkt,ls)+dzkp1*appw(ijk,ls)) &
+                                                  *indzp*ws(ijk,l-1)
+
+          ELSE
+
+            rus(ijk,l-1)  = rus(ijk,l-1)  - (1.D0-alpha)*(dxi*appu(ijke,ls)+dxip1*appu(ijk,ls)) &
+                                                     *indxp*us(ijk,ll-1)
+            rus(ijk,ll-1) = rus(ijk,ll-1) - (1.D0-alpha)*(dxi*appu(ijke,ls)+dxip1*appu(ijk,ls)) &
+                                                     *indxp*us(ijk,l-1)
+            IF (job_type == JOB_TYPE_3D) THEN
+              rvs(ijk,l-1)  = rvs(ijk,l-1)  - (1.D0-alpha)*(dyj*appv(ijkn,ls)+dyjp1*appv(ijk,ls)) &
+                                                       *indyp*vs(ijk,ll-1)
+              rvs(ijk,ll-1) = rvs(ijk,ll-1) - (1.D0-alpha)*(dyj*appv(ijkn,ls)+dyjp1*appv(ijk,ls)) &
+                                                       *indyp*vs(ijk,l-1)
+            END IF
+            rws(ijk,l-1)  = rws(ijk,l-1)  - (1.D0-alpha)*(dzk*appw(ijkt,ls)+dzkp1*appw(ijk,ls)) &
+                                                     *indzp*ws(ijk,ll-1)
+            rws(ijk,ll-1) = rws(ijk,ll-1) - (1.D0-alpha)*(dzk*appw(ijkt,ls)+dzkp1*appw(ijk,ls)) &
+                                                     *indzp*ws(ijk,l-1)
+
+          END IF
+
+        END DO
+
+      END DO
 !
 ! ... On the immersed boundary the explicit terms must be modified
 ! ... by adding a force to mimic the boundary
@@ -726,22 +850,23 @@
       USE dimensions, ONLY: nsolid, nx, ny, nz
       USE domain_mapping, ONLY: meshinds
       USE domain_mapping, ONLY: ncint, myijk, data_exchange
-      USE convective_fluxes_u, ONLY: flu, muscl_flu
+      USE convective_fluxes_u, ONLY: flu, muscl_flu, ctu1_flu, ctu2_flu
       USE convective_fluxes_v, ONLY: flv, muscl_flv
-      USE convective_fluxes_w, ONLY: flw, muscl_flw
+      USE convective_fluxes_w, ONLY: flw, muscl_flw, ctu1_flw, ctu2_flw
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
-      USE flux_limiters, ONLY: muscl
+      USE flux_limiters, ONLY: muscl, ctu
       USE gas_solid_density, ONLY: rgp, rlk
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE grid, ONLY: flag, fluid, bl_cell, immb_cell
       USE immersed_boundaries, ONLY: immb, b_e_, b_n_, b_t_
       USE interpolate_fields, ONLY: interpolate_x, interpolate_y, interpolate_z
       USE pressure_epsilon, ONLY: ep, p
-      USE set_indexes, ONLY: subscr, stencil, maskval, maskstencil, masks
+      USE set_indexes, ONLY: subscr, stencil, ctu1_subscr, ctu2_subscr
+      USE set_indexes, ONLY: maskval, maskstencil, masks
       USE set_indexes, ONLY: imjk, ijmk, ijkm
-      USE set_indexes, ONLY: ipjk, imjk, ijkp, imjkp, ijkm, ipjkm
       USE set_indexes, ONLY: nb, rnb
+      USE set_indexes, ONLY: ctu1_nb, ctu1_rnb, ctu2_nb, ctu2_rnb
 !
       IMPLICIT NONE
 !
@@ -760,6 +885,8 @@
         !
         IF( compute ) THEN
           CALL subscr(ijk)
+          IF (ctu > 0) CALL ctu1_subscr(ijk)
+          IF (ctu > 1) CALL ctu2_subscr(ijk)
           CALL meshinds(ijk,imesh,i,j,k)
 !
           IF (job_type == JOB_TYPE_2D ) THEN
@@ -785,6 +912,16 @@
             CALL rnb(u,ug,ijk)
             CALL rnb(w,wg,ijk)
             CALL nb(dens,rgp,ijk)
+            IF (ctu > 0) THEN
+              CALL ctu1_rnb(u,ug,ijk)
+              CALL ctu1_rnb(w,wg,ijk)
+              CALL ctu1_nb(dens,rgp,ijk)
+            END IF
+            IF (ctu > 1) THEN
+              CALL ctu2_rnb(u,ug,ijk)
+              CALL ctu2_rnb(w,wg,ijk)
+              CALL ctu2_nb(dens,rgp,ijk)
+            END IF
 !
             ! ... Mask non-physical velocities from Immersed Boundaries
             !
@@ -814,6 +951,23 @@
                                         dens_stagz, u, w, i, k)
             END IF
 
+            IF (ctu > 0) THEN
+!
+! ... First order Corner Transport Upwind correction (step 2)
+!
+              CALL ctu1_flu(ugfe(ijk), ugft(ijk), dens_stagx, u, w, i, k)
+              CALL ctu1_flw(wgfe(ijk), wgft(ijk), dens_stagz, u, w, i, k)
+!
+! ... Second order Corner Transport Upwind correction (step 3)
+!
+              IF (ctu > 1 .AND. muscl == 0 .AND. flag(ijk) == fluid) THEN
+                IF (i /= nx-1) CALL ctu2_flu(ugfe(ijk), ugft(ijk), &
+                                         dens_stagx, u, w, i, k)
+                IF (k /= nz-1) CALL ctu2_flw(wgfe(ijk), wgft(ijk), &
+                                         dens_stagz, u, w, i, k)
+              END IF
+            END IF
+
 ! ... (PARTICLES) ...
 !
 ! ... Compute convective fluxes by using First Order Upwind
@@ -824,6 +978,17 @@
               CALL rnb(u,us(:,is),ijk)
               CALL rnb(w,ws(:,is),ijk)
               CALL nb(dens,rlk(:,is),ijk)
+
+              IF (ctu > 0) THEN
+                CALL ctu1_rnb(u,us(:,is),ijk)
+                CALL ctu1_rnb(w,ws(:,is),ijk)
+                CALL ctu1_nb(dens,rlk(:,is),ijk)
+              END IF
+              IF (ctu > 1) THEN
+                CALL ctu2_rnb(u,us(:,is),ijk)
+                CALL ctu2_rnb(w,ws(:,is),ijk)
+                CALL ctu2_nb(dens,rlk(:,is),ijk)
+              END IF
 
               ! ... Mask non-physical velocities from Immersed Boundaries
               !
@@ -851,6 +1016,23 @@
                                           dens_stagx, u, w, i, k)
                 IF ( k /= nz-1 ) CALL muscl_flw(wsfe(ijk,is), wsft(ijk,is),  &
                                           dens_stagz, u, w, i, k)
+              END IF
+
+              IF (ctu > 0) THEN
+!
+! ... First order Corner Transport Upwind correction (step 2)
+!
+                CALL ctu1_flu(usfe(ijk,is), usft(ijk,is), dens_stagx, u, w, i, k)
+                CALL ctu1_flw(wsfe(ijk,is), wsft(ijk,is), dens_stagz, u, w, i, k)
+!
+! ... Second order Corner Transport Upwind correction (step 3)
+!
+                IF (ctu > 1 .AND. muscl == 0 .AND. flag(ijk) == fluid) THEN
+                  IF (i/=nx-1) CALL ctu2_flu(usfe(ijk,is), usft(ijk,is), &
+                                      dens_stagx, u, w, i, k)
+                  IF (k/=nz-1) CALL ctu2_flw(wsfe(ijk,is), wsft(ijk,is), &
+                                           dens_stagz, u, w, i, k)
+                END IF
               END IF
             END DO
             
@@ -921,6 +1103,7 @@
                 CALL muscl_flw(wgfe(ijk), wgfn(ijk), wgft(ijk), &
                          dens_stagz, u, v, w, i, j, k)
             END IF
+
 !
 ! ... (PARTICLES) ...
 !

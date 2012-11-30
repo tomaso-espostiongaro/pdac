@@ -50,7 +50,7 @@
       USE domain_mapping, ONLY: myijk, meshinds
       USE enthalpy_matrix, ONLY: ftem
       USE environment, ONLY: cpclock, timing
-      USE flux_limiters, ONLY: muscl
+      USE flux_limiters, ONLY: muscl, ctu
       USE gas_solid_temperature, ONLY: tg, ts, sieg, sies
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       USE gas_solid_density, ONLY: rog, rgp, rgpn, rlk, rlkn
@@ -67,6 +67,7 @@
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE set_indexes, ONLY: first_subscr, third_subscr
+      USE set_indexes, ONLY: ctu1_subscr, ctu2_subscr
       USE tilde_energy, ONLY: htilde
       USE tilde_momentum, ONLY: tilde, appu, appv, appw
       USE time_parameters, ONLY: time, dt, timestart, tpr, sweep
@@ -134,6 +135,8 @@
         compute = BTEST(flag(ijk),0)
         IF ( compute ) THEN
           CALL first_subscr( ijk )
+          IF (ctu > 0) CALL ctu1_subscr(ijk)
+          IF (ctu > 1) CALL ctu2_subscr(ijk)
           CALL assemble_matrix( ijk )
           CALL solve_velocities( ijk)
         END IF
@@ -166,6 +169,8 @@
         compute = BTEST(flag(ijk),0)
         IF ( compute  ) THEN
           CALL first_subscr( ijk )
+          IF (ctu > 0) CALL ctu1_subscr(ijk)
+          IF (ctu > 1) CALL ctu2_subscr(ijk)
           CALL calc_gas_mass_flux( ijk )
           !
           ! ... compute the derivative of the gas mass residual
@@ -182,7 +187,7 @@
         END IF
       END DO
 
-      !CALL test_fluxes
+!      CALL test_fluxes
 !
 ! ... Here Start the external iterative sweep.
 !/////////////////////////////////////////////////////////////////////
@@ -242,6 +247,8 @@
              CALL meshinds(ijk,imesh,i,j,k)
              CALL first_subscr(ijk)
              IF (muscl > 0) CALL third_subscr(ijk)
+             IF (ctu > 0) CALL ctu1_subscr(ijk)
+             IF (ctu > 1) CALL ctu2_subscr(ijk)
 
              ! ... Compute the volumes partially filled by the
              ! ... topography
@@ -438,6 +445,15 @@
       END IF
 !*******************************************************************
 !
+! ... IS DATA EXCHANGE NEEDED??????
+!
+      CALL data_exchange(ug)
+      IF (job_type == JOB_TYPE_3D) CALL data_exchange(vg)
+      CALL data_exchange(wg)
+      CALL data_exchange(us)
+      IF (job_type == JOB_TYPE_3D) CALL data_exchange(vs)
+      CALL data_exchange(ws)
+
       DEALLOCATE(rgfe)
       DEALLOCATE(rgft)
       DEALLOCATE(rsfe)
@@ -538,7 +554,6 @@
         CALL calc_res( i, j, k, ijk, dg)
 !
         IF ( ( DABS(dg) > conv_ .OR. DABS(dg) >= DABS(dgorig) ) ) THEN
-
           cvg = .FALSE.
           IF( nit == 1 .AND. loop == 1 ) dgorig = dg
           d3 = dg
@@ -580,14 +595,15 @@
 ! ... compute the gas mass fluxes by using the stencil, as defined in the
 ! ... 'subscr' module
 !
-      USE convective_mass_fluxes, ONLY: fmas, masf
+      USE convective_mass_fluxes, ONLY: fmas, masf, ctu1_fmas, ctu2_fmas
       USE dimensions
-      USE flux_limiters, ONLY: muscl
+      USE flux_limiters, ONLY: muscl, ctu
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE gas_solid_density, ONLY: rgp
       USE grid, ONLY: flag, fluid
       USE io_files, ONLY: testunit
       USE set_indexes, ONLY: first_nb, first_rnb, third_nb, third_rnb
+      USE set_indexes, ONLY: ctu1_nb, ctu1_rnb, ctu2_nb, ctu2_rnb
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE control_flags, ONLY: job_type, implicit_fluxes, &
                                implicit_enthalpy
@@ -619,7 +635,26 @@
             CALL fmas( rgfe( ijk ), rgft( ijk ), rgfe( imjk ), rgft( ijkm ), &
                        dens, u, w, ijk )
           END IF
-
+!
+! ... First order Corner Transport Upwind correction (step 2)
+!
+          IF (ctu > 0) THEN
+            CALL ctu1_nb ( dens, rgp, ijk )
+            CALL ctu1_rnb( u, ug, ijk )
+            CALL ctu1_rnb( w, wg, ijk )
+            CALL ctu1_fmas(rgfe( ijk ), rgft( ijk ), rgfe( imjk ), rgft( ijkm ), &
+                    dens, u, w, ijk)
+!
+! ... Second order Corner Transport Upwind correction (step 3)
+!
+            IF (ctu > 1 .AND. muscl == 0 .AND. flag(ijk)==fluid) THEN
+              CALL ctu2_nb ( dens, rgp, ijk )
+              CALL ctu2_rnb( u, ug, ijk )
+              CALL ctu2_rnb( w, wg, ijk )
+              CALL ctu2_fmas(rgfe( ijk ), rgft( ijk ), rgfe( imjk ), rgft( ijkm ), &
+                      dens, u, w, ijk)
+            END IF
+          END IF
 
         ELSE IF (job_type == JOB_TYPE_3D) THEN
 !
@@ -647,7 +682,7 @@
                        dens, u, v, w, ijk )
 
           END IF
-        ENDIF
+        END IF
 
       END SUBROUTINE calc_gas_mass_flux   
 !----------------------------------------------------------------------
@@ -678,9 +713,7 @@
       END IF
 !
       res  = rgp(ijk) - rgpn(ijk) + dt * ivf * (resx+resy+resz)
-!      
-!          - dt * (r1(ijk)+r2(ijk)+r3(ijk)+r4(ijk)+r5(ijk))
-
+!
       RETURN
       END SUBROUTINE calc_res
 !-----------------------------------------------------------------------
@@ -691,13 +724,14 @@
 ! ... compute the particle mass fluxes by using the stencil
 ! ... as defined in the 'subscr' module
 
-      USE convective_mass_fluxes, ONLY: fmas, masf
+      USE convective_mass_fluxes, ONLY: fmas, masf, ctu1_fmas, ctu2_fmas
       USE dimensions
-      USE flux_limiters, ONLY: muscl
+      USE flux_limiters, ONLY: muscl, ctu
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE gas_solid_density, ONLY: rlk
       USE grid, ONLY: flag, fluid
       USE set_indexes, ONLY: first_nb, first_rnb, third_nb, third_rnb
+      USE set_indexes, ONLY: ctu1_nb, ctu1_rnb, ctu2_nb, ctu2_rnb
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
@@ -733,6 +767,28 @@
                       dens, u, w, ijk)
               
             END IF
+!
+! ... First order Corner Transport Upwind correction (step 2)
+!
+            IF (ctu > 0) THEN
+              CALL ctu1_nb(dens,rlk(:,is),ijk)
+              CALL ctu1_rnb(u,us(:,is),ijk)
+              CALL ctu1_rnb(w,ws(:,is),ijk)
+              CALL ctu1_fmas(rsfe(ijk,is), rsft(ijk,is),    &
+                      rsfe(imjk,is), rsft(ijkm,is), &
+                      dens, u, w, ijk)
+!
+! ... Second order Corner Transport Upwind correction (step 3)
+!
+              IF (ctu > 1  .AND. muscl == 0 .AND. flag(ijk) == fluid) THEN
+                CALL ctu2_nb(dens,rlk(:,is),ijk)
+                CALL ctu2_rnb(u,us(:,is),ijk)
+                CALL ctu2_rnb(w,ws(:,is),ijk)
+                CALL ctu2_fmas(rsfe(ijk,is), rsft(ijk,is),    &
+                        rsfe(imjk,is), rsft(ijkm,is), &
+                        dens, u, w, ijk)
+              END IF
+            END IF
 
           ELSE IF (job_type == JOB_TYPE_3D) THEN
 !
@@ -759,7 +815,6 @@
                     dens, u, v, w, ijk)
 
             END IF
-
           END IF
         END DO
 

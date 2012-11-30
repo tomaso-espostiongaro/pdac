@@ -108,7 +108,7 @@
       USE dome_conditions, ONLY: conduit_radius, dome_radius
       USE enthalpy_matrix, ONLY: flim
       USE eos_gas, ONLY: update_eosg
-      USE flux_limiters, ONLY: beta, muscl
+      USE flux_limiters, ONLY: beta, muscl, ctu
       USE gas_solid_viscosity, ONLY: gas_viscosity, part_viscosity
       USE gas_solid_viscosity, ONLY: repulsive_model
       USE grid, ONLY: dx, dy, dz, itc, zzero
@@ -139,7 +139,7 @@
       USE mass_sink, ONLY: isink, rprox
       USE specific_heat_module, ONLY: icpc, tref
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
-     &                            timestart, rungekut, tau, tau1, tau2, ift
+     &                            timestart, rungekut, tau, tau1, tau2, ift, alpha, alphagrav
       USE turbulence_model, ONLY: iturb, cmut, iss, modturbo
       USE volcano_topography, ONLY: itp, iavv, cellsize, min_angle, max_angle,&
                                      filtersize, dem_file, nocrater, rim_quota, &
@@ -198,7 +198,7 @@
 
       NAMELIST / numeric / rungekut, beta, muscl, mass_limiter, vel_limiter, &
         inmax, maxout, omega, delg, implicit_fluxes, implicit_enthalpy, &
-        update_eosg, optimization, lim_type, rlim, flim
+        update_eosg, optimization, lim_type, rlim, flim, alpha, alphagrav, ctu
 
       INTEGER :: i, j, k, n, m, ig, ierr, lim_type
       CHARACTER(LEN=80) :: card
@@ -443,6 +443,9 @@
       rlim = 1.0D-8     ! 
                         ! limit for off-diagonal contribution in matrix
       flim = 1.0D-6     ! inversion
+      alpha = 1.0D0
+      alphagrav = 0.0D0
+      ctu = 0
                         ! 
 !
 ! :::::::::::::::::::::::  R E A D   N A M E L I S T S ::::::::::::::::
@@ -744,6 +747,9 @@
       CALL bcast_logical(update_eosg,1,root)
       CALL bcast_real(rlim,1,root)
       CALL bcast_real(flim,1,root)
+      CALL bcast_real(alpha,1,root)
+      CALL bcast_real(alphagrav,1,root)
+      CALL bcast_integer(ctu,1,root)
 !
 !
 ! :::::::::::::::::::::::  R E A D   C A R D S ::::::::::::::::::::::::

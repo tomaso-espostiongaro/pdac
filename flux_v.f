@@ -49,50 +49,44 @@
       REAL*8 :: dyp, indyp
       REAL*8 :: gradc, grade, gradw, gradn, grads, gradt, gradb
 
-      dyp=dy(j)+dy(j+1)
-      indyp=1.D0/dyp
+      dyp = dy(j)+dy(j+1)
+      indyp = 1.D0/dyp
 !
 ! ... on West volume bondary
 !
       IF( .NOT.BTEST(flag(imjk),0) ) THEN
         cs = (u%wn * dy(j) + u%w * dy(j+1)) * indyp
-        IF ( cs >= 0.D0 ) fw = dens%w * v%w * cs
-        IF ( cs <  0.D0 ) fw = dens%c * v%c * cs
+        fw = 0.5D0*(cs-ABS(cs))*dens%c*v%c + 0.5D0*(cs+ABS(cs))*dens%w*v%w 
       END IF
 !
 ! ... on South volume bondary
 !
       IF( .NOT.BTEST(flag(ijmk),0) ) THEN
         cs = 0.5D0 * ( v%c + v%s ) 
-        IF ( cs >= 0.D0 ) fs = dens%s * v%s * cs
-        IF ( cs <  0.D0 ) fs = dens%c * v%c * cs
+        fs = 0.5D0*(cs-ABS(cs))*dens%c*v%c + 0.5D0*(cs+ABS(cs))*dens%s*v%s 
       END IF
 !
 ! ... on Bottom volume bondary
 !
       IF( .NOT.BTEST(flag(ijkm),0) ) THEN
         cs = (w%nb * dy(j) + w%b * dy(j+1)) * indyp
-        IF ( cs >= 0.D0 ) fb = dens%b * v%b * cs
-        IF ( cs <  0.D0 ) fb = dens%c * v%c * cs
+        fb = 0.5D0*(cs-ABS(cs))*dens%c*v%c + 0.5D0*(cs+ABS(cs))*dens%b*v%b 
       END IF
 !
 ! ... on East volume boundary
 !
       cs = indyp * (u%c * dy(j+1) + u%n * dy(j))
-      IF ( cs >= 0.D0 ) fe  = dens%c * v%c * cs
-      IF ( cs <  0.D0 ) fe  = dens%e * v%e * cs
+      fe = 0.5D0*(cs-ABS(cs))*dens%e*v%e + 0.5D0*(cs+ABS(cs))*dens%c*v%c 
 !
 ! ... on North volume boundary
 !
       cs = 0.5D0 * ( v%n + v%c )
-      IF (cs >= 0.D0) fn  = dens%c * v%c * cs
-      IF (cs <  0.D0) fn  = dens%n * v%n * cs
+      fn = 0.5D0*(cs-ABS(cs))*dens%n*v%n + 0.5D0*(cs+ABS(cs))*dens%c*v%c 
 !
 ! ... on Top volume boundary
 !
       cs = indyp * (w%c * dy(j+1) + w%n * dy(j))
-      IF (cs >= 0.D0) ft  = dens%c * v%c * cs
-      IF (cs <  0.D0) ft  = dens%t * v%t * cs
+      ft = 0.5D0*(cs-ABS(cs))*dens%t*v%t + 0.5D0*(cs+ABS(cs))*dens%c*v%c 
 !
       RETURN
       END SUBROUTINE flv_3d
@@ -118,7 +112,6 @@
       REAL*8 :: dxm, dxp, dxpp, indxpp, indxp, indxm
       REAL*8 :: dzp, indzp, dzm, indzm, dzpp, indzpp
       REAL*8 :: gradc, grade, gradw, gradn, grads, gradt, gradb
-      REAL*8 :: dens0, dens1, dens2
 
       INTEGER :: ip2, jp2, kp2
 !
@@ -126,37 +119,34 @@
       jp2 = MIN( ny, j+2 )
       kp2 = MIN( nz, k+2 )
 
-      dyp=dy(j)+dy(j+1)
-      dxm=dx(i)+dx(i-1)
-      dxp=dx(i)+dx(i+1)
-      dxpp=dx(i+1)+dx(ip2)
-      dzm=dz(k)+dz(k-1)
-      dzp=dz(k)+dz(k+1)
-      dzpp=dz(k+1)+dz(kp2)
+      dyp  = dy(j)  + dy(j+1)
+      dxm  = dx(i)  + dx(i-1)
+      dxp  = dx(i)  + dx(i+1)
+      dxpp = dx(i+1)+ dx(ip2)
+      dzm  = dz(k)  + dz(k-1)
+      dzp  = dz(k)  + dz(k+1)
+      dzpp = dz(k+1)+ dz(kp2)
 
-      indyp=1.D0/dyp
-      indxm=1.D0/dxm
-      indxp=1.D0/dxp
-      indxpp=1.D0/dxpp
-      indzm=1.D0/dzm
-      indzp=1.D0/dzp
-      indzpp=1.D0/dzpp
+      indyp  = 1.D0/dyp
+      indxm  = 1.D0/dxm
+      indxp  = 1.D0/dxp
+      indxpp = 1.D0/dxpp
+      indzm  = 1.D0/dzm
+      indzp  = 1.D0/dzp
+      indzpp = 1.D0/dzpp
 !
 ! ... MUSCL reconstruction of momentum
 !
 ! ... on East volume boundary
 !
-      dens0 = indxp * (dx(i)*dens%e + dx(i+1)*dens%c)
-
-      gradw = 2.D0 * indxm  * dens%c * (v%c  - v%w)
-      gradc = 2.D0 * indxp  * dens0 * (v%e  - v%c)
-      grade = 2.D0 * indxpp * dens%e * (v%ee - v%e)
+      gradw = 2.D0 * indxm  * (v%c *dens%c  - v%w*dens%w)
+      gradc = 2.D0 * indxp  * (v%e *dens%e  - v%c*dens%c)
+      grade = 2.D0 * indxpp * (v%ee*dens%ee - v%e*dens%e)
 !
-      lim = 0.D0
+      lim  = 0.D0
       erre = 0.D0
 !
       cs = indyp * (u%c * dy(j+1) + u%n * dy(j))
-      !cn = cs * dt * 2.D0 * indxp
       IF ( cs >= 0.D0 ) THEN
         IF (gradc /= 0) erre = gradw / gradc
 	incr = 0.5D0 * dx(i)
@@ -173,17 +163,14 @@
 !
 ! ... on North volume boundary
 !
-      dens1 = 0.5D0 * (dens%n + dens%c)
-
-      grads = dens%c * (v%c  - v%s) * indy(j)
-      gradc = dens1 * (v%n  - v%c) * indy(j+1)
-      gradn = dens%n * (v%nn - v%n) * indy(jp2)
+      grads = (v%c *dens%c  - v%s*dens%s) * indy(j)
+      gradc = (v%n *dens%n  - v%c*dens%c) * indy(j+1)
+      gradn = (v%nn*dens%nn - v%n*dens%n) * indy(jp2)
 !
-      lim = 0.D0
+      lim  = 0.D0
       erre = 0.D0
 !
       cs = 0.5D0 * ( v%n + v%c )
-      !cn = cs * dt * indy(j+1)
       IF (cs >= 0.D0) THEN
         IF (gradc /= 0) erre = grads / gradc
 	incr = 0.5D0 * dy(j+1)
@@ -200,17 +187,14 @@
 !
 ! ... on Top volume boundary
 !
-      dens2 = indzp * (dz(k)*dens%t + dz(k+1)*dens%c)
-
-      gradb = dens%c * (v%c  - v%b) * 2.D0 * indzm
-      gradc = dens2 * (v%t  - v%c) * 2.D0 * indzp
-      gradt = dens%t * (v%tt - v%t) * 2.D0 * indzpp
+      gradb = (v%c *dens%c  - v%b*dens%b) * 2.D0 * indzm
+      gradc = (v%t *dens%t  - v%c*dens%c) * 2.D0 * indzp
+      gradt = (v%tt*dens%tt - v%t*dens%t) * 2.D0 * indzpp
 !
-      lim = 0.D0
+      lim  = 0.D0
       erre = 0.D0
 !
       cs = (dy(j+1) * w%c + dy(j) * w%n) * indyp
-      !cn = cs * dt * 2.D0 * indzp
       IF (cs >= 0.D0) THEN
         IF (gradc /= 0) erre = gradb / gradc
 	incr = 0.5D0 * dz(k)

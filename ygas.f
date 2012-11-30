@@ -37,7 +37,9 @@
       USE grid, ONLY: flag
       USE immersed_boundaries, ONLY: faces, immb
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
+      USE set_indexes, ONLY: ctu1_subscr, ctu2_subscr
       USE time_parameters, ONLY: dt,time, sweep
+      USE flux_limiters, ONLY: ctu
 !
       IMPLICIT NONE
 !
@@ -86,6 +88,8 @@
 
          CALL meshinds(ijk,imesh,i,j,k)
          CALL subscr(ijk)
+         IF (ctu > 0) CALL ctu1_subscr(ijk)
+         IF (ctu > 1) CALL ctu2_subscr(ijk)
 
          yfx = 0.D0
          yfy = 0.D0
@@ -154,17 +158,19 @@
 !
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
-      USE convective_fluxes_sc, ONLY: fsc, muscl_fsc
+      USE convective_fluxes_sc, ONLY: fsc, muscl_fsc, ctu1_fsc, ctu2_fsc
       USE dimensions, ONLY: ngas
       USE domain_mapping, ONLY: ncint, data_exchange
       USE eos_gas, ONLY: ygc
-      USE flux_limiters, ONLY: muscl
+      USE flux_limiters, ONLY: muscl, ctu
       USE gas_solid_density, ONLY: rgp
       USE gas_solid_velocity, ONLY: ug, vg, wg
       USE grid, ONLY: flag, fluid
       USE set_indexes, ONLY: stencil
       USE set_indexes, ONLY: first_nb, first_rnb, third_nb, third_rnb
+      USE set_indexes, ONLY: ctu1_nb, ctu1_rnb, ctu2_nb, ctu2_rnb
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
+      USE set_indexes, ONLY: ctu1_subscr, ctu2_subscr
 
       IMPLICIT NONE
 
@@ -176,66 +182,90 @@
 !
       DO ijk = 1, ncint
         compute  = BTEST(flag(ijk),0)
-       IF( compute ) THEN
-         CALL subscr(ijk)
+        IF( compute ) THEN
+          CALL subscr(ijk)
+          IF (ctu > 0) CALL ctu1_subscr(ijk)
+          IF (ctu > 1) CALL ctu2_subscr(ijk)
 
-         DO ig=1,ngas
+          DO ig=1,ngas
            
-           IF (job_type == JOB_TYPE_2D ) THEN
+            IF (job_type == JOB_TYPE_2D ) THEN
+!
+! ... Compute fluxes by using First Order Upwinds
+!
+              ! ... Assemble the first order computational stencils
+	      CALL first_nb(dens,rgp(:),ijk)
+	      CALL first_nb(conc,ygc(:,ig),ijk)
+              CALL first_rnb(u,ug,ijk)
+	      CALL first_rnb(w,wg,ijk)
+
+  	      CALL fsc(yfe(ijk,ig), yft(ijk,ig),      &
+                       yfe(imjk,ig), yft(ijkm,ig),   &
+                       dens, conc, u, w, ijk)
+!
+! ... Second order MUSCL correction
+!
+              IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
+
+                CALL third_nb(dens,rgp(:),ijk)
+                CALL third_nb(conc,ygc(:,ig),ijk)
+                CALL muscl_fsc(yfe(ijk,ig), yft(ijk,ig),      &
+                             dens, conc, u, w, ijk)
+
+              END IF
+
+              IF (ctu > 0) THEN
+!
+! ... First order Corner Transport Upwind correction (step 2)
+!
+                CALL ctu1_nb(dens,rgp(:),ijk)
+                CALL ctu1_nb(conc,ygc(:,ig),ijk)
+                CALL ctu1_rnb(u,ug,ijk)
+                CALL ctu1_rnb(w,wg,ijk)
+                CALL ctu1_fsc(yfe(ijk,ig), yft(ijk,ig),     &
+                        dens, conc, u, w, ijk)
+!
+! ... Second order Corner Transport Upwind correction (step 3)
+!
+                IF (ctu > 1 .AND. muscl == 0 .AND. flag(ijk) == fluid) THEN
+                  CALL ctu2_nb(dens,rgp(:),ijk)
+                  CALL ctu2_nb(conc,ygc(:,ig),ijk)
+                  CALL ctu2_rnb(u,ug,ijk)
+                  CALL ctu2_rnb(w,wg,ijk)
+                  CALL ctu2_fsc(yfe(ijk,ig), yft(ijk,ig),     &
+                          dens, conc, u, w, ijk)
+                END IF
+              END IF
+
+            ELSE IF (job_type == JOB_TYPE_3D) THEN
 !
 ! ... Compute fluxes by using First Order Upwinds
 !
              ! ... Assemble the first order computational stencils
-	     CALL first_nb(dens,rgp(:),ijk)
-	     CALL first_nb(conc,ygc(:,ig),ijk)
-             CALL first_rnb(u,ug,ijk)
-	     CALL first_rnb(w,wg,ijk)
+	      CALL first_nb(dens,rgp(:),ijk)
+	      CALL first_nb(conc,ygc(:,ig),ijk)
+              CALL first_rnb(u,ug,ijk)
+	      CALL first_rnb(v,vg,ijk)
+	      CALL first_rnb(w,wg,ijk)
 
-  	     CALL fsc(yfe(ijk,ig), yft(ijk,ig),      &
-                      yfe(imjk,ig), yft(ijkm,ig),   &
-                      dens, conc, u, w, ijk)
+  	      CALL fsc(yfe(ijk,ig), yfn(ijk,ig), yft(ijk,ig),      &
+                       yfe(imjk,ig), yfn(ijmk,ig), yft(ijkm,ig),   &
+                       dens, conc, u, v, w, ijk)
 !
 ! ... Second order MUSCL correction
 !
-             IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
+              IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
 
-               CALL third_nb(dens,rgp(:),ijk)
-               CALL third_nb(conc,ygc(:,ig),ijk)
-  	       CALL muscl_fsc(yfe(ijk,ig), yft(ijk,ig),      &
-                            dens, conc, u, w, ijk)
+                CALL third_nb(dens,rgp(:),ijk)
+                CALL third_nb(conc,ygc(:,ig),ijk)
+                CALL muscl_fsc(yfe(ijk,ig), yfn(ijk,ig), yft(ijk,ig),      &
+                               dens, conc, u, v, w, ijk)
 
-             END IF
+              END IF
 
-           ELSE IF (job_type == JOB_TYPE_3D) THEN
-!
-! ... Compute fluxes by using First Order Upwinds
-!
-             ! ... Assemble the first order computational stencils
-	     CALL first_nb(dens,rgp(:),ijk)
-	     CALL first_nb(conc,ygc(:,ig),ijk)
-             CALL first_rnb(u,ug,ijk)
-	     CALL first_rnb(v,vg,ijk)
-	     CALL first_rnb(w,wg,ijk)
-
-  	     CALL fsc(yfe(ijk,ig), yfn(ijk,ig), yft(ijk,ig),      &
-                      yfe(imjk,ig), yfn(ijmk,ig), yft(ijkm,ig),   &
-                      dens, conc, u, v, w, ijk)
-!
-! ... Second order MUSCL correction
-!
-             IF (muscl > 0 .AND. flag(ijk)==fluid) THEN
-
-               CALL third_nb(dens,rgp(:),ijk)
-               CALL third_nb(conc,ygc(:,ig),ijk)
-  	       CALL muscl_fsc(yfe(ijk,ig), yfn(ijk,ig), yft(ijk,ig),      &
-                              dens, conc, u, v, w, ijk)
-
-             END IF
-
-           END IF
-         END DO
-         
-       END IF
+            END IF
+          END DO
+        END IF
       END DO
       
       CALL data_exchange(yfe)
