@@ -74,7 +74,7 @@
       USE basic_types, ONLY: imatrix
       USE control_flags, ONLY: job_type, prog
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
-      USE parallel, ONLY: nproc, mpime, root
+      USE parallel, ONLY: mpime, nproc
 !
       IMPLICIT NONE
 !
@@ -491,7 +491,7 @@
         USE dimensions
         USE basic_types, ONLY: imatrix
         USE control_flags, ONLY: job_type
-      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
+        USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
 !
         INTEGER, INTENT(IN) :: ijk
         INTEGER, INTENT(IN) :: mpime
@@ -529,16 +529,20 @@
           i = MOD( ( ijk - 1 ), nx) + 1
         
 ! ...     loop over the first neighbouring cells
-          DO im = -2, 2
-            DO km = -2, 2
-              IF( ( ABS( im ) + ABS( km ) ) <= 2 ) THEN
+          DO im = -2, 3
+            DO km = -2, 3
+              IF( ( ABS( im ) + ABS( km ) ) <= 4 ) THEN
                 IF( (im /= 0) .OR. (km /= 0) ) THEN
                   ii = im
                   kk = km 
                   IF( ( i == 2    ) .AND. ( ii == -2 ) ) ii = -1
                   IF( ( i == nx-1 ) .AND. ( ii == +2 ) ) ii = +1
+                  IF( ( i == nx-1 ) .AND. ( ii == +3 ) ) ii = +1
+                  IF( ( i == nx-2 ) .AND. ( ii == +3 ) ) ii = +2
                   IF( ( k == 2    ) .AND. ( kk == -2 ) ) kk = -1
                   IF( ( k == nz-1 ) .AND. ( kk == +2 ) ) kk = +1
+                  IF( ( k == nz-1 ) .AND. ( kk == +3 ) ) kk = +1
+                  IF( ( k == nz-2 ) .AND. ( kk == +3 ) ) kk = +2
                   ijke = ijk + ii + kk * nx
                   ipe =  cell_owner(ijke) 
                   IF( ipe /= mpime) THEN
@@ -581,20 +585,26 @@
           IF( is_my_cell_ ) THEN
 
              IF( fill ) THEN
-               DO km = -2, 2
+               DO km = -2, 3
                  kk = km
                  IF( ( k == 2    ) .AND. ( kk == -2 ) ) kk = -1
                  IF( ( k == nz-1 ) .AND. ( kk == +2 ) ) kk = +1
-                 DO jm = -2, 2
+                 IF( ( k == nz-1 ) .AND. ( kk == +3 ) ) kk = +1
+                 IF( ( k == nz-2 ) .AND. ( kk == +3 ) ) kk = +2
+                 DO jm = -2, 3
                    jj = jm
                    IF( ( j == 2    ) .AND. ( jj == -2 ) ) jj = -1
                    IF( ( j == ny-1 ) .AND. ( jj == +2 ) ) jj = +1
-                   DO im = -2, 2
-                     IF( ( ABS( im ) + ABS( jm ) + ABS( km ) ) <= 2 ) THEN
+                   IF( ( j == ny-1 ) .AND. ( jj == +3 ) ) jj = +1
+                   IF( ( j == ny-2 ) .AND. ( jj == +3 ) ) jj = +2
+                   DO im = -2, 3
+                     IF( ( ABS( im ) + ABS( jm ) + ABS( km ) ) <= 5 ) THEN
                        IF( (im /= 0) .OR. (jm /= 0) .OR. (km /= 0) ) THEN
                          ii = im
                          IF( ( i == 2    ) .AND. ( ii == -2 ) ) ii = -1
                          IF( ( i == nx-1 ) .AND. ( ii == +2 ) ) ii = +1
+                         IF( ( i == nx-1 ) .AND. ( ii == +3 ) ) ii = +1
+                         IF( ( i == nx-2 ) .AND. ( ii == +3 ) ) ii = +2
                          ijke = ijk + ii + jj * nx + kk * nx*ny
    ! ...                 the cell ijke is local, set the mapping with cell ijkl
                          ijkel = cell_g2l(ijke, mpime)
@@ -606,24 +616,28 @@
                END DO
              END IF
 
-
           ELSE
 
-
-             DO km = -2, 2
+             DO km = -2, 3
                kk = km
                IF( ( k == 2    ) .AND. ( kk == -2 ) ) kk = -1
                IF( ( k == nz-1 ) .AND. ( kk == +2 ) ) kk = +1
-               DO jm = -2, 2
+               IF( ( k == nz-1 ) .AND. ( kk == +3 ) ) kk = +1
+               IF( ( k == nz-2 ) .AND. ( kk == +3 ) ) kk = +2
+               DO jm = -2, 3
                  jj = jm
                  IF( ( j == 2    ) .AND. ( jj == -2 ) ) jj = -1
                  IF( ( j == ny-1 ) .AND. ( jj == +2 ) ) jj = +1
-                 DO im = -2, 2
-                   IF( ( ABS( im ) + ABS( jm ) + ABS( km ) ) <= 2 ) THEN
+                 IF( ( j == ny-1 ) .AND. ( jj == +3 ) ) jj = +1
+                 IF( ( j == ny-2 ) .AND. ( jj == +3 ) ) jj = +2
+                 DO im = -2, 3
+                   IF( ( ABS( im ) + ABS( jm ) + ABS( km ) ) <= 5 ) THEN
                      IF( (im /= 0) .OR. (jm /= 0) .OR. (km /= 0) ) THEN
                        ii = im
                        IF( ( i == 2    ) .AND. ( ii == -2 ) ) ii = -1
                        IF( ( i == nx-1 ) .AND. ( ii == +2 ) ) ii = +1
+                       IF( ( i == nx-1 ) .AND. ( ii == +3 ) ) ii = +1
+                       IF( ( i == nx-2 ) .AND. ( ii == +3 ) ) ii = +2
                        ijke = ijk + ii + jj * nx + kk * nx*ny
                        ipe  =  cell_owner(ijke)
                        IF( ipe /= mpime ) THEN
@@ -647,10 +661,7 @@
                  END DO
                END DO
              END DO
-
-
           END IF
-
 
         ELSE 
 
@@ -856,7 +867,8 @@
 !
         USE dimensions
         USE control_flags, ONLY: job_type
-      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
+        USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
+        USE flux_limiters, ONLY: ctu
 !
         IMPLICIT NONE
         INTEGER :: myinds(:,:)
@@ -864,14 +876,51 @@
 !
         INTEGER :: i, j, k, ijk, imesh
 
-        INTEGER ::  ipjk, imjk, ippjk, immjk, ijpk, ipjpk, imjpk, ijmk,  &
-                    ipjmk, imjmk, ijppk, ijmmk, ijkp, ipjkp, imjkp, ijpkp,  &
-                    ijmkp, ijkm, ipjkm, imjkm, ijpkm, ijmkm, ijkpp, ijkmm
+        INTEGER :: ipjk, imjk, ijpk, ijmk, ijkp, ijkm, &
+                   ippjk, immjk, ijppk, ijmmk, ijkpp, ijkmm, &
+                   ipjpk, ipjmk, ipjkp, ipjkm, & 
+                   imjpk, imjmk, imjkp, imjkm, &
+                   ijpkp, ijpkm, ijmkp, ijmkm, &
+                   ipjpkp, ipjpkm, ipjmkp, ipjmkm, imjpkp, imjpkm, imjmkp, imjmkm, &
+                   ippjkp, ippjkm, ippjpk, ippjmk, immjkp, immjkm, immjpk, immjmk, &
+                   ipjppk, imjppk, ijppkp, ijppkm, ipjmmk, imjmmk, ijmmkp, ijmmkm, &
+                   ipjkpp, imjkpp, ijpkpp, ijmkpp, ipjkmm, imjkmm, ijpkmm, ijmkmm, &
+                   ippjpkp, ippjpkm, ippjmkp, ippjmkm, immjpkp, immjpkm, immjmkp, immjmkm, &
+                   ipjppkp, ipjppkm, imjppkp, imjppkm, ipjmmkp, ipjmmkm, imjmmkp, imjmmkm, &
+                   ipjpkpp, ipjmkpp, imjpkpp, imjmkpp, ipjpkmm, ipjmkmm, imjpkmm, imjmkmm, &
+                   ippjppk, ippjmmk, ippjkpp, &
+                   ijppkpp, ijppkmm, immjppk, &
+                   immjkpp, ijmmkpp, ippjkmm, &
+                   ipppjk, ipppjpk, ipppjmk, ipppjkp, ipppjpkp, ipppjmkp, &
+                   ijpppk, ipjpppk, ijpppkp, ijpppkm, ipjpppkp, ipjpppkm, &
+                   ijkppp, ipjkppp, imjkppp, ijpkppp, ipjpkppp, imjpkppp, &
+                   ippjppkp, ippjppkm, ippjmmkp, ippjmmkm, ippjpkmm, ippjmkmm, &
+                   ipjppkpp, imjppkpp, ipjppkmm, imjppkmm, immjppkp, immjppkm, &
+                   ippjpkpp, ippjmkpp, ipjmmkpp, immjpkpp, immjmkpp, imjmmkpp
+                 
 
-        INTEGER ::  ijke, ijkw, ijkee, ijkww, ijkn, ijken, ijkwn, ijks,  &
-                    ijkes,  ijkws, ijknn, ijkss, ijkt, ijket, ijkwt, ijknt, &
-                    ijkst, ijkb, ijkeb, ijkwb, ijknb, ijksb, ijktt, ijkbb
-!
+        INTEGER :: ijke, ijkw, ijkn, ijks, ijkt, ijkb, &
+                   ijkee, ijkww, ijknn, ijkss, ijktt, ijkbb, &
+                   ijken, ijkes, ijket, ijkeb, &
+                   ijkwn, ijkws, ijkwt, ijkwb, &
+                   ijknt, ijknb, ijkst, ijksb, &
+                   ijkent, ijkenb, ijkest, ijkesb, ijkwnt, ijkwnb, ijkwst, ijkwsb, &
+                   ijkeet, ijkeeb, ijkeen, ijkees, ijkwwt, ijkwwb, ijkwwn, ijkwws, &
+                   ijkenn, ijkwnn, ijknnt, ijknnb, ijkess, ijkwss, ijksst, ijkssb, &
+                   ijkett, ijkwtt, ijkntt, ijkstt, ijkebb, ijkwbb, ijknbb, ijksbb, &
+                   ijkeent, ijkeenb, ijkeest, ijkeesb, ijkwwnt, ijkwwnb, ijkwwst, ijkwwsb, &
+                   ijkennt, ijkennb, ijkwnnt, ijkwnnb, ijkesst, ijkessb, ijkwsst, ijkwssb, &
+                   ijkentt, ijkestt, ijkwntt, ijkwstt, ijkenbb, ijkesbb, ijkwnbb, ijkwsbb, &
+                   ijkeenn, ijkeess, ijkeett, &
+                   ijknntt, ijknnbb, ijkwwnn, &
+                   ijkwwtt, ijksstt, ijkeebb, &
+                   ijkeee, ijkeeen, ijkeees, ijkeeet, ijkeeent, ijkeeest, &
+                   ijknnn, ijkennn, ijknnnt, ijknnnb, ijkennnt, ijkennnb, &
+                   ijkttt, ijkettt, ijkwttt, ijknttt, ijkenttt, ijkwnttt, &
+                   ijkeennt, ijkeennb, ijkeesst, ijkeessb, ijkeenbb, ijkeesbb, &
+                   ijkenntt, ijkwnntt, ijkennbb, ijkwnnbb, ijkwwnnt, ijkwwnnb, &
+                   ijkeentt, ijkeestt, ijkesstt, ijkwwntt, ijkwwstt, ijkwsstt 
+
         DO ijk = 1, ncint 
           CALL meshinds(ijk,imesh,i,j,k)
 
@@ -880,18 +929,33 @@
             IF( (i >= 2) .AND. (i <= (nx-1)) .AND.   &
                 (k >= 2) .AND. (k <= (nz-1))      ) THEN
 !
-              ijkm  = myijk( ip0_jp0_km1_, ijk)
-              imjk  = myijk( im1_jp0_kp0_, ijk)
-              ipjk  = myijk( ip1_jp0_kp0_, ijk)
-              ijkp  = myijk( ip0_jp0_kp1_, ijk)
-              ipjkm = myijk( ip1_jp0_km1_, ijk)
-              ipjkp = myijk( ip1_jp0_kp1_, ijk)
-              imjkm = myijk( im1_jp0_km1_, ijk)
-              imjkp = myijk( im1_jp0_kp1_, ijk)
-              ippjk = myijk( ip2_jp0_kp0_, ijk)
-              ijkpp = myijk( ip0_jp0_kp2_, ijk)
-              immjk = myijk( im2_jp0_kp0_, ijk)
-              ijkmm = myijk( ip0_jp0_km2_, ijk)
+              ijkm    = myijk( ip0_jp0_km1_, ijk)
+              imjk    = myijk( im1_jp0_kp0_, ijk)
+              ipjk    = myijk( ip1_jp0_kp0_, ijk)
+              ijkp    = myijk( ip0_jp0_kp1_, ijk)
+              ipjkm   = myijk( ip1_jp0_km1_, ijk)
+              ipjkp   = myijk( ip1_jp0_kp1_, ijk)
+              imjkm   = myijk( im1_jp0_km1_, ijk)
+              imjkp   = myijk( im1_jp0_kp1_, ijk)
+              ippjk   = myijk( ip2_jp0_kp0_, ijk)
+              ijkpp   = myijk( ip0_jp0_kp2_, ijk)
+              immjk   = myijk( im2_jp0_kp0_, ijk)
+              ijkmm   = myijk( ip0_jp0_km2_, ijk)
+              ippjkp  = myijk( ip2_jp0_kp1_, ijk)
+              ippjkm  = myijk( ip2_jp0_km1_, ijk)
+              ipjkpp  = myijk( ip1_jp0_kp2_, ijk)
+              imjkpp  = myijk( im1_jp0_kp2_, ijk)
+              immjkp  = myijk( im2_jp0_kp1_, ijk)
+              immjkm  = myijk( im2_jp0_km1_, ijk)
+              ipjkmm  = myijk( ip1_jp0_km2_, ijk)
+              imjkmm  = myijk( im1_jp0_km2_, ijk)
+              ipppjk  = myijk( ip3_jp0_kp0_, ijk)
+              ijkppp  = myijk( ip0_jp0_kp3_, ijk)
+              ipppjkp = myijk( ip3_jp0_kp1_, ijk) 
+              ipjkppp = myijk( ip1_jp0_kp3_, ijk)
+              ippjkpp = myijk( ip2_jp0_kp2_, ijk) 
+              ippjkmm = myijk( ip2_jp0_km2_, ijk) 
+              immjkpp = myijk( im2_jp0_kp2_, ijk) 
 !
 ! ... First neighbours: near the axis or solid boundaries 
 ! ... impose homogeneous Neumann conditions
@@ -927,10 +991,38 @@
 ! ... diagonal neighbours
 !
               ijkwt = imjkp
-              IF(flag(imjkp) == slip_wall .OR. flag(imjkp) == noslip_wall) ijkwt = ijkp
-
+              IF(flag(imjkp) == slip_wall .OR. flag(imjkp) == noslip_wall) THEN
+                IF(flag(ijkp) == slip_wall .OR. flag(ijkp) == noslip_wall) THEN
+                  IF(flag(imjk) == slip_wall .OR. flag(imjk) == noslip_wall) THEN
+                    ijkwt = ijk
+                  ELSE
+                    ijkwt = imjk
+                  END IF
+                ELSE
+                  IF(flag(imjk) == slip_wall .OR. flag(imjk) == noslip_wall) THEN
+                    ijkwt = ijkp
+                  ELSE
+                    ijkwt = ijk
+                  END IF
+                END IF
+              END IF
+  
               ijkeb = ipjkm
-              IF(flag(ipjkm) == slip_wall .OR. flag(ipjkm) == noslip_wall) ijkeb = ipjk
+              IF(flag(ipjkm) == slip_wall .OR. flag(ipjkm) == noslip_wall) THEN
+                IF (flag(ipjk) == slip_wall .OR. flag(ipjk) == noslip_wall) THEN
+                  IF (flag(ijkm) == slip_wall .OR. flag(ijkm) == noslip_wall) THEN
+                    ijkeb = ijk
+                  ELSE
+                    ijkeb = ijkm
+                  END IF
+                ELSE
+                  IF (flag(ijkm) == slip_wall .OR. flag(ijkm) == noslip_wall) THEN
+                    ijkeb = ipjk
+                  ELSE
+                    ijkeb = ijk
+                  END IF
+                END IF
+              END IF
 
               ijket = ipjkp 
               IF (flag(ipjkp) == slip_wall .OR. flag(ipjkp) == noslip_wall) THEN
@@ -944,12 +1036,27 @@
                   IF (flag(ipjk) == slip_wall .OR. flag(ipjk) == noslip_wall) THEN
                     ijket = ijkp 
                   ELSE
-                    ijket = ijk
+                    ijket = ijk  
                   END IF
                 END IF
               END IF
               
-              ijkwb = imjkm
+              ijkwb = imjkm  
+              IF (flag(imjkm) == slip_wall .OR. flag(imjkm) == noslip_wall) THEN
+                IF (flag(imjk) == slip_wall .OR. flag(imjk) == noslip_wall) THEN
+                  IF (flag(ijkm) == slip_wall .OR. flag(ijkm) == noslip_wall) THEN
+                    ijkwb = ijk
+                  ELSE
+                    ijkwb = ijkm
+                  END IF
+                ELSE
+                  IF (flag(ijkm) == slip_wall .OR. flag(ijkm) == noslip_wall) THEN
+                    ijkwb = imjk
+                  ELSE
+                    ijkwb = ijk
+                  END IF
+                END IF
+              END IF
 !
 ! ... Second neighbours are not available on boundaries
 !
@@ -985,18 +1092,323 @@
               END SELECT
               IF(k == 2) ijkbb = ijkb
 !
-              myinds(ip0_jp0_km2_, ijk) = ijkbb
-              myinds(im1_jp0_km1_, ijk) = ijkwb
-              myinds(ip0_jp0_km1_,  ijk) = ijkb
-              myinds(ip1_jp0_km1_, ijk) = ijkeb
-              myinds(im2_jp0_kp0_, ijk) = ijkww
-              myinds(im1_jp0_kp0_,  ijk) = ijkw
-              myinds(ip1_jp0_kp0_,  ijk) = ijke
-              myinds(ip2_jp0_kp0_, ijk) = ijkee
-              myinds(im1_jp0_kp1_, ijk) = ijkwt
-              myinds(ip0_jp0_kp1_,  ijk) = ijkt
-              myinds(ip1_jp0_kp1_, ijk) = ijket
-              myinds(ip0_jp0_kp2_, ijk) = ijktt
+              SELECT CASE (flag(ippjkp))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                IF (flag(ipjkp) == slip_wall .OR. flag(ipjkp) == noslip_wall) THEN
+                  IF (flag(ippjk) == slip_wall .OR. flag(ippjk) == noslip_wall) THEN
+                    ijkeet = ipjk
+                  ELSE
+                    ijkeet = ippjk
+                  END IF
+                ELSE
+                  IF (flag(ippjk) == slip_wall .OR. flag(ippjk) == noslip_wall) THEN
+                    ijkeet = ipjkp
+                  ELSE
+                    ijkeet = ipjk
+                  END IF
+                END IF
+              CASE DEFAULT
+                      ijkeet = ippjkp
+              END SELECT
+              IF(i == (nx-1)) ijkeet = ijket
+!
+              SELECT CASE (flag(ippjkm))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                IF (flag(ipjkm) == slip_wall .OR. flag(ipjkm) == noslip_wall) THEN
+                  IF (flag(ippjk) == slip_wall .OR. flag(ippjk) == noslip_wall) THEN
+                    ijkeeb = ipjk
+                  ELSE
+                    ijkeeb = ippjk
+                  END IF
+                ELSE
+                  IF (flag(ippjk) == slip_wall .OR. flag(ippjk) == noslip_wall) THEN
+                    ijkeeb = ipjkm
+                  ELSE
+                    ijkeeb = ipjk
+                  END IF
+                END IF
+              CASE DEFAULT
+                      ijkeeb = ippjkm
+              END SELECT
+              IF(i == (nx-1)) ijkeeb = ijkeb
+!
+              SELECT CASE (flag(ipjkpp))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                IF (flag(ipjkp) == slip_wall .OR. flag(ipjkp) == noslip_wall) THEN
+                  IF (flag(ijkpp) == slip_wall .OR. flag(ijkpp) == noslip_wall) THEN
+                    ijkett = ijkp
+                  ELSE
+                    ijkett = ijkpp
+                  END IF
+                ELSE
+                  IF (flag(ijkpp) == slip_wall .OR. flag(ijkpp) == noslip_wall) THEN
+                    ijkett = ipjkp
+                  ELSE
+                    ijkett = ijkp
+                  END IF
+                END IF
+              CASE DEFAULT
+                      ijkett = ipjkpp
+              END SELECT
+              IF(k == (nz-1)) ijkett = ijket
+!
+              SELECT CASE (flag(imjkpp))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                IF (flag(imjkp) == slip_wall .OR. flag(imjkp) == noslip_wall) THEN
+                  IF (flag(ijkpp) == slip_wall .OR. flag(ijkpp) == noslip_wall) THEN
+                    ijkwtt = ijkp
+                  ELSE
+                    ijkwtt = ijkpp
+                  END IF
+                ELSE
+                  IF (flag(ijkpp) == slip_wall .OR. flag(ijkpp) == noslip_wall) THEN
+                    ijkwtt = imjkp
+                  ELSE
+                    ijkwtt = ijkp
+                  END IF
+                END IF
+              CASE DEFAULT
+                      ijkwtt = imjkpp
+              END SELECT
+              IF(k == (nz-1)) ijkwtt = ijkwt
+!
+              SELECT CASE (flag(immjkp))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                IF (flag(imjkp) == slip_wall .OR. flag(imjkp) == noslip_wall) THEN
+                  IF (flag(immjk) == slip_wall .OR. flag(immjk) == noslip_wall) THEN
+                    ijkwwt = imjk
+                  ELSE
+                    ijkwwt = immjk
+                  END IF
+                ELSE
+                  IF (flag(immjk) == slip_wall .OR. flag(immjk) == noslip_wall) THEN
+                    ijkwwt = imjkp
+                  ELSE
+                    ijkwwt = imjk
+                  END IF
+                END IF
+              CASE DEFAULT
+                      ijkwwt = immjkp
+              END SELECT
+              IF(i == 2) ijkwwt = ijkwt
+!
+              SELECT CASE (flag(immjkm))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                IF (flag(imjkm) == slip_wall .OR. flag(imjkm) == noslip_wall) THEN
+                  IF (flag(immjk) == slip_wall .OR. flag(immjk) == noslip_wall) THEN
+                    ijkwwb = imjk
+                  ELSE
+                    ijkwwb = immjk
+                  END IF
+                ELSE
+                  IF (flag(immjk) == slip_wall .OR. flag(immjk) == noslip_wall) THEN
+                    ijkwwb = imjkm
+                  ELSE
+                    ijkwwb = imjk
+                  END IF
+                END IF
+              CASE DEFAULT
+                      ijkwwb = immjkm
+              END SELECT
+              IF(i == 2) ijkwwb = ijkwb
+!
+              SELECT CASE (flag(ipjkmm))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                IF (flag(ipjkm) == slip_wall .OR. flag(ipjkm) == noslip_wall) THEN
+                  IF (flag(ijkmm) == slip_wall .OR. flag(ijkmm) == noslip_wall) THEN
+                    ijkebb = ijkm
+                  ELSE
+                    ijkebb = ijkmm
+                  END IF
+                ELSE
+                  IF (flag(ijkmm) == slip_wall .OR. flag(ijkmm) == noslip_wall) THEN
+                    ijkebb = ipjkm
+                  ELSE
+                    ijkebb = ijkm
+                  END IF
+                END IF
+              CASE DEFAULT
+                      ijkebb = ipjkmm
+              END SELECT
+              IF(k == 2) ijkebb = ijkeb
+!
+              ijkwbb = imjkmm
+              SELECT CASE (flag(imjkmm))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                IF (flag(imjkm) == slip_wall .OR. flag(imjkm) == noslip_wall) THEN
+                  IF (flag(ijkmm) == slip_wall .OR. flag(ijkmm) == noslip_wall) THEN
+                    ijkwbb = ijkm
+                  ELSE
+                    ijkwbb = ijkmm
+                  END IF
+                ELSE
+                  IF (flag(ijkmm) == slip_wall .OR. flag(ijkmm) == noslip_wall) THEN
+                    ijkwbb = imjkm
+                  ELSE
+                    ijkwbb = ijkm
+                  END IF
+                END IF
+              CASE DEFAULT
+                      ijkwbb = imjkmm
+              END SELECT
+              IF(k == 2) ijkwbb = ijkwb
+!
+              SELECT CASE (flag(ijkppp))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                      ijkttt = ijkpp
+              CASE DEFAULT
+                      ijkttt = ijkppp
+              END SELECT
+              IF(k == (nz-1)) ijkttt = ijkt
+              IF(k == (nz-2)) ijkttt = ijktt
+!
+              SELECT CASE (flag(ipppjk))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                      ijkeee = ippjk
+              CASE DEFAULT
+                      ijkeee = ipppjk
+              END SELECT
+              IF(i == (nx-1)) ijkeee = ijke
+              IF(i == (nx-2)) ijkeee = ijkee
+!
+              ijkeeet = ipppjkp
+              SELECT CASE (flag(ipppjkp))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                IF (flag(ippjkp) == slip_wall .OR. flag(ippjkp) == noslip_wall) THEN
+                  IF (flag(ipppjk) == slip_wall .OR. flag(ipppjk) == noslip_wall) THEN
+                    ijkeeet = ippjk
+                  ELSE
+                    ijkeeet = ipppjk
+                  END IF
+                ELSE
+                  IF (flag(ipppjk) == slip_wall .OR. flag(ipppjk) == noslip_wall) THEN
+                    ijkeeet = ippjkp
+                  ELSE
+                    ijkeeet = ippjk
+                  END IF
+                END IF
+              CASE DEFAULT
+                      ijkeeet = ipppjkp
+              END SELECT
+              IF(i == (nx-1)) ijkeeet = ijket
+              IF(i == (nx-2)) ijkeeet = ijkeet
+!
+              SELECT CASE (flag(ipjkppp))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                IF (flag(ipjkpp) == slip_wall .OR. flag(ipjkpp) == noslip_wall) THEN
+                  IF (flag(ijkppp) == slip_wall .OR. flag(ijkppp) == noslip_wall) THEN
+                    ijkettt = ijkpp
+                  ELSE
+                    ijkettt = ijkppp
+                  END IF
+                ELSE
+                  IF (flag(ijkppp) == slip_wall .OR. flag(ijkppp) == noslip_wall) THEN
+                    ijkettt = ipjkpp
+                  ELSE
+                    ijkettt = ijkpp
+                  END IF
+                END IF
+              CASE DEFAULT
+                      ijkettt = ipjkppp
+              END SELECT
+              IF(k == (nz-1)) ijkettt = ijket
+              IF(k == (nz-2)) ijkettt = ijkett
+!
+              ijkeett = ippjkpp
+              SELECT CASE (flag(ippjkpp))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                IF (flag(ipjkpp) == slip_wall .OR. flag(ipjkpp) == noslip_wall) THEN
+                  IF (flag(ippjkp) == slip_wall .OR. flag(ippjkp) == noslip_wall) THEN
+                    ijkeett = ipjkp
+                  ELSE
+                    ijkeett = ippjkp
+                  END IF
+                ELSE
+                  IF (flag(ippjkp) == slip_wall .OR. flag(ippjkp) == noslip_wall) THEN
+                    ijkeett = ipjkpp
+                  ELSE
+                    ijkeett = ipjkp
+                  END IF
+                END IF
+              CASE DEFAULT
+                      ijkeett = ippjkpp
+              END SELECT
+              IF (i == nx-1) ijkeett = ijkett
+              IF (k == nz-1) ijkeett = ijkeet
+!
+              ijkwwtt = immjkpp
+              SELECT CASE (flag(immjkpp))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                IF (flag(imjkpp) == slip_wall .OR. flag(imjkpp) == noslip_wall) THEN
+                  IF (flag(immjkp) == slip_wall .OR. flag(immjkp) == noslip_wall) THEN
+                    ijkwwtt = imjkp
+                  ELSE
+                    ijkwwtt = immjkp
+                  END IF
+                ELSE
+                  IF (flag(immjkp) == slip_wall .OR. flag(immjkp) == noslip_wall) THEN
+                    ijkwwtt = imjkpp
+                  ELSE
+                    ijkwwtt = imjkp
+                  END IF
+                END IF
+              CASE DEFAULT
+                      ijkwwtt = immjkpp
+              END SELECT
+              IF (i == 2)    ijkwwtt = ijkwtt
+              IF (k == nz-1) ijkwwtt = ijkwwt
+!
+              ijkeebb = ippjkmm
+              SELECT CASE (flag(ippjkmm))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                IF (flag(ipjkmm) == slip_wall .OR. flag(ipjkmm) == noslip_wall) THEN
+                  IF (flag(ippjkm) == slip_wall .OR. flag(ippjkm) == noslip_wall) THEN
+                    ijkeebb = ipjkm
+                  ELSE
+                    ijkeebb = ippjkm
+                  END IF
+                ELSE
+                  IF (flag(ippjkp) == slip_wall .OR. flag(ippjkp) == noslip_wall) THEN
+                    ijkeebb = ipjkmm
+                  ELSE
+                    ijkeebb = ipjkm
+                  END IF
+                END IF
+                      IF (i == nx-1) ijkeebb = ijkeb
+                      IF (k == 2)    ijkeebb = ijkeeb
+              CASE DEFAULT
+                      ijkeebb = ippjkmm
+                      IF (i == nx-1) ijkeebb = ijkebb
+                      IF (k == 2) ijkeebb = ijkeeb
+              END SELECT
+!
+              myinds( ip1_jp0_kp0_, ijk) = ijke
+              myinds( im1_jp0_kp0_, ijk) = ijkw
+              myinds( ip0_jp0_kp1_, ijk) = ijkt
+              myinds( ip0_jp0_km1_, ijk) = ijkb
+              myinds( ip2_jp0_kp0_, ijk) = ijkee
+              myinds( im2_jp0_kp0_, ijk) = ijkww
+              myinds( ip0_jp0_kp2_, ijk) = ijktt
+              myinds( ip0_jp0_km2_, ijk) = ijkbb
+              myinds( im1_jp0_km1_, ijk) = ijkwb
+              myinds( ip1_jp0_km1_, ijk) = ijkeb
+              myinds( im1_jp0_kp1_, ijk) = ijkwt
+              myinds( ip1_jp0_kp1_, ijk) = ijket
+              myinds( ip2_jp0_kp1_, ijk) = ijkeet
+              myinds( ip2_jp0_km1_, ijk) = ijkeeb
+              myinds( ip1_jp0_kp2_, ijk) = ijkett
+              myinds( im1_jp0_kp2_, ijk) = ijkwtt
+              myinds( im2_jp0_kp1_, ijk) = ijkwwt
+              myinds( im2_jp0_km1_, ijk) = ijkwwb
+              myinds( ip1_jp0_km2_, ijk) = ijkebb
+              myinds( im1_jp0_km2_, ijk) = ijkwbb
+              myinds( ip3_jp0_kp0_, ijk) = ijkeee
+              myinds( ip0_jp0_kp3_, ijk) = ijkttt
+              myinds( ip3_jp0_kp1_, ijk) = ijkeeet
+              myinds( ip1_jp0_kp3_, ijk) = ijkettt
+              myinds( ip2_jp0_kp2_, ijk) = ijkeett
+              myinds( ip2_jp0_km2_, ijk) = ijkeebb
+              myinds( im2_jp0_kp2_, ijk) = ijkwwtt
 
             END IF
 
@@ -1009,33 +1421,133 @@
 ! ... First neighbours: near the axis or solid boundaries 
 ! ... impose homogeneous Neumann conditions
 !
-              ipjk   = myijk( ip1_jp0_kp0_ , ijk )
-              imjk   = myijk( im1_jp0_kp0_ , ijk )
-              ippjk  = myijk( ip2_jp0_kp0_ , ijk )
-              immjk  = myijk( im2_jp0_kp0_ , ijk )
-              ijpk   = myijk( ip0_jp1_kp0_ , ijk )
-              ipjpk  = myijk( ip1_jp1_kp0_ , ijk )
-              imjpk  = myijk( im1_jp1_kp0_ , ijk )
-              ijmk   = myijk( ip0_jm1_kp0_ , ijk )
-              ipjmk  = myijk( ip1_jm1_kp0_ , ijk )
-              imjmk  = myijk( im1_jm1_kp0_ , ijk )
-              ijppk  = myijk( ip0_jp2_kp0_ , ijk )
-              ijmmk  = myijk( ip0_jm2_kp0_ , ijk )
-              ijkp   = myijk( ip0_jp0_kp1_ , ijk )
-              ipjkp  = myijk( ip1_jp0_kp1_ , ijk )
-              imjkp  = myijk( im1_jp0_kp1_ , ijk )
-              ijpkp  = myijk( ip0_jp1_kp1_ , ijk )
-              ijmkp  = myijk( ip0_jm1_kp1_ , ijk )
-              ijkm   = myijk( ip0_jp0_km1_ , ijk )
-              ipjkm  = myijk( ip1_jp0_km1_ , ijk )
-              imjkm  = myijk( im1_jp0_km1_ , ijk )
-              ijpkm  = myijk( ip0_jp1_km1_ , ijk )
-              ijmkm  = myijk( ip0_jm1_km1_ , ijk )
-              ijkpp  = myijk( ip0_jp0_kp2_ , ijk )
-              ijkmm  = myijk( ip0_jp0_km2_ , ijk )
+              ijkm     = myijk( ip0_jp0_km1_, ijk ) 
+              imjk     = myijk( im1_jp0_kp0_, ijk ) 
+              ipjk     = myijk( ip1_jp0_kp0_, ijk ) 
+              ijkp     = myijk( ip0_jp0_kp1_, ijk ) 
+              ipjkm    = myijk( ip1_jp0_km1_, ijk )
+              ipjkp    = myijk( ip1_jp0_kp1_, ijk )
+              imjkm    = myijk( im1_jp0_km1_, ijk )
+              imjkp    = myijk( im1_jp0_kp1_, ijk )
+              ijkpp    = myijk( ip0_jp0_kp2_, ijk )
+              ippjk    = myijk( ip2_jp0_kp0_, ijk )
+              immjk    = myijk( im2_jp0_kp0_, ijk )
+              ijkmm    = myijk( ip0_jp0_km2_, ijk )
+              ijpk     = myijk( ip0_jp1_kp0_, ijk )
+              ipjpk    = myijk( ip1_jp1_kp0_, ijk )
+              imjpk    = myijk( im1_jp1_kp0_, ijk )
+              ijmk     = myijk( ip0_jm1_kp0_, ijk )
+              ipjmk    = myijk( ip1_jm1_kp0_, ijk )
+              imjmk    = myijk( im1_jm1_kp0_, ijk )
+              ijppk    = myijk( ip0_jp2_kp0_, ijk )
+              ijmmk    = myijk( ip0_jm2_kp0_, ijk )
+              ijpkp    = myijk( ip0_jp1_kp1_, ijk )
+              ijmkp    = myijk( ip0_jm1_kp1_, ijk )
+              ijpkm    = myijk( ip0_jp1_km1_, ijk )
+              ijmkm    = myijk( ip0_jm1_km1_, ijk )
+              imjmkp   = myijk( im1_jm1_kp1_, ijk ) 
+              ipjmkp   = myijk( ip1_jm1_kp1_, ijk )
+              imjpkp   = myijk( im1_jp1_kp1_, ijk )
+              ipjpkp   = myijk( ip1_jp1_kp1_, ijk )
+              ipjpkm   = myijk( ip1_jp1_km1_, ijk )
+              ipjmkm   = myijk( ip1_jm1_km1_, ijk )
+              imjpkm   = myijk( im1_jp1_km1_, ijk )
+              ippjkp   = myijk( ip2_jp0_kp1_, ijk )
+              ippjkm   = myijk( ip2_jp0_km1_, ijk )
+              ipjkpp   = myijk( ip1_jp0_kp2_, ijk )
+              imjkpp   = myijk( im1_jp0_kp2_, ijk )
+              ijmmkp   = myijk( ip0_jm2_kp1_, ijk )
+              ippjpk   = myijk( ip2_jp1_kp0_, ijk )
+              ippjmk   = myijk( ip2_jm1_kp0_, ijk )
+              ipjmmk   = myijk( ip1_jm2_kp0_, ijk )
+              ipjmmkp  = myijk( ip1_jm2_kp1_, ijk )
+              ippjpkm  = myijk( ip2_jp1_km1_, ijk )
+              ippjmkm  = myijk( ip2_jm1_km1_, ijk )
+              ippjmkp  = myijk( ip2_jm1_kp1_, ijk )
+              imjppkp  = myijk( im1_jp2_kp1_, ijk )
+              ijppkp   = myijk( ip0_jp2_kp1_, ijk )
+              ipjppkm  = myijk( ip1_jp2_km1_, ijk )
+              ipjppk   = myijk( ip1_jp2_kp0_, ijk )
+              ipjkmm   = myijk( ip1_jp0_km2_, ijk )
+              ipjpkmm  = myijk( ip1_jp1_km2_, ijk )
+              imjppkm  = myijk( im1_jp2_km1_, ijk )
+              imjppk   = myijk( im1_jp2_kp0_, ijk )
+              ijpkmm   = myijk( ip0_jp1_km2_, ijk )
+              ijppkm   = myijk( ip0_jp2_km1_, ijk )
+              imjmkpp  = myijk( im1_jm1_kp2_, ijk )
+              ijmkpp   = myijk( ip0_jm1_kp2_, ijk )
+              imjpkpp  = myijk( im1_jp1_kp2_, ijk )
+              ijpkpp   = myijk( ip0_jp1_kp2_, ijk )
+              ipjmkpp  = myijk( ip1_jm1_kp2_, ijk )
+              immjpk   = myijk( im2_jp1_kp0_, ijk )
+              immjpkp  = myijk( im2_jp1_kp1_, ijk )
+              immjkp   = myijk( im2_jp0_kp1_, ijk )
+              imjmkm   = myijk( im1_jm1_km1_, ijk )
+              ippjpkp  = myijk( ip2_jp1_kp1_, ijk )
+              ipjppkp  = myijk( ip1_jp2_kp1_, ijk )
+              ipjpkpp  = myijk( ip1_jp1_kp2_, ijk )
+              imjkmm   = myijk( im1_jp0_km2_, ijk )
+              ijmmkm   = myijk( ip0_jm2_km1_, ijk )
+              immjmk   = myijk( im2_jm1_kp0_, ijk )
+              ijmkmm   = myijk( ip0_jm1_km2_, ijk )
+              imjmmk   = myijk( im1_jm2_kp0_, ijk )
+              immjkm   = myijk( im2_jp0_km1_, ijk )
+              imjpkmm  = myijk( im1_jp1_km2_, ijk )
+              ipjmmkm  = myijk( ip1_jm2_km1_, ijk )
+              immjmkp  = myijk( im2_jm1_kp1_, ijk )
+              ipjmkmm  = myijk( ip1_jm1_km2_, ijk )
+              imjmkmm  = myijk( im1_jm1_km2_, ijk )
+              imjmmkm  = myijk( im1_jm2_km1_, ijk )
+              imjmmkp  = myijk( im1_jm2_kp1_, ijk )
+              immjpkm  = myijk( im2_jp1_km1_, ijk )
+              immjmkm  = myijk( im2_jm1_km1_, ijk )
+              ipjpkppp = myijk( ip1_jp1_kp3_, ijk )
+              imjpkppp = myijk( im1_jp1_kp3_, ijk )
+              ijpkppp  = myijk( ip0_jp1_kp3_, ijk )
+              ipjkppp  = myijk( ip1_jp0_kp3_, ijk )
+              imjkppp  = myijk( im1_jp0_kp3_, ijk )
+              ijkppp   = myijk( ip0_jp0_kp3_, ijk )
+              ipjmmkpp = myijk( ip1_jm2_kp2_, ijk )
+              ijmmkpp  = myijk( ip0_jm2_kp2_, ijk )
+              ipjppkpp = myijk( ip1_jp2_kp2_, ijk )
+              ijppkpp  = myijk( ip0_jp2_kp2_, ijk )
+              immjmkpp = myijk( im2_jm1_kp2_, ijk )
+              immjpkpp = myijk( im2_jp1_kp2_, ijk )
+              immjkpp  = myijk( im2_jp0_kp2_, ijk )
+              ippjmkpp = myijk( ip2_jm1_kp2_, ijk )
+              ippjpkpp = myijk( ip2_jp1_kp2_, ijk )
+              ippjkpp  = myijk( ip2_jp0_kp2_, ijk )
+              ipjpppkm = myijk( ip1_jp3_km1_, ijk )
+              ipjpppkp = myijk( ip1_jp3_kp1_, ijk )
+              ijpppkm  = myijk( ip0_jp3_km1_, ijk )
+              ijpppkp  = myijk( ip0_jp3_kp1_, ijk )
+              ipjpppk  = myijk( ip1_jp3_kp0_, ijk )
+              ijpppk   = myijk( ip0_jp3_kp0_, ijk )
+              ipjppkmm = myijk( ip1_jp2_km2_, ijk )
+              imjppkmm = myijk( im1_jp2_km2_, ijk )
+              ijppkmm  = myijk( ip0_jp2_km2_, ijk )
+              imjppkpp = myijk( im1_jp2_kp2_, ijk )
+              immjppkp = myijk( im2_jp2_kp1_, ijk )
+              immjppk  = myijk( im2_jp2_kp0_, ijk )
+              ippjppkp = myijk( ip2_jp2_kp1_, ijk )
+              ippjppk  = myijk( ip2_jp2_kp0_, ijk )
+              ippjpkmm = myijk( ip2_jp1_km2_, ijk )
+              ippjkmm  = myijk( ip2_jp0_km2_, ijk )
+              ippjmmkm = myijk( ip2_jm2_km1_, ijk )
+              ippjmmkp = myijk( ip2_jm2_kp1_, ijk )
+              ippjmmk  = myijk( ip2_jm2_kp0_, ijk )
+              ippjppkm = myijk( ip2_jp2_km1_, ijk )
+              ipppjmkp = myijk( ip3_jm1_kp1_, ijk )
+              ipppjpkp = myijk( ip3_jp1_kp1_, ijk )
+              ipppjkp  = myijk( ip3_jp0_kp1_, ijk )
+              ipppjmk  = myijk( ip3_jm1_kp0_, ijk )
+              ipppjpk  = myijk( ip3_jp1_kp0_, ijk )
+              ipppjk   = myijk( ip3_jp0_kp0_, ijk )
+              ippjmkmm = myijk( ip2_jm1_km2_, ijk )
+              immjppkm = myijk( im2_jp2_km1_, ijk )
+              imjmmkpp = myijk( im1_jm2_kp2_, ijk )
 !  
               SELECT CASE (flag(ipjk))
-                !CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
                 CASE (noslip_wall, slip_wall, filled_cell_1)
                         ijke = ijk
                 CASE DEFAULT
@@ -1043,7 +1555,6 @@
               END SELECT
 !
               SELECT CASE (flag(imjk))
-                !CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
                 CASE (noslip_wall, slip_wall, filled_cell_1)
                         ijkw = ijk
                 CASE DEFAULT
@@ -1051,7 +1562,6 @@
               END SELECT
 !
               SELECT CASE (flag(ijpk))
-                !CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
                 CASE (noslip_wall, slip_wall, filled_cell_1)
                         ijkn = ijk
                 CASE DEFAULT
@@ -1059,7 +1569,6 @@
               END SELECT
 !
               SELECT CASE (flag(ijmk))
-                !CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
                 CASE (noslip_wall, slip_wall, filled_cell_1)
                         ijks = ijk
                 CASE DEFAULT
@@ -1067,7 +1576,6 @@
               END SELECT
 !
               SELECT CASE (flag(ijkp))
-                !CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
                 CASE (noslip_wall, slip_wall, filled_cell_1)
                         ijkt = ijk
                 CASE DEFAULT
@@ -1075,32 +1583,15 @@
               END SELECT
 !
               SELECT CASE (flag(ijkm))
-                !CASE (noslip_wall, slip_wall, filled_cell_1, filled_cell_2)
                 CASE (noslip_wall, slip_wall, filled_cell_1)
                         ijkb = ijk
                 CASE DEFAULT
                         ijkb  =  ijkm
               END SELECT
 !
-! ... Diagonal neighbours
-!
-!              SELECT CASE (flag(ipjpk))
-!              SELECT CASE (flag(imjpk))
-!              SELECT CASE (flag(ipjmk))
-!              SELECT CASE (flag(imjmk))
-!              SELECT CASE (flag(ipjkp))
-!              SELECT CASE (flag(imjkp))
-!              SELECT CASE (flag(ijpkp))
-!              SELECT CASE (flag(ijmkp))
-!              SELECT CASE (flag(ipjkm))
-!              SELECT CASE (flag(imjkm))
-!              SELECT CASE (flag(ijpkm))
-!              SELECT CASE (flag(ijmkm))
-!
 ! ... Second neighbours are not available on boundaries
 !
               SELECT CASE (flag(ippjk))
-              !CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
               CASE (slip_wall, noslip_wall, filled_cell_1)
                       ijkee = ipjk
               CASE DEFAULT
@@ -1109,7 +1600,6 @@
               IF(i == (nx-1)) ijkee = ijke
 !
               SELECT CASE (flag(ijkpp))
-              !CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
               CASE (slip_wall, noslip_wall, filled_cell_1)
                       ijktt = ijkp
               CASE DEFAULT
@@ -1118,7 +1608,6 @@
               IF(k == (nz-1)) ijktt = ijkt
 !
               SELECT CASE (flag(ijppk))
-              !CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
               CASE (slip_wall, noslip_wall, filled_cell_1)
                       ijknn = ijkn
               CASE DEFAULT
@@ -1127,7 +1616,6 @@
               if( (j == (ny-1)) ) ijknn = ijkn
 
               SELECT CASE (flag(ijmmk))
-              !CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
               CASE (slip_wall, noslip_wall, filled_cell_1)
                       ijkss = ijks
               CASE DEFAULT
@@ -1136,7 +1624,6 @@
               if( (j == 2) ) ijkss = ijks
 !
               SELECT CASE (flag(immjk))
-              !CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
               CASE (slip_wall, noslip_wall, filled_cell_1)
                       ijkww = imjk
               CASE DEFAULT
@@ -1145,7 +1632,6 @@
               IF(i == 2) ijkww = ijkw
 !
               SELECT CASE (flag(ijkmm))
-              !CASE (slip_wall, noslip_wall, filled_cell_1, filled_cell_2)
               CASE (slip_wall, noslip_wall, filled_cell_1)
                       ijkbb = ijkm
               CASE DEFAULT
@@ -1153,8 +1639,6 @@
               END SELECT
               IF(k == 2) ijkbb = ijkb
 !
-              !!!!! check diagonals
-              !
               ijken =  ipjpk
               ijkwn =  imjpk
               ijkes =  ipjmk
@@ -1163,15 +1647,705 @@
               ijkwt =  imjkp
               ijknt =  ijpkp
               ijkst =  ijmkp
+
               ijkeb =  ipjkm
+              SELECT CASE (flag(ipjkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijkeb = ipjk
+                CASE DEFAULT
+                        ijkeb  =  ipjkm
+              END SELECT
+
               ijkwb =  imjkm
+              SELECT CASE (flag(imjkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijkwb = imjk
+                CASE DEFAULT
+                        ijkwb  =  imjkm
+              END SELECT
+
               ijknb =  ijpkm
+              SELECT CASE (flag(ijpkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijknb = ijpk
+                CASE DEFAULT
+                        ijknb  =  ijpkm
+              END SELECT
+
               ijksb =  ijmkm
+              SELECT CASE (flag(ijmkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijksb = ijmk
+                CASE DEFAULT
+                        ijksb  =  ijmkm
+              END SELECT
+
+              ijkeet  = ippjkp
+              ijkeeb  = ippjkm
+              ijkett  = ipjkpp
+              ijkwtt  = imjkpp
+              ijkwst  = imjmkp
+              ijkest  = ipjmkp
+              ijkwnt  = imjpkp
+              ijkent  = ipjpkp
+              ijkenb  = ipjpkm
+              ijkesb  = ipjmkm
+              ijkwnb  = imjpkm
+              ijksst  = ijmmkp
+              ijkeen  = ippjpk
+              ijkees  = ippjmk
+              ijkess  = ipjmmk
+              ijkesst = ipjmmkp
+              ijkeenb = ippjpkm
+              ijkeesb = ippjmkm
+              ijkeest = ippjmkp
+              ijkwnnt = imjppkp
+              ijknnt  = ijppkp
+              ijkennb = ipjppkm
+              ijkenn  = ipjppk
+              ijkebb  = ipjkmm
+              ijkenbb = ipjpkmm
+              ijkwnnb = imjppkm
+              ijkwnn  = imjppk
+              ijknbb  = ijpkmm
+              ijknnb  = ijppkm
+              ijkwstt = imjmkpp
+              ijkstt  = ijmkpp
+              ijkwntt = imjpkpp
+              ijkntt  = ijpkpp
+              ijkestt = ipjmkpp
+              ijkwwn  = immjpk
+              ijkwwnt = immjpkp
+              ijkwwt  = immjkp
+              ijkwsb  = imjmkm
+              ijkeent = ippjpkp
+              ijkennt = ipjppkp
+              ijkentt = ipjpkpp
 !
-              myinds( ip1_jp0_kp0_ , ijk ) = ijke
+! wsb
+              SELECT CASE (flag(imjmkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijkwsb = imjmk
+                CASE DEFAULT
+                        ijkwsb  =  imjmkm
+              END SELECT
+!
+! esb
+              SELECT CASE (flag(ipjmkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijkesb = ipjmk
+                CASE DEFAULT
+                        ijkesb  =  ipjmkm
+              END SELECT
+!
+! wnb
+              SELECT CASE (flag(imjpkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijkwnb = imjpk
+                CASE DEFAULT
+                        ijkwnb  =  imjpkm
+              END SELECT
+!
+! enb
+              SELECT CASE (flag(ipjpkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijkenb = ipjpk
+                CASE DEFAULT
+                        ijkenb  =  ipjpkm
+              END SELECT
+!
+! eet
+              IF (i == nx-1) ijkeet = ijket
+!
+! een
+              IF (i == nx-1) ijkeen = ijken
+!
+! ees
+              IF (i == nx-1) ijkees = ijkes
+!
+! wwt
+              IF (i == 2) ijkwwt = ijkwt
+!
+! wwn
+              IF (i == 2) ijkwwn = ijkwn
+!
+! sst
+              IF (j == 2) ijksst = ijkst
+!
+! ess
+              IF (j == 2) ijkess = ijkes
+!
+! nnt
+              IF (j == ny-1) ijknnt = ijknt
+!
+! enn
+              IF (j == ny-1) ijkenn = ijken
+!
+! wnn
+              IF (j == ny-1) ijkwnn = ijkwn
+!
+! ett
+              IF (k == nz-1) ijkett = ijket
+!
+! wtt
+              IF (k == nz-1) ijkwtt = ijkwt
+!
+! stt
+              IF (k == nz-1) ijkstt = ijkst
+!
+! ntt
+              IF (k == nz-1) ijkntt = ijknt
+!
+! eeb
+              SELECT CASE (flag(ippjkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijkeeb = ippjk
+                        IF (i == nx-1) ijkeeb = ijke
+                CASE DEFAULT
+                        ijkeeb  =  ippjkm
+                        IF (i == nx-1) ijkeeb = ijkeb
+              END SELECT
+!
+! nnb
+              SELECT CASE (flag(ijppkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijknnb = ijppk
+                        IF (j == ny-1) ijknnb = ijkn
+                CASE DEFAULT
+                        ijknnb  =  ijppkm
+                        IF (j == ny-1) ijknnb = ijknb
+              END SELECT
+!
+! ebb
+              SELECT CASE (flag(ipjkmm))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                      ijkebb = ipjkm
+              CASE DEFAULT
+                      ijkebb = ipjkmm
+              END SELECT
+              IF(k == 2) ijkebb = ijkeb
+!
+! nbb
+              SELECT CASE (flag(ijpkmm))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                      ijknbb = ijpkm
+              CASE DEFAULT
+                      ijknbb = ijpkmm
+              END SELECT
+              IF(k == 2) ijknbb = ijknb
+!
+! entt
+              IF (k == nz-1) ijkentt = ijkent
+!
+! ennt
+              IF (j == ny-1) ijkennt = ijkent
+!
+! eent
+              IF (i == nx-1) ijkeent = ijkent
+!
+! wwnt
+              IF (i == 2) ijkwwnt = ijkwnt
+!
+! estt
+              IF (k == nz-1) ijkestt = ijkest
+!
+! wntt
+              IF (k == nz-1) ijkwntt = ijkwnt
+!
+! wstt
+              IF (k == nz-1) ijkwstt = ijkwst
+!
+! wnnt
+              IF (j == ny-1) ijkwnnt = ijkwnt
+!
+! eest
+              IF (i == nx-1) ijkeest = ijkest
+!
+! esst
+              IF (j == 2) ijkesst = ijkest
+!
+! eenb
+              SELECT CASE (flag(ippjpkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijkeenb = ippjpk
+                        IF (i == nx-1) ijkeenb = ijken
+                CASE DEFAULT
+                        ijkeenb  =  ippjpkm
+                        IF (i == nx-1) ijkeenb = ijkenb
+              END SELECT
+!
+! eesb
+              SELECT CASE (flag(ippjmkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijkeesb = ippjmk
+                        IF (i == nx-1) ijkeesb = ijkes
+                CASE DEFAULT
+                        ijkeesb  =  ippjmkm
+                        IF (i == nx-1) ijkeesb = ijkesb
+              END SELECT
+!
+! ennb
+              SELECT CASE (flag(ipjppkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijkennb = ipjppk
+                        IF (j == ny-1) ijkennb = ijken
+                CASE DEFAULT
+                        ijkennb  =  ipjppkm
+                        IF (j == ny-1) ijkennb = ijkenb
+              END SELECT
+!
+! wnnb
+              SELECT CASE (flag(imjppkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijkwnnb = imjppk
+                        IF (j == ny-1) ijkwnnb = ijkwn
+                CASE DEFAULT
+                        ijkwnnb  =  imjppkm
+                        IF (j == ny-1) ijkwnnb = ijkwnb
+              END SELECT
+!
+! enbb
+              SELECT CASE (flag(ipjpkmm))
+                CASE (slip_wall, noslip_wall, filled_cell_1)
+                        ijkenbb = ipjpkm
+                CASE DEFAULT
+                        ijkenbb = ipjpkmm
+              END SELECT
+              IF(k == 2) ijkenbb = ijkenb
+!
+! wwb
+              ijkwwb = immjkm
+              SELECT CASE (flag(immjkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijkwwb = immjk
+                        IF (i == 2) ijkwwb = ijkw
+                CASE DEFAULT
+                        ijkwwb  =  immjkm
+                        IF (i == 2) ijkwwb = ijkwb
+              END SELECT
+! wws
+              ijkwws = immjmk
+              IF (i == 2) ijkwws = ijkws
+! wss
+              ijkwss = imjmmk
+              IF (j == 2) ijkwss = ijkws
+! ssb
+              ijkssb = ijmmkm
+              SELECT CASE (flag(ijmmkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijkssb = ijmmk
+                        IF (j == 2) ijkssb = ijks
+                CASE DEFAULT
+                        ijkssb  =  ijmmkm
+                        IF (j == 2) ijkssb = ijksb
+              END SELECT
+! wbb
+              ijkwbb = imjkmm
+              SELECT CASE (flag(imjkmm))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                      ijkwbb = imjkm
+              CASE DEFAULT
+                      ijkwbb = imjkmm
+              END SELECT
+              IF(k == 2) ijkwbb = ijkwb
+! sbb
+              ijksbb = ijmkmm
+              SELECT CASE (flag(ijmkmm))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                      ijksbb = ijmkm
+              CASE DEFAULT
+                      ijksbb = ijmkmm
+              END SELECT
+              IF(k == 2) ijksbb = ijksb
+              
+! ttt
+              SELECT CASE (flag(ijkppp))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                      ijkttt = ijkpp
+              CASE DEFAULT
+                      ijkttt = ijkppp
+              END SELECT
+              IF(k == (nz-1)) ijkttt = ijkt
+              IF(k == (nz-2)) ijkttt = ijktt
+! eee
+              SELECT CASE (flag(ipppjk))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                      ijkeee = ippjk
+              CASE DEFAULT
+                      ijkeee = ipppjk
+              END SELECT
+              IF(i == (nx-1)) ijkeee = ijke
+              IF(i == (nx-2)) ijkeee = ijkee
+! nnn
+              SELECT CASE (flag(ijpppk))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                      ijknnn = ijppk
+              CASE DEFAULT
+                      ijknnn = ijpppk
+              END SELECT
+              IF(j == (ny-1)) ijknnn = ijkn
+              IF(j == (ny-2)) ijknnn = ijknn
+
+              ijkwwst = immjmkp
+              ijkwsst = imjmmkp
+              ijkwwnb = immjpkm
+              ijkwwsb = immjmkm
+              ijkessb = ipjmmkm
+              ijkwssb = imjmmkm
+              ijkwnbb = imjpkmm
+              ijkesbb = ipjmkmm
+              ijkwsbb = imjmkmm
+
+! wwst
+              IF (i == 2) ijkwwst = ijkwst
+!
+! wsst
+              IF (j == 2) ijkwsst = ijkwst
+!
+! wwnb
+              SELECT CASE (flag(immjpkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijkwwnb = immjpk
+                        IF (i == 2) ijkwwnb = ijkwn
+                CASE DEFAULT
+                        ijkwwnb  =  immjpkm
+                        IF (i == 2) ijkwwnb = ijkwnb
+              END SELECT
+!
+! wwsb
+              SELECT CASE (flag(immjmkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijkwwsb = immjmk
+                        IF (i == 2) ijkwwsb = ijkws
+                CASE DEFAULT
+                        ijkwwsb  =  immjmkm
+                        IF (i == 2) ijkwwsb = ijkwsb
+              END SELECT
+!
+! essb
+              SELECT CASE (flag(ipjmmkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijkessb = ipjmmk
+                        IF (j == 2) ijkessb = ijkes
+                CASE DEFAULT
+                        ijkessb  =  ipjmmkm
+                        IF (j == 2) ijkessb = ijkesb
+              END SELECT
+!
+! wssb
+              SELECT CASE (flag(imjmmkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijkwssb = imjmmk
+                        IF (j == 2) ijkwssb = ijkws
+                CASE DEFAULT
+                        ijkwssb  =  imjmmkm
+                        IF (j == 2) ijkwssb = ijkwsb
+              END SELECT
+!
+! wnbb
+              SELECT CASE (flag(imjpkmm))
+                CASE (slip_wall, noslip_wall, filled_cell_1)
+                        ijkwnbb = imjpkm
+                CASE DEFAULT
+                        ijkwnbb = imjpkmm
+              END SELECT
+              IF(k == 2) ijkwnbb = ijkwnb
+!
+! esbb
+              SELECT CASE (flag(ipjmkmm))
+                CASE (slip_wall, noslip_wall, filled_cell_1)
+                        ijkesbb = ipjmkm
+                CASE DEFAULT
+                        ijkesbb = ipjmkmm
+              END SELECT
+              IF(k == 2) ijkesbb = ijkesb
+!
+! wsbb
+              SELECT CASE (flag(imjmkmm))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                      ijkwsbb = imjmkm
+              CASE DEFAULT
+                      ijkwsbb = imjmkmm
+              END SELECT
+              IF(k == 2) ijkwsbb = ijkwsb
+!
+! sstt
+              ijksstt = ijmmkpp
+              IF (j == 2) ijksstt = ijkstt
+              IF (k == nz-1) ijksstt = ijksst
+!
+! nntt
+              ijknntt = ijppkpp
+              IF (j == ny-1) ijknntt = ijkntt
+              IF (k == nz-1) ijknntt = ijknnt
+!
+! wwtt
+              ijkwwtt = immjkpp
+              IF (i == 2)    ijkwwtt = ijkwtt
+              IF (k == nz-1) ijkwwtt = ijkwwt
+!
+! eett
+              ijkeett = ippjkpp
+              IF (i == nx-1) ijkeett = ijkett
+              IF (k == nz-1) ijkeett = ijkeet
+!
+! eenn
+              ijkeenn = ippjppk
+              IF (i == nx-1) ijkeenn = ijkenn
+              IF (j == ny-1) ijkeenn = ijkeen
+!
+! wwnn
+              ijkwwnn = immjppk
+              IF (i == 2)    ijkwwnn = ijkwnn
+              IF (j == ny-1) ijkwwnn = ijkwwn
+!
+! eess
+              ijkeess = ippjmmk
+              IF (i == nx-1) ijkeess = ijkess
+              IF (j == 2)    ijkeess = ijkees
+!
+! nnbb
+              ijknnbb = ijppkmm
+              SELECT CASE (flag(ijppkmm))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                      ijknnbb = ijppkm
+                      IF (j == ny-1) ijknnbb = ijknb
+                      IF (k == 2) ijknnbb = ijknnb
+              CASE DEFAULT
+                      ijknnbb = ijppkmm
+                      IF (j == ny-1) ijknnbb = ijknbb
+                      IF (k == 2) ijknnbb = ijknnb
+              END SELECT
+!
+! eebb
+              ijkeebb = ippjkmm
+              SELECT CASE (flag(ippjkmm))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                      ijkeebb = ippjkm
+                      IF (i == nx-1) ijkeebb = ijkeb
+                      IF (k == 2)    ijkeebb = ijkeeb
+              CASE DEFAULT
+                      ijkeebb = ippjkmm
+                      IF (i == nx-1) ijkeebb = ijkebb
+                      IF (k == 2) ijkeebb = ijkeeb
+              END SELECT
+!
+! eeen
+              ijkeeen = ipppjpk
+              IF(i == (nx-1)) ijkeeen = ijken
+              IF(i == (nx-2)) ijkeeen = ijkeen
+! eees
+              ijkeees = ipppjmk
+              IF(i == (nx-1)) ijkeees = ijkes
+              IF(i == (nx-2)) ijkeees = ijkees
+! eeet
+              ijkeeet = ipppjkp
+              IF(i == (nx-1)) ijkeeet = ijket
+              IF(i == (nx-2)) ijkeeet = ijkeet
+! nnnt
+              ijknnnt = ijpppkp
+              IF(j == (ny-1)) ijknnnt = ijknt
+              IF(j == (ny-2)) ijknnnt = ijknnt
+! ennn
+              ijkennn = ipjpppk
+              IF(j == (ny-1)) ijkennn = ijken
+              IF(j == (ny-2)) ijkennn = ijkenn
+! ettt
+              ijkettt = ipjkppp
+              IF(k == (nz-1)) ijkettt = ijket
+              IF(k == (nz-2)) ijkettt = ijkett
+! wttt
+              ijkwttt = imjkppp
+              IF(k == (nz-1)) ijkwttt = ijkwt
+              IF(k == (nz-2)) ijkwttt = ijkwtt
+! nttt
+              ijknttt = ijpkppp
+              IF(k == (nz-1)) ijknttt = ijknt
+              IF(k == (nz-2)) ijknttt = ijkntt
+! nnnb
+              ijknnnb = ijpppkm
+              SELECT CASE (flag(ijpppkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijknnnb = ijpppk
+                        IF(j == (ny-1)) ijknnnb = ijkn
+                        IF(j == (ny-2)) ijknnnb = ijknn
+                CASE DEFAULT
+                        ijknnnb  =  ijpppkm
+                        IF(j == (ny-1)) ijknnnb = ijknb
+                        IF(j == (ny-2)) ijknnnb = ijknnb
+              END SELECT
+!
+! eeent
+              ijkeeent = ipppjpkp
+              IF(i == (nx-1)) ijkeeent = ijkent
+              IF(i == (nx-2)) ijkeeent = ijkeent
+! eeest
+              ijkeeest = ipppjmkp
+              IF(i == (nx-1)) ijkeeest = ijkest
+              IF(i == (nx-2)) ijkeeest = ijkeest
+! ennnb
+              ijkennnb = ipjpppkm
+              SELECT CASE (flag(ipjpppkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijkennnb = ipjpppk
+                        IF(j == (ny-1)) ijkennnb = ijken
+                        IF(j == (ny-2)) ijkennnb = ijkenn
+                CASE DEFAULT
+                        ijkennnb  =  ipjpppkm
+                        IF(j == (ny-1)) ijkennnb = ijkenb
+                        IF(j == (ny-2)) ijkennnb = ijkennb
+              END SELECT
+! ennnt
+              ijkennnt = ipjpppkp
+              IF(j == (ny-1)) ijkennnt = ijkent
+              IF(j == (ny-2)) ijkennnt = ijkennt
+! enttt
+              ijkenttt = ipjpkppp
+              IF(k == (nz-1)) ijkenttt = ijkent
+              IF(k == (nz-2)) ijkenttt = ijkentt
+! wnttt
+              ijkwnttt = imjpkppp
+              IF(k == (nz-1)) ijkwnttt = ijkwnt
+              IF(k == (nz-2)) ijkwnttt = ijkwntt
+!
+! eennt
+              ijkeennt = ippjppkp
+              IF (i == nx-1) ijkeennt = ijkennt
+              IF (j == ny-1) ijkeennt = ijkeent
+! eesst
+              ijkeesst = ippjmmkp
+              IF (i == nx-1) ijkeesst = ijkesst
+              IF (j == 2)    ijkeesst = ijkeest
+! wwnnt
+              ijkwwnnt = immjppkp
+              IF (i == 2)    ijkwwnnt = ijkwnnt
+              IF (j == ny-1) ijkwwnnt = ijkwwnt
+! eestt
+              ijkeestt = ippjmkpp
+              IF (i == nx-1) ijkeestt = ijkestt
+              IF (k == nz-1) ijkeestt = ijkeest
+! eentt
+              ijkeentt = ippjpkpp
+              IF (i == nx-1) ijkeentt = ijkentt
+              IF (k == nz-1) ijkeentt = ijkeent
+! wwntt
+              ijkwwntt = immjpkpp
+              IF (i == 2)    ijkwwntt = ijkwntt
+              IF (k == nz-1) ijkwwntt = ijkwwnt
+! wwstt
+              ijkwwstt = immjmkpp
+              IF (i == 2)    ijkwwstt = ijkwstt
+              IF (k == nz-1) ijkwwstt = ijkwwst
+! enntt
+              ijkenntt = ipjppkpp
+              IF (j == ny-1) ijkenntt = ijkentt
+              IF (k == nz-1) ijkenntt = ijkennt
+! wnntt
+              ijkwnntt = imjppkpp
+              IF (j == ny-1) ijkwnntt = ijkwntt
+              IF (k == nz-1) ijkwnntt = ijkwnnt
+! esstt
+              ijkesstt = ipjmmkpp
+              IF (j == 2)    ijkesstt = ijkestt
+              IF (k == nz-1) ijkesstt = ijkesst
+! wsstt
+              ijkwsstt = imjmmkpp
+              IF (j == 2)    ijkwsstt = ijkwstt
+              IF (k == nz-1) ijkwsstt = ijkwsst
+! ennbb
+              ijkennbb = ipjppkmm
+              SELECT CASE (flag(ipjppkmm))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                      ijkennbb = ipjppkm
+                      IF (j == ny-1) ijkennbb = ijkenb
+                      IF (k == 2)    ijkennbb = ijkennb
+              CASE DEFAULT
+                      ijkennbb = ipjppkmm
+                      IF (j == ny-1) ijkennbb = ijkenbb
+                      IF (k == 2)    ijkennbb = ijkennb
+              END SELECT
+! wnnbb
+              ijkwnnbb = imjppkmm
+              SELECT CASE (flag(imjppkmm))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                      ijkwnnbb = imjppkm
+                      IF (j == ny-1) ijkwnnbb = ijkwnb
+                      IF (k == 2)    ijkwnnbb = ijkwnnb
+              CASE DEFAULT
+                      ijkwnnbb = imjppkmm
+                      IF (j == ny-1) ijkwnnbb = ijkwnbb
+                      IF (k == 2)    ijkwnnbb = ijkwnnb
+              END SELECT
+! eenbb
+              ijkeenbb = ippjpkmm
+              SELECT CASE (flag(ippjpkmm))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                      ijkeenbb = ippjpkm
+                      IF (i == nx-1) ijkeenbb = ijkenb
+                      IF (k == 2)    ijkeenbb = ijkeenb
+              CASE DEFAULT
+                      ijkeenbb = ippjpkmm
+                      IF (i == nx-1) ijkeenbb = ijkenbb
+                      IF (k == 2)    ijkeenbb = ijkeenb
+              END SELECT
+! eesbb
+              ijkeesbb = ippjmkmm
+              SELECT CASE (flag(ippjmkmm))
+              CASE (slip_wall, noslip_wall, filled_cell_1)
+                      ijkeesbb = ippjmkm
+                      IF (i == nx-1) ijkeesbb = ijkesb
+                      IF (k == 2)    ijkeesbb = ijkeesb
+              CASE DEFAULT
+                      ijkeesbb = ippjmkmm
+                      IF (i == nx-1) ijkeesbb = ijkesbb
+                      IF (k == 2)    ijkeesbb = ijkeesb
+              END SELECT
+! eennb
+              SELECT CASE (flag(ippjppkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijkeennb = ippjppk
+                        IF (j == ny-1) ijkeennb = ijkeen
+                        IF (i == nx-1) ijkeennb = ijkenn
+                CASE DEFAULT
+                        ijkeennb  =  ippjppkm
+                        IF (j == ny-1) ijkeennb = ijkeenb
+                        IF (i == nx-1) ijkeennb = ijkennb
+              END SELECT
+! wwnnb
+              SELECT CASE (flag(immjppkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijkwwnnb = immjppk
+                        IF (j == ny-1) ijkwwnnb = ijkwwn
+                        IF (i == 2)    ijkwwnnb = ijkwnn
+                CASE DEFAULT
+                        ijkwwnnb  =  immjppkm
+                        IF (j == ny-1) ijkwwnnb = ijkwwnb
+                        IF (i == 2)    ijkwwnnb = ijkwnnb
+              END SELECT
+! eessb
+              SELECT CASE (flag(ippjmmkm))
+                CASE (noslip_wall, slip_wall, filled_cell_1)
+                        ijkeessb = ippjmmk
+                        IF (j == 2)    ijkeessb = ijkees
+                        IF (i == nx-1) ijkeessb = ijkess
+                CASE DEFAULT
+                        ijkeessb  =  ippjmmkm
+                        IF (j == 2)    ijkeessb = ijkeesb
+                        IF (i == nx-1) ijkeessb = ijkessb
+              END SELECT
+!
+              myinds( ip0_jp0_km1_ , ijk ) = ijkb
               myinds( im1_jp0_kp0_ , ijk ) = ijkw
+              myinds( ip1_jp0_kp0_ , ijk ) = ijke
+              myinds( ip0_jp0_kp1_ , ijk ) = ijkt
+              myinds( ip1_jp0_km1_ , ijk ) = ijkeb
+              myinds( ip1_jp0_kp1_ , ijk ) = ijket
+              myinds( im1_jp0_km1_ , ijk ) = ijkwb
+              myinds( im1_jp0_kp1_ , ijk ) = ijkwt
+              myinds( ip0_jp0_kp2_ , ijk ) = ijktt
               myinds( ip2_jp0_kp0_ , ijk ) = ijkee
               myinds( im2_jp0_kp0_ , ijk ) = ijkww
+              myinds( ip0_jp0_km2_ , ijk ) = ijkbb
               myinds( ip0_jp1_kp0_ , ijk ) = ijkn
               myinds( ip1_jp1_kp0_ , ijk ) = ijken
               myinds( im1_jp1_kp0_ , ijk ) = ijkwn
@@ -1180,19 +2354,112 @@
               myinds( im1_jm1_kp0_ , ijk ) = ijkws
               myinds( ip0_jp2_kp0_ , ijk ) = ijknn
               myinds( ip0_jm2_kp0_ , ijk ) = ijkss
-              myinds( ip0_jp0_kp1_ , ijk ) = ijkt
-              myinds( ip1_jp0_kp1_ , ijk ) = ijket
-              myinds( im1_jp0_kp1_ , ijk ) = ijkwt
               myinds( ip0_jp1_kp1_ , ijk ) = ijknt
               myinds( ip0_jm1_kp1_ , ijk ) = ijkst
-              myinds( ip0_jp0_km1_ , ijk ) = ijkb
-              myinds( ip1_jp0_km1_ , ijk ) = ijkeb
-              myinds( im1_jp0_km1_ , ijk ) = ijkwb
               myinds( ip0_jp1_km1_ , ijk ) = ijknb
               myinds( ip0_jm1_km1_ , ijk ) = ijksb
-              myinds( ip0_jp0_kp2_ , ijk ) = ijktt
-              myinds( ip0_jp0_km2_ , ijk ) = ijkbb
-  
+              myinds( im1_jm1_kp1_ , ijk ) = ijkwst 
+              myinds( ip1_jm1_kp1_ , ijk ) = ijkest
+              myinds( im1_jp1_kp1_ , ijk ) = ijkwnt
+              myinds( ip1_jp1_kp1_ , ijk ) = ijkent
+              myinds( ip1_jp1_km1_ , ijk ) = ijkenb
+              myinds( ip1_jm1_km1_ , ijk ) = ijkesb
+              myinds( im1_jp1_km1_ , ijk ) = ijkwnb
+              myinds( ip2_jp0_kp1_ , ijk ) = ijkeet
+              myinds( ip2_jp0_km1_ , ijk ) = ijkeeb
+              myinds( ip1_jp0_kp2_ , ijk ) = ijkett
+              myinds( im1_jp0_kp2_ , ijk ) = ijkwtt
+              myinds( ip0_jm2_kp1_ , ijk ) = ijksst
+              myinds( ip2_jp1_kp0_ , ijk ) = ijkeen
+              myinds( ip2_jm1_kp0_ , ijk ) = ijkees
+              myinds( ip1_jm2_kp0_ , ijk ) = ijkess
+              myinds( ip1_jm2_kp1_ , ijk ) = ijkesst
+              myinds( ip2_jp1_km1_ , ijk ) = ijkeenb
+              myinds( ip2_jm1_km1_ , ijk ) = ijkeesb
+              myinds( ip2_jm1_kp1_ , ijk ) = ijkeest
+              myinds( im1_jp2_kp1_ , ijk ) = ijkwnnt
+              myinds( ip0_jp2_kp1_ , ijk ) = ijknnt
+              myinds( ip1_jp2_km1_ , ijk ) = ijkennb
+              myinds( ip1_jp2_kp0_ , ijk ) = ijkenn
+              myinds( ip1_jp0_km2_ , ijk ) = ijkebb
+              myinds( ip1_jp1_km2_ , ijk ) = ijkenbb
+              myinds( im1_jp2_km1_ , ijk ) = ijkwnnb
+              myinds( im1_jp2_kp0_ , ijk ) = ijkwnn
+              myinds( ip0_jp1_km2_ , ijk ) = ijknbb
+              myinds( ip0_jp2_km1_ , ijk ) = ijknnb
+              myinds( im1_jm1_kp2_ , ijk ) = ijkwstt
+              myinds( ip0_jm1_kp2_ , ijk ) = ijkstt
+              myinds( im1_jp1_kp2_ , ijk ) = ijkwntt
+              myinds( ip0_jp1_kp2_ , ijk ) = ijkntt
+              myinds( ip1_jm1_kp2_ , ijk ) = ijkestt
+              myinds( im2_jp1_kp0_ , ijk ) = ijkwwn
+              myinds( im2_jp1_kp1_ , ijk ) = ijkwwnt
+              myinds( im2_jp0_kp1_ , ijk ) = ijkwwt
+              myinds( im1_jm1_km1_ , ijk ) = ijkwsb
+              myinds( ip2_jp1_kp1_ , ijk ) = ijkeent
+              myinds( ip1_jp2_kp1_ , ijk ) = ijkennt
+              myinds( ip1_jp1_kp2_ , ijk ) = ijkentt
+              myinds( im1_jp0_km2_ , ijk ) = ijkwbb
+              myinds( ip0_jm2_km1_ , ijk ) = ijkssb
+              myinds( im2_jm1_kp0_ , ijk ) = ijkwws
+              myinds( ip0_jm1_km2_ , ijk ) = ijksbb
+              myinds( im1_jm2_kp0_ , ijk ) = ijkwss
+              myinds( im2_jp0_km1_ , ijk ) = ijkwwb
+              myinds( ip3_jp0_kp0_ , ijk ) = ijkeee
+              myinds( ip0_jp3_kp0_ , ijk ) = ijknnn
+              myinds( ip0_jp0_kp3_ , ijk ) = ijkttt
+              myinds( im2_jm1_kp1_ , ijk ) = ijkwwst
+              myinds( im1_jm2_kp1_ , ijk ) = ijkwsst
+              myinds( im2_jp1_km1_ , ijk ) = ijkwwnb
+              myinds( im2_jm1_km1_ , ijk ) = ijkwwsb
+              myinds( ip1_jm2_km1_ , ijk ) = ijkessb
+              myinds( im1_jm2_km1_ , ijk ) = ijkwssb
+              myinds( im1_jp1_km2_ , ijk ) = ijkwnbb
+              myinds( ip1_jm1_km2_ , ijk ) = ijkesbb
+              myinds( im1_jm1_km2_ , ijk ) = ijkwsbb
+              myinds( ip0_jm2_kp2_ , ijk ) = ijksstt
+              myinds( ip0_jp2_kp2_ , ijk ) = ijknntt
+              myinds( im2_jp0_kp2_ , ijk ) = ijkwwtt
+              myinds( ip2_jp0_kp2_ , ijk ) = ijkeett
+              myinds( ip2_jp2_kp0_ , ijk ) = ijkeenn
+              myinds( im2_jp2_kp0_ , ijk ) = ijkwwnn
+              myinds( ip2_jm2_kp0_ , ijk ) = ijkeess
+              myinds( ip0_jp2_km2_ , ijk ) = ijknnbb
+              myinds( ip2_jp0_km2_ , ijk ) = ijkeebb
+              myinds( ip3_jp1_kp0_ , ijk ) = ijkeeen
+              myinds( ip3_jm1_kp0_ , ijk ) = ijkeees
+              myinds( ip3_jp0_kp1_ , ijk ) = ijkeeet
+              myinds( ip0_jp3_km1_ , ijk ) = ijknnnb
+              myinds( ip0_jp3_kp1_ , ijk ) = ijknnnt
+              myinds( ip1_jp3_kp0_ , ijk ) = ijkennn
+              myinds( ip1_jp0_kp3_ , ijk ) = ijkettt
+              myinds( im1_jp0_kp3_ , ijk ) = ijkwttt
+              myinds( ip0_jp1_kp3_ , ijk ) = ijknttt
+              myinds( ip3_jp1_kp1_ , ijk ) = ijkeeent
+              myinds( ip3_jm1_kp1_ , ijk ) = ijkeeest
+              myinds( ip1_jp3_km1_ , ijk ) = ijkennnb
+              myinds( ip1_jp3_kp1_ , ijk ) = ijkennnt
+              myinds( ip1_jp1_kp3_ , ijk ) = ijkenttt
+              myinds( im1_jp1_kp3_ , ijk ) = ijkwnttt
+              myinds( ip2_jp2_kp1_ , ijk ) = ijkeennt
+              myinds( ip2_jp2_km1_ , ijk ) = ijkeennb
+              myinds( ip2_jm2_kp1_ , ijk ) = ijkeesst
+              myinds( ip2_jm2_km1_ , ijk ) = ijkeessb
+              myinds( im2_jp2_kp1_ , ijk ) = ijkwwnnt
+              myinds( ip2_jp1_kp2_ , ijk ) = ijkeentt
+              myinds( ip2_jm1_kp2_ , ijk ) = ijkeestt
+              myinds( ip2_jp1_km2_ , ijk ) = ijkeenbb
+              myinds( im2_jp1_kp2_ , ijk ) = ijkwwntt
+              myinds( im2_jm1_kp2_ , ijk ) = ijkwwstt
+              myinds( ip1_jp2_kp2_ , ijk ) = ijkenntt
+              myinds( im1_jp2_kp2_ , ijk ) = ijkwnntt
+              myinds( ip1_jm2_kp2_ , ijk ) = ijkesstt
+              myinds( ip1_jp2_km2_ , ijk ) = ijkennbb
+              myinds( im1_jp2_km2_ , ijk ) = ijkwnnbb
+              myinds( ip2_jm1_km2_ , ijk ) = ijkeesbb
+              myinds( im2_jp2_km1_ , ijk ) = ijkwwnnb
+              myinds( im1_jm2_kp2_ , ijk ) = ijkwsstt
+
             END IF
 
           ELSE
@@ -1344,7 +2611,6 @@
       END SUBROUTINE data_exchange_rm
 
 !----------------------------------------------------------------------
-
       SUBROUTINE data_exchange_i(array)
         USE parallel, ONLY: nproc, mpime
         IMPLICIT NONE
