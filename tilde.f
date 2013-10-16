@@ -146,7 +146,7 @@
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE pressure_epsilon, ONLY: p, ep, pn, epn
       USE set_indexes, ONLY: first_subscr, ijke, ijkn, ijkt
-      USE set_indexes, ONLY: ctu1_subscr, ctu2_subscr
+      USE set_indexes, ONLY: ctu1_subscr, ctu2_subscr, ctu3_subscr
       USE flux_limiters, ONLY: ctu
 !
       IMPLICIT NONE
@@ -190,6 +190,7 @@
           CALL first_subscr(ijk)
           IF (ctu > 0) CALL ctu1_subscr(ijk)
           IF (ctu > 1) CALL ctu2_subscr(ijk)
+          IF (ctu > 2) CALL ctu3_subscr(ijk)
 !
           IF (job_type == JOB_TYPE_2D ) THEN
 
@@ -299,7 +300,7 @@
       USE pressure_epsilon, ONLY: p, ep
       USE pressure_epsilon, ONLY: pn, epn, pmodel
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm, ijkt, ijke, ijkn
-      USE set_indexes, ONLY: ctu1_subscr, ctu2_subscr
+      USE set_indexes, ONLY: ctu1_subscr, ctu2_subscr, ctu3_subscr
       USE turbulence_model, ONLY: mugt
       USE flux_limiters, ONLY: ctu
 !
@@ -422,6 +423,7 @@
           CALL subscr(ijk)
           IF (ctu > 0) CALL ctu1_subscr(ijk)
           IF (ctu > 1) CALL ctu2_subscr(ijk)
+          IF (ctu > 2) CALL ctu3_subscr(ijk)
 !
           ugfw = ugfe(imjk)
           ugfb = ugft(ijkm)
@@ -850,9 +852,9 @@
       USE dimensions, ONLY: nsolid, nx, ny, nz
       USE domain_mapping, ONLY: meshinds
       USE domain_mapping, ONLY: ncint, myijk, data_exchange
-      USE convective_fluxes_u, ONLY: flu, muscl_flu, ctu1_flu, ctu2_flu
-      USE convective_fluxes_v, ONLY: flv, muscl_flv
-      USE convective_fluxes_w, ONLY: flw, muscl_flw, ctu1_flw, ctu2_flw
+      USE convective_fluxes_u, ONLY: flu, muscl_flu, ctu1_flu, ctu2_flu, ctu3_flu
+      USE convective_fluxes_v, ONLY: flv, muscl_flv, ctu1_flv, ctu2_flv, ctu3_flv
+      USE convective_fluxes_w, ONLY: flw, muscl_flw, ctu1_flw, ctu2_flw, ctu3_flw
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE flux_limiters, ONLY: muscl, ctu
@@ -862,11 +864,11 @@
       USE immersed_boundaries, ONLY: immb, b_e_, b_n_, b_t_
       USE interpolate_fields, ONLY: interpolate_x, interpolate_y, interpolate_z
       USE pressure_epsilon, ONLY: ep, p
-      USE set_indexes, ONLY: subscr, stencil, ctu1_subscr, ctu2_subscr
+      USE set_indexes, ONLY: subscr, stencil, ctu1_subscr, ctu2_subscr, ctu3_subscr
       USE set_indexes, ONLY: maskval, maskstencil, masks
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE set_indexes, ONLY: nb, rnb
-      USE set_indexes, ONLY: ctu1_nb, ctu1_rnb, ctu2_nb, ctu2_rnb
+      USE set_indexes, ONLY: ctu1_nb, ctu1_rnb, ctu2_nb, ctu2_rnb, ctu3_nb, ctu3_rnb
 !
       IMPLICIT NONE
 !
@@ -887,6 +889,7 @@
           CALL subscr(ijk)
           IF (ctu > 0) CALL ctu1_subscr(ijk)
           IF (ctu > 1) CALL ctu2_subscr(ijk)
+          IF (ctu > 2) CALL ctu3_subscr(ijk)
           CALL meshinds(ijk,imesh,i,j,k)
 !
           IF (job_type == JOB_TYPE_2D ) THEN
@@ -916,11 +919,16 @@
               CALL ctu1_rnb(u,ug,ijk)
               CALL ctu1_rnb(w,wg,ijk)
               CALL ctu1_nb(dens,rgp,ijk)
-            END IF
-            IF (ctu > 1) THEN
-              CALL ctu2_rnb(u,ug,ijk)
-              CALL ctu2_rnb(w,wg,ijk)
-              CALL ctu2_nb(dens,rgp,ijk)
+              IF (ctu > 1) THEN
+                CALL ctu2_rnb(u,ug,ijk)
+                CALL ctu2_rnb(w,wg,ijk)
+                CALL ctu2_nb(dens,rgp,ijk)
+                IF (ctu > 2) THEN
+                  CALL ctu3_rnb(u,ug,ijk)
+                  CALL ctu3_rnb(w,wg,ijk)
+                  CALL ctu3_nb(dens,rgp,ijk)
+                END IF
+              END IF
             END IF
 !
             ! ... Mask non-physical velocities from Immersed Boundaries
@@ -965,6 +973,14 @@
                                          dens_stagx, u, w, i, k)
                 IF (k /= nz-1) CALL ctu2_flw(wgfe(ijk), wgft(ijk), &
                                          dens_stagz, u, w, i, k)
+!
+! ... Third order Corner Transport Upwind correction (step 4)
+!
+                IF (ctu > 2) THEN
+                  CALL ctu3_flu(ugfe(ijk), ugft(ijk), dens_stagx, u, w, i, k)
+                  CALL ctu3_flw(wgfe(ijk), wgft(ijk), dens_stagz, u, w, i, k)
+                END IF
+
               END IF
             END IF
 
@@ -983,11 +999,16 @@
                 CALL ctu1_rnb(u,us(:,is),ijk)
                 CALL ctu1_rnb(w,ws(:,is),ijk)
                 CALL ctu1_nb(dens,rlk(:,is),ijk)
-              END IF
-              IF (ctu > 1) THEN
-                CALL ctu2_rnb(u,us(:,is),ijk)
-                CALL ctu2_rnb(w,ws(:,is),ijk)
-                CALL ctu2_nb(dens,rlk(:,is),ijk)
+                IF (ctu > 1) THEN
+                  CALL ctu2_rnb(u,us(:,is),ijk)
+                  CALL ctu2_rnb(w,ws(:,is),ijk)
+                  CALL ctu2_nb(dens,rlk(:,is),ijk)
+                  IF (ctu > 2) THEN
+                    CALL ctu3_rnb(u,us(:,is),ijk)
+                    CALL ctu3_rnb(w,ws(:,is),ijk)
+                    CALL ctu3_nb(dens,rlk(:,is),ijk)
+                  END IF
+                END IF
               END IF
 
               ! ... Mask non-physical velocities from Immersed Boundaries
@@ -1032,8 +1053,16 @@
                                       dens_stagx, u, w, i, k)
                   IF (k/=nz-1) CALL ctu2_flw(wsfe(ijk,is), wsft(ijk,is), &
                                            dens_stagz, u, w, i, k)
+!
+! ... Third order Corner Transport Upwind correction (step4)
+!
+                  IF (ctu > 2) THEN
+                    CALL ctu3_flu(usfe(ijk,is), usft(ijk,is), dens_stagx, u, w, i, k)
+                    CALL ctu3_flw(wsfe(ijk,is), wsft(ijk,is), dens_stagz, u, w, i, k)
+                  END IF
                 END IF
               END IF
+
             END DO
             
           ELSE IF (job_type == JOB_TYPE_3D) THEN
@@ -1062,6 +1091,26 @@
             CALL rnb(v,vg,ijk)
             CALL rnb(w,wg,ijk) 
             CALL nb ( dens, rgp, ijk )
+!
+            IF (ctu > 0) THEN
+              CALL ctu1_rnb(u,ug,ijk)
+              CALL ctu1_rnb(v,vg,ijk)
+              CALL ctu1_rnb(w,wg,ijk)
+              CALL ctu1_nb(dens,rgp,ijk)
+              IF (ctu > 1) THEN
+                CALL ctu2_rnb(u,ug,ijk)
+                CALL ctu2_rnb(v,vg,ijk)
+                CALL ctu2_rnb(w,wg,ijk)
+                CALL ctu2_nb(dens,rgp,ijk)
+                IF (ctu > 2) THEN
+                  CALL ctu3_rnb(u,ug,ijk)
+                  CALL ctu3_rnb(v,vg,ijk)
+                  CALL ctu3_rnb(w,wg,ijk)
+                  CALL ctu3_nb(dens,rgp,ijk)
+                END IF
+              END IF
+            END IF
+!
 
             ! ... Mask non-physical velocities from Immersed Boundaries
             !
@@ -1103,6 +1152,37 @@
                 CALL muscl_flw(wgfe(ijk), wgfn(ijk), wgft(ijk), &
                          dens_stagz, u, v, w, i, j, k)
             END IF
+!
+            IF (ctu > 0) THEN
+!
+! ... First order Corner Transport Upwind correction
+!
+              CALL ctu1_flu(ugfe(ijk), ugfn(ijk), ugft(ijk), &
+                        dens_stagx, u, v, w, i, j, k)
+              CALL ctu1_flv(vgfe(ijk), vgfn(ijk), vgft(ijk), &
+                        dens_stagy, u, v, w, i, j, k)
+              CALL ctu1_flw(wgfe(ijk), wgfn(ijk), wgft(ijk), &
+                        dens_stagz, u, v, w, i, j, k)
+!
+! ... Second order Corner Transport Upwind correction
+!
+              IF (ctu > 1 .AND. muscl == 0 .AND. flag(ijk) == fluid) THEN
+                IF (i /= nx-1) CALL ctu2_flu(ugfe(ijk), ugfn(ijk), ugft(ijk), &
+                                         dens_stagx, u, v, w, i, j, k)
+                IF (j /= ny-1) CALL ctu2_flv(vgfe(ijk), vgfn(ijk), vgft(ijk), &
+                                         dens_stagy, u, v, w, i, j, k)
+                IF (k /= nz-1) CALL ctu2_flw(wgfe(ijk), wgfn(ijk), wgft(ijk), &
+                                         dens_stagz, u, v, w, i, j, k)
+!
+! ... Third order Corner Transport Upwind correction
+!
+                IF (ctu > 2) THEN
+                  CALL ctu3_flu(ugfe(ijk), ugfn(ijk), ugft(ijk), dens_stagx, u, v, w, i, j, k)
+                  CALL ctu3_flv(vgfe(ijk), vgfn(ijk), vgft(ijk), dens_stagy, u, v, w, i, j, k)
+                  CALL ctu3_flw(wgfe(ijk), wgfn(ijk), wgft(ijk), dens_stagz, u, v, w, i, j, k)
+                END IF
+              END IF
+            END IF
 
 !
 ! ... (PARTICLES) ...
@@ -1116,7 +1196,26 @@
               CALL rnb(v,vs(:,is),ijk)
               CALL rnb(w,ws(:,is),ijk)
               CALL nb ( dens, rlk(:,is), ijk ) 
-
+!
+             IF (ctu > 0) THEN
+                CALL ctu1_rnb(u,us(:,is),ijk)
+                CALL ctu1_rnb(v,vs(:,is),ijk)
+                CALL ctu1_rnb(w,ws(:,is),ijk)
+                CALL ctu1_nb(dens,rlk(:,is),ijk)
+                IF (ctu > 1) THEN
+                  CALL ctu2_rnb(u,us(:,is),ijk)
+                  CALL ctu2_rnb(v,vs(:,is),ijk)
+                  CALL ctu2_rnb(w,ws(:,is),ijk)
+                  CALL ctu2_nb(dens,rlk(:,is),ijk)
+                  IF (ctu > 2) THEN
+                    CALL ctu3_rnb(u,us(:,is),ijk)
+                    CALL ctu3_rnb(v,vs(:,is),ijk)
+                    CALL ctu3_rnb(w,ws(:,is),ijk)
+                    CALL ctu3_nb(dens,rlk(:,is),ijk)
+                  END IF
+                END IF
+              END IF
+!
               ! ... Mask non-physical velocities from Immersed Boundaries
               !
               IF (immb >= 1) THEN
@@ -1156,6 +1255,40 @@
                 IF ( k /= nz-1 ) &
                   CALL muscl_flw(wsfe(ijk,is), wsfn(ijk,is), wsft(ijk,is), &
                            dens_stagz, u, v, w, i, j, k)
+              END IF
+!
+              IF (ctu > 0) THEN
+!
+! ... First order Corner Transport Upwind correction
+!
+                CALL ctu1_flu(usfe(ijk,is), usfn(ijk,is), usft(ijk,is), &
+                          dens_stagx, u, v, w, i, j, k)
+                CALL ctu1_flv(vsfe(ijk,is), vsfn(ijk,is), vsft(ijk,is), &
+                          dens_stagy, u, v, w, i, j, k)
+                CALL ctu1_flw(wsfe(ijk,is), wsfn(ijk,is), wsft(ijk,is), &
+                          dens_stagz, u, v, w, i, j, k)
+!
+! ... Second order Corner Transport Upwind correction
+!
+                IF (ctu > 1 .AND. muscl == 0 .AND. flag(ijk) == fluid) THEN
+                  IF (i /= nx-1) CALL ctu2_flu(usfe(ijk,is), usfn(ijk,is), usft(ijk,is), &
+                                           dens_stagx, u, v, w, i, j, k)
+                  IF (j /= ny-1) CALL ctu2_flv(vsfe(ijk,is), vsfn(ijk,is), vsft(ijk,is), &
+                                           dens_stagy, u, v, w, i, j, k)
+                  IF (k /= nz-1) CALL ctu2_flw(wsfe(ijk,is), wsfn(ijk,is), wsft(ijk,is), &
+                                           dens_stagz, u, v, w, i, j, k)
+!
+! ... Third order Corner Transport Upwind correction
+!
+                  IF (ctu > 2) THEN
+                    CALL ctu3_flu(usfe(ijk,is), usfn(ijk,is), usft(ijk,is), &
+                              dens_stagx, u, v, w, i, j, k)
+                    CALL ctu3_flv(vsfe(ijk,is), vsfn(ijk,is), vsft(ijk,is), &
+                              dens_stagy, u, v, w, i, j, k)
+                    CALL ctu3_flw(wsfe(ijk,is), wsfn(ijk,is), wsft(ijk,is), &
+                              dens_stagz, u, v, w, i, j, k)
+                  END IF
+                END IF
               END IF
 
             END DO

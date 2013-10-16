@@ -43,7 +43,8 @@ flux_sc.o : dimensions.o ghost.o grid.o indijk.o limiters.o subscr.o time.o
 
 flux_u.o : dimensions.o ghost.o grid.o indijk.o limiters.o subscr.o time.o 
 
-flux_v.o : dimensions.o grid.o io_files.o limiters.o subscr.o time.o 
+flux_v.o : dimensions.o ghost.o grid.o indijk.o io_files.o limiters.o  \
+    subscr.o time.o 
 
 flux_w.o : dimensions.o ghost.o grid.o indijk.o limiters.o subscr.o time.o 
 

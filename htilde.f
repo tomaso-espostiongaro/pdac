@@ -40,7 +40,7 @@
       USE particles_constants, ONLY: inrl
       USE pressure_epsilon, ONLY: ep
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
-      USE set_indexes, ONLY: ctu1_subscr, ctu2_subscr
+      USE set_indexes, ONLY: ctu1_subscr, ctu2_subscr, ctu3_subscr
       USE mass_sink, ONLY: sink
       USE time_parameters, ONLY: dt
       USE flux_limiters, ONLY: ctu
@@ -104,6 +104,7 @@
           CALL subscr(ijk)
           IF (ctu > 0) CALL ctu1_subscr(ijk)
           IF (ctu > 1) CALL ctu2_subscr(ijk)
+          IF (ctu > 2) CALL ctu3_subscr(ijk)
 ! 
           egfx = b_e * egfe(ijk) - b_w * egfe(imjk)
           egfz = b_t * egft(ijk) - b_b * egft(ijkm)
@@ -180,7 +181,7 @@
 
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
-      USE convective_fluxes_sc, ONLY: fsc, muscl_fsc, ctu1_fsc, ctu2_fsc
+      USE convective_fluxes_sc, ONLY: fsc, muscl_fsc, ctu1_fsc, ctu2_fsc, ctu3_fsc
       USE diffusive_fluxes, ONLY: hotc
       USE dimensions, ONLY: nsolid
       USE domain_mapping, ONLY: ncint, ncdom
@@ -196,9 +197,9 @@
       USE particles_constants, ONLY: inrl, kap
       USE pressure_epsilon, ONLY: ep
       USE set_indexes, ONLY: stencil, cte, subscr
-      USE set_indexes, ONLY: ctu1_subscr, ctu2_subscr
+      USE set_indexes, ONLY: ctu1_subscr, ctu2_subscr, ctu3_subscr
       USE set_indexes, ONLY: first_nb, first_rnb, third_nb, third_rnb
-      USE set_indexes, ONLY: ctu1_nb, ctu1_rnb, ctu2_nb, ctu2_rnb
+      USE set_indexes, ONLY: ctu1_nb, ctu1_rnb, ctu2_nb, ctu2_rnb, ctu3_nb, ctu3_rnb
       USE set_indexes, ONLY: imjk, ijmk, ijkm, OPERATOR( * )
       USE turbulence_model, ONLY: kapgt, iturb
 
@@ -227,6 +228,7 @@
           CALL subscr(ijk)
           IF (ctu > 0) CALL ctu1_subscr(ijk)
           IF (ctu > 1) CALL ctu2_subscr(ijk)
+          IF (ctu > 2) CALL ctu3_subscr(ijk)
 !
 ! ... Here compute convective and diffusive fluxes (gas)
 !
@@ -273,6 +275,17 @@
                 CALL ctu2_rnb(w,wg,ijk)
                 CALL ctu2_fsc(egfe(ijk), egft(ijk),    &
                         dens, enth, u, w, ijk)
+!
+! ... Third order Corner Transport Upwind correction (step 4)
+!
+                IF (ctu > 2) THEN
+                  CALL ctu3_nb(enth,sieg,ijk)
+                  CALL ctu3_nb(dens,rgp,ijk)
+                  CALL ctu3_rnb(u,ug,ijk)
+                  CALL ctu3_rnb(w,wg,ijk)
+                  CALL ctu3_fsc(egfe(ijk), egft(ijk),    &
+                          dens, enth, u, w, ijk)
+                END IF
               END IF
             END IF
 !
@@ -313,6 +326,44 @@
               CALL muscl_fsc(egfe(ijk), egfn(ijk), egft(ijk),    &
                              enth, dens, u, v, w, ijk)
             END IF
+!
+            IF (ctu > 0) THEN
+!
+! ... First order Corner Transport Upwind correction
+!
+              CALL ctu1_nb(enth,sieg,ijk)
+              CALL ctu1_nb(dens,rgp,ijk)
+              CALL ctu1_rnb(u,ug,ijk)
+              CALL ctu1_rnb(v,ug,ijk)
+              CALL ctu1_rnb(w,wg,ijk)
+              CALL ctu1_fsc(egfe(ijk), egfn(ijk), egft(ijk),    &
+                      enth, dens, u, v, w, ijk)
+!
+! ... Second order Corner Transport Upwind correction
+!
+              IF (ctu > 1 .AND. muscl == 0 .AND. flag(ijk) == fluid) THEN
+                CALL ctu2_nb(enth,sieg,ijk)
+                CALL ctu2_nb(dens,rgp,ijk)
+                CALL ctu2_rnb(u,ug,ijk)
+                CALL ctu2_rnb(v,ug,ijk)
+                CALL ctu2_rnb(w,wg,ijk)
+                CALL ctu2_fsc(egfe(ijk), egfn(ijk), egft(ijk),    &
+                        enth, dens, u, v, w, ijk)
+!
+! ... Third order Corner Transport Upwind correction
+!
+                IF (ctu > 2) THEN
+                  CALL ctu3_nb(enth,sieg,ijk)
+                  CALL ctu3_nb(dens,rgp,ijk)
+                  CALL ctu3_rnb(u,ug,ijk)
+                  CALL ctu3_rnb(v,ug,ijk)
+                  CALL ctu3_rnb(w,wg,ijk)
+                  CALL ctu3_fsc(egfe(ijk), egfn(ijk), egft(ijk),    &
+                          enth, dens, u, v, w, ijk)
+                END IF
+              END IF
+            END IF
+
 !
 ! ... Diffusive fluxes
 !
@@ -390,6 +441,17 @@
                   CALL ctu2_rnb(w, ws(:,is),ijk)
                   CALL ctu2_fsc(esfe(ijk, is), esft(ijk, is),  &
                           dens, enth, u, w, ijk)
+!
+! ... Third order Corner Transport Upwind (step 4)
+!
+                  IF (ctu > 2) THEN
+                    CALL ctu3_nb(enth,sies(:,is),ijk)
+                    CALL ctu3_nb(dens,rlk(:,is),ijk)
+                    CALL ctu3_rnb(u, us(:,is),ijk)
+                    CALL ctu3_rnb(w, ws(:,is),ijk)
+                    CALL ctu3_fsc(esfe(ijk, is), esft(ijk, is),  &
+                            dens, enth, u, w, ijk)
+                  END IF
                 END IF
               END IF
 !
@@ -430,6 +492,43 @@
                 CALL third_nb(dens,rlk(:,is),ijk)
                 CALL muscl_fsc(esfe(ijk, is), esfn(ijk, is), esft(ijk, is),  &
                                enth, dens, u, v, w, ijk)
+              END IF
+!
+              IF (ctu > 0) THEN
+!
+! ... First order Corner Transport Upwind
+!
+                CALL ctu1_nb(enth,sies(:,is),ijk)
+                CALL ctu1_nb(dens,rlk(:,is),ijk)
+                CALL ctu1_rnb(u, us(:,is),ijk)
+                CALL ctu1_rnb(v, vs(:,is),ijk)
+                CALL ctu1_rnb(w, ws(:,is),ijk)
+                CALL ctu1_fsc(esfe(ijk, is), esfn(ijk, is), esft(ijk, is),  &
+                        enth, dens, u, v, w, ijk)
+!
+! ... Second order Corner Transport Upwind
+!
+                IF (ctu > 1) THEN
+                  CALL ctu2_nb(enth,sies(:,is),ijk)
+                  CALL ctu2_nb(dens,rlk(:,is),ijk)
+                  CALL ctu2_rnb(u, us(:,is),ijk)
+                  CALL ctu2_rnb(v, vs(:,is),ijk)
+                  CALL ctu2_rnb(w, ws(:,is),ijk)
+                  CALL ctu2_fsc(esfe(ijk, is), esfn(ijk, is), esft(ijk, is),  &
+                          enth, dens, u, v, w, ijk)
+!
+! ... Third order Corner Transport Upwind
+!
+                  IF (ctu > 2) THEN
+                    CALL ctu3_nb(enth,sies(:,is),ijk)
+                    CALL ctu3_nb(dens,rlk(:,is),ijk)
+                    CALL ctu3_rnb(u, us(:,is),ijk)
+                    CALL ctu3_rnb(v, vs(:,is),ijk)
+                    CALL ctu3_rnb(w, ws(:,is),ijk)
+                    CALL ctu3_fsc(esfe(ijk, is), esfn(ijk, is), esft(ijk, is),  &
+                            enth, dens, u, v, w, ijk)
+                  END IF
+                END IF
               END IF
 !
 !

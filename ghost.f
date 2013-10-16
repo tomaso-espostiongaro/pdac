@@ -1253,6 +1253,8 @@
               END SELECT
               IF(k == 2) ijkwbb = ijkwb
 !
+! ... Third neighbours?
+!
               SELECT CASE (flag(ijkppp))
               CASE (slip_wall, noslip_wall, filled_cell_1)
                       ijkttt = ijkpp

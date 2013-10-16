@@ -67,7 +67,7 @@
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE set_indexes, ONLY: first_subscr, third_subscr
-      USE set_indexes, ONLY: ctu1_subscr, ctu2_subscr
+      USE set_indexes, ONLY: ctu1_subscr, ctu2_subscr, ctu3_subscr
       USE tilde_energy, ONLY: htilde
       USE tilde_momentum, ONLY: tilde, appu, appv, appw
       USE time_parameters, ONLY: time, dt, timestart, tpr, sweep
@@ -137,6 +137,7 @@
           CALL first_subscr( ijk )
           IF (ctu > 0) CALL ctu1_subscr(ijk)
           IF (ctu > 1) CALL ctu2_subscr(ijk)
+          IF (ctu > 2) CALL ctu3_subscr(ijk)
           CALL assemble_matrix( ijk )
           CALL solve_velocities( ijk)
         END IF
@@ -171,6 +172,7 @@
           CALL first_subscr( ijk )
           IF (ctu > 0) CALL ctu1_subscr(ijk)
           IF (ctu > 1) CALL ctu2_subscr(ijk)
+          IF (ctu > 2) CALL ctu3_subscr(ijk)
           CALL calc_gas_mass_flux( ijk )
           !
           ! ... compute the derivative of the gas mass residual
@@ -249,6 +251,7 @@
              IF (muscl > 0) CALL third_subscr(ijk)
              IF (ctu > 0) CALL ctu1_subscr(ijk)
              IF (ctu > 1) CALL ctu2_subscr(ijk)
+             IF (ctu > 2) CALL ctu3_subscr(ijk)
 
              ! ... Compute the volumes partially filled by the
              ! ... topography
@@ -595,7 +598,7 @@
 ! ... compute the gas mass fluxes by using the stencil, as defined in the
 ! ... 'subscr' module
 !
-      USE convective_mass_fluxes, ONLY: fmas, masf, ctu1_fmas, ctu2_fmas
+      USE convective_mass_fluxes, ONLY: fmas, masf, ctu1_fmas, ctu2_fmas, ctu3_fmas
       USE dimensions
       USE flux_limiters, ONLY: muscl, ctu
       USE gas_solid_velocity, ONLY: ug, vg, wg
@@ -603,7 +606,7 @@
       USE grid, ONLY: flag, fluid
       USE io_files, ONLY: testunit
       USE set_indexes, ONLY: first_nb, first_rnb, third_nb, third_rnb
-      USE set_indexes, ONLY: ctu1_nb, ctu1_rnb, ctu2_nb, ctu2_rnb
+      USE set_indexes, ONLY: ctu1_nb, ctu1_rnb, ctu2_nb, ctu2_rnb, ctu3_nb, ctu3_rnb
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE control_flags, ONLY: job_type, implicit_fluxes, &
                                implicit_enthalpy
@@ -653,6 +656,16 @@
               CALL ctu2_rnb( w, wg, ijk )
               CALL ctu2_fmas(rgfe( ijk ), rgft( ijk ), rgfe( imjk ), rgft( ijkm ), &
                       dens, u, w, ijk)
+!
+! ... Third order Corner Transport Upwind correction (step 4)
+!
+              IF (ctu > 2) THEN
+                CALL ctu3_nb ( dens, rgp, ijk )
+                CALL ctu3_rnb( u, ug, ijk )
+                CALL ctu3_rnb( w, wg, ijk )
+                CALL ctu3_fmas(rgfe( ijk ), rgft( ijk ), rgfe( imjk ), rgft( ijkm ), &
+                        dens, u, w, ijk)
+              END IF
             END IF
           END IF
 
@@ -682,6 +695,44 @@
                        dens, u, v, w, ijk )
 
           END IF
+!
+          IF (ctu > 0) THEN
+!
+! ... First order Corner Transport Upwind correction
+!
+            CALL ctu1_nb ( dens, rgp, ijk )
+            CALL ctu1_rnb( u, ug, ijk )
+            CALL ctu1_rnb( v, vg, ijk )
+            CALL ctu1_rnb( w, wg, ijk )
+            CALL ctu1_fmas( rgfe( ijk  ), rgfn( ijk  ), rgft( ijk  ),  &
+                       rgfe( imjk ), rgfn( ijmk ), rgft( ijkm ),  &
+                       dens, u, v, w, ijk)
+!
+! ... Second order Corner Transport Upwind correction
+!
+            IF (ctu > 1 .AND. muscl == 0 .AND. flag(ijk) == fluid) THEN
+              CALL ctu2_nb ( dens, rgp, ijk )
+              CALL ctu2_rnb( u, ug, ijk )
+              CALL ctu2_rnb( v, vg, ijk )
+              CALL ctu2_rnb( w, wg, ijk )
+              CALL ctu2_fmas( rgfe( ijk  ), rgfn( ijk  ), rgft( ijk  ),  &
+                         rgfe( imjk ), rgfn( ijmk ), rgft( ijkm ),  &
+                         dens, u, v, w, ijk)
+!
+! ... Third order Corner Transport Upwind correction
+!
+              IF (ctu > 2) THEN
+                CALL ctu3_nb ( dens, rgp, ijk )
+                CALL ctu3_rnb( u, ug, ijk )
+                CALL ctu3_rnb( v, vg, ijk )
+                CALL ctu3_rnb( w, wg, ijk )
+                CALL ctu3_fmas( rgfe( ijk  ), rgfn( ijk  ), rgft( ijk  ),  &
+                           rgfe( imjk ), rgfn( ijmk ), rgft( ijkm ),  &
+                           dens, u, v, w, ijk)
+              END IF
+            END IF
+          END IF
+!
         END IF
 
       END SUBROUTINE calc_gas_mass_flux   
@@ -724,14 +775,14 @@
 ! ... compute the particle mass fluxes by using the stencil
 ! ... as defined in the 'subscr' module
 
-      USE convective_mass_fluxes, ONLY: fmas, masf, ctu1_fmas, ctu2_fmas
+      USE convective_mass_fluxes, ONLY: fmas, masf, ctu1_fmas, ctu2_fmas, ctu3_fmas
       USE dimensions
       USE flux_limiters, ONLY: muscl, ctu
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE gas_solid_density, ONLY: rlk
       USE grid, ONLY: flag, fluid
       USE set_indexes, ONLY: first_nb, first_rnb, third_nb, third_rnb
-      USE set_indexes, ONLY: ctu1_nb, ctu1_rnb, ctu2_nb, ctu2_rnb
+      USE set_indexes, ONLY: ctu1_nb, ctu1_rnb, ctu2_nb, ctu2_rnb, ctu3_nb, ctu3_rnb
       USE set_indexes, ONLY: imjk, ijmk, ijkm
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
@@ -787,6 +838,17 @@
                 CALL ctu2_fmas(rsfe(ijk,is), rsft(ijk,is),    &
                         rsfe(imjk,is), rsft(ijkm,is), &
                         dens, u, w, ijk)
+!
+! ... Third order Corner Transport Upwind correction (step 4)
+!
+                IF (ctu > 2) THEN
+                  CALL ctu3_nb(dens,rlk(:,is),ijk)
+                  CALL ctu3_rnb(u,us(:,is),ijk)
+                  CALL ctu3_rnb(w,ws(:,is),ijk)
+                  CALL ctu3_fmas(rsfe(ijk,is), rsft(ijk,is),    &
+                          rsfe(imjk,is), rsft(ijkm,is), &
+                          dens, u, w, ijk)
+                END IF
               END IF
             END IF
 
@@ -815,6 +877,45 @@
                     dens, u, v, w, ijk)
 
             END IF
+!
+!
+! ... First order Corner Transport Upwind correction
+!
+            IF (ctu > 0) THEN
+              CALL ctu1_nb(dens,rlk(:,is),ijk)
+              CALL ctu1_rnb(u,us(:,is),ijk)
+              CALL ctu1_rnb(v,vs(:,is),ijk)
+              CALL ctu1_rnb(w,ws(:,is),ijk)
+              CALL ctu1_fmas(rsfe(ijk,is),  rsfn(ijk,is),  rsft(ijk,is),    &
+                      rsfe(imjk,is), rsfn(ijmk,is), rsft(ijkm,is),   &
+                      dens, u, v, w, ijk)
+!
+! ... Second order Corner Transport Upwind correction
+!
+              IF (ctu > 1 .AND. muscl == 0 .AND. flag(ijk) == fluid) THEN
+                CALL ctu2_nb(dens,rlk(:,is),ijk)
+                CALL ctu2_rnb(u,us(:,is),ijk)
+                CALL ctu2_rnb(v,vs(:,is),ijk)
+                CALL ctu2_rnb(w,ws(:,is),ijk)
+                CALL ctu2_fmas(rsfe(ijk,is),  rsfn(ijk,is),  rsft(ijk,is),    &
+                        rsfe(imjk,is), rsfn(ijmk,is), rsft(ijkm,is),   &
+                        dens, u, v, w, ijk)
+
+!
+! ... Third order Corner Transport Upwind correction
+!
+                IF (ctu > 2) THEN
+                  CALL ctu3_nb(dens,rlk(:,is),ijk)
+                  CALL ctu3_rnb(u,us(:,is),ijk)
+                  CALL ctu3_rnb(v,vs(:,is),ijk)
+                  CALL ctu3_rnb(w,ws(:,is),ijk)
+                  CALL ctu3_fmas(rsfe(ijk,is),  rsfn(ijk,is),  rsft(ijk,is),    &
+                          rsfe(imjk,is), rsfn(ijmk,is), rsft(ijkm,is),   &
+                          dens, u, v, w, ijk)
+                END IF
+              END IF
+            END IF
+!
           END IF
         END DO
 
