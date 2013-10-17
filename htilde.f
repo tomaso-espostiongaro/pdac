@@ -83,8 +83,8 @@
 ! ... Compute East, North, and Top fluxes in every cell
 ! ... within the computational domain
 ! 
-      CALL compute_all_fluxes
-      !CALL test_fluxes
+      CALL compute_all_fluxes_htilde
+!      CALL test_fluxes_htilde
 !
 ! ... Fluxes on west, south, and bottom sides keep values
 ! ... entering from neighbouring cells.
@@ -177,7 +177,7 @@
       RETURN
       END SUBROUTINE htilde
 !----------------------------------------------------------------------
-      SUBROUTINE compute_all_fluxes
+      SUBROUTINE compute_all_fluxes_htilde
 
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
@@ -577,9 +577,9 @@
       END IF
 
       RETURN
-      END SUBROUTINE compute_all_fluxes
+      END SUBROUTINE compute_all_fluxes_htilde
 !----------------------------------------------------------------------
-      SUBROUTINE test_fluxes
+      SUBROUTINE test_fluxes_htilde
       USE domain_mapping, ONLY: ncint, meshinds
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
       USE gas_solid_velocity, ONLY: ug
@@ -605,7 +605,7 @@
       CLOSE(tempunit)
       
       RETURN
-      END SUBROUTINE test_fluxes
+      END SUBROUTINE test_fluxes_htilde
 !----------------------------------------------------------------------
       END MODULE tilde_energy
 !-----------------------------------------------------------

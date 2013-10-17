@@ -196,6 +196,7 @@
 ! ... (Gauss elimination)
 !
       USE dimensions
+      USE io_files, ONLY: testunit
       USE gas_solid_density, ONLY: rlk
       USE particles_constants, ONLY: inrl, dk
       IMPLICIT NONE

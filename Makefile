@@ -1,7 +1,7 @@
 include Machine
 
 FOBJS= arrfil.o atmosphere.o blunt.o bdry.o control.o decomp.o dens.o \
-dimensions.o dome.o drag.o environment.o eosg.o eosl.o ftem.o \
+dimensions.o dome.o drag.o environment.o eosg.o eosl.o explicit_solver.o ftem.o \
 flux_u.o flux_v.o flux_w.o flux_sc.o flux_m.o gas.o ghost.o grid.o \
 hcapgs.o hotc.o hvs.o htilde.o kinds.o immb.o indijk.o input.o \
 interp.o inoutflow.o io_parallel.o io_restart.o iter.o kb07ad.o \

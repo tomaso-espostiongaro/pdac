@@ -69,7 +69,7 @@
       USE set_indexes, ONLY: first_subscr, third_subscr
       USE set_indexes, ONLY: ctu1_subscr, ctu2_subscr, ctu3_subscr
       USE tilde_energy, ONLY: htilde
-      USE tilde_momentum, ONLY: tilde, appu, appv, appw
+      USE tilde_momentum, ONLY: tilde
       USE time_parameters, ONLY: time, dt, timestart, tpr, sweep
 !
       IMPLICIT NONE
@@ -189,7 +189,6 @@
         END IF
       END DO
 
-!      CALL test_fluxes
 !
 ! ... Here Start the external iterative sweep.
 !/////////////////////////////////////////////////////////////////////
@@ -408,6 +407,8 @@
         !IF (ierr > 1) CALL error('iter','solid fraction exceeded 1',ierr)
 !
       END DO sor_loop
+
+CALL test_fluxes_iter
 !
 ! ... End the iterative sweep
 !/////////////////////////////////////////////////////////////////////
@@ -1811,7 +1812,7 @@
       
       END SUBROUTINE opt3_inner_loop
 !----------------------------------------------------------------------
-      SUBROUTINE test_fluxes
+      SUBROUTINE test_fluxes_iter
       USE domain_mapping, ONLY: ncint, meshinds
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
       USE io_files, ONLY: tempunit
@@ -1825,15 +1826,15 @@
         CALL subscr(ijk)
         CALL meshinds(ijk,imesh,i,j,k)
 
-        IF (i==11 .AND. k==51) THEN
+        IF (i==2 .AND. k==4) THEN
                 WRITE(tempunit,101) rgfe(ijk), rgft(ijk)
                 WRITE(tempunit,101) rgfe(imjk), rgft(ijkm)
         END IF
-        IF (i==10 .AND. k==52) THEN
+        IF (i==1 .AND. k==5) THEN
                 WRITE(tempunit,101) rgfe(ijk), rgft(ijk)
                 WRITE(tempunit,101) rgfe(imjk), rgft(ijkm)
         END IF
-        IF (i==11 .AND. k==52) THEN
+        IF (i==2 .AND. k==5) THEN
                 WRITE(tempunit,101) rgfe(ijk), rgft(ijk)
                 WRITE(tempunit,101) rgfe(imjk), rgft(ijkm)
         END IF
@@ -1845,7 +1846,7 @@
       CLOSE(tempunit)
 
       RETURN
-      END SUBROUTINE test_fluxes
+      END SUBROUTINE test_fluxes_iter
 !----------------------------------------------------------------------
       END MODULE iterative_solver
 !----------------------------------------------------------------------

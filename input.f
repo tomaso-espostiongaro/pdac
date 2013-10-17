@@ -139,7 +139,8 @@
       USE mass_sink, ONLY: isink, rprox
       USE specific_heat_module, ONLY: icpc, tref
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
-     &                            timestart, rungekut, tau, tau1, tau2, ift, alpha, alphagrav
+     &                            timestart, rungekut, tau, tau1, tau2, ift, alpha, alphagrav, &
+     & time_integration, adapt_dt
       USE turbulence_model, ONLY: iturb, cmut, iss, modturbo
       USE volcano_topography, ONLY: itp, iavv, cellsize, min_angle, max_angle,&
                                      filtersize, dem_file, nocrater, rim_quota, &
@@ -198,7 +199,8 @@
 
       NAMELIST / numeric / rungekut, beta, muscl, mass_limiter, vel_limiter, &
         inmax, maxout, omega, delg, implicit_fluxes, implicit_enthalpy, &
-        update_eosg, optimization, lim_type, rlim, flim, alpha, alphagrav, ctu
+        update_eosg, optimization, lim_type, rlim, flim, alpha, alphagrav, ctu, &
+        time_integration, adapt_dt
 
       INTEGER :: i, j, k, n, m, ig, ierr, lim_type
       CHARACTER(LEN=80) :: card
@@ -446,6 +448,9 @@
       alpha = 1.0D0
       alphagrav = 0.0D0
       ctu = 0
+      time_integration = 0  ! 0 = semi-implicit scheme, 1 = only drag and heat exchange terms
+                            ! are treated implicitly. Runge Kutta embedded 32 scheme
+      adapt_dt = .FALSE.
                         ! 
 !
 ! :::::::::::::::::::::::  R E A D   N A M E L I S T S ::::::::::::::::
@@ -750,6 +755,8 @@
       CALL bcast_real(alpha,1,root)
       CALL bcast_real(alphagrav,1,root)
       CALL bcast_integer(ctu,1,root)
+      CALL bcast_integer(time_integration,1,root)
+      CALL bcast_logical(adapt_dt,1,root)
 !
 !
 ! :::::::::::::::::::::::  R E A D   C A R D S ::::::::::::::::::::::::

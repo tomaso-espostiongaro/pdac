@@ -15,6 +15,8 @@
       USE environment, ONLY: cpclock, timing, elapsed_seconds
       USE eos_gas, ONLY: thermal_eosg, update_eosg
       USE eos_gas, ONLY: xgc
+      USE explicit_solver, ONLY: explicit_iter, allocate_fields, initialize_fieldn, & 
+                                 deallocate_fields
       USE gas_components, ONLY: ygas
       USE gas_solid_density, ONLY: rog, rgp, rlk
       USE gas_solid_temperature, ONLY: sieg, sies, ts, tg
@@ -34,7 +36,7 @@
       USE tilde_momentum, ONLY: allocate_fluxes, deallocate_fluxes
       USE tilde_momentum, ONLY: tilde, fieldn
       USE time_parameters, ONLY: time, tpr, tdump, tstop, dt, itd, tau1
-      USE time_parameters, ONLY: rungekut, sweep, ndump, nprint
+      USE time_parameters, ONLY: rungekut, sweep, ndump, nprint, time_integration
       USE turbulence_model, ONLY: iturb, iss
       USE turbulence_model, ONLY: sgsg, sgss
       USE volcano_topography, ONLY: itp
@@ -119,6 +121,10 @@
 !
       w0 = elapsed_seconds()
 !
+      IF (time_integration .EQ. 1) THEN
+        CALL allocate_fields
+      END IF
+
       IF (immb >= 1) CALL print_volumes
       IF (isrt >= 1) CALL set_sampling
 !
@@ -131,7 +137,7 @@
         sweep = sweep + 1
 
         IF (lpr > 0) THEN
-          WRITE(testunit,fmt="(/,'* Starting iteration ',I8,' * ')" ) sweep
+!          WRITE(testunit,fmt="(/,'* Starting iteration ',I8,' * ')" ) sweep
           WRITE(testunit,fmt="('  Simulated time = ',F20.14)" ) time
         END IF
 !
@@ -176,7 +182,12 @@
 ! ... Store all independent fields at time n*dt 
 ! ... for explicit time integration
 !
-        CALL fieldn
+        IF (time_integration .EQ. 0) THEN
+          CALL fieldn
+        ELSE
+!          CALL allocate_fields
+          CALL initialize_fieldn
+        END IF
 !
         IF( timing ) then
           s3 = cpclock()
@@ -207,7 +218,9 @@
 !        mptimfieldn  = mptimfieldn  + (p3 - p2)
 !        mptimturbo   = mptimturbo   + (p4 - p3)
 !
-        CALL allocate_fluxes
+        IF (time_integration .EQ. 0) THEN
+          CALL allocate_fluxes
+        END IF
 
 ! ... Start the explicit Runge-Kutta iteration
 !
@@ -224,9 +237,11 @@
 !
 ! ... Momentum fluxes, gas-particle drag, particle-particle interaction
 !
-          IF ( .NOT. implicit_fluxes ) THEN
-            CALL tilde
-            IF ( implicit_enthalpy ) CALL htilde
+          IF (time_integration .EQ. 0) THEN
+            IF ( .NOT. implicit_fluxes ) THEN
+              CALL tilde
+              IF ( implicit_enthalpy ) CALL htilde
+            END IF
           END IF
  
           IF (ibl >= 1) CALL bluntb
@@ -236,11 +251,16 @@
             !call cpu_time(t6)
             !call MP_WALLTIME(p6,myrank)
           END IF
+
 !
 ! ... Iterative solver for momentum-mass pressure coupling
 ! ... and explicit solver for interphase coupling
 !
-          CALL iter
+          IF (time_integration .EQ. 0) THEN
+            CALL iter
+          ELSE IF (time_integration .EQ. 1) THEN
+            CALL explicit_iter
+          END IF
 !
           IF( timing ) then
             s7 = cpclock()
@@ -261,9 +281,11 @@
 
 ! ... Solve explicitly transport equations for enthalpies
 !
-          IF (.NOT.implicit_enthalpy) THEN
-            CALL htilde
-            CALL ftem
+          IF (time_integration .EQ. 0) THEN
+            IF (.NOT.implicit_enthalpy) THEN
+              CALL htilde
+              CALL ftem
+            END IF
           END IF
 !
           IF( timing ) then
@@ -289,7 +311,11 @@
 
         END DO runge_kutta
 !
-        CALL deallocate_fluxes
+        IF (time_integration .EQ. 0) THEN
+          CALL deallocate_fluxes
+!        ELSE
+!          CALL deallocate_fields
+        END IF
 !
 ! ... End the Runge-Kutta iteration and advance time
 !
@@ -365,7 +391,7 @@
 !        mptimres  = mptimres  + (p12 - p11)
 !
         w1 = elapsed_seconds()
-        IF (lpr > 0) WRITE(testunit,fmt="('  walltime = ',F10.2,', ',F10.2)") w1, w1-w0
+!        IF (lpr > 0) WRITE(testunit,fmt="('  walltime = ',F10.2,', ',F10.2)") w1, w1-w0
         w0 = w1
 !
 !
@@ -381,6 +407,9 @@
 !
 !//////////////////////////////////////////////////////////////////////
 !
+        IF (time_integration .EQ. 1) THEN
+          CALL deallocate_fields
+        END IF
       IF( timing ) then
           s13 = cpclock()
           !call cpu_time(t13)

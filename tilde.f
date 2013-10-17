@@ -148,6 +148,7 @@
       USE set_indexes, ONLY: first_subscr, ijke, ijkn, ijkt
       USE set_indexes, ONLY: ctu1_subscr, ctu2_subscr, ctu3_subscr
       USE flux_limiters, ONLY: ctu
+      USE io_files, ONLY: testunit
 !
       IMPLICIT NONE
 !
@@ -262,7 +263,6 @@
 ! ... to compute the gas-particle drag coefficient
 !
          CALL viscon( mug(ijk), kapg(ijk), xgc(ijk,:), tg(ijk) )
-
       END DO
 !
       CALL data_exchange(pn)
@@ -409,8 +409,8 @@
 ! ... Compute all convective East, North, and Top fluxes 
 ! ... in the physical domain and ghost cells
 
-      CALL compute_all_fluxes
-      !CALL test_fluxes
+      CALL compute_all_fluxes_tilde
+!      CALL test_fluxes_tilde
 !
 ! ... Fluxes on West, South and Bottom sides keep values 
 ! ... of East, North and Top fluxes from neighbouring cells.
@@ -847,7 +847,7 @@
       RETURN
       END SUBROUTINE tilde
 !----------------------------------------------------------------------
-      SUBROUTINE compute_all_fluxes
+      SUBROUTINE compute_all_fluxes_tilde
 !
       USE dimensions, ONLY: nsolid, nx, ny, nz
       USE domain_mapping, ONLY: meshinds
@@ -1323,9 +1323,9 @@
       END IF
 !
       RETURN
-      END SUBROUTINE compute_all_fluxes
+      END SUBROUTINE compute_all_fluxes_tilde
 !----------------------------------------------------------------------
-      SUBROUTINE test_fluxes
+      SUBROUTINE test_fluxes_tilde
       USE domain_mapping, ONLY: ncint, meshinds
       USE set_indexes, ONLY: subscr, imjk, ijmk, ijkm
       USE gas_solid_velocity, ONLY: ug
@@ -1341,17 +1341,17 @@
         CALL subscr(ijk)
         CALL meshinds(ijk,imesh,i,j,k)
           
-        IF (i == 11 .AND. k == 51) THEN
+        IF (i == 2 .AND. k == 31) THEN
           WRITE(tempunit,101) ugfe(ijk), ugft(ijk), ugfe(imjk), ugft(ijkm)
           WRITE(tempunit,101) wgfe(ijk), wgft(ijk), wgfe(imjk), wgft(ijkm)
           WRITE(tempunit,101)
         END IF
-        IF (i == 10 .AND. k == 52) THEN
+        IF (i == 1 .AND. k == 32) THEN
           WRITE(tempunit,101) ugfe(ijk), ugft(ijk), ugfe(imjk), ugft(ijkm)
           WRITE(tempunit,101) wgfe(ijk), wgft(ijk), wgfe(imjk), wgft(ijkm)
           WRITE(tempunit,101)
         END IF
-        IF (i == 11 .AND. k == 52) THEN
+        IF (i == 2 .AND. k == 32) THEN
           WRITE(tempunit,101) ugfe(ijk), ugft(ijk), ugfe(imjk), ugft(ijkm)
           WRITE(tempunit,101) wgfe(ijk), wgft(ijk), wgfe(imjk), wgft(ijkm)
           WRITE(tempunit,101)
@@ -1364,7 +1364,7 @@
       CLOSE(tempunit)
 
       RETURN
-      END SUBROUTINE test_fluxes
+      END SUBROUTINE test_fluxes_tilde
 !----------------------------------------------------------------------
       END MODULE tilde_momentum
 !----------------------------------------------------------------------
