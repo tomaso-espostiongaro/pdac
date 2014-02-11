@@ -136,7 +136,7 @@
       USE roughness_module, ONLY: zrough
       USE runtime_sampling, ONLY: isrt
       USE set_indexes, ONLY: subsc_setup
-      USE mass_sink, ONLY: isink, rprox
+      USE mass_sink, ONLY: isink, rprox, rdist
       USE specific_heat_module, ONLY: icpc, tref
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut, tau, tau1, tau2, ift, alpha, alphagrav, &
@@ -157,7 +157,7 @@
 
       NAMELIST / model / icpc, tref, irex, gas_viscosity, part_viscosity,      &
         iss, repulsive_model, iturb, modturbo, cmut, drag_model, pmodel,             &
-        gravx, gravy, gravz, ngas, density_specified, isink, rprox
+        gravx, gravy, gravz, ngas, density_specified, isink, rprox, rdist
 
       NAMELIST / mesh / nx, ny, nz, itc, iuni, dx0, dy0, dz0, zzero, &
         center_x, center_y, alpha_x, alpha_y, alpha_z,  &
@@ -249,7 +249,8 @@
       gravy = 0.0D0     ! gravity along y
       gravz = -9.81D0   ! gravity along z
       ngas = 2          ! max number of gas components
-      rprox = 5.D2      ! radius defining a "proximal" region
+      rprox = 0.0      ! radius defining a "proximal" region
+      rdist = 25000.0     ! radius defining a "proximal" region
       tref = 298.D0     ! reference temperature
 
 ! ... Mesh
@@ -524,6 +525,7 @@
       CALL bcast_integer(irex,1,root)
       CALL bcast_integer(isink,1,root)
       CALL bcast_real(rprox,1,root)
+      CALL bcast_real(rdist,1,root)
       CALL bcast_integer(iss,1,root)
       CALL bcast_integer(repulsive_model,1,root)
       CALL bcast_integer(iturb,1,root)

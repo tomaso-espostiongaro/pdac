@@ -9,9 +9,10 @@
       REAL*8, DIMENSION(:,:), ALLOCATABLE:: sink     ! Array of instantaneous sink terms  
       REAL*8, DIMENSION(:,:), ALLOCATABLE:: massl, mass_loss ! Array of cumulative (in time) sink terms
       INTEGER :: isink
-      REAL*8 :: rprox, rprox2
+      REAL*8 :: rprox, rprox2, rdist, rdist2
 !
-      PUBLIC :: sink_update, isink, rprox, sink, print_mass_loss, allocate_sink, read_mass_loss
+      PUBLIC :: isink, sink, rprox, rdist
+      PUBLIC :: print_mass_loss, allocate_sink, read_mass_loss, sink_update
       PRIVATE
 !
       SAVE
@@ -38,6 +39,7 @@
       massl = 0.D0
 !
       rprox2 = rprox**2
+      rdist2 = rdist**2
 !
       END SUBROUTINE
 !--------------------------------------------------------------
@@ -83,7 +85,7 @@
       fact = epsmax/eps * ((1.D0 - epsmax)/(1.D0 - eps))**nexp
       fact = MIN(fact,1.D0)
 !      
-      wst  = wsink(ijk,is) * fact
+      !wst  = wsink(ijk,is) * fact
       wst = wsink(ijk,is)
 !
 ! ... Sink term as in Cordoba et al., JVGR, Vol. 139 (2005)
@@ -91,7 +93,7 @@
 !
 ! ... Sink term as a convective flux
       dist2 = (x(i)-center_x)**2 + (y(j)-center_y)**2
-      IF (dist2 > rprox2) THEN
+      IF (dist2 > rprox2 .AND. dist2 < rdist2) THEN
         !
         sink(ijk,is) = rsft_up * wst * indz(k)
         !
