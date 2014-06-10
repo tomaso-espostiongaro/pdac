@@ -23,7 +23,7 @@
       USE postp_output, ONLY: first_out, last_out, incr_out
       USE postp_output, ONLY: iminc, imaxc, jminc, jmaxc, kminc, kmaxc 
       USE postp_output, ONLY: deltaz1, deltaz2
-      USE postp_output, ONLY: print_log, print_tg, print_mn, print_cm, print_pd, print_mnn 
+      USE postp_output, ONLY: print_log, print_tg, print_mn, print_cm, print_pd, print_mnn, print_rhom
       USE sample_points, ONLY: number_of_probes, assign_index, probe_file, &
            isamp, iiv, jjv
       USE section_outputs, ONLY: isect, sect_file, number_of_sections
@@ -35,7 +35,7 @@
                downsize_x, downsize_y, downsize_z, iminc, imaxc, jminc, &
                jmaxc, kminc, kmaxc
 
-      NAMELIST / fields / iflds, print_log, print_tg, print_mn, print_cm, print_pd, print_mnn 
+      NAMELIST / fields / iflds, print_log, print_tg, print_mn, print_cm, print_pd, print_mnn , print_rhom
 
       NAMELIST / mean_outp / imnfld
 
@@ -78,8 +78,9 @@
 ! ... Fields
   
   iflds = 1
-  print_log = .FALSE.
+  print_log = .TRUE.
   print_tg  = .TRUE.
+  print_rhom  = .TRUE.
   print_mn  = .FALSE.
   print_cm  = .FALSE.
   print_pd  = .FALSE.
@@ -157,6 +158,7 @@
       CALL bcast_integer(iflds,1,root)
       CALL bcast_logical(print_log,1,root)
       CALL bcast_logical(print_tg,1,root)
+      CALL bcast_logical(print_rhom,1,root)
       CALL bcast_logical(print_mn,1,root)
       CALL bcast_logical(print_cm,1,root)
       CALL bcast_logical(print_pd,1,root)

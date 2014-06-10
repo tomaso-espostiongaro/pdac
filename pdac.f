@@ -216,7 +216,7 @@
 ! ... Domain Decomposition
 !
       !Simulate the domain decomposition!
-      !DO n = 256, 256
+      !DO n = 512, 512
       !CALL partition( n, mpime, root ) ! TEST
       !END DO
       !CALL parallel_hangup   ! TEST
@@ -263,6 +263,7 @@
 ! ... Set parameters and initial conditions
 !
       CALL setpar
+
       CALL setup
 
           IF (timing) then

@@ -412,6 +412,7 @@
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE domain_mapping, ONLY: ncint, meshinds, myijk
+      USE environment, ONLY: cpclock
       USE eos_gas, ONLY: ygc
       USE gas_constants, ONLY: gmw, rgas, gammaair, gas_type
       USE gas_solid_density, ONLY: rlk
@@ -425,11 +426,14 @@
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: n
+      REAL*8 :: ran0
+      EXTERNAL :: ran0
       REAL*8 :: ygcsum
       REAL*8 :: dist, radius
       INTEGER :: ijk,i,j,k,imesh
       INTEGER :: ig, is, dfg
       INTEGER :: ic, jc, kc
+      REAL*8 :: seed, rseed
 !
 ! ... These parameters are used to set the initial conditions
 ! ... within a specified radius
@@ -439,6 +443,9 @@
 !        ic = iob(n)%xlo
 !        jc = iob(n)%ylo
 !        kc = iob(n)%zlo
+!
+        rseed = cpclock()
+        seed = INT(rseed)
 !
         DO ijk = 1, ncint
           CALL meshinds(ijk,imesh,i,j,k)
@@ -451,7 +458,16 @@
 !              dist = DSQRT((x(i)-x(ic))**2+(y(j)-y(jc))**2+(z(k)-z(kc))**2)
 !              IF (dist <= radius) THEN
                 ug(ijk) = ugob(n)
+!
+! ... Add a random noise
+                !ug(ijk) = ug(ijK) + 1.D0 * (ran0(seed) - 0.5D0)
+!
                 IF (job_type == JOB_TYPE_3D) vg(ijk) = vgob(n)
+!
+! ... Add a random noise
+                !IF (job_type == JOB_TYPE_3D) &
+                  !vg(ijk) = vg(ijK) + 1.D0 * (ran0(seed) - 0.5D0)
+!
                 wg(ijk) = wgob(n)
                 tg(ijk) = tgob(n)
                 p(ijk)  = pob(n)
@@ -462,7 +478,16 @@
                 DO is = 1,nsolid
                   ts(ijk,is)  = tpob(is,n)
                   us(ijk,is)  = upob(is,n)
+!
+! ... Add a random noise
+                  !us(ijk,is) = us(ijK,is) + 1.D0 * (ran0(seed) - 0.5D0)
+!
                   IF (job_type == JOB_TYPE_3D) vs(ijk,is)  = vpob(is,n)
+!
+! ... Add a random noise
+                  !IF (job_type == JOB_TYPE_3D) &
+                    !vs(ijk,is) = vs(ijK,is) + 1.D0 * (ran0(seed) - 0.5D0)
+!
                   ws(ijk,is)  = wpob(is,n)
                   rlk(ijk,is) = epsob(is,n)*rl(is)
                 END DO

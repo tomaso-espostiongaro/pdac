@@ -1,4 +1,4 @@
-include Machine
+include Machine.intel
 
 FOBJS= arrfil.o atmosphere.o blunt.o bdry.o control.o decomp.o dens.o \
 dimensions.o dome.o drag.o environment.o eosg.o eosl.o explicit_solver.o ftem.o \

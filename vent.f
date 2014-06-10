@@ -58,7 +58,7 @@
 
       USE control_flags, ONLY: job_type, lpr
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
-      USE grid, ONLY: x, y, z, iv, jv
+      USE grid, ONLY: x, y, z, iv, jv, fl
       USE parallel, ONLY: mpime, root
 
       IMPLICIT NONE
@@ -88,14 +88,14 @@
         WRITE(ventunit,*) 'Number of vent cells: ', nvt
         WRITE(ventunit,*) 'Vent cells report: '
         DO n = 1, nvt
-          WRITE(ventunit,400) n, vcell(n)
+          WRITE(ventunit,400) n, vcell(n), fl(vcell(n)%imesh)
         END DO
       END IF
 !
  100    FORMAT(1X,'vent center: ',3I5)
  200    FORMAT(1X,'vent center coordinates: ',3(F12.2))
  300    FORMAT(1X,'vent radius and base radius: ',2(F12.2))
- 400    FORMAT(I4,4(I5),2(F8.4))
+ 400    FORMAT(I4,I8, 3(I5),2(F8.4),I5)
 !
       RETURN
       END SUBROUTINE locate_vent
@@ -356,7 +356,8 @@
           vcell(nv)%frac = cell_fraction(i,j)
           
           IF (vcell(nv)%frac > soglia) THEN
-            fl(ijk) = vent_cell
+            IF (i/=1 .AND. i/=nx .AND. j/=1 .AND. j/=ny) &
+              fl(ijk) = vent_cell
           ELSE
             fl(ijk) = noslip_wall
           END IF
@@ -366,7 +367,8 @@
           !
           DO k = quota+1, nz-1
             ijk = i + (j-1) * nx + (k-1) * nx * ny
-            fl(ijk) = fluid
+            IF (i/=1 .AND. i/=nx .AND. j/=1 .AND. j/=ny) &
+              fl(ijk) = fluid
           END DO
                     
         END DO
@@ -547,7 +549,7 @@
           !CALL MP_WALLTIME(rseed,mpime)
           rseed = cpclock()
           seed = INT(rseed)
-          WRITE(testunit,*) 'seed=', seed
+          !WRITE(testunit,*) 'seed=', seed
           !IF (mpime == root) seed = INT(cpclock())
           !CALL bcast_integer(seed,1,root)
         

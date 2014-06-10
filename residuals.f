@@ -187,8 +187,6 @@
       REAL*8, INTENT(OUT) :: mfr, mgd, mxv, mrd
       REAL*8, INTENT(OUT), DIMENSION(:) :: msd
 !
-      IF (job_type == JOB_TYPE_2D .AND. itc == 0) RETURN
-!
       pi = 4.D0 * ATAN(1.D0)
       twopi = 2.D0 * pi
 !            
@@ -197,7 +195,9 @@
       mgd = 0.D0
       msd = 0.D0
       mxv = 0.D0
-
+!
+      IF (job_type == JOB_TYPE_2D .AND. itc == 0) RETURN
+!
       DO ijk = 1, ncint
         CALL meshinds(ijk,imesh,i,j,k)
 

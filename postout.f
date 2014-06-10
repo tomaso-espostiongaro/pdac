@@ -14,7 +14,7 @@
       INTEGER :: first_out, last_out, incr_out
       ! ... crop
       INTEGER :: iminc, imaxc, jminc, jmaxc, kminc, kmaxc
-      LOGICAL :: print_log, print_tg, print_mn, print_cm, print_pd, print_mnn 
+      LOGICAL :: print_log, print_tg, print_mn, print_cm, print_pd, print_mnn , print_rhom
       REAL*8  :: deltaz1, deltaz2
 !
       PUBLIC
@@ -582,7 +582,7 @@
       USE io_files, ONLY: tempunit
       USE io_parallel, ONLY: write_crop_array
       USE parallel, ONLY: mpime, root
-      USE postp_variables, ONLY: epst, lepst, tg, mn, cm, pd, mnn
+      USE postp_variables, ONLY: epst, lepst, tg, mn, cm, pd, mnn, tm, rhom
 !
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: tn
@@ -617,10 +617,26 @@
           END IF
         END IF
         !
-        CALL write_crop_array( tempunit, tg, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
+        CALL write_crop_array( tempunit, tm, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
         !
         IF (mpime == root) CLOSE(tempunit)
       END IF
+!
+      IF (print_rhom) THEN
+        IF (mpime == root) THEN
+          filnam = 'rhom.'//lettera(tn)
+          IF (lform) THEN
+            OPEN(tempunit,FILE=filnam)
+          ELSE
+            OPEN(tempunit,FILE=filnam, FORM='UNFORMATTED')
+          END IF
+        END IF
+        !
+        CALL write_crop_array( tempunit, rhom, sgl, lform, iminc, imaxc, jminc, jmaxc, kminc, kmaxc)
+        !
+        IF (mpime == root) CLOSE(tempunit)
+      END IF
+!
 !
       IF (print_mn) THEN
         IF (mpime == root) THEN

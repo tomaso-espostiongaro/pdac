@@ -108,7 +108,11 @@
         !
         IF (imap > 0) THEN
                CALL write_topo2d
+               CALL write_map(tn,tm,'tm')
+               CALL write_map(tn,rhom,'rm')
+               CALL write_map(tn,pd,'pd')
                CALL write_map(tn,lepst,'le')
+               CALL write_map(tn,mvm,'vm')
         END IF
         IF (isamp > 0)  CALL sample
         IF (isamp > 1)  CALL column_axis_average(itn)

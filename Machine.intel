@@ -1,10 +1,10 @@
 #----------------------------------------
 # Linux with Intel compiler
 #----------------------------------------
-#MACROS= -DMPI
-MACROS= -D__SCALAR -D__INTEL
+MACROS= -D__MPI
+#MACROS= -D__SCALAR
 #----------------------------------------
-FFLAGS= -O2 -FR -tpp7 -w90 -w95
+FFLAGS= -O2 -FR
 CPPFLAGS= -fpp $(MACROS)
 CFLAGS= -O2 $(MACROS)
 LINKFLAGS=
@@ -12,13 +12,12 @@ LIBS=
 ARFLAGS=rv
 #----------------------------------------
 # scalar compiler
-#FC=xlf
-FC=ifort
+FC=/opt/mpich-mx/bin/mpif90
 # parallel compiler
-MPFC=ifort
+MPFC=/opt/mpich-mx/bin/mpif90
 #----------------------------------------
 # ... linker
-LINKER= ifort
+LINKER=/opt/mpich-mx/bin/mpif90
 
 .SUFFIXES:
 .SUFFIXES:.F .o .f .c
