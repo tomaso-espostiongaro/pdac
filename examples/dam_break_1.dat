@@ -1,0 +1,86 @@
+&control
+ run_name = 'dam_break',
+ job_type = '2D',
+ restart_mode = 'from_scratch',
+ time =  0.0D0,
+ tstop = 500.0D0,
+ dt    = 0.005D0,
+ tpr   = 10.D0,
+ tdump = 100.D0,
+ formatted_output = .TRUE.,
+ max_seconds = 86400
+ lpr = 2,
+ imr = 1,
+/
+
+&model
+ iturb = 1,
+ cmut = 0.1D0,
+ ngas = 1,
+ pmodel = 2
+/
+
+&mesh
+  grigen = 1,
+  nx = 500 
+  nz = 110
+  itc  = 0,
+  iuni = 0,
+  n0x = 500,
+  dxmin = 20.0,
+  dxmax = 20.0,
+  dzmin = 5.0,
+  dzmax = 40.0,
+  n0z = 81,
+  domain_x = 10.D3,
+  domain_z = 1.D3,
+  maxbeta = 1.2,
+  mesh_partition = 2
+/
+
+&boundaries
+  immb = 0,
+  east   = 2,
+  west   = 2,
+  top    = 2,
+  bottom = 3
+/
+
+&topography
+  itp = 0
+/
+
+&inlet
+  ivent = 0
+/
+
+&dome
+  idome = 0
+/
+
+&atmosphere
+  t_ground = 300
+/
+
+&particles
+  nsolid = 1,
+  diameter = 100.D0
+  density = 1000.D0
+  sphericity = 1.0
+  viscosity = 1.0
+  specific_heat = 1.2D3
+  thermal_conductivity = 2.0D0
+/
+
+&numeric
+  muscl = 1
+/
+
+'MESH'
+
+'FIXED_FLOWS'
+1
+1, 2, 26, 2, 81
+0.0, 0.0, 1.01325D5, 0.9995D0, 300
+0.0, 0.0, 0.0005D0, 300
+0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0

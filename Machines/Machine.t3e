@@ -1,0 +1,28 @@
+#----------------------------------------
+# T3E
+#----------------------------------------
+MACROS= -D__MPI
+#MACROS= -D__SCALAR
+#----------------------------------------
+IPAFLG= 
+FFLAGS= -O2 -dp -eA
+#FFLAGS= -dp -g
+CPPFLAGS= -F -eZ $(MACROS)
+PREPROCESSING = -F -eZ $(MACROS)
+PREPROCESSING =
+LINKFLAGS= -eA
+LIBS=
+LIBS= -lapp
+ARFLAGS=rv
+#----------------------------------------
+# scalar compiler
+#FC=xlf
+FC=f90
+# parallel compiler
+MPFC=f90
+#----------------------------------------
+# ... parallel linker
+LINKER= f90
+
+
+.SUFFIXES:.F

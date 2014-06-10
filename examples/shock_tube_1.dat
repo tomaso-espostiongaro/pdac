@@ -1,5 +1,5 @@
 &control
- run_name = 'shock_tube',
+ run_name = 'Toro E., 2009 ',
  job_type = '2D',
  restart_mode = 'from_scratch', ! ( from_scratch | restart )
  time =  0.00,

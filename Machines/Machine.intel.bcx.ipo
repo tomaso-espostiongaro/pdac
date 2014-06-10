@@ -1,0 +1,48 @@
+#----------------------------------------
+# Linux with Intel compiler
+#----------------------------------------
+#MACROS= -DMPI
+MACROS= -D__MPI -D__INTEL
+#----------------------------------------
+
+FFLAGS= -O3 -ipo  -opt-report 3 -opt-report-phaseall -FR  -w90 -w95
+FFLAGS= -O3  -opt-report 3 -opt-report-phaseall  -FR  -w90 -w95
+FFLAGS= -O2  -opt-report 3 -opt-report-phaseall  -FR  -w90 -w95
+
+MPFFLAGS= -O3 -ipo -opt-report-phaseall -w90 -w95
+MPFFLAGS= -O3  -opt-report 3 -opt-report-phaseall  -w90 -w95
+MPFFLAGS= -O2  -opt-report 3 -opt-report-phaseall  -w90 -w95
+
+CPPFLAGS= -fpp $(MACROS)
+
+CFLAGS= -O3 -ipo  $(MACROS)
+CFLAGS= -O3 $(MACROS)
+CFLAGS= -O2 $(MACROS)
+
+LINKFLAGS= -ipo -i-static  -opt-report 3 -opt-report-phaseall 
+LINKFLAGS=  -i-static  -opt-report 3 -opt-report-phaseall 
+LINKFLAGS= -O2  -i-static  -opt-report 3 -opt-report-phaseall 
+
+LIBS= 
+ARFLAGS=rv
+#----------------------------------------
+# scalar compiler
+#FC=xlf
+FC=ifort
+# parallel compiler
+MPFC=mpif90
+#----------------------------------------
+# ... linker
+LINKER= mpif90
+
+.SUFFIXES:
+.SUFFIXES:.F .o .f .c
+
+.c.o:
+	$(CC) -c $(CFLAGS) $<
+
+.f.o:
+	$(FC) -c $(PREPROCESSING) $(FREEFORM)  $(FFLAGS) $(MODULES) $<
+
+.F.o:
+	$(MPFC) -c $(PREPROCESSING) $(MPFFLAGS) $(CPPFLAGS) $(MODULES) $<

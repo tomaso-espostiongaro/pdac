@@ -1,0 +1,98 @@
+&control
+ run_name = 'Sommerfeld M., Shock Waves (3), 1994',
+ job_type = '2D',
+ restart_mode = 'from_scratch',
+ time = 0.0D0,
+ tstop = 5.D-4,
+ dt = 5.D-8,
+ lpr = 2,
+ imr = 0,
+ isrt = 0,
+ tpr = 1.0D-5,
+ tdump = 1.0D-5,
+ formatted_output = .TRUE.,
+ formatted_input = .FALSE.,
+ max_seconds = 2000000.0D0,
+/
+
+&model
+ gas_viscosity = .FALSE.,
+ part_viscosity = .FALSE.,
+ iturb = 0,
+ gravx = 0.0D0,
+ gravy = 0.0D0,
+ gravz = 0.0D0,
+ ngas = 1,
+ density_specified = .FALSE.
+/
+
+&mesh
+ grigen = 0,
+ nx = 500, 
+ nz = 750,
+ dx0 = 3.D-4,
+ dz0 = 3.D-4,
+ itc = 1,
+ iuni = 1,
+ mesh_partition = 1
+/
+
+&boundaries
+ west = 2,
+ east = 2,
+ bottom = 2,
+ top = 4,
+ ibl = 0,
+/
+
+
+&topography
+ itp = 0
+/
+
+&inlet
+ ivent = 0
+/
+
+&dome
+ idome = 0,
+/
+
+&atmosphere
+ stratification = .FALSE.,
+ p_ground = 10100.D0,
+ t_ground = 300.D0
+/
+
+&particles
+ nsolid = 1,
+ diameter = 10.0D0,
+ density = 2500.0D0,
+ sphericity = 1.0D0,
+ viscosity = 0.5D0,
+ specific_heat = 1.0D3,
+ thermal_conductivity = 2.0D0,
+ twophase_limit = 1.0D-8
+/
+
+&numeric
+ rungekut = 1,
+ muscl = 0,
+ inmax = 50,
+ maxout = 500,
+ delg = 1.0D-8,
+ omega = 1.2,
+ update_eosg = .FALSE.,
+ alpha = 0.55D0,
+ alphagrav = 0.55D0,
+ ctu = 2
+/
+
+'MESH'
+
+'FIXED_FLOWS'
+1
+5, 2, 6, 1, 1
+  0.00,  347.D0, 3.1D5 , 0.999491, 300.D0
+  0.00,  347.D0, 509.D-6, 300.D0
+  0.00,  0.00,  0.00,  0.00, 0.00,  1.00,  0.00

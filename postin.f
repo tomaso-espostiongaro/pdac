@@ -77,7 +77,7 @@
 
 ! ... Fields
   
-  iflds = 1
+  iflds = 0
   print_log = .TRUE.
   print_tg  = .TRUE.
   print_rhom  = .TRUE.
