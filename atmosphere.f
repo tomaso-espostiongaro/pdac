@@ -1,4 +1,6 @@
 !------------------------------------------------------------------------
+!>    Define Atmospheric conditions
+!------------------------------------------------------------------------
       MODULE atmospheric_conditions
 !------------------------------------------------------------------------
       USE dimensions, ONLY: max_ngas
@@ -6,35 +8,34 @@
       IMPLICIT NONE
       PUBLIC
 !
-! ... Initial atmospheric variables
-!
-      REAL*8 :: wind_x
-      REAL*8 :: wind_y
-      REAL*8 :: wind_z
+      REAL*8 :: wind_x  !< x-component of wind velocity
+      REAL*8 :: wind_y  !< y-component of wind velocity
+      REAL*8 :: wind_z  !< z-component of wind velocity
       !
-      ! ... Pressure and temperature at sea level
-      REAL*8 :: p_ground  
-      REAL*8 :: t_ground
+      REAL*8 :: p_ground  !< Pressure at sea level
+      REAL*8 :: t_ground  !< Temperature at sea level
 
-      REAL*8 :: void_fraction
-      REAL*8 :: atm_ygc(max_ngas)
+      REAL*8 :: void_fraction !< Gas volume fraction in atmosphere
+      REAL*8 :: atm_ygc(max_ngas) !< Mass fractions of atmospheric gases
 
-      REAL*8 :: max_packing
-      REAL*8 :: gravx, gravy, gravz
-      REAL*8, ALLOCATABLE :: p_atm(:), t_atm(:)
+      REAL*8 :: max_packing !< Maximum volumetric packing of particles
+      REAL*8 :: gravx, gravy, gravz !< Components of gravity acceleration
+      REAL*8, ALLOCATABLE :: p_atm(:) !< Atmospheric pressure at grid centers
+      REAL*8, ALLOCATABLE :: t_atm(:) !< Atmospheric temperature at grid centers
 
-      ! ... Flag for temperature stratification
-      !
+      !> Flag for temperature stratification
       LOGICAL :: stratification
 
+      !> Atmospheric layers
       TYPE atmospheric_layer
-        REAL*8 :: ztop
-        REAL*8 :: ptop
-        REAL*8 :: ttop
-        REAL*8 :: gradt
-        CHARACTER(LEN=20) :: name
+        REAL*8 :: ztop !< Height above sea level of layer top
+        REAL*8 :: ptop !< Pressure at layer top
+        REAL*8 :: ttop !< Temperature at latyer top
+        REAL*8 :: gradt !< Temperature gradient [K/m]
+        CHARACTER(LEN=20) :: name !< Layer name
       END TYPE
 
+      !> Number of atmospheric layers
       INTEGER, PARAMETER :: num_layers = 7
       TYPE(atmospheric_layer) :: layer(num_layers)
 
@@ -42,7 +43,10 @@
 !------------------------------------------------------------------------
       CONTAINS
 !------------------------------------------------------------------------
+!> Check stratification conditions.
+!------------------------------------------------------------------------
       SUBROUTINE control_atmosphere
+!------------------------------------------------------------------------
 !
       USE control_flags, ONLY: lpr
       USE parallel, only: mpime, root
@@ -69,13 +73,13 @@
 !
       END SUBROUTINE control_atmosphere
 !------------------------------------------------------------------------
+!> Compute atmospheric stratification accordingly with
+!> the description of a standard, quiet atmosphere.
+!> For each atmospheric layer, the upper limit (in metres) and the
+!> temperature gradient is set from input.
+!------------------------------------------------------------------------
       SUBROUTINE set_atmosphere
 !------------------------------------------------------------------------
-! ... This routine computes atmospheric stratification accordingly with
-! ... the description of a standard, quiet atmosphere
-! ... For each atmospheric region, the upper limit (in metres) and the
-! ... Temperature gradient is set from input.
-! ... Ground pressure and temperature must also be set.
 !
       USE control_flags, ONLY: lpr
       USE dimensions, ONLY: nz
@@ -137,10 +141,11 @@
 
       END SUBROUTINE set_atmosphere
 !------------------------------------------------------------------------
+!> Compute the standard atmospheric condition in each
+!> cell of the computational domain 
+!------------------------------------------------------------------------
       SUBROUTINE compute_profile
 !------------------------------------------------------------------------
-! ... This routine computes the standard atmospheric condition in each
-! ... cell of the computational domain 
 !
       USE control_flags, ONLY: lpr
       USE dimensions, ONLY: nz
@@ -225,13 +230,15 @@
       RETURN
       END SUBROUTINE compute_profile
 !----------------------------------------------------------------------
+!> Integrate the hydrostatic law \f$ dP/dz = \rho(z) * g_z \f$
+!> using the thermal equation of state to express the 
+!> density \f$ \rho(z)=\rho(P(z), T(z)) \f$ and
+!> by assuming that \f$ T(z) = T_0 + \nabla T \cdot (z-z0) \f$.
+
+!> If gravity is ZERO, pressure is constant.
+!----------------------------------------------------------------------
       SUBROUTINE hydrostatic(zb, z, grad, tb, pb, t, p)
-!
-! ... integrate the hydrostatic law  dP/dz = rho(z) * gravz
-! ... using the thermal equation of state to express the 
-! ... density as a function of P(z) and T(z) and
-! ... by assuming that T(z) = T0 + gradt * (z-z0)
-! ... If gravity is ZERO, the pressure is constant.
+!----------------------------------------------------------------------
 !
       USE gas_constants, ONLY: gmw,rgas
 

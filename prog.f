@@ -1,7 +1,14 @@
 !----------------------------------------------------------------------
+!> Advance time module
+!
+      MODULE time_advancement
+      PUBLIC
+      SAVE
+!----------------------------------------------------------------------
+      CONTAINS
+!----------------------------------------------------------------------
       SUBROUTINE main_prog
 !----------------------------------------------------------------------
-
       USE blunt_body, ONLY: bluntb, ibl
       USE boundary_conditions, ONLY: boundary
       USE check_residuals, ONLY: print_mass_flow_rate
@@ -62,7 +69,6 @@
       REAL*8 :: mptimbdry, mptimfieldn, mptimturbo, mptimtilde, &
                 mptimiter, mptimygas, mptimtem, mptimout, mptimres, mptimtot
       REAL*8 :: xgcl(max_ngas)
-      
       LOGICAL :: stop_now
 !
       IF( timing ) then
@@ -125,7 +131,10 @@
         CALL allocate_fields
       END IF
 
+!
+! ... Write partial volumes for immersed-boundary method
       IF (immb >= 1) CALL print_volumes
+! ... Set parameters for runtime sampling
       IF (isrt >= 1) CALL set_sampling
 !
 !//////////////////////////////////////////////////////////////////////
@@ -251,7 +260,6 @@
             !call cpu_time(t6)
             !call MP_WALLTIME(p6,myrank)
           END IF
-
 !
 ! ... Iterative solver for momentum-mass pressure coupling
 ! ... and explicit solver for interphase coupling
@@ -448,4 +456,6 @@
       RETURN
 !----------------------------------------------------------------------
       END SUBROUTINE main_prog
+!----------------------------------------------------------------------
+      END MODULE time_advancement
 !----------------------------------------------------------------------

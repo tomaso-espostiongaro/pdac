@@ -1,17 +1,14 @@
 !******************************************************************************
-! PROGRAM: pdac (pyroclastic dispersion analysis code)
-! description: parallel multiphase and multicomponent fluid dynamic code
-!              for the simulation of pyroclastic dispersion
-!              processes
-! version: 3.0
-! date: Jan 2005
-! authors: A.Neri, G.Macedonio, D.Gidaspow, T. Esposti Ongaro
-! parallelized by: T. Esposti Ongaro, C. Cavazzoni
-! 3d version implemented by: T. Esposti Ongaro, C. Cavazzoni
-!******************************************************************************
-!
+!> \mainpage
+!> Parallel multiphase and multicomponent fluid-dynamic code 
+!> for the simulation of pyroclastic dispersion processes
+!>
+!> \version 4.0
+!> \date: Jan 2014
+!> \author T. Esposti Ongaro, A.Neri, G.Macedonio, D.Gidaspow
+!<******************************************************************************
    PROGRAM pdac
-
+!
       USE blunt_body, ONLY: set_blunt, ibl
       USE control_flags, ONLY: prog, lpr, nfil
       USE dimensions
@@ -40,6 +37,7 @@
       USE pressure_epsilon, ONLY: allocate_press_eps
       USE specific_heat_module, ONLY: allocate_hcapgs
       USE tilde_momentum, ONLY: allocate_momentum
+      USE time_advancement, ONLY: main_prog
       USE time_parameters, ONLY: time, tstop, dt, tpr, tdump, itd, & 
      &                            timestart, rungekut
       USE turbulence_model, ONLY: allocate_turbo

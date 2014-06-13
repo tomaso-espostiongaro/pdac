@@ -1,11 +1,17 @@
 !----------------------------------------------------------------------
+!>
+!>  Array filters 
+!>
+!----------------------------------------------------------------------
       MODULE array_filters
+!----------------------------------------------------------------------
       IMPLICIT NONE
 !
+!> Linear and bilinear interpolation procedures
       INTERFACE interp
         MODULE PROCEDURE interp_1d_array, interp_1d_scalar, interp_2d
       END INTERFACE interp
-!
+!> 
       INTERFACE mean_filter
         MODULE PROCEDURE mean_filter_1d, mean_filter_2d
       END INTERFACE mean_filter
@@ -20,9 +26,9 @@
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
-! ... Filter out high frequency modes by successively subsampling,
-! ... averaging and interpolating. It can be applied to non-evenly spaced
-! ... arrays
+!> Filter out high frequency modes by successively subsampling,
+!> averaging and interpolating. It can be applied to non-evenly spaced
+!> arrays
 !
       SUBROUTINE mean_filter_1d(x1,f1,window)
 
@@ -71,9 +77,9 @@
       RETURN
       END SUBROUTINE mean_filter_1d
 !----------------------------------------------------------------------
-! ... Filter out high frequency modes by successively subsampling,
-! ... averaging and interpolating. It can be applied to non-evenly spaced
-! ... arrays
+!> Filter out high frequency modes by successively subsampling,
+!> averaging and interpolating. It can be applied to non-evenly spaced
+!> arrays
 !
       SUBROUTINE mean_filter_2d(x1,y1,f1,window)
 
