@@ -27,7 +27,9 @@
       USE immersed_boundaries, ONLY: set_forcing, immb
       USE initial_conditions, ONLY: setpar, setup, cnvert, allocate_setup
       USE input_module, ONLY: input, initc
-      USE io_files
+      USE io_files, ONLY: logunit, dataunit, errorunit, checkunit, inputunit, testunit
+      USE io_files, ONLY: logfile, datafile, errorfile, checkfile, inputfile, testfile
+      USE io_files, ONLY: testnb
       USE io_restart, ONLY: taperd, tapewr, outp_recover, outp_remap
       USE mass_sink, ONLY: allocate_sink, isink, read_mass_loss
       USE parallel, ONLY: parallel_startup, parallel_hangup, &

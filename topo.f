@@ -175,7 +175,8 @@
         next = 0; ord = 0
         ALLOCATE(topo(nx))
 !
-        IF (MAXVAL(xtop) < MAXVAL(x)) CALL error('topo','Computational domain exceeds topography',1)
+        IF (MAXVAL(xtop) < MAXVAL(x)) &
+          CALL error('topo','Computational domain exceeds topography',1)
 !
         ! ... Interpolate the topography on the computational mesh 'x'
         ! ... (centered horizontally)

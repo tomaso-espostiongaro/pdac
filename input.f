@@ -4,9 +4,10 @@
       USE dimensions, ONLY: max_nsolid, ngas, max_size, &
           max_nblock, max_ngas
       USE io_files, ONLY: logunit
-
+!
       PRIVATE
       PUBLIC :: input, initc, number_of_block, run_name
+!
       REAL*8 :: diameter(max_nsolid)
       REAL*8 :: density(max_nsolid)
       REAL*8 :: sphericity(max_nsolid)
@@ -462,7 +463,7 @@
       IF(mpime == root) READ(iunit, control) 
 !
 ! .....................................................................
-!
+! CONTROLLA DI AVER CAPITO E SCRITTO COSA FA IL BROADCAST
       CALL bcast_character(run_name,80,root)
       CALL bcast_character(job_type,80,root)
       CALL bcast_character(restart_mode,80,root)

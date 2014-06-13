@@ -6,6 +6,7 @@
       REAL*8, DIMENSION(:),   ALLOCATABLE :: ug, vg, wg
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: us, vs, ws
 !
+      PUBLIC
       SAVE
 !-----------------------------------------------------
       CONTAINS

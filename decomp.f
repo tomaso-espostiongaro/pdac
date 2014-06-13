@@ -69,7 +69,7 @@
       USE dimensions
       IMPLICIT NONE
       SAVE
-
+!
       INTEGER, INTENT(IN) :: nproc, mpime, root
 !
       INTEGER :: i, j, k, ijk, n, m, q, rr
