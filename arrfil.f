@@ -9,7 +9,7 @@
 !
 !> Linear and bilinear interpolation procedures
       INTERFACE interp
-        MODULE PROCEDURE interp_1d_array, interp_1d_scalar, interp_2d
+        MODULE PROCEDURE interp_1d_array, interp_1d_scalar, interp_2d, interp_2d_array
       END INTERFACE interp
 !> 
       INTERFACE mean_filter
@@ -468,9 +468,16 @@
 ! il nodo della nuova griglia di indici (i,j) sara' allora
 ! contenuto nel rettangolo con i vertici con indici:
 ! P1=tx(i),ty(j)
-! P2=tx(i-1),ty(j)
-! P3=tx(i-1),ty(j-1)
-! P4=tx(i),ty(j-1)
+! P2=tx(i)-1,ty(j)
+! P3=tx(i)-1,ty(j)-1
+! P4=tx(i),ty(j)-1
+!
+!   P2--------P1
+!   |          |
+!   |  *(i,j)  |
+!   |          |
+!   P3--------P4
+!
 
 ! sulla nuova griglia interpoliamo le quote di input ztop per 
 ! ottenere la quota coorZ nel punto di indici (i,j)
@@ -502,6 +509,90 @@
 !      
       RETURN
       END SUBROUTINE interp_2d
+!----------------------------------------------------------------------
+! ... This routine interpolates on a Cartesian grid, defined by
+! ... x2 and y2 coordinates of each grid point
+! ... The new grid may not be orthogonal to the old one.
+!
+      SUBROUTINE interp_2d_array(x1, y1, f1, x2, y2, f2, tx, ty)
+      IMPLICIT NONE
+
+      REAL*8, INTENT(IN), DIMENSION(:) :: x1, y1
+      REAL*8, INTENT(IN), DIMENSION(:,:) :: x2, y2
+      REAL*8, INTENT(IN), DIMENSION(:,:) :: f1
+      REAL*8, INTENT(OUT), DIMENSION(:,:) :: f2
+      INTEGER, INTENT(OUT), DIMENSION(:,:) :: tx, ty
+
+      REAL*8 :: dist1y,dist2y,dist1x,dist2x,alpha,beta
+      INTEGER :: i,j,k,ii,jj
+      INTEGER :: n1x, n2x, n1y, n2y
+      REAL*8 :: tp1, tp2, delta
+
+      n1x = SIZE(x1)
+      n1y = SIZE(y1)
+      n2x = SIZE(x2)
+      n2y = SIZE(y2)
+!
+! ... Loop over the new grid points to find the closest dem points
+!
+! P1=tx(i),ty(j)
+! P2=tx(i)-1,ty(j)
+! P3=tx(i)-1,ty(j)-1
+! P4=tx(i),ty(j)-1
+!
+!   P2--------P1
+!   |          |
+!   |  *(i,j)  |
+!   |          |
+!   P3--------P4
+!
+      DO j = 1, n2y
+        DO i = 1, n2x
+          !
+          innerx: DO ii = 1, n1x
+            IF (x1(ii) >= x2(i,j)) THEN
+              tx(i,j)=ii
+              EXIT innerx
+            ENDIF
+          ENDDO innerx
+          !
+          innery: DO jj = 1, n1y
+              IF (y1(jj) >= y2(i,j)) THEN
+                ty(i,j)=jj
+                EXIT innery
+              ENDIF
+          ENDDO innery
+          !
+        ENDDO
+      ENDDO
+!
+! ... Bilinear interpolation
+
+        DO j=1,n2y
+           DO i=1,n2x
+              !
+              dist1x = x2(i,j) - x1(tx(i,j)-1)
+              !dist2x = x1(tx(i)) - x2(i,j)
+              delta  = x1(tx(i,j)) - x1(tx(i,j)-1)
+              alpha  = dist1x/delta
+              !
+              dist1y = y2(i,j) - y1(ty(i,j)-1)
+              !dist2y = y1(ty(j)) - y2(i,j)
+              delta  = y1(ty(i,j)) - y1(ty(i,j)-1)
+              beta   = dist1y/delta
+              !
+              tp1    = alpha * f1(tx(i,j),ty(i,j))   + &
+                       (1.D0 - alpha) * f1(tx(i,j)-1,ty(i,j))
+              tp2    = alpha * f1(tx(i,j),ty(i,j)-1) + &
+                       (1.D0 - alpha) * f1(tx(i,j)-1,ty(i,j)-1)
+              !
+              f2(i,j) = beta * tp1 + (1.D0 - beta) * tp2
+              !
+           ENDDO
+        ENDDO
+!      
+      RETURN
+      END SUBROUTINE interp_2d_array
 !----------------------------------------------------------------------
       SUBROUTINE interp_3d(x1, y1, z1, f1, x2, y2, z2, f2, tx, ty, tz)
       IMPLICIT NONE

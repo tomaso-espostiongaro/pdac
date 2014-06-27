@@ -15,6 +15,14 @@ control.o :
 decomp.o : control.o dimensions.o grid.o immb.o indijk.o io_files.o  \
     parallel.o 
 
+demfilters.o : arrfil.o demformats.o grid.o io_files.o 
+
+demformats.o : 
+
+deminput.o : demformats.o 
+
+demprepare.o : demformats.o deminput.o 
+
 dens.o : dimensions.o ghost.o 
 
 derived.o : control.o dimensions.o gas.o ghost.o grid.o hcapgs.o parallel.o  \

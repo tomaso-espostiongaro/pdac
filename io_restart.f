@@ -275,7 +275,8 @@
         CALL read_array( resunit, sies(:,is), dbl, lform )
       END DO
       IF( ANY( sies < 0.0d0 ) ) THEN
-         IF( mpime == root ) WRITE(errorunit,*) 'WARNING reading restart, sies < 0'
+         IF( mpime == root ) &
+           WRITE(errorunit,*) 'WARNING reading restart, sies < 0'
       END IF
 
       !
@@ -286,7 +287,8 @@
         CALL read_array( resunit, ygc(:,ig), dbl, lform )
       END DO
       IF( ANY( ygc < 0 ) ) THEN
-         IF( mpime == root ) WRITE(errorunit,*) 'WARNING reading restart, ygc < 0'
+         IF( mpime == root ) &
+           WRITE(errorunit,*) 'WARNING reading restart, ygc < 0'
       END IF
 
       !
@@ -295,13 +297,15 @@
       rgp = 0.0d0
       CALL read_array( resunit, rgp, dbl, lform )
       IF( ANY( rgp < 0 ) ) THEN
-         IF( mpime == root ) WRITE(errorunit,*) 'WARNING reading restart, rgp < 0'
+         IF( mpime == root ) &
+           WRITE(errorunit,*) 'WARNING reading restart, rgp < 0'
       END IF
 
       rog = 0.0d0
       CALL read_array( resunit, rog, dbl, lform )
       IF( ANY( rog < 0 ) ) THEN
-         IF( mpime == root ) WRITE(errorunit,*) 'WARNING reading restart, rog < 0'
+         IF( mpime == root ) &
+           WRITE(errorunit,*) 'WARNING reading restart, rog < 0'
       END IF
 
       !
@@ -310,7 +314,8 @@
       tg = 0.0d0
       CALL read_array( resunit, tg, dbl, lform ) 
       IF( ANY( tg < 0 ) ) THEN
-         IF( mpime == root ) WRITE(errorunit,*) 'WARNING reading restart, tg < 0'
+         IF( mpime == root ) &
+           WRITE(errorunit,*) 'WARNING reading restart, tg < 0'
       END IF
 
       ts = 0.0d0
@@ -329,7 +334,7 @@
 !
       RETURN
 !
- 199  CALL error('io_restart.f', 'error in reading resunit', resunit)
+ 199  CALL error('io_restart.f', 'error reading resunit', resunit)
 !
       END SUBROUTINE taperd
 !----------------------------------------------------------------------

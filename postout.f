@@ -314,7 +314,10 @@
 ! ... Read the Implicit Profile
 !
       IF (mpime == root) THEN
-        OPEN(tempunit,FILE='improfile.dat',STATUS='OLD', FORM='UNFORMATTED')
+        OPEN(tempunit,                    &
+             FILE='improfile.dat',        &
+             STATUS='OLD',                &
+             FORM='UNFORMATTED')
         IF (job_type == JOB_TYPE_2D) THEN
           !DO k=1,nz
               !DO i=1,nx

@@ -14,6 +14,8 @@ turbo.o types.o velocity.o vent.o visc.o ygas.o iotk_module.o io_files.o
 PPFOBJS = derived.o filter.o mean_fields.o masspart.o massflux.o massgsedim.o \
 process.o postin.o postout.o postp.o postvar.o sampling.o sections.o
 
+DEMOBJS = demprepare.o demformats.o deminput.o
+
 all: COMM pdac.x postp.x
 
 pdac.x: $(FOBJS) pdac.o COMM 
@@ -21,6 +23,9 @@ pdac.x: $(FOBJS) pdac.o COMM
 
 postp.x: $(FOBJS) $(PPFOBJS) COMM
 	$(LINKER) -o postp.x $(MPFFLAGS) $(LINKFLAGS) $(FOBJS) $(PPFOBJS) comm/*.o $(LIBS)
+
+demprepare.x: $(DEMOBJS)
+	$(LINKER) -o demprepare.x $(MPFFLAGS) $(LINKFLAGS) $(DEMOBJS) $(LIBS)
 
 tstcomm.x: testcommlib.o COMM
 	$(LINKER) -o tstcomm.x $(MPFFLAGS) $(LINKFLAGS) testcommlib.o comm/*.o $(LIBS)
