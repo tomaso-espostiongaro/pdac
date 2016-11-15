@@ -2,8 +2,8 @@
    MODULE domain_mapping
 !----------------------------------------------------------------------
         USE domain_decomposition, ONLY: nctot, proc_map
+        USE domain_decomposition, ONLY: layer_map, block2d_map, block3d_map
         USE domain_decomposition, ONLY: cell_g2l, cell_l2g, cell_owner
-        USE domain_decomposition, ONLY: block2d_map, block3d_map, layer_map
         USE grid, ONLY: fl, flag
         USE grid, ONLY: slip_wall, noslip_wall, filled_cell_1, filled_cell_2
         USE kinds, ONLY: sgl, dbl

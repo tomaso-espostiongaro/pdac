@@ -1,75 +1,65 @@
 !----------------------------------------------------------------------
-  MODULE domain_decomposition
+!> Define sub-domain for parallelization by balancing the computational load.
+!> Store processor maps
 !
-! ... This module contains all the procedures used for the domain
-! ... decomposition
+      MODULE domain_decomposition
+!---------------------------------------------------------------------
+      USE grid, ONLY: fl, flag
+      USE control_flags, ONLY: lpr
+      USE io_files, ONLY: errorunit, testunit, logunit
 !
-!----------------------------------------------------------------------
-        USE grid, ONLY: fl, flag
-        USE indijk_module
-        USE immersed_boundaries, ONLY: immb
-        USE control_flags, ONLY: lpr
-        USE io_files, ONLY: errorunit, testunit, logunit
+      IMPLICIT NONE
 !
-        IMPLICIT NONE
+      INTEGER, PARAMETER :: LAYER_MAP   = 1
+      INTEGER, PARAMETER :: BLOCK2D_MAP = 2
+      INTEGER, PARAMETER :: BLOCK3D_MAP = 3
 !
-        INTEGER, PARAMETER :: LAYER_MAP   = 1
-        INTEGER, PARAMETER :: BLOCK2D_MAP = 2
-        INTEGER, PARAMETER :: BLOCK3D_MAP = 3
+      !> Processor map type
+      TYPE cells_map_type
+        INTEGER :: type              !< Identify the map type (1 layer, 2 columns, 3 blocks)
+        INTEGER :: lay(2)            !< lay(1) -> imesh start, lay(2) -> imesh end (layer)
+        INTEGER :: corner1(2)        !< corner1(1) -> x coord., corner1(2) -> z coord. 
+        INTEGER :: corner2(2)        !< corner2(1) -> x coord., corner2(2) -> z coord.
+        INTEGER :: blkbsw(3)         !< blkbsw(.) -> BSW x, y, z coordinates 
+        INTEGER :: blktne(3)         !< blktne(.) -> TNE x, y, z coordinates
+      END TYPE
 !
-        TYPE cells_map_type
-          INTEGER :: type              ! Identify the map type (1 layer, 2 columns, 3 blocks)
-          INTEGER :: lay(2)            ! lay(1) -> imesh start, lay(2) -> imesh end (layer)
-          INTEGER :: corner1(2)        ! corner1(1) -> x coord., corner1(2) -> z coord. 
-          INTEGER :: corner2(2)        ! corner2(1) -> x coord., corner2(2) -> z coord.
-          INTEGER :: blkbsw(3)         ! blkbsw(.) -> BSW x, y, z coordinates 
-          INTEGER :: blktne(3)         ! blktne(.) -> TNE x, y, z coordinates
-        END TYPE
-        TYPE (cells_map_type), ALLOCATABLE :: proc_map(:)
-! ...     This array is used to store data about which cell belong
-! ...     to which processor, and is used to find owner, local and
-! ...     global index of a cell
+! ...   'proc_map' is used to store data about which cell belong
+! ...   to which processor, and is used to find owner, local and
+! ...   global index of a cell
+!
+      TYPE (cells_map_type), ALLOCATABLE :: proc_map(:)
 
-! ...   The following arrays contain information on how the cells
-!       are distributed among processors.
+      INTEGER, ALLOCATABLE :: nctot(:)  ! balanced number of cell
+      INTEGER :: mesh_partition
+      INTEGER :: countfl
 !
-        INTEGER, ALLOCATABLE :: nctot(:)  ! balanced number of cell
-        INTEGER, ALLOCATABLE :: ncfl1(:)  ! number of cell with fl=1
-        INTEGER, ALLOCATABLE :: ncell(:)  ! unbalanced number of cell
-        INTEGER, ALLOCATABLE :: ncdif(:)  ! ncfl1 - ncell
-!
-        !  ncell unbalanced number of cell,
-        !        this is the number of cells on each process, as if they were 
-        !        equally distributed among processors, regardless of their 
-        !        computational weight.
-        !  ncfl1 number of cells on each process with the flag equal 1
-        !  nctot balanced number of cell, this is the number of cells on
-        !        each process that it is computed to obtain the same 
-        !        computational load on each process.
-!
-        INTEGER :: mesh_partition
-        INTEGER :: countfl
-!
-        PUBLIC
-        PRIVATE :: ncfl1, ncell, ncdif, countfl
-!
-        SAVE
+      PRIVATE
+      PUBLIC :: nctot, proc_map, mesh_partition
+      PUBLIC :: layer_map, block2d_map, block3d_map
+      PUBLIC :: cell_g2l, cell_l2g, cell_owner
+      PUBLIC :: partition
+
+      SAVE
 !----------------------------------------------------------------------
       CONTAINS
 !----------------------------------------------------------------------
+!> Subdivide a rectilinear grid among 'nproc' processors. 
+!> Balance the computational load associated to flag types. 
+!> Store the processor maps.
+!
       SUBROUTINE partition( nproc, mpime, root )
 !
-! ... a routine that subdivides a regular grid between (nproc) 
-! ... processors, balancing the computational load.
-! ... Gives out the processor maps.
-! ... (2D/3D-Compliant)
 !
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       IMPLICIT NONE
       SAVE
-!
+
+      INTEGER, ALLOCATABLE :: nc1(:)  ! number of cell with fl=1
+      INTEGER, ALLOCATABLE :: ncell(:)  ! unbalanced number of cell
+      INTEGER, ALLOCATABLE :: ncdif(:)  ! nc1 - ncell
       INTEGER, INTENT(IN) :: nproc, mpime, root
 !
       INTEGER :: i, j, k, ijk, n, m, q, rr
@@ -78,22 +68,20 @@
       INTEGER :: localdim
       LOGICAL :: ionode
 !
-! ... Subroutine Body
-!
       ionode = ( mpime == root )
 !
       IF (ALLOCATED(nctot)) DEALLOCATE(nctot)
       IF (ALLOCATED(ncell)) DEALLOCATE(ncell)
-      IF (ALLOCATED(ncfl1)) DEALLOCATE(ncfl1)
+      IF (ALLOCATED(nc1)) DEALLOCATE(nc1)
       IF (ALLOCATED(ncdif)) DEALLOCATE(ncdif)
 
       ALLOCATE(nctot(0:nproc-1))
-      ALLOCATE(ncfl1(0:nproc-1))
+      ALLOCATE(nc1(0:nproc-1))
       ALLOCATE(ncell(0:nproc-1))
       ALLOCATE(ncdif(0:nproc-1))
 
       nctot = 0
-      ncfl1 = 0
+      nc1 = 0
       ncell = 0
       ncdif = 0
 !
@@ -120,13 +108,13 @@
       proc_map(0:nproc-1)%type = mesh_partition
 
       IF ( proc_map(0)%type == LAYER_MAP ) THEN
-        CALL layers( ncfl1, nctot, nproc, mpime, root )
+        CALL layers( nc1, nctot, nproc, mpime, root )
       ELSE IF ( proc_map(0)%type == BLOCK2D_MAP .AND. job_type == JOB_TYPE_2D) THEN
-        CALL blocks( ncfl1, nctot, nproc, mpime, root )
+        CALL blocks( nc1, nctot, nproc, mpime, root )
       ELSE IF ( proc_map(0)%type == BLOCK2D_MAP .AND. job_type == JOB_TYPE_3D) THEN
-        CALL columns( ncfl1, nctot, nproc, mpime, root )
+        CALL columns( nc1, nctot, nproc, mpime, root )
       ELSE IF ( proc_map(0)%type == BLOCK3D_MAP .AND. job_type == JOB_TYPE_3D) THEN
-        CALL blocks3d( ncfl1, nctot, nproc, mpime, root )
+        CALL blocks3d( nc1, nctot, nproc, mpime, root )
       ELSE
         CALL error(' partition ',' partition type not yet implemented ',proc_map(0)%type)
       END IF
@@ -138,7 +126,7 @@
 ! 
       DO ipe = 0, nproc - 1
         ncell(ipe) = localdim(countfl, nproc, ipe)
-        ncdif(ipe) = ncfl1(ipe) - ncell(ipe)
+        ncdif(ipe) = nc1(ipe) - ncell(ipe)
       END DO
 !
       IF ( lpr > 0 .AND. ionode ) THEN
@@ -147,8 +135,8 @@
         WRITE(logunit,*) 
         DO ipe = 0, nproc - 1
           WRITE(logunit,*) ' # nctot( ',ipe, ' ) = ', nctot(ipe)
-          WRITE(logunit,*) ' # ncfl1( ',ipe, ' ) = ', ncfl1(ipe)
-          WRITE(logunit,*) ' # ncdif( ',ipe, ' ) = ', ncfl1(ipe),' -', ncell(ipe),' =', ncdif(ipe)
+          WRITE(logunit,*) ' # nc1( ',ipe, ' ) = ', nc1(ipe)
+          WRITE(logunit,*) ' # ncdif( ',ipe, ' ) = ', nc1(ipe),' -', ncell(ipe),' =', ncdif(ipe)
           IF( proc_map(0)%type == LAYER_MAP ) THEN
             WRITE(logunit,*) '   proc(', ipe,')_map (first-last):', &
               proc_map(ipe)%lay(1), proc_map(ipe)%lay(2)
@@ -170,16 +158,15 @@
       RETURN
       END SUBROUTINE partition
 ! ------------------------------------------------------------------------
+!> Decompose a 2D or 3D domain into 'nproc' horizontal layers.
+!> The layer map is represented by the global index 
+!> of the first and the last cell belonging to the
+!> processor. Cells within the layer are ordered
+!> following the main sweep.
+!> (2D/3D-Compliant)
+!
       SUBROUTINE layers( ncfl1, nctot, nproc, mpime, root )
 ! 
-! ... partition N.1 (layers)
-! ... decomposes the domain into N horizontal layers.
-! ... The layer map is represented by the global index 
-! ... of the first and the last cell belonging to the
-! ... processor. The cells within the layer are ordered
-! ... following the main-sweep.
-! ... (2D/3D-Compliant)
-!
       USE dimensions
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
@@ -188,8 +175,8 @@
       IMPLICIT NONE
       SAVE
 !
-      INTEGER :: ncfl1(0:)
-      INTEGER :: nctot(0:)
+      INTEGER, INTENT(OUT) :: ncfl1(:)  ! number of cell with fl=1
+      INTEGER, INTENT(OUT) :: nctot(0:)
       INTEGER, INTENT(IN) :: nproc, mpime, root
 !
       INTEGER :: i, j, k, ijk
@@ -289,38 +276,30 @@
         END DO
 
       ELSE
-
         CALL error(' layers ',' unknow job_type ', 1)
-
       END IF
-
+!
       DO ipe = 0, nproc - 1
         proc_map(ipe)%lay(:) =  lay_map(ipe,:)
       END DO
-
+!
       DEALLOCATE(lay_map)
-      
 !
       RETURN
       END SUBROUTINE layers
 ! ------------------------------------------------------------------------
+!> Decompose a 2D domain into 'nproc' rectangular blocks.
+!> The processor map consist of the coordinate pairs
+!> of the bottom-west and the top-east corners of the blocks
+!
       SUBROUTINE blocks( ncfl1, nctot, nproc, mpime, root )
-!
-! ... partition N.1 (layers)
-! ... decomposes the domain into N rectangular blocks.
-! ... The processor map consist of the coordinate pairs
-! ... of the bottom-west and the top-east corners of the blocks
-! ... (ONLY 2D)
-!
-! ... partition N.2 (blocks)
-!
       USE dimensions
 !
       IMPLICIT NONE
       SAVE
 !
-      INTEGER :: ncfl1(0:)
-      INTEGER :: nctot(0:)
+      INTEGER, INTENT(OUT) :: ncfl1(:)
+      INTEGER, INTENT(OUT) :: nctot(0:)
       INTEGER, INTENT(IN) :: nproc, mpime, root
 !
       INTEGER :: i, ib, k, ijk
@@ -353,7 +332,7 @@
 !
         area  = DBLE(countfl/nproc)       
 
-! ... Here countfl is supposed to be the total area whose side
+! ... Here countfl is assumed to be the total area whose side
 ! ... are "nx" and "nz_effective" ( lower than "nz" )
 ! ... Remember nbx * nbz should be equal to nproc
 
@@ -593,8 +572,8 @@
       IMPLICIT NONE
       SAVE
 !
-      INTEGER :: ncfl1(0:)
-      INTEGER :: nctot(0:)
+      INTEGER, INTENT(OUT) :: ncfl1(0:)
+      INTEGER, INTENT(OUT) :: nctot(0:)
       INTEGER, INTENT(IN) :: nproc, mpime, root
 !
       INTEGER :: i, j, k, ijk
@@ -852,8 +831,8 @@
       IMPLICIT NONE
       SAVE
 !
-      INTEGER :: ncfl1(0:)   !  the number of cells with fl == 1 
-      INTEGER :: nctot(0:)   !  total number of local cells
+      INTEGER, INTENT(OUT) :: ncfl1(0:)   !  the number of cells with fl == 1 
+      INTEGER, INTENT(OUT) :: nctot(0:)   !  total number of local cells
       INTEGER, INTENT(IN) :: nproc, mpime, root
 !
       INTEGER :: i, j, k, ijk
@@ -1474,17 +1453,11 @@
             nzl = k2 - k1 + 1
 
             cell_g2l = 1 + (i-i1) + (j-j1)*nxl + (k-k1)*nxl*nyl
-
           ELSE
-
             CALL error(' cell_g2l ', ' unknown job_type ', 1 )
-
           END IF
-
         ELSE
-
           CALL error(' cell_g2l ', ' partition type not yet implemented ', proc_map(mpime)%type )
-
         END IF
 !
         RETURN
