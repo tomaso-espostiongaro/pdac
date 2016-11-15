@@ -140,7 +140,7 @@
 ! ... in the 'volcano_topography' module.
 !
       IF( itp < 1 ) THEN
-        DO k= 1, nz
+        DO k= 1, nz-1
           ijk = iiv + (k-1) * nx 
           IF (fl(ijk) == slip_wall .OR. fl(ijk) == noslip_wall) kkv = k
         END DO
@@ -271,7 +271,7 @@
 !
       IF( itp < 1 ) THEN
 
-        DO k= 1, nz
+        DO k= 1, nz-1
           ijk = iiv + (jjv-1) * nx + (k-1) * nx * ny
           IF (fl(ijk) == slip_wall .OR. fl(ijk) == noslip_wall) kkv = k
         END DO

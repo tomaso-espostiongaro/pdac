@@ -1,0 +1,21 @@
+# Compiled source #
+###################
+*.o
+*.a
+*.so
+*.mod
+*.x
+Machine
+
+# Logs and databases #
+######################
+*.log
+*.aux
+*.toc
+
+# OS generated files #
+######################
+.DS_Store*
+ehthumbs.db
+Icon?
+Thumbs.db
