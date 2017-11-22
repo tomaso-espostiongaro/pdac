@@ -36,7 +36,7 @@
       USE immersed_boundaries, ONLY: numx, numy, numz, immb, faces
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE inflow_outflow, ONLY: n0, n1, n2
-      USE inflow_outflow, ONLY: zero_gradient
+      USE inflow_outflow, ONLY: inoutflow
       USE interpolate_fields, ONLY: velint, velint3d, extrapolate, hn
       USE mass_sink, ONLY: sink_update, sink, isink
       USE parallel, ONLY: mpime, root
@@ -60,6 +60,7 @@
       INTEGER :: nfptx, nfpty, nfptz
       LOGICAL :: forced
       REAL*8, ALLOCATABLE :: tfptx(:), tfpty(:), tfptz(:)
+      REAL*8 :: gnorm
       INTEGER :: indexq
 !
       vel = 0.D0
@@ -269,9 +270,8 @@
               ws(n2,:) = ws(n1,:)
               !
               ! ... outlet rlk, rgp, rog, sieg, sies, tg, ts, ep
-              CALL zero_gradient(us(n1,:),n2,n1)
-              ! ... Zero pressure gradient
-              p(n2)=p(n1)
+              gnorm = gravx
+              CALL inoutflow(ug(n1),us(n1,:),n2,n1,k,gnorm)
 
             CASE DEFAULT
 !
@@ -334,8 +334,7 @@
               wg(n2)   = wg(n1)
               ws(n2,:) = ws(n1,:)
               !
-              CALL zero_gradient(us(n2,:),n2,n1)
-              p(n2)=p(n1)
+!              CALL inoutflow(ug(n2),us(n2,:),n2,n1)
 !              
             CASE DEFAULT
 !
@@ -403,8 +402,7 @@
                 ws(n2,:) = ws(n1,:)
 
                 ! ... Outlet scalars
-                CALL zero_gradient(vs(n1,:),n2,n1)
-                p(n2)=p(n1)
+                !CALL inoutflow(vg(n1),vs(n1,:),n2,n1)
 !
               CASE DEFAULT
 !
@@ -474,8 +472,7 @@
                 ws(n2,:) = ws(n1,:)
                 !
                 ! ... Outlet scalars
-                CALL zero_gradient(vs(n2,:),n2,n1)
-                p(n2)=p(n1)
+                !CALL inoutflow(vg(n2),vs(n2,:),n2,n1)
 !
               CASE DEFAULT
 !
@@ -534,7 +531,7 @@
                 vs(n2,is) = -vs(n1,is)
               END IF
 !
-            CASE (free_io)  ! Bernoulli equation on the vertically staggered cell
+            CASE (free_io, zero_grad)  ! Bernoulli equation on the vertically staggered cell
 !
               d0 = dz(k-1)
               d1 = dz(k)
@@ -553,8 +550,8 @@
               wg1 = 0.5D0 * (wg(ijk) + wg(ijkm))
 
               ! ... Outlet scalars
-              CALL zero_gradient(ws(n1,:),n2,n1)
-              p(n2)=p(n1)+ 0.5D0 * rog(n1)*((wg1**2 - wg2**2) - gravz * (d1+d2))
+              gnorm = gravz
+              CALL inoutflow(wg(n1),ws(n1,:),n2,n1,k,gnorm)
 
               ! ... Tangential velocities
               ug(n2)   = ug(n1)
@@ -563,31 +560,7 @@
                 vg(n2)   = vg(n1)
                 vs(n2,:) = vs(n1,:)
               END IF
-
-            CASE (zero_grad)
 !
-              d0 = dz(k-1)
-              d1 = dz(k)
-              d2 = dz(k+1)
-
-              ! ... Normal velocities
-              wg(n1)    = wg(n0)
-              ws(n1,:)  = ws(n0,:)
-              wg(n2)   = wg(n1)
-              ws(n2,:) = ws(n1,:)
-
-              ! ... Tangential velocities
-              ug(n2)   = ug(n1)
-              us(n2,:) = us(n1,:)
-              IF (job_type == JOB_TYPE_3D) THEN
-                vg(n2)   = vg(n1)
-                vs(n2,:) = vs(n1,:)
-              END IF
-              !
-              ! ... Outlet scalars
-              CALL zero_gradient(ws(n1,:),n2,n1)
-              p(n2)=p(n1)
-                             
             CASE DEFAULT
 !
               CONTINUE
@@ -681,8 +654,7 @@
                 vs(n2,:) = vs(n1,:)
                 !
                 ! ... Outlet scalars
-                CALL zero_gradient(ws(n2,:),n2,n1)
-                p(n2)=p(n1)
+                !CALL inoutflow(wg(n2),ws(n2,:),n2,n1)
 !
             CASE DEFAULT
 !

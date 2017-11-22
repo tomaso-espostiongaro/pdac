@@ -373,41 +373,42 @@
         OPEN(UNIT=tempunit, FILE=topo_file, STATUS='OLD',ERR=199)
         READ(tempunit,*,ERR=199) nodidemx
         READ(tempunit,*,ERR=199) nodidemy
-        READ(tempunit,*,ERR=199) xul
-        READ(tempunit,*,ERR=199) yul
+        READ(tempunit,*,ERR=199) xll
+        READ(tempunit,*,ERR=199) yll
         READ(tempunit,*,ERR=199) dd
         READ(tempunit,*,ERR=199) noval
       END IF
 !
       CALL bcast_integer(nodidemx,1,root)
       CALL bcast_integer(nodidemy,1,root)
-      CALL bcast_real(xul,1,root)
-      CALL bcast_real(yul,1,root)
+      CALL bcast_real(xll,1,root)
+      CALL bcast_real(yll,1,root)
       CALL bcast_real(dd,1,root)
       CALL bcast_integer(noval,1,root)
 !
       vdem%nx           = nodidemx
       vdem%ny           = nodidemy
-      vdem%xcorner      = xul
-      vdem%ycorner      = yul
+      vdem%xcorner      = xll
+      vdem%ycorner      = yll
       vdem%cellsize     = dd
       vdem%nodata_value = noval
 !
 ! ... If the lower-left coordinates are provided,
 ! ... use the following...
 !
-!      vdem%xcorner      = xll
-!      vdem%ycorner      = yll
+      vdem%xcorner      = xll
+      vdem%ycorner      = yll
 !
-!      yul = yll + vdem%cellsize * (vdem%ny - 1)
-!      xlr = xll + vdem%cellsize * (vdem%nx - 1)
-!      xur = xlr
+      xul = xll
+      yul = yll + vdem%cellsize * (vdem%ny - 1)
+      xlr = xll + vdem%cellsize * (vdem%nx - 1)
+      xur = xlr
 !
 ! ... These are used to check the domain size
 !
-      xur = xul + vdem%cellsize * (vdem%nx - 1)
-      yll = yul - vdem%cellsize * (vdem%ny - 1)
-      xll = xul
+!      xur = xul + vdem%cellsize * (vdem%nx - 1)
+!      yll = yul - vdem%cellsize * (vdem%ny - 1)
+!      xll = xul
 !
       ALLOCATE(zdem(vdem%nx,vdem%ny))
       ALLOCATE(xdem(vdem%nx))
@@ -422,9 +423,10 @@
       !
       ! ... upper left corner
       !
-      DO j = vdem%ny, 1, -1
-      !DO j = 1, vdem%ny
-        ydem(j) = vdem%ycorner - (vdem%ny - j) * vdem%cellsize
+      !DO j = vdem%ny, 1, -1
+      DO j = 1, vdem%ny
+!        ydem(j) = vdem%ycorner - (vdem%ny - j) * vdem%cellsize
+        ydem(j) = vdem%ycorner + (j-1) * vdem%cellsize
       END DO
 !
       IF (mpime == root) THEN
@@ -438,16 +440,17 @@
 ! ... ( in centimeters ) and broadcasts.
 !
       IF (mpime == root) THEN
-        DO j = vdem%ny, 1, -1
+        !DO j = vdem%ny, 1, -1
         !DO j = 1, vdem%ny
-          DO i = 1, vdem%nx
-            READ(tempunit,*,ERR=199) elevation
-            zdem(i,j) = DBLE(elevation) / 100.D0
+          !DO i = 1, vdem%nx
+            !READ(tempunit,*,ERR=199) elevation
+            READ(tempunit,*,ERR=199) ((zdem(i,j),i=1,nx),j=vdem%ny, 1, -1)
+            zdem = zdem / 100
             !
-            IF (seatable) zdem(i,j) = MAX(zdem(i,j),0.D0)
+            !IF (seatable) zdem(i,j) = MAX(zdem(i,j),0.D0)
             !
-          END DO
-        END DO
+          !END DO
+        !END DO
         CLOSE(tempunit)
 !
 !
