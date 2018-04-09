@@ -8,6 +8,7 @@
         INTEGER, PARAMETER :: JOB_TYPE_2D = 2
         INTEGER, PARAMETER :: JOB_TYPE_1D = 1
         INTEGER :: nfil
+        LOGICAL :: cstop
         INTEGER :: lpr
         INTEGER :: imr
         LOGICAL :: implicit_fluxes

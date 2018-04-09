@@ -36,7 +36,7 @@
       USE immersed_boundaries, ONLY: numx, numy, numz, immb, faces
       USE indijk_module, ONLY: ip0_jp0_kp0_
       USE inflow_outflow, ONLY: n0, n1, n2
-      USE inflow_outflow, ONLY: inoutflow
+      USE inflow_outflow, ONLY: inoutflow, zerograd
       USE interpolate_fields, ONLY: velint, velint3d, extrapolate, hn
       USE mass_sink, ONLY: sink_update, sink, isink
       USE parallel, ONLY: mpime, root
@@ -54,7 +54,6 @@
       INTEGER :: ijk, i, j, k, imesh, ig, is, nph
       INTEGER :: fp, np
       REAL*8 :: d0, d1, d2 
-      REAL*8 :: wg2, wg1
       REAL*8 :: vel(max_nsolid+1)
       INTEGER :: fx, fy, fz
       INTEGER :: nfptx, nfpty, nfptz
@@ -262,7 +261,7 @@
               us(n2,:) = us(n1,:)
 !
               ! ... Tangential velocities
-	      IF (job_type == JOB_TYPE_3D) THEN
+              IF (job_type == JOB_TYPE_3D) THEN
                 vg(n2)   = vg(n1)
                 vs(n2,:) = vs(n1,:)
               END IF
@@ -271,6 +270,7 @@
               !
               ! ... outlet rlk, rgp, rog, sieg, sies, tg, ts, ep
               gnorm = gravx
+              IF (flag(n2) == zero_grad) gnorm = 0.D0
               CALL inoutflow(ug(n1),us(n1,:),n2,n1,k,gnorm)
 
             CASE DEFAULT
@@ -308,7 +308,7 @@
               !IF ( flag(imjkp) /= fluid ) THEN
                 wg(n2)   = -wg(n1)
                 ws(n2,:) = -ws(n1,:)
-	      END IF
+              END IF
 
               IF ( .NOT.BTEST(flag(imjkp),0) .AND. job_type == JOB_TYPE_3D) THEN
               !IF ( flag(imjkp) /= fluid .AND. job_type == JOB_TYPE_3D) THEN
@@ -334,7 +334,9 @@
               wg(n2)   = wg(n1)
               ws(n2,:) = ws(n1,:)
               !
-!              CALL inoutflow(ug(n2),us(n2,:),n2,n1)
+              gnorm = gravx
+              IF (flag(n2) == zero_grad) gnorm = 0.D0
+              CALL inoutflow(ug(n2),us(n2,:),n2,n1,k,gnorm)
 !              
             CASE DEFAULT
 !
@@ -402,7 +404,9 @@
                 ws(n2,:) = ws(n1,:)
 
                 ! ... Outlet scalars
-                !CALL inoutflow(vg(n1),vs(n1,:),n2,n1)
+                gnorm = gravy
+                IF (flag(n2) == zero_grad) gnorm = 0.D0
+                CALL inoutflow(vg(n1),vs(n1,:),n2,n1,k,gnorm)
 !
               CASE DEFAULT
 !
@@ -472,7 +476,9 @@
                 ws(n2,:) = ws(n1,:)
                 !
                 ! ... Outlet scalars
-                !CALL inoutflow(vg(n2),vs(n2,:),n2,n1)
+                gnorm = gravy
+                IF (flag(n2) == zero_grad) gnorm = 0.D0
+                CALL inoutflow(vg(n2),vs(n2,:),n2,n1,k,gnorm)
 !
               CASE DEFAULT
 !
@@ -531,27 +537,11 @@
                 vs(n2,is) = -vs(n1,is)
               END IF
 !
-            CASE (free_io, zero_grad)  ! Bernoulli equation on the vertically staggered cell
+            CASE (free_io, zero_grad) 
 !
               d0 = dz(k-1)
               d1 = dz(k)
               d2 = dz(k+1)
-
-              ! ... Extrapolate the normal component of the velocities
-              !
-              wg(ijk)    = extrapolate(wg(ijkm), wg(ijkmm), d0, d1, ord)
-              DO is = 1, nsolid
-                ws(ijk,is)  = extrapolate(ws(ijkm,is), ws(ijkmm,is), d0, d1, ord)
-              END DO
-              wg(ijkp)   = wg(ijk)
-              ws(ijkp,:) = ws(ijk,:)
-!
-              wg2 = wg(ijk)
-              wg1 = 0.5D0 * (wg(ijk) + wg(ijkm))
-
-              ! ... Outlet scalars
-              gnorm = gravz
-              CALL inoutflow(wg(n1),ws(n1,:),n2,n1,k,gnorm)
 
               ! ... Tangential velocities
               ug(n2)   = ug(n1)
@@ -559,6 +549,23 @@
               IF (job_type == JOB_TYPE_3D) THEN
                 vg(n2)   = vg(n1)
                 vs(n2,:) = vs(n1,:)
+              END IF
+
+              ! ... Extrapolate the normal component of the velocities
+              !
+              wg(ijk)    = extrapolate(wg(ijkm), wg(ijkmm), d0, d1, ord)
+              DO is = 1, nsolid
+                ws(ijk,is)  = extrapolate(ws(ijkm,is), ws(ijkmm,is), d0, d1, ord)
+              END DO
+              wg(ijkp)   = extrapolate(wg(ijk), wg(ijkm), d1, d2, ord)
+              ws(ijkp,:)   = extrapolate(ws(ijk,is), ws(ijkm,is), d1, d2, ord)
+!
+              ! ... Outlet scalars
+              IF (flag(n2) == zero_grad) THEN
+                CALL zerograd(n2,n1,k+1)
+              ELSE IF (flag(n2) == free_io) THEN
+                gnorm = gravz
+                CALL inoutflow(wg(n1),ws(n1,:),n2,n1,k+1,gnorm)
               END IF
 !
             CASE DEFAULT
@@ -654,7 +661,9 @@
                 vs(n2,:) = vs(n1,:)
                 !
                 ! ... Outlet scalars
-                !CALL inoutflow(wg(n2),ws(n2,:),n2,n1)
+                gnorm = gravz
+                IF (flag(n2) == zero_grad) gnorm = 0.D0
+                CALL inoutflow(wg(n2),ws(n2,:),n2,n1,k-1,gnorm)
 !
             CASE DEFAULT
 !

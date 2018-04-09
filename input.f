@@ -94,7 +94,8 @@
           p_ground, t_ground, void_fraction, max_packing
       USE blunt_body, ONLY: ibl, nblu
       USE boundary_conditions, ONLY: ord
-      USE control_flags, ONLY: lpr, imr, nfil, formatted_output, formatted_input
+      USE control_flags, ONLY: lpr, imr, nfil, cstop
+      USE control_flags, ONLY: formatted_output, formatted_input
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
       USE control_flags, ONLY: JOB_TYPE_1D, JOB_TYPE_2D, JOB_TYPE_3D
       USE control_flags, ONLY: job_type_ => job_type
@@ -154,7 +155,7 @@
 !
       NAMELIST / control / run_name, job_type, restart_mode,       &
         time, tstop, dt, lpr, imr, isrt, tpr, tdump, nfil, tau, tau1, tau2, ift,      &
-        formatted_output, formatted_input, max_seconds
+        formatted_output, formatted_input, max_seconds, cstop
 
       NAMELIST / model / icpc, tref, irex, gas_viscosity, part_viscosity,      &
         iss, repulsive_model, iturb, modturbo, cmut, drag_model, pmodel,             &
@@ -230,6 +231,7 @@
       tau1 = 0.D0
       tau2 = 0.D0
       ift  = 1
+      cstop = .FALSE.
 
 ! ... Model
 
@@ -394,7 +396,7 @@
       stratification = .TRUE.  ! set atmospheric stratification
       p_ground  = 1.01325D5    ! atmospheric pressure at ground level
       t_ground  = 288.15D0     ! atmospheric temperature at ground level
-      void_fraction = 1.D0     ! void fraction
+      void_fraction = 1.D0 - 1.D-10     ! void fraction
       max_packing = 0.6413     ! maximum packing vol. fract.
       atm_O2  = 0.D0           ! gas components mass fractions
       atm_N2  = 0.D0
@@ -483,6 +485,7 @@
       CALL bcast_real(tau1,1,root)
       CALL bcast_real(tau2,1,root)
       CALL bcast_integer(ift,1,root)
+      CALL bcast_logical(cstop,1,root)
 !
 ! .....................................................................
 !

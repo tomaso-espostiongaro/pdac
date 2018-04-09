@@ -179,6 +179,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE compute_all_fluxes_htilde
 
+      USE atmospheric_conditions, ONLY: gravx, gravy, gravz
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE convective_fluxes_sc, ONLY: fsc, muscl_fsc, ctu1_fsc, ctu2_fsc, ctu3_fsc
@@ -381,17 +382,14 @@
 
           END IF
 !
-          IF (gas_viscosity) THEN
-            egfe(ijk) = egfe(ijk) - hgfe(ijk)
-            egft(ijk) = egft(ijk) - hgft(ijk)
+          egfe(ijk) = egfe(ijk) - hgfe(ijk) + rgp(ijk)*gravx*ug(ijk)
+          egft(ijk) = egft(ijk) - hgft(ijk) + rgp(ijk)*gravz*wg(ijk)
+          IF ( .NOT.BTEST(flag(imjk),0) ) egfe(imjk) = egfe(imjk) - hgfe(imjk)
+          IF ( .NOT.BTEST(flag(ijkm),0) ) egft(ijkm) = egft(ijkm) - hgft(ijkm)
 !
-            IF ( .NOT.BTEST(flag(imjk),0) ) egfe(imjk) = egfe(imjk) - hgfe(imjk)
-            IF ( .NOT.BTEST(flag(ijkm),0) ) egft(ijkm) = egft(ijkm) - hgft(ijkm)
-
-            IF (job_type == JOB_TYPE_3D) THEN
-              egfn(ijk) = egfn(ijk) - hgfn(ijk)
-              IF ( .NOT.BTEST(flag(ijmk),0) ) egfn(ijmk) = egfn(ijmk) - hgfn(ijmk)
-            END IF
+          IF (job_type == JOB_TYPE_3D) THEN
+            egfn(ijk) = egfn(ijk) - hgfn(ijk) + rgp(ijk)*gravy*vg(ijk)
+            IF ( .NOT.BTEST(flag(ijmk),0) ) egfn(ijmk) = egfn(ijmk) - hgfn(ijmk)
           END IF
 !
 ! ... Here compute convective and diffusive fluxes (particles)
@@ -548,17 +546,14 @@
 
             END IF
 !
-            IF (part_viscosity) THEN
-              esfe(ijk, is) = esfe(ijk, is) - hsfe(ijk,is)
-              esft(ijk, is) = esft(ijk, is) - hsft(ijk, is)
+            esfe(ijk, is) = esfe(ijk, is) - hsfe(ijk,is) + rlk(ijk,is)*gravx*us(ijk,is)
+            esft(ijk, is) = esft(ijk, is) - hsft(ijk, is) + rlk(ijk,is)*gravz*ws(ijk,is)
+            IF ( .NOT.BTEST(flag(imjk),0) ) esfe(imjk,is) = esfe(imjk,is) - hsfe(imjk,is)
+            IF ( .NOT.BTEST(flag(ijkm),0) ) esft(ijkm,is) = esft(ijkm,is) - hsft(ijkm,is)
 !
-              IF ( .NOT.BTEST(flag(imjk),0) ) esfe(imjk,is) = esfe(imjk,is) - hsfe(imjk,is)
-              IF ( .NOT.BTEST(flag(ijkm),0) ) esft(ijkm,is) = esft(ijkm,is) - hsft(ijkm,is)
-
-              IF (job_type == JOB_TYPE_3D) THEN
-                esfn(ijk, is) = esfn(ijk, is) - hsfn(ijk, is)
-                IF ( .NOT.BTEST(flag(ijmk),0) ) esfn(ijmk,is)=esfn(ijmk,is)-hsfn(ijmk,is)
-              END IF
+            IF (job_type == JOB_TYPE_3D) THEN
+              esfn(ijk, is) = esfn(ijk, is) - hsfn(ijk, is) + rlk(ijk,is)*gravy*vs(ijk,is)
+              IF ( .NOT.BTEST(flag(ijmk),0) ) esfn(ijmk,is)=esfn(ijmk,is)-hsfn(ijmk,is)
             END IF
 !
           END DO

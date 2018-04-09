@@ -444,8 +444,8 @@
         !DO j = 1, vdem%ny
           !DO i = 1, vdem%nx
             !READ(tempunit,*,ERR=199) elevation
-            READ(tempunit,*,ERR=199) ((zdem(i,j),i=1,nx),j=vdem%ny, 1, -1)
-            zdem = zdem / 100
+            READ(tempunit,*,ERR=199) ((zdem(i,j),i=1,vdem%nx),j=vdem%ny, 1, -1)
+!            zdem = zdem / 100
             !
             !IF (seatable) zdem(i,j) = MAX(zdem(i,j),0.D0)
             !

@@ -42,7 +42,7 @@
 ! ... mass-momentum and the interphase coupling
 ! ... (2D-3D-Compliant)
 !
-      USE control_flags, ONLY: job_type, lpr
+      USE control_flags, ONLY: job_type, lpr, cstop
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE control_flags, ONLY: implicit_fluxes, implicit_enthalpy
       USE dimensions
@@ -66,6 +66,7 @@
       USE phases_matrix, ONLY: matspre_3phase
       USE pressure_epsilon, ONLY: p, ep
       USE set_indexes, ONLY: imjk, ijmk, ijkm
+      USE set_indexes, ONLY: ipjk, ijpk, ijkp
       USE set_indexes, ONLY: first_subscr, third_subscr
       USE set_indexes, ONLY: ctu1_subscr, ctu2_subscr, ctu3_subscr
       USE tilde_energy, ONLY: htilde
@@ -436,7 +437,9 @@ CALL test_fluxes_iter
           DO ijk = 1, ncint
             IF ( .NOT. converge( ijk ) ) THEN
               CALL meshinds( ijk , imesh, i , j , k )
-              WRITE(testunit,*) imesh, i , j , k, flag(ijk)
+              CALL first_subscr(ijk)
+              WRITE(testunit,*) imesh, i , j , k, flag(ijk), &
+ &  flag(ijkm), flag(ijkp), flag(ijmk), flag(ijpk), flag(imjk), flag(ipjk) 
               CALL cell_report(testunit, ijk, imesh, i, j, k)
             END IF
           END DO
@@ -445,7 +448,7 @@ CALL test_fluxes_iter
 !
         ! ... CRASH! ...
         !
-        !CALL error( ' iter ', 'max number of iters exceeded ', 1)
+        IF (cstop) CALL error( ' iter ', 'max number of iters exceeded ', 1)
       END IF
 !*******************************************************************
 !
