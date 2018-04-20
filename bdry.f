@@ -269,7 +269,7 @@
               ws(n2,:) = ws(n1,:)
               !
               ! ... outlet rlk, rgp, rog, sieg, sies, tg, ts, ep
-              gnorm = gravx
+              gnorm = gravx * 0.5D0 * (dx(i+1) + dx(i))
               IF (flag(n2) == zero_grad) gnorm = 0.D0
               CALL inoutflow(ug(n1),us(n1,:),n2,n1,k,gnorm)
 
@@ -334,7 +334,7 @@
               wg(n2)   = wg(n1)
               ws(n2,:) = ws(n1,:)
               !
-              gnorm = gravx
+              gnorm = gravx * 0.5D0 * (dx(i-1) + dx(i))
               IF (flag(n2) == zero_grad) gnorm = 0.D0
               CALL inoutflow(ug(n2),us(n2,:),n2,n1,k,gnorm)
 !              
@@ -404,7 +404,7 @@
                 ws(n2,:) = ws(n1,:)
 
                 ! ... Outlet scalars
-                gnorm = gravy
+                gnorm = gravy * 0.5D0 * (dy(j) + dy(j+1))
                 IF (flag(n2) == zero_grad) gnorm = 0.D0
                 CALL inoutflow(vg(n1),vs(n1,:),n2,n1,k,gnorm)
 !
@@ -476,7 +476,7 @@
                 ws(n2,:) = ws(n1,:)
                 !
                 ! ... Outlet scalars
-                gnorm = gravy
+                gnorm = gravy * 0.5D0 * (dy(j-1) + dy(j))
                 IF (flag(n2) == zero_grad) gnorm = 0.D0
                 CALL inoutflow(vg(n2),vs(n2,:),n2,n1,k,gnorm)
 !
@@ -564,7 +564,7 @@
               IF (flag(n2) == zero_grad) THEN
                 CALL zerograd(n2,n1,k+1)
               ELSE IF (flag(n2) == free_io) THEN
-                gnorm = gravz
+                gnorm = gravz * 0.5D0 * (dz(k)+dz(k+1))
                 CALL inoutflow(wg(n1),ws(n1,:),n2,n1,k+1,gnorm)
               END IF
 !
@@ -661,7 +661,7 @@
                 vs(n2,:) = vs(n1,:)
                 !
                 ! ... Outlet scalars
-                gnorm = gravz
+                gnorm = gravz * 0.5D0 * (dz(k-1)+dz(k))
                 IF (flag(n2) == zero_grad) gnorm = 0.D0
                 CALL inoutflow(wg(n2),ws(n2,:),n2,n1,k-1,gnorm)
 !

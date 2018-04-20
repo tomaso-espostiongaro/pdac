@@ -13,12 +13,13 @@
       !
       ! ... flags
       !
-      INTEGER :: ivent, irand, iali, ipro
+      INTEGER :: ivent, irand, iali, ipro, inlet_profile, cin
       !
       CHARACTER(LEN=80) :: rad_file
+      LOGICAL :: vent_in_center
       !
       REAL*8 :: xvent, yvent, vent_radius, base_radius, crater_radius
-      REAL*8 :: wrat
+      REAL*8 :: wrat, rbyb
       REAL*8 :: u_gas, v_gas, w_gas, p_gas, t_gas
       REAL*8 :: u_solid(max_nsolid), v_solid(max_nsolid), w_solid(max_nsolid), &
                 ep_solid(max_nsolid), t_solid(max_nsolid)
@@ -37,6 +38,8 @@
         INTEGER :: k
         REAL*8  :: frac
         REAL*8  :: fact
+        REAL*8  :: dist
+        REAL*8  :: angle
       END TYPE icvent_cell
 
       TYPE(icvent_cell), ALLOCATABLE :: vcell(:)
@@ -58,17 +61,26 @@
 
       USE control_flags, ONLY: job_type, lpr
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
-      USE grid, ONLY: x, y, z, iv, jv, fl
+      USE grid, ONLY: x, xb, y, yb, z, iv, jv, fl
       USE parallel, ONLY: mpime, root
+      USE volcano_topography, ONLY: itp
 
       IMPLICIT NONE
       INTEGER :: n
 !
-! ... If the vent coordinates are not assigned,
-! ... the mesh center coordinates are assumed
+      IF (itp > 0) vent_in_center = .FALSE.
 !
-      IF (xvent == -99999.D0) xvent = x(iv)
-      IF (yvent == -99999.D0) yvent = y(jv)
+      IF (vent_in_center) THEN
+        ! ... If the vent coordinates are not assigned,
+        ! ... the mesh center coordinates are assumed
+        IF (xvent == -99999.D0) xvent = x(iv)
+        IF (yvent == -99999.D0) yvent = y(jv)
+      ELSE
+        ! ... If the vent coordinates are not assigned,
+        ! ... the mesh North-East corner coordinates are assumed
+        IF (xvent == -99999.D0) xvent = xb(iv)
+        IF (yvent == -99999.D0) yvent = yb(jv)
+      END IF
 !
       IF (job_type == JOB_TYPE_2D ) THEN
               CALL locate_vent_2D
@@ -82,7 +94,8 @@
       IF( lpr > 0 .AND. mpime == root ) THEN
         OPEN(UNIT=ventunit,FILE=ventfile,STATUS='UNKNOWN')
         WRITE(ventunit,100) iiv, jjv, kkv
-        WRITE(ventunit,200) x(iiv), y(jjv), z(kkv)
+        IF (vent_in_center) WRITE(ventunit,200) x(iiv), y(jjv), z(kkv)
+        IF (.NOT. vent_in_center) WRITE(ventunit,200) xb(iiv), yb(jjv), z(kkv)
         WRITE(ventunit,300) vent_radius, base_radius
         WRITE(ventunit,*) 
         WRITE(ventunit,*) 'Number of vent cells: ', nvt
@@ -183,7 +196,7 @@
           ijk = i + (k-1) * nx
           fl(ijk) = noslip_wall
         END DO
-
+!
         ! ... At the vent quota, vent cell flags are set to vent_cell
         !
         k = quota
@@ -194,6 +207,9 @@
         vcell(nv)%j = 0
         vcell(nv)%k = k
         vcell(nv)%frac = 1.D0
+        vcell(nv)%dist = x(i) - xvent
+        vcell(nv)%angle = 0.D0
+!
         fl(ijk) = vent_cell
         !
         IF (nv == nvt) THEN
@@ -241,6 +257,8 @@
       INTEGER :: iwest, ieast, jnorth, jsouth
       INTEGER :: quota, dk
       REAL*8 :: soglia
+      REAL*8 :: distance, angle, dex, dey
+      LOGICAL :: cell_belongs_to_vent
 !
       ! ... The crater base radius must include, at least, 
       ! ... the rectancle containing the vent
@@ -252,17 +270,28 @@
       END IF
 !
 ! ... The coordinates '(xvent, yvent)' are taken from the input.
-! ... Notice that the vent center coincides with the cell center 
+! ... If vent_in_center is TRUE, the vent center coincides with the cell centre
 ! ... (different from 2D)
 !
-      DO i = 1, nx
-        IF (x(i) <= xvent) iiv = i
-      END DO
-      DO j = 1, ny
-        IF (y(j) <= yvent) jjv = j
-      END DO
-      xvent = x(iiv)
-      yvent = y(jjv)
+      IF (vent_in_center) THEN
+        DO i = 1, nx
+          IF (x(i) <= xvent) iiv = i
+        END DO
+        DO j = 1, ny
+          IF (y(j) <= yvent) jjv = j
+        END DO
+        xvent = x(iiv)
+        yvent = y(jjv)
+      ELSE
+        DO i = 1, nx
+          IF (xb(i) <= xvent) iiv = i
+        END DO
+        DO j = 1, ny
+          IF (yb(j) <= yvent) jjv = j
+        END DO
+        xvent = xb(iiv)
+        yvent = yb(jjv)
+      END IF
 !
 ! ... Define the 'quota' of the volcanic vent
 ! ... (considering the topography). If the topography
@@ -349,13 +378,34 @@
           k = quota
           ijk = i + (j-1) * nx + (k-1) * nx * ny
           
+          ! ... Distance and angle from the vent axis
+          dey = y(j)-yvent
+          dex = x(i)-xvent
+          distance = DSQRT(dex**2 + dey**2)
+          !
+          IF (dey /= 0.D0 ) THEN
+            angle = ATAN2(dey,dex)
+          ELSE IF (dex >= 0.D0) THEN
+            angle = 0.D0
+          ELSE IF (dex < 0.D0) THEN
+            angle = 4.D0 * ATAN(1.D0)
+          END IF
+!                    
           vcell(nv)%imesh = ijk
           vcell(nv)%i = i
           vcell(nv)%j = j
           vcell(nv)%k = k
-          vcell(nv)%frac = cell_fraction(i,j)
-          
-          IF (vcell(nv)%frac > soglia) THEN
+          vcell(nv)%frac  = cell_fraction(i,j)
+          vcell(nv)%dist  = distance
+          vcell(nv)%angle = angle
+!
+          IF (cin == 1) THEN
+            cell_belongs_to_vent = vcell(nv)%dist < vent_radius
+          ELSE IF (cin == 2) THEN
+            cell_belongs_to_vent = vcell(nv)%frac > soglia
+          END IF
+!
+          IF (cell_belongs_to_vent) THEN
             IF (i/=1 .AND. i/=nx .AND. j/=1 .AND. j/=ny) &
               fl(ijk) = vent_cell
           ELSE
@@ -370,7 +420,7 @@
             IF (i/=1 .AND. i/=nx .AND. j/=1 .AND. j/=ny) &
               fl(ijk) = fluid
           END DO
-                    
+          !
         END DO
       END DO
 !
@@ -404,9 +454,7 @@
 
       REAL*8 :: ygcsum, mfr
       INTEGER :: ijk, imesh, i,j,k, is, ig, n
-      REAL*8 :: alpha, beta, ra, dex, dey, angle, angle4
-      REAL*8 :: fact_r
-      REAL*8 :: distance
+      REAL*8 :: alpha, fact_r, angle, distance
       REAL*8 :: rseed
 !
 ! ... Compatibility
@@ -421,6 +469,8 @@
               wrat = 1.D0
       END IF
 ! 
+! ... WARNING!!!!! This loop can probably be simplified as a loop over nvt !!
+!
       DO ijk = 1, ncint      
         IF(flag(ijk) == vent_cell) THEN
           CALL meshinds(ijk,imesh,i,j,k)
@@ -431,18 +481,12 @@
           DO n = 1, nvt
             IF (vcell(n)%imesh == imesh) THEN
               alpha = vcell(n)%frac
+              distance = vcell(n)%dist
+              angle = vcell(n)%angle
             END IF
           END DO
 !          
           IF (ipro >= 1) THEN
-            !
-            IF (job_type == JOB_TYPE_2D ) THEN
-              distance = (x(i) - xvent)
-              angle = 0.D0
-            ELSE IF (job_type == JOB_TYPE_3D) THEN
-              distance = DSQRT( (x(i)-xvent)**2 + (y(j)-yvent)**2 )
-              angle    = ATAN2( (y(j)-yvent), (x(i)-xvent) )
-            END IF
             !
             CALL interp(rad, ug_rad, distance, ug(ijk))
             IF (job_type == JOB_TYPE_3D) vg(ijk) = ug(ijk) * SIN(angle)
@@ -507,42 +551,17 @@
           ! ... partially filled by the topography in order
           ! ... to respect the mass flux
           !
-          IF (iali == 1) CALL density_antialias(ijk,k,alpha)
-          IF (iali == 2) CALL density_antialias_2(ijk,k,alpha)
-          IF (iali == 3) CALL velocity_antialias(ijk,alpha)
-
-          ! ... 'wrat' is the ratio between the maximum
-          ! ... vertical velocity and the averaged velocity
-          ! ... If 'wrat' is greater than 1, the inlet profile
-          ! ... decreases to 0 towards the vent rim as a power law,
-          ! ... and the surface average of the velocity equals the 
-          ! ... input velocity...
-          ! 
-          IF (wrat > 1.D0 .AND. iali /= 3) THEN
-            ! ... linear average 
-            !beta = 1.D0 / (wrat - 1.D0)
-            ! ... surface average 
-            beta = 2.D0 / (wrat - 1.D0)
-            dey = y(j)-yvent
-            dex = x(i)-xvent
-            ra = DSQRT(dex**2 + dey**2)
-            ra = MIN(ra / vent_radius, 1.D0)
-            fact_r = wrat * (1.D0 - ra ** beta)
-            !
-            ! ... Angular modulation of the velocity profile
-            !
-            ! IF (dey /= 0.D0 ) THEN
-            !   angle = ATAN2(dey,dex)
-            ! ELSE IF (dex >= 0.D0) THEN
-            !   angle = 0.D0
-            ! ELSE IF (dex < 0.D0) THEN
-            !   angle = 4.D0 * ATAN(1.D0)
-            ! END IF
-            ! angle4 = angle*4.D0
-            ! fact_r = fact_r + 0.1D0 * COS(angle4)
-            !
-            CALL correct_velocity_profile(ijk,fact_r)
-          END IF
+          SELECT CASE (iali)
+            CASE (1) 
+              CALL density_antialias(ijk,k,alpha)
+            CASE (2) 
+              CALL density_antialias_2(ijk,k,alpha)
+            CASE (3) 
+              CALL velocity_antialias(ijk,alpha)
+            CASE (4)
+              CALL compute_correction(ijk, distance, angle, fact_r)
+              CALL correct_velocity_profile(ijk,fact_r)
+          END SELECT
 
           ! ... determine the initial random seed
           !
@@ -614,7 +633,7 @@
       SUBROUTINE density_antialias(ijk,k,alpha)
 !
 ! ... Correct the density in the inlet cells partially filled by the
-! ... topography ("antialiasing")
+! ... topography ("antialiasing") by rescaling pressure
 !
       USE atmospheric_conditions, ONLY: p_atm, t_atm
       USE dimensions, ONLY: nsolid, ngas
@@ -661,7 +680,7 @@
       SUBROUTINE density_antialias_2(ijk,k,alpha)
 !
 ! ... Correct the density in the inlet cells partially filled by the
-! ... topography ("antialiasing")
+! ... topography ("antialiasing") by rescaling particle volume fractions
 !
       USE eos_gas, ONLY: xgc, mole, thermal_eosg
       USE dimensions, ONLY: nsolid
@@ -715,6 +734,43 @@
 
       RETURN
       END SUBROUTINE velocity_antialias
+!-----------------------------------------------------------------------
+      SUBROUTINE compute_correction(ijk, ra, angl, factor)
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
+      USE control_flags, ONLY: job_type
+      USE grid, ONLY: itc
+      INTEGER, INTENT(IN) :: ijk
+      REAL*8, INTENT(INOUT) :: ra, angl
+      REAL*8, INTENT(OUT) :: factor
+      REAL*8 :: beta, angl4
+!
+      ra = MIN(ra / vent_radius, 1.D0)
+      angl4 = angl*4.D0
+      IF (inlet_profile == 1) THEN
+        ! Here 'wrat' is the ratio between the maximum and average
+        ! inlet velocity. Velocity profile is a power law.
+        !
+        IF (job_type == JOB_TYPE_2D .AND. itc == 0) THEN
+          ! ... 1D average (Cartesian)
+          beta = 1.D0 / (wrat - 1.D0)
+        ELSE
+          ! ... 2D radial average 
+          beta = 2.D0 / (wrat - 1.D0)
+        END IF
+        !
+        factor = wrat * (1.D0 - ra ** beta)
+        !
+        ! ... Angular modulation of the velocity profile
+        ! fact_r = fact_r + 0.1D0 * COS(angl4)
+        !
+      ELSE IF (inlet_profile == 2) THEN
+        ! Here 'rbyb' is the ratio between the radius and boundary layer thickness
+        ! This profile reproduces a turbulent inlet flow (Lesieur et al., 2005)
+        factor = 0.5D0 * (1.D0 - tanh(0.25D0 * rbyb * (ra - 1.D0 / ra)))
+      END IF
+!
+      RETURN
+      END SUBROUTINE compute_correction
 !-----------------------------------------------------------------------
       SUBROUTINE correct_velocity_profile(ijk,factor)
 !
