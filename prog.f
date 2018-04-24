@@ -13,11 +13,13 @@
       USE boundary_conditions, ONLY: boundary
       USE check_residuals, ONLY: print_mass_flow_rate
       USE check_residuals, ONLY: print_mass_residuals
+      USE compute_mean_fields, ONLY: imrt, average_mixture_fields
       USE control_flags, ONLY: job_type, lpr, imr, nfil
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE control_flags, ONLY: implicit_enthalpy, implicit_fluxes
       USE dimensions
       USE domain_mapping, ONLY: ncint, myijk, ncdom
+      USE mixture_fields, ONLY: compute_mixture_fields, compute_mixture
       USE enthalpy_matrix, ONLY: ftem
       USE environment, ONLY: cpclock, timing, elapsed_seconds
       USE eos_gas, ONLY: thermal_eosg, update_eosg
@@ -33,16 +35,16 @@
       USE iterative_solver, ONLY: iter, nit
       USE mass_sink, ONLY: print_mass_loss, isink
       USE output_dump, ONLY: outp, shock_tube_out, print_volumes
-      USE output_dump, ONLY: write_radial_profile_2d
+      USE output_dump, ONLY: write_radial_profile_2d, write_mean_fields
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: cps
       USE pressure_epsilon, ONLY: p, ep
       USE reactions, ONLY: rexion, irex
-      USE runtime_sampling, ONLY: set_sampling, sample_pressure, isrt
+      USE runtime_sampling, ONLY: set_sampling, sample_fields, isrt
       USE tilde_energy, ONLY: htilde
       USE tilde_momentum, ONLY: allocate_fluxes, deallocate_fluxes
       USE tilde_momentum, ONLY: tilde, fieldn
-      USE time_parameters, ONLY: time, tpr, tdump, tstop, dt, itd, tau1
+      USE time_parameters, ONLY: time, tpr, tdump, tstop, dt, itd, tau1, timestart
       USE time_parameters, ONLY: rungekut, sweep, ndump, nprint, time_integration
       USE turbulence_model, ONLY: iturb, iss
       USE turbulence_model, ONLY: sgsg, sgss
@@ -330,6 +332,14 @@
         dt = dt0
  100    time = time + dt
 !
+        IF (compute_mixture) CALL compute_mixture_fields
+!
+! ... Runtime post-processing
+!
+        IF (imrt >= 1 .AND. compute_mixture) &
+            CALL average_mixture_fields(time, dt, timestart)
+        IF (isrt >= 1) CALL sample_fields
+!
 ! ... Force the writing on the standard output
 !
         IF( mpime == root ) &
@@ -346,13 +356,10 @@
 ! ... Write OUTPUT file
 ! 
         IF(MOD(sweep,nprint) == 0) THEN
-                IF ( isink > 0 ) CALL print_mass_loss(nfil)
+                IF (isink > 0) CALL print_mass_loss(nfil)
+                IF (imrt > 0) CALL write_mean_fields(nfil)
                 CALL outp
         END IF
-!
-! ... sample pressure field
-!
-        IF (isrt >= 1) CALL sample_pressure
 !
 ! ... Print the total residuals of the mass conservation equation
 ! ... and the mass flow rate

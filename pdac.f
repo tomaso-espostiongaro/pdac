@@ -10,11 +10,13 @@
    PROGRAM pdac
 !
       USE blunt_body, ONLY: set_blunt, ibl
+      USE compute_mean_fields, ONLY: allocate_mean_fields, imrt
       USE control_flags, ONLY: prog, lpr, nfil
       USE dimensions
       USE domain_decomposition, ONLY: partition
       USE domain_mapping, ONLY: ghost
       USE dome_conditions, ONLY: idome, locate_dome
+      USE mixture_fields, ONLY: allocate_mixture_fields
       USE environment, ONLY: cpclock, timing, elapsed_seconds
       USE eos_gas, ONLY: allocate_eosg
       USE gas_components, ONLY: allocate_species
@@ -131,9 +133,6 @@
 !
 ! ... initialize input fields
       CALL initc
-!
-! ... set start time
-      timestart = time
 !
 ! ... Setup cell-sizes and cell flags
 !
@@ -259,6 +258,8 @@
       CALL allocate_hcapgs
       CALL allocate_turbo
       CALL allocate_sink
+      CALL allocate_mixture_fields
+      IF (imrt >= 1) CALL allocate_mean_fields
 !
 ! ... Set parameters and initial conditions
 !
@@ -283,6 +284,9 @@
       ELSE IF (itd == 4) THEN
         CALL outp_remap(nfil)
       END IF
+!
+! ... reset start time
+      timestart = time
 !
 ! ... Set the initial conditions in the ghost cells.
 ! ... Compute initial conditions depending on restart mode.
