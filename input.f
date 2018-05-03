@@ -124,7 +124,7 @@
       USE vent_conditions, ONLY: u_gas,v_gas,w_gas,p_gas,t_gas, wrat, rbyb, &
           u_solid, v_solid, w_solid,  ep_solid, t_solid, base_radius, &
           crater_radius, vent_radius, xvent, yvent, ivent, iali, irand, &
-          ipro, rad_file, cin, vent_in_center, inlet_profile
+          ipro, rad_file, isl, vent_in_center, inlet_profile, mass_flow_rate
       USE immersed_boundaries, ONLY: immb
       USE iterative_solver, ONLY: inmax, maxout, omega, optimization, delg
       USE io_restart, ONLY: max_seconds
@@ -175,7 +175,7 @@
         write_improfile
       
       NAMELIST / inlet / ivent, iali, irand, ipro, rad_file, wrat, rbyb, &
-        crater_radius, cin, vent_in_center, inlet_profile, &
+        crater_radius, isl, vent_in_center, inlet_profile, mass_flow_rate,&
         xvent, yvent, vent_radius, base_radius, u_gas, v_gas, w_gas,  &
         p_gas, t_gas, u_solid, v_solid, w_solid, ep_solid, t_solid, &
         vent_O2, vent_N2, vent_CO2, vent_H2, vent_H2O, vent_Air, vent_SO2
@@ -329,8 +329,9 @@
       iali  = 4               ! 1: vent antialiasing ON
       irand = 0               ! 1: circular vent specified on average
       ipro = 0                ! 1: inlet radial profile
-      cin = 1                 ! criterion for vent cell
+      isl = 0                 ! criterion for vent cell
       inlet_profile = 1       ! 1: power-law profile; 2: turbulent inlet
+      mass_flow_rate = 0.D0       ! 1: power-law profile; 2: turbulent inlet
       vent_in_center = .TRUE. !
       rad_file = 'profile.rad'! file with the radial profile
       xvent  = -99999.D0           ! coordinates of the vent
@@ -631,8 +632,9 @@
       CALL bcast_integer(iali,1,root)
       CALL bcast_integer(irand,1,root)
       CALL bcast_integer(ipro,1,root)
-      CALL bcast_integer(cin,1,root)
+      CALL bcast_integer(isl,1,root)
       CALL bcast_integer(inlet_profile,1,root)
+      CALL bcast_real(mass_flow_rate,1,root)
       CALL bcast_logical(vent_in_center,1,root)
       CALL bcast_character(rad_file,80,root)
       CALL bcast_real(xvent,1,root)

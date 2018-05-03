@@ -13,12 +13,13 @@
       !
       ! ... flags
       !
-      INTEGER :: ivent, irand, iali, ipro, inlet_profile, cin
+      INTEGER :: ivent, irand, iali, ipro, inlet_profile, isl
       !
       CHARACTER(LEN=80) :: rad_file
       LOGICAL :: vent_in_center
       !
       REAL*8 :: xvent, yvent, vent_radius, base_radius, crater_radius
+      REAL*8 :: mass_flow_rate
       REAL*8 :: wrat, rbyb
       REAL*8 :: u_gas, v_gas, w_gas, p_gas, t_gas
       REAL*8 :: u_solid(max_nsolid), v_solid(max_nsolid), w_solid(max_nsolid), &
@@ -46,8 +47,9 @@
 
       INTEGER :: nvt, iiv, jjv, kkv
       INTEGER :: seed
+      REAL*8 :: intensity
 !
-      PRIVATE :: icvent_cell, vcell, nvt, seed
+      PRIVATE :: icvent_cell, seed, vcell, nvt
       PRIVATE :: ug_rad, wg_rad, p_rad, tg_rad, rad, ygc_rad,  &
                  us_rad, ws_rad, ep_rad, ts_rad
       SAVE
@@ -100,6 +102,8 @@
         WRITE(ventunit,*) 
         WRITE(ventunit,*) 'Number of vent cells: ', nvt
         WRITE(ventunit,*) 'Vent cells report: '
+        WRITE(ventunit,*) 'n   imesh   i    j    k    frac      &
+                          &fact      dist      angle     flag     '
         DO n = 1, nvt
           WRITE(ventunit,400) n, vcell(n), fl(vcell(n)%imesh)
         END DO
@@ -108,7 +112,7 @@
  100    FORMAT(1X,'vent center: ',3I5)
  200    FORMAT(1X,'vent center coordinates: ',3(F12.2))
  300    FORMAT(1X,'vent radius and base radius: ',2(F12.2))
- 400    FORMAT(I4,I8, 3(I5),2(F8.4),I5)
+ 400    FORMAT(I4,I8, 3(I5),4(F10.4),I5)
 !
       RETURN
       END SUBROUTINE locate_vent
@@ -135,7 +139,6 @@
       INTEGER :: ijk, nv
       INTEGER :: iwest, ieast, jnorth, jsouth
       INTEGER :: quota, dk
-      REAL*8 :: soglia
 !
 ! ... Vent coordinates '(xvent, yvent)' are taken from the input.
 ! ... Notice that the vent center coincides with the cell left edge
@@ -399,9 +402,9 @@
           vcell(nv)%dist  = distance
           vcell(nv)%angle = angle
 !
-          IF (cin == 1) THEN
+          IF (isl == 1) THEN
             cell_belongs_to_vent = vcell(nv)%dist < vent_radius
-          ELSE IF (cin == 2) THEN
+          ELSE IF (isl == 2) THEN
             cell_belongs_to_vent = vcell(nv)%frac > soglia
           END IF
 !
@@ -563,21 +566,12 @@
               CALL correct_velocity_profile(ijk,fact_r)
           END SELECT
 
-          ! ... determine the initial random seed
-          !
-          !CALL MP_WALLTIME(rseed,mpime)
-          rseed = cpclock()
-          seed = INT(rseed)
-          !WRITE(testunit,*) 'seed=', seed
-          !IF (mpime == root) seed = INT(cpclock())
-          !CALL bcast_integer(seed,1,root)
-        
         END IF
       END DO
-
+!
       RETURN
       END SUBROUTINE set_ventc
-!-----------------------------------------------------------------------
+!----------------------------------------------------------------------
       SUBROUTINE read_radial_profile
       USE parallel, ONLY: mpime, root
       USE io_files, ONLY: tempunit
@@ -802,27 +796,85 @@
       RETURN
       END SUBROUTINE correct_velocity_profile
 !-----------------------------------------------------------------------
-      SUBROUTINE update_vent_cell(ijk,imesh,sweep)
+      SUBROUTINE vent_index(imesh,vn)
 !
       USE dimensions, ONLY: nsolid
       USE gas_solid_velocity, ONLY: wg, ws
       IMPLICIT NONE
 
-      INTEGER, INTENT(IN) :: ijk, imesh, sweep
-      INTEGER :: is, n
+      INTEGER, INTENT(IN) :: imesh
+      INTEGER, INTENT(OUT) :: vn
+      INTEGER :: n
+!
+      DO n = 1, nvt
+          IF (vcell(n)%imesh == imesh) vn = n
+      END DO
+!
+      RETURN
+      END SUBROUTINE vent_index
+!-----------------------------------------------------------------------
+      SUBROUTINE random_switch(sweep)
+!
+! ... Randomly switch vent cells on/off, with a probability
+! ... equal to the cell fraction
+!
+      USE control_flags, ONLY: job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
+      USE io_files, ONLY: logunit
+      USE parallel, ONLY: mpime, root
+      IMPLICIT NONE
+
+      INTEGER, INTENT(IN) :: sweep
+      INTEGER :: values(1:8), k
+      INTEGER, DIMENSION(:), ALLOCATABLE :: seed
+      REAL*8 :: rnv
+!      REAL*8 :: ran0
+!      EXTERNAL :: ran0
+      INTEGER :: n
+
+      IF (job_type == JOB_TYPE_2D ) RETURN
+
+      ! ... determine the initial random seed
+      !
+      !rseed = cpclock()
+      !seed = INT(rseed)
+      !  
+      CALL date_and_time(values=values)
+
+      CALL random_seed(size=k)
+      ALLOCATE(seed(1:k))
+      seed(:) = values(8)
+      CALL random_seed(put=seed)
+      CALL random_number(rnv)
+!
+      DO n = 1, nvt
+        !rnv = ran0(seed)
+        CALL random_number(rnv)
+        !IF (mpime==root) WRITE(logunit,*) n,rnv
+      END DO
+!
+      DEALLOCATE(seed)
+!
+      RETURN
+      END SUBROUTINE random_switch
+!-----------------------------------------------------------------------
+      SUBROUTINE update_vent_cell(ijk,n)
+!
+      USE dimensions, ONLY: nsolid
+      USE gas_solid_velocity, ONLY: wg, ws
+      IMPLICIT NONE
+
+      INTEGER, INTENT(IN) :: ijk, n
+      INTEGER :: is
       REAL*8 :: switch
       
       ! ... The inlet cell is on/off accordingly to the
       ! ... value 1/0 of 'switch'
       ! 
-      IF (irand == 1) THEN
-        DO n = 1, nvt
-          IF (vcell(n)%imesh == imesh) THEN
-            switch = vcell(n)%fact
-          END IF
-        END DO
-      ELSE
+      IF (vcell(n)%fact <= vcell(n)%frac) THEN
         switch = 1.D0
+      ELSE
+        switch = 0.D0
       END IF
 
       wg(ijk) = w_gas * switch
@@ -833,7 +885,7 @@
       RETURN
       END SUBROUTINE update_vent_cell
 !-----------------------------------------------------------------------
-      SUBROUTINE update_inlet_cell(ijk)
+      SUBROUTINE inlet_velocity_fluctuations(ijk,n)
 !
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
@@ -841,72 +893,34 @@
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       IMPLICIT NONE
 
-      REAL*8 :: ran0
-      EXTERNAL :: ran0
-      INTEGER, INTENT(IN) :: ijk
-      INTEGER :: is, n
+      REAL*8 :: rann
+      INTEGER, INTENT(IN) :: ijk, n
+      INTEGER :: is
       
       ! ... The velocities in a cell are perturbed accordingly
       ! ... to a random function 'ran0' with a maximum intensity
-      ! ... of 1%
+      ! ... along each velocity component
       !
-      ug(ijk) = ug(ijk) * (1.D0 + 0.01D0 * (ran0(seed) - 0.5D0) )
+      intensity = 0.01D0
+      rann = vcell(n)%fact
+      !
+      ug(ijk) = ug(ijk) * (1.D0 + intensity * (rann - 0.5D0) )
       IF (job_type == JOB_TYPE_3D)  &
-        vg(ijk) = vg(ijk) * (1.D0 + 0.01D0 * (ran0(seed) - 0.5D0) )
-      wg(ijk) = wg(ijk) * (1.D0 + 0.01D0 * (ran0(seed) -0.5D0) )
+        vg(ijk) = vg(ijk) * (1.D0 + intensity * (rann - 0.5D0) )
+      wg(ijk) = wg(ijk) * (1.D0 + intensity * (rann -0.5D0) )
       
       DO is = 1,nsolid
-        us(ijk,is) = us(ijk,is) * (1.D0 + 0.01D0 * (ran0(seed) -0.5D0) )
+        us(ijk,is) = us(ijk,is) * (1.D0 + intensity * (rann - 0.5D0) )
         IF (job_type == JOB_TYPE_3D) &
-          vs(ijk,is) = vs(ijk,is) * (1.D0 + 0.01D0 * (ran0(seed) -0.5D0) )
-        ws(ijk,is) = ws(ijk,is) * (1.D0 + 0.01D0 * (ran0(seed) -0.5D0) )
+          vs(ijk,is) = vs(ijk,is) * (1.D0 + intensity * (rann - 0.5D0) )
+        ws(ijk,is) = ws(ijk,is) * (1.D0 + intensity * (rann - 0.5D0) )
       END DO
 
       RETURN
-      END SUBROUTINE update_inlet_cell
-!-----------------------------------------------------------------------
-      SUBROUTINE grow_vent_cell(ijk,imesh,sweep)
-!
-      USE dimensions, ONLY: nsolid
-      USE gas_solid_velocity, ONLY: wg, ws
-      USE time_parameters, ONLY: ift
-      IMPLICIT NONE
-
-      INTEGER, INTENT(IN) :: ijk, imesh, sweep
-      INTEGER :: is, n
-      REAL*8 :: switch, growth_factor
-      
-      IF (wrat > 1.D0) RETURN
-      
-      ! ... The inlet profile grows from 0 to its final
-      ! ... value as the function of time
-      !
-      SELECT CASE (ift)
-        CASE (1)
-          growth_factor = ft1(sweep)
-        CASE (2)
-          growth_factor = ft2(sweep)
-        CASE (3)
-          growth_factor = ft3(sweep)
-        CASE (4)
-          growth_factor = ft4(sweep)
-        CASE (5)
-          growth_factor = ft5(sweep)
-        CASE DEFAULT
-          growth_factor = 1.D0
-      END SELECT
-!
-      wg(ijk) = w_gas * growth_factor
-      DO is = 1,nsolid
-        ws(ijk,is) = w_solid(is) * growth_factor
-      END DO
-
-      RETURN
-      END SUBROUTINE grow_vent_cell
+      END SUBROUTINE inlet_velocity_fluctuations
 !-----------------------------------------------------------------------
       SUBROUTINE grow_inlet_cell(ijk,imesh,sweep)
 !
-      USE atmospheric_conditions, ONLY: p_ground
       USE dimensions, ONLY: nsolid
       USE gas_solid_velocity, ONLY: wg, ws
       USE time_parameters, ONLY: ift
@@ -915,11 +929,11 @@
       INTEGER, INTENT(IN) :: ijk, imesh, sweep
       INTEGER :: is, n
       REAL*8 :: growth_factor
-      REAL*8 :: wgas_init, wpart_init(max_nsolid)
+      REAL*8 :: wgas_init, wsolid_init(max_nsolid)
       
       IF (sweep == 1) THEN
               wgas_init = wg(ijk) 
-              wpart_init(1:nsolid) = ws(ijk,1:nsolid)
+              wsolid_init(1:nsolid) = ws(ijk,1:nsolid)
       END IF
       !
       ! ... The inlet profile grows from 0 to its final
@@ -942,40 +956,11 @@
       !
       wg(ijk) = wgas_init * growth_factor
       DO is = 1,nsolid
-        ws(ijk,is) = wpart_init(is) * growth_factor
+        ws(ijk,is) = wsolid_init(is) * growth_factor
       END DO
 
       RETURN
       END SUBROUTINE grow_inlet_cell
-!-----------------------------------------------------------------------
-      SUBROUTINE random_switch(sweep)
-!
-! ... Randomly switch vent cells on/off, with a probability
-! ... equal to the cell fraction
-!
-      USE control_flags, ONLY: job_type
-      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
-      IMPLICIT NONE
-
-      INTEGER, INTENT(IN) :: sweep
-      REAL*8 :: rnv
-      REAL*8 :: ran0
-      EXTERNAL :: ran0
-      INTEGER :: n
-
-      IF (job_type == JOB_TYPE_2D ) RETURN
-
-      DO n = 1, nvt
-        rnv = ran0(seed)
-        IF (rnv <= vcell(n)%frac) THEN
-          vcell(n)%fact = 1.D0
-        ELSE
-          vcell(n)%fact = 0.D0
-        END IF
-      END DO
-
-      RETURN
-      END SUBROUTINE random_switch
 !-----------------------------------------------------------------------
       REAL*8 FUNCTION ft1(n)
       USE time_parameters, ONLY: tau1, tau2, dt

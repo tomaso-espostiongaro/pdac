@@ -56,23 +56,31 @@
 ! ... Set initial conditions
 ! ... (2D/3D_Compliant and fully parallel)
 !
-      USE control_flags, ONLY: job_type
+      USE check_residuals, ONLY: print_mass_flow_rate
+      USE control_flags, ONLY: job_type, nfil
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
       USE domain_mapping, ONLY: ncint, meshinds, myijk
       USE dome_conditions, ONLY: idome, set_domec
       USE gas_solid_viscosity, ONLY: mus
       USE grid, ONLY: iob
+      USE io_files, ONLY: ventunit
+      USE io_restart, ONLY: taperd, tapewr, outp_recover, outp_remap
+      USE mass_sink, ONLY: isink, read_mass_loss
+      USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: cmus
       USE time_parameters, ONLY: itd
       USE turbulence_model, ONLY: turbulence_setup, iturb
-      USE vent_conditions, ONLY: set_ventc, ivent
+      USE vent_conditions, ONLY: set_ventc, ivent, mass_flow_rate
+      USE vent_conditions, ONLY: u_gas, v_gas, w_gas
+      USE vent_conditions, ONLY: u_solid, v_solid, w_solid
 
       IMPLICIT NONE
 !
       INTEGER :: n
       INTEGER :: ig, is
       LOGICAL :: forced = .FALSE.
+      REAL*8 :: mfr, mfract
 !
 ! ... Initialize particle's viscosity
 ! 
@@ -96,12 +104,6 @@
       SELECT CASE(itd)
 !
       CASE (0,1)
-! 
-! ... Set initial conditions in boundary cells 
-! ... with specified fluid flow 
-!
-        IF (ivent >= 1) CALL set_ventc
-        IF (idome >= 1) CALL set_domec
 !
         DO n = 1, no
           SELECT CASE (iob(n)%typ)
@@ -111,14 +113,46 @@
             CONTINUE
           END SELECT
         END DO 
-!
-      CASE DEFAULT
-        IF (idome >= 1) CALL set_domec
 ! 
-! ... Initial conditions will be set from RESTART file
-! ... or OUTPUT file
+! ... Set initial conditions in boundary cells 
+! ... with specified fluid flow 
 !
+        IF (idome >= 1) CALL set_domec
+        IF (ivent >= 1) CALL set_ventc
+        CALL cnvert
+!
+        CALL print_mass_flow_rate(mfr)
+        IF (ivent >= 1 .AND. mass_flow_rate /= 0.D0) THEN
+          IF (mpime == root) WRITE(ventunit,*) &
+             'Correcting velocity to fit mass flow rate'
+          mfract = mass_flow_rate / mfr
+          u_gas = u_gas * mfract
+          v_gas = v_gas * mfract
+          w_gas = w_gas * mfract
+          u_solid = u_solid * mfract
+          v_solid = v_solid * mfract
+          w_solid = w_solid * mfract
+          CALL set_ventc
+          CALL cnvert
+        END IF
+!
+! ... Read restart file or recover initial
+! ... conditions from an output file
+!
+      CASE (2)
+        IF (isink > 0) CALL read_mass_loss(nfil)
+        CALL taperd
+        CALL cnvert
+      CASE (3)
+        IF (isink > 0) CALL read_mass_loss(nfil)
+        CALL outp_recover(nfil)
+        CALL cnvert
+      CASE (4)
+        CALL outp_remap(nfil)
+        CALL cnvert
       END SELECT
+!
+      CALL print_mass_flow_rate(mfr)
 !
       RETURN
       END SUBROUTINE setup
@@ -237,6 +271,9 @@
       END SUBROUTINE set_atmc
 !----------------------------------------------------------------------
       SUBROUTINE cnvert
+! ... Set the initial conditions in the ghost cells.
+! ... Compute initial conditions depending on restart mode.
+! ... Compute derived thermodynamic quantities.
 !
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D

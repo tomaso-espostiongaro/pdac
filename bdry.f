@@ -45,13 +45,13 @@
         imjpk, ijmk, ipjmk, imjmk, ijppk, ijmmk, ijkp, ipjkp, imjkp,   &
         ijpkp, ijmkp, ijkm, ipjkm, imjkm, ijpkm, ijmkm, ijkpp, ijkmm
       USE time_parameters, ONLY: tau1, tau2
-      USE vent_conditions, ONLY: update_vent_cell, random_switch, irand, &
-                                 update_inlet_cell, grow_vent_cell, &
-                                 grow_inlet_cell
+      USE vent_conditions, ONLY: inlet_velocity_fluctuations, random_switch, irand, iali
+      USE vent_conditions, ONLY: grow_inlet_cell, update_vent_cell
+      USE vent_conditions, ONLY: inlet_profile, vent_index
 !
       IMPLICIT NONE
 !
-      INTEGER :: ijk, i, j, k, imesh, ig, is, nph
+      INTEGER :: ijk, i, j, k, imesh, ig, is, nph, n, ventn
       INTEGER :: fp, np
       REAL*8 :: d0, d1, d2 
       REAL*8 :: vel(max_nsolid+1)
@@ -86,16 +86,17 @@
 !
           IF (irand >= 1) THEN
             IF (flag(ijk) == vent_cell) THEN
-                    ! ... Vent Antialiasing
-                    CALL update_vent_cell(ijk,imesh,sweep)
+              CALL vent_index(imesh,n)
+              ! ... random antialias
+              IF (iali == 5) CALL update_vent_cell(ijk,n)
+              ! ... velocity fluctuations
+              IF (inlet_profile >= 0) CALL inlet_velocity_fluctuations(ijk,n)
             END IF
           END IF
 !
           IF (tau1 > 0.D0 .OR. tau2 > 0.D0) THEN
-            IF (flag(ijk) == inlet_cell) THEN
+            IF (flag(ijk) == inlet_cell .OR. flag(ijk) == vent_cell) THEN
                   CALL grow_inlet_cell(ijk,imesh,sweep)
-            ELSE IF (flag(ijk) == vent_cell) THEN
-                  CALL grow_vent_cell(ijk,imesh,sweep)
             END IF
           END IF
 !
