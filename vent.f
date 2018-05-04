@@ -409,10 +409,12 @@
           END IF
 !
           IF (cell_belongs_to_vent) THEN
+            vcell(nv)%fact = 1.D0
             IF (i/=1 .AND. i/=nx .AND. j/=1 .AND. j/=ny) &
               fl(ijk) = vent_cell
-          ELSE
             fl(ijk) = noslip_wall
+          ELSE
+            vcell(nv)%fact = 0.D0
           END IF
           
           ! ... Above the vent quota, cell flags are set to '1'

@@ -216,6 +216,10 @@
 !
 ! ... Set the cell dimensions
 !
+      n0x = MAX(n0x,1)
+      n0y = MAX(n0y,1)
+      n0z = MAX(n0z,1)
+!
       SELECT CASE (grigen)
       CASE(0)
         !
@@ -237,9 +241,10 @@
         !dy = dy_inner
         !dz = dz_inner
         !
-      CASE(1,2)
+      CASE(1)
         !
-        ! ... generate the non-uniform mesh
+        ! ... generate the non-uniform mesh with prescribed number of
+        ! ... cells, domain size, minimum (and maximum) cell size
         !
         CALL generate_grid(dx_inner,nx_inner,domain_x,alpha_x,dxmin,dxmax,n0x,iv) 
         IF (job_type == JOB_TYPE_2D) THEN
@@ -248,6 +253,19 @@
           CALL generate_grid(dy_inner,ny_inner,domain_y,alpha_y,dymin,dymax,n0y,jv) 
         END IF
         CALL generate_grid(dz_inner,nz_inner,domain_z,alpha_z,dzmin,dzmax,n0z,kv) 
+        !
+      CASE(2)
+        !
+        ! ... generate the non-uniform mesh with prescribed number of
+        ! ... cells, grow rate, minimum (and maximum) cell size
+        !
+        CALL generate_nu_grid(dx_inner,nx_inner,domain_x,alpha_x,dxmin,dxmax,n0x,iv) 
+        IF (job_type == JOB_TYPE_2D) THEN
+          dy = 0.D0
+        ELSE IF (job_type == JOB_TYPE_3D) THEN
+          CALL generate_nu_grid(dy_inner,ny_inner,domain_y,alpha_y,dymin,dymax,n0y,jv) 
+        END IF
+        CALL generate_nu_grid(dz_inner,nz_inner,domain_z,alpha_z,dzmin,dzmax,n0z,kv) 
         !
       CASE DEFAULT
         CONTINUE
@@ -765,6 +783,181 @@
 !
       RETURN
       END SUBROUTINE generate_grid
+!----------------------------------------------------------------------
+      SUBROUTINE generate_nu_grid(delta,nd,domain_size,alpha,demin,demax,n0,center)
+      USE control_flags, ONLY: lpr
+      USE parallel, ONLY: mpime, root
+!
+! ... this routine generates a 1D rectilinear (non)uniform mesh
+! ... given the number of cells, the minimum and maximum size,
+! ... and the size increase rate. Since not every set of values
+! ... comes out to be consistent, priority is given to 
+! ... 1) the number of cells; 2) the domain size; 3) the minimum cell
+! ... size; 4) the maximum cell size; 5) the maximum increase rate 
+! ... constraints.
+!
+      IMPLICIT NONE
+!
+! ... array of cell sizes
+!
+      REAL*8, DIMENSION(:), INTENT(OUT) :: delta
+!
+! ... number of cells 
+!
+      INTEGER, INTENT(IN)  :: nd
+!
+! ... size of computational domain
+!
+      REAL*8, INTENT(INOUT) ::  domain_size
+!
+! ... relative center of the mesh (for refinement)
+!
+      REAL*8, INTENT(INOUT) :: alpha
+!
+! ... minimum and maximum mesh size
+!
+      REAL*8, INTENT(IN) ::  demin
+      REAL*8, INTENT(IN) ::  demax
+!
+! ... number of cells with minimum size beyond the center
+!
+      INTEGER, INTENT(IN), OPTIONAL  :: n0
+!
+! ... index of the central cell
+!
+      INTEGER, INTENT(OUT) :: center
+!
+      REAL*8 :: domain_r, domain_l, dl, l1, l2
+!      
+      INTEGER :: n01,n02,resto
+      INTEGER :: i, j, m, n, ir, il, ill, irr
+      LOGICAL :: ionode
+      INTEGER :: idelta, ncount
+!
+      ionode = (mpime == root)
+!
+      IF (demin == demax) THEN
+              delta = demin
+              alpha = 0.5D0
+              center = NINT(nd/2.D0)
+              domain_size = nd * demin
+              RETURN
+      END IF
+      IF ( nd < domain_size/demax )  CALL error('grid_generator', &
+          'insufficient number of cells', nd) 
+      IF ( nd > domain_size/demin ) CALL error('grid_generator', &
+          'number of cells is too big', nd)
+      IF (domain_size*alpha < demin) alpha = 0.D0
+      IF (domain_size*(1.D0-alpha) < demin) alpha = 1.D0
+!
+! ... 'n1' and 'n2' are the number of uniform cells 
+! ... on the left and right domain
+! ... minus the uniform (fine) mesh
+! ... 'l1' and 'l2' are the sizes of the left and right domain
+! ... minus the uniform (fine) mesh
+!
+      IF (alpha == 0.D0) THEN
+  
+        n01 = 0
+        n02 = n0
+
+        l1 = 0.D0
+        l2 = domain_size
+        
+      ELSE IF (alpha == 1.D0) THEN
+
+        n01 = n0
+        n02 = 0
+
+        l1 = domain_size
+        l2 = 0.D0
+        
+      ELSE
+        
+        n02 = NINT(n0 / 2.D0)
+        n01 = n0 - n02
+
+        l1 = (domain_size*alpha)
+        l2 = (domain_size*(1.D0-alpha))
+      
+      END IF
+      IF (ionode) WRITE(logunit,*) 'n01, n02, l1, l2: ', n01, n02, l1, l2
+      !
+      ! ... Left part of the domain
+      !
+      il = 0
+      domain_l = 0.D0
+      dl = demin
+      DO WHILE (domain_l < l1)
+        il = il + 1
+        IF (il <= n01) THEN 
+          dl = demin
+        ELSE IF (il > n01) THEN
+          dl = MIN(dl*maxbeta, demax)
+        END IF
+        domain_l = domain_l + dl
+      END DO
+      IF (ionode) WRITE(logunit,*) 'domain_l, il: ', domain_l, il
+      !
+      ! ... Right part of the domain
+      !
+      ir = 0
+      domain_r = 0.D0
+      dl = demin
+      DO WHILE (domain_r < l2)
+        ir = ir + 1
+        IF (ir <= n02) THEN 
+          dl = demin
+        ELSE IF (ir > n02) THEN
+          dl = MIN(dl*maxbeta, demax)
+        END IF
+        domain_r = domain_r + dl
+      END DO
+      IF (ionode) WRITE(logunit,*) 'domain_r, ir: ', domain_r, ir
+!
+      resto = nd - il - ir
+!
+      IF (resto < 0) THEN
+        CALL error('grid_generator', &
+          'insufficient number of cells to cover domain size', nd) 
+      ELSE IF (resto > 0) THEN
+        IF (alpha == 0.D0) THEN
+          ill = 0
+          irr = resto
+        ELSE IF (alpha == 1.D0) THEN
+          ill = resto
+          irr = 0
+        ELSE IF (alpha > 0.D0) THEN
+          ill = resto / 2
+          irr = resto - ill
+        END IF
+      END IF
+!
+      center = MAX(ill + il,1)
+      IF (ionode) WRITE(logunit,*) 'ill, irr, resto, center: ', ill, irr, resto, center
+      DO i = center+1,center+n02+1
+        delta(i) = demin
+      END DO
+      DO i = center+n02+1, nd
+        delta(i) = MIN(delta(i-1)*maxbeta,demax)
+      END DO
+      DO i = center,center-n01,-1
+        delta(i) = demin
+      END DO
+      DO i = center-n01,1,-1
+        delta(i) = MIN(delta(i+1)*maxbeta,demax)
+      END DO
+!      
+      IF (lpr > 0 .AND. ionode) THEN
+        WRITE(testunit,777) domain_size
+        WRITE(testunit,888) SUM(delta)
+      END IF
+
+ 777  FORMAT('domain_size = ',(F8.2)) 
+ 888  FORMAT('mesh_size   = ',(F8.2)) 
+!
+      RETURN
+      END SUBROUTINE generate_nu_grid
 !----------------------------------------------------------------------
       END MODULE grid
 !----------------------------------------------------------------------

@@ -267,9 +267,9 @@
       nmx = 0                 !  number of cells added in the X negative direction
       nmz = 0                 !  number of cells added in the Z negative direction
       nmy = 0                 !  number of cells added in the Y negative direction
-      n0x = 10                !  number of cell with minimum size
-      n0y = 10                !  number of cell with minimum size
-      n0z = 10                !  number of cell with minimum size
+      n0x = 1                !  number of cell with minimum size
+      n0y = 1                !  number of cell with minimum size
+      n0z = 1                !  number of cell with minimum size
       itc = 0                 !  itc = 1 cylindrical coordinates are used
       grigen = 0              !  flag for grid generation 0 = no grid gen.
       maxbeta = 1.2           !  maximum increase rate for non-uniform meshes
