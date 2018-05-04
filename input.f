@@ -235,7 +235,7 @@
 
 ! ... Model
 
-      icpc = 1          ! ( 1 specific heat depends on temperature)
+      icpc = 2          ! ( 1 specific heat depends on temperature)
       irex = 1          ! ( 1 no reaction, 2 use hrex. Not used )
       isink = 0
       gas_viscosity  = .TRUE. ! include molecular gas viscosity

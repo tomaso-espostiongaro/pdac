@@ -167,56 +167,57 @@
       PARAMETER( nlmax = 2000) 
       PARAMETER( ratmin = 1.D-8) 
 
-          tg0   = tg
-          sieg0 = sieg
+      tg0   = tg
+      sieg0 = sieg
 
-          IF( sieg <= 0.0D0 .AND. lpr >= 1) THEN
-            CALL meshinds(ijk,imesh,i,j,k)
-            WRITE(testunit,*) 'WARNING! from proc: ', mpime
-            WRITE(testunit,*) 'Zero or negative enthalpy in caloric_eosg'
-            WRITE(testunit,*) 'coord: ', i,j,k,' sieg= ', sieg
-          END IF
+      IF( sieg <= 0.0D0 .AND. lpr >= 1) THEN
+        CALL meshinds(ijk,imesh,i,j,k)
+        WRITE(testunit,*) 'WARNING! from proc: ', mpime
+        WRITE(testunit,*) 'Zero or negative enthalpy in caloric_eosg'
+        WRITE(testunit,*) 'coord: ', i,j,k,' sieg= ', sieg
+      END IF
 
-          info = 1
-          DO ii = 1, nlmax
-            tgnn = tg
-            CALL hcapg( cpgc(:), tg )
-            cgas = 0.D0
-            DO ig = 1, ngas
-              cgas = cpgc( gas_type(ig) ) * yg(ig) + cgas
-            END DO
-            tg = tzero + ( sieg - hzerog ) / cgas
-            IF ( DABS( ( tgnn - tg ) / tgnn ) <= ratmin ) THEN
-              info = 0
-              EXIT
-            END IF
-          END DO
+      info = 1
+      DO ii = 1, nlmax
+        tgnn = tg
+        CALL hcapg( cpgc(:), tg )
+        cgas = 0.D0
+        DO ig = 1, ngas
+          cgas = cpgc( gas_type(ig) ) * yg(ig) + cgas
+        END DO
+        tg = tzero + ( sieg - hzerog ) / cgas
+        IF ( DABS( ( tgnn - tg ) / tgnn ) <= ratmin ) THEN
+          info = 0
+          EXIT
+        END IF
+      END DO
 
-          IF (info == 1 .AND. lpr >=1) THEN
+      IF (info == 1 .AND. lpr >=1) THEN
 !**********************************************************************
-            !  Error report
-            CALL meshinds(ijk,imesh,i,j,k)
-            WRITE(testunit,*) 'max number of iteration reached in eosg'
-            WRITE(testunit,*) 'PROC          :', mpime
-            WRITE(testunit,*) 'time          :', time
-            WRITE(testunit,*) 'local cell    :', ijk , i, j, k
-            WRITE(testunit,*) 'temperature   :', tg0, tg
-            WRITE(testunit,*) 'enthalpy      :', sieg0
-            WRITE(testunit,*) 'concentrations:', yg(:)
-            WRITE(testunit,*) 'void fraction :', ep(ijk)
-            WRITE(testunit,*) 'pressure      :', p(ijk)
+        !  Error report
+        CALL meshinds(ijk,imesh,i,j,k)
+        WRITE(testunit,*) 'max number of iteration reached in eosg'
+        WRITE(testunit,*) 'PROC          :', mpime
+        WRITE(testunit,*) 'time          :', time
+        WRITE(testunit,*) 'local cell    :', ijk , i, j, k
+        WRITE(testunit,*) 'temperature   :', tg0, tg
+        WRITE(testunit,*) 'enthalpy      :', sieg0
+        WRITE(testunit,*) 'concentrations:', yg(:)
+        WRITE(testunit,*) 'void fraction :', ep(ijk)
+        WRITE(testunit,*) 'pressure      :', p(ijk)
 !**********************************************************************
-          END IF
+      END IF
 
-          IF( tg <= 0.0d0 ) THEN
-            info = 1
-            IF( lpr >=1 ) THEN
-              CALL meshinds(ijk,imesh,i,j,k)
-              WRITE(testunit,*) 'WARNING from proc: ', mpime
-              WRITE(testunit,*) 'zero or negative temperature in caloric_eosg'
-              WRITE(testunit,*) 'coord: ',i,j,k,' tg= ', tg
-            END IF
-          END IF
+      IF( tg <= 0.0d0 ) THEN
+        info = 1
+        IF( lpr >=1 ) THEN
+          CALL meshinds(ijk,imesh,i,j,k)
+          WRITE(testunit,*) 'WARNING from proc: ', mpime
+          WRITE(testunit,*) &
+             & 'Zero or negative temperature in caloric_eosg'
+          WRITE(testunit,*) 'coord: ',i,j,k,' tg= ', tg
+        END IF
+      END IF
 
       RETURN
       END SUBROUTINE caloric_eosg
