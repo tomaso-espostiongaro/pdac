@@ -3,7 +3,7 @@
 !----------------------------------------------------------------------
       IMPLICIT NONE
 !
-      INTEGER :: compute_mixture
+      LOGICAL :: compute_mixture
       REAL*8, DIMENSION(:), ALLOCATABLE :: rhom, um, vm, wm, tm
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: yd
 !

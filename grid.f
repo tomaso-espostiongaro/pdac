@@ -18,6 +18,7 @@
       REAL*8, DIMENSION(:), ALLOCATABLE :: x, xb
       REAL*8, DIMENSION(:), ALLOCATABLE :: y, yb
       REAL*8, DIMENSION(:), ALLOCATABLE :: z, zb
+      REAL*8, DIMENSION(:), ALLOCATABLE :: dv, indv
 !
       INTEGER :: itc
 

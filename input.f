@@ -127,7 +127,8 @@
           crater_radius, vent_radius, xvent, yvent, ivent, iali, irand, &
           ipro, rad_file
       USE immersed_boundaries, ONLY: immb
-      USE iterative_solver, ONLY: inmax, maxout, omega, optimization, delg
+      USE iterative_solver, ONLY: inmax, minout, maxout, omega, optimization, &
+                                  delg, delgmax
       USE io_restart, ONLY: max_seconds
       USE compute_mean_fields, ONLY: imrt
       USE momentum_transfer, ONLY: drag_model
@@ -203,7 +204,7 @@
         viscosity, specific_heat, thermal_conductivity, twophase_limit
 
       NAMELIST / numeric / rungekut, beta, muscl, mass_limiter, vel_limiter, &
-        inmax, maxout, omega, delg, implicit_fluxes, implicit_enthalpy, &
+        inmax, minout, maxout, omega, delg, delgmax, implicit_fluxes, implicit_enthalpy, &
         update_eosg, optimization, lim_type, rlim, flim, alpha, alphagrav, ctu, &
         time_integration, adapt_dt
 
@@ -241,7 +242,7 @@
 
       icpc = 1          ! ( 1 specific heat depends on temperature)
       irex = 1          ! ( 1 no reaction, 2 use hrex. Not used )
-      compute_mixture = 0 ! ( 1 computes mixture variables )
+      compute_mixture = .FALSE. !( 1 computes mixture variables )
       isink = 0
       gas_viscosity  = .TRUE. ! include molecular gas viscosity
       part_viscosity = .TRUE. ! include collisional particle viscosity
@@ -444,8 +445,10 @@
       vel_limiter = 2   !  limiter type in momentum equation
       muscl = 0         !  0 first order, 1 muscl ( high order )
       inmax = 8         !  maximum number of pressure correction steps
+      minout = 5        !  maximum number of solver iteration
       maxout = 500      !  maximum number of solver iteration
       delg = 1.D-8      !  residual limit relative to gas bulk density
+      delgmax = 1.D-2   !  residual limit relative to gas bulk density
       omega = 1.1       !  relaxation parameter  ( 0.5 under - 2.0 over)
       optimization = 1  !  optimization degree on iterative solver
       implicit_fluxes   = .FALSE. ! fluxes are computed implicitly
@@ -756,7 +759,9 @@
       CALL bcast_integer(vel_limiter,1,root)
       CALL bcast_integer(muscl,1,root)
       CALL bcast_integer(inmax,1,root)
-      CALL bcast_integer(delg,1,root)
+      CALL bcast_real(delg,1,root)
+      CALL bcast_real(delgmax,1,root)
+      CALL bcast_integer(minout,1,root)
       CALL bcast_integer(maxout,1,root)
       CALL bcast_integer(optimization,1,root)
       CALL bcast_real(omega,1,root)
