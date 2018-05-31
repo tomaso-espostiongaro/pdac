@@ -64,8 +64,9 @@
 !
       vel = 0.D0
       !
-      ! ... Compute a random factor for vent antialiasing
-      IF (irand >= 1) CALL random_switch(sweep)
+      ! ... Compute a random factor for vent antialiasing or for adding
+      ! ... random noise at the vent
+      IF (irand >= 1 .OR. iali == 5) CALL random_switch(sweep)
 !
 ! ... Initialize sink array
 !
@@ -84,21 +85,19 @@
 !
 ! ... Update inlet cells for non-stationnary boundary conditions
 !
-          IF (irand >= 1) THEN
-            IF (flag(ijk) == vent_cell) THEN
-              CALL vent_index(imesh,n)
-              ! ... random antialias
-              IF (iali == 5) CALL update_vent_cell(ijk,n)
-              ! ... velocity fluctuations
-              IF (inlet_profile >= 0) CALL inlet_velocity_fluctuations(ijk,n)
-            END IF
-          END IF
+        IF (flag(ijk) == vent_cell) THEN
+          CALL vent_index(imesh,n)
+          ! ... random antialias
+          IF (iali == 5) CALL update_vent_cell(ijk,n)
+          ! ... velocity fluctuations
+          IF (irand >= 1) CALL inlet_velocity_fluctuations(ijk,n,sweep)
+        END IF
 !
-          IF (tau1 > 0.D0 .OR. tau2 > 0.D0) THEN
-            IF (flag(ijk) == inlet_cell .OR. flag(ijk) == vent_cell) THEN
-                  CALL grow_inlet_cell(ijk,imesh,sweep)
-            END IF
+        IF (tau1 > 0.D0 .OR. tau2 > 0.D0) THEN
+          IF (flag(ijk) == inlet_cell .OR. flag(ijk) == vent_cell) THEN
+                CALL grow_inlet_cell(ijk,imesh,sweep)
           END IF
+        END IF
 !
 ! ... In the immersed boundaries, update the velocity through linear
 ! ... interpolations 

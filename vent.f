@@ -39,6 +39,7 @@
         INTEGER :: k
         REAL*8  :: frac
         REAL*8  :: fact
+        REAL*8  :: fact0
         REAL*8  :: dist
         REAL*8  :: angle
       END TYPE icvent_cell
@@ -48,10 +49,15 @@
       INTEGER :: nvt, iiv, jjv, kkv
       INTEGER :: seed
       REAL*8 :: intensity
+      REAL*8 :: wgas_init, wsolid_init(max_nsolid)
+      REAL*8 :: vgas_init, vsolid_init(max_nsolid)
+      REAL*8 :: ugas_init, usolid_init(max_nsolid)
 !
       PRIVATE :: icvent_cell, seed, vcell, nvt
       PRIVATE :: ug_rad, wg_rad, p_rad, tg_rad, rad, ygc_rad,  &
                  us_rad, ws_rad, ep_rad, ts_rad
+      PRIVATE :: wgas_init, wsolid_init, vgas_init, vsolid_init, &
+                 ugas_init, usolid_init
       SAVE
 !-----------------------------------------------------------------------
       CONTAINS
@@ -103,7 +109,8 @@
         WRITE(ventunit,*) 'Number of vent cells: ', nvt
         WRITE(ventunit,*) 'Vent cells report: '
         WRITE(ventunit,*) 'n   imesh   i    j    k    frac      &
-                          &fact      dist      angle     flag     '
+                          &fact      fact0     dist      angle     &
+                          &flag     '
         DO n = 1, nvt
           WRITE(ventunit,400) n, vcell(n), fl(vcell(n)%imesh)
         END DO
@@ -112,7 +119,7 @@
  100    FORMAT(1X,'vent center: ',3I5)
  200    FORMAT(1X,'vent center coordinates: ',3(F12.2))
  300    FORMAT(1X,'vent radius and base radius: ',2(F12.2))
- 400    FORMAT(I4,I8, 3(I5),4(F10.4),I5)
+ 400    FORMAT(I4,I8, 3(I5),5(F10.4),I5)
 !
       RETURN
       END SUBROUTINE locate_vent
@@ -186,6 +193,7 @@
       ALLOCATE(vcell(nvt))
       vcell(:)%frac = 1.D0
       vcell(:)%fact = 1.D0
+      vcell(:)%fact0 = 0.D0
 !      
 ! ... Loop over the cells enclosing the vent
 !
@@ -412,7 +420,6 @@
             vcell(nv)%fact = 1.D0
             IF (i/=1 .AND. i/=nx .AND. j/=1 .AND. j/=ny) &
               fl(ijk) = vent_cell
-            fl(ijk) = noslip_wall
           ELSE
             vcell(nv)%fact = 0.D0
           END IF
@@ -468,10 +475,6 @@
             iali = 0
             irand = 0
             wrat = 1.D0
-      END IF
-      IF (irand == 1) THEN
-              iali = 0
-              wrat = 1.D0
       END IF
 ! 
 ! ... WARNING!!!!! This loop can probably be simplified as a loop over nvt !!
@@ -557,15 +560,17 @@
           ! ... to respect the mass flux
           !
           SELECT CASE (iali)
-            CASE (1) 
+            CASE (1) ! Correct density through volume fractions
               CALL density_antialias(ijk,k,alpha)
-            CASE (2) 
+            CASE (2) ! Correct density through pressure
               CALL density_antialias_2(ijk,k,alpha)
-            CASE (3) 
+            CASE (3) ! Correct velocity
               CALL velocity_antialias(ijk,alpha)
-            CASE (4)
+            CASE (4) ! Impose velocity profile
               CALL compute_correction(ijk, distance, angle, fact_r)
               CALL correct_velocity_profile(ijk,fact_r)
+            CASE (5) ! Random antialias
+              RETURN
           END SELECT
 
         END IF
@@ -822,14 +827,14 @@
 !
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
-      USE io_files, ONLY: logunit
+      USE io_files, ONLY: logunit, testunit
       USE parallel, ONLY: mpime, root
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: sweep
       INTEGER :: values(1:8), k
       INTEGER, DIMENSION(:), ALLOCATABLE :: seed
-      REAL*8 :: rnv
+      REAL*8 :: rnv, rnvt
 !      REAL*8 :: ran0
 !      EXTERNAL :: ran0
       INTEGER :: n
@@ -841,19 +846,25 @@
       !rseed = cpclock()
       !seed = INT(rseed)
       !  
-      CALL date_and_time(values=values)
-
+      values = 0
+      IF (mpime==root) CALL date_and_time(values=values)
+      CALL parallel_sum_integer(values,8)
+!
       CALL random_seed(size=k)
       ALLOCATE(seed(1:k))
       seed(:) = values(8)
       CALL random_seed(put=seed)
       CALL random_number(rnv)
 !
+      rnvt = 0.D0
       DO n = 1, nvt
         !rnv = ran0(seed)
         CALL random_number(rnv)
-        !IF (mpime==root) WRITE(logunit,*) n,rnv
+        vcell(n)%fact = rnv - 0.5D0
+        rnvt = rnvt + rnv
+        !WRITE(testunit,*) n, vcell(n)%fact
       END DO
+      !IF (mpime==root) WRITE(logunit,*) rnvt
 !
       DEALLOCATE(seed)
 !
@@ -887,7 +898,7 @@
       RETURN
       END SUBROUTINE update_vent_cell
 !-----------------------------------------------------------------------
-      SUBROUTINE inlet_velocity_fluctuations(ijk,n)
+      SUBROUTINE inlet_velocity_fluctuations(ijk,n,sweep)
 !
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
@@ -895,27 +906,29 @@
       USE gas_solid_velocity, ONLY: ug, vg, wg, us, vs, ws
       IMPLICIT NONE
 
-      REAL*8 :: rann
-      INTEGER, INTENT(IN) :: ijk, n
+      REAL*8 :: rann, ranold
+      INTEGER, INTENT(IN) :: ijk, n, sweep
       INTEGER :: is
       
       ! ... The velocities in a cell are perturbed accordingly
-      ! ... to a random function 'ran0' with a maximum intensity
+      ! ... to a random function with a maximum intensity
       ! ... along each velocity component
       !
       intensity = 0.01D0
-      rann = vcell(n)%fact
+      rann = vcell(n)%fact * intensity
+      ranold = vcell(n)%fact0 * intensity
+      vcell(n)%fact0 = vcell(n)%fact
       !
-      ug(ijk) = ug(ijk) * (1.D0 + intensity * (rann - 0.5D0) )
+      ug(ijk) = ug(ijk) * (1.D0 + rann) / (1.D0 + ranold)
       IF (job_type == JOB_TYPE_3D)  &
-        vg(ijk) = vg(ijk) * (1.D0 + intensity * (rann - 0.5D0) )
-      wg(ijk) = wg(ijk) * (1.D0 + intensity * (rann -0.5D0) )
+        vg(ijk) = vg(ijk) * (1.D0 + rann) / (1.D0 + ranold)
+      wg(ijk) = wg(ijk) * (1.D0 + rann) / (1.D0 + ranold)
       
       DO is = 1,nsolid
-        us(ijk,is) = us(ijk,is) * (1.D0 + intensity * (rann - 0.5D0) )
+        us(ijk,is) = us(ijk,is) * (1.D0 + rann) / (1.D0 + ranold)
         IF (job_type == JOB_TYPE_3D) &
-          vs(ijk,is) = vs(ijk,is) * (1.D0 + intensity * (rann - 0.5D0) )
-        ws(ijk,is) = ws(ijk,is) * (1.D0 + intensity * (rann - 0.5D0) )
+          vs(ijk,is) = vs(ijk,is) * (1.D0 + rann) / (1.D0 + ranold)
+        ws(ijk,is) = ws(ijk,is) * (1.D0 + rann) / (1.D0 + ranold)
       END DO
 
       RETURN
@@ -931,7 +944,6 @@
       INTEGER, INTENT(IN) :: ijk, imesh, sweep
       INTEGER :: is, n
       REAL*8 :: growth_factor
-      REAL*8 :: wgas_init, wsolid_init(max_nsolid)
       
       IF (sweep == 1) THEN
               wgas_init = wg(ijk) 

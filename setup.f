@@ -136,6 +136,8 @@
           CALL cnvert
         END IF
 !
+      CALL print_mass_flow_rate(mfr)
+!
 ! ... Read restart file or recover initial
 ! ... conditions from an output file
 !
@@ -151,8 +153,6 @@
         CALL outp_remap(nfil)
         CALL cnvert
       END SELECT
-!
-      CALL print_mass_flow_rate(mfr)
 !
       RETURN
       END SUBROUTINE setup
