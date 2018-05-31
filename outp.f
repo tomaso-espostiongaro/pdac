@@ -10,7 +10,8 @@
 
       LOGICAL :: interpolate = .TRUE.
       PUBLIC :: outp, write_radial_profile_2D, shock_tube_out
-      PUBLIC :: print_volumes, cell_report, write_mean_fields
+      PUBLIC :: print_volumes, cell_report
+      PUBLIC :: read_mean_fields, write_mean_fields
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
@@ -381,6 +382,77 @@
 !
       RETURN
       END SUBROUTINE outp
+!-----------------------------------------------------------------------
+      SUBROUTINE read_mean_fields(filenumber)
+!
+! ... Write the mean field of all process fields
+!
+      USE compute_mean_fields, ONLY: rhom_gav, tm_gav, um_gav, vm_gav, wm_gav, yd_gav
+      USE control_flags, ONLY: formatted_output,  job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
+      USE kinds
+      USE dimensions, ONLY: nsolid, ngas
+      USE io_files, ONLY: tempunit
+      USE io_parallel, ONLY: read_array
+      USE parallel, ONLY: mpime, root
+      USE time_parameters, ONLY: time
+!
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: filenumber
+
+      CHARACTER(LEN = 14) :: filnam
+      CHARACTER*4 :: lettera
+      LOGICAL :: lform
+!
+      INTEGER :: ig,is
+      REAL*8, ALLOCATABLE :: otmp(:)
+!
+      filnam='m_outp.'//lettera(filenumber)
+      lform = formatted_output
+
+      IF (mpime == root ) THEN
+        IF (lform) THEN
+          OPEN(UNIT=tempunit,FILE=filnam)
+          READ(tempunit,*) time
+        ELSE
+          OPEN(UNIT=tempunit,FORM='UNFORMATTED',FILE=filnam)
+          READ(tempunit) time
+        END IF
+      END IF
+!
+      IF(lform .AND. mpime==root) READ(tempunit,'(///)')
+      CALL read_array( tempunit, rhom_gav, sgl, lform )
+!
+      IF (job_type == JOB_TYPE_2D) THEN
+      IF(lform .AND. mpime==root) READ(tempunit,'(///)')
+        CALL read_array( tempunit, um_gav, sgl, lform)
+      IF(lform .AND. mpime==root) READ(tempunit,'(///)')
+        CALL read_array( tempunit, wm_gav, sgl, lform)
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
+      IF(lform .AND. mpime==root) READ(tempunit,'(///)')
+        CALL read_array( tempunit, um_gav, sgl, lform)
+      IF(lform .AND. mpime==root) READ(tempunit,'(///)')
+        CALL read_array( tempunit, vm_gav, sgl, lform)
+      IF(lform .AND. mpime==root) READ(tempunit,'(///)')
+        CALL read_array( tempunit, wm_gav, sgl, lform)
+      ELSE
+        CALL error('outp_','Unknown job type',1)
+      END IF
+      IF(lform .AND. mpime == root) READ(tempunit,'(///)')
+      CALL read_array( tempunit, tm_gav, sgl, lform)
+!
+      ALLOCATE( otmp( SIZE( yd_gav, 1 ) ) )
+      DO ig=1,ngas+nsolid
+          otmp = yd_gav(:,ig)
+          IF(lform .AND. mpime==root) READ(tempunit,'(///)')
+          CALL read_array( tempunit, otmp, sgl, lform )
+      END DO
+      DEALLOCATE( otmp )
+!
+      IF (mpime == root) CLOSE(tempunit)
+!
+      RETURN
+      END SUBROUTINE read_mean_fields
 !-----------------------------------------------------------------------
       SUBROUTINE write_mean_fields(filenumber)
 !

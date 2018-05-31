@@ -336,7 +336,7 @@
       irand = 0               ! 1: circular vent specified on average
       ipro = 0                ! 1: inlet radial profile
       isl = 0                 ! criterion for vent cell
-      inlet_profile = 1       ! 1: power-law profile; 2: turbulent inlet
+      inlet_profile = 2       ! 1: power-law profile; 2: turbulent inlet
       mass_flow_rate = 0.D0       ! 1: power-law profile; 2: turbulent inlet
       vent_in_center = .TRUE. !
       rad_file = 'profile.rad'! file with the radial profile
@@ -934,6 +934,7 @@
 !
       IF (itp < 1) immb = 0
       IF (idome >= 1) ivent = 0
+      IF (imrt > 0 .OR. isrt > 0) compute_mixture = .TRUE.
 !
 ! ... numerics
 !
