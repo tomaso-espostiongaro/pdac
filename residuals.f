@@ -135,13 +135,14 @@
       RETURN
       END SUBROUTINE print_mass_residuals
 !----------------------------------------------------------------------
-      SUBROUTINE print_mass_flow_rate
+      SUBROUTINE print_mass_flow_rate(mfr)
       USE control_flags, ONLY: lpr
       USE dimensions
       USE io_files, ONLY: logunit, ventunit, ventfile
       USE vent_conditions, ONLY: ivent
       IMPLICIT NONE
-      REAL*8 :: mfr, mgd, mxv, mrd
+      REAL*8 :: mgd, mxv, mrd
+      REAL*8, INTENT(OUT) :: mfr
       REAL*8, ALLOCATABLE :: msd(:)
 !
       ALLOCATE(msd(nsolid))
@@ -150,13 +151,17 @@
 !
       IF (mpime == root) THEN
         IF (mfr > 0.D0) THEN
-          WRITE(ventunit,*) 'Mass flow rate          : ', mfr
-          WRITE(ventunit,*) 'Gas Density at vent     : ', mgd
-          WRITE(ventunit,*) 'Solid Density at vent   : ', msd
-          WRITE(ventunit,*) 'Mixture Velocity at vent: ', mxv 
-          WRITE(ventunit,*) 'Averaged vent radius    : ', mrd 
+          WRITE(ventunit,300) 'Mass flow rate          : ', mfr
+          WRITE(ventunit,400) 'Gas Density at vent     : ', mgd
+          WRITE(ventunit,400) 'Solid Density at vent   : ', msd
+          WRITE(ventunit,400) 'Mixture Velocity at vent: ', mxv 
+          WRITE(ventunit,400) 'Averaged vent radius    : ', mrd 
+          WRITE(ventunit,400) ''
         END IF
       END IF
+!
+ 300    FORMAT(A26,10(F15.5))
+ 400    FORMAT(A26,10(F12.5))
 !
       DEALLOCATE(msd)
 !

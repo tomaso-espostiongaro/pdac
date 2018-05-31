@@ -25,13 +25,12 @@
       USE gas_solid_viscosity, ONLY: allocate_viscosity
       USE grid, ONLY: grid_setup, allocate_blbody, allocate_grid
       USE immersed_boundaries, ONLY: set_forcing, immb
-      USE initial_conditions, ONLY: setpar, setup, cnvert, allocate_setup
+      USE initial_conditions, ONLY: setpar, setup, allocate_setup
       USE input_module, ONLY: input, initc
       USE io_files, ONLY: logunit, dataunit, errorunit, checkunit, inputunit, testunit
       USE io_files, ONLY: logfile, datafile, errorfile, checkfile, inputfile, testfile
       USE io_files, ONLY: testnb
-      USE io_restart, ONLY: taperd, tapewr, outp_recover, outp_remap
-      USE mass_sink, ONLY: allocate_sink, isink, read_mass_loss
+      USE mass_sink, ONLY: allocate_sink
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
      &    mpime, root, nproc
       USE particles_constants, ONLY: allocate_part_constants
@@ -270,25 +269,6 @@
               s4 = cpclock()
               !call MP_WALLTIME(pt4,mpime)
           END IF
-!
-! ... Read restart file or recover initial
-! ... conditions from an output file
-!
-      IF(itd == 2) THEN 
-        IF (isink > 0) CALL read_mass_loss
-        CALL taperd
-      ELSE IF (itd == 3) THEN
-        IF (isink > 0) CALL read_mass_loss(nfil)
-        CALL outp_recover(nfil)
-      ELSE IF (itd == 4) THEN
-        CALL outp_remap(nfil)
-      END IF
-!
-! ... Set the initial conditions in the ghost cells.
-! ... Compute initial conditions depending on restart mode.
-! ... Compute derived thermodynamic quantities.
-!
-      CALL cnvert
 !
           IF (timing) then
               s5 = cpclock()

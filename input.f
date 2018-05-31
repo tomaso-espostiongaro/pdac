@@ -121,10 +121,10 @@
       USE grid, ONLY: dxmin, dxmax, dymin, dymax, dzmin, dzmax
       USE grid, ONLY: maxbeta, grigen, npx, npy, npz, nmx, nmy, nmz
       USE initial_conditions, ONLY: density_specified
-      USE vent_conditions, ONLY: u_gas,v_gas,w_gas,p_gas,t_gas, wrat, &
+      USE vent_conditions, ONLY: u_gas,v_gas,w_gas,p_gas,t_gas, wrat, rbyb, &
           u_solid, v_solid, w_solid,  ep_solid, t_solid, base_radius, &
           crater_radius, vent_radius, xvent, yvent, ivent, iali, irand, &
-          ipro, rad_file
+          ipro, rad_file, isl, vent_in_center, inlet_profile, mass_flow_rate
       USE immersed_boundaries, ONLY: immb
       USE iterative_solver, ONLY: inmax, maxout, omega, optimization, delg
       USE io_restart, ONLY: max_seconds
@@ -174,8 +174,8 @@
         rim_quota, filtersize, cellsize, ismt, zrough, itrans, seatable, &
         write_improfile
       
-      NAMELIST / inlet / ivent, iali, irand, ipro, rad_file, wrat, &
-        crater_radius, &
+      NAMELIST / inlet / ivent, iali, irand, ipro, rad_file, wrat, rbyb, &
+        crater_radius, isl, vent_in_center, inlet_profile, mass_flow_rate,&
         xvent, yvent, vent_radius, base_radius, u_gas, v_gas, w_gas,  &
         p_gas, t_gas, u_solid, v_solid, w_solid, ep_solid, t_solid, &
         vent_O2, vent_N2, vent_CO2, vent_H2, vent_H2O, vent_Air, vent_SO2
@@ -235,7 +235,7 @@
 
 ! ... Model
 
-      icpc = 1          ! ( 1 specific heat depends on temperature)
+      icpc = 2          ! ( 1 specific heat depends on temperature)
       irex = 1          ! ( 1 no reaction, 2 use hrex. Not used )
       isink = 0
       gas_viscosity  = .TRUE. ! include molecular gas viscosity
@@ -267,9 +267,9 @@
       nmx = 0                 !  number of cells added in the X negative direction
       nmz = 0                 !  number of cells added in the Z negative direction
       nmy = 0                 !  number of cells added in the Y negative direction
-      n0x = 10                !  number of cell with minimum size
-      n0y = 10                !  number of cell with minimum size
-      n0z = 10                !  number of cell with minimum size
+      n0x = 1                !  number of cell with minimum size
+      n0y = 1                !  number of cell with minimum size
+      n0z = 1                !  number of cell with minimum size
       itc = 0                 !  itc = 1 cylindrical coordinates are used
       grigen = 0              !  flag for grid generation 0 = no grid gen.
       maxbeta = 1.2           !  maximum increase rate for non-uniform meshes
@@ -326,9 +326,13 @@
 ! ... Inlet
 
       ivent = 0               ! 0: specify inlet blocks 1: circular vent
-      iali  = 0               ! 1: vent antialiasing ON
+      iali  = 4               ! 1: vent antialiasing ON
       irand = 0               ! 1: circular vent specified on average
       ipro = 0                ! 1: inlet radial profile
+      isl = 0                 ! criterion for vent cell
+      inlet_profile = 1       ! 1: power-law profile; 2: turbulent inlet
+      mass_flow_rate = 0.D0       ! 1: power-law profile; 2: turbulent inlet
+      vent_in_center = .TRUE. !
       rad_file = 'profile.rad'! file with the radial profile
       xvent  = -99999.D0           ! coordinates of the vent
       yvent  = -99999.D0           ! coordinates of the vent
@@ -339,6 +343,7 @@
       v_gas = 0.D0            ! gas velocity y
       w_gas = 0.D0            ! gas velocity z
       wrat = 1.D0             ! maximum/mean vertical velocity ratio
+      rbyb = 11.2D0             ! maximum/mean vertical velocity ratio
       p_gas = 1.01325D5       ! gas pressure
       t_gas  = 288.15D0       ! gas temperature
       u_solid = 0.D0           ! particle velocity x (array)
@@ -627,6 +632,10 @@
       CALL bcast_integer(iali,1,root)
       CALL bcast_integer(irand,1,root)
       CALL bcast_integer(ipro,1,root)
+      CALL bcast_integer(isl,1,root)
+      CALL bcast_integer(inlet_profile,1,root)
+      CALL bcast_real(mass_flow_rate,1,root)
+      CALL bcast_logical(vent_in_center,1,root)
       CALL bcast_character(rad_file,80,root)
       CALL bcast_real(xvent,1,root)
       CALL bcast_real(yvent,1,root)
@@ -634,6 +643,7 @@
       CALL bcast_real(base_radius,1,root)
       CALL bcast_real(crater_radius,1,root)
       CALL bcast_real(wrat,1,root)
+      CALL bcast_real(rbyb,1,root)
       CALL bcast_real(u_gas,1,root)
       CALL bcast_real(v_gas,1,root)
       CALL bcast_real(w_gas,1,root)

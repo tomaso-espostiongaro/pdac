@@ -117,7 +117,7 @@
 
 ! ... Pressure gradient with hydrostatic contribution
 !
-      p(n2)=p(n1) + rhomix * gnorm 
+      p(n2) = p(n1) + rhomix * gnorm 
 !
       RETURN
       END SUBROUTINE inoutflow 

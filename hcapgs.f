@@ -45,9 +45,9 @@
 !
       cpc = 0.D0
 
-      IF (icpc == 0) THEN
+      IF (icpc <= 1) THEN
               t1 = tref
-      ELSE IF (icpc >= 1) THEN
+      ELSE IF (icpc == 2) THEN
               t1 = tg
       END IF
       t2 = t1*t1
@@ -72,7 +72,15 @@
 !
 ! ... specific heat ( joule/(kelvin kilogram) )
         cpc = cpc / gmw
-
+!
+! ... Constant values (if prescribed)
+      IF (icpc == 0) THEN
+! ... h2o
+        cpc(5)=1810.D0
+! ... Air
+        cpc(6)=1004.D0
+      END IF
+!
       RETURN
       END SUBROUTINE hcapg
 !----------------------------------------------------------------------

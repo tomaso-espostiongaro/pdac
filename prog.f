@@ -11,7 +11,6 @@
 !----------------------------------------------------------------------
       USE blunt_body, ONLY: bluntb, ibl
       USE boundary_conditions, ONLY: boundary
-      USE check_residuals, ONLY: print_mass_flow_rate
       USE check_residuals, ONLY: print_mass_residuals
       USE control_flags, ONLY: job_type, lpr, imr, nfil
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
@@ -161,10 +160,7 @@
         CALL boundary
 
         ! ... write initial conditions
-        IF (sweep == 1) THEN
-          CALL outp
-          CALL print_mass_flow_rate
-        END IF
+        IF (sweep == 1) CALL outp
 !
 ! ... 'Check init' stops here
 !
