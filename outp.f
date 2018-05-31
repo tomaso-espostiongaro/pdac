@@ -326,50 +326,52 @@
 !
 ! ... Write mixture fields if required
 !
-      IF( lform .AND. mpime == root ) &
-                      WRITE(outpunit,'(1x,//,1x,"RHOM",/)')
-      CALL write_array( outpunit, rhom, sgl, lform )  ! gas_pressure
-
-      IF (job_type == JOB_TYPE_2D) THEN
-
+      IF (compute_mixture) THEN
         IF( lform .AND. mpime == root ) &
-                      WRITE(outpunit,'(1x,//,1x,"UM  ",/)')
-        CALL write_array( outpunit, um, sgl, lform ) ! gas_velocity_r
-
-        IF( lform .AND. mpime == root ) &
-                      WRITE(outpunit,'(1x,//,1x,"WM  ",/)')
-        CALL write_array( outpunit, wm, sgl, lform ) ! gas_velocity_z
-
-      ELSE IF (job_type == JOB_TYPE_3D) THEN
-
-        IF( lform .AND. mpime == root ) &
-                      WRITE(outpunit,'(1x,//,1x,"UM  ",/)')
-        CALL write_array( outpunit, um, sgl, lform ) ! gas_velocity_x
-
-        IF( lform .AND. mpime == root ) &
-                      WRITE(outpunit,'(1x,//,1x,"VM  ",/)')
-        CALL write_array( outpunit, vm, sgl, lform ) ! gas_velocity_y
-
-        IF( lform .AND. mpime == root ) &
-                      WRITE(outpunit,'(1x,//,1x,"WM  ",/)')
-        CALL write_array( outpunit, wm, sgl, lform ) ! gas_velocity_z
-
-      ELSE
-        CALL error('outp_','Unknown job type',1)
-      END IF
-
-      IF( lform .AND. mpime == root ) &
-                      WRITE(outpunit,'(1x,//,1x,"TM  ",/)')
-      CALL write_array( outpunit, tm, sgl, lform )  ! gas_temperature
-!
-      ALLOCATE( otmp( SIZE( yd, 1 ) ) )
-      DO ig=1,ngas+nsolid
-          otmp = yd(:,ig)
+                        WRITE(outpunit,'(1x,//,1x,"RHOM",/)')
+        CALL write_array( outpunit, rhom, sgl, lform )  ! gas_pressure
+  
+        IF (job_type == JOB_TYPE_2D) THEN
+  
           IF( lform .AND. mpime == root ) &
-                      WRITE(outpunit,'(1x,//,1x,"YD",I1,/)') ig
-          CALL write_array( outpunit, otmp, sgl, lform )  ! gc_molar_fraction
-      END DO
-      DEALLOCATE( otmp )
+                        WRITE(outpunit,'(1x,//,1x,"UM  ",/)')
+          CALL write_array( outpunit, um, sgl, lform ) ! gas_velocity_r
+  
+          IF( lform .AND. mpime == root ) &
+                        WRITE(outpunit,'(1x,//,1x,"WM  ",/)')
+          CALL write_array( outpunit, wm, sgl, lform ) ! gas_velocity_z
+  
+        ELSE IF (job_type == JOB_TYPE_3D) THEN
+  
+          IF( lform .AND. mpime == root ) &
+                        WRITE(outpunit,'(1x,//,1x,"UM  ",/)')
+          CALL write_array( outpunit, um, sgl, lform ) ! gas_velocity_x
+  
+          IF( lform .AND. mpime == root ) &
+                        WRITE(outpunit,'(1x,//,1x,"VM  ",/)')
+          CALL write_array( outpunit, vm, sgl, lform ) ! gas_velocity_y
+  
+          IF( lform .AND. mpime == root ) &
+                        WRITE(outpunit,'(1x,//,1x,"WM  ",/)')
+          CALL write_array( outpunit, wm, sgl, lform ) ! gas_velocity_z
+
+        ELSE
+          CALL error('outp_','Unknown job type',1)
+        END IF
+  
+        IF( lform .AND. mpime == root ) &
+                        WRITE(outpunit,'(1x,//,1x,"TM  ",/)')
+        CALL write_array( outpunit, tm, sgl, lform )  ! gas_temperature
+!
+        ALLOCATE( otmp( SIZE( yd, 1 ) ) )
+        DO ig=1,ngas+nsolid
+            otmp = yd(:,ig)
+            IF( lform .AND. mpime == root ) &
+                        WRITE(outpunit,'(1x,//,1x,"YD",I1,/)') ig
+            CALL write_array( outpunit, otmp, sgl, lform )  ! gc_molar_fraction
+        END DO
+        DEALLOCATE( otmp )
+      END IF
 !
       IF( mpime == root ) THEN
         CLOSE (outpunit)

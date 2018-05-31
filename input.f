@@ -534,7 +534,7 @@
 !
       CALL bcast_integer(icpc,1,root)
       CALL bcast_integer(irex,1,root)
-      CALL bcast_integer(compute_mixture,1,root)
+      CALL bcast_logical(compute_mixture,1,root)
       CALL bcast_integer(isink,1,root)
       CALL bcast_real(rprox,1,root)
       CALL bcast_real(rdist,1,root)
