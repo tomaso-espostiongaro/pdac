@@ -53,9 +53,9 @@ flux_v.o : dimensions.o ghost.o grid.o indijk.o io_files.o limiters.o  \
 
 flux_w.o : dimensions.o ghost.o grid.o indijk.o limiters.o subscr.o time.o 
 
-ftem.o : control.o dens.o dimensions.o eosg.o eosl.o ghost.o grid.o hcapgs.o  \
-    htilde.o hvs.o immb.o io_files.o particles.o press.o reactions.o subscr.o  \
-    temp.o time.o velocity.o visc.o 
+ftem.o : atmosphere.o control.o dens.o dimensions.o eosg.o eosl.o ghost.o  \
+    grid.o hcapgs.o htilde.o hvs.o immb.o io_files.o particles.o press.o  \
+    reactions.o subscr.o temp.o time.o velocity.o visc.o 
 
 gas.o : dimensions.o 
 
@@ -83,9 +83,9 @@ inoutflow.o : atmosphere.o dens.o dimensions.o eosg.o gas.o grid.o  \
 
 input.o : atmosphere.o bdry.o blunt.o control.o decomp.o dimensions.o dome.o  \
     drag.o eosg.o ftem.o grid.o hcapgs.o immb.o io_files.o io_restart.o iter.o  \
-    limiters.o matrix.o parallel.o particles.o press.o reactions.o  \
-    roughness.o samplert.o setup.o sink.o subscr.o time.o topo.o turbo.o  \
-    vent.o visc.o 
+    limiters.o matrix.o mean_fields.o mixture.o parallel.o particles.o  \
+    press.o reactions.o roughness.o samplert.o setup.o sink.o subscr.o time.o  \
+    topo.o turbo.o vent.o visc.o 
 
 interp.o : atmosphere.o control.o dens.o dimensions.o eosg.o ghost.o grid.o  \
     immb.o io_files.o parallel.o particles.o press.o subscr.o temp.o time.o  \
@@ -129,14 +129,18 @@ matrix.o : atmosphere.o control.o dens.o dimensions.o ghost.o grid.o  \
     indijk.o io_files.o particles.o press.o subscr.o temp.o tilde.o time.o  \
     velocity.o 
 
-mean_fields.o : control.o io_files.o parallel.o postvar.o 
+mean_fields.o : control.o dimensions.o ghost.o io_files.o mixture.o  \
+    parallel.o 
+
+mixture.o : control.o dens.o derived.o dimensions.o eosg.o ghost.o temp.o  \
+    velocity.o 
 
 nondim.o : atmosphere.o dimensions.o gas.o ghost.o grid.o indijk.o  \
     io_files.o particles.o time.o 
 
 outp.o : control.o dens.o dimensions.o eosg.o gas.o ghost.o grid.o immb.o  \
-    io_files.o io_parallel.o kinds.o parallel.o particles.o press.o temp.o  \
-    time.o topo.o turbo.o velocity.o 
+    io_files.o io_parallel.o kinds.o mean_fields.o mixture.o parallel.o  \
+    particles.o press.o temp.o time.o topo.o turbo.o velocity.o 
 
 parallel.o : 
 
@@ -144,15 +148,15 @@ particles.o : dimensions.o
 
 pdac.o : blunt.o control.o decomp.o dens.o dimensions.o dome.o environment.o  \
     eosg.o gas.o ghost.o grid.o hcapgs.o immb.o input.o io_files.o  \
-    io_restart.o matrix.o parallel.o particles.o press.o prog.o setup.o  \
-    sink.o temp.o tilde.o time.o topo.o turbo.o velocity.o vent.o visc.o ygas.o 
+    io_restart.o matrix.o mean_fields.o mixture.o parallel.o particles.o  \
+    press.o prog.o setup.o sink.o temp.o tilde.o time.o topo.o turbo.o  \
+    velocity.o vent.o visc.o ygas.o 
 
 postin.o : dimensions.o filter.o massflux.o massgsedim.o masspart.o  \
     parallel.o postout.o process.o sampling.o sections.o 
 
-postout.o : control.o decomp.o dimensions.o gas.o grid.o immb.o input.o  \
-    io_files.o io_parallel.o iotk_module.o kinds.o parallel.o particles.o  \
-    postvar.o subscr.o time.o 
+postout.o : control.o decomp.o dimensions.o gas.o grid.o immb.o io_files.o  \
+    io_parallel.o kinds.o parallel.o particles.o postvar.o subscr.o 
 
 postp.o : control.o decomp.o dimensions.o filter.o gas.o ghost.o grid.o  \
     input.o io_files.o parallel.o particles.o postin.o postout.o process.o  \
@@ -168,8 +172,9 @@ process.o : control.o dimensions.o gas.o ghost.o grid.o io_files.o kinds.o  \
 
 prog.o : bdry.o blunt.o control.o dens.o dimensions.o environment.o eosg.o  \
     explicit_solver.o ftem.o ghost.o htilde.o immb.o indijk.o io_files.o  \
-    io_restart.o iter.o outp.o parallel.o particles.o press.o reactions.o  \
-    residuals.o samplert.o sink.o temp.o tilde.o time.o topo.o turbo.o ygas.o 
+    io_restart.o iter.o mean_fields.o mixture.o outp.o parallel.o  \
+    particles.o press.o reactions.o residuals.o samplert.o sink.o temp.o  \
+    tilde.o time.o topo.o turbo.o ygas.o 
 
 rannum.o : 
 
@@ -180,8 +185,8 @@ residuals.o : control.o dens.o dimensions.o eosg.o ghost.o grid.o immb.o  \
 
 roughness.o : control.o dimensions.o topo.o 
 
-samplert.o : control.o decomp.o dimensions.o grid.o io_files.o parallel.o  \
-    press.o time.o 
+samplert.o : control.o decomp.o dimensions.o grid.o io_files.o mixture.o  \
+    parallel.o press.o time.o 
 
 sampling.o : control.o decomp.o dimensions.o ghost.o grid.o io_files.o  \
     parallel.o postout.o postvar.o topo.o 

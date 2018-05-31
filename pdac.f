@@ -10,11 +10,13 @@
    PROGRAM pdac
 !
       USE blunt_body, ONLY: set_blunt, ibl
+      USE compute_mean_fields, ONLY: allocate_mean_fields, imrt
       USE control_flags, ONLY: prog, lpr, nfil
       USE dimensions
       USE domain_decomposition, ONLY: partition
       USE domain_mapping, ONLY: ghost
       USE dome_conditions, ONLY: idome, locate_dome
+      USE mixture_fields, ONLY: allocate_mixture_fields
       USE environment, ONLY: cpclock, timing, elapsed_seconds
       USE eos_gas, ONLY: allocate_eosg
       USE gas_components, ONLY: allocate_species
@@ -30,7 +32,7 @@
       USE io_files, ONLY: logunit, dataunit, errorunit, checkunit, inputunit, testunit
       USE io_files, ONLY: logfile, datafile, errorfile, checkfile, inputfile, testfile
       USE io_files, ONLY: testnb
-      USE mass_sink, ONLY: allocate_sink
+      USE mass_sink, ONLY: allocate_sink, isink
       USE parallel, ONLY: parallel_startup, parallel_hangup, &
      &    mpime, root, nproc
       USE particles_constants, ONLY: allocate_part_constants
@@ -130,9 +132,6 @@
 !
 ! ... initialize input fields
       CALL initc
-!
-! ... set start time
-      timestart = time
 !
 ! ... Setup cell-sizes and cell flags
 !
@@ -258,6 +257,8 @@
       CALL allocate_hcapgs
       CALL allocate_turbo
       CALL allocate_sink
+      CALL allocate_mixture_fields
+      IF (imrt >= 1) CALL allocate_mean_fields
 !
 ! ... Set parameters and initial conditions
 !

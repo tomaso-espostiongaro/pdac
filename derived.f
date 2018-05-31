@@ -12,7 +12,7 @@
                gas_bulk_density, solid_bulk_density, &
                mixture_density, mixture_velocity, &
                velocity_module_2D, velocity_module_3D, &
-               dynamic_pressure 
+               dynamic_pressure, mixture_mass_fractions
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
@@ -216,6 +216,38 @@
       END DO
 
       END SUBROUTINE solid_bulk_density
+!----------------------------------------------------------------------
+      SUBROUTINE mixture_mass_fractions(yd,rgp,rlk,rhom,ygc)
+      !
+      ! ... computes gas components mass fractions
+      
+      IMPLICIT NONE
+      REAL*8, INTENT(IN), DIMENSION(:,:) :: ygc, rlk
+      REAL*8, INTENT(IN), DIMENSION(:) :: rgp, rhom
+      REAL*8, INTENT(OUT), DIMENSION(SIZE(rhom),nsolid+ngas) :: yd
+      INTEGER :: ig, is, id, ind, arraysize
+      REAL*8 :: inrhom
+!
+      arraysize = SIZE(rhom)
+!
+      IF (SIZE(ygc,DIM=2) /= ngas) &
+         CALL error('derived.f','check ngas dimension',ngas)
+      IF (SIZE(rlk,DIM=2) /= nsolid) &
+         CALL error('derived.f','check nsolid dimension',nsolid)
+!
+      DO ind = 1, arraysize
+        inrhom = 1.D0 / rhom(ind)
+        DO ig=1,ngas
+          yd(ind,ig) = ygc(ind,ig) * rgp(ind) * inrhom
+        END DO
+        DO is=1,nsolid
+          id = ngas + is
+          yd(ind,id) = rlk(ind,is) * inrhom 
+        END DO
+      END DO
+
+      RETURN
+      END SUBROUTINE mixture_mass_fractions
 !----------------------------------------------------------------------
       SUBROUTINE mixture_density(rhom,rlk,rgp)
       !

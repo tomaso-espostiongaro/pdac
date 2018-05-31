@@ -57,6 +57,7 @@
 ! ... (2D/3D_Compliant and fully parallel)
 !
       USE check_residuals, ONLY: print_mass_flow_rate
+      USE compute_mean_fields, ONLY: imrt
       USE control_flags, ONLY: job_type, nfil
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
@@ -67,6 +68,7 @@
       USE io_files, ONLY: ventunit
       USE io_restart, ONLY: taperd, tapewr, outp_recover, outp_remap
       USE mass_sink, ONLY: isink, read_mass_loss
+      USE output_dump, ONLY: read_mean_fields
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: cmus
       USE time_parameters, ONLY: itd
@@ -143,10 +145,12 @@
 !
       CASE (2)
         IF (isink > 0) CALL read_mass_loss(nfil)
+        IF (imrt  > 0) CALL read_mean_fields(nfil)
         CALL taperd
         CALL cnvert
       CASE (3)
         IF (isink > 0) CALL read_mass_loss(nfil)
+        IF (imrt  > 0) CALL read_mean_fields(nfil)
         CALL outp_recover(nfil)
         CALL cnvert
       CASE (4)

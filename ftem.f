@@ -21,6 +21,7 @@
 ! ... This routine computes the matrix elements for the thermal 
 ! ... interphase coupling, and solves for the enthalpies
 !
+      USE atmospheric_conditions, ONLY: gravx, gravy, gravz
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions
@@ -50,7 +51,7 @@
 !
       REAL*8 :: hrexs, hrexg
       REAL*8 :: dugs, dvgs, dwgs
-      REAL*8 :: dpxyz, deltap
+      REAL*8 :: dpxyz, deltap, workg, works
       REAL*8 :: indxc, indyc, indzc
       REAL*8 :: ugc, vgc, wgc
       INTEGER :: is, is1
@@ -122,8 +123,12 @@
 !
           deltap = ep(ijk) * (p(ijk) - pn(ijk) + dpxyz)
 !
+          workg  = rgp(ijk) * (ug(ijk) * gravx + wg(ijk) * gravz)
+          IF (job_type == JOB_TYPE_3D) workg = workg + vg(ijk) * gravy
+!
           at(1,1) = rgp(ijk)
-          bt(1)   = siegn(ijk) * rgpn(ijk) + rhg(ijk) + deltap - hrexg
+          bt(1)   = siegn(ijk) * rgpn(ijk) + rhg(ijk) + deltap + workg &
+                  - hrexg
 
           DO is=1, nsolid
             is1=is+1
@@ -142,6 +147,9 @@
             CALL hvs(hv, rlk(ijk,is), rog(ijk), ep(ijk), &
                    dugs, dvgs, dwgs, mug(ijk), kapg(ijk), cg(ijk), is)
 !
+            works  = rlk(ijk,is) * (us(ijk,is) * gravx + ws(ijk,is) * gravz)
+            IF (job_type == JOB_TYPE_3D) works = works + vs(ijk,is) * gravy
+!
             at(1,1)     = at(1,1)     + alpha * dt * hv / cg(ijk)
             at(1,is1)   =             - alpha * dt * hv / ck(is,ijk)
             at(is1,1)   =             - alpha * dt * hv / cg(ijk)
@@ -149,9 +157,9 @@
 !
             bt(1) = bt(1) + (1.D0-alpha) * dt * hv * ts(ijk,is) & 
                         & - (1.D0-alpha) * dt * hv * tg(ijk) 
-            bt(is1) = rlkn(ijk,is) * siesn(ijk,is) + rhs(ijk, is) &
+            bt(is1) = rlkn(ijk,is) * siesn(ijk,is) + rhs(ijk, is) + works &
                         & + (1.D0-alpha) * dt * hv * tg(ijk) & 
-                        & - (1.D0-alpha) * dt * hv * ts(ijk,is) 
+                        & - (1.D0-alpha) * dt * hv * ts(ijk,is)
 
           END DO
 !            

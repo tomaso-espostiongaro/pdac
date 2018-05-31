@@ -11,6 +11,7 @@
       LOGICAL :: interpolate = .TRUE.
       PUBLIC :: outp, write_radial_profile_2D, shock_tube_out
       PUBLIC :: print_volumes, cell_report
+      PUBLIC :: read_mean_fields, write_mean_fields
       SAVE
 !----------------------------------------------------------------------
       CONTAINS
@@ -200,6 +201,7 @@
       USE gas_solid_velocity, ONLY: us, vs, ws
       USE gas_solid_temperature, ONLY: tg, ts
       USE io_parallel, ONLY: write_array
+      USE mixture_fields, ONLY: compute_mixture,rhom,um,vm,wm,tm,yd
       USE parallel, ONLY: nproc, mpime, root, group
       USE particles_constants, ONLY: rl, inrl
       USE pressure_epsilon, ONLY: p
@@ -235,39 +237,47 @@
  
       END IF
 !
-      IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"P   ",/)')
+      IF( lform .AND. mpime == root ) &
+                      WRITE(outpunit,'(1x,//,1x,"P   ",/)')
       CALL write_array( outpunit, p, sgl, lform )  ! gas_pressure
 
       IF (job_type == JOB_TYPE_2D) THEN
 
-        IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"UG  ",/)')
+        IF( lform .AND. mpime == root ) &
+                      WRITE(outpunit,'(1x,//,1x,"UG  ",/)')
         CALL write_array( outpunit, ug, sgl, lform ) ! gas_velocity_r
 
-        IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"WG  ",/)')
+        IF( lform .AND. mpime == root ) &
+                      WRITE(outpunit,'(1x,//,1x,"WG  ",/)')
         CALL write_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
 
       ELSE IF (job_type == JOB_TYPE_3D) THEN
 
-        IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"UG  ",/)')
+        IF( lform .AND. mpime == root ) &
+                      WRITE(outpunit,'(1x,//,1x,"UG  ",/)')
         CALL write_array( outpunit, ug, sgl, lform ) ! gas_velocity_x
 
-        IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"VG  ",/)')
+        IF( lform .AND. mpime == root ) &
+                      WRITE(outpunit,'(1x,//,1x,"VG  ",/)')
         CALL write_array( outpunit, vg, sgl, lform ) ! gas_velocity_y
 
-        IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"WG  ",/)')
+        IF( lform .AND. mpime == root ) &
+                      WRITE(outpunit,'(1x,//,1x,"WG  ",/)')
         CALL write_array( outpunit, wg, sgl, lform ) ! gas_velocity_z
 
       ELSE
         CALL error('outp_','Unknown job type',1)
       END IF
 
-      IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"TG  ",/)')
+      IF( lform .AND. mpime == root ) &
+                      WRITE(outpunit,'(1x,//,1x,"TG  ",/)')
       CALL write_array( outpunit, tg, sgl, lform )  ! gas_temperature
 !
       ALLOCATE( otmp( SIZE( xgc, 1 ) ) )
       DO ig=1,ngas
           otmp = xgc(:,ig)
-          IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"XGC",I1,/)') ig
+          IF( lform .AND. mpime == root ) &
+                      WRITE(outpunit,'(1x,//,1x,"XGC",I1,/)') ig
           CALL write_array( outpunit, otmp, sgl, lform )  ! gc_molar_fraction
       END DO
       DEALLOCATE( otmp )
@@ -277,37 +287,93 @@
       DO is = 1, nsolid
 
         otmp = rlk(:,is)*inrl(is)
-        IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x,"EPS",I1,/)') is
+        IF( lform .AND. mpime == root ) &
+                      WRITE(outpunit,'(1x,//,1x,"EPS",I1,/)') is
         CALL write_array( outpunit, otmp, sgl, lform )  ! solid_bulk_density
 
         IF (job_type == JOB_TYPE_2D) THEN
 
-          IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x," US",I1,/)') is
+          IF( lform .AND. mpime == root ) &
+                      WRITE(outpunit,'(1x,//,1x," US",I1,/)') is
           CALL write_array( outpunit, us(:,is), sgl, lform )  ! solid_velocity_r
 
-          IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x," WS",I1,/)') is
+          IF( lform .AND. mpime == root ) &
+                      WRITE(outpunit,'(1x,//,1x," WS",I1,/)') is
           CALL write_array( outpunit, ws(:,is), sgl, lform )  ! solid_velocity_z
 
         ELSE IF (job_type == JOB_TYPE_3D) THEN
 
-          IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x," US",I1,/)') is
+          IF( lform .AND. mpime == root ) &
+                      WRITE(outpunit,'(1x,//,1x," US",I1,/)') is
           CALL write_array( outpunit, us(:,is), sgl, lform )  ! solid_velocity_x
 
-          IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x," VS",I1,/)') is
+          IF( lform .AND. mpime == root ) &
+                      WRITE(outpunit,'(1x,//,1x," VS",I1,/)') is
           CALL write_array( outpunit, vs(:,is), sgl, lform )  ! solid_velocity_y
 
-          IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x," WS",I1,/)') is
+          IF( lform .AND. mpime == root ) &
+                      WRITE(outpunit,'(1x,//,1x," WS",I1,/)') is
           CALL write_array( outpunit, ws(:,is), sgl, lform )  ! solid_velocity_z
 
         END IF
 
-        IF( lform .AND. mpime == root ) WRITE(outpunit,'(1x,//,1x," TS",I1,/)') is
+        IF( lform .AND. mpime == root ) &
+                      WRITE(outpunit,'(1x,//,1x," TS",I1,/)') is
         CALL write_array( outpunit, ts(:,is), sgl, lform )  ! solid_temperature
 
       END DO
 
       DEALLOCATE( otmp )
+!
+! ... Write mixture fields if required
+!
+      IF (compute_mixture) THEN
+        IF( lform .AND. mpime == root ) &
+                        WRITE(outpunit,'(1x,//,1x,"RHOM",/)')
+        CALL write_array( outpunit, rhom, sgl, lform )  ! gas_pressure
+  
+        IF (job_type == JOB_TYPE_2D) THEN
+  
+          IF( lform .AND. mpime == root ) &
+                        WRITE(outpunit,'(1x,//,1x,"UM  ",/)')
+          CALL write_array( outpunit, um, sgl, lform ) ! gas_velocity_r
+  
+          IF( lform .AND. mpime == root ) &
+                        WRITE(outpunit,'(1x,//,1x,"WM  ",/)')
+          CALL write_array( outpunit, wm, sgl, lform ) ! gas_velocity_z
+  
+        ELSE IF (job_type == JOB_TYPE_3D) THEN
+  
+          IF( lform .AND. mpime == root ) &
+                        WRITE(outpunit,'(1x,//,1x,"UM  ",/)')
+          CALL write_array( outpunit, um, sgl, lform ) ! gas_velocity_x
+  
+          IF( lform .AND. mpime == root ) &
+                        WRITE(outpunit,'(1x,//,1x,"VM  ",/)')
+          CALL write_array( outpunit, vm, sgl, lform ) ! gas_velocity_y
+  
+          IF( lform .AND. mpime == root ) &
+                        WRITE(outpunit,'(1x,//,1x,"WM  ",/)')
+          CALL write_array( outpunit, wm, sgl, lform ) ! gas_velocity_z
 
+        ELSE
+          CALL error('outp_','Unknown job type',1)
+        END IF
+  
+        IF( lform .AND. mpime == root ) &
+                        WRITE(outpunit,'(1x,//,1x,"TM  ",/)')
+        CALL write_array( outpunit, tm, sgl, lform )  ! gas_temperature
+!
+        ALLOCATE( otmp( SIZE( yd, 1 ) ) )
+        DO ig=1,ngas+nsolid
+            otmp = yd(:,ig)
+            IF( lform .AND. mpime == root ) &
+                        WRITE(outpunit,'(1x,//,1x,"YD",I1,/)') ig
+            CALL write_array( outpunit, otmp, sgl, lform )  ! gc_molar_fraction
+        END DO
+        DEALLOCATE( otmp )
+      END IF
+!
       IF( mpime == root ) THEN
         CLOSE (outpunit)
       END IF
@@ -316,6 +382,149 @@
 !
       RETURN
       END SUBROUTINE outp
+!-----------------------------------------------------------------------
+      SUBROUTINE read_mean_fields(filenumber)
+!
+! ... Write the mean field of all process fields
+!
+      USE compute_mean_fields, ONLY: rhom_gav, tm_gav, um_gav, vm_gav, wm_gav, yd_gav
+      USE control_flags, ONLY: formatted_output,  job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
+      USE kinds
+      USE dimensions, ONLY: nsolid, ngas
+      USE io_files, ONLY: tempunit
+      USE io_parallel, ONLY: read_array
+      USE parallel, ONLY: mpime, root
+      USE time_parameters, ONLY: time
+!
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: filenumber
+
+      CHARACTER(LEN = 14) :: filnam
+      CHARACTER*4 :: lettera
+      LOGICAL :: lform
+!
+      INTEGER :: ig,is
+      REAL*8, ALLOCATABLE :: otmp(:)
+!
+      filnam='m_outp.'//lettera(filenumber)
+      lform = formatted_output
+
+      IF (mpime == root ) THEN
+        IF (lform) THEN
+          OPEN(UNIT=tempunit,FILE=filnam)
+          READ(tempunit,*) time
+        ELSE
+          OPEN(UNIT=tempunit,FORM='UNFORMATTED',FILE=filnam)
+          READ(tempunit) time
+        END IF
+      END IF
+!
+      IF(lform .AND. mpime==root) READ(tempunit,'(///)')
+      CALL read_array( tempunit, rhom_gav, sgl, lform )
+!
+      IF (job_type == JOB_TYPE_2D) THEN
+      IF(lform .AND. mpime==root) READ(tempunit,'(///)')
+        CALL read_array( tempunit, um_gav, sgl, lform)
+      IF(lform .AND. mpime==root) READ(tempunit,'(///)')
+        CALL read_array( tempunit, wm_gav, sgl, lform)
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
+      IF(lform .AND. mpime==root) READ(tempunit,'(///)')
+        CALL read_array( tempunit, um_gav, sgl, lform)
+      IF(lform .AND. mpime==root) READ(tempunit,'(///)')
+        CALL read_array( tempunit, vm_gav, sgl, lform)
+      IF(lform .AND. mpime==root) READ(tempunit,'(///)')
+        CALL read_array( tempunit, wm_gav, sgl, lform)
+      ELSE
+        CALL error('outp_','Unknown job type',1)
+      END IF
+      IF(lform .AND. mpime == root) READ(tempunit,'(///)')
+      CALL read_array( tempunit, tm_gav, sgl, lform)
+!
+      ALLOCATE( otmp( SIZE( yd_gav, 1 ) ) )
+      DO ig=1,ngas+nsolid
+          otmp = yd_gav(:,ig)
+          IF(lform .AND. mpime==root) READ(tempunit,'(///)')
+          CALL read_array( tempunit, otmp, sgl, lform )
+      END DO
+      DEALLOCATE( otmp )
+!
+      IF (mpime == root) CLOSE(tempunit)
+!
+      RETURN
+      END SUBROUTINE read_mean_fields
+!-----------------------------------------------------------------------
+      SUBROUTINE write_mean_fields(filenumber)
+!
+! ... Write the mean field of all process fields
+!
+      USE compute_mean_fields, ONLY: rhom_gav, tm_gav, um_gav, vm_gav, wm_gav, yd_gav
+      USE control_flags, ONLY: formatted_output,  job_type
+      USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
+      USE kinds
+      USE dimensions, ONLY: nsolid, ngas
+      USE io_files, ONLY: tempunit
+      USE io_parallel, ONLY: write_array
+      USE parallel, ONLY: mpime, root
+      USE time_parameters, ONLY: time
+!
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: filenumber
+
+      CHARACTER(LEN = 14) :: filnam
+      CHARACTER*4 :: lettera
+      LOGICAL :: lform
+!
+      INTEGER :: ig,is
+      REAL*8, ALLOCATABLE :: otmp(:)
+!
+      filnam='m_outp.'//lettera(filenumber)
+      lform = formatted_output
+
+      IF (mpime == root ) THEN
+        IF (lform) THEN
+          OPEN(UNIT=tempunit,FILE=filnam)
+          WRITE(tempunit,*) time
+        ELSE
+          OPEN(UNIT=tempunit,FORM='UNFORMATTED',FILE=filnam)
+          WRITE(tempunit) REAL(time,4)
+        END IF
+      END IF
+!
+      IF(lform .AND. mpime==root) WRITE(tempunit,'(1x,//,1x,"RHOM",/)')
+      CALL write_array( tempunit, rhom_gav, sgl, lform )  !  mixture_density
+!
+      IF (job_type == JOB_TYPE_2D) THEN
+      IF(lform .AND. mpime==root) WRITE(tempunit,'(1x,//,1x,"UM  ",/)')
+        CALL write_array( tempunit, um_gav, sgl, lform)
+      IF(lform .AND. mpime==root) WRITE(tempunit,'(1x,//,1x,"VM  ",/)')
+        CALL write_array( tempunit, wm_gav, sgl, lform)
+      ELSE IF (job_type == JOB_TYPE_3D) THEN
+      IF(lform .AND. mpime==root) WRITE(tempunit,'(1x,//,1x,"UM  ",/)')
+        CALL write_array( tempunit, um_gav, sgl, lform)
+      IF(lform .AND. mpime==root) WRITE(tempunit,'(1x,//,1x,"VM  ",/)')
+        CALL write_array( tempunit, vm_gav, sgl, lform)
+      IF(lform .AND. mpime==root) WRITE(tempunit,'(1x,//,1x,"WM  ",/)')
+        CALL write_array( tempunit, wm_gav, sgl, lform)
+      ELSE
+        CALL error('outp_','Unknown job type',1)
+      END IF
+      IF(lform .AND. mpime == root) WRITE(tempunit,'(1x,//,1x,"TM  ",/)')
+      CALL write_array( tempunit, tm_gav, sgl, lform)
+!
+      ALLOCATE( otmp( SIZE( yd_gav, 1 ) ) )
+      DO ig=1,ngas+nsolid
+          otmp = yd_gav(:,ig)
+          IF(lform .AND. mpime==root) &
+                         WRITE(tempunit,'(1x,//,1x,"YD",I1,/)') ig
+          CALL write_array( tempunit, otmp, sgl, lform )
+      END DO
+      DEALLOCATE( otmp )
+!
+      IF (mpime == root) CLOSE(tempunit)
+!
+      RETURN
+      END SUBROUTINE write_mean_fields
 !----------------------------------------------------------------------
       SUBROUTINE cell_report(iunit, ijk, imesh, i, j, k)
       USE dimensions, ONLY: nsolid, ngas

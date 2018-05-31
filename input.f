@@ -108,6 +108,7 @@
       USE dome_conditions, ONLY: overpressure_1, overpressure_2, overpressure_3
       USE dome_conditions, ONLY: idome, gas_flux, permeability, dome_gasvisc, idw, domegeom
       USE dome_conditions, ONLY: conduit_radius, dome_radius
+      USE mixture_fields, ONLY: compute_mixture
       USE enthalpy_matrix, ONLY: flim
       USE eos_gas, ONLY: update_eosg
       USE flux_limiters, ONLY: beta, muscl, ctu
@@ -126,8 +127,10 @@
           crater_radius, vent_radius, xvent, yvent, ivent, iali, irand, &
           ipro, rad_file, isl, vent_in_center, inlet_profile, mass_flow_rate
       USE immersed_boundaries, ONLY: immb
-      USE iterative_solver, ONLY: inmax, maxout, omega, optimization, delg
+      USE iterative_solver, ONLY: inmax, maxout, omega, optimization, &
+                                  delg
       USE io_restart, ONLY: max_seconds
+      USE compute_mean_fields, ONLY: imrt
       USE momentum_transfer, ONLY: drag_model
       USE parallel, ONLY: mpime, root
       USE particles_constants, ONLY: rl, inrl, kap, &
@@ -154,12 +157,13 @@
       CHARACTER(LEN=20) :: job_type
 !
       NAMELIST / control / run_name, job_type, restart_mode,       &
-        time, tstop, dt, lpr, imr, isrt, tpr, tdump, nfil, tau, tau1, tau2, ift,      &
+        time, tstop, dt, lpr, imr, imrt, isrt, tpr, tdump, nfil, tau, tau1, tau2, ift,      &
         formatted_output, formatted_input, max_seconds, cstop
 
       NAMELIST / model / icpc, tref, irex, gas_viscosity, part_viscosity,      &
         iss, repulsive_model, iturb, modturbo, cmut, drag_model, pmodel,             &
-        gravx, gravy, gravz, ngas, density_specified, isink, rprox, rdist
+        gravx, gravy, gravz, ngas, density_specified, isink, rprox, rdist, &
+        compute_mixture
 
       NAMELIST / mesh / nx, ny, nz, itc, iuni, dx0, dy0, dz0, zzero, &
         center_x, center_y, alpha_x, alpha_y, alpha_z,  &
@@ -221,6 +225,7 @@
       lpr = 0           ! verbosity 
       imr = 0           ! =1 print mass residuals
       isrt = 0          ! =1 sample pressure at given locations
+      imrt = 0          ! =1 compute time averages of mixture fields
       tpr = 1.0D0       ! write to output file every tpr seconds of simulated time
       tdump = 20.0D0    ! write restart every tdump seconds of simulated time
       nfil = 0          ! output file index
@@ -237,6 +242,7 @@
 
       icpc = 2          ! ( 1 specific heat depends on temperature)
       irex = 1          ! ( 1 no reaction, 2 use hrex. Not used )
+      compute_mixture = .FALSE. !( 1 computes mixture variables )
       isink = 0
       gas_viscosity  = .TRUE. ! include molecular gas viscosity
       part_viscosity = .TRUE. ! include collisional particle viscosity
@@ -330,7 +336,7 @@
       irand = 0               ! 1: circular vent specified on average
       ipro = 0                ! 1: inlet radial profile
       isl = 0                 ! criterion for vent cell
-      inlet_profile = 1       ! 1: power-law profile; 2: turbulent inlet
+      inlet_profile = 2       ! 1: power-law profile; 2: turbulent inlet
       mass_flow_rate = 0.D0       ! 1: power-law profile; 2: turbulent inlet
       vent_in_center = .TRUE. !
       rad_file = 'profile.rad'! file with the radial profile
@@ -480,6 +486,7 @@
       CALL bcast_integer(lpr,1,root)
       CALL bcast_integer(imr,1,root)
       CALL bcast_integer(isrt,1,root)
+      CALL bcast_integer(imrt,1,root)
       CALL bcast_real(tpr,1,root)
       CALL bcast_real(tdump,1,root)
       CALL bcast_integer(nfil,1,root)
@@ -532,6 +539,7 @@
 !
       CALL bcast_integer(icpc,1,root)
       CALL bcast_integer(irex,1,root)
+      CALL bcast_logical(compute_mixture,1,root)
       CALL bcast_integer(isink,1,root)
       CALL bcast_real(rprox,1,root)
       CALL bcast_real(rdist,1,root)
@@ -759,7 +767,7 @@
       CALL bcast_integer(vel_limiter,1,root)
       CALL bcast_integer(muscl,1,root)
       CALL bcast_integer(inmax,1,root)
-      CALL bcast_integer(delg,1,root)
+      CALL bcast_real(delg,1,root)
       CALL bcast_integer(maxout,1,root)
       CALL bcast_integer(optimization,1,root)
       CALL bcast_real(omega,1,root)
@@ -926,6 +934,7 @@
 !
       IF (itp < 1) immb = 0
       IF (idome >= 1) ivent = 0
+      IF (imrt > 0 .OR. isrt > 0) compute_mixture = .TRUE.
 !
 ! ... numerics
 !
