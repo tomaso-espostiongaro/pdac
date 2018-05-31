@@ -12,8 +12,8 @@
 ! ... derived fields
 !
       REAL*8, ALLOCATABLE, DIMENSION(:) :: epst, vf, lepst, rhog, rgp, mg
-      REAL*8, ALLOCATABLE, DIMENSION(:) :: rhom, um, vm, wm, pd, mvm 
-      REAL*8, ALLOCATABLE, DIMENSION(:) :: tm, cm, mn, mnn, gpx, gpy, gpz
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: rhom, um, vm, wm, mvm, tm, pd
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: cm, mn, mnn, gpx, gpy, gpz
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: rlk, ygc
 !
 ! ... derived averaged fields

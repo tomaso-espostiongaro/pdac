@@ -6,8 +6,9 @@
       USE dimensions, ONLY: ntot, nz
       USE io_files, ONLY: logunit, tempunit, testunit
       USE kinds
+      USE postp_output, ONLY: write_mean_fields
       USE postp_output, ONLY: write_topo2d, write_map
-      USE postp_output, ONLY: write_fields, write_mean_field
+      USE postp_output, ONLY: write_fields
       USE postp_output, ONLY: write_axis_average
       USE postp_output, ONLY: write_plume_profile
       USE postp_output, ONLY: read_implicit_profile, read_output, read_old_output
@@ -25,7 +26,7 @@
 ! 
 ! ... Compute the derived fields
 !
-      USE compute_mean_fields, ONLY: compute_time_averages
+      USE compute_mean_fields, ONLY: average_mixture_fields
       USE domain_mapping, ONLY: ncdom, ncint
       USE gas_constants, ONLY: rgas
       USE grid, ONLY: z
@@ -49,6 +50,7 @@
       INTEGER :: tn, cnt, itn
       INTEGER :: ijk, i, j, k, ig, is, n, imesh
       REAL*8  :: md, md1
+      REAL*8  :: time, timestart, dt
 !
       LOGICAL :: lform, ex
       CHARACTER(LEN = 14) :: filnam
@@ -102,7 +104,10 @@
         !
         ! ... Compute time-averaged fields
         !
-        IF (imnfld > 0) CALL compute_time_averages
+        time = last_out
+        timestart = first_out
+        dt = 1
+        IF (imnfld > 0) CALL average_mixture_fields(time,timestart,dt)
         !
         ! ... Print the map of any interesting variable above ground
         !
@@ -137,14 +142,7 @@
 !
 ! ... Print the time-averaged field 
 !
-      IF (imnfld > 0) THEN
-        rhom_gav = rhom_gav * md
-        um_gav = um_gav * md
-        IF (job_type == JOB_TYPE_3D) vm_gav = vm_gav * md
-        wm_gav = wm_gav * md
-        tm_gav = tm_gav * md
-        CALL write_mean_field(last_out)
-      END IF
+      IF (imnfld > 0) CALL write_mean_fields(last_out)
 !
       RETURN
       END SUBROUTINE process

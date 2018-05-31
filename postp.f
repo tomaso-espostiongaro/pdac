@@ -21,7 +21,6 @@
       USE particles_constants, ONLY: allocate_part_constants
       USE postp_input, ONLY: postin
       USE postp_output, ONLY: read_implicit_profile
-      USE postp_output, ONLY: write_avs_files, write_xml_files
       USE process_outp, ONLY: process, act
       USE time_parameters, ONLY: itd
       USE volcano_topography, ONLY: itp
@@ -103,13 +102,6 @@
 ! ... Read the implicit profile
 !
       IF (itp >= 1) CALL read_implicit_profile
-!
-! ... Root Writes input files for visualization tools
-!
-      IF (mpime == root) THEN
-        CALL write_avs_files
-        CALL write_xml_files
-      END IF
 !
       IF (act == 0) GOTO 111 
 !
