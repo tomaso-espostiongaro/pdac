@@ -37,9 +37,11 @@
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE dimensions, ONLY: nsolid, ngas, nx, ny, nz
       USE domain_decomposition, ONLY: cell_owner, cell_g2l
-      USE grid, ONLY: x, y, z
+      USE grid, ONLY: x, y, z, dz
       USE io_files, ONLY: tempunit, logunit
       USE parallel, ONLY: mpime, root
+      USE postp_output, ONLY: topo2d
+      USE volcano_topography, ONLY: itp
 !
       IMPLICIT NONE
       INTEGER :: ijk, imesh, i, j, k, n
@@ -154,8 +156,9 @@
                         DO j=1,ny
                           IF (y(j) <= probe(nop)%y) probe(nop)%j = j
                         END DO
+                        IF (itp >= 1) probe(nop)%z = topo2d(probe(nop)%i,probe(nop)%j) + probe(nop)%z
                         DO k=1,nz
-                          IF (z(k) <= probe(nop)%z) probe(nop)%k = k
+                          IF (probe(nop)%z >= z(k)) probe(nop)%k = k
                         END DO
                         i = probe(nop)%i
                         j = probe(nop)%j
@@ -164,6 +167,7 @@
                         imesh_probe(nop) = imesh
                 END IF
           END IF
+          IF (mpime == root) WRITE(logunit,*) probe(nop)%i, probe(nop)%j, probe(nop)%k
         END DO
         IF (mpime == root) CLOSE(tempunit)
       END IF
@@ -196,14 +200,14 @@
              (eps(ijk,nv), us(ijk,nv), & 
               vs(ijk,nv), ws(ijk,nv), &
               ts(ijk,nv), nv=1, nsolid), &
-              rhom(ijk), mvm(ijk), pd(ijk)
+              rhom(ijk), mvm(ijk), tm(ijk), pd(ijk)
           ELSE IF (job_type == JOB_TYPE_2D) THEN
              WRITE(tempunit,100) time, p(ijk), &
              ug(ijk), wg(ijk), tg(ijk), &
              (xgc(ijk,nv),nv=1, ngas), &
              (eps(ijk,nv), us(ijk,nv), &
               ws(ijk,nv), ts(ijk,nv),nv=1, nsolid), &
-              rhom(ijk), mvm(ijk), pd(ijk)
+              rhom(ijk), mvm(ijk), tm(ijk), pd(ijk)
           END IF
         END IF
         CLOSE(tempunit)

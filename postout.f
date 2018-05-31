@@ -270,7 +270,7 @@
       USE control_flags, ONLY: job_type
       USE control_flags, ONLY: JOB_TYPE_2D, JOB_TYPE_3D
       USE grid, ONLY: x, y, z, xb, yb, zb
-      USE io_files, ONLY: tempunit
+      USE io_files, ONLY: tempunit, logunit
       USE parallel, ONLY: mpime, root
 
       !  This subroutine reads the implicit profile
@@ -344,7 +344,6 @@
         CALL bcast_real(improfile_3d,ntot,root)
       END IF
 !
- 100  FORMAT(5(F20.6))
       RETURN
 !
       END SUBROUTINE read_implicit_profile

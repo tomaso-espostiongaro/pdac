@@ -44,6 +44,7 @@
       USE postp_variables, ONLY: rhom_gav, um_gav, vm_gav, wm_gav, tm_gav
       USE postp_variables, ONLY: um, vm, wm, tg, eps
       USE section_outputs, ONLY: section, isect, read_sections
+      USE volcano_topography, ONLY: itp
 !
       IMPLICIT NONE
       INTEGER :: tn, cnt, itn
@@ -106,8 +107,8 @@
         !
         ! ... Print the map of any interesting variable above ground
         !
+        IF (itp >= 1) CALL write_topo2d
         IF (imap > 0) THEN
-               CALL write_topo2d
                CALL write_map(tn,tm,'tm')
                CALL write_map(tn,rhom,'rm')
                CALL write_map(tn,pd,'pd')

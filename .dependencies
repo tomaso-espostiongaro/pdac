@@ -68,9 +68,9 @@ hcapgs.o : dimensions.o gas.o ghost.o
 
 hotc.o : dimensions.o ghost.o grid.o indijk.o subscr.o 
 
-htilde.o : control.o dens.o dimensions.o flux_sc.o ghost.o grid.o hotc.o  \
-    immb.o io_files.o limiters.o particles.o press.o sink.o subscr.o temp.o  \
-    time.o turbo.o velocity.o visc.o 
+htilde.o : atmosphere.o control.o dens.o dimensions.o flux_sc.o ghost.o  \
+    grid.o hotc.o immb.o io_files.o limiters.o particles.o press.o sink.o  \
+    subscr.o temp.o time.o turbo.o velocity.o visc.o 
 
 hvs.o : dimensions.o particles.o 
 
@@ -78,8 +78,8 @@ immb.o : control.o dimensions.o grid.o io_files.o parallel.o topo.o
 
 indijk.o : 
 
-inoutflow.o : dens.o dimensions.o eosg.o grid.o particles.o press.o temp.o  \
-    time.o 
+inoutflow.o : atmosphere.o dens.o dimensions.o eosg.o gas.o grid.o  \
+    particles.o press.o temp.o time.o 
 
 input.o : atmosphere.o bdry.o blunt.o control.o decomp.o dimensions.o dome.o  \
     drag.o eosg.o ftem.o grid.o hcapgs.o immb.o io_files.o io_restart.o iter.o  \
@@ -164,7 +164,7 @@ press.o : dimensions.o ghost.o
 
 process.o : control.o dimensions.o gas.o ghost.o grid.o io_files.o kinds.o  \
     massflux.o massgsedim.o masspart.o mean_fields.o parallel.o postout.o  \
-    postvar.o sampling.o sections.o 
+    postvar.o sampling.o sections.o topo.o 
 
 prog.o : bdry.o blunt.o control.o dens.o dimensions.o environment.o eosg.o  \
     explicit_solver.o ftem.o ghost.o htilde.o immb.o indijk.o io_files.o  \
@@ -184,7 +184,7 @@ samplert.o : control.o decomp.o dimensions.o grid.o io_files.o parallel.o  \
     press.o time.o 
 
 sampling.o : control.o decomp.o dimensions.o ghost.o grid.o io_files.o  \
-    parallel.o postout.o postvar.o 
+    parallel.o postout.o postvar.o topo.o 
 
 sections.o : control.o decomp.o dimensions.o grid.o io_files.o parallel.o  \
     postout.o postvar.o 
