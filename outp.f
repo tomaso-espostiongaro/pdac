@@ -452,7 +452,7 @@
       RETURN
       END SUBROUTINE write_mean_fields
 !----------------------------------------------------------------------
-      SUBROUTINE cell_report(iunit, ijk, imesh, i, j, k, residual)
+      SUBROUTINE cell_report(iunit, ijk, imesh, i, j, k)
       USE dimensions, ONLY: nsolid, ngas
       USE eos_gas, ONLY: xgc
       USE gas_solid_density, ONLY: rlk
@@ -467,17 +467,16 @@
 
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: iunit, ijk, imesh, i, j, k
-      REAL*8, INTENT(IN) :: residual
       INTEGER :: ig, is
 
       IF (job_type == JOB_TYPE_3D) THEN
         WRITE(iunit,100) time, p(ijk), ug(ijk), vg(ijk), wg(ijk), tg(ijk),  &
         (xgc(ijk,ig), ig=1, ngas), (rlk(ijk,is)*inrl(is), us(ijk,is), &
-        vs(ijk,is), ws(ijk,is), ts(ijk,is), is=1, nsolid), residual
+        vs(ijk,is), ws(ijk,is), ts(ijk,is), is=1, nsolid)
       ELSE IF (job_type == JOB_TYPE_2D) THEN
         WRITE(iunit,100) time, p(ijk), ug(ijk), wg(ijk), tg(ijk),  &
         (xgc(ijk,ig), ig=1, ngas), (rlk(ijk,is)*inrl(is), us(ijk,is), &
-        ws(ijk,is), ts(ijk,is), is=1, nsolid), residual
+        ws(ijk,is), ts(ijk,is), is=1, nsolid)
       END IF
  100  FORMAT( F8.2, 100(G14.6E3,1X) )
 
