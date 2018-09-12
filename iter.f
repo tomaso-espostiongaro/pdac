@@ -408,8 +408,6 @@
         !IF (ierr > 1) CALL error('iter','solid fraction exceeded 1',ierr)
 !
       END DO sor_loop
-
-CALL test_fluxes_iter
 !
 ! ... End the iterative sweep
 !/////////////////////////////////////////////////////////////////////

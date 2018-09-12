@@ -145,12 +145,12 @@
 !
       CASE (2)
         IF (isink > 0) CALL read_mass_loss(nfil)
-        IF (imrt  > 0) CALL read_mean_fields(nfil)
+        IF (imrt  > 0 .AND. nfil>0) CALL read_mean_fields(nfil)
         CALL taperd
         CALL cnvert
       CASE (3)
         IF (isink > 0) CALL read_mass_loss(nfil)
-        IF (imrt  > 0) CALL read_mean_fields(nfil)
+        IF (imrt  > 0 .AND. nfil>0) CALL read_mean_fields(nfil)
         CALL outp_recover(nfil)
         CALL cnvert
       CASE (4)

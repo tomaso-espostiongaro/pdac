@@ -358,6 +358,7 @@
       ALLOCATE(vcell(nvt))
       vcell(:)%frac = 1.D0
       vcell(:)%fact = 1.D0
+      vcell(:)%fact0 = 0.D0
 !
 ! ... Set the threshold above which a cells is included
 ! ... into the vent
